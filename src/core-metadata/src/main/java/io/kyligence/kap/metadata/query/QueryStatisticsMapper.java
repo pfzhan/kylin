@@ -35,10 +35,8 @@ import org.apache.ibatis.type.JdbcType;
 import org.mybatis.dynamic.sql.select.render.SelectStatementProvider;
 import org.mybatis.dynamic.sql.util.SqlProviderAdapter;
 
-import io.kyligence.kap.common.obf.IKeep;
-
 @Mapper
-public interface QueryStatisticsMapper extends IKeep {
+public interface QueryStatisticsMapper {
 
     @SelectProvider(type = SqlProviderAdapter.class, method = "select")
     @Results(id = "QueryStatisticsResult", value = {

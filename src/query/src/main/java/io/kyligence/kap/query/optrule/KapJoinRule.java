@@ -51,13 +51,12 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.query.relnode.KapFilterRel;
 import io.kyligence.kap.query.relnode.KapJoinRel;
 import io.kyligence.kap.query.relnode.KapNonEquiJoinRel;
 import io.kyligence.kap.query.relnode.KapRel;
 
-public class KapJoinRule extends ConverterRule implements IKeep {
+public class KapJoinRule extends ConverterRule {
     private static final Logger logger = LoggerFactory.getLogger(KapJoinRule.class);
 
     public static final ConverterRule INSTANCE = new KapJoinRule();

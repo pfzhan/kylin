@@ -24,12 +24,10 @@
 
 package org.apache.kylin.measure.corr;
 
-import io.kyligence.kap.common.obf.IKeep;
-
 /**
  * dummy corr udaf for calcite
  */
-public class CorrAggFunc implements IKeep {
+public class CorrAggFunc {
 
     public static Object init() {
         return null;

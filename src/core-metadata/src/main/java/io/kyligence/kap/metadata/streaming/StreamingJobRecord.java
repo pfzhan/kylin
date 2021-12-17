@@ -24,7 +24,7 @@
 package io.kyligence.kap.metadata.streaming;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.kyligence.kap.common.obf.IKeep;
+
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -32,7 +32,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class StreamingJobRecord implements IKeep {
+public class StreamingJobRecord {
     // table names
     public static final String STREAMING_JOB_RECORD_SUFFIX = "streaming_job_record";
 

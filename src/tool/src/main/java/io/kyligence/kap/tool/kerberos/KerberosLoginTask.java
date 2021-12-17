@@ -38,10 +38,9 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.util.Unsafe;
 
-public class KerberosLoginTask implements IKeep {
+public class KerberosLoginTask {
 
     private static final Logger logger = LoggerFactory.getLogger(KerberosLoginTask.class);
 

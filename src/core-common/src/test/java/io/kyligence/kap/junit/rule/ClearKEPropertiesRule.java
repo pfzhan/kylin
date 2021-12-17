@@ -21,16 +21,23 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package io.kyligence.kap.junit.rule;
 
-package io.kyligence.kap.common.obf;
+import org.junit.rules.ExternalResource;
 
-/**
- * Specifies classes and class members whose names are to be preserved,
- * if they aren't removed in the shrinking phase. For example, you may
- * want to keep all class names of classes that implement the Serializable
- * interface, so that the processed code remains compatible with any
- * originally serialized classes. Classes that aren't used at all can still
- * be removed. Only applicable when obfuscating.
- */
-public interface IKeepNames {
+import io.kyligence.kap.common.util.Unsafe;
+import lombok.val;
+
+public class ClearKEPropertiesRule extends ExternalResource {
+
+    @Override
+    protected void after() {
+        val names = System.getProperties().propertyNames();
+        while (names.hasMoreElements()) {
+            val name = names.nextElement().toString();
+            if (name.startsWith("ke.")) {
+                Unsafe.clearProperty(name);
+            }
+        }
+    }
 }

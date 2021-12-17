@@ -48,12 +48,11 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.metadata.PersistException;
 import io.kyligence.kap.common.util.EncryptUtil;
 import lombok.val;
 
-public class JdbcUtil implements IKeep {
+public class JdbcUtil {
 
     private static final Logger logger = LoggerFactory.getLogger(JdbcUtil.class);
 

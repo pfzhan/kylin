@@ -24,13 +24,12 @@
 
 package io.kyligence.kap.query.asyncprofiler;
 
-import io.kyligence.kap.common.obf.IKeep;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
-public class AsyncProfiler implements IKeep {
+public class AsyncProfiler {
 
     private static final String LOCAL_DEV_LIB_PATH =
             "../spark-project/sparder/src/main/resources/async-profiler-lib/macOS/libasyncProfiler.so";

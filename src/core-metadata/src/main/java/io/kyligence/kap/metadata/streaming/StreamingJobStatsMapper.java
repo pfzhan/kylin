@@ -24,7 +24,8 @@
 
 package io.kyligence.kap.metadata.streaming;
 
-import io.kyligence.kap.common.obf.IKeep;
+import java.util.List;
+
 import org.apache.ibatis.annotations.DeleteProvider;
 import org.apache.ibatis.annotations.InsertProvider;
 import org.apache.ibatis.annotations.Mapper;
@@ -40,10 +41,8 @@ import org.mybatis.dynamic.sql.insert.render.InsertStatementProvider;
 import org.mybatis.dynamic.sql.select.render.SelectStatementProvider;
 import org.mybatis.dynamic.sql.util.SqlProviderAdapter;
 
-import java.util.List;
-
 @Mapper
-public interface StreamingJobStatsMapper extends IKeep {
+public interface StreamingJobStatsMapper {
 
     @DeleteProvider(type = SqlProviderAdapter.class, method = "delete")
     int delete(DeleteStatementProvider deleteStatement);

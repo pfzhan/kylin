@@ -58,10 +58,9 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
 
-public class RowFilter implements QueryUtil.IQueryTransformer, IPushDownConverter, IKeep {
+public class RowFilter implements QueryUtil.IQueryTransformer, IPushDownConverter {
     private static final Logger logger = LoggerFactory.getLogger(RowFilter.class);
 
     @Override

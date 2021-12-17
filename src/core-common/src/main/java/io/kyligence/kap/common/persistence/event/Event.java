@@ -31,13 +31,12 @@ import org.apache.kylin.common.persistence.ResourceStore;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.AuditLog;
 import lombok.Data;
 
 @Data
 @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS)
-public class Event implements Serializable, IKeep {
+public class Event implements Serializable {
 
     private String key;
 

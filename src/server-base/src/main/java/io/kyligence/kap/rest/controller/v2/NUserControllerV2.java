@@ -29,13 +29,11 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.exception.UnauthorizedException;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.rest.service.LicenseInfoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,9 +61,6 @@ public class NUserControllerV2 extends NBasicController {
     private static final Logger logger = LoggerFactory.getLogger(NUserControllerV2.class);
 
     @Autowired
-    private LicenseInfoService licenseInfoService;
-
-    @Autowired
     private NUserController nUserController;
 
     @ApiOperation(value = "listAllUsers", tags = { "MID" })
@@ -88,17 +83,9 @@ public class NUserControllerV2 extends NBasicController {
     @PostMapping(value = "/user/authentication", produces = { HTTP_VND_APACHE_KYLIN_V2_JSON })
     @ResponseBody
     public EnvelopeResponse<UserDetails> authenticate() {
-        checkLicense();
         EnvelopeResponse<UserDetails> response = authenticatedUser();
         logger.debug("User login: {}", response.getData());
         return response;
-    }
-
-    private void checkLicense() {
-        if (!KylinConfig.getInstanceFromEnv().isDevOrUT()) {
-            val info = licenseInfoService.extractLicenseInfo();
-            licenseInfoService.verifyLicense(info);
-        }
     }
 
     @ApiOperation(value = "authenticatedUser", tags = { "MID" })

@@ -33,14 +33,13 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.NProjectManager;
 
-public class CheckMetadataAccessCLI implements IKeep {
+public class CheckMetadataAccessCLI {
     protected static final Logger logger = LoggerFactory.getLogger(CheckMetadataAccessCLI.class);
 
     public boolean testAccessMetadata() {

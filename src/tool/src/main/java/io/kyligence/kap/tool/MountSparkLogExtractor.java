@@ -27,9 +27,7 @@ import java.io.File;
 
 import org.apache.kylin.common.KylinConfig;
 
-import io.kyligence.kap.common.obf.IKeep;
-
-public class MountSparkLogExtractor implements ISparkLogExtractor, IKeep {
+public class MountSparkLogExtractor implements ISparkLogExtractor {
 
     @Override
     public String getSparkLogsDir(String project, KylinConfig kylinConfig) {

@@ -52,7 +52,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.obf.IKeep;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -66,7 +65,7 @@ import lombok.val;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
-public class MultiPartitionDesc implements Serializable, IKeep {
+public class MultiPartitionDesc implements Serializable {
 
     @JsonProperty("columns")
     private LinkedList<String> columns;
@@ -230,7 +229,7 @@ public class MultiPartitionDesc implements Serializable, IKeep {
     @AllArgsConstructor
     @NoArgsConstructor
     @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-    public static class PartitionInfo implements Serializable, IKeep {
+    public static class PartitionInfo implements Serializable {
         private long id;
         @EqualsAndHashCode.Include
         private String[] values;

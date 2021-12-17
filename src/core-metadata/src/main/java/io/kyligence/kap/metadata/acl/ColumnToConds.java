@@ -45,6 +45,8 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.CaseInsensitiveStringMap;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ColumnDesc;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -60,15 +62,12 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.acl.ColumnToConds.Cond.IntervalType;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 //all row conditions in the table, for example:C1:{cond1, cond2},C2{cond1, cond3}, immutable
-public class ColumnToConds extends CaseInsensitiveStringMap<List<ColumnToConds.Cond>> implements Serializable, IKeep {
+public class ColumnToConds extends CaseInsensitiveStringMap<List<ColumnToConds.Cond>> implements Serializable {
 
     private static final Logger logger = LoggerFactory.getLogger(ColumnToConds.class);
     private static final String COMMA = ",";
@@ -167,8 +166,8 @@ public class ColumnToConds extends CaseInsensitiveStringMap<List<ColumnToConds.C
 
     @JsonSerialize(using = Cond.RowACLCondSerializer.class)
     @JsonDeserialize(using = Cond.RowACLCondDeserializer.class)
-    public static class Cond implements Serializable, IKeep {
-        public enum IntervalType implements Serializable, IKeep {
+    public static class Cond implements Serializable {
+        public enum IntervalType implements Serializable {
             OPEN, //(a,b) = {x | a < x < b}
             CLOSED, //[a,b] = {x | a <= x <= b}
             LEFT_INCLUSIVE, //[a,b) = {x | a <= x < b}

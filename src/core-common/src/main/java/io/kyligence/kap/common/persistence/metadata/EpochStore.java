@@ -29,9 +29,7 @@ import java.util.Objects;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.Singletons;
 
-import io.kyligence.kap.common.obf.IKeep;
-
-public abstract class EpochStore implements IKeep {
+public abstract class EpochStore {
     public static final String EPOCH_SUFFIX = "_epoch";
 
     public abstract void update(Epoch epoch);

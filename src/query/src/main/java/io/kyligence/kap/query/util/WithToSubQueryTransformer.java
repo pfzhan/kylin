@@ -52,8 +52,6 @@ import org.apache.kylin.query.util.QueryUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.common.obf.IKeep;
-
 /**
  * Transform "WITH AS ... SELECT" SQL to SQL with subquery 
  *
@@ -69,7 +67,7 @@ import io.kyligence.kap.common.obf.IKeep;
  * So the preparedStatement parameters should also be transformed
  *
  */
-public class WithToSubQueryTransformer implements QueryUtil.IQueryTransformer, IKeep {
+public class WithToSubQueryTransformer implements QueryUtil.IQueryTransformer {
     private static final Logger logger = LoggerFactory.getLogger(WithToSubQueryTransformer.class);
 
     @Override

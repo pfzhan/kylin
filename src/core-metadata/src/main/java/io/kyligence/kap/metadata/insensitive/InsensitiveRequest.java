@@ -28,9 +28,7 @@ package io.kyligence.kap.metadata.insensitive;
 import java.lang.reflect.Field;
 import java.util.List;
 
-import io.kyligence.kap.common.obf.IKeep;
-
-public interface InsensitiveRequest extends IKeep {
+public interface InsensitiveRequest {
     List<String> inSensitiveFields();
 
     void updateField();

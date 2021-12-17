@@ -41,12 +41,11 @@ import org.apache.kylin.source.ISampleDataDeployer;
 import org.apache.kylin.source.ISource;
 import org.apache.kylin.source.ISourceMetadataExplorer;
 
-import io.kyligence.kap.common.obf.IKeepNames;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class JdbcSource implements ISource, IKeepNames {
+public class JdbcSource implements ISource {
 
     private JdbcConnector dataSource;
 

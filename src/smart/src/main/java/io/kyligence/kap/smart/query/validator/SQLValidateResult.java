@@ -31,7 +31,6 @@ import java.util.Set;
 
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.smart.query.SQLResult;
 import io.kyligence.kap.smart.query.advisor.SQLAdvice;
 import lombok.Getter;
@@ -39,7 +38,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class SQLValidateResult implements IKeep, Serializable {
+public class SQLValidateResult implements Serializable {
 
     private static final long serialVersionUID = -1L;
     private boolean capable;

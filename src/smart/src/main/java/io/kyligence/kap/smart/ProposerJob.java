@@ -64,7 +64,6 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.util.OptionBuilder;
 import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.guava20.shaded.common.annotations.VisibleForTesting;
@@ -85,7 +84,7 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class ProposerJob extends ExecutableApplication implements IKeep {
+public class ProposerJob extends ExecutableApplication {
 
     private static final String CONTEXT_CLASS = "contextClass";
     private static final String CONTEXT_PARAMS = "contextParams";
@@ -411,7 +410,7 @@ public class ProposerJob extends ExecutableApplication implements IKeep {
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
-    static class ContextParams implements Serializable, IKeep {
+    static class ContextParams implements Serializable {
 
         private String project;
 

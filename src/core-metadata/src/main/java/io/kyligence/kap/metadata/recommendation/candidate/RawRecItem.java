@@ -32,7 +32,6 @@ import org.apache.kylin.common.util.JsonUtil;
 
 import com.google.common.base.Preconditions;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.recommendation.entity.CCRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.DimensionRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
@@ -45,7 +44,7 @@ import lombok.ToString;
 @Getter
 @Setter
 @ToString
-public class RawRecItem implements IKeep {
+public class RawRecItem {
     public static final String IMPORTED = "IMPORTED";
     public static final String QUERY_HISTORY = "QUERY_HISTORY";
 

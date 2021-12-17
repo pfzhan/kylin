@@ -39,7 +39,6 @@ import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.util.ExecutableApplication;
 import org.apache.kylin.common.util.OptionsHelper;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.metadata.JdbcEpochStore;
 import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
 import io.kyligence.kap.common.util.OptionBuilder;
@@ -50,7 +49,7 @@ import lombok.extern.slf4j.Slf4j;
  * 4.1 -> 4.2
  */
 @Slf4j
-public class CreateTableEpochCLI extends ExecutableApplication implements IKeep {
+public class CreateTableEpochCLI extends ExecutableApplication {
 
     private static final Option OPTION_EXEC = OptionBuilder.getInstance().hasArg(false).withArgName("exec")
             .withDescription("exec the upgrade.").isRequired(false).withLongOpt("exec").create("e");

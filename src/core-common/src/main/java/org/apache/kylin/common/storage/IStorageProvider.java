@@ -29,8 +29,6 @@ import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
-import io.kyligence.kap.common.obf.IKeep;
-
-public interface IStorageProvider extends IKeep {
+public interface IStorageProvider {
     ContentSummary getContentSummary(FileSystem fileSystem, Path path) throws IOException;
 }

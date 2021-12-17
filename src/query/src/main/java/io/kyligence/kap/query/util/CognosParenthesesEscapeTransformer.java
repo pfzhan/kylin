@@ -38,9 +38,7 @@ import org.apache.kylin.source.adhocquery.IPushDownConverter;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.obf.IKeep;
-
-public class CognosParenthesesEscapeTransformer implements QueryUtil.IQueryTransformer, IPushDownConverter, IKeep {
+public class CognosParenthesesEscapeTransformer implements QueryUtil.IQueryTransformer, IPushDownConverter {
     private static final Pattern FROM_PATTERN = Pattern.compile("\\bfrom(\\s*\\()+(?!\\s*select\\s)",
             Pattern.CASE_INSENSITIVE);
 

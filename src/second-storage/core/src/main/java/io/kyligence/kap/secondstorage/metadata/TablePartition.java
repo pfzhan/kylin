@@ -23,16 +23,16 @@
  */
 package io.kyligence.kap.secondstorage.metadata;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.Lists;
-import io.kyligence.kap.common.obf.IKeep;
-import io.kyligence.kap.secondstorage.metadata.annotation.DataDefinition;
-
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.secondstorage.metadata.annotation.DataDefinition;
 
 @JsonAutoDetect(
         fieldVisibility = JsonAutoDetect.Visibility.NONE,
@@ -40,7 +40,7 @@ import java.util.Map;
         isGetterVisibility = JsonAutoDetect.Visibility.NONE,
         setterVisibility = JsonAutoDetect.Visibility.NONE)
 @DataDefinition
-public class TablePartition implements Serializable, IKeep {
+public class TablePartition implements Serializable {
 
     @JsonProperty("shard_nodes")
     private final List<String> shardNodes = Lists.newArrayList();

@@ -23,25 +23,25 @@
  */
 package io.kyligence.kap.secondstorage.metadata;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import io.kyligence.kap.common.obf.IKeep;
-
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.secondstorage.metadata.annotation.TableDefinition;
-import org.apache.kylin.common.persistence.RootPersistentEntity;
-
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+import org.apache.kylin.common.persistence.RootPersistentEntity;
+
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.secondstorage.metadata.annotation.TableDefinition;
+
 @TableDefinition
 public class TablePlan extends RootPersistentEntity
-        implements Serializable, IKeep,
+        implements Serializable,
         HasLayoutElement<TableEntity>,
         IManagerAware<TablePlan> {
 

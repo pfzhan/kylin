@@ -75,7 +75,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.guava20.shaded.common.collect.ImmutableSortedSet;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -88,7 +87,7 @@ import lombok.Setter;
 import lombok.val;
 
 @SuppressWarnings("serial")
-public class IndexPlan extends RootPersistentEntity implements Serializable, IEngineAware, IKeep {
+public class IndexPlan extends RootPersistentEntity implements Serializable, IEngineAware {
 
     @JsonProperty("description")
     @Getter

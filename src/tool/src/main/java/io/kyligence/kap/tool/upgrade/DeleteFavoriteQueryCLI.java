@@ -41,7 +41,6 @@ import org.apache.kylin.common.util.OptionsHelper;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.OptionBuilder;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
@@ -53,7 +52,7 @@ import lombok.extern.slf4j.Slf4j;
  * 4.1 -> 4.2
  */
 @Slf4j
-public class DeleteFavoriteQueryCLI extends ExecutableApplication implements IKeep {
+public class DeleteFavoriteQueryCLI extends ExecutableApplication {
 
     private static final Option OPTION_METADATA_DIR = OptionBuilder.getInstance().hasArg().withArgName("metadata_dir")
             .withDescription("metadata dir.").isRequired(true).withLongOpt("metadata_dir").create("d");

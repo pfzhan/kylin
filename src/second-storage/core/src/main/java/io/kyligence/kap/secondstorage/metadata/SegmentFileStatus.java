@@ -24,18 +24,17 @@
 
 package io.kyligence.kap.secondstorage.metadata;
 
+import java.io.Serializable;
+
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.kyligence.kap.common.obf.IKeep;
-
-import java.io.Serializable;
 
 @JsonAutoDetect(
         fieldVisibility = JsonAutoDetect.Visibility.NONE,
         getterVisibility = JsonAutoDetect.Visibility.NONE,
         isGetterVisibility = JsonAutoDetect.Visibility.NONE,
         setterVisibility = JsonAutoDetect.Visibility.NONE)
-public class SegmentFileStatus implements Serializable, IKeep {
+public class SegmentFileStatus implements Serializable {
     @JsonProperty("path")
     private String path;
     /**

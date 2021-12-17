@@ -48,7 +48,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.obf.IKeepNames;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
@@ -58,7 +57,7 @@ import lombok.val;
 @Deprecated
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
-public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
+public class NForestSpanningTree extends NSpanningTree {
     @JsonProperty("nodes")
     protected final Map<Long, TreeNode> nodesMap = Maps.newTreeMap();
     protected final Map<Long, LayoutEntity> layoutMap = Maps.newHashMap();

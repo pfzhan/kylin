@@ -49,7 +49,6 @@ import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.util.MapUtil;
 import io.kyligence.kap.guava20.shaded.common.base.MoreObjects;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -63,7 +62,7 @@ import lombok.Setter;
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 @Getter
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-public class LayoutEntity implements IStorageAware, Serializable, IKeep {
+public class LayoutEntity implements IStorageAware, Serializable {
 
     /** inital id for table or agg
      */

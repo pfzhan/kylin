@@ -42,10 +42,9 @@ import org.mybatis.dynamic.sql.SqlTable;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Preconditions;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.recommendation.entity.RecItemV2;
 
-public class RawRecItemTable extends SqlTable implements IKeep {
+public class RawRecItemTable extends SqlTable {
 
     public final SqlColumn<Integer> id = column("id", JDBCType.INTEGER);
     public final SqlColumn<String> project = column("project", JDBCType.VARCHAR);
@@ -78,7 +77,7 @@ public class RawRecItemTable extends SqlTable implements IKeep {
         super(tableName);
     }
 
-    public static class RecTypeHandler implements TypeHandler<RawRecItem.RawRecType>, IKeep {
+    public static class RecTypeHandler implements TypeHandler<RawRecItem.RawRecType> {
 
         @Override
         public void setParameter(PreparedStatement ps, int i, RawRecItem.RawRecType parameter, JdbcType jdbcType)
@@ -103,7 +102,7 @@ public class RawRecItemTable extends SqlTable implements IKeep {
         }
     }
 
-    public static class RecStateHandler implements TypeHandler<RawRecItem.RawRecState>, IKeep {
+    public static class RecStateHandler implements TypeHandler<RawRecItem.RawRecState> {
 
         @Override
         public void setParameter(PreparedStatement ps, int i, RawRecItem.RawRecState parameter, JdbcType jdbcType)
@@ -128,7 +127,7 @@ public class RawRecItemTable extends SqlTable implements IKeep {
         }
     }
 
-    public static class RecItemV2Handler implements TypeHandler<RecItemV2>, IKeep {
+    public static class RecItemV2Handler implements TypeHandler<RecItemV2> {
 
         private static final String REC_TYPE = "type";
 
@@ -159,7 +158,7 @@ public class RawRecItemTable extends SqlTable implements IKeep {
         }
     }
 
-    public static class DependIdHandler implements TypeHandler<int[]>, IKeep {
+    public static class DependIdHandler implements TypeHandler<int[]> {
 
         @Override
         public void setParameter(PreparedStatement ps, int i, int[] parameter, JdbcType jdbcType) throws SQLException {
@@ -187,7 +186,7 @@ public class RawRecItemTable extends SqlTable implements IKeep {
         }
     }
 
-    public static class LayoutMetricHandler implements TypeHandler<LayoutMetric>, IKeep {
+    public static class LayoutMetricHandler implements TypeHandler<LayoutMetric> {
 
         @Override
         public void setParameter(PreparedStatement ps, int i, LayoutMetric parameter, JdbcType jdbcType)

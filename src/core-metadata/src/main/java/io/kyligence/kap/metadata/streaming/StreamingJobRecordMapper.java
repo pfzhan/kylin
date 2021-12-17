@@ -40,10 +40,8 @@ import org.mybatis.dynamic.sql.insert.render.InsertStatementProvider;
 import org.mybatis.dynamic.sql.select.render.SelectStatementProvider;
 import org.mybatis.dynamic.sql.util.SqlProviderAdapter;
 
-import io.kyligence.kap.common.obf.IKeep;
-
 @Mapper
-public interface StreamingJobRecordMapper extends IKeep {
+public interface StreamingJobRecordMapper {
 
     @DeleteProvider(type = SqlProviderAdapter.class, method = "delete")
     int delete(DeleteStatementProvider deleteStatement);

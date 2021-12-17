@@ -76,7 +76,6 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.ImageDesc;
 import io.kyligence.kap.common.persistence.UnitMessages;
 import io.kyligence.kap.common.persistence.metadata.AuditLogStore;
@@ -93,7 +92,7 @@ import lombok.val;
  * In additional to raw bytes save and load, the store takes special care for concurrent modifications
  * by using a timestamp based test-and-set mechanism to detect (and refuse) dirty writes.
  */
-public abstract class ResourceStore implements AutoCloseable, IKeep {
+public abstract class ResourceStore implements AutoCloseable {
 
     private static final Logger logger = LoggerFactory.getLogger(ResourceStore.class);
 

@@ -57,10 +57,9 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
 
-import io.kyligence.kap.common.obf.IKeep;
 import lombok.EqualsAndHashCode;
 
-public class KylinRelDataTypeFactoryImpl extends JavaTypeFactoryImpl implements IKeep {
+public class KylinRelDataTypeFactoryImpl extends JavaTypeFactoryImpl {
 
     private static final LoadingCache<Object, RelDataType> CACHE = CacheBuilder.newBuilder().softValues()
             .build(new CacheLoader<Object, RelDataType>() {

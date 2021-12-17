@@ -30,11 +30,10 @@ import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.query.calcite.KEDialect;
 import org.apache.kylin.source.adhocquery.IPushDownConverter;
 
-import io.kyligence.kap.common.obf.IKeep;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class DialectConverter implements IPushDownConverter, IKeep {
+public class DialectConverter implements IPushDownConverter {
 
     @Override
     public String convert(String originSql, String project, String defaultSchema) {

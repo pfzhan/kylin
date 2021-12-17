@@ -45,10 +45,9 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 
-public class NUserGroupManager implements IKeep {
+public class NUserGroupManager {
     private static final Logger logger = LoggerFactory.getLogger(NUserGroupManager.class);
 
     public static NUserGroupManager getInstance(KylinConfig config) {

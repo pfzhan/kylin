@@ -60,7 +60,6 @@ import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.IUserGroupService;
-import org.apache.kylin.rest.service.LicenseInfoService;
 import org.apache.kylin.rest.service.UserService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.PagingUtil;
@@ -127,9 +126,6 @@ public class NUserController extends NBasicController {
     @Autowired
     @Qualifier("aclTCRService")
     private AclTCRService aclTCRService;
-
-    @Autowired
-    private LicenseInfoService licenseInfoService;
 
     @Autowired
     @Qualifier("userGroupService")
@@ -454,7 +450,6 @@ public class NUserController extends NBasicController {
             HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     public EnvelopeResponse<UserDetails> authenticate() {
-        checkLicense();
         EnvelopeResponse<UserDetails> response = authenticatedUser();
         logger.debug("User login: {}", response.getData());
         return response;
@@ -466,13 +461,6 @@ public class NUserController extends NBasicController {
     public EnvelopeResponse<UserDetails> updateUserWithoutAuth(@RequestBody ManagedUser user) {
         userService.updateUser(user);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, null, "");
-    }
-
-    private void checkLicense() {
-        if (!KylinConfig.getInstanceFromEnv().isDevOrUT()) {
-            val info = licenseInfoService.extractLicenseInfo();
-            licenseInfoService.verifyLicense(info);
-        }
     }
 
     @ApiOperation(value = "authentication", tags = { "MID" })

@@ -26,7 +26,6 @@ package io.kyligence.kap.metadata.resourcegroup;
 
 import java.util.List;
 
-import io.kyligence.kap.common.obf.IKeepNames;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -38,7 +37,7 @@ import com.google.common.base.Preconditions;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class ResourceGroupManager implements IKeepNames {
+public class ResourceGroupManager {
     private KylinConfig config;
     private CachedCrudAssist<ResourceGroup> crud;
 

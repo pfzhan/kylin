@@ -23,9 +23,7 @@
  */
 package io.kyligence.kap.tool.daemon;
 
-import io.kyligence.kap.common.obf.IKeep;
-
-public interface HealthChecker extends IKeep {
+public interface HealthChecker {
 
     CheckResult check();
 

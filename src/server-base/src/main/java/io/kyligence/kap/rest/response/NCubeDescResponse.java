@@ -35,14 +35,13 @@ import org.apache.kylin.metadata.model.ParameterDesc;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
 @Data
-public class NCubeDescResponse implements Serializable, IKeep {
+public class NCubeDescResponse implements Serializable {
     @JsonProperty("uuid")
     private String uuid;
     @JsonProperty("name")
@@ -55,7 +54,7 @@ public class NCubeDescResponse implements Serializable, IKeep {
     private List<AggGroupResponse> aggregationGroups;
 
     @Data
-    public static class Measure3X implements Serializable, IKeep {
+    public static class Measure3X implements Serializable {
         @JsonProperty("name")
         private String name;
         @JsonProperty("description")
@@ -74,7 +73,7 @@ public class NCubeDescResponse implements Serializable, IKeep {
     }
 
     @Data
-    public static class Dimension3X implements Serializable, IKeep {
+    public static class Dimension3X implements Serializable {
         @JsonProperty("name")
         private String name;
         @JsonProperty("table")
@@ -103,7 +102,7 @@ public class NCubeDescResponse implements Serializable, IKeep {
     }
 
     @Data
-    public static class FunctionDesc3X implements Serializable, IKeep {
+    public static class FunctionDesc3X implements Serializable {
         @JsonProperty("expression")
         private String expression;
         @JsonProperty("parameter")
@@ -122,7 +121,7 @@ public class NCubeDescResponse implements Serializable, IKeep {
     }
 
     @Data
-    public static class ParameterDesc3X implements Serializable, IKeep {
+    public static class ParameterDesc3X implements Serializable {
         @Getter
         @Setter
         @JsonProperty("type")

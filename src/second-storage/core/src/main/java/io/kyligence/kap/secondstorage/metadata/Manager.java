@@ -38,11 +38,10 @@ import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.obf.IKeepNames;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 
 @NotThreadSafe
-public abstract class Manager<T extends RootPersistentEntity> implements IKeepNames, IManager<T> {
+public abstract class Manager<T extends RootPersistentEntity> implements IManager<T> {
 
     protected final KylinConfig config;
     protected final String project;

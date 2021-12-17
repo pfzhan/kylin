@@ -31,7 +31,6 @@ import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 
 import com.google.common.base.Preconditions;
 
-import io.kyligence.kap.common.obf.IKeepNames;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -45,7 +44,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @NoArgsConstructor
 @AllArgsConstructor
-public abstract class ExecutableHandler implements IKeepNames {
+public abstract class ExecutableHandler {
 
     protected static final String SUBJECT_NOT_EXIST_COMMENT = "subject does not exist or is broken, roll back to to-be-accelerated status";
 

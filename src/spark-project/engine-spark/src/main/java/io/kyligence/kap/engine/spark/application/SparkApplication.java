@@ -87,7 +87,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.cluster.IClusterManager;
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.engine.spark.job.BuildJobInfos;
@@ -106,7 +105,7 @@ import lombok.val;
 import scala.runtime.AbstractFunction1;
 import scala.runtime.BoxedUnit;
 
-public abstract class SparkApplication implements Application, IKeep {
+public abstract class SparkApplication implements Application {
     private static final Logger logger = LoggerFactory.getLogger(SparkApplication.class);
     private Map<String, String> params = Maps.newHashMap();
     public static final String JOB_NAME_PREFIX = "job_step_";

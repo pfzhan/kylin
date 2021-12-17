@@ -31,13 +31,12 @@ import org.apache.kylin.common.KylinConfig;
 import org.springframework.cloud.commons.util.InetUtils;
 import org.springframework.cloud.commons.util.InetUtilsProperties;
 
-import io.kyligence.kap.common.obf.IKeep;
 import lombok.Setter;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class AddressUtil implements IKeep {
+public class AddressUtil {
 
     @Setter
     private static HostInfoFetcher hostInfoFetcher = new DefaultHostInfoFetcher();

@@ -24,7 +24,8 @@
 
 package io.kyligence.kap.metadata.streaming;
 
-import io.kyligence.kap.common.obf.IKeep;
+import java.util.List;
+
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Result;
 import org.apache.ibatis.annotations.ResultMap;
@@ -34,22 +35,17 @@ import org.apache.ibatis.type.JdbcType;
 import org.mybatis.dynamic.sql.select.render.SelectStatementProvider;
 import org.mybatis.dynamic.sql.util.SqlProviderAdapter;
 
-import java.util.List;
-
 @Mapper
-public interface RowCountDetailByTimeMapper extends IKeep {
+public interface RowCountDetailByTimeMapper {
 
     @SelectProvider(type = SqlProviderAdapter.class, method = "select")
     @Results(id = "RowCountDetailByTimeResult", value = {
             @Result(column = "create_time", property = "createTime", jdbcType = JdbcType.BIGINT),
-            @Result(column = "batch_row_num", property = "batchRowNum", jdbcType = JdbcType.BIGINT)})
+            @Result(column = "batch_row_num", property = "batchRowNum", jdbcType = JdbcType.BIGINT) })
     List<RowCountDetailByTime> selectMany(SelectStatementProvider selectStatement);
 
     @SelectProvider(type = SqlProviderAdapter.class, method = "select")
     @ResultMap("RowCountDetailByTimeResult")
     RowCountDetailByTime selectOne(SelectStatementProvider selectStatement);
 
-
 }
-
-

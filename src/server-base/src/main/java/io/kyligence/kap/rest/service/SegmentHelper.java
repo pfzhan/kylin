@@ -38,10 +38,8 @@ import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.service.BasicService;
-import org.apache.kylin.rest.service.LicenseInfoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.google.common.base.Preconditions;
@@ -64,9 +62,6 @@ import lombok.extern.slf4j.Slf4j;
 public class SegmentHelper extends BasicService {
 
     private static final Logger logger = LoggerFactory.getLogger(SegmentHelper.class);
-
-    @Autowired
-    private LicenseInfoService licenseInfoService;
 
     public void refreshRelatedModelSegments(String project, String tableName, SegmentRange toBeRefreshSegmentRange)
             throws IOException {

@@ -29,9 +29,7 @@ import java.sql.JDBCType;
 import org.mybatis.dynamic.sql.SqlColumn;
 import org.mybatis.dynamic.sql.SqlTable;
 
-import io.kyligence.kap.common.obf.IKeep;
-
-public class StreamingJobRecordTable extends SqlTable implements IKeep {
+public class StreamingJobRecordTable extends SqlTable {
     public final SqlColumn<Long> id = column("id", JDBCType.BIGINT);
     public final SqlColumn<String> jobId = column("job_id", JDBCType.VARCHAR);
     public final SqlColumn<String> project = column("project", JDBCType.VARCHAR);;

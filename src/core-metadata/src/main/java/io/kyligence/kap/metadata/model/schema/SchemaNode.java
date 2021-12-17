@@ -31,7 +31,6 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import lombok.val;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
@@ -43,7 +42,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.MultiPartitionDesc;
@@ -53,6 +51,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NonNull;
 import lombok.Setter;
+import lombok.val;
 import lombok.experimental.Delegate;
 
 @Data
@@ -251,7 +250,7 @@ public class SchemaNode {
 
     @Data
     @AllArgsConstructor
-    public static class FunctionParameter implements IKeep {
+    public static class FunctionParameter {
         private String type;
         private String value;
     }

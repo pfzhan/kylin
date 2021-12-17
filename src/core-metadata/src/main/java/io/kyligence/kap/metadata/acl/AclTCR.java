@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.metadata.acl;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -37,8 +39,6 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
-import lombok.Getter;
-import lombok.Setter;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.kylin.common.exception.KylinException;
@@ -47,16 +47,15 @@ import org.apache.kylin.common.persistence.RootPersistentEntity;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import io.kyligence.kap.common.obf.IKeep;
-
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
+import lombok.Getter;
+import lombok.Setter;
 
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, //
         getterVisibility = JsonAutoDetect.Visibility.NONE, //
         isGetterVisibility = JsonAutoDetect.Visibility.NONE, //
         setterVisibility = JsonAutoDetect.Visibility.NONE)
-public class AclTCR extends RootPersistentEntity implements IKeep {
+public class AclTCR extends RootPersistentEntity {
 
     //wrap read only aclTCR
 
@@ -114,7 +113,7 @@ public class AclTCR extends RootPersistentEntity implements IKeep {
             getterVisibility = JsonAutoDetect.Visibility.NONE, //
             isGetterVisibility = JsonAutoDetect.Visibility.NONE, //
             setterVisibility = JsonAutoDetect.Visibility.NONE)
-    public static class Table extends TreeMap<String, ColumnRow> implements IKeep {
+    public static class Table extends TreeMap<String, ColumnRow> {
 
         // # { DB.TABLE1: { "columns": ["COL1","COL2","COL3"], "rows":{COL1:["A","B","C"]} } } #
         public Table() {
@@ -126,7 +125,7 @@ public class AclTCR extends RootPersistentEntity implements IKeep {
             getterVisibility = JsonAutoDetect.Visibility.NONE, //
             isGetterVisibility = JsonAutoDetect.Visibility.NONE, //
             setterVisibility = JsonAutoDetect.Visibility.NONE)
-    public static class ColumnRow implements IKeep {
+    public static class ColumnRow {
 
         @JsonProperty
         private Column column = null;
@@ -225,7 +224,7 @@ public class AclTCR extends RootPersistentEntity implements IKeep {
             getterVisibility = JsonAutoDetect.Visibility.NONE, //
             isGetterVisibility = JsonAutoDetect.Visibility.NONE, //
             setterVisibility = JsonAutoDetect.Visibility.NONE)
-    public static class Column extends TreeSet<String> implements IKeep {
+    public static class Column extends TreeSet<String> {
 
         // ["COL1", "COL2", "COL3"]
         public Column() {
@@ -239,7 +238,7 @@ public class AclTCR extends RootPersistentEntity implements IKeep {
             setterVisibility = JsonAutoDetect.Visibility.NONE)
     @Setter
     @Getter
-    public static class FilterItems implements IKeep {
+    public static class FilterItems {
         @JsonProperty("in_items")
         private TreeSet<String> inItems = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
 
@@ -269,7 +268,7 @@ public class AclTCR extends RootPersistentEntity implements IKeep {
             getterVisibility = JsonAutoDetect.Visibility.NONE, //
             isGetterVisibility = JsonAutoDetect.Visibility.NONE, //
             setterVisibility = JsonAutoDetect.Visibility.NONE)
-    public static class Filters extends TreeMap<String, FilterItems> implements IKeep {
+    public static class Filters extends TreeMap<String, FilterItems> {
 
         // ["COL1", "COL2", "COL3"]
         public Filters() {
@@ -283,7 +282,7 @@ public class AclTCR extends RootPersistentEntity implements IKeep {
             setterVisibility = JsonAutoDetect.Visibility.NONE)
     @Setter
     @Getter
-    public static class FilterGroup implements IKeep {
+    public static class FilterGroup {
         @JsonProperty("is_group")
         private boolean group;
 
@@ -318,7 +317,7 @@ public class AclTCR extends RootPersistentEntity implements IKeep {
             getterVisibility = JsonAutoDetect.Visibility.NONE, //
             isGetterVisibility = JsonAutoDetect.Visibility.NONE, //
             setterVisibility = JsonAutoDetect.Visibility.NONE)
-    public static class Row extends TreeMap<String, RealRow> implements IKeep {
+    public static class Row extends TreeMap<String, RealRow> {
 
         // # { COL1: [ "A", "B", "C" ] } #
         public Row() {
@@ -330,7 +329,7 @@ public class AclTCR extends RootPersistentEntity implements IKeep {
             getterVisibility = JsonAutoDetect.Visibility.NONE, //
             isGetterVisibility = JsonAutoDetect.Visibility.NONE, //
             setterVisibility = JsonAutoDetect.Visibility.NONE)
-    public static class RealRow extends TreeSet<String> implements IKeep {
+    public static class RealRow extends TreeSet<String> {
 
         // ["A", "B", "C"]
         public RealRow() {
@@ -346,7 +345,7 @@ public class AclTCR extends RootPersistentEntity implements IKeep {
             getterVisibility = JsonAutoDetect.Visibility.NONE, //
             isGetterVisibility = JsonAutoDetect.Visibility.NONE, //
             setterVisibility = JsonAutoDetect.Visibility.NONE)
-    public static class ColumnRealRows implements IKeep {
+    public static class ColumnRealRows {
 
         @JsonProperty
         private String dbTblColName = null;

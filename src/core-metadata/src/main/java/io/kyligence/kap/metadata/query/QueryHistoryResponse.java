@@ -29,14 +29,13 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import io.kyligence.kap.common.obf.IKeep;
 import lombok.Getter;
 import lombok.Setter;
 
 @SuppressWarnings("serial")
 @Getter
 @Setter
-public class QueryHistoryResponse implements IKeep {
+public class QueryHistoryResponse {
 
     public static final String QUERY_HISTORY_ID = "id";
     public static final String QUERY_HISTORY_INFO = "query_history_info";

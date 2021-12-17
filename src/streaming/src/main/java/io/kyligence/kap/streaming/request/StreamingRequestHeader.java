@@ -27,9 +27,7 @@ import java.io.Serializable;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import io.kyligence.kap.common.obf.IKeep;
-
-public class StreamingRequestHeader implements Serializable, IKeep {
+public class StreamingRequestHeader implements Serializable {
     @JsonProperty("job_execution_id")
     private Integer jobExecutionId;
 

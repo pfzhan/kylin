@@ -28,7 +28,6 @@ import org.apache.kylin.common.persistence.RootPersistentEntity;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import io.kyligence.kap.common.obf.IKeep;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -36,7 +35,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
-public class UserGroup extends RootPersistentEntity implements IKeep {
+public class UserGroup extends RootPersistentEntity {
     @JsonProperty("group_name")
     private String groupName;
 

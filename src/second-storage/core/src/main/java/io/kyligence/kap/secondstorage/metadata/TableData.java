@@ -46,7 +46,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
 import io.kyligence.kap.secondstorage.metadata.annotation.DataDefinition;
@@ -58,7 +57,7 @@ import scala.collection.JavaConverters;
         isGetterVisibility = JsonAutoDetect.Visibility.NONE,
         setterVisibility = JsonAutoDetect.Visibility.NONE)
 @DataDefinition
-public class TableData implements Serializable, IKeep, WithLayout {
+public class TableData implements Serializable, WithLayout {
 
     private static final SecureRandom replicaRandom = new SecureRandom();
 

@@ -25,7 +25,6 @@
 package io.kyligence.kap.metadata.query;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.annotation.Column;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -36,7 +35,7 @@ import java.time.Instant;
 @Getter
 @Setter
 @NoArgsConstructor
-public class QueryStatistics implements IKeep {
+public class QueryStatistics {
     @JsonProperty("engine_type")
     @Column(name = "engine_type", tag = true)
     private String engineType;

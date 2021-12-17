@@ -41,7 +41,6 @@ import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.common.util.SetThreadName;
 import org.apache.kylin.metadata.project.ProjectInstance;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.metadata.epoch.EpochManager;
@@ -57,7 +56,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Getter
 @Slf4j
-public class RoutineTool extends ExecutableApplication implements IKeep {
+public class RoutineTool extends ExecutableApplication {
     private boolean storageCleanup;
     private boolean metadataCleanup;
     private String[] projects = new String[0];

@@ -31,7 +31,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.guava20.shaded.common.collect.MapDifference;
 import io.kyligence.kap.guava20.shaded.common.graph.Graph;
 import io.kyligence.kap.guava20.shaded.common.graph.Graphs;
@@ -40,7 +39,7 @@ import io.kyligence.kap.metadata.model.schema.SchemaNode;
 import io.kyligence.kap.metadata.model.schema.SchemaNodeType;
 import io.kyligence.kap.metadata.model.schema.SchemaUtil;
 
-public interface SchemaChangeStrategy extends IKeep {
+public interface SchemaChangeStrategy {
     List<SchemaNodeType> supportedSchemaNodeTypes();
 
     default List<SchemaChangeCheckResult.ChangedItem> missingItemFunction(SchemaUtil.SchemaDifference difference,

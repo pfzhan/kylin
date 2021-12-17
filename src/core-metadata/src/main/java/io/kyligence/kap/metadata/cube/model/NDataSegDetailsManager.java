@@ -43,7 +43,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
-import io.kyligence.kap.common.obf.IKeepNames;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import lombok.val;
 
@@ -52,7 +51,7 @@ import lombok.val;
  * <p>
  * Public use goes through NDataflowManager.
  */
-class NDataSegDetailsManager implements IKeepNames {
+class NDataSegDetailsManager {
     private static final Serializer<NDataSegDetails> DATA_SEG_LAYOUT_INSTANCES_SERIALIZER = new JsonSerializer<>(
             NDataSegDetails.class);
 

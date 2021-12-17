@@ -63,7 +63,6 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.metadata.acl.AclTCR;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
@@ -76,7 +75,7 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class RenameUserResourceTool extends ExecutableApplication implements IKeep {
+public class RenameUserResourceTool extends ExecutableApplication {
 
     private Set<String> users = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
     private boolean collectOnly = true;

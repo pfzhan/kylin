@@ -21,7 +21,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.rest.interceptor;
+package io.kyligence.kap.license.interceptor;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -36,11 +36,11 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.exception.UnauthorizedException;
-import org.apache.kylin.rest.service.LicenseInfoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
+import io.kyligence.kap.license.service.LicenseInfoService;
 import lombok.val;
 
 @Component
@@ -48,7 +48,7 @@ import lombok.val;
 public class LicenseFilter implements Filter {
 
     private static final String PREFIX = "/kylin/api/";
-    private static String[] apiWhiteList = {"config", "system", "error", "health", "prometheus"};
+    private static String[] apiWhiteList = { "config", "system", "error", "health", "prometheus" };
 
     @Autowired
     private LicenseInfoService licenseInfoService;

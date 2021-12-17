@@ -33,7 +33,6 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.common.obf.IKeep;
 import lombok.Getter;
 
 /**
@@ -42,7 +41,7 @@ import lombok.Getter;
 @SuppressWarnings("serial")
 @Getter
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
-public class SegmentPartition implements Serializable, IKeep {
+public class SegmentPartition implements Serializable {
 
     @JsonBackReference
     private NDataSegment segment;

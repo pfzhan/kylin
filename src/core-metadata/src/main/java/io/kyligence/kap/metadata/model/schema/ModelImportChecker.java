@@ -31,7 +31,6 @@ import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.schema.strategy.ComputedColumnStrategy;
 import io.kyligence.kap.metadata.model.schema.strategy.MultiplePartitionStrategy;
@@ -44,7 +43,7 @@ import lombok.val;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
-public class ModelImportChecker implements IKeep {
+public class ModelImportChecker {
 
     private static final List<SchemaChangeStrategy> strategies = Arrays.asList(new ComputedColumnStrategy(),
             new UnOverWritableStrategy(), new TableColumnStrategy(), new TableStrategy(), new OverWritableStrategy(),

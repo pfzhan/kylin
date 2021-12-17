@@ -37,7 +37,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.obf.IKeep;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocatedFileStatus;
@@ -76,7 +75,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 
 @Slf4j
-public class FileCatalog implements IExternalCatalog, IKeep {
+public class FileCatalog implements IExternalCatalog {
 
     private static final SecureRandom RNG = new SecureRandom();
 

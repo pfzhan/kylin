@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.common.scheduler;
 
-import io.kyligence.kap.common.obf.IKeep;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -36,7 +35,7 @@ import lombok.ToString;
 @AllArgsConstructor
 @NoArgsConstructor
 @ToString
-public class SchedulerEventNotifier implements IKeep {
+public class SchedulerEventNotifier {
 
     protected String project;
     protected String subject;

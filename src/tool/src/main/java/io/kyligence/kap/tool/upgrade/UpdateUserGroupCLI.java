@@ -44,7 +44,6 @@ import org.apache.kylin.common.util.OptionsHelper;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.util.OptionBuilder;
 import io.kyligence.kap.metadata.usergroup.UserGroup;
 import lombok.Data;
@@ -54,7 +53,7 @@ import lombok.extern.slf4j.Slf4j;
  * 4.1 -> 4.2
  */
 @Slf4j
-public class UpdateUserGroupCLI extends ExecutableApplication implements IKeep {
+public class UpdateUserGroupCLI extends ExecutableApplication {
 
     private static final Option OPTION_METADATA_DIR = OptionBuilder.getInstance().hasArg().withArgName("metadata_dir")
             .withDescription("metadata dir.").isRequired(true).withLongOpt("metadata_dir").create("d");

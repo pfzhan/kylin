@@ -38,13 +38,12 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.util.FileUtils;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.source.NHiveTableName;
 import lombok.val;
 
-public class KerberosLoginManager implements IKeep {
+public class KerberosLoginManager {
 
     private static final Logger logger = LoggerFactory.getLogger(KerberosLoginManager.class);
 

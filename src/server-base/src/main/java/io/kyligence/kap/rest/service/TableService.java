@@ -107,7 +107,6 @@ import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.TableRefresh;
 import org.apache.kylin.rest.response.TableRefreshAll;
 import org.apache.kylin.rest.service.BasicService;
-import org.apache.kylin.rest.service.LicenseInfoService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.apache.kylin.rest.util.PagingUtil;
@@ -224,9 +223,6 @@ public class TableService extends BasicService {
 
     @Autowired
     private ClusterManager clusterManager;
-
-    @Autowired
-    private LicenseInfoService licenseInfoService;
 
     public List<TableDesc> getTableDescByType(String project, boolean withExt, final String tableName,
             final String database, boolean isFuzzy, int sourceType) throws IOException {

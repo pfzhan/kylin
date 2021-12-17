@@ -93,7 +93,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.guava20.shaded.common.cache.CacheBuilder;
 import io.kyligence.kap.guava20.shaded.common.cache.CacheLoader;
 import io.kyligence.kap.guava20.shaded.common.cache.LoadingCache;
@@ -106,7 +105,7 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKeep {
+public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer {
 
     private static final String CONVERT_TO_CC_ERROR_MSG = "Something unexpected while ConvertToComputedColumn transforming the query, return original query.";
 

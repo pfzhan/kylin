@@ -47,13 +47,12 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.hystrix.NCircuitBreaker;
-import io.kyligence.kap.common.obf.IKeepNames;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.val;
 
-public class NProjectManager implements IKeepNames {
+public class NProjectManager {
     private static final Logger logger = LoggerFactory.getLogger(NProjectManager.class);
 
     public static NProjectManager getInstance(KylinConfig config) {
@@ -106,8 +105,7 @@ public class NProjectManager implements IKeepNames {
     }
 
     public ProjectInstance getProjectById(String projectId) {
-        return crud.listAll().stream()
-                .filter(projectInstance -> projectInstance.getId().equals(projectId)).findAny()
+        return crud.listAll().stream().filter(projectInstance -> projectInstance.getId().equals(projectId)).findAny()
                 .orElse(null);
     }
 

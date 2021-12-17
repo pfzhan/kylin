@@ -34,7 +34,6 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.lang.StringUtils;
 
-import io.kyligence.kap.common.obf.IKeep;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -46,7 +45,7 @@ import lombok.extern.slf4j.Slf4j;
  * will not fail the build.
  */
 @Slf4j
-public class Unsafe implements IKeep {
+public class Unsafe {
 
     private Unsafe() {
     }

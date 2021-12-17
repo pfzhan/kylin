@@ -24,7 +24,6 @@
 
 package org.apache.kylin.rest.service;
 
-import io.kyligence.kap.common.obf.IKeep;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.Singletons;
 import org.apache.kylin.common.util.ClassUtil;
@@ -39,7 +38,7 @@ public class SystemProfileExtractorFactory {
     }
 
 
-    public interface SystemProfileExtractor extends IKeep {
+    public interface SystemProfileExtractor {
 
         String getSystemProfile();
 

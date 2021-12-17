@@ -88,7 +88,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.scheduler.SchedulerEventNotifier;
 import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -323,7 +322,7 @@ public class NDataModel extends RootPersistentEntity {
     @JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
     @EqualsAndHashCode
     @ToString
-    public static class NamedColumn implements Serializable, IKeep {
+    public static class NamedColumn implements Serializable {
         @JsonProperty("id")
         protected int id;
 
@@ -372,7 +371,7 @@ public class NDataModel extends RootPersistentEntity {
 
     @Data
     @EqualsAndHashCode
-    public static class Measure extends MeasureDesc implements IKeep {
+    public static class Measure extends MeasureDesc {
         @JsonProperty("id")
         private int id;
         // logical delete symbol
@@ -406,7 +405,7 @@ public class NDataModel extends RootPersistentEntity {
 
     @JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
     @EqualsAndHashCode
-    public static class ColumnCorrelation implements Serializable, IKeep {
+    public static class ColumnCorrelation implements Serializable {
         @JsonProperty("name")
         public String name;
         @JsonProperty("correlation_type") // "hierarchy" or "joint"

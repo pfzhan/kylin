@@ -52,13 +52,12 @@ import org.apache.kylin.rest.constant.Constant;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.acl.AclTCR;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import org.apache.kylin.source.adhocquery.IPushDownConverter;
 
-public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer, IPushDownConverter, IKeep {
+public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer, IPushDownConverter {
 
     private static final String SELECT_STAR = "*";
 

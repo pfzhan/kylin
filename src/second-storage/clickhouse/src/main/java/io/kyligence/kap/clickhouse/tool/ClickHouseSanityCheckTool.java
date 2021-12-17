@@ -24,16 +24,6 @@
 
 package io.kyligence.kap.clickhouse.tool;
 
-import io.kyligence.kap.clickhouse.job.ClickHouse;
-import io.kyligence.kap.common.obf.IKeep;
-import io.kyligence.kap.common.util.Unsafe;
-import io.kyligence.kap.secondstorage.SecondStorage;
-import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.NamedThreadFactory;
-
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -45,8 +35,18 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.NamedThreadFactory;
+
+import io.kyligence.kap.clickhouse.job.ClickHouse;
+import io.kyligence.kap.common.util.Unsafe;
+import io.kyligence.kap.secondstorage.SecondStorage;
+import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
+
 @Slf4j
-public class ClickHouseSanityCheckTool implements IKeep {
+public class ClickHouseSanityCheckTool {
 
     public static void main(String[] args) throws InterruptedException {
         execute(args);

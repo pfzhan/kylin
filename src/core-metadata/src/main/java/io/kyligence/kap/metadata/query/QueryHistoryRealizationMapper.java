@@ -30,9 +30,7 @@ import org.mybatis.dynamic.sql.delete.render.DeleteStatementProvider;
 import org.mybatis.dynamic.sql.insert.render.InsertStatementProvider;
 import org.mybatis.dynamic.sql.util.SqlProviderAdapter;
 
-import io.kyligence.kap.common.obf.IKeep;
-
-public interface QueryHistoryRealizationMapper extends IKeep {
+public interface QueryHistoryRealizationMapper {
 
     @DeleteProvider(type = SqlProviderAdapter.class, method = "delete")
     int delete(DeleteStatementProvider deleteStatement);

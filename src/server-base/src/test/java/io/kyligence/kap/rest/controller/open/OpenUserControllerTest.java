@@ -66,7 +66,7 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.controller.NUserController;
 import io.kyligence.kap.rest.request.PasswordChangeRequest;
-import io.kyligence.kap.rest.rules.ClearKEPropertiesRule;
+import io.kyligence.kap.junit.rule.ClearKEPropertiesRule;
 import lombok.val;
 
 public class OpenUserControllerTest extends NLocalFileMetadataTestCase {

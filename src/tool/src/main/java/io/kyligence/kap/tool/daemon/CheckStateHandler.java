@@ -23,8 +23,6 @@
  */
 package io.kyligence.kap.tool.daemon;
 
-import io.kyligence.kap.common.obf.IKeep;
-
-public interface CheckStateHandler extends IKeep {
+public interface CheckStateHandler {
     HandleResult handle(CheckResult checkResult);
 }

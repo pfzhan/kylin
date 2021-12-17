@@ -32,7 +32,6 @@ import org.apache.kylin.metadata.model.PartitionDesc;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.model.MultiPartitionDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -44,7 +43,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @Getter
 @Setter
-public class IncrementBuildSegmentParams extends FullBuildSegmentParams implements IKeep {
+public class IncrementBuildSegmentParams extends FullBuildSegmentParams {
     private String start;
     private String end;
     private PartitionDesc partitionDesc;

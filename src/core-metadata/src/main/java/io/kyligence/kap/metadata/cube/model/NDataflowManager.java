@@ -69,7 +69,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.obf.IKeepNames;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -87,7 +86,7 @@ import lombok.var;
  * Batch model still mapping to ONE dataflow
  * While Streaming model will be mapping to TWO dataflows
  */
-public class NDataflowManager implements IRealizationProvider, IKeepNames {
+public class NDataflowManager implements IRealizationProvider {
     private static final Logger logger = LoggerFactory.getLogger(NDataflowManager.class);
 
     public static NDataflowManager getInstance(KylinConfig config, String project) {

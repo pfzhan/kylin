@@ -29,9 +29,7 @@ import java.sql.JDBCType;
 import org.mybatis.dynamic.sql.SqlColumn;
 import org.mybatis.dynamic.sql.SqlTable;
 
-import io.kyligence.kap.common.obf.IKeep;
-
-public class QueryHistoryRealizationTable extends SqlTable implements IKeep {
+public class QueryHistoryRealizationTable extends SqlTable {
 
     public final SqlColumn<Long> queryTime = column("query_time", JDBCType.BIGINT);
     public final SqlColumn<Long> duration = column("duration", JDBCType.BIGINT);

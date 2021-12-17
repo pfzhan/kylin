@@ -43,10 +43,9 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 
-public class NKylinUserManager implements IKeep {
+public class NKylinUserManager {
 
     private static final Logger logger = LoggerFactory.getLogger(NKylinUserManager.class);
 

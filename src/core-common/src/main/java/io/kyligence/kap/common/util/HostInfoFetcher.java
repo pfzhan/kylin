@@ -23,8 +23,6 @@
  */
 package io.kyligence.kap.common.util;
 
-import io.kyligence.kap.common.obf.IKeep;
-
-public interface HostInfoFetcher extends IKeep {
+public interface HostInfoFetcher {
     String getHostname();
 }

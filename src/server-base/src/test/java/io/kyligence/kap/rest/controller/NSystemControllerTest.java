@@ -24,19 +24,10 @@
 package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-import static org.mockito.Mockito.mock;
 
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.service.LicenseInfoService;
-import org.apache.kylin.rest.util.AclEvaluate;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -45,10 +36,8 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
@@ -56,20 +45,14 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.junit.rule.TransactionExceptedException;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.request.DiagPackageRequest;
 import io.kyligence.kap.rest.request.DiagProgressRequest;
-import io.kyligence.kap.rest.request.LicenseRequest;
-import io.kyligence.kap.rest.response.RemoteLicenseResponse;
 import io.kyligence.kap.rest.service.SystemService;
 
 public class NSystemControllerTest extends NLocalFileMetadataTestCase {
     private static final String APPLICATION_JSON = HTTP_VND_APACHE_KYLIN_JSON;
 
     private MockMvc mockMvc;
-
-    @Mock
-    private LicenseInfoService licenseInfoService;
 
     @Mock
     private SystemService systemService;
@@ -84,7 +67,6 @@ public class NSystemControllerTest extends NLocalFileMetadataTestCase {
     public void setUp() {
         createTestMetadata();
         MockitoAnnotations.initMocks(this);
-        ReflectionTestUtils.setField(nSystemController, "licenseInfoService", licenseInfoService);
         mockMvc = MockMvcBuilders.standaloneSetup(nSystemController).defaultRequest(MockMvcRequestBuilders.get("/"))
                 .build();
         SecurityContextHolder.getContext()
@@ -95,50 +77,6 @@ public class NSystemControllerTest extends NLocalFileMetadataTestCase {
     @After
     public void tearDown() {
         cleanupTestMetadata();
-    }
-
-    @Test
-    public void testTrialLicense() throws Exception {
-        final String email = "b@kylin.com";
-        LicenseRequest licenseRequest = new LicenseRequest();
-        licenseRequest.setUsername("aaa");
-        licenseRequest.setEmail(email);
-        licenseRequest.setCompany("ccc");
-        RemoteLicenseResponse response = new RemoteLicenseResponse();
-        response.setSuccess(true);
-        response.setData("");
-        Mockito.when(licenseInfoService.getTrialLicense(licenseRequest)).thenReturn(response);
-        Mockito.when(licenseInfoService.filterEmail(email)).thenReturn(true);
-        Mockito.doNothing().when(licenseInfoService).updateLicense(response.getData());
-        Mockito.when(licenseInfoService.extractLicenseInfo()).thenReturn(null);
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/system/license/trial") //
-                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(licenseRequest))// //
-                .accept(MediaType.parseMediaType(APPLICATION_JSON))).andExpect(MockMvcResultMatchers.status().isOk());
-
-        Mockito.verify(nSystemController).trialLicense(licenseRequest);
-
-    }
-
-    @Test
-    public void testUploadLicense() throws Exception {
-        //for /license/file
-        String string = "kkkkkk";
-        String string2 = "\"kkkkkk\"";
-        Mockito.doNothing().when(licenseInfoService).updateLicense(string.getBytes(StandardCharsets.UTF_8));
-        Mockito.when(licenseInfoService.extractLicenseInfo()).thenReturn(null);
-        MockMultipartFile mockMultipartFile = new MockMultipartFile("file", string.getBytes(StandardCharsets.UTF_8));
-
-        mockMvc.perform(MockMvcRequestBuilders.fileUpload("/api/system/license/file").file(mockMultipartFile)
-                .accept(MediaType.parseMediaType(APPLICATION_JSON))).andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nSystemController).uploadLicense(mockMultipartFile);
-
-        //for /license/content
-
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/system/license/content")
-                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(string))
-                .accept(MediaType.parseMediaType(APPLICATION_JSON))).andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nSystemController).uploadLicense(string2);
-
     }
 
     @Test
@@ -210,79 +148,9 @@ public class NSystemControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testCheckProjectArg() {
-        AclEvaluate sourceValue = nSystemController.getAclEvaluate();
-        AclEvaluate mockAclEvaluate = Mockito.mock(AclEvaluate.class);
-
-        NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
-        List<ProjectInstance> projectInstanceList = projectManager.listAllProjects();
-        projectInstanceList.stream().forEach(projectInstance -> {
-            Mockito.doReturn(true).when(mockAclEvaluate).hasProjectAdminPermission(projectInstance);
-        });
-
-        nSystemController.setAclEvaluate(mockAclEvaluate);
-
-        List<String> validProjectList = nSystemController.getValidProjects(new String[] {}, false);
-        Assert.assertEquals(projectInstanceList.size(), validProjectList.size());
-
-        validProjectList = nSystemController.getValidProjects(new String[] {}, true);
-        Assert.assertEquals(projectInstanceList.size(), validProjectList.size());
-
-        validProjectList = nSystemController.getValidProjects(new String[] { "SSB" }, false);
-        Assert.assertEquals(1, validProjectList.size());
-
-        validProjectList = nSystemController.getValidProjects(new String[] { "SSB" }, true);
-        Assert.assertEquals(0, validProjectList.size());
-
-        validProjectList = nSystemController.getValidProjects(new String[] { "ssb1" }, false);
-        Assert.assertEquals(0, validProjectList.size());
-
-        validProjectList = nSystemController.getValidProjects(new String[] { "ssb1" }, true);
-        Assert.assertEquals(0, validProjectList.size());
-
-        nSystemController.setAclEvaluate(sourceValue);
-    }
-
-    @Test
     public void testGetHostname() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/api/system/host").contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.parseMediaType(APPLICATION_JSON))).andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nSystemController, Mockito.times(1)).getHostname();
-    }
-
-    @Test
-    public void testRefreshAll() throws Exception {
-        AclEvaluate sourceValue = nSystemController.getAclEvaluate();
-        try {
-            AclEvaluate mockAclEvaluate = mock(AclEvaluate.class);
-            nSystemController.setAclEvaluate(mockAclEvaluate);
-            mockMvc.perform(MockMvcRequestBuilders.put("/api/system/capacity/refresh_all")
-                    .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(APPLICATION_JSON)))
-                    .andExpect(MockMvcResultMatchers.status().isOk());
-
-            Mockito.verify(mockAclEvaluate, Mockito.times(1)).checkIsGlobalAdmin();
-            Mockito.verify(nSystemController, Mockito.times(1)).refreshAll(Mockito.any());
-
-
-
-        } finally {
-            nSystemController.setAclEvaluate(sourceValue);
-        }
-    }
-
-    @Test
-    public void testRefresh() throws Exception {
-        AclEvaluate sourceValue = nSystemController.getAclEvaluate();
-        try {
-            AclEvaluate mockAclEvaluate = mock(AclEvaluate.class);
-            nSystemController.setAclEvaluate(mockAclEvaluate);
-            mockMvc.perform(MockMvcRequestBuilders.put("/api/system/capacity/refresh")
-                    .param("project", "default")
-                    .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(APPLICATION_JSON)))
-                    .andExpect(MockMvcResultMatchers.status().isOk());
-            Mockito.verify(nSystemController, Mockito.times(1)).refresh(Mockito.any());
-        } finally {
-            nSystemController.setAclEvaluate(sourceValue);
-        }
     }
 }

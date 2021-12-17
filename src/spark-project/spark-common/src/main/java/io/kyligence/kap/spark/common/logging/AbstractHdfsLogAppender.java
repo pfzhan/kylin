@@ -58,14 +58,12 @@ import org.apache.logging.log4j.status.StatusLogger;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.util.Unsafe;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
 
-public abstract class AbstractHdfsLogAppender extends AbstractOutputStreamAppender<AbstractHdfsLogAppender.HdfsManager>
-        implements IKeep {
+public abstract class AbstractHdfsLogAppender extends AbstractOutputStreamAppender<AbstractHdfsLogAppender.HdfsManager> {
 
     private final Object flushLogLock = new Object();
     private final Object initWriterLock = new Object();

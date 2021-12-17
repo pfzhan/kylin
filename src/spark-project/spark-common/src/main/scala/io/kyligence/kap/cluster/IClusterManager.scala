@@ -24,10 +24,9 @@ package io.kyligence.kap.cluster
 
 import java.util
 
-import io.kyligence.kap.common.obf.IKeep
 import org.apache.spark.sql.SparkSession
 
-trait IClusterManager extends IKeep {
+trait IClusterManager {
   def fetchMaximumResourceAllocation: ResourceInfo
 
   def fetchQueueAvailableResource(queueName: String): AvailableResource

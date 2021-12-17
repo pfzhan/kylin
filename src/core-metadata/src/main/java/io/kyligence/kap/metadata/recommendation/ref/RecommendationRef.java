@@ -31,7 +31,6 @@ import org.apache.commons.collections.CollectionUtils;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.obf.IKeep;
 import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -44,7 +43,7 @@ import lombok.ToString;
 @EqualsAndHashCode
 @NoArgsConstructor
 @ToString
-public abstract class RecommendationRef implements IKeep {
+public abstract class RecommendationRef {
 
     // id >= 0 column in model
     // id < 0 column in rawRecItem

@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.secondstorage.management;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.secondstorage.SecondStorage;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -36,7 +35,7 @@ import javax.annotation.PostConstruct;
 @Configuration
 @Order(2)
 @ConditionalOnProperty({"kylin.second-storage.class"})
-public class ManagementConfig implements IKeep {
+public class ManagementConfig {
 
     @PostConstruct
     public void init() {

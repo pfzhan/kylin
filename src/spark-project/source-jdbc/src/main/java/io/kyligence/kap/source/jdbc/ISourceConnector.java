@@ -23,7 +23,6 @@
  */
 package io.kyligence.kap.source.jdbc;
 
-import io.kyligence.kap.common.obf.IKeep;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -31,7 +30,7 @@ import org.apache.spark.sql.SparkSession;
 
 import java.util.Map;
 
-public interface ISourceConnector extends IKeep {
+public interface ISourceConnector {
     Dataset<Row> getSourceData(KylinConfig kylinConfig, SparkSession sparkSession, String sql,
             Map<String, String> params);
 }

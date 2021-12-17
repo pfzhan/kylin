@@ -39,7 +39,6 @@ import org.apache.kylin.common.util.OptionsHelper;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
 import io.kyligence.kap.common.util.OptionBuilder;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
@@ -51,7 +50,7 @@ import lombok.extern.slf4j.Slf4j;
  * 4.1 -> 4.2
  */
 @Slf4j
-public class CreateTableLayoutCandidateCLI extends ExecutableApplication implements IKeep {
+public class CreateTableLayoutCandidateCLI extends ExecutableApplication {
 
     private static final Option OPTION_EXEC = OptionBuilder.getInstance().hasArg(false).withArgName("exec")
             .withDescription("exec the upgrade.").isRequired(false).withLongOpt("exec").create("e");

@@ -32,7 +32,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.metadata.project.ProjectInstance;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -40,7 +39,7 @@ import io.kyligence.kap.tool.MaintainModeTool;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class FastRoutineTool extends RoutineTool implements IKeep {
+public class FastRoutineTool extends RoutineTool {
 
     @Override
     protected void execute(OptionsHelper optionsHelper) throws Exception {

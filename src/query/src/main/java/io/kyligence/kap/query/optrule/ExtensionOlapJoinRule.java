@@ -51,9 +51,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.obf.IKeep;
-
-public class ExtensionOlapJoinRule extends ConverterRule implements IKeep {
+public class ExtensionOlapJoinRule extends ConverterRule {
     private static final Logger logger = LoggerFactory.getLogger(ExtensionOlapJoinRule.class);
 
     public static final ConverterRule INSTANCE = new ExtensionOlapJoinRule();

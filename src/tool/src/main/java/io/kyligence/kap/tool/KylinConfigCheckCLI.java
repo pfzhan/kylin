@@ -29,13 +29,12 @@ import java.util.Properties;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.util.Unsafe;
 
 /**
  * When performing check-env, this class is used to check kylin config
  */
-public class KylinConfigCheckCLI implements IKeep {
+public class KylinConfigCheckCLI {
 
     private static final String SERVER_CONFIG_PREFIX = "server.";
     private static final String SPRING_CONFIG_PREFIX = "spring.";

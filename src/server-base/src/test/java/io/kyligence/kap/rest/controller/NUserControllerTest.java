@@ -25,9 +25,6 @@
 package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-import static org.apache.kylin.rest.service.LicenseInfoService.getDefaultCommitFile;
-import static org.apache.kylin.rest.service.LicenseInfoService.getDefaultLicenseFile;
-import static org.apache.kylin.rest.service.LicenseInfoService.getDefaultVersionFile;
 import static org.hamcrest.CoreMatchers.containsString;
 
 import java.io.IOException;
@@ -41,17 +38,14 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.IUserGroupService;
-import org.apache.kylin.rest.service.LicenseInfoService;
 import org.apache.kylin.rest.service.UserService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -77,11 +71,10 @@ import org.springframework.web.accept.ContentNegotiationManager;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.constant.Constants;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.request.PasswordChangeRequest;
-import io.kyligence.kap.rest.rules.ClearKEPropertiesRule;
+import io.kyligence.kap.junit.rule.ClearKEPropertiesRule;
 import io.kyligence.kap.rest.service.AclTCRService;
 import lombok.val;
 
@@ -117,8 +110,6 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
     @Mock
     private AccessService accessService;
 
-    private LicenseInfoService licenseInfoService = new LicenseInfoService();
-
     @Before
     public void setupResource() {
         super.createTestMetadata();
@@ -138,7 +129,6 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         ManagedUser user = new ManagedUser("ADMIN", "ADMIN", false, authorities);
         Authentication authentication = new TestingAuthenticationToken(user, "ADMIN", Constant.ROLE_ADMIN);
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        ReflectionTestUtils.setField(nUserController, "licenseInfoService", licenseInfoService);
         ReflectionTestUtils.setField(nUserController, "userGroupService", userGroupService);
     }
 
@@ -152,28 +142,6 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         EnvelopeResponse<UserDetails> userDetailsEnvelopeResponse = nUserController.authenticatedUser();
         Assert.assertNotNull(userDetailsEnvelopeResponse);
         Assert.assertEquals(userDetailsEnvelopeResponse.getCode(), KylinException.CODE_SUCCESS);
-    }
-
-    @Test
-    @Ignore("verify license code is in a individual patch")
-    public void testAuthenticated_WithOutOfDateLicense() {
-        getTestConfig().setProperty("kylin.env", "PROD");
-        licenseInfoService.gatherLicenseInfo(getDefaultLicenseFile(), getDefaultCommitFile(), getDefaultVersionFile(),
-                null);
-        overwriteSystemProp(Constants.KE_DATES, "2018-12-17,2019-01-17");
-        thrown.expect(BadRequestException.class);
-        thrown.expectMessage(String.format(Locale.ROOT, Message.getInstance().getLICENSE_OVERDUE_TRIAL(), "2018-12-17",
-                "2019-01-17"));
-        nUserController.authenticate();
-    }
-
-    @Test
-    @Ignore("verify license code is in a individual patch")
-    public void testAuthenticated_WithoutLicense() {
-        getTestConfig().setProperty("kylin.env", "PROD");
-        thrown.expect(BadRequestException.class);
-        thrown.expectMessage(Message.getInstance().getLICENSE_INVALID_LICENSE());
-        nUserController.authenticate();
     }
 
     @Test

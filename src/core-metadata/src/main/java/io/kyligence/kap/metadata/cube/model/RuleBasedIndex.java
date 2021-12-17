@@ -50,7 +50,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.cube.cuboid.CuboidScheduler;
 import io.kyligence.kap.metadata.cube.cuboid.CuboidScheduler.ColOrder;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
@@ -64,7 +63,7 @@ import lombok.var;
 
 @NoArgsConstructor
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
-public class RuleBasedIndex implements Serializable, IKeep {
+public class RuleBasedIndex implements Serializable {
 
     @Getter
     @JsonBackReference

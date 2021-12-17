@@ -60,7 +60,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.metadata.Epoch;
 import io.kyligence.kap.common.persistence.metadata.EpochStore;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
@@ -76,7 +75,7 @@ import lombok.Getter;
 import lombok.Synchronized;
 import lombok.val;
 
-public class EpochManager implements IKeep {
+public class EpochManager {
     private static final Logger logger = LoggerFactory.getLogger(EpochManager.class);
 
     public static EpochManager getInstance(KylinConfig config) {

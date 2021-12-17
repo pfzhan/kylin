@@ -44,9 +44,7 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 
-import io.kyligence.kap.common.obf.IKeep;
-
-public class QueryHistoryTable extends SqlTable implements IKeep {
+public class QueryHistoryTable extends SqlTable {
 
     public final SqlColumn<String> sql = column("sql_text", JDBCType.VARCHAR);
     public final SqlColumn<String> sqlPattern = column("sql_pattern", JDBCType.VARCHAR);
@@ -77,7 +75,7 @@ public class QueryHistoryTable extends SqlTable implements IKeep {
         super(tableName);
     }
 
-    public static class QueryHistoryInfoHandler implements TypeHandler<QueryHistoryInfo>, IKeep {
+    public static class QueryHistoryInfoHandler implements TypeHandler<QueryHistoryInfo> {
 
         private static final Logger logger = LoggerFactory.getLogger(QueryHistoryInfoHandler.class);
 
@@ -121,7 +119,7 @@ public class QueryHistoryTable extends SqlTable implements IKeep {
         }
     }
 
-    public static class InstantHandler implements TypeHandler<Instant>, IKeep {
+    public static class InstantHandler implements TypeHandler<Instant> {
 
         @Override
         public void setParameter(PreparedStatement ps, int i, Instant parameter, JdbcType jdbcType)

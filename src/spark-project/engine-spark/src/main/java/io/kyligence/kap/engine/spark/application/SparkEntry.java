@@ -26,9 +26,7 @@ package io.kyligence.kap.engine.spark.application;
 
 import org.apache.spark.application.JobWorkSpace;
 
-import io.kyligence.kap.common.obf.IKeep;
-
-public class SparkEntry implements IKeep {
+public class SparkEntry {
     public static void main(String[] args) {
         JobWorkSpace.execute(args);
     }

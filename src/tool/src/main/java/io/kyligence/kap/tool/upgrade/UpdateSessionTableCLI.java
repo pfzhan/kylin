@@ -45,7 +45,6 @@ import org.springframework.security.util.InMemoryResource;
 
 import com.google.common.annotations.VisibleForTesting;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
 import io.kyligence.kap.common.util.OptionBuilder;
 import io.kyligence.kap.tool.util.MetadataUtil;
@@ -55,7 +54,7 @@ import lombok.extern.slf4j.Slf4j;
  * 4.1 -> 4.2
  */
 @Slf4j
-public class UpdateSessionTableCLI extends ExecutableApplication implements IKeep {
+public class UpdateSessionTableCLI extends ExecutableApplication {
 
     private static final Option OPTION_TRUNCATE = OptionBuilder.getInstance().hasArg(false).withArgName("truncate")
             .withDescription("Truncate the session table.").isRequired(false).withLongOpt("truncate").create("t");

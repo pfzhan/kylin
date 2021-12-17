@@ -65,7 +65,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -76,7 +75,7 @@ import lombok.val;
 
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
-public class NDataflow extends RootPersistentEntity implements Serializable, IRealization, IKeep {
+public class NDataflow extends RootPersistentEntity implements Serializable, IRealization {
     public static final String REALIZATION_TYPE = "NCUBE";
     public static final String DATAFLOW_RESOURCE_ROOT = "/dataflow";
 

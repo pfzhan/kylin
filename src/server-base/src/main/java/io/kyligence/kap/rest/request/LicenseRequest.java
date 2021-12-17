@@ -27,11 +27,11 @@ package io.kyligence.kap.rest.request;
 import java.io.Serializable;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.kyligence.kap.common.obf.IKeep;
+
 import lombok.Data;
 
 @Data
-public class LicenseRequest implements IKeep, Serializable {
+public class LicenseRequest implements Serializable {
     private static final long serialVersionUID = 1L;
     private String username;
     private String email;

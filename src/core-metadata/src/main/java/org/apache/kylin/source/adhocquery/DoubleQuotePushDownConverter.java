@@ -44,7 +44,6 @@ import org.apache.kylin.metadata.model.tool.CalciteParser;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.obf.IKeep;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -64,7 +63,7 @@ import lombok.extern.slf4j.Slf4j;
  * {@link DoubleQuoteSqlIdentifierConvert}
  */
 @Slf4j
-public class DoubleQuotePushDownConverter implements IPushDownConverter, IKeep {
+public class DoubleQuotePushDownConverter implements IPushDownConverter {
 
     //inner class for convert SqlIdentifier with DoubleQuote
     private static class DoubleQuoteSqlIdentifierConvert {

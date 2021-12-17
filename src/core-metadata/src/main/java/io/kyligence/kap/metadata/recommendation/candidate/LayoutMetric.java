@@ -35,7 +35,6 @@ import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -43,7 +42,7 @@ import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
-public class LayoutMetric implements IKeep {
+public class LayoutMetric {
     private FrequencyMap frequencyMap;
     private LatencyMap latencyMap;
 

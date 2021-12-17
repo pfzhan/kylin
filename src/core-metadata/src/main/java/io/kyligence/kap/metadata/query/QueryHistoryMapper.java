@@ -42,10 +42,8 @@ import org.mybatis.dynamic.sql.select.render.SelectStatementProvider;
 import org.mybatis.dynamic.sql.update.render.UpdateStatementProvider;
 import org.mybatis.dynamic.sql.util.SqlProviderAdapter;
 
-import io.kyligence.kap.common.obf.IKeep;
-
 @Mapper
-public interface QueryHistoryMapper extends IKeep {
+public interface QueryHistoryMapper {
 
     @DeleteProvider(type = SqlProviderAdapter.class, method = "delete")
     int delete(DeleteStatementProvider deleteStatement);

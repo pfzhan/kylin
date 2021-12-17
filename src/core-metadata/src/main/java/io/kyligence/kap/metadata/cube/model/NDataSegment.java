@@ -52,7 +52,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.util.MultiPartitionUtil;
 import lombok.Getter;
@@ -60,7 +59,7 @@ import lombok.Setter;
 
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
-public class NDataSegment implements ISegment, Serializable, IKeep {
+public class NDataSegment implements ISegment, Serializable {
 
     @JsonBackReference
     private NDataflow dataflow;

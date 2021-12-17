@@ -24,13 +24,12 @@
 
 package io.kyligence.kap.metadata.streaming;
 
-import io.kyligence.kap.common.obf.IKeep;
+import java.sql.JDBCType;
+
 import org.mybatis.dynamic.sql.SqlColumn;
 import org.mybatis.dynamic.sql.SqlTable;
 
-import java.sql.JDBCType;
-
-public class StreamingJobStatsTable extends SqlTable implements IKeep {
+public class StreamingJobStatsTable extends SqlTable {
 
     public final SqlColumn<Long> id = column("id", JDBCType.BIGINT);
     public final SqlColumn<String> jobId = column("job_id", JDBCType.VARCHAR);

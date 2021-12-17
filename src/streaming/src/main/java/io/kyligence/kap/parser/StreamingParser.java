@@ -29,8 +29,6 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 
-import io.kyligence.kap.common.obf.IKeep;
-import io.kyligence.kap.streaming.metadata.StreamingMessageRow;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -40,13 +38,15 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.streaming.metadata.StreamingMessageRow;
+
 /**
  * By convention:
  * 1. stream parsers should have constructor
  *     - with (List<TblColRef> allColumns, Map properties) as params
  *
  */
-public abstract class StreamingParser implements IKeep {
+public abstract class StreamingParser {
 
     private static final Logger logger = LoggerFactory.getLogger(StreamingParser.class);
     public static final String PROPERTY_TS_COLUMN_NAME = "tsColName";

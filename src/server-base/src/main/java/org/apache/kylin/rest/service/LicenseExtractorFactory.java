@@ -23,7 +23,6 @@
  */
 package org.apache.kylin.rest.service;
 
-import io.kyligence.kap.common.obf.IKeep;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ClassUtil;
@@ -46,7 +45,7 @@ public class LicenseExtractorFactory {
         return licenseExtractor;
     }
 
-    public interface ILicenseExtractor extends IKeep {
+    public interface ILicenseExtractor {
         String extractLicenseVolume(String realVolume);
 
         String extractMetastoreUUID();

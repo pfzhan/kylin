@@ -25,7 +25,6 @@ package io.kyligence.kap.rest.response;
 
 import java.io.Serializable;
 
-import io.kyligence.kap.common.obf.IKeep;
 import lombok.Data;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
@@ -33,7 +32,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class ServerInfoResponse implements Serializable, IKeep {
+public class ServerInfoResponse implements Serializable {
     private String host;
     private String mode;
 }

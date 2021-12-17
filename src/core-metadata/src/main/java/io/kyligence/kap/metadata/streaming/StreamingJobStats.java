@@ -25,13 +25,13 @@
 package io.kyligence.kap.metadata.streaming;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.kyligence.kap.common.obf.IKeep;
+
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
-public class StreamingJobStats implements IKeep {
+public class StreamingJobStats {
 
     // table names
     public static final String STREAMING_JOB_STATS_SUFFIX = "streaming_job_stats";

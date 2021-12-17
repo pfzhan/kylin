@@ -23,15 +23,6 @@
  */
 package io.kyligence.kap.secondstorage.metadata;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import io.kyligence.kap.common.obf.IKeep;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.secondstorage.metadata.annotation.DataDefinition;
-import org.apache.kylin.common.persistence.RootPersistentEntity;
-
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
@@ -39,9 +30,19 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import org.apache.kylin.common.persistence.RootPersistentEntity;
+
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.secondstorage.metadata.annotation.DataDefinition;
+
 @DataDefinition
 public class TableFlow extends RootPersistentEntity
-        implements Serializable, IKeep,
+        implements Serializable,
         HasLayoutElement<TableData>,
         IManagerAware<TableFlow> {
 

@@ -23,11 +23,10 @@
  */
 package io.kyligence.kap.tool;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.tool.util.ToolUtil;
 import org.apache.kylin.common.KylinConfig;
 
-public class YarnSparkLogExtractor implements ISparkLogExtractor, IKeep {
+public class YarnSparkLogExtractor implements ISparkLogExtractor {
     @Override
     public String getSparkLogsDir(String project, KylinConfig kylinConfig) {
         return ToolUtil.getSparkLogsDir(project);

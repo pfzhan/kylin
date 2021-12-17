@@ -55,7 +55,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
@@ -78,7 +77,7 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class ImportModelContext implements AutoCloseable, IKeep {
+public class ImportModelContext implements AutoCloseable {
 
     public static final String MODEL_REC_PATH = "/%s/rec/%s.json";
 

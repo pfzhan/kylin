@@ -24,13 +24,11 @@
 
 package io.kyligence.kap.parser;
 
-import io.kyligence.kap.common.obf.IKeep;
-
 import java.util.Map;
 
 /**
  */
-public abstract class AbstractTimeParser implements IKeep {
+public abstract class AbstractTimeParser {
 
     public AbstractTimeParser(Map<String, String> properties) {
     }

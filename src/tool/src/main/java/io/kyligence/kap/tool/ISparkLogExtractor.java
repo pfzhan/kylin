@@ -23,10 +23,9 @@
  */
 package io.kyligence.kap.tool;
 
-import io.kyligence.kap.common.obf.IKeep;
 import org.apache.kylin.common.KylinConfig;
 
-public interface ISparkLogExtractor extends IKeep {
+public interface ISparkLogExtractor {
     String getSparkLogsDir(String project, KylinConfig kylinConfig);
     String getSparderLogsDir(KylinConfig kylinConfig);
 }

@@ -41,7 +41,6 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.glassfish.jersey.uri.UriTemplate;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.rest.constant.ProjectInfoParserConstant;
 import lombok.Data;
@@ -50,7 +49,7 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class ProjectInfoParser implements IKeep {
+public class ProjectInfoParser {
 
     private static final String PROJECT_PARAM = "project";
 
@@ -138,7 +137,7 @@ public class ProjectInfoParser implements IKeep {
     }
 
     @Data
-    public static class ProjectRequest implements IKeep {
+    public static class ProjectRequest {
         private String project;
     }
 

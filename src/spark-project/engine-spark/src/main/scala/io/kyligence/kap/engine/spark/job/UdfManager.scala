@@ -22,19 +22,18 @@
 
 package io.kyligence.kap.engine.spark.job
 
+import com.esotericsoftware.kryo.io.{Input, KryoDataInput}
+import com.google.common.cache.{Cache, CacheBuilder, RemovalListener, RemovalNotification}
+import org.apache.kylin.metadata.datatype.DataType
+import org.apache.spark.internal.Logging
+import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.{FunctionEntity, KapFunctions, SparkSession}
+import org.roaringbitmap.longlong.Roaring64NavigableMap
+
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 
-import com.esotericsoftware.kryo.io.{Input, KryoDataInput}
-import com.google.common.cache.{Cache, CacheBuilder, RemovalListener, RemovalNotification}
-import io.kyligence.kap.common.obf.IKeep
-import org.apache.kylin.metadata.datatype.DataType
-import org.apache.spark.internal.Logging
-import org.apache.spark.sql.{FunctionEntity, KapFunctions, SparkSession}
-import org.apache.spark.sql.types.StructType
-import org.roaringbitmap.longlong.Roaring64NavigableMap
-
-class UdfManager(sparkSession: SparkSession) extends Logging with IKeep{
+class UdfManager(sparkSession: SparkSession) extends Logging {
   private var udfCache: Cache[String, String] = _
 
   KapFunctions.builtin.foreach { case FunctionEntity(name, info, builder) =>

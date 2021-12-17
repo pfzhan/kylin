@@ -51,7 +51,6 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.OptionBuilder;
 import io.kyligence.kap.common.util.Unsafe;
@@ -60,7 +59,7 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class MigrateJobTool extends ExecutableApplication implements IKeep {
+public class MigrateJobTool extends ExecutableApplication {
     private static final Option OPTION_HELP = OptionBuilder.getInstance().hasArg(false)
             .withDescription("print help message.").isRequired(false).withLongOpt("help").create("h");
 

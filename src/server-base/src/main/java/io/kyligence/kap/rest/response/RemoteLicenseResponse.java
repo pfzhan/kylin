@@ -25,11 +25,10 @@ package io.kyligence.kap.rest.response;
 
 import java.io.Serializable;
 
-import io.kyligence.kap.common.obf.IKeep;
 import lombok.Data;
 
 @Data
-public class RemoteLicenseResponse implements IKeep, Serializable {
+public class RemoteLicenseResponse implements Serializable {
     private static final long serialVersionUID = 1L;
     private boolean success;
     private String data;

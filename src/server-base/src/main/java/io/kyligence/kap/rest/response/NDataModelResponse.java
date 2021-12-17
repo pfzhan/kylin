@@ -52,7 +52,6 @@ import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.acl.NDataModelAclParams;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -337,7 +336,7 @@ public class NDataModelResponse extends NDataModel {
     @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
     @EqualsAndHashCode
     @ToString
-    public static class SimplifiedNamedColumn extends NamedColumn implements Serializable, IKeep {
+    public static class SimplifiedNamedColumn extends NamedColumn implements Serializable {
 
         public SimplifiedNamedColumn(NamedColumn namedColumn) {
             this.id = namedColumn.getId();

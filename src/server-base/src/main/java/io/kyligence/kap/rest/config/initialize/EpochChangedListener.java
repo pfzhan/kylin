@@ -37,7 +37,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.EpochStartedNotifier;
 import io.kyligence.kap.common.scheduler.ProjectControlledNotifier;
@@ -54,7 +53,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Component
 @Slf4j
-public class EpochChangedListener implements IKeep {
+public class EpochChangedListener {
 
     private static final String GLOBAL = "_global";
 

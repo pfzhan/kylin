@@ -34,10 +34,9 @@ import org.apache.kylin.source.ISampleDataDeployer;
 import org.apache.kylin.source.ISource;
 import org.apache.kylin.source.ISourceMetadataExplorer;
 
-import io.kyligence.kap.common.obf.IKeepNames;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 
-public class NSparkDataSource implements ISource, IKeepNames {
+public class NSparkDataSource implements ISource {
     // for reflection
     public NSparkDataSource(KylinConfig config) {
 

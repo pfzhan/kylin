@@ -33,13 +33,11 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.obf.IKeep;
-
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, //
         getterVisibility = JsonAutoDetect.Visibility.NONE, //
         isGetterVisibility = JsonAutoDetect.Visibility.NONE, //
         setterVisibility = JsonAutoDetect.Visibility.NONE)
-public class SensitiveDataMask implements IKeep {
+public class SensitiveDataMask {
 
     private static final Set<String> VALID_DATA_TYPES = Sets.newHashSet(DataType.STRING, DataType.VARCHAR,
             DataType.CHAR, DataType.INT, DataType.INTEGER, DataType.BIGINT, DataType.SMALL_INT, DataType.TINY_INT,
@@ -53,7 +51,7 @@ public class SensitiveDataMask implements IKeep {
                         : dataType.trim().toLowerCase(Locale.ROOT));
     }
 
-    public enum MaskType implements IKeep {
+    public enum MaskType {
         DEFAULT(0), // mask sensitive data by type with default values
         AS_NULL(1); // mask all sensitive data as NULL
 

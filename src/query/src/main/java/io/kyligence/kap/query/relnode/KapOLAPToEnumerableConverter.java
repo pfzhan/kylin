@@ -33,14 +33,12 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.kylin.query.relnode.OLAPRel;
 import org.apache.kylin.query.relnode.OLAPToEnumerableConverter;
 
-import io.kyligence.kap.common.obf.IKeepNames;
-
 /**
  * If you're renaming this class, please keep it ending with OLAPToEnumerableConverter
  * see org.apache.calcite.plan.OLAPRelMdRowCount#shouldIntercept(org.apache.calcite.rel.RelNode)
  */
 // TODO remove the converter
-public class KapOLAPToEnumerableConverter extends OLAPToEnumerableConverter implements EnumerableRel, IKeepNames {
+public class KapOLAPToEnumerableConverter extends OLAPToEnumerableConverter implements EnumerableRel {
 
     public KapOLAPToEnumerableConverter(RelOptCluster cluster, RelTraitSet traits, RelNode input) {
         super(cluster, traits, input);

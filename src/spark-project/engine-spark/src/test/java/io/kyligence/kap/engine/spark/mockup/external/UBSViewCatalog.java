@@ -23,22 +23,23 @@
  */
 package io.kyligence.kap.engine.spark.mockup.external;
 
-import com.google.common.collect.Maps;
-import io.kyligence.api.ApiException;
-import io.kyligence.api.catalog.Database;
-import io.kyligence.api.catalog.IExternalCatalog;
-import io.kyligence.api.catalog.Partition;
-import io.kyligence.api.catalog.Table;
-import io.kyligence.kap.common.obf.IKeep;
+import java.util.Collections;
+import java.util.List;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 
-import java.util.Collections;
-import java.util.List;
+import com.google.common.collect.Maps;
 
-public class UBSViewCatalog implements IExternalCatalog, IKeep {
+import io.kyligence.api.ApiException;
+import io.kyligence.api.catalog.Database;
+import io.kyligence.api.catalog.IExternalCatalog;
+import io.kyligence.api.catalog.Partition;
+import io.kyligence.api.catalog.Table;
+
+public class UBSViewCatalog implements IExternalCatalog {
 
     static public final String VIEW_NAME = "x";
     static public final String DB_NAME = "UBSVIEWCATALOG";

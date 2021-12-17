@@ -50,14 +50,13 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.validate.SelectScope;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.query.engine.KECalciteConfig;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class KylinSqlValidator extends SqlValidatorImpl implements IKeep {
+public class KylinSqlValidator extends SqlValidatorImpl {
 
     public KylinSqlValidator(SqlValidatorImpl calciteSqlValidator) {
         super(calciteSqlValidator.getOperatorTable(), calciteSqlValidator.getCatalogReader(),

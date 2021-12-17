@@ -27,7 +27,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.ResourceStore;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.metadata.JdbcMetadataStore;
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
@@ -36,7 +35,7 @@ import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.epoch.EpochNotMatchException;
 import lombok.val;
 
-public class EnhancedUnitOfWork implements IKeep {
+public class EnhancedUnitOfWork {
 
     public static <T> T doInTransactionWithCheckAndRetry(UnitOfWork.Callback<T> f, String unitName) {
         return doInTransactionWithCheckAndRetry(f, UnitOfWork.DEFAULT_EPOCH_ID, unitName);
@@ -62,8 +61,7 @@ public class EnhancedUnitOfWork implements IKeep {
         if (!config.isUTEnv() && metadataStore instanceof JdbcMetadataStore) {
             params.setEpochChecker(() -> {
                 if (!EpochManager.getInstance(config).checkEpochOwner(params.getUnitName())) {
-                    throw new EpochNotMatchException(MsgPicker.getMsg().getLEADERS_HANDLE_OVER(),
-                            params.getUnitName());
+                    throw new EpochNotMatchException(MsgPicker.getMsg().getLEADERS_HANDLE_OVER(), params.getUnitName());
                 }
                 return null;
             });

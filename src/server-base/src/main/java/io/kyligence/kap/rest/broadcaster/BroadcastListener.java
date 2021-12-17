@@ -26,14 +26,13 @@ package io.kyligence.kap.rest.broadcaster;
 import org.apache.kylin.common.KylinConfig;
 import org.springframework.stereotype.Component;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.transaction.BroadcastEventReadyNotifier;
 import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
 import lombok.extern.slf4j.Slf4j;
 
 @Component
 @Slf4j
-public class BroadcastListener implements IKeep {
+public class BroadcastListener {
 
     private Broadcaster broadcaster = Broadcaster.getInstance(KylinConfig.getInstanceFromEnv());
 

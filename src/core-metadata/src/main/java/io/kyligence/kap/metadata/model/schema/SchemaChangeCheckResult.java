@@ -36,7 +36,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 
-import io.kyligence.kap.common.obf.IKeep;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
@@ -44,13 +43,13 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Data
-public class SchemaChangeCheckResult implements IKeep {
+public class SchemaChangeCheckResult {
 
     @JsonProperty
     private Map<String, ModelSchemaChange> models = new HashMap<>();
 
     @Data
-    public static class ModelSchemaChange implements IKeep {
+    public static class ModelSchemaChange {
         private int differences;
 
         @Setter(PRIVATE)
@@ -81,7 +80,7 @@ public class SchemaChangeCheckResult implements IKeep {
                     .allMatch(BaseItem::isCreatable);
         }
 
-        @JsonProperty("overwritable")
+        @JsonProperty("")
         public boolean overwritable() {
             return Stream.of(missingItems, newItems, updateItems, reduceItems).flatMap(Collection::stream)
                     .allMatch(BaseItem::isOverwritable);
@@ -101,7 +100,7 @@ public class SchemaChangeCheckResult implements IKeep {
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class BaseItem implements IKeep {
+    public static class BaseItem {
         @JsonProperty("type")
         SchemaNodeType type;
 
@@ -282,7 +281,7 @@ public class SchemaChangeCheckResult implements IKeep {
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class ConflictReason implements IKeep {
+    public static class ConflictReason {
         @JsonProperty("reason")
         UN_IMPORT_REASON reason;
 

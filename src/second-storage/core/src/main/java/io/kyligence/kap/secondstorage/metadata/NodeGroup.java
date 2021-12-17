@@ -24,21 +24,22 @@
 
 package io.kyligence.kap.secondstorage.metadata;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.base.Preconditions;
-import io.kyligence.kap.common.obf.IKeep;
-import io.kyligence.kap.secondstorage.metadata.annotation.DataDefinition;
-import org.apache.kylin.common.persistence.RootPersistentEntity;
-import org.springframework.util.CollectionUtils;
-
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 
+import org.apache.kylin.common.persistence.RootPersistentEntity;
+import org.springframework.util.CollectionUtils;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.base.Preconditions;
+
+import io.kyligence.kap.secondstorage.metadata.annotation.DataDefinition;
+
 @DataDefinition
-public class NodeGroup extends RootPersistentEntity implements Serializable, IKeep,
+public class NodeGroup extends RootPersistentEntity implements Serializable,
         IManagerAware<NodeGroup> {
     @JsonProperty("nodeNames")
     private List<String> nodeNames = new ArrayList<>();

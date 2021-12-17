@@ -29,9 +29,7 @@ import org.apache.kylin.query.util.QueryUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.common.obf.IKeep;
-
-public class EscapeTransformer implements QueryUtil.IQueryTransformer, IKeep {
+public class EscapeTransformer implements QueryUtil.IQueryTransformer {
 
 
     private static final Logger logger = LoggerFactory.getLogger(EscapeDialect.class);

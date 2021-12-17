@@ -32,9 +32,7 @@ import javax.crypto.spec.SecretKeySpec;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 
-import io.kyligence.kap.common.obf.IKeep;
-
-public class EncryptUtil implements IKeep {
+public class EncryptUtil {
     /**
      * thisIsAsecretKey
      */

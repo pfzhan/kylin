@@ -51,7 +51,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
@@ -62,7 +61,7 @@ import lombok.val;
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-public class IndexEntity implements Serializable, IKeep {
+public class IndexEntity implements Serializable {
     /**
      * Here suppose cuboid's number is not bigger than 1_000_000, so if the id is bigger than 1_000_000 * 1_000
      * means it should be a table index cuboid.

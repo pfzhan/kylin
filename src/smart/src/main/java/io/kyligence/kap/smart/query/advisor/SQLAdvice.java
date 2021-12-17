@@ -27,7 +27,6 @@ package io.kyligence.kap.smart.query.advisor;
 import java.io.Serializable;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.kyligence.kap.common.obf.IKeep;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -35,7 +34,7 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 @EqualsAndHashCode
-public class SQLAdvice implements IKeep, Serializable {
+public class SQLAdvice implements Serializable {
 
     @JsonProperty("incapable_reason")
     private String incapableReason;

@@ -25,7 +25,7 @@
 package io.kyligence.kap.metadata.streaming;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.kyligence.kap.common.obf.IKeep;
+
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -33,7 +33,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class RowCountDetailByTime implements IKeep {
+public class RowCountDetailByTime {
 
     @JsonProperty("create_time")
     private Long createTime;

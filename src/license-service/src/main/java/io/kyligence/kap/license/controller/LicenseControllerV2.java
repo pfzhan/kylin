@@ -21,14 +21,13 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.rest.controller.v2;
+package io.kyligence.kap.license.controller;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
 
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.model.LicenseInfo;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.rest.service.LicenseInfoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -36,12 +35,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import io.kyligence.kap.rest.controller.NBasicController;
+import io.kyligence.kap.license.service.LicenseInfoService;
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
 
 @Controller
 @RequestMapping(value = "/api/system")
-public class NSystemControllerV2 extends NBasicController {
+public class LicenseControllerV2 extends NBasicController {
 
     @Autowired
     private LicenseInfoService licenseInfoService;

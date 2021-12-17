@@ -37,7 +37,6 @@ import org.apache.kylin.common.util.NamedThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.transaction.AuditLogReplayWorker;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.util.AddressUtil;
@@ -46,7 +45,7 @@ import lombok.Synchronized;
 
 /**
  */
-public class EpochOrchestrator implements IKeep {
+public class EpochOrchestrator {
 
     private static final Logger logger = LoggerFactory.getLogger(EpochOrchestrator.class);
 

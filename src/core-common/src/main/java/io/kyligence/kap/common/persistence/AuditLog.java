@@ -33,9 +33,8 @@ import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
-import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -45,7 +44,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class AuditLog implements IKeep {
+public class AuditLog {
 
     private long id;
 

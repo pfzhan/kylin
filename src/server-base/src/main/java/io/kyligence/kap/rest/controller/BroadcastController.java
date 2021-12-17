@@ -33,7 +33,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.service.AccessService;
-import org.apache.kylin.rest.service.LicenseInfoService;
 import org.apache.kylin.rest.service.QueryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -52,10 +51,8 @@ import io.kyligence.kap.common.persistence.transaction.AclTCRRevokeEventNotifier
 import io.kyligence.kap.common.persistence.transaction.AuditLogBroadcastEventNotifier;
 import io.kyligence.kap.common.persistence.transaction.BroadcastEventReadyNotifier;
 import io.kyligence.kap.common.persistence.transaction.EpochCheckBroadcastNotifier;
-import io.kyligence.kap.common.persistence.transaction.RefreshVolumeBroadcastEventNotifier;
 import io.kyligence.kap.common.persistence.transaction.StopQueryBroadcastEventNotifier;
 import io.kyligence.kap.common.persistence.transaction.UpdateJobStatusEventNotifier;
-import io.kyligence.kap.common.scheduler.SourceUsageUpdateNotifier;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.rest.service.AclTCRService;
 import io.kyligence.kap.rest.service.AuditLogService;
@@ -73,8 +70,8 @@ public class BroadcastController extends NBasicController {
     @Qualifier("queryService")
     private QueryService queryService;
 
-    @Autowired
-    private LicenseInfoService licenseInfoService;
+//    @Autowired
+//    private LicenseInfoService licenseInfoService;
 
     @Autowired
     private AclTCRService aclTCRService;
@@ -93,12 +90,12 @@ public class BroadcastController extends NBasicController {
             auditLogService.notifyCatchUp();
         } else if (notifier instanceof StopQueryBroadcastEventNotifier) {
             queryService.stopQuery(notifier.getSubject());
-        } else if (notifier instanceof RefreshVolumeBroadcastEventNotifier) {
-            licenseInfoService.refreshLicenseVolume();
+//        } else if (notifier instanceof RefreshVolumeBroadcastEventNotifier) {
+//            licenseInfoService.refreshLicenseVolume();
         } else if (notifier instanceof EpochCheckBroadcastNotifier) {
             EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).updateAllEpochs();
-        } else if (notifier instanceof SourceUsageUpdateNotifier) {
-            licenseInfoService.updateSourceUsage();
+//        } else if (notifier instanceof SourceUsageUpdateNotifier) {
+//            licenseInfoService.updateSourceUsage();
         } else if (notifier instanceof AclGrantEventNotifier) {
             aclTCRService.updateAclFromRemote((AclGrantEventNotifier) notifier, null);
         } else if (notifier instanceof AclRevokeEventNotifier) {

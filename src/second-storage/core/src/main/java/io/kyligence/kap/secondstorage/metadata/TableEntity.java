@@ -23,14 +23,14 @@
  */
 package io.kyligence.kap.secondstorage.metadata;
 
+import java.io.Serializable;
+
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.kyligence.kap.common.obf.IKeep;
+
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.secondstorage.metadata.annotation.TableDefinition;
-
-import java.io.Serializable;
 
 @JsonAutoDetect(
         fieldVisibility = JsonAutoDetect.Visibility.NONE,
@@ -38,7 +38,7 @@ import java.io.Serializable;
         isGetterVisibility = JsonAutoDetect.Visibility.NONE,
         setterVisibility = JsonAutoDetect.Visibility.NONE)
 @TableDefinition
-public class TableEntity implements Serializable, IKeep, WithLayout {
+public class TableEntity implements Serializable, WithLayout {
 
     public static final int DEFAULT_SHARD = 100;
 

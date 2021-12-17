@@ -39,7 +39,6 @@ import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.metadata.model.DatabaseDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.util.OptionBuilder;
 import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
@@ -49,7 +48,7 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class UpdateProjectCLI extends ExecutableApplication implements IKeep {
+public class UpdateProjectCLI extends ExecutableApplication {
     private static final Option OPTION_DIR = OptionBuilder.getInstance().hasArg().withArgName("dir")
             .withDescription("Specify the directory to operator").isRequired(true).create("dir");
 

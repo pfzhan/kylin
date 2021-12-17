@@ -36,7 +36,6 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.obf.IKeepNames;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -46,7 +45,7 @@ import lombok.ToString;
 @Setter
 @ToString
 @EqualsAndHashCode(callSuper = false)
-public class SourceUsageRecord extends RootPersistentEntity implements IKeepNames {
+public class SourceUsageRecord extends RootPersistentEntity {
     private static final Logger logger = LoggerFactory.getLogger(SourceUsageRecord.class);
 
     public static Logger getLogger() {

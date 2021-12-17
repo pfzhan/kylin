@@ -47,7 +47,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.common.obf.IKeepNames;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.cuboid.CuboidScheduler;
 import io.kyligence.kap.metadata.cube.model.validation.NIndexPlanValidator;
@@ -55,7 +54,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.val;
 
-public class NIndexPlanManager implements IKeepNames {
+public class NIndexPlanManager {
     private static final Logger logger = LoggerFactory.getLogger(NIndexPlanManager.class);
 
     public static NIndexPlanManager getInstance(KylinConfig config, String project) {

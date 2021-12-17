@@ -38,10 +38,9 @@ import java.util.TreeMap;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.util.RandomUtil;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.util.Unsafe;
 
-public class DumpHadoopSystemProps implements IKeep {
+public class DumpHadoopSystemProps {
     private static final String NO_PARAMETER = RandomUtil.randomUUIDStr();
     private static final String UTF8 = "UTF-8";
 
@@ -152,7 +151,7 @@ public class DumpHadoopSystemProps implements IKeep {
         return new TreeMap<>(System.getenv());
     }
 
-    public static class Inner implements IKeep {
+    public static class Inner {
 
         public static void main(String[] args) throws IOException {
             dump(getSystemProps(), args[1], args[0] + ".props");

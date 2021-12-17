@@ -34,9 +34,7 @@ import org.apache.kylin.common.KylinConfig;
 
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.common.obf.IKeep;
-
-public class JdbcDataSource implements IKeep {
+public class JdbcDataSource {
     private JdbcDataSource() {
     }
 

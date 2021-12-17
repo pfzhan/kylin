@@ -36,9 +36,7 @@ import org.apache.kylin.query.util.QueryUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.common.obf.IKeep;
-
-public class ReplaceStringWithVarchar implements QueryUtil.IQueryTransformer, IKeep {
+public class ReplaceStringWithVarchar implements QueryUtil.IQueryTransformer {
     private static final Logger logger = LoggerFactory.getLogger(ReplaceStringWithVarchar.class);
     private static final String REPLACED = "STRING";
     private static final String REPLACER = "VARCHAR";

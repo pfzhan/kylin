@@ -28,7 +28,6 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
-import io.kyligence.kap.common.obf.IKeep;
 
 import java.util.Arrays;
 import java.util.Set;
@@ -37,7 +36,7 @@ import java.util.Set;
         getterVisibility = JsonAutoDetect.Visibility.NONE, //
         isGetterVisibility = JsonAutoDetect.Visibility.NONE, //
         setterVisibility = JsonAutoDetect.Visibility.NONE)
-public class DependentColumn implements IKeep {
+public class DependentColumn {
 
     @JsonProperty
     String column;

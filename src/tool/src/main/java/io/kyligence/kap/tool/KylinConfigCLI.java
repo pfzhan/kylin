@@ -36,12 +36,11 @@ import org.apache.kylin.common.KylinConfig;
 
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.util.EncryptUtil;
 import io.kyligence.kap.common.util.Unsafe;
 
 @Slf4j
-public class KylinConfigCLI implements IKeep {
+public class KylinConfigCLI {
     public static void main(String[] args) {
         execute(args);
         Unsafe.systemExit(0);

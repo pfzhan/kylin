@@ -25,10 +25,9 @@ package io.kyligence.kap.common.util;
 
 import java.io.Serializable;
 
-import io.kyligence.kap.common.obf.IKeep;
 import lombok.Getter;
 
-public class ClusterConstant implements Serializable, IKeep {
+public class ClusterConstant implements Serializable {
     private ClusterConstant() {
     }
 

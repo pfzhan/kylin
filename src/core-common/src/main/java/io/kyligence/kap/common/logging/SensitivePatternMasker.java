@@ -35,11 +35,9 @@ import org.apache.logging.log4j.core.pattern.ConverterKeys;
 import org.apache.logging.log4j.core.pattern.LogEventPatternConverter;
 import org.apache.logging.log4j.util.PerformanceSensitive;
 
-import io.kyligence.kap.common.obf.IKeep;
-
 @Plugin(name = "SensitivePatternMasker", category = "Converter")
 @ConverterKeys({ "mask" })
-public class SensitivePatternMasker extends LogEventPatternConverter implements IKeep {
+public class SensitivePatternMasker extends LogEventPatternConverter {
     private static final String PREFIX_GROUP_NAME = "prefix";
     private static final String SENSITIVE_GROUP_NAME = "sensitive";
     private static final String MASK = "******";

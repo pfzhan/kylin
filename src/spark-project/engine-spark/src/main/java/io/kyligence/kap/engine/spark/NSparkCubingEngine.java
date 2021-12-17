@@ -33,9 +33,7 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 
-import io.kyligence.kap.common.obf.IKeep;
-
-public class NSparkCubingEngine implements NCubingEngine, IKeep {
+public class NSparkCubingEngine implements NCubingEngine {
 
     private static ThreadLocal<ImplementationSwitch<NSparkCubingStorage>> storages = new ThreadLocal<>();
 
