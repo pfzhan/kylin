@@ -68,9 +68,9 @@
                   <span class="ky-option-sub-info">{{item.datatype.toLocaleLowerCase()}}</span>
                 </el-option>
               </el-option-group>
-              <el-option-group key="ccolumn" :label="$t('ccolumns')" v-if="getCCGroups.length || newCCList.length">
+              <el-option-group key="ccolumn" :label="$t('ccolumns')" v-if="getCCGroups().length || newCCList.length">
                 <el-option
-                  v-for="item in getCCGroups"
+                  v-for="item in getCCGroups()"
                   :key="item.guid"
                   :label="item.tableAlias + '.' + item.columnName"
                   :value="item.tableAlias + '.' + item.columnName">
@@ -108,9 +108,9 @@
                 <el-tooltip :content="item.name" effect="dark" placement="top"><span>{{item.name | omit(30, '...')}}</span></el-tooltip>
                 <span class="ky-option-sub-info">{{item.datatype}}</span>
               </el-option>
-              <el-option-group key="ccolumn" :label="$t('ccolumns')" v-if="measure.expression === 'TOP_N' && getCCGroups.length">
+              <el-option-group key="ccolumn" :label="$t('ccolumns')" v-if="measure.expression === 'TOP_N' && getCCGroups().length">
                 <el-option
-                  v-for="item in getCCGroups"
+                  v-for="item in getCCGroups(isGroupBy)"
                   :key="item.guid"
                   :label="item.tableAlias + '.' + item.columnName"
                   :value="item.tableAlias + '.' + item.columnName">
@@ -139,9 +139,9 @@
                 <span class="ky-option-sub-info">{{item.datatype.toLocaleLowerCase()}}</span>
               </el-option>
             </el-option-group>
-            <el-option-group key="ccolumn" :label="$t('ccolumns')" v-if="getCCGroups.length  || newCCList.length">
+            <el-option-group key="ccolumn" :label="$t('ccolumns')" v-if="getCCGroups().length || newCCList.length">
               <el-option
-                v-for="item in getCCGroups"
+                v-for="item in getCCGroups()"
                 :key="item.guid"
                 :label="item.tableAlias + '.' + item.columnName"
                 :value="item.tableAlias + '.' + item.columnName">
@@ -380,10 +380,16 @@ export default class AddMeasure extends Vue {
       expression: [{ required: true, message: this.$t('requiredExpress'), trigger: 'change' }]
     }
   }
-  get getCCGroups () {
+  getCCGroups (isGroupBy) {
     if (this.ccGroups.length) {
-      if (['SUM(column)', 'TOP_N', 'CORR'].includes(this.measure.expression)) {
+      if (this.measure.expression === 'SUM(column)' || this.measure.expression === 'CORR') {
         return this.ccGroups.filter(it => measureSumAndTopNDataType.includes(it.datatype.toLocaleLowerCase().match(/^(\w+)\(?/)[1]))
+      } else if (this.measure.expression === 'TOP_N') {
+        if (isGroupBy && isGroupBy === 'Group by') {
+          return this.ccGroups.filter(it => measuresDataType.includes(it.datatype.toLocaleLowerCase().match(/^(\w+)\(?/)[1]))
+        } else {
+          return this.ccGroups.filter(it => measureSumAndTopNDataType.includes(it.datatype.toLocaleLowerCase().match(/^(\w+)\(?/)[1]))
+        }
       } else if (this.measure.expression === 'PERCENTILE_APPROX') {
         return this.ccGroups.filter(item => measurePercenDataType.includes(item.datatype.toLocaleLowerCase().match(/^(\w+)\(?/)[1]))
       } else {
@@ -842,7 +848,7 @@ export default class AddMeasure extends Vue {
   }
 
   getDatatype (colName) {
-    const columns = [...this.getParameterValue, ...this.getCCGroups, ...this.newCCList]
+    const columns = [...this.getParameterValue, ...this.getCCGroups(), ...this.newCCList]
     const index = indexOfObjWithSomeKey(columns, 'name', colName)
     if (index >= 0) {
       return columns[index].datatype
