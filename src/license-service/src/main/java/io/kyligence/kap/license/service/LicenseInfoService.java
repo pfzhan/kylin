@@ -32,14 +32,19 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.StringReader;
+import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.InterfaceAddress;
 import java.net.NetworkInterface;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.security.KeyFactory;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
+import java.security.Signature;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Enumeration;
@@ -68,7 +73,10 @@ import org.apache.kylin.common.KylinVersion;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.util.Bytes;
+import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.common.util.CliCommandExecutor;
+import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.ShellException;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -91,6 +99,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.google.common.hash.Hashing;
 
 import io.kyligence.kap.common.constant.Constants;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
@@ -198,6 +207,12 @@ public class LicenseInfoService extends BasicService {
         if ("true".equals(System.getProperty(Constants.KE_LICENSE_ISCLOUD))) {
             result.setEvaluation(true);
         }
+        if ("true".equals(System.getProperty(Constants.KE_LICENSE_ISENTERPRISE))) {
+            result.setEnterprise(true);
+        }
+        if ("true".equals(System.getProperty(Constants.KE_LICENSE_ISTEST))) {
+            result.setTest(true);
+        }
 
         if (!StringUtils.isEmpty(System.getProperty(Constants.KE_LICENSE_SERVICEEND))) {
             result.setServiceEnd(System.getProperty(Constants.KE_LICENSE_SERVICEEND));
@@ -216,7 +231,190 @@ public class LicenseInfoService extends BasicService {
     }
 
     public String verifyLicense(LicenseInfo info) {
+        return verifyLicense(info, false);
+    }
+
+    public String verifyLicense(LicenseInfo info, boolean uploadFromWeb) {
+        String warning = null;
+        Message msg = MsgPicker.getMsg();
+        try {
+            Set<String> errorMsg = Sets.newHashSet();
+            boolean isEvaluation = info.isEvaluation();
+            boolean isCloud = info.isCloud();
+            if (getDefaultLicenseFile() == null) {
+                throw new KylinException(INVALID_LICENSE, msg.getLICENSE_NO_LICENSE(), CODE_ERROR);
+            }
+
+            String dates = info.getDates();
+            if (dates == null) {
+                throw new KylinException(INVALID_LICENSE, msg.getLICENSE_INVALID_LICENSE(), CODE_ERROR);
+            }
+            String[] split = dates.split(",");
+            long effectDate = 0;
+            long expDate = 0;
+            try {
+                effectDate = DateFormat.stringToMillis(split[0]);
+                expDate = DateFormat.stringToMillis(split[1]);
+            } catch (Exception e) {
+                throw new KylinException(INVALID_LICENSE, msg.getLICENSE_INVALID_LICENSE(), CODE_ERROR);
+            }
+            long oneDay = 1000L * 3600 * 24;
+            if (System.currentTimeMillis() < effectDate - oneDay) {
+                errorMsg.add(msg.getLICENSE_NOT_EFFECTIVE());
+            }
+            warning = Optional.ofNullable(checkExpDate(info, expDate, oneDay, errorMsg)).orElse(warning);
+            // check is over scale
+            if (!isEvaluation && !isCloud) {
+                String nodes = System.getProperty(Constants.KE_LICENSE_NODES);
+                if (!UNLIMITED.equals(nodes) && StringUtils.isNotEmpty(nodes)) {
+                    int maximumNodeNums = Integer.parseInt(nodes);
+                    if (clusterManager.getServers().size() > maximumNodeNums) {
+                        if (uploadFromWeb) {
+                            errorMsg.add(msg.getLICENSE_OVER_VOLUME());
+                        } else {
+                            warning = msg.getLICENSE_OVER_VOLUME();
+                        }
+                    }
+                }
+            }
+            String volume = System.getProperty(Constants.KE_LICENSE_VOLUME);
+            if (!UNLIMITED.equals(volume)) {
+                long l = Long.parseLong(volume);
+                if (getLicenseCapacityInfo().getCurrentCapacity() >= l) {
+                    if (uploadFromWeb) {
+                        errorMsg.add(msg.getLICENSE_OVER_VOLUME());
+                    } else {
+                        warning = msg.getLICENSE_OVER_VOLUME();
+                    }
+                }
+            }
+
+            // check license's category
+            KylinVersion kylinVersion = KylinVersion.getCurrentVersion();
+            String category = System.getProperty(Constants.KE_LICENSE_CATEGORY);
+            if (!StringUtils.isBlank(category) && !category.startsWith(String.valueOf(kylinVersion.major))) {
+                errorMsg.add(msg.getLICENSE_WRONG_CATEGORY());
+            }
+
+            // read license
+            byte[] license = extractLicenseContent();
+            // validate signature
+            if (!verifySignature(license)) {
+                throw new KylinException(INVALID_LICENSE, msg.getLICENSE_INVALID_LICENSE(), CODE_ERROR);
+            }
+
+            // prepare data
+            long oldExpDate = expDate;
+            expDate = BytesUtil.readLong(license, 0, 8);
+            long abs = Math.abs(expDate - oldExpDate);
+            if (abs >= oneDay) {
+                throw new KylinException(INVALID_LICENSE, msg.getLICENSE_INVALID_LICENSE(), CODE_ERROR);
+            }
+            val data = prepareHashContent(info, expDate, license);
+            oneDay = 86543210L;
+            warning = Optional.ofNullable(checkExpDate(info, expDate, oneDay, errorMsg)).orElse(warning);
+
+            // verify md5
+            byte[] md5 = Hashing.md5().hashBytes(data).asBytes();
+            int nEnv = (license[28] << 8) | (license[29] & 0xff);
+            boolean verify = false;
+            for (int i = 0, off = 30; i < nEnv; i++, off += 48) {
+                verify = verify || Bytes.equals(md5, 0, md5.length, license, off, 16);
+            }
+            if (!verify) {
+                errorMsg.add(msg.getLICENSE_MISMATCH_LICENSE());
+            }
+            if (CollectionUtils.isNotEmpty(errorMsg)) {
+                if (errorMsg.size() == 1) {
+                    throw new KylinException(INVALID_LICENSE, errorMsg.iterator().next(), CODE_ERROR);
+                } else {
+                    List<String> collect = errorMsg.stream()
+                            .map(s -> s.split(",")[0].split("\\.")[0].split("，")[0].split("。")[0])
+                            .collect(Collectors.toList());
+                    for (int i = 1; i <= collect.size(); i++) {
+                        collect.set(i - 1, i + ". " + collect.get(i - 1));
+                    }
+                    val str = msg.getLICENSE_ERROR_PRE() + StringUtils.join(collect, "\n")
+                            + msg.getLICENSE_ERROR_SUFF();
+                    throw new KylinException(INVALID_LICENSE, str, CODE_ERROR);
+                }
+            }
+        } catch (KylinException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new KylinException(INVALID_LICENSE, msg.getLICENSE_INVALID_LICENSE(), CODE_ERROR);
+        }
+        return warning;
+    }
+
+    private byte[] prepareHashContent(LicenseInfo info, long expDate, byte[] license) {
+        String hostname = System.getProperty(HOSTNAME);
+        String kapCommit = System.getProperty(Constants.KE_COMMIT);
+        String statement = System.getProperty(Constants.KE_LICENSE_STATEMENT);
+        String metaStoreId = System.getProperty(Constants.KE_METASTORE);
+        // data
+        byte[] data;
+        int infoBits = (int) BytesUtil.readLong(license, 8, 4);
+        String env;
+        if ((infoBits & 1) == 0)
+            env = "{}";
+        else
+            env = "{0=" + hostname + "}";
+        if ((infoBits & (1 << 29)) == 0)
+            metaStoreId = "";
+        if ((infoBits & (1 << 31)) == 0)
+            kapCommit = "";
+        String str = "" + expDate + kapCommit + metaStoreId + env + statement;
+        data = str.getBytes(StandardCharsets.UTF_8);
+        data = Arrays.copyOf(data, data.length + 16);
+        System.arraycopy(license, 12, data, data.length - 16, 16);
+        return data;
+    }
+
+    private String checkExpDate(LicenseInfo info, long expDate, long oneDay, Set<String> errorMsg) {
+        if (System.currentTimeMillis() > expDate + oneDay) {
+            if (info.isEnterprise()) {
+                return MsgPicker.getMsg().getLICENSE_EXPIRED();
+            } else if (info.isCloud() && System.currentTimeMillis() < expDate + oneDay * 30) {
+                return MsgPicker.getMsg().getLICENSE_EXPIRED();
+            }
+            errorMsg.add(MsgPicker.getMsg().getLICENSE_EXPIRED());
+        }
+
         return null;
+    }
+
+    private byte[] extractLicenseContent() {
+        String lstr = System.getProperty(Constants.KE_LICENSE);
+        byte[] ltmp = new BigInteger(lstr, Character.MAX_RADIX).toByteArray();
+        byte[] result = Arrays.copyOfRange(ltmp, 1, ltmp.length);
+        // de-obfuscate
+        for (int i = 0, j = result.length - 1; i < j; i++, j--) {
+            if ((result[i] & 1) == (result[j] & 1)) {
+                result[i] = (byte) ~result[i];
+                result[j] = (byte) ~result[j];
+            } else {
+                byte t = result[i];
+                result[i] = result[j];
+                result[j] = t;
+            }
+        }
+        return result;
+    }
+
+    private boolean verifySignature(byte[] license) {
+        try {
+            int nEnv = (license[28] << 8) | (license[29] & 0xff);
+            int pubOff = 30 + 48 * nEnv;
+            byte[] pubb = Arrays.copyOfRange(license, pubOff, pubOff + 444);
+            PublicKey pub2 = KeyFactory.getInstance("DSA").generatePublic(new X509EncodedKeySpec(pubb));
+            Signature dsa = Signature.getInstance("SHA1withDSA");
+            dsa.initVerify(pub2);
+            dsa.update(license, 0, pubOff);
+            return dsa.verify(license, pubOff + 444, license.length - pubOff - 444);
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("Cannot verify license", ex);
+        }
     }
 
     public void gatherLicenseInfo(File licenseFile, File commitFile, File versionFile, UUID prefix) {
@@ -389,12 +587,18 @@ public class LicenseInfoService extends BasicService {
             while ((line = reader.readLine()) != null) {
                 if (lineNum == 0 && line.toLowerCase(Locale.ROOT).contains("license")) {
                     setProperty(Constants.KE_LICENSE_INFO, prefix, line);
-                }
-                if (line.toLowerCase(Locale.ROOT).contains("evaluation")) {
-                    setProperty(Constants.KE_LICENSE_ISEVALUATION, prefix, "true");
-                }
-                if (line.toLowerCase(Locale.ROOT).contains("for cloud")) {
-                    setProperty(Constants.KE_LICENSE_ISCLOUD, prefix, "true");
+                    if (line.toLowerCase(Locale.ROOT).contains("evaluation")) {
+                        setProperty(Constants.KE_LICENSE_ISEVALUATION, prefix, "true");
+                    }
+                    if (line.toLowerCase(Locale.ROOT).contains("for cloud")) {
+                        setProperty(Constants.KE_LICENSE_ISCLOUD, prefix, "true");
+                    }
+                    if (line.startsWith("Enterprise license for")) {
+                        setProperty(Constants.KE_LICENSE_ISENTERPRISE, prefix, "true");
+                    }
+                    if (line.startsWith("Test license for")) {
+                        setProperty(Constants.KE_LICENSE_ISTEST, prefix, "true");
+                    }
                 }
                 extractValue.apply(line, "Service End:")
                         .ifPresent(v -> setProperty(Constants.KE_LICENSE_SERVICEEND, prefix, v));
@@ -486,12 +690,14 @@ public class LicenseInfoService extends BasicService {
         File realLicense = new File(kylinHome, LICENSE_FILENAME);
         File tmpLicense = new File(kylinHome, "LICENSE.temporary");
         try {
-            verifyLicense(licenseInfo);
+            verifyLicense(licenseInfo, true);
         } catch (Exception e) {
             if (tmpLicense.exists()) {
                 FileUtils.copyFile(tmpLicense, realLicense);
                 FileUtils.forceDelete(tmpLicense);
                 gatherLicenseInfo(getDefaultLicenseFile(), getDefaultCommitFile(), getDefaultVersionFile(), null);
+            } else {
+                FileUtils.forceDelete(realLicense);
             }
             throw e;
         }
@@ -517,6 +723,8 @@ public class LicenseInfoService extends BasicService {
         Unsafe.setProperty(Constants.KE_LICENSE_INFO, "");
         Unsafe.setProperty(Constants.KE_LICENSE_VERSION, "");
         Unsafe.setProperty(Constants.KE_LICENSE_VOLUME, "");
+        Unsafe.setProperty(Constants.KE_LICENSE_ISENTERPRISE, "");
+        Unsafe.setProperty(Constants.KE_LICENSE_ISTEST, "");
     }
 
     public boolean filterEmail(String email) {
