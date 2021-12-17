@@ -129,9 +129,9 @@ public class MaintainModeTool extends ExecutableApplication {
     }
 
     private void tryCatchupAuditLog(String ipAndPort) {
-        ResourceStore metaStore = ResourceStore.getKylinMetaStore(config);
-        metaStore.getAuditLogStore().setInstance(ipAndPort);
         try {
+            ResourceStore metaStore = ResourceStore.getKylinMetaStore(config);
+            metaStore.getAuditLogStore().setInstance(ipAndPort);
             metaStore.getAuditLogStore().catchupWithTimeout();
         } catch (Exception e) {
             log.error("Catchup audit log failed, try to release epochs", e);
