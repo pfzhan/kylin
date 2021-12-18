@@ -43,6 +43,7 @@ import javax.net.ssl.SSLContext;
 import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
@@ -355,6 +356,9 @@ public class JobSyncListener {
                     notifier.getJobState(), notifier.getSubject());
             ExecutableState state = ExecutableState.valueOf(notifier.getJobState());
             String project = notifier.getProject();
+            NDataflowManager manager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            NDataflow dataflow = manager.getDataflow(notifier.getSubject());
+            recordPrometheusMetric(notifier, SpringContext.getBean(MeterRegistry.class), dataflow==null?"":dataflow.getModelAlias(), state);
             if (state.isFinalState()) {
                 long duration = notifier.getDuration();
                 MetricsGroup.hostTagCounterInc(MetricsName.JOB_FINISHED, MetricsCategory.PROJECT, project);
@@ -364,8 +368,6 @@ public class JobSyncListener {
                 MetricsGroup.hostTagCounterInc(MetricsName.JOB_WAIT_DURATION, MetricsCategory.PROJECT, project,
                         duration);
 
-                NDataflowManager manager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-                NDataflow dataflow = manager.getDataflow(notifier.getSubject());
                 if (dataflow != null) {
                     String modelAlias = dataflow.getModelAlias();
                     Map<String, String> tags = Maps.newHashMap();
@@ -376,8 +378,6 @@ public class JobSyncListener {
                             notifier.getWaitTime());
                     MetricsGroup.histogramUpdate(MetricsName.MODEL_BUILD_DURATION_HISTOGRAM, MetricsCategory.PROJECT,
                             project, tags, duration);
-
-                    recordPrometheusMetric(dataflow, notifier, SpringContext.getBean(MeterRegistry.class));
                 }
 
                 Map<String, String> tags = getJobStatisticsTags(notifier.getJobType());
@@ -408,20 +408,23 @@ public class JobSyncListener {
 
     }
 
-    public void recordPrometheusMetric(NDataflow dataflow, JobFinishedNotifier notifier, MeterRegistry meterRegistry) {
-        if (!KylinConfig.getInstanceFromEnv().isPrometheusMetricsEnabled()) {
+    public void recordPrometheusMetric(JobFinishedNotifier notifier, MeterRegistry meterRegistry, String modelAlias, ExecutableState state) {
+        if (!KylinConfig.getInstanceFromEnv().isPrometheusMetricsEnabled() || StringUtils.isBlank(modelAlias)) {
             return;
         }
-        boolean containPrometheusJobTypeFlag = Arrays.stream(JobTypeEnum.getTypesForPrometheus())
-                .anyMatch(jobTypeEnum -> jobTypeEnum.toString().equals(notifier.getJobType()));
-        if (containPrometheusJobTypeFlag) {
-            DistributionSummary.builder(PrometheusMetrics.MODEL_BUILD_DURATION.getValue())
-                    .tags(MetricsTag.MODEL.getVal(), dataflow.getModelAlias(), MetricsTag.PROJECT.getVal(), notifier.getProject(),
-                            MetricsTag.JOB_TYPE.getVal(), notifier.getJobType(), MetricsTag.SUCCEED.getVal(),
-                            notifier.isSucceed() + "")
-                    .distributionStatisticExpiry(Duration.ofDays(1)).sla(KylinConfig.getInstanceFromEnv().getMetricsJobSlaMinutes())
-                    .register(meterRegistry)
-                    .record((notifier.getDuration() + notifier.getWaitTime()) / (60.0 * 1000.0));
+        if (state.isFinalState() || ExecutableState.ERROR == state) {
+            boolean containPrometheusJobTypeFlag = Arrays.stream(JobTypeEnum.getTypesForPrometheus())
+                    .anyMatch(jobTypeEnum -> jobTypeEnum.toString().equals(notifier.getJobType()));
+
+            if (containPrometheusJobTypeFlag) {
+                DistributionSummary.builder(PrometheusMetrics.MODEL_BUILD_DURATION.getValue())
+                        .tags(MetricsTag.MODEL.getVal(), modelAlias, MetricsTag.PROJECT.getVal(), notifier.getProject(),
+                                MetricsTag.JOB_TYPE.getVal(), notifier.getJobType(), MetricsTag.SUCCEED.getVal(),
+                                (ExecutableState.SUCCEED == state) + "")
+                        .distributionStatisticExpiry(Duration.ofDays(1)).sla(KylinConfig.getInstanceFromEnv().getMetricsJobSlaMinutes())
+                        .register(meterRegistry)
+                        .record((notifier.getDuration() + notifier.getWaitTime()) / (60.0 * 1000.0));
+            }
         }
     }
 

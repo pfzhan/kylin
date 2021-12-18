@@ -39,11 +39,6 @@ management:
   context-path: "/api"
   security:
     enabled: false
-  metrics:
-    enable:
-      http: false
-      tomcat: false
-      log4j2: false
 
 endpoints:
   enabled: true
