@@ -26,6 +26,7 @@ package org.apache.spark.sql.newSession
 import java.io.File
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase
+import io.kyligence.kap.engine.spark.mockup.external.FileCatalog
 import org.apache.kylin.common.KylinConfig
 import org.apache.spark.SparkFunSuite
 import org.apache.spark.sql.kylin.external.KylinSharedState
@@ -35,6 +36,7 @@ import org.scalatest.BeforeAndAfterAll
 trait WithKylinExternalCatalog extends SparkFunSuite with BeforeAndAfterAll {
   protected val ut_meta = "../examples/test_case_data/localmeta"
   protected val additional = "../../build/conf/spark-executor-log4j.xml"
+  protected def externalCatalog: String = classOf[FileCatalog].getName
   protected def metadata : Seq[String] = {
       Seq(fitPathForUT(ut_meta))
   }
@@ -66,7 +68,7 @@ trait WithKylinExternalCatalog extends SparkFunSuite with BeforeAndAfterAll {
     overwriteSystemProp("kylin.spark.discard-shard-state", "true")
 
     metaStore.createTestMetadata(metadata: _*)
-    metaStore.overwriteSystemProp("kylin.use.external.catalog", "io.kyligence.kap.engine.spark.mockup.external.FileCatalog")
+    metaStore.overwriteSystemProp("kylin.use.external.catalog", externalCatalog)
     metaStore.overwriteSystemProp("kylin.NSparkDataSource.data.dir", s"${kylinConf.getMetadataUrlPrefix}/../data")
     metaStore.overwriteSystemProp("kylin.source.provider.9", "io.kyligence.kap.engine.spark.source.NSparkDataSource")
     metaStore.overwriteSystemProp("kylin.query.engine.sparder-additional-files", fitPathForUT(additional))
