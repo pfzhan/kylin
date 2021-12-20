@@ -57,6 +57,7 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.Pair;
@@ -518,9 +519,18 @@ public class TableServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testUnloadNotExistTable() {
+        String tableNotExist = "DEFAULT.not_exist_table";
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Can’t find table \"DEFAULT.not_exist_table\".");
-        tableService.unloadTable("default", "DEFAULT.not_exist_table", false);
+        thrown.expectMessage(String.format(Locale.ROOT, MsgPicker.getMsg().getTABLE_NOT_FOUND(), tableNotExist));
+        tableService.unloadTable("default", tableNotExist, false);
+    }
+
+    @Test
+    public void testPrepareUnloadNotExistTable() throws IOException {
+        String tableNotExist = "DEFAULT.not_exist_table";
+        thrown.expect(KylinException.class);
+        thrown.expectMessage(String.format(Locale.ROOT, MsgPicker.getMsg().getTABLE_NOT_FOUND(), tableNotExist));
+        tableService.preUnloadTable("default", tableNotExist);
     }
 
     @Test

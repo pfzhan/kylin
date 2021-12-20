@@ -31,7 +31,6 @@ import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_REFRESH_C
 import static org.apache.kylin.common.exception.ServerErrorCode.FILE_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_COMPUTED_COLUMN_EXPRESSION;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARTITION_COLUMN;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.ON_GOING_JOB_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
@@ -65,7 +64,6 @@ import java.util.stream.Stream;
 
 import javax.servlet.http.HttpServletRequest;
 
-import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -184,6 +182,7 @@ import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
 import io.kyligence.kap.rest.security.KerberosLoginManager;
 import io.kyligence.kap.rest.source.NHiveTableName;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import lombok.val;
 import lombok.var;
 
@@ -959,9 +958,9 @@ public class TableService extends BasicService {
         aclEvaluate.checkProjectWritePermission(project);
         NTableMetadataManager tableMetadataManager = getTableManager(project);
         val tableDesc = tableMetadataManager.getTableDesc(table);
-        if (tableDesc == null) {
-            val msg = MsgPicker.getMsg();
-            throw new KylinException(INVALID_TABLE_NAME, String.format(Locale.ROOT, msg.getTABLE_NOT_FOUND(), table));
+        if (Objects.isNull(tableDesc)) {
+            String errorMsg = String.format(Locale.ROOT, MsgPicker.getMsg().getTABLE_NOT_FOUND(), table);
+            throw new KylinException(TABLE_NOT_EXIST, errorMsg);
         }
 
         stopAndGetSnapshotJobs(project, table);
@@ -1030,9 +1029,16 @@ public class TableService extends BasicService {
         val execManager = getExecutableManager(project);
 
         val tableDesc = tableMetadataManager.getTableDesc(tableIdentity);
-        val models = dataflowManager.getModelsUsingTable(tableDesc);
-        response.setHasModel(!models.isEmpty());
-        response.setModels(models.stream().map(NDataModel::getAlias).collect(Collectors.toList()));
+        if (Objects.isNull(tableDesc)) {
+            String errorMsg = String.format(Locale.ROOT, MsgPicker.getMsg().getTABLE_NOT_FOUND(), tableIdentity);
+            throw new KylinException(TABLE_NOT_EXIST, errorMsg);
+        }
+
+        val models = dataflowManager.getModelsUsingTable(tableDesc).stream().filter(Objects::nonNull)
+                .map(model -> model.fusionModelBatchPart() ? model.getFusionModelAlias() : model.getAlias())
+                .collect(Collectors.toList());
+        response.setHasModel(CollectionUtils.isNotEmpty(models));
+        response.setModels(models);
 
         val rootTableModels = dataflowManager.getModelsUsingRootTable(tableDesc);
         val fs = HadoopUtil.getWorkingFileSystem();
