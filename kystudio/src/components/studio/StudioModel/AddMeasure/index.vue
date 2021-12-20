@@ -836,7 +836,7 @@ export default class AddMeasure extends Vue {
     if (measureObj.expression === 'SUM' || measureObj.expression === 'COUNT') {
       measureObj.expression = `${measureObj.expression}(${measureObj.parameterValue.type})`
     }
-    this.measure = { ...measureObj, comment: measureObj.parameterValue && measureObj.parameterValue.value ? this.columnComment(measureObj.parameterValue.value) : '' }
+    this.measure = { ...measureObj, comment: measureObj.parameterValue && measureObj.parameterValue.value && measureObj.expression !== 'SUM(constant)' ? this.columnComment(measureObj.parameterValue.value) : '' }
     if (!this.isEditMeasure) {
       this.measure.guid = sampleGuid()
     }
