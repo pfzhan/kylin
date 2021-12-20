@@ -34,20 +34,26 @@ import org.apache.kylin.job.execution.ExecutableState;
 import javax.annotation.concurrent.ThreadSafe;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 @ThreadSafe
 public class LoadContext {
     public static final String CLICKHOUSE_LOAD_CONTEXT = "P_CLICKHOUSE_LOAD_CONTEXT";
 
-    private List<String> completedFiles;
-    private List<String> history;
+    private final List<String> completedSegments;
+    private final List<String> completedFiles;
+    private final List<String> history;
+    private final List<String> historySegments;
     private final ClickHouseLoad job;
 
     public LoadContext(ClickHouseLoad job) {
         completedFiles = new CopyOnWriteArrayList<>();
+        completedSegments = new CopyOnWriteArrayList<>();
         history = new ArrayList<>();
+        historySegments = new ArrayList<>();
         this.job = job;
     }
 
@@ -55,23 +61,43 @@ public class LoadContext {
         completedFiles.add(file);
     }
 
+    public void finishSegment(String segment) {
+        completedSegments.add(segment);
+    }
+
     public List<String> getHistory() {
         return Collections.unmodifiableList(this.history);
     }
 
+    public List<String> getHistorySegments() {
+        return Collections.unmodifiableList(this.historySegments);
+    }
+
     @SneakyThrows
     public String serializeToString() {
-        return JsonUtil.writeValueAsString(completedFiles);
+        Map<String, List<String>> state = new HashMap<>();
+        state.put("completedSegments", completedSegments);
+        state.put("completedFiles", completedFiles);
+        return JsonUtil.writeValueAsString(state);
+    }
+
+    public static String emptyState() {
+        return "{\"completedSegments\":[],\"completedFiles\":[]}";
     }
 
     @SneakyThrows
     public void deserializeToString(String state) {
-        List<String> files = JsonUtil.readValue(state, new TypeReference<List<String>>() {
+        Map<String, List<String>> historyState = JsonUtil.readValue(state, new TypeReference<Map<String, List<String>>>() {
         });
         completedFiles.clear();
         history.clear();
-        history.addAll(files);
-        completedFiles.addAll(files);
+        completedSegments.clear();
+        historySegments.clear();
+
+        history.addAll(historyState.getOrDefault("completedFiles", Collections.emptyList()));
+        historySegments.addAll(historyState.getOrDefault("completedSegments", Collections.emptyList()));
+        completedFiles.addAll(history);
+        completedSegments.addAll(historySegments);
     }
 
     public ClickHouseLoad getJob() {

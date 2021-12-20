@@ -37,6 +37,7 @@ public class SecondStorageConcurrentTestUtil {
     // for load data to clickhouse
     public static final String WAIT_PAUSED = "WAIT_PAUSED";
     public static final String WAIT_BEFORE_COMMIT = "WAIT_BEFORE_COMMIT";
+    public static final String WAIT_AFTER_COMMIT = "WAIT_AFTER_COMMIT";
 
     private static final Map<String, Integer> latchMap = new ConcurrentHashMap<>();
     private static final Map<String, Boolean> waitingMap = new ConcurrentHashMap<>();

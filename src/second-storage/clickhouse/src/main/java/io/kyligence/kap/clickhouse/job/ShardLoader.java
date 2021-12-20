@@ -106,6 +106,8 @@ public class ShardLoader {
         clickHouse.apply(createDb.toSql(render));
         if (newJob) {
             createTable(insertTempTableName, layout, partitionColumn, true);
+        } else {
+            createTableIfNotExist(insertTempTableName, layout, partitionColumn, true);
         }
         createTable(likeTempTableName, layout, partitionColumn, false);
     }
@@ -215,6 +217,14 @@ public class ShardLoader {
         dropTable(table);
 
         final ClickHouseCreateTable mergeTable = ClickHouseCreateTable.createCKTable(database, table)
+                .columns(columns(layout, partitionBy, addPrefix))
+                .partitionBy(addPrefix && partitionBy != null ? getPrefixColumn(partitionBy) : partitionBy)
+                .engine(Engine.DEFAULT);
+        clickHouse.apply(mergeTable.toSql(render));
+    }
+
+    private void createTableIfNotExist(String table, LayoutEntity layout, String partitionBy, boolean addPrefix) throws SQLException {
+        final ClickHouseCreateTable mergeTable = ClickHouseCreateTable.createCKTableIgnoreExist(database, table)
                 .columns(columns(layout, partitionBy, addPrefix))
                 .partitionBy(addPrefix && partitionBy != null ? getPrefixColumn(partitionBy) : partitionBy)
                 .engine(Engine.DEFAULT);

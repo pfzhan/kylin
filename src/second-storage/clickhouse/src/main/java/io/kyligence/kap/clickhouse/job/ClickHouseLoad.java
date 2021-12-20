@@ -25,6 +25,7 @@ package io.kyligence.kap.clickhouse.job;
 
 import static io.kyligence.kap.secondstorage.SecondStorageConstants.STEP_EXPORT_TO_SECOND_STORAGE;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -35,6 +36,7 @@ import java.util.ListIterator;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -301,21 +303,27 @@ public class ClickHouseLoad extends AbstractExecutable {
                         loadInfoBatch.add(item.get(idx));
                     }
                     return loadInfoBatch;
-                }).collect(Collectors.toList());
+                }).sorted(Comparator.comparing(infoBatch -> infoBatch.get(0).getSegmentId())).collect(Collectors.toList());
 
-                for (List<LoadInfo> infoBatch : loadInfos)
-                    dataLoader.load(infoBatch, this.loadContext);
-                if (isPaused()) {
-                    saveState(false);
-                }
-                if (isPaused() || isDiscarded()) {
-                    throw new JobStoppedException("job stop manually.");
-                }
+                loadData(dataLoader);
                 updateMeta();
                 return ExecuteResult.createSucceed();
             });
         } finally {
             SecondStorageLockUtils.unlock(getTargetModelId(), range);
+        }
+    }
+
+    private void loadData(DataLoader dataLoader) throws InterruptedException, ExecutionException, SQLException, JobStoppedException {
+        for (List<LoadInfo> infoBatch : loadInfos) {
+            // if paused, stop load
+            if (dataLoader.load(infoBatch, this.loadContext)) break;
+        }
+        if (isPaused()) {
+            saveState(false);
+        }
+        if (isPaused() || isDiscarded()) {
+            throw new JobStoppedException("job stop manually.");
         }
     }
 
@@ -344,7 +352,7 @@ public class ClickHouseLoad extends AbstractExecutable {
         Preconditions.checkNotNull(loadContext, "load context can't be null");
         Map<String, String> info = new HashMap<>();
         // if save empty，will clean the
-        info.put(LoadContext.CLICKHOUSE_LOAD_CONTEXT, saveEmpty ? "[]" : loadContext.serializeToString());
+        info.put(LoadContext.CLICKHOUSE_LOAD_CONTEXT, saveEmpty ? LoadContext.emptyState() : loadContext.serializeToString());
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             val manager = this.getManager();
             manager.updateJobOutput(getParentId(), null, info, null, null);

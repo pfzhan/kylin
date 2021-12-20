@@ -402,11 +402,11 @@ public class SecondStorageJavaTest implements JobWaiter {
         Assert.assertEquals(0, partitionNum);
         Assert.assertFalse(SecondStorageLockUtils.containsKey(modelId, SegmentRange.TimePartitionedSegmentRange.createInfinite()));
 
-        await().atMost(2, TimeUnit.SECONDS).untilAsserted(() -> {
+        await().atMost(10, TimeUnit.SECONDS).untilAsserted(() -> {
             val manager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             val job = manager.getJob(jobId);
             Assert.assertEquals(ExecutableState.PAUSED, job.getStatus());
-            Assert.assertEquals("[]", job.getOutput().getExtra().get(LoadContext.CLICKHOUSE_LOAD_CONTEXT));
+            Assert.assertEquals("{\"completedSegments\":[],\"completedFiles\":[]}", job.getOutput().getExtra().get(LoadContext.CLICKHOUSE_LOAD_CONTEXT));
         });
 
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
@@ -414,7 +414,7 @@ public class SecondStorageJavaTest implements JobWaiter {
             executableManager.resumeJob(jobId);
             return null;
         }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID);
-        await().atMost(2, TimeUnit.SECONDS).until(() -> {
+        await().atMost(10, TimeUnit.SECONDS).until(() -> {
             val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             return executableManager.getJob(jobId).getStatus() == ExecutableState.RUNNING;
         });

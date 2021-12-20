@@ -129,7 +129,7 @@ public class DataLoader {
         this.isIncremental = isIncremental;
     }
 
-    public void load(List<LoadInfo> loadInfoBatch, LoadContext loadContext) throws InterruptedException, ExecutionException, SQLException {
+    public boolean load(List<LoadInfo> loadInfoBatch, LoadContext loadContext) throws InterruptedException, ExecutionException, SQLException {
         val totalJdbcNum = loadInfoBatch.stream().mapToInt(item -> item.getNodeNames().length).sum();
 
         List<ShardLoader> shardLoaders = new ArrayList<>(totalJdbcNum + 2);
@@ -165,6 +165,10 @@ public class DataLoader {
                 shardLoaders.add(new ShardLoader(context));
             }
         }
+
+        // skip segment when committed
+        if (loadContext.getHistorySegments().contains(loadInfoBatch.get(0).getSegmentId())) return false;
+
         final ExecutorService executorService = new ThreadPoolExecutor(totalJdbcNum, totalJdbcNum, 0L,
                 TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>(), new NamedThreadFactory("LoadWoker"));
         CountDownLatch latch = new CountDownLatch(totalJdbcNum);
@@ -205,14 +209,17 @@ public class DataLoader {
             if (!stopFlag.get()) {
                 // commit data when job finish normally
                 for (ShardLoader shardLoader : shardLoaders) {
-                    shardLoader.commit();
+                        shardLoader.commit();
                 }
+                loadContext.finishSegment(loadInfoBatch.get(0).getSegmentId());
             }
+            SecondStorageConcurrentTestUtil.wait(SecondStorageConcurrentTestUtil.WAIT_AFTER_COMMIT);
+            return paused;
         } catch (SQLException e) {
             for (ShardLoader shardLoader : shardLoaders) {
                 shardLoader.cleanIncrementLoad();
             }
-            ExceptionUtils.rethrow(e);
+            return ExceptionUtils.rethrow(e);
         } finally {
             for (ShardLoader shardLoader : shardLoaders) {
                 // if paused skip clean insert temp table
