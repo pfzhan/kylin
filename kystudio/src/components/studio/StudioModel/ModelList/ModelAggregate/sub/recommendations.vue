@@ -823,8 +823,8 @@ export default class IndexList extends Vue {
   // 获取 base index 创建或更新的数量
   getBaseIndexCount (result) {
     const { base_agg_index, base_table_index } = result
-    const createBaseIndexNum = base_agg_index ? [...[base_agg_index].filter(it => it.operate_type === 'CREATE'), ...[base_table_index].filter(it => it.operate_type === 'CREATE')].length : 0
-    const updateBaseIndexNum = base_table_index ? [...[base_agg_index].filter(it => it.operate_type === 'UPDATE'), ...[base_table_index].filter(it => it.operate_type === 'UPDATE')].length : 0
+    const createBaseIndexNum = [...[base_agg_index ?? {}].filter(it => it.operate_type === 'CREATE'), ...[base_table_index ?? {}].filter(it => it.operate_type === 'CREATE')].length
+    const updateBaseIndexNum = [...[base_agg_index ?? {}].filter(it => it.operate_type === 'UPDATE'), ...[base_table_index ?? {}].filter(it => it.operate_type === 'UPDATE')].length
     return {createBaseIndexNum, updateBaseIndexNum}
   }
 
