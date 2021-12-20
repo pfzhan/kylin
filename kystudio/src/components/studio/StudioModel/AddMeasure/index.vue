@@ -692,7 +692,13 @@ export default class AddMeasure extends Vue {
       try {
         // 新建measure的模型功校验measure接口使用
         let resData = objectClone(data)
-        resData.simplified_measures.push(measure)
+        if (!this.isEditMeasure) {
+          resData.simplified_measures.push(measure)
+        } else {
+          const name = this.measureObj.name
+          const index = resData.simplified_measures.findIndex(it => it.name === name)
+          index >= 0 && (resData.simplified_measures.splice(index, 1, measure))
+        }
         cclist.length > 0 && (resData.computed_columns = [...resData.computed_columns, ...cclist])
         const res = await this.checkInternalMeasure(resData)
         const checkRespData = await handleSuccessAsync(res)
@@ -764,7 +770,7 @@ export default class AddMeasure extends Vue {
               }
             }
           }
-          await this.checkInterMea(measureClone, this.newCCList)
+          // await this.checkInterMea(measureClone, this.newCCList)
           if (this.measureError) {
             return
           }
