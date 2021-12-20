@@ -149,6 +149,10 @@ public class StreamingSparkLogTool extends ExecutableApplication {
                     jobId);
             Map<String, Map<String, Set<String>>> projectJobMap = dumpJobDriverLog(project, jobId, dir, null, null);
             dumpExecutorLog(projectJobMap, dir);
+            if (jobId.contains("_merge")) {
+                log.warn("Only build job have checkpoint, current job: {}", jobId);
+                return;
+            }
             dumpCheckPoint(project, StringUtils.split(jobId, "_")[0], dir);
             return;
         }
@@ -327,25 +331,18 @@ public class StreamingSparkLogTool extends ExecutableApplication {
 
         projectManager.listAllProjects().stream().map(ProjectInstance::getName).filter(projectJobMap.keySet()::contains)
                 .forEach(project -> {
+                    Set<String> jobIdSet = projectJobMap.get(project).keySet();
                     StreamingJobManager streamingJobManager = StreamingJobManager.getInstance(kylinConfig, project);
-                    streamingJobManager.listAllStreamingJobMeta().stream().map(StreamingJobMeta::getModelId)
-                            .filter(uuid -> {
-                                Set<String> jobIdSet = projectJobMap.get(project).keySet();
-                                return jobIdSet.contains(uuid.concat("_build"))
-                                        || jobIdSet.contains(uuid.concat("_merge"));
-                            }).forEach(uuid -> dumpCheckPoint(project, uuid, exportDir));
+                    streamingJobManager.listAllStreamingJobMeta().stream().map(StreamingJobMeta::getModelId).distinct()
+                            .filter(modelId -> jobIdSet.contains(modelId.concat("_build")))
+                            .forEach(modelId -> dumpCheckPoint(project, modelId, exportDir));
                 });
     }
 
     /**
      * dump spark checkpoint for a single job
      */
-    private void dumpCheckPoint(String project, String jobId, String exportDir) {
-        if (StringUtils.endsWithIgnoreCase(jobId, "_merge")) {
-            log.warn("Only build job have checkpoints, current job: {}", jobId);
-            return;
-        }
-        String modelId = StringUtils.split(jobId, "_")[0];
+    private void dumpCheckPoint(String project, String modelId, String exportDir) {
         String hdfsStreamLogRootPath = kylinConfig.getHdfsWorkingDirectoryWithoutScheme();
         String hdfsStreamJobCheckPointPath = String.format(Locale.ROOT, "%s%s%s", hdfsStreamLogRootPath,
                 "streaming/checkpoint/", modelId);
@@ -353,7 +350,7 @@ public class StreamingSparkLogTool extends ExecutableApplication {
         FileSystem fs = HadoopUtil.getWorkingFileSystem();
 
         if (!executableManager.isHdfsPathExists(hdfsStreamJobCheckPointPath)) {
-            log.warn("The job checkpoint file on HDFS has not been generated yet, jobId: {}, filePath: {}", modelId,
+            log.warn("The job checkpoint file on HDFS has not been generated yet, modelId: {}, filePath: {}", modelId,
                     hdfsStreamJobCheckPointPath);
             return;
         }

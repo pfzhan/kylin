@@ -69,15 +69,16 @@ public class StreamingJobDiagInfoToolTest extends NLocalFileMetadataTestCase {
     public ExpectedException thrown = ExpectedException.none();
 
     private static final String PROJECT = "streaming_test";
-    private static final String JOB_ID = "e78a89dd-847f-4574-8afa-8768b4228b72_build";
+    private static final String JOB_ID_BUILD = "e78a89dd-847f-4574-8afa-8768b4228b72_build";
+    private static final String JOB_ID_MERGE = "e78a89dd-847f-4574-8afa-8768b4228b72_merge";
     private static final String MODEL_ID = "e78a89dd-847f-4574-8afa-8768b4228b72";
 
     @Before
     public void setup() throws Exception {
         createTestMetadata();
         copyConf();
-        createStreamingExecutorLog(PROJECT, JOB_ID);
-        createStreamingDriverLog(PROJECT, JOB_ID);
+        createStreamingExecutorLog(PROJECT, JOB_ID_BUILD);
+        createStreamingDriverLog(PROJECT, JOB_ID_BUILD);
         createCheckpoint(MODEL_ID);
     }
 
@@ -159,7 +160,7 @@ public class StreamingJobDiagInfoToolTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetJobByJobId() {
         StreamingJobDiagInfoTool streamingJobDiagInfoTool = new StreamingJobDiagInfoTool();
-        val job = streamingJobDiagInfoTool.getJobById(JOB_ID);
+        val job = streamingJobDiagInfoTool.getJobById(JOB_ID_BUILD);
         Assert.assertEquals(PROJECT, job.getProject());
         StreamingJobMeta job2 = streamingJobDiagInfoTool.getJobById("");
         Assert.assertNull(job2);
@@ -172,8 +173,8 @@ public class StreamingJobDiagInfoToolTest extends NLocalFileMetadataTestCase {
 
         getTestConfig().setProperty("kylin.diag.task-timeout", "180s");
         long start = System.currentTimeMillis();
-        new StreamingJobDiagInfoTool().execute(new String[] { "-streamingJob",
-                "e78a89dd-847f-4574-8afa-8768b4228b72_build", "-destDir", mainDir.getAbsolutePath() });
+        new StreamingJobDiagInfoTool()
+                .execute(new String[] { "-streamingJob", JOB_ID_BUILD, "-destDir", mainDir.getAbsolutePath() });
         long duration = System.currentTimeMillis() - start;
         Assert.assertTrue(
                 "In theory, the running time of this case should not exceed two minutes. "
@@ -194,6 +195,9 @@ public class StreamingJobDiagInfoToolTest extends NLocalFileMetadataTestCase {
                 Assert.assertEquals(9, appFiles.size());
             }
         }
+
+        new StreamingJobDiagInfoTool()
+                .execute(new String[] { "-streamingJob", JOB_ID_MERGE, "-destDir", mainDir.getAbsolutePath() });
 
         thrown.expect(KylinException.class);
         thrown.expectMessage("error parsing args");
@@ -253,12 +257,12 @@ public class StreamingJobDiagInfoToolTest extends NLocalFileMetadataTestCase {
         FileUtils.forceMkdir(mainDir);
 
         // includeMeta false
-        new StreamingJobDiagInfoTool().execute(new String[] { "-streamingJob", JOB_ID, "-destDir",
+        new StreamingJobDiagInfoTool().execute(new String[] { "-streamingJob", JOB_ID_BUILD, "-destDir",
                 mainDir.getAbsolutePath(), "-includeMeta", "false" });
 
         boolean hasMetadataFile = new ZipFile(
                 Objects.requireNonNull(Objects.requireNonNull(mainDir.listFiles())[0].listFiles())[0]).stream()
-                .anyMatch(zipEntry -> zipEntry.getName().contains("metadata"));
+                        .anyMatch(zipEntry -> zipEntry.getName().contains("metadata"));
 
         Assert.assertFalse(hasMetadataFile);
     }
@@ -270,11 +274,11 @@ public class StreamingJobDiagInfoToolTest extends NLocalFileMetadataTestCase {
         FileUtils.forceMkdir(mainDir);
 
         new StreamingJobDiagInfoTool()
-                .execute(new String[] { "-streamingJob", JOB_ID, "-destDir", mainDir.getAbsolutePath() });
+                .execute(new String[] { "-streamingJob", JOB_ID_BUILD, "-destDir", mainDir.getAbsolutePath() });
 
         boolean hasMetadataFile = new ZipFile(
                 Objects.requireNonNull(Objects.requireNonNull(mainDir.listFiles())[0].listFiles())[0]).stream()
-                .anyMatch(zipEntry -> zipEntry.getName().contains("metadata"));
+                        .anyMatch(zipEntry -> zipEntry.getName().contains("metadata"));
         Assert.assertTrue(hasMetadataFile);
     }
 
@@ -318,7 +322,7 @@ public class StreamingJobDiagInfoToolTest extends NLocalFileMetadataTestCase {
         FileUtils.forceMkdir(mainDir);
 
         new StreamingJobDiagInfoTool()
-                .execute(new String[] { "-streamingJob", JOB_ID, "-destDir", mainDir.getAbsolutePath() });
+                .execute(new String[] { "-streamingJob", JOB_ID_BUILD, "-destDir", mainDir.getAbsolutePath() });
         File zipFile = mainDir.listFiles()[0].listFiles()[0];
         File exportFile = new File(mainDir, "output");
         FileUtils.forceMkdir(exportFile);
