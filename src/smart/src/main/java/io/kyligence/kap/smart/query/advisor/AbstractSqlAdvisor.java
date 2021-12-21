@@ -24,14 +24,13 @@
 
 package io.kyligence.kap.smart.query.advisor;
 
-import java.util.Locale;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
+import io.kyligence.kap.smart.query.SQLResult;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 
-import io.kyligence.kap.smart.query.SQLResult;
+import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public abstract class AbstractSqlAdvisor implements ISqlAdvisor {
     private static final String MSG_UNSUPPORTED_SQL = "Not Supported SQL.";
@@ -106,9 +105,9 @@ public abstract class AbstractSqlAdvisor implements ISqlAdvisor {
             } else {
                 return SQLAdvice.build(
                         String.format(Locale.ROOT, MsgPicker.getMsg().getBAD_SQL_COLUMN_NOT_FOUND_IN_TABLE_REASON(),
-                                tblName, colName),
+                                colName),
                         String.format(Locale.ROOT, MsgPicker.getMsg().getBAD_SQL_COLUMN_NOT_FOUND_IN_TABLE_SUGGESTION(),
-                                colName, tblName));
+                                colName));
             }
         }
 

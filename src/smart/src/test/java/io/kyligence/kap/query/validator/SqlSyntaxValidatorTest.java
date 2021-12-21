@@ -24,14 +24,17 @@
 
 package io.kyligence.kap.query.validator;
 
-import java.util.Map;
-
-import org.junit.Assert;
-import org.junit.Test;
-
+import io.kyligence.kap.smart.query.advisor.SQLAdvice;
 import io.kyligence.kap.smart.query.mockup.MockupQueryExecutor;
 import io.kyligence.kap.smart.query.validator.SQLValidateResult;
 import io.kyligence.kap.smart.query.validator.SqlSyntaxValidator;
+import org.apache.kylin.common.msg.MsgPicker;
+import org.junit.Assert;
+import org.junit.Test;
+
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 public class SqlSyntaxValidatorTest extends SqlValidateTestBase {
 
@@ -75,5 +78,20 @@ public class SqlSyntaxValidatorTest extends SqlValidateTestBase {
         final Map<String, SQLValidateResult> badResults = validator.batchValidate(badSqls);
         printSqlValidateResults(badResults);
         badResults.forEach((key, sqlValidateResult) -> Assert.assertFalse(sqlValidateResult.isCapable()));
+
+        String[] badSqls2 = new String[] { "select columnA, price from kylin_sales" };
+        final Map<String, SQLValidateResult> badResults2 = validator.batchValidate(badSqls2);
+        badResults2.forEach((key, sqlValidateResult) -> {
+            Set<SQLAdvice> sqlAdvices = sqlValidateResult.getSqlAdvices();
+            sqlAdvices.forEach(sqlAdvice -> {
+                String colName = "columnA".toUpperCase(Locale.ROOT);
+                Assert.assertEquals(String.format(Locale.ROOT,
+                        MsgPicker.getMsg().getBAD_SQL_COLUMN_NOT_FOUND_IN_TABLE_REASON(), colName),
+                        sqlAdvice.getIncapableReason());
+                Assert.assertEquals(String.format(Locale.ROOT,
+                        MsgPicker.getMsg().getBAD_SQL_COLUMN_NOT_FOUND_IN_TABLE_SUGGESTION(), colName),
+                        sqlAdvice.getSuggestion());
+            });
+        });
     }
 }
