@@ -15,7 +15,7 @@
       <el-form-item :label="$t('expression')" prop="expression">
         <el-select v-guide.measureExpressionSelect :popper-append-to-body="false" class="measures-width measure-expression-select" popper-class="js_measure-expression" size="medium" v-model="measure.expression" @change="changeExpression">
           <el-option
-            v-for="item in expressionsConf"
+            v-for="item in expressionsConfigs"
             :key="item.value"
             :label="item.label"
             :value="item.value">
@@ -87,7 +87,7 @@
                 </el-option>
               </el-option-group>
             </el-select>
-            <common-tip :content="$t('addCCTip')"><el-button size="medium" v-if="measure.expression !== 'COUNT_DISTINCT' && measure.expression !== 'TOP_N'" icon="el-ksd-icon-auto_computed_column_old" type="primary" plain @click="newCC" class="ksd-ml-6" :disabled="isEdit&&ccVisible"></el-button></common-tip>
+            <common-tip :content="$t('addCCTip')"><el-button size="medium" v-if="measure.expression !== 'COUNT_DISTINCT' && measure.expression !== 'TOP_N'" icon="el-ksd-icon-auto_computed_column_old" type="primary" plain @click="newCC" class="ksd-ml-6" :disabled="(isEdit && ccVisible) || isHybridModel"></el-button></common-tip>
           </div>
           <el-button type="primary" size="mini" icon="el-icon-ksd-add_2" plain circle v-if="measure.expression === 'COUNT_DISTINCT'&&measure.return_type!=='bitmap'" class="ksd-ml-10" @click="addNewProperty"></el-button>
         </div>
@@ -157,7 +157,7 @@
                 </el-option>
             </el-option-group>
           </el-select>
-          <common-tip :content="$t('addCCTip')"><el-button size="medium" icon="el-ksd-icon-auto_computed_column_old" type="primary" plain class="ksd-ml-6" @click="newCorrCC" :disabled="isCorrCCEdit && corrCCVisible"></el-button></common-tip>
+          <common-tip :content="$t('addCCTip')"><el-button size="medium" icon="el-ksd-icon-auto_computed_column_old" type="primary" plain class="ksd-ml-6" @click="newCorrCC" :disabled="(isCorrCCEdit && corrCCVisible) || isHybridModel"></el-button></common-tip>
         </div>
       </el-form-item>
       <CCEditForm class="ksd-mb-24" key="corrEditForm" style="margin-top: -16px;" ref="corrEditForm" v-if="corrCCVisible" @checkSuccess="saveCorrCC" @delSuccess="delCorrCC" :hideCancel="isEditMeasure" :isEditMeasureCC="!isCorrCCEdit" source="createMeasure" :ccDesc="corrCCObject" :modelInstance="modelInstance" @resetSubmitLoading="resetSubmitType" @saveError="resetSubmitType"></CCEditForm>
@@ -279,19 +279,19 @@ export default class AddMeasure extends Vue {
   ccGroups = []
   newCCList = []
   allTableColumns = []
-  expressionsConf = [
-    {label: 'SUM (column)', value: 'SUM(column)'},
-    {label: 'SUM (constant)', value: 'SUM(constant)'},
-    {label: 'MIN', value: 'MIN'},
-    {label: 'MAX', value: 'MAX'},
-    {label: 'TOP_N', value: 'TOP_N'},
-    {label: 'COUNT (column)', value: 'COUNT(column)'},
-    // {label: 'COUNT (constant)', value: 'COUNT(constant)'}, 去除 count(constant) 函数，默认添加 count_all 度量
-    {label: 'COUNT_DISTINCT', value: 'COUNT_DISTINCT'},
-    {label: 'CORR (column1, column2)', value: 'CORR'},
-    {label: 'PERCENTILE_APPROX', value: 'PERCENTILE_APPROX'},
-    {label: 'COLLECT_SET', value: 'COLLECT_SET'}
-  ]
+  // expressionsConf = [
+  //   {label: 'SUM (column)', value: 'SUM(column)'},
+  //   {label: 'SUM (constant)', value: 'SUM(constant)'},
+  //   {label: 'MIN', value: 'MIN'},
+  //   {label: 'MAX', value: 'MAX'},
+  //   {label: 'TOP_N', value: 'TOP_N'},
+  //   {label: 'COUNT (column)', value: 'COUNT(column)'},
+  //   // {label: 'COUNT (constant)', value: 'COUNT(constant)'}, 去除 count(constant) 函数，默认添加 count_all 度量
+  //   {label: 'COUNT_DISTINCT', value: 'COUNT_DISTINCT'},
+  //   {label: 'CORR (column1, column2)', value: 'CORR'},
+  //   {label: 'PERCENTILE_APPROX', value: 'PERCENTILE_APPROX'},
+  //   {label: 'COLLECT_SET', value: 'COLLECT_SET'}
+  // ]
   topNTypes = [
     {name: 'Top 10', value: 'topn(10)'},
     {name: 'Top 100', value: 'topn(100)'},
@@ -318,6 +318,28 @@ export default class AddMeasure extends Vue {
   loadingSubmit = false
   corrColumnError = false
   measureError = ''
+
+  get expressionsConfigs () {
+    if (!this.modelInstance) return []
+    const config = [
+      {label: 'SUM (column)', value: 'SUM(column)'},
+      {label: 'SUM (constant)', value: 'SUM(constant)'},
+      {label: 'MIN', value: 'MIN'},
+      {label: 'MAX', value: 'MAX'},
+      {label: 'TOP_N', value: 'TOP_N'},
+      {label: 'COUNT (column)', value: 'COUNT(column)'},
+      // {label: 'COUNT (constant)', value: 'COUNT(constant)'}, 去除 count(constant) 函数，默认添加 count_all 度量
+      {label: 'COUNT_DISTINCT', value: 'COUNT_DISTINCT'},
+      {label: 'CORR (column1, column2)', value: 'CORR'},
+      {label: 'PERCENTILE_APPROX', value: 'PERCENTILE_APPROX'},
+      {label: 'COLLECT_SET', value: 'COLLECT_SET'}
+    ]
+    if (this.isHybridModel) {
+      return config.filter(item => item.value !== 'CORR')
+    } else {
+      return config
+    }
+  }
 
   get rules () {
     return {
@@ -359,6 +381,16 @@ export default class AddMeasure extends Vue {
 
   get forbidenSync () {
     return !this.measure.parameterValue.value || this.ccVisible || ['SUM(constant)', 'COUNT_DISTINCT'].includes(this.measure.expression) || !this.measure.comment
+  }
+
+  get isHybridModel () {
+    if (!this.modelInstance) return false
+    try {
+      const { model_type, getFactTable } = this.modelInstance
+      return (model_type && model_type === 'HYBRID') || (getFactTable() && getFactTable().batch_table_identity)
+    } catch (e) {
+      return false
+    }
   }
 
   // 获取列的注释
