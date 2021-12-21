@@ -38,7 +38,6 @@ import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlCall;
-import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
@@ -46,6 +45,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOrderBy;
 import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -189,7 +189,7 @@ public class QueryAliasMatcher {
                 SqlJoin join = (SqlJoin) call;
                 if (join.getConditionType() != JoinConditionType.ON) {
                     throw new IllegalArgumentException(
-                            "JoinConditionType is not ON: " + join.toSqlString(SqlDialect.CALCITE));
+                            "JoinConditionType is not ON: " + join.toSqlString(CalciteSqlDialect.DEFAULT));
                 }
                 if (join.getJoinType() != JoinType.INNER && join.getJoinType() != JoinType.LEFT) {
                     throw new IllegalArgumentException("JoinType must be INNER or LEFT");
@@ -332,7 +332,7 @@ public class QueryAliasMatcher {
             foundCC = true;
             String table = findComputedColumnTable(call, tableCandidates);
             ColumnDesc columnDesc = new ColumnDesc("-1", RandomUtil.randomUUIDStr(), "string", "", null, null,
-                    call.toSqlString(SqlDialect.CALCITE).getSql());
+                    call.toSqlString(CalciteSqlDialect.DEFAULT).getSql());
             TableRef tableRef = alias2CRT.get(table).getColumnByIndex(0).getTableRef();
             columnDesc.setTable(tableRef.getTableDesc());
             return TblColRef.columnForUnknownModel(tableRef, columnDesc);

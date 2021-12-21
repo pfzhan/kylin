@@ -71,8 +71,8 @@ import java.util.logging.LogManager;
 
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.rel2sql.RelToSqlConverter;
-import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
@@ -699,9 +699,9 @@ public class KylinTestBase extends NLocalFileMetadataTestCase {
             }
 
             RelNode calcitePlan = (RelNode) QueryContext.current().getCalcitePlan();
-            RelToSqlConverter converter = new RelToSqlConverter(SqlDialect.CALCITE);
+            RelToSqlConverter converter = new RelToSqlConverter(CalciteSqlDialect.DEFAULT);
             SqlNode sqlNode = converter.visitChild(0, calcitePlan.getInput(0)).asStatement();
-            String optimizedSQL = sqlNode.toSqlString(SqlDialect.CALCITE).getSql();
+            String optimizedSQL = sqlNode.toSqlString(CalciteSqlDialect.DEFAULT).getSql();
             String expectedSQL = Strings.join(Files.readLines(
                     new File(sqlFile.getParent(), sqlFile.getName() + ".expected"), Charset.forName("utf-8")), "\n");
             Assert.assertEquals(expectedSQL, optimizedSQL);

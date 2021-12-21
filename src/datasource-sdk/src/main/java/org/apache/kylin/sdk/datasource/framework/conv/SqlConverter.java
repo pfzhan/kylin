@@ -29,6 +29,7 @@ import java.util.Locale;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.metadata.datatype.DataType;
@@ -203,7 +204,7 @@ public class SqlConverter {
         }
 
         default SqlDialect getSqlDialect() {
-            return SqlDialect.CALCITE;
+            return CalciteSqlDialect.DEFAULT;
         }
 
         default boolean allowNoOffset() {

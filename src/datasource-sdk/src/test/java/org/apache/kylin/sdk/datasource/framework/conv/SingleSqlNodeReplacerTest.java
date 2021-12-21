@@ -24,8 +24,8 @@
 
 package org.apache.kylin.sdk.datasource.framework.conv;
 
-import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
@@ -62,7 +62,7 @@ public class SingleSqlNodeReplacerTest extends NLocalFileMetadataTestCase {
 
         SqlNode replaced = origin.accept(replacer);
 
-        SqlPrettyWriter writer = new SqlPrettyWriter(SqlDialect.CALCITE);
+        SqlPrettyWriter writer = new SqlPrettyWriter(CalciteSqlDialect.DEFAULT);
         String sqlReplace = writer.format(replaced);
 
         Assert.assertEquals("1 = 1 AND (TO_CHAR(\"A\", 'yyyy') = 'a' OR TO_CHAR(\"A\", 'yyyy') = 'aa')", sqlReplace);
