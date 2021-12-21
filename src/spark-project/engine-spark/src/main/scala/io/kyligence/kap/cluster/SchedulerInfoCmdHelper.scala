@@ -47,6 +47,7 @@ object SchedulerInfoCmdHelper extends Logging {
   private[cluster] def getInfoByCmds(cmds: Iterable[String]): String = {
     val results = cmds.map { cmd =>
       try {
+        logInfo(s"Executing the command: ${cmd}")
         execute(cmd)
       } catch {
         case throwable: Throwable => (1, ThrowableUtil.stackTraceToString(throwable))
@@ -144,6 +145,7 @@ object SchedulerInfoCmdHelper extends Logging {
         line = errorReader.readLine()
       }
 
+      logInfo(s"The corresponding http response for the above command: \n ${stderr}")
       try {
         val exitCode = proc.waitFor
         if (exitCode != 0) {
