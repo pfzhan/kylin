@@ -162,6 +162,20 @@ public class SnapshotService extends BasicService {
             checkTableSnapshotExist(project, checkAndGetTable(project, needBuildSnapshotTables));
         }
         checkOptions(tables, options);
+
+        List<String> invalidSnapshotsToBuild = new ArrayList<>();
+
+        for (Map.Entry<String, SnapshotRequest.TableOption> entry : options.entrySet()) {
+            Set<String> partitionToBuild = entry.getValue().getPartitionsToBuild();
+            if (partitionToBuild != null && partitionToBuild.isEmpty()) {
+                invalidSnapshotsToBuild.add(entry.getKey());
+            }
+        }
+        if (!invalidSnapshotsToBuild.isEmpty()) {
+            throw new KylinException(INVALID_PARAMETER,
+                    MsgPicker.getMsg().getPARTITIONS_TO_BUILD_CANNOT_BE_EMPTY(invalidSnapshotsToBuild));
+        }
+
         Map<String, SnapshotRequest.TableOption> finalOptions = Maps.newHashMap();
 
         List<String> jobIds = new ArrayList<>();

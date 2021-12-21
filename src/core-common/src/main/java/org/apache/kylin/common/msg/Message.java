@@ -42,9 +42,10 @@
 
 package org.apache.kylin.common.msg;
 
-import org.apache.kylin.common.Singletons;
-
+import java.util.List;
 import java.util.Locale;
+
+import org.apache.kylin.common.Singletons;
 
 public class Message {
 
@@ -1452,6 +1453,11 @@ public class Message {
 
     public String getINVALID_DIAG_TIME_PARAMETER() {
         return "The end time must be greater than the start time. Please modify it.";
+    }
+
+    public String getPARTITIONS_TO_BUILD_CANNOT_BE_EMPTY(List<String> tableDescNames) {
+        return "Please select at least one partition for the following snapshots when conducting custom partition value refresh: "
+                + tableDescNames.toString();
     }
 
     // Resource Group

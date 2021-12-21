@@ -42,9 +42,10 @@
 
 package org.apache.kylin.common.msg;
 
-import org.apache.kylin.common.Singletons;
-
+import java.util.List;
 import java.util.Locale;
+
+import org.apache.kylin.common.Singletons;
 
 public class CnMessage extends Message {
 
@@ -1654,6 +1655,11 @@ public class CnMessage extends Message {
     @Override
     public String getINVALID_DIAG_TIME_PARAMETER() {
         return "终止时间必须大于起始时间。请修改。";
+    }
+
+    @Override
+    public String getPARTITIONS_TO_BUILD_CANNOT_BE_EMPTY(List<String> tableDescNames) {
+        return "在执行自定义分区刷新时，请为以下快照选取至少一个分区值： " + tableDescNames.toString();
     }
 
     // Resource Group

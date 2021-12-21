@@ -286,6 +286,38 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testBuildSnapshotByPartitionWithInvalidPartitionsToBuild() {
+        enableSnapshotManualManagement();
+        final String table1 = "DEFAULT.TEST_KYLIN_FACT";
+        final String table2 = "DEFAULT.TEST_ACCOUNT";
+        String partitionCol = "CAL_DT";
+
+        tableService = Mockito.mock(TableService.class);
+        ReflectionTestUtils.setField(snapshotService, "tableService", tableService);
+        NTableMetadataManager tbgr = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
+        TableDesc tableDesc = tbgr.copyForWrite(tbgr.getTableDesc(table1));
+        tableDesc.setSourceType(1);
+        tableDesc.setPartitionColumn(partitionCol);
+
+        Mockito.when(tableService.extractTableMeta(Arrays.asList(table1).toArray(new String[0]), PROJECT))
+                .thenReturn(Arrays.asList(Pair.newPair(tableDesc, null)));
+
+        Set<String> tables = Sets.newHashSet(table1, table2);
+        Set<String> databases = Sets.newHashSet();
+
+        SnapshotRequest.TableOption option1 = new SnapshotRequest.TableOption();
+        option1.setPartitionCol(partitionCol);
+        option1.setIncrementalBuild(true);
+        option1.setPartitionsToBuild(Sets.newHashSet());
+
+        thrown.expect(KylinException.class);
+        thrown.expectMessage(
+                "Please select at least one partition for the following snapshots when conducting custom partition value refresh: [DEFAULT.TEST_KYLIN_FACT]");
+        snapshotService.buildSnapshots(PROJECT, databases, tables, ImmutableMap.of(table1, option1), false, 3, null,
+                null);
+    }
+
+    @Test
     public void testSamplingKillAnExistingNonFinalJob() throws Exception {
         enableSnapshotManualManagement();
         // initialize a sampling job and assert the status of it
