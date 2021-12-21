@@ -4,7 +4,7 @@
     width="480px"
     limited-area
     :title="$t(measureTitle)"
-    :visible.sync="measureVisible"
+    :visible="true"
     top="5%"
     class="add-measure-modal"
     :close-on-press-escape="false"
@@ -87,7 +87,7 @@
                 </el-option>
               </el-option-group>
             </el-select>
-            <common-tip :content="$t('addCCTip')"><el-button size="medium" v-if="measure.expression !== 'COUNT_DISTINCT' && measure.expression !== 'TOP_N'" icon="el-ksd-icon-auto_computed_column_old" type="primary" plain @click="newCC" class="ksd-ml-6" :disabled="(isEdit && ccVisible) || isHybridModel"></el-button></common-tip>
+            <common-tip :content="$t('addCCTip')"><el-button size="medium" v-if="measure.expression !== 'COUNT_DISTINCT' && measure.expression !== 'TOP_N'" icon="el-ksd-icon-auto_computed_column_old" type="primary" plain @click="newCC" class="ksd-ml-6" :disabled="(isEdit && ccVisible) || !!isHybridModel"></el-button></common-tip>
           </div>
           <el-button type="primary" size="mini" icon="el-icon-ksd-add_2" plain circle v-if="measure.expression === 'COUNT_DISTINCT'&&measure.return_type!=='bitmap'" class="ksd-ml-10" @click="addNewProperty"></el-button>
         </div>
@@ -157,7 +157,7 @@
                 </el-option>
             </el-option-group>
           </el-select>
-          <common-tip :content="$t('addCCTip')"><el-button size="medium" icon="el-ksd-icon-auto_computed_column_old" type="primary" plain class="ksd-ml-6" @click="newCorrCC" :disabled="(isCorrCCEdit && corrCCVisible) || isHybridModel"></el-button></common-tip>
+          <common-tip :content="$t('addCCTip')"><el-button size="medium" icon="el-ksd-icon-auto_computed_column_old" type="primary" plain class="ksd-ml-6" @click="newCorrCC" :disabled="(isCorrCCEdit && corrCCVisible) || !!isHybridModel"></el-button></common-tip>
         </div>
       </el-form-item>
       <CCEditForm class="ksd-mb-24" key="corrEditForm" style="margin-top: -16px;" ref="corrEditForm" v-if="corrCCVisible" @checkSuccess="saveCorrCC" @delSuccess="delCorrCC" :hideCancel="isEditMeasure" :isEditMeasureCC="!isCorrCCEdit" source="createMeasure" :ccDesc="corrCCObject" :modelInstance="modelInstance" @resetSubmitLoading="resetSubmitType" @saveError="resetSubmitType"></CCEditForm>
@@ -186,7 +186,24 @@ import CCEditForm from '../ComputedColumnForm/ccform.vue'
 import { mapGetters, mapActions } from 'vuex'
 import $ from 'jquery'
 @Component({
-  props: ['isShow', 'isEditMeasure', 'measureObj', 'modelInstance'],
+  props: {
+    isEditMeasure: {
+      type: Boolean,
+      default: false
+    },
+    measureObj: {
+      type: Object,
+      default () {
+        return {}
+      }
+    },
+    modelInstance: {
+      type: Object
+    },
+    isHybridModel: {
+      type: [Boolean, String]
+    }
+  },
   computed: {
     ...mapGetters([
       'dimMeasNameMaxLength'
@@ -381,16 +398,6 @@ export default class AddMeasure extends Vue {
 
   get forbidenSync () {
     return !this.measure.parameterValue.value || this.ccVisible || ['SUM(constant)', 'COUNT_DISTINCT'].includes(this.measure.expression) || !this.measure.comment
-  }
-
-  get isHybridModel () {
-    if (!this.modelInstance) return false
-    try {
-      const { model_type, getFactTable } = this.modelInstance
-      return (model_type && model_type === 'HYBRID') || (getFactTable() && getFactTable().batch_table_identity)
-    } catch (e) {
-      return false
-    }
   }
 
   // 获取列的注释
@@ -874,21 +881,31 @@ export default class AddMeasure extends Vue {
     }
   }
 
-  @Watch('isShow')
-  onShowChange (val) {
-    this.measureVisible = val
-    if (this.measureVisible) {
-      this.measureTitle = this.isEditMeasure ? 'editMeasureTitle' : 'addMeasureTitle'
-      this.allTableColumns = this.modelInstance && this.modelInstance.getTableColumns()
-      this.ccGroups = this.modelInstance.computed_columns.map(c => {
-        c.name = c.tableAlias + '.' + c.columnName
-        return c
-      })
-      this.initExpression()
-    } else {
-      this.resetMeasure()
-    }
+  created () {
+    this.measureTitle = this.isEditMeasure ? 'editMeasureTitle' : 'addMeasureTitle'
+    this.allTableColumns = this.modelInstance && this.modelInstance.getTableColumns()
+    this.ccGroups = this.modelInstance.computed_columns.map(c => {
+      c.name = c.tableAlias + '.' + c.columnName
+      return c
+    })
+    this.initExpression()
   }
+
+  // @Watch('isShow')
+  // onShowChange (val) {
+  //   this.measureVisible = val
+  //   if (this.measureVisible) {
+  //     this.measureTitle = this.isEditMeasure ? 'editMeasureTitle' : 'addMeasureTitle'
+  //     this.allTableColumns = this.modelInstance && this.modelInstance.getTableColumns()
+  //     this.ccGroups = this.modelInstance.computed_columns.map(c => {
+  //       c.name = c.tableAlias + '.' + c.columnName
+  //       return c
+  //     })
+  //     this.initExpression()
+  //   } else {
+  //     this.resetMeasure()
+  //   }
+  // }
 
   @Watch('measure.convertedColumns')
   onConvertedColumnsChange (val) {

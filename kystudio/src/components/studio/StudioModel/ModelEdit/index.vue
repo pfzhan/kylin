@@ -386,10 +386,11 @@
     <BatchMeasureModal @betchMeasures="updateBetchMeasure"/>
     <TableJoinModal/>
     <AddMeasure
-      :isShow="measureVisible"
+      v-if="measureVisible"
       :isEditMeasure="isEditMeasure"
       :measureObj="measureObj"
       :modelInstance="modelInstance"
+      :isHybridModel="isHybridModel"
       v-on:closeAddMeasureDia="closeAddMeasureDia">
     </AddMeasure>
     <SingleDimensionModal/>
