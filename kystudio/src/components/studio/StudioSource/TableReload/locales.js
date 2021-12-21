@@ -81,7 +81,7 @@ export default {
     invalidType: '请输入一个整数',
     invalidLarger: '输入的值应不大于 20,000,000 行 ',
     invalidSmaller: '输入的值不小于 10,000 行',
-    reloadTips: '重载后将造成，',
+    reloadTips: '重载后将造成 ',
     modelchangeTip: '{modelCount} 个模型将变为 BROKEN 状态，无法服务于查询。您可以手动编辑模型进行修复。',
     snapshotDelTip: '1 个快照损坏，无法服务于查询。',
     modelChangeAndSnapshotDel: '{modelCount} 个模型及 1 个快照损坏，无法服务于查询。',

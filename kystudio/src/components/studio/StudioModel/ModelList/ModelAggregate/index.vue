@@ -254,8 +254,8 @@
                     <!-- <common-tip :content="$t('viewDetail')">
                       <i class="el-icon-ksd-desc" @click="showDetail(scope.row)"></i>
                     </common-tip> -->
-                    <common-tip :content="$t('buildIndex')" v-if="isShowAggregateAction&&datasourceActions.includes('buildIndex')&&!isRealTimeMode">
-                      <i class="el-ksd-icon-build_index_22 ksd-ml-5" @click="complementedIndexes('', scope.row.id)"></i>
+                    <common-tip :content="$t('buildIndex')" :disabled="scope.row.status === 'LOCKED'" v-if="isShowAggregateAction&&datasourceActions.includes('buildIndex')&&!isRealTimeMode">
+                      <i class="el-ksd-icon-build_index_22 ksd-ml-5" :class="{'is-disabled': scope.row.status === 'LOCKED'}" @click="complementedIndexes('', scope.row.id)"></i>
                     </common-tip>
                     <common-tip :content="$t('editIndex')" v-if="isShowAggregateAction&&datasourceActions.includes('editAggGroup')">
                       <i class="el-icon-ksd-table_edit ksd-ml-5" v-if="scope.row.source === 'MANUAL_TABLE'" @click="confrimEditTableIndex(scope.row)"></i>
@@ -1201,6 +1201,10 @@ export default class ModelAggregate extends Vue {
           border-radius: 0;
         }
       }
+    }
+    .is-disabled {
+      pointer-events: none;
+      color: @text-disabled-color;
     }
   }
   .tabel-scroll {
