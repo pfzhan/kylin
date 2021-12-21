@@ -114,7 +114,7 @@
         <postgresql.version>42.2.13</postgresql.version>
         <commons-dbcp.version>2.5.0</commons-dbcp.version>
         <lmax.disruptor.versoin>3.4.2</lmax.disruptor.versoin>
-        <log4j2.version>2.16.0</log4j2.version>
+        <log4j2.version>2.17.0</log4j2.version>
         <log4j2-cachefile-transformer.version>2.14.1</log4j2-cachefile-transformer.version>
         <slf4j.version>1.7.30</slf4j.version>
         <apache-log4j.version>2.12.1</apache-log4j.version>
