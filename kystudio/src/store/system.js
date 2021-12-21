@@ -3,6 +3,7 @@ import * as types from './types'
 import { getProperty } from '../util/business'
 export default {
   state: {
+    messageDirectives: [],
     needReset: false,
     authentication: null,
     adminConfig: null,
@@ -58,6 +59,9 @@ export default {
     isNonAdminGenQueryDiagPackage: 'true'
   },
   mutations: {
+    [types.COLLECT_MESSAGE_DIRECTIVES]: (state, directive) => {
+      state.messageDirectives.push(directive)
+    },
     [types.SAVE_AUTHENTICATION]: function (state, result) {
       state.authentication = result.authentication
     },

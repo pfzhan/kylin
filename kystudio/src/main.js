@@ -41,7 +41,7 @@ import 'brace/theme/chrome'
 import 'brace/theme/monokai'
 import 'brace/ext/language_tools'
 import './assets/styles/index.less'
-import './service/message.js'
+import { ListenMessage } from './service/message.js'
 
 Vue.component('confirm-btn', confirmBtn)
 Vue.component('common-tip', commonTip)
@@ -162,6 +162,9 @@ Vue.http.interceptors.push(function (request, next) {
   })
 })
 
+Vue.prototype.$_bus = new Vue()
+const EventsBus = Vue.prototype.$_bus
+
 sync(store, router)
 /* eslint-disable no-new */
 window.kapVm = new Vue({
@@ -174,3 +177,6 @@ window.kapVm = new Vue({
   template: '<fullLayout/>',
   components: { fullLayout }
 })
+
+// 消息通知
+ListenMessage(EventsBus)

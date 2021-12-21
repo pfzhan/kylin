@@ -19,6 +19,7 @@
   import enKylinLocale from '../../locale/en'
   import zhKylinLocale from '../../locale/zh-CN'
   import { getQueryString } from '../../util/index'
+  import { mapState } from 'vuex'
   Vue.use(VueI18n)
   enLocale.kylinLang = enKylinLocale.default
   zhLocale.kylinLang = zhKylinLocale.default
@@ -31,6 +32,11 @@
         defaultLang: 'en',
         lang: localStorage.getItem('kystudio_lang') ? localStorage.getItem('kystudio_lang') : this.defaultLang
       }
+    },
+    computed: {
+      ...mapState({
+        messageDirectives: state => state.system.messageDirectives
+      })
     },
     methods: {
       changeLang (val) {
@@ -65,6 +71,15 @@
         const finalLang = localStorage.getItem('kystudio_lang') ? localStorage.getItem('kystudio_lang') : this.defaultLang
         this.changeLang(finalLang)
       }
+      let langMessageList = this.messageDirectives.filter(item => item.action === 'changeLang')
+      if (langMessageList.length) {
+        this.changeLang(langMessageList.pop().params)
+      }
+      this.$_bus.$on('changeLang', (val) => {
+        if (val !== this.lang) {
+          this.changeLang(val)
+        }
+      })
     }
   }
 </script>
