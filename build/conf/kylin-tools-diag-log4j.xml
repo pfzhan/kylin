@@ -9,12 +9,14 @@
             <DefaultRolloverStrategy max="1"/>
             <PatternLayout pattern="%d{ISO8601} %-5p %X{request.project}[%t] %c{2} : %mask{%m}%n"/>
         </RollingFile>
-        <Console name="stdout" target="SYSTEM_OUT"/>
+        <Console name="stdout" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d{ISO8601} %-5p %X{request.project}[%t] %c{2} : %mask{%m}%n"/>
+        </Console>
     </Appenders>
     <Loggers>
         <Root level="DEBUG">
-            <AppenderRef ref="file"/>
-            <AppenderRef ref="stdout"/>
+            <AppenderRef ref="file" level="INFO"/>
+            <AppenderRef ref="stdout" level="INFO"/>
         </Root>
         <Logger name="org.springframework" level="WARN"/>
         <Logger name="org.springframework.security" level="INFO"/>
