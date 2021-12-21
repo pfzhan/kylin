@@ -114,13 +114,6 @@ find ${package_name}/postgresql -type f -exec chmod 755 {} \;
 rm -rf ../dist
 mkdir -p ../dist
 
-# package obf tar
-if [[ "$SKIP_OBF" != "1" ]]; then
-    mv ../tmp/kap-assembly-${release_version}-job-obf.jar ${package_name}/lib/newten-job.jar
-    tar -czf ../dist/${package_name}.tar.gz ${package_name}
-    mv ../server_mapping.txt ../dist/${package_name}-obf.mapping
-
-fi
 tar -czf ../dist/${package_name}.tar.gz ${package_name}
 rm -rf ${package_name}
 
