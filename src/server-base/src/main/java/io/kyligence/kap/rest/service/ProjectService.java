@@ -46,6 +46,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIS
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -53,6 +54,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -83,13 +85,16 @@ import org.apache.kylin.rest.security.AclManager;
 import org.apache.kylin.rest.security.AclPermissionEnum;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.BasicService;
+import org.apache.kylin.rest.service.UserService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -176,6 +181,9 @@ public class ProjectService extends BasicService {
 
     @Autowired
     OptRecService optRecService;
+
+    @Autowired
+    UserService userService;
 
     @Setter
     @Autowired
@@ -278,16 +286,38 @@ public class ProjectService extends BasicService {
     }
 
     public List<UserProjectPermissionResponse> getProjectsFilterByExactMatchAndPermissionWrapperUserPermission(
-            final String projectName, boolean exactMatch, AclPermissionEnum permission) {
+            final String projectName, boolean exactMatch, AclPermissionEnum permission) throws IOException {
         Predicate<ProjectInstance> filter = getRequestFilter(projectName, exactMatch, permission);
-        return getProjectsWithFilter(filter).stream().map(projectInstance -> {
-            String userPermission = null;
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null) {
+            return Collections.emptyList();
+        }
+
+        UserDetails user = null;
+
+        final AtomicBoolean isGlobalAdmin = new AtomicBoolean(false);
+        try {
+            user = userService.loadUserByUsername(authentication.getName());
+        } catch (Exception e) {
+            logger.warn("Cat not load user by username {}", authentication.getName(), e);
+            return Collections.emptyList();
+        }
+
+        if (userService.isGlobalAdmin(user)) {
+            isGlobalAdmin.set(true);
+        }
+
+        UserDetails finalUser = user;
+        return getProjectsWithFilter(filter).parallelStream().map(projectInstance -> {
+            String userPermission;
             clearJdbcPassInOverrideKylinProps(projectInstance.getOverrideKylinProps());
-            try {
+
+            if (isGlobalAdmin.get()) {
+                userPermission = AclPermissionEnum.ADMINISTRATION.name();
+            } else {
                 userPermission = AclPermissionEnum.convertToAclPermission(
-                        accessService.getCurrentUserPermissionInProject(projectInstance.getName()));
-            } catch (IOException e) {
-                e.printStackTrace();
+                        accessService.getUserNormalPermission(projectInstance.getName(), finalUser).getFirst());
             }
             return new UserProjectPermissionResponse(projectInstance, userPermission);
         }).collect(Collectors.toList());

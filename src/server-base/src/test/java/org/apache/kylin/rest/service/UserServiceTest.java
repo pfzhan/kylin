@@ -42,9 +42,12 @@
 
 package org.apache.kylin.rest.service;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
+import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.Assert;
@@ -109,5 +112,34 @@ public class UserServiceTest extends ServiceTestBase {
                     "User ADMIN is not allowed to be deleted."));
         }
 
+    }
+
+    @Test
+    public void testListAdminUsers() throws IOException {
+        List<String> adminUsers = userService.listAdminUsers();
+        Assert.assertEquals(1, adminUsers.size());
+        Assert.assertTrue(adminUsers.contains("ADMIN"));
+    }
+
+    @Test
+    public void testIsGlobalAdmin() throws IOException {
+        Assert.assertTrue(userService.isGlobalAdmin("ADMIN"));
+        Assert.assertTrue(userService.isGlobalAdmin("AdMIN"));
+
+        Assert.assertFalse(userService.isGlobalAdmin("NOTEXISTS"));
+    }
+
+    @Test
+    public void testRetainsNormalUser() throws IOException {
+        Set<String> normalUsers = userService.retainsNormalUser(Sets.newHashSet("ADMIN", "adMIN", "NOTEXISTS"));
+        Assert.assertEquals(1, normalUsers.size());
+        Assert.assertTrue(normalUsers.contains("NOTEXISTS"));
+    }
+
+    @Test
+    public void testContainsGlobalAdmin() throws IOException {
+        Assert.assertTrue(userService.containsGlobalAdmin(Sets.newHashSet("ADMIN")));
+        Assert.assertTrue(userService.containsGlobalAdmin(Sets.newHashSet("adMIN")));
+        Assert.assertFalse(userService.containsGlobalAdmin(Sets.newHashSet("adMI N")));
     }
 }

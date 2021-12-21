@@ -38,6 +38,7 @@ import static org.apache.kylin.job.execution.JobTypeEnum.SNAPSHOT_REFRESH;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -46,6 +47,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
@@ -82,6 +84,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.engine.spark.job.NSparkSnapshotJob;
 import io.kyligence.kap.metadata.acl.AclTCRDigest;
+import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
@@ -416,6 +419,14 @@ public class SnapshotService extends BasicService {
 
         final String finalTable = table;
         final String finalDatabase = database;
+
+        Set<String> groups = getCurrentUserGroups();
+        boolean canUseACLGreenChannel = AclPermissionUtil.canUseACLGreenChannel(project, groups, true);
+        Set<String> authorizedTables = new HashSet<>();
+        if (!canUseACLGreenChannel) {
+            authorizedTables = getAuthorizedTables(project, getAclTCRManager(project));
+        }
+        Set<String> finalAuthorizedTables = authorizedTables;
         List<TableDesc> tables = nTableMetadataManager.listAllTables().stream().filter(tableDesc -> {
             if (StringUtils.isEmpty(finalDatabase)) {
                 return true;
@@ -430,8 +441,13 @@ public class SnapshotService extends BasicService {
                 return true;
             }
             return tableDesc.getName().toLowerCase(Locale.ROOT).contains(finalTable.toLowerCase(Locale.ROOT));
-        }).filter(this::isAuthorizedTable).filter(tableDesc -> hasLoadedSnapshot(tableDesc, executables))
-                .collect(Collectors.toList());
+        }).filter(tableDesc -> {
+            if (canUseACLGreenChannel) {
+                return true;
+            }
+
+            return finalAuthorizedTables.contains(tableDesc.getIdentity());
+        }).filter(tableDesc -> hasLoadedSnapshot(tableDesc, executables)).collect(Collectors.toList());
 
         List<SnapshotInfoResponse> response = new ArrayList<>();
         tables.forEach(tableDesc -> {
@@ -577,6 +593,19 @@ public class SnapshotService extends BasicService {
 
         return allTables.contains(originTable.getIdentity());
     }
+
+    private Set<String> getAuthorizedTables(String project, AclTCRManager aclTCRManager) {
+        Set<String> groups = getCurrentUserGroups();
+
+        String username = AclPermissionUtil.getCurrentUsername();
+        return Stream
+                .concat(Stream.of(Pair.newPair(username, true)),
+                        groups.stream().map(group -> Pair.newPair(group, false)))
+                .parallel().map(pair -> aclTCRManager
+                        .getAuthTablesAndColumns(project, pair.getFirst(), pair.getSecond()).getTables())
+                .flatMap(Collection::stream).collect(Collectors.toSet());
+    }
+
 
     private boolean matchTablePattern(TableDesc tableDesc, String tablePattern, String databasePattern,
             String databaseTarget) {

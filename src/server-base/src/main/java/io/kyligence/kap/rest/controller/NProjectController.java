@@ -38,6 +38,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NAME_ILL
 import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -152,7 +153,7 @@ public class NProjectController extends NBasicController {
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer size,
             @RequestParam(value = "exact", required = false, defaultValue = "false") boolean exactMatch,
-            @RequestParam(value = "permission", required = false, defaultValue = "READ") String permission) {
+            @RequestParam(value = "permission", required = false, defaultValue = "READ") String permission) throws IOException {
         if (Objects.isNull(AclPermissionFactory.getPermission(permission))) {
             throw new KylinException(PERMISSION_DENIED, "Operation failed, unknown permission:" + permission);
         }

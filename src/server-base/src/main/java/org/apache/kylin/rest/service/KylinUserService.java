@@ -162,6 +162,11 @@ public class KylinUserService implements UserService {
     }
 
     @Override
+    public List<ManagedUser> listUsers(boolean needSort) {
+        return getKylinUserManager().list(needSort);
+    }
+
+    @Override
     public List<String> listAdminUsers() throws IOException {
         List<String> adminUsers = new ArrayList<>();
         for (ManagedUser managedUser : listUsers()) {
@@ -180,7 +185,7 @@ public class KylinUserService implements UserService {
         return DIR_PREFIX + userName;
     }
 
-    private NKylinUserManager getKylinUserManager() {
+    protected NKylinUserManager getKylinUserManager() {
         return NKylinUserManager.getInstance(KylinConfig.getInstanceFromEnv());
     }
 }

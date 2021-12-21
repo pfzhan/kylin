@@ -111,12 +111,12 @@ public class NAccessController extends NBasicController {
     @GetMapping(value = "/permission/project_permission", produces = { HTTP_VND_APACHE_KYLIN_JSON,
             HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
-    public EnvelopeResponse<String> getUserPermissionInPrj(@RequestParam(value = "project") String project)
-            throws IOException {
+    public EnvelopeResponse<String> getUserPermissionInPrj(@RequestParam(value = "project") String project) {
         checkProjectName(project);
         List<String> groups = accessService.getGroupsOfCurrentUser();
         String permission = groups.contains(ROLE_ADMIN) ? "GLOBAL_ADMIN"
-                : AclPermissionEnum.convertToAclPermission(accessService.getCurrentUserPermissionInProject(project));
+                : AclPermissionEnum
+                        .convertToAclPermission(accessService.getCurrentNormalUserPermissionInProject(project));
 
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, permission, "");
     }
@@ -135,10 +135,9 @@ public class NAccessController extends NBasicController {
         AclEntity ae = accessService.getAclEntity(AclEntityType.PROJECT_INSTANCE, uuid);
         List<String> whole = Lists.newArrayList();
         if (sidType.equalsIgnoreCase(MetadataConstants.TYPE_USER)) {
-            whole.addAll(getAllUserNames());
+            whole.addAll(userService.listNormalUsers());
             List<String> users = accessService.getAllAclSids(ae, MetadataConstants.TYPE_USER);
             whole.removeAll(users);
-            whole.removeAll(userService.listAdminUsers());
         } else {
             whole.addAll(getAllUserGroups());
             List<String> groups = accessService.getAllAclSids(ae, MetadataConstants.TYPE_GROUP);

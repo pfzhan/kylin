@@ -53,7 +53,6 @@ import static org.springframework.security.acls.domain.BasePermission.ADMINISTRA
 import java.io.IOException;
 import java.util.AbstractMap;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -62,7 +61,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -403,21 +404,24 @@ public class AccessService extends BasicService {
             boolean isCaseSensitive) throws IOException {
         List<AccessEntryResponse> resultsAfterFuzzyMatching = generateAceResponsesByFuzzMatching(getAcl(ae), nameSeg,
                 isCaseSensitive);
-        Set<String> adminUsers = userService.getGlobalAdmin();
-        List<AccessEntryResponse> result = new ArrayList<>();
-        for (val user : resultsAfterFuzzyMatching) {
-            Sid sid = user.getSid();
-            boolean isNormalUser = false;
-            if (sid instanceof GrantedAuthoritySid) {
-                isNormalUser = !StringUtils.equalsIgnoreCase(((GrantedAuthoritySid) sid).getGrantedAuthority(), ROLE_ADMIN);
-            } else if (sid instanceof PrincipalSid) {
-                isNormalUser = !adminUsers.contains(((PrincipalSid) sid).getPrincipal());
-            }
-            if (isNormalUser) {
-                result.add(user);
-            }
-        }
-        return result;
+
+        Map<Boolean, List<AccessEntryResponse>> collect = resultsAfterFuzzyMatching.stream()
+                .collect(Collectors.partitioningBy(user -> user.getSid() instanceof GrantedAuthoritySid));
+
+        Stream<AccessEntryResponse> groupAccessEntryResponseStream = collect.get(true).stream()
+                .filter(user -> !StringUtils
+                        .equalsIgnoreCase(((GrantedAuthoritySid) user.getSid()).getGrantedAuthority(), ROLE_ADMIN));
+
+        Map<String, AccessEntryResponse> userAccessEntryResponse = collect.get(false).stream().collect(Collectors
+                .toMap(user -> ((PrincipalSid) user.getSid()).getPrincipal(), Function.identity(), (p, q) -> p));
+
+        Set<String> normalUsers = userService.retainsNormalUser(userAccessEntryResponse.keySet());
+
+        return Stream
+                .concat(groupAccessEntryResponseStream,
+                        userAccessEntryResponse.entrySet().stream()
+                                .filter(entry -> normalUsers.contains(entry.getKey())).map(Map.Entry::getValue))
+                .collect(Collectors.toList());
     }
 
     private List<AccessEntryResponse> generateAceResponsesByFuzzMatching(Acl acl, String nameSeg,
@@ -538,10 +542,46 @@ public class AccessService extends BasicService {
         return Pair.newPair(ExternalAclProvider.convertToExternalPermission(greaterPermissionMask), groupInfo);
     }
 
+    public Pair<String, Pair<Boolean, String>> getUserNormalPermission(String project, UserDetails user) {
+        // get user's greater permission between user and groups
+        Map<Sid, Integer> projectPermissions = getProjectPermission(project);
+        Integer greaterPermissionMask = projectPermissions.get(getSid(user.getUsername(), true));
+        String greaterPermissionGroup = null;
+        List<String> groups = user.getAuthorities().stream().map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toList());
+        for (String group : groups) {
+            if (Objects.nonNull(greaterPermissionMask) && greaterPermissionMask == ADMINISTRATION.getMask()) {
+                break;
+            }
+            Integer groupMask = projectPermissions.get(getSid(group, false));
+            Integer compareResultMask = getGreaterPermissionMask(groupMask, greaterPermissionMask);
+            // greater permission from group
+            if (!compareResultMask.equals(greaterPermissionMask)) {
+                greaterPermissionGroup = group;
+                greaterPermissionMask = compareResultMask;
+            }
+        }
+        Pair<Boolean, String> groupInfo = Pair.newPair(Boolean.FALSE, null);
+        if (Objects.nonNull(greaterPermissionGroup)) {
+            groupInfo.setKey(Boolean.TRUE);
+            groupInfo.setValue(greaterPermissionGroup);
+        }
+        return Pair.newPair(ExternalAclProvider.convertToExternalPermission(greaterPermissionMask), groupInfo);
+    }
+
     public String getCurrentUserPermissionInProject(String project) throws IOException {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (Objects.nonNull(authentication)) {
             return getUserPermissionInProject(project, authentication.getName());
+        }
+        return null;
+    }
+
+    public String getCurrentNormalUserPermissionInProject(String project) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (Objects.nonNull(authentication)) {
+            UserDetails userDetails = userService.loadUserByUsername(authentication.getName());
+            return getUserNormalPermission(project, userDetails).getFirst();
         }
         return null;
     }
@@ -650,52 +690,81 @@ public class AccessService extends BasicService {
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public Set<String> getProjectAdminUsers(String project) throws IOException {
-        List<ManagedUser> allUsers = userService.listUsers();
-        return allUsers.stream().filter(
-                user -> user.getAuthorities().stream().map(GrantedAuthority::getAuthority).anyMatch(ROLE_ADMIN::equals)
-                        || AclPermissionUtil.isSpecificPermissionInProject(user, project, ADMINISTRATION))
-                .map(ManagedUser::getUsername).collect(Collectors.toSet());
+        MutableAclRecord acl = AclPermissionUtil.getProjectAcl(project);
+        Set<String> groupsInProject = AclPermissionUtil.filterGroupsInProject(acl);
+        return userService.listUsers().parallelStream().filter(
+                user -> {
+                    Set<String> userGroupsInProject = user.getAuthorities().stream()
+                            .map(SimpleGrantedAuthority::getAuthority).filter(groupsInProject::contains)
+                            .collect(Collectors.toSet());
+
+                    return user.getAuthorities().stream().map(GrantedAuthority::getAuthority)
+                            .anyMatch(ROLE_ADMIN::equals)
+                            || AclPermissionUtil.isSpecificPermissionInProject(user.getUsername(), userGroupsInProject,
+                                    ADMINISTRATION, acl);
+                }).map(ManagedUser::getUsername).collect(Collectors.toSet());
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     public Set<String> getProjectManagementUsers(String project) throws IOException {
-        List<ManagedUser> allUsers = userService.listUsers();
-        return allUsers.stream().filter(
-                user -> user.getAuthorities().stream().map(GrantedAuthority::getAuthority).anyMatch(ROLE_ADMIN::equals)
-                        || AclPermissionUtil.isSpecificPermissionInProject(user, project, ADMINISTRATION)
-                        || AclPermissionUtil.isSpecificPermissionInProject(user, project, AclPermission.MANAGEMENT))
-                .map(ManagedUser::getUsername).collect(Collectors.toSet());
+        MutableAclRecord acl = AclPermissionUtil.getProjectAcl(project);
+        Set<String> groupsInProject = AclPermissionUtil.filterGroupsInProject(acl);
+        AclPermissionUtil.filterGroupsInProject(acl);
+        return userService.listUsers().parallelStream().filter(
+                user -> {
+                    Set<String> userGroupsInProject = user.getAuthorities()
+                            .stream()
+                            .map(SimpleGrantedAuthority::getAuthority)
+                            .filter(groupsInProject::contains)
+                            .collect(Collectors.toSet());
+
+                    return user.getAuthorities()
+                            .stream()
+                            .map(GrantedAuthority::getAuthority)
+                            .anyMatch(ROLE_ADMIN::equals)
+                            || AclPermissionUtil.isSpecificPermissionInProject(user.getUsername(), userGroupsInProject,
+                                    ADMINISTRATION, acl)
+                            || AclPermissionUtil.isSpecificPermissionInProject(user.getUsername(), userGroupsInProject,
+                                    AclPermission.MANAGEMENT, acl);
+                })
+                .map(ManagedUser::getUsername)
+                .collect(Collectors.toSet());
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
     public boolean remoteGrantAccess(AclEntity ae, String identifier, Boolean isPrincipal, String permission) {
-        AccessGrantEventNotifier notifier = new AccessGrantEventNotifier(UnitOfWork.GLOBAL_UNIT, ae.getId(), identifier, isPrincipal, permission);
+        AccessGrantEventNotifier notifier = new AccessGrantEventNotifier(UnitOfWork.GLOBAL_UNIT, ae.getId(), identifier,
+                isPrincipal, permission);
         return remoteRequest(notifier, null);
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
     public boolean remoteBatchGrantAccess(List<AccessRequest> requests, AclEntity ae) throws JsonProcessingException {
-        AccessBatchGrantEventNotifier notifier = new AccessBatchGrantEventNotifier(UnitOfWork.GLOBAL_UNIT, ae.getId(), JsonUtil.writeValueAsString(requests));
+        AccessBatchGrantEventNotifier notifier = new AccessBatchGrantEventNotifier(UnitOfWork.GLOBAL_UNIT, ae.getId(),
+                JsonUtil.writeValueAsString(requests));
         return remoteRequest(notifier, null);
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
     public boolean remoteRevokeAccess(AclEntity ae, String name, boolean principal) {
-        AccessRevokeEventNotifier notifier = new AccessRevokeEventNotifier(UnitOfWork.GLOBAL_UNIT, ae.getId(), name, principal);
+        AccessRevokeEventNotifier notifier = new AccessRevokeEventNotifier(UnitOfWork.GLOBAL_UNIT, ae.getId(), name,
+                principal);
         return remoteRequest(notifier, null);
     }
 
     @Transaction
-    public void updateAccessFromRemote(AccessGrantEventNotifier grantNotifier, AccessBatchGrantEventNotifier batchGrantNotifier,
-                                       AccessRevokeEventNotifier revokeNotifier) throws IOException {
+    public void updateAccessFromRemote(AccessGrantEventNotifier grantNotifier,
+            AccessBatchGrantEventNotifier batchGrantNotifier, AccessRevokeEventNotifier revokeNotifier)
+            throws IOException {
         if (grantNotifier != null) {
             AclEntity ae = getAclEntity(AclEntityType.PROJECT_INSTANCE, grantNotifier.getEntityId());
             grant(ae, grantNotifier.getIdentifier(), grantNotifier.getIsPrincipal(), grantNotifier.getPermission());
         }
         if (batchGrantNotifier != null) {
             AclEntity ae = getAclEntity(AclEntityType.PROJECT_INSTANCE, batchGrantNotifier.getEntityId());
-            List<AccessRequest> accessRequest = JsonUtil.readValue(batchGrantNotifier.getRawAclTCRRequests(), new TypeReference<List<AccessRequest>>() {
-            });
+            List<AccessRequest> accessRequest = JsonUtil.readValue(batchGrantNotifier.getRawAclTCRRequests(),
+                    new TypeReference<List<AccessRequest>>() {
+                    });
             batchGrant(accessRequest, ae);
         }
         if (revokeNotifier != null) {
@@ -764,15 +833,12 @@ public class AccessService extends BasicService {
     }
 
     public void checkGlobalAdmin(String username) throws IOException {
-        checkGlobalAdmin(Arrays.asList(username));
+        checkGlobalAdmin(Collections.singletonList(username));
     }
 
     public void checkGlobalAdmin(List<String> usernames) throws IOException {
-        Set<String> adminUsers = userService.getGlobalAdmin();
-        for (String name : usernames) {
-            if (adminUsers.contains(name)) {
-                throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getCHANGE_GLOBALADMIN());
-            }
+        if (userService.containsGlobalAdmin(new HashSet<>(usernames))) {
+            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getCHANGE_GLOBALADMIN());
         }
     }
 

@@ -46,6 +46,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIE
 import static org.springframework.security.acls.domain.BasePermission.ADMINISTRATION;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -71,14 +72,12 @@ import org.springframework.security.acls.model.Permission;
 import org.springframework.security.acls.model.Sid;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.user.ManagedUser;
 
 public class AclPermissionUtil {
 
@@ -107,18 +106,6 @@ public class AclPermissionUtil {
         return AclManager.getInstance(KylinConfig.getInstanceFromEnv()).readAcl(new ObjectIdentityImpl(ae));
     }
 
-    public static Set<String> getCurrentUserGroupsInProject(String project, Set<String> groups) {
-        MutableAclRecord acl = getProjectAcl(project);
-        return filterGroupsInProject(groups, acl);
-    }
-
-    public static Set<String> getUserGroupsInProject(ManagedUser user, String project) {
-        Set<String> groups = user.getAuthorities().stream().map(SimpleGrantedAuthority::toString)
-                .collect(Collectors.toSet());
-        MutableAclRecord acl = getProjectAcl(project);
-        return filterGroupsInProject(groups, acl);
-    }
-
     public static Set<String> filterGroupsInProject(Set<String> groups, MutableAclRecord acl) {
         if (Objects.isNull(acl)) {
             return groups;
@@ -135,18 +122,16 @@ public class AclPermissionUtil {
         return groups.stream().filter(groupsInProject::contains).collect(Collectors.toSet());
     }
 
-    public static Set<String> getGroupsInProject(Set<String> groups, String project) {
-        if (groups.isEmpty()) {
-            return groups;
-        }
-        MutableAclRecord acl = getProjectAcl(project);
+    public static Set<String> filterGroupsInProject(MutableAclRecord acl) {
         if (Objects.isNull(acl)) {
-            return groups;
+            return Collections.emptySet();
         }
-        return acl.getEntries().stream()
-                .filter(accessControlEntry -> accessControlEntry.getSid() instanceof GrantedAuthoritySid)
-                .filter(accessControlEntry -> groups.contains(getName(accessControlEntry.getSid())))
-                .map(accessControlEntry -> getName(accessControlEntry.getSid())).collect(Collectors.toSet());
+
+        return acl.getEntries()
+                .parallelStream()
+                .filter(ace -> !(ace.getSid() instanceof PrincipalSid))
+                .map(ace -> getName(ace.getSid()))
+                .collect(Collectors.toSet());
     }
 
     public static boolean isAdmin(Set<String> groups) {
@@ -175,12 +160,6 @@ public class AclPermissionUtil {
         MutableAclRecord acl = getProjectAcl(project);
         Set<String> groups = filterGroupsInProject(usergroups, acl);
         return isSpecificPermissionInProject(auth.getName(), groups, ADMINISTRATION, acl);
-    }
-
-    public static boolean isSpecificPermissionInProject(ManagedUser user, String project, Permission aclPermission) {
-        Set<String> groups = getUserGroupsInProject(user, project);
-        MutableAclRecord acl = getProjectAcl(project);
-        return isSpecificPermissionInProject(user.getUsername(), groups, aclPermission, acl);
     }
 
     public static boolean isSpecificPermissionInProject(String username, Set<String> userGroupsInProject,

@@ -165,6 +165,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(aclTCRService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(aclTCRService, "accessService", accessService);
         ReflectionTestUtils.setField(aclTCRService, "userGroupService", userGroupService);
+        ReflectionTestUtils.setField(aclTCRService, "userService", userService);
         ReflectionTestUtils.setField(accessService, "userService", userService);
         ReflectionTestUtils.setField(accessService, "aclService", aclService);
         ReflectionTestUtils.setField(accessController, "accessService", accessService);
@@ -556,7 +557,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetAclTCRResponseWithAdmin() throws IOException {
-        Mockito.doReturn(true).when(accessService).hasGlobalAdminGroup(user1);
+        Mockito.doReturn(true).when(userService).isGlobalAdmin(user1);
         List<AclTCRResponse> responses = aclTCRService.getAclTCRResponse(projectDefault, user1, true, true);
         Assert.assertEquals(3, responses.size());
         Assert.assertTrue(responses.stream().anyMatch(resp -> resp.getTables().stream()

@@ -64,6 +64,7 @@ import org.apache.kylin.rest.security.AclRecord;
 import org.apache.kylin.rest.security.ObjectIdentityImpl;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.ServiceTestBase;
+import org.apache.kylin.rest.service.UserService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
 import org.junit.After;
@@ -77,6 +78,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
@@ -137,6 +139,9 @@ public class ProjectServiceTest extends ServiceTestBase {
     @Mock
     private final AccessService accessService = Mockito.spy(AccessService.class);
 
+    @Mock
+    private final UserService userService = Mockito.spy(UserService.class);
+
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
@@ -153,6 +158,7 @@ public class ProjectServiceTest extends ServiceTestBase {
         ReflectionTestUtils.setField(projectService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(projectService, "asyncTaskService", asyncTaskService);
         ReflectionTestUtils.setField(projectService, "accessService", accessService);
+        ReflectionTestUtils.setField(projectService, "userService", userService);
         ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
         projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
     }
@@ -270,8 +276,8 @@ public class ProjectServiceTest extends ServiceTestBase {
 
     @Test
     public void testGetProjectsWrapWIthUserPermission() throws Exception {
-        Mockito.doReturn(true).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
-        Mockito.doReturn(true).when(accessService).isGlobalAdmin(Mockito.anyString());
+        Mockito.doReturn(Mockito.mock(UserDetails.class)).when(userService).loadUserByUsername(Mockito.anyString());
+        Mockito.doReturn(true).when(userService).isGlobalAdmin(Mockito.any(UserDetails.class));
         List<UserProjectPermissionResponse> projectInstances = projectService
                 .getProjectsFilterByExactMatchAndPermissionWrapperUserPermission("default", true,
                         AclPermissionEnum.READ);
@@ -1173,8 +1179,8 @@ public class ProjectServiceTest extends ServiceTestBase {
         Assert.assertEquals("ENC('YeqVr9MakSFbgxEec9sBwg==')",
                 project.getOverrideKylinProps().get("kylin.source.jdbc.pass"));
 
-        Mockito.doReturn(true).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
-        Mockito.doReturn(true).when(accessService).isGlobalAdmin(Mockito.anyString());
+        Mockito.doReturn(Mockito.mock(UserDetails.class)).when(userService).loadUserByUsername(Mockito.anyString());
+        Mockito.doReturn(true).when(userService).isGlobalAdmin(Mockito.any(UserDetails.class));
         List<UserProjectPermissionResponse> projectInstances = projectService
                 .getProjectsFilterByExactMatchAndPermissionWrapperUserPermission(PROJECT_JDBC, true,
                         AclPermissionEnum.READ);

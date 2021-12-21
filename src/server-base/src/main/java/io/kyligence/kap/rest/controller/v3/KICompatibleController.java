@@ -93,7 +93,7 @@ public class KICompatibleController {
     @GetMapping(value = "/projects", produces = { HTTP_VND_APACHE_KYLIN_V3_JSON })
     public EnvelopeResponse getProjects(
             @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer offset,
-            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer size) {
+            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer size) throws IOException {
         val result = projectController.getProjects(null, offset, size, false, AclPermissionEnum.READ.name());
         Map<String, Object> response = Maps.newHashMap();
         response.put("projects", result.getData().getValue());

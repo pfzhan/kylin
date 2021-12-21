@@ -224,6 +224,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(accessService, "userService", userService);
         ReflectionTestUtils.setField(accessService, "aclService", aclService);
         ReflectionTestUtils.setField(aclTCRService, "accessService", accessService);
+        ReflectionTestUtils.setField(aclTCRService, "userService", userService);
         Mockito.when(appConfig.getPort()).thenReturn(7070);
         ReflectionTestUtils.setField(queryService, "appConfig", appConfig);
         pushdownCount = 0;

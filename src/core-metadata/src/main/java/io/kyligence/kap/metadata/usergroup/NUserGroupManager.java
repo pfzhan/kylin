@@ -74,7 +74,6 @@ public class NUserGroupManager implements IKeep {
             }
         };
 
-        crud.reloadAll();
     }
 
     public ResourceStore getStore() {

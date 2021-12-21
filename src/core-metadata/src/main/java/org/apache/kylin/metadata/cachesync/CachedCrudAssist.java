@@ -45,6 +45,7 @@ package org.apache.kylin.metadata.cachesync;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.cache.CustomKeyEquivalenceCacheBuilder;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -58,7 +59,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Lists;
 
 import lombok.AccessLevel;
@@ -92,7 +92,7 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
         this.resRootPath = resourceRootPath;
         this.resPathSuffix = resourcePathSuffix;
         this.serializer = new JsonSerializer<>(entityType);
-        this.cache = CacheBuilder.newBuilder().expireAfterAccess(10, TimeUnit.MINUTES).build();
+        this.cache = CustomKeyEquivalenceCacheBuilder.newBuilder().expireAfterAccess(10, TimeUnit.MINUTES).build();
         this.checker = new CacheReloadChecker<>(store, this);
 
         this.checkCopyOnWrite = store.getConfig().isCheckCopyOnWrite();
@@ -175,7 +175,7 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
             entity.setCachedAndShared(true);
             entity = initEntityAfterReload(entity, resourceName(path));
 
-            if (!path.equals(resourcePath(entity.resourceName())))
+            if (!path.equalsIgnoreCase(resourcePath(entity.resourceName())))
                 throw new IllegalStateException("The entity " + entity + " read from " + path
                         + " will save to a different path " + resourcePath(entity.resourceName()));
         } catch (Exception e) {

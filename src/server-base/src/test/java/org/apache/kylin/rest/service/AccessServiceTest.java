@@ -151,6 +151,7 @@ public class AccessServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(aclTCRService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(aclTCRService, "accessService", accessService);
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
+        ReflectionTestUtils.setField(aclTCRService, "userService", userService);
 
         // Init users
         ManagedUser adminUser = new ManagedUser("ADMIN", "KYLIN", false, Arrays.asList(//
@@ -437,7 +438,7 @@ public class AccessServiceTest extends NLocalFileMetadataTestCase {
     public void testGetUserOrGroupAclPermissions() throws IOException {
         // test admin user
         List<String> projects = accessService.getGrantedProjectsOfUserOrGroup("ADMIN", true);
-        Mockito.when(userGroupService.exists("ROLE_ADMIN")).thenReturn(true);
+        Mockito.when(userService.isGlobalAdmin("ADMIN")).thenReturn(true);
         List<SidPermissionWithAclResponse> responses = accessService.getUserOrGroupAclPermissions(projects, "ADMIN",
                 true);
         Assert.assertEquals(23, responses.size());

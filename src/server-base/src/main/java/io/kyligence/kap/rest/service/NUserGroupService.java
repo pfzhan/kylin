@@ -34,12 +34,13 @@ import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
@@ -275,12 +276,24 @@ public class NUserGroupService implements IUserGroupService {
 
     public List<UserGroupResponseKI> getUserGroupResponse(List<UserGroup> userGroups) throws IOException {
         List<UserGroupResponseKI> result = new ArrayList<>();
+
+        List<String> groupNames = userGroups.stream().map(UserGroup::getGroupName).collect(Collectors.toList());
+
+        Map<String, Set<String>> groupMembersMap = userService.listUsers(false)
+                .parallelStream()
+                .filter(user -> user.getAuthorities().stream()
+                        .anyMatch(authority -> groupNames.contains(authority.getAuthority())))
+                .map(user -> user.getAuthorities()
+                        .stream().map(SimpleGrantedAuthority::getAuthority)
+                        .filter(groupNames::contains)
+                        .collect(Collectors.toMap(Function.identity(), authority -> user.getUsername())))
+                .map(Map::entrySet)
+                .flatMap(Collection::stream)
+                .collect(Collectors.groupingBy(Map.Entry::getKey, Collectors.mapping(Map.Entry::getValue, Collectors.toSet())));
+
         for (UserGroup group : userGroups) {
-            Set<String> groupMembers = new TreeSet<>();
-            for (ManagedUser user : getGroupMembersByName(group.getGroupName())) {
-                groupMembers.add(user.getUsername());
-            }
-            result.add(new UserGroupResponseKI(group.getUuid(), group.getGroupName(), groupMembers));
+            result.add(new UserGroupResponseKI(group.getUuid(), group.getGroupName(),
+                    groupMembersMap.getOrDefault(group.getGroupName(), new HashSet<>())));
         }
         return result;
     }

@@ -64,6 +64,7 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.security.MutableAclRecord;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.BasicService;
+import org.apache.kylin.rest.service.UserService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.slf4j.Logger;
@@ -110,6 +111,9 @@ public class AclTCRService extends BasicService {
     @Autowired
     private ProjectService projectService;
 
+    @Autowired
+    private UserService userService;
+
     public void revokeAclTCR(String uuid, String sid, boolean principal) {
         // permission already has been checked in AccessService#revokeAcl
         getProjectManager().listAllProjects().stream().filter(p -> p.getUuid().equals(uuid)).findFirst()
@@ -122,12 +126,11 @@ public class AclTCRService extends BasicService {
     public void revokeAclTCR(String sid, boolean principal) {
         // only global admin has permission
         // permission already has been checked in UserController, UserGroupController
-        projectService.getOwnedProjects().forEach(prj -> {
-            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-                revokePrjAclTCR(prj, sid, principal);
-                return null;
-            }, prj);
-        });
+        projectService.getOwnedProjects().parallelStream()
+                .forEach(prj -> EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+                    revokePrjAclTCR(prj, sid, principal);
+                    return null;
+                }, prj));
     }
 
     private void revokePrjAclTCR(String project, String sid, boolean principal) {
@@ -167,7 +170,7 @@ public class AclTCRService extends BasicService {
 
     public boolean hasAdminPermissionInProject(String sid, boolean principal, String project) throws IOException {
         if (principal) {
-            if (accessService.hasGlobalAdminGroup(sid) || accessService.isGlobalAdmin(sid)) {
+            if (userService.isGlobalAdmin(sid)) {
                 return true;
             }
             val groupsOfUser = accessService.getGroupsOfExecuteUser(sid);

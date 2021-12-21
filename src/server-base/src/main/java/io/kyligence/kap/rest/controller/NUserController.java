@@ -260,8 +260,8 @@ public class NUserController extends NBasicController {
 
         ManagedUser toBeDeleteUser = null;
         try {
-            toBeDeleteUser = userService.listUsers().stream().filter(user -> userUUID.equalsIgnoreCase(user.getUuid()))
-                    .findFirst().orElse(null);
+            toBeDeleteUser = userService.listUsers().parallelStream().filter(user -> userUUID.equalsIgnoreCase(user.getUuid()))
+                    .findAny().orElse(null);
         } catch (IOException e) {
             logger.error("List all users is failed!", e);
         }

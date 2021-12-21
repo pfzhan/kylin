@@ -2289,6 +2289,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.metadata.broken-model-deleted-on-smart-mode", FALSE));
     }
 
+    public boolean isMetadataKeyCaseInSensitiveEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.metadata.key-case-insensitive", FALSE));
+    }
+
     public boolean isNeedCollectLookupTableInfo() {
         return Boolean.parseBoolean(getOptional("kylin.engine.need-collect-lookup-table-info", TRUE));
     }

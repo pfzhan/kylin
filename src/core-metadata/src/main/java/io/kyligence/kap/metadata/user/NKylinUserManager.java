@@ -76,7 +76,6 @@ public class NKylinUserManager implements IKeep {
             }
         };
 
-        crud.reloadAll();
     }
 
     public ManagedUser copyForWrite(ManagedUser user) {
@@ -92,13 +91,23 @@ public class NKylinUserManager implements IKeep {
     }
 
     public ManagedUser get(String name) {
-        return crud.listAll().stream().filter(managedUser -> managedUser.getUsername().equalsIgnoreCase(name)).findAny()
-                .orElse(null);
+        if (getConfig().isMetadataKeyCaseInSensitiveEnabled()) {
+            return crud.get(name);
+        } else {
+            return crud.listAll().stream().filter(managedUser -> managedUser.getUsername().equalsIgnoreCase(name))
+                    .findAny().orElse(null);
+        }
     }
 
     public List<ManagedUser> list() {
+        return list(true);
+    }
+
+    public List<ManagedUser> list(boolean needSort) {
         List<ManagedUser> users = new ArrayList<>(crud.listAll());
-        users.sort((o1, o2) -> o1.getUsername().compareToIgnoreCase(o2.getUsername()));
+        if (needSort) {
+            users.sort((o1, o2) -> o1.getUsername().compareToIgnoreCase(o2.getUsername()));
+        }
         return users;
     }
 
@@ -117,7 +126,7 @@ public class NKylinUserManager implements IKeep {
     }
 
     public boolean exists(String username) {
-        return crud.contains(username);
+        return get(username) != null;
     }
 
     public Set<String> getUserGroups(String userName) {

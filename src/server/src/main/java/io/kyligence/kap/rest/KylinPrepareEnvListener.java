@@ -88,10 +88,15 @@ public class KylinPrepareEnvListener implements EnvironmentPostProcessor, Ordere
         } else {
             Unsafe.setProperty("calcite.convert-multiple-columns-in-to-or", "false");
         }
+
         TimeZoneUtils.setDefaultTimeZone(config);
         KerberosLoginTask kerberosLoginTask = new KerberosLoginTask();
         kerberosLoginTask.execute();
         env.addActiveProfile(config.getSecurityProfile());
+
+        if (config.isMetadataKeyCaseInSensitiveEnabled()) {
+            env.addActiveProfile("case-insensitive-service");
+        }
 
         // add extra hive class paths.
         val extraClassPath = config.getHiveMetastoreExtraClassPath();

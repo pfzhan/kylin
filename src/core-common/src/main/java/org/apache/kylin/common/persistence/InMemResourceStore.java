@@ -47,10 +47,15 @@ public class InMemResourceStore extends ResourceStore {
     private static final Logger logger = LoggerFactory.getLogger(InMemResourceStore.class);
 
     @Getter
-    private final ConcurrentSkipListMap<String, VersionedRawResource> data = new ConcurrentSkipListMap<>();
+    private final ConcurrentSkipListMap<String, VersionedRawResource> data;
 
     public InMemResourceStore(KylinConfig kylinConfig) {
         super(kylinConfig);
+        if (kylinConfig.isMetadataKeyCaseInSensitiveEnabled()) {
+            data = new ConcurrentSkipListMap<>(String.CASE_INSENSITIVE_ORDER);
+        } else {
+            data = new ConcurrentSkipListMap<>();
+        }
     }
 
     @Override

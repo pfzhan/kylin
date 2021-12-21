@@ -891,6 +891,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
                 new PropertiesEntity("kylin.metrics.query.sla.seconds", "1,3,a,15,60", new long[] { 3, 15, 60 }));
         map.put("getMetricsJobSlaMinutes",
                 new PropertiesEntity("kylin.metrics.job.sla.minutes", "1,30,60,300", new long[] { 1, 30, 60, 300 }));
+        map.put("isMetadataKeyCaseInSensitiveEnabled", new PropertiesEntity("kylin.metadata.key-case-insensitive", "false", false));
     }
 
     @Before
