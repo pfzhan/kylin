@@ -30,10 +30,10 @@ import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.RuleBasedIndex;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.measure.MeasureType;
@@ -263,7 +263,7 @@ public class ExpandableMeasureUtil {
             return found;
         }
 
-        List<NDataModel> otherModels = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject()).listAllModels();
+        List<NDataModel> otherModels = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject()).listUnderliningDataModels();
         found = ComputedColumnUtil.findCCByExpr(otherModels, ccDesc);
         if (found != null) {
             ccDesc = found;
