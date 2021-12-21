@@ -61,6 +61,14 @@ function printRestoreResult() {
     fi
 }
 
+function printEnterMaintainModeResult() {
+    echo -e "${YELLOW}Enter Maintain Mode succeed. Detailed Message is at \"logs/shell.stderr\".${RESTORE}"
+}
+
+function printExitMaintainModeResult() {
+    echo -e "${YELLOW}Exit Maintain Mode succeed. Detailed Message is at \"logs/shell.stderr\".${RESTORE}"
+}
+
 function check_path_empty() {
     if [ -z "$1" ]; then
           exit 1
@@ -69,14 +77,20 @@ function check_path_empty() {
 
 function turn_on_maintain_mode() {
   ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MaintainModeTool -on -reason 'metastore tool' -hidden-output true
-  ret=$?
+  local ret=$?
   if [[ $ret != 0 ]]; then
+      echo -e "${YELLOW}Enter Maintain Mode failed. Detailed Message is at \"logs/shell.stderr\".${RESTORE}"
       exit $ret
   fi
 }
 
 function turn_off_maintain_mode() {
     ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MaintainModeTool -off -hidden-output true
+    local ret=$?
+    if [[ $ret != 0 ]]; then
+        echo -e "${YELLOW}Exit Maintain Mode failed. Detailed Message is at \"logs/shell.stderr\".${RESTORE}"
+        exit $ret
+    fi
 }
 
 
@@ -84,18 +98,22 @@ function restore_all() {
         local path=`cd $1 && pwd -P`
         check_path_empty ${path}
         turn_on_maintain_mode
+        printEnterMaintainModeResult
         ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -restore -dir ${path} ${2}
         printRestoreResult $?
         turn_off_maintain_mode
+        printExitMaintainModeResult
 }
 
 function restore_project() {
         local path=`cd $1 && pwd -P`
         check_path_empty ${path}
         turn_on_maintain_mode
+        printEnterMaintainModeResult
         ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -restore -dir ${path} -project ${2} ${3}
         printRestoreResult $?
         turn_off_maintain_mode
+        printExitMaintainModeResult
 }
 
 
