@@ -43,6 +43,7 @@ import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.measure.MeasureTypeFactory;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.slf4j.Logger;
@@ -182,7 +183,7 @@ public class ComputedColumnDesc implements Serializable {
                         throw new IllegalArgumentException("Computed column expression should not contain keyword AS");
                     }
 
-                    if (call.getOperator() instanceof SqlAggFunction) {
+                    if (call.getOperator() instanceof SqlAggFunction || MeasureTypeFactory.getUDAFs().containsKey(call.getOperator().getName())) {
                         throw new IllegalArgumentException(
                                 "Computed column expression should not contain any aggregate functions: "
                                         + call.getOperator().getName());

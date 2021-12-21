@@ -172,4 +172,14 @@ public class ComputedColumnDescTest extends NLocalFileMetadataTestCase {
         Set<String> aliasSet = Sets.newHashSet("A", "B");
         cc.simpleParserCheck("count(distinct a.x)", aliasSet);
     }
+
+    @Test
+    public void simpleParserCheckTestFailUDAF() {
+        thrown.expect(IllegalArgumentException.class);
+        thrown.expectMessage("Computed column expression should not contain any aggregate functions: CORR");
+
+        ComputedColumnDesc cc = new ComputedColumnDesc();
+        Set<String> aliasSet = Sets.newHashSet("A", "B");
+        cc.simpleParserCheck("corr(a.x, a.b)", aliasSet);
+    }
 }
