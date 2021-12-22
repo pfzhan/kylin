@@ -240,7 +240,7 @@
         <zkclient.version>0.8</zkclient.version>
         <grpc.version>1.0.2</grpc.version>
         <fastPFOR.version>0.0.13</fastPFOR.version>
-        <parquet.version>1.12.0-kylin-r6</parquet.version>
+        <parquet.version>1.12.2-kylin-r1</parquet.version>
         <jackson.version>2.10.5</jackson.version>
         <jackson.databind.version>2.10.5.1</jackson.databind.version>
         <quartz.version>2.1.1</quartz.version>
