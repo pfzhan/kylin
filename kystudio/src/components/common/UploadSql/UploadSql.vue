@@ -75,7 +75,7 @@
             <el-table-column :label="$t('kylinLang.common.action')" width="80">
               <template slot-scope="props">
                 <common-tip :content="$t('kylinLang.common.edit')">
-                  <i class="el-icon-ksd-table_edit" :class="{'is-disabled': props.row.id === activeSqlObj.id && isEditSql}" @click.stop="editWhiteSql(props.row)"></i>
+                  <i class="el-icon-ksd-table_edit" :class="{'is-disabled': activeSqlObj && props.row.id === activeSqlObj.id && isEditSql}" @click.stop="editWhiteSql(props.row)"></i>
                 </common-tip>
                 <common-tip :content="$t('kylinLang.common.drop')">
                   <i class="el-icon-ksd-table_delete ksd-ml-10" @click.stop="delWhiteComfirm(props.row.id)"></i>
