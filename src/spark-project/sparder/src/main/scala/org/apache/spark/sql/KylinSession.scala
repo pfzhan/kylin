@@ -22,10 +22,11 @@
 
 package org.apache.spark.sql
 
-import java.io.{BufferedReader, BufferedWriter, File, FileReader, FileWriter, PrintWriter}
+import java.io._
 import java.net.URI
 import java.nio.file.Paths
-import io.kyligence.kap.common.util.Unsafe
+
+import io.kyligence.kap.common.util.{AddressUtil, Unsafe}
 import io.kyligence.kap.metadata.query.BigQueryThresholdUpdater
 import io.kyligence.kap.query.util.ExtractFactory
 import org.apache.hadoop.fs.Path
@@ -43,7 +44,6 @@ import org.apache.spark.{SparkConf, SparkContext}
 import org.springframework.expression.common.TemplateParserContext
 import org.springframework.expression.spel.standard.SpelExpressionParser
 
-import java.util
 import scala.collection.JavaConverters._
 
 class KylinSession(
@@ -277,6 +277,13 @@ object KylinSession extends Logging {
         } else {
           sparkConf.set("spark.jars", kapConfig.sparderJars)
           sparkConf.set("spark.files", kapConfig.sparderFiles())
+        }
+
+        // spark on k8s with client mode, set the spark.driver.host = local ip
+        if (sparkConf.get("spark.master").startsWith("k8s") && "client".equals(sparkConf.get("spark.submit.deployMode", "client"))) {
+          if (!sparkConf.contains("spark.driver.host")) {
+            sparkConf.set("spark.driver.host", AddressUtil.getLocalHostExactAddress)
+          }
         }
 
         val fileName = KylinConfig.getInstanceFromEnv.getKylinJobJarPath
