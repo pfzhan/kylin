@@ -657,7 +657,7 @@ export default class ModelList extends Vue {
     let refrashWarningSegment
     if (isModelMetadataChanged) {
       title = this.$t('kylinLang.common.seeDetail')
-      subTitle = this.$t('modelMetadataChangedDesc')
+      subTitle = ''
       refrashWarningSegment = true
       submitText = this.$t('kylinLang.common.refresh')
     } else {

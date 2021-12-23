@@ -578,10 +578,12 @@ export default class SnapshotModel extends Vue {
     this.tablesNum = 0
     this.selectedTables = []
     this.selectedDatabases = []
+    this.searchDBOrTableName = ''
     this.partitionOptions = {}
     this.partitionColumnData.page_offset = 0
     this.partitionColumnData.list = []
     this.partitionColumnData.excludeBroken = true
+    this.emptyPartitionSetting = false
     this.incrementalBuildErrorList = []
     this.step = 'one'
   }
