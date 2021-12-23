@@ -606,11 +606,7 @@ public class SecondStorageService extends BasicService implements SecondStorageU
         val tableFlow = tableFlowManager.get().get(modelId);
         Preconditions.checkState(tableFlow.isPresent());
         if (indexPlan.getBaseTableLayout() != null) {
-            val dataflowManager = NDataflowManager.getInstance(getConfig(), project);
-            if (!dataflowManager.getDataflow(modelId).getSegments().isEmpty()) {
-                // when segment exits, trigger model clean job
-                triggerModelClean(project, modelId);
-            }
+            triggerModelClean(project, modelId);
             tableFlowManager.get().get(modelId).map(tf -> {
                 tf.update(TableFlow::cleanTableData);
                 return tf;

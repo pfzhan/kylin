@@ -45,6 +45,7 @@ package org.apache.kylin.rest.service;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.metadata.user.ManagedUser;
+import io.kyligence.kap.secondstorage.SecondStorageUpdater;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
@@ -53,8 +54,10 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.ImportResource;
@@ -136,6 +139,9 @@ public class ServiceTestBase extends NLocalFileMetadataTestCase {
     @ImportResource(locations = {"applicationContext.xml", "kylinSecurity.xml"})
     @EnableAsync
     public static class SpringConfig {
-
+        @Bean
+        public SecondStorageUpdater getSecondStorageUpdater() {
+            return Mockito.spy(SecondStorageUpdater.class);
+        }
     }
 }

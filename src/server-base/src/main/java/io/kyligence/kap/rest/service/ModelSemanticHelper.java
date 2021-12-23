@@ -41,6 +41,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.secondstorage.SecondStorageUpdater;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.dialect.HiveSqlDialect;
@@ -54,8 +55,6 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.RandomUtil;
-import org.apache.kylin.job.SecondStorageJobParamUtil;
-import org.apache.kylin.job.handler.SecondStorageModelCleanJobHandler;
 import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.ColumnDesc;
@@ -78,6 +77,7 @@ import org.apache.kylin.metadata.model.tool.NonEquiJoinConditionVisitor;
 import org.apache.kylin.query.exception.QueryErrorCode;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclPermissionUtil;
+import org.apache.kylin.rest.util.SpringContext;
 import org.apache.kylin.source.SourceFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -945,10 +945,8 @@ public class ModelSemanticHelper extends BasicService {
 
     private void cleanModelWithSecondStorage(String modelId, String project) {
         if (SecondStorageUtil.isModelEnable(project, modelId)) {
-            val jobHandler = new SecondStorageModelCleanJobHandler();
-            final JobParam param = SecondStorageJobParamUtil.modelCleanParam(project, modelId, getUsername());
-            getJobManager(project).addJob(param, jobHandler);
-            SecondStorageUtil.disableModel(project, modelId);
+            SecondStorageUpdater updater = SpringContext.getBean(SecondStorageUpdater.class);
+            updater.onUpdate(project, modelId);
         }
     }
 
