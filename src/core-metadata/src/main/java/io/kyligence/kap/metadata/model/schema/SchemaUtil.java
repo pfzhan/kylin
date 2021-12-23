@@ -26,6 +26,7 @@ package io.kyligence.kap.metadata.model.schema;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -113,9 +114,8 @@ public class SchemaUtil {
             }
             tableManager.getTableDesc(model.getRootFactTableName());
             List<JoinTableDesc> joinTables = model.getJoinTables();
-            for (JoinTableDesc joinTable : joinTables) {
-                tables.add(tableManager.getTableDesc(joinTable.getTable()));
-            }
+            joinTables.stream().map(JoinTableDesc::getTable).map(tableManager::getTableDesc).filter(Objects::nonNull)
+                    .forEach(tables::add);
         });
 
         return dependencyGraph(tables, indexPlans);

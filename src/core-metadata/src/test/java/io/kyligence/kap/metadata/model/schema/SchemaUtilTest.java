@@ -57,6 +57,8 @@ import org.junit.rules.ExpectedException;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.guava20.shaded.common.collect.Sets;
+import io.kyligence.kap.guava20.shaded.common.graph.Graph;
 import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 import lombok.val;
 
@@ -81,6 +83,14 @@ public class SchemaUtilTest extends NLocalFileMetadataTestCase {
 
     public String getTargetModel() {
         return "ssb_model";
+    }
+
+    @Test
+    public void testDependencyGraph() {
+        Graph<SchemaNode> graph = SchemaUtil.dependencyGraph("default", "DEFAULT.TEST_ORDER");
+        Set<String> set = Sets.newHashSet();
+        graph.nodes().stream().map(SchemaNode::getKey).forEach(set::add);
+        Assert.assertTrue(set.contains("DEFAULT.TEST_ORDER"));
     }
 
     @Test
