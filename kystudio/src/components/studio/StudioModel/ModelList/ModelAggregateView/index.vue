@@ -385,8 +385,9 @@ export default class AggregateView extends Vue {
 @import '../../../../../assets/styles/variables.less';
 .model-aggregate-view {
   height: calc(~'100% - 40px');
-  overflow: hidden;
+  overflow: auto;
   width: 100%;
+  display: flex;
   .el-button {
     line-height: normal\0;
   }
@@ -399,6 +400,7 @@ export default class AggregateView extends Vue {
     overflow-y: auto;
     padding-top: 15px;
     position: relative;
+    flex-shrink: 0;
     .title-header {
       padding: 0 10px 10px 10px;
       line-height: 24px;
@@ -428,10 +430,12 @@ export default class AggregateView extends Vue {
   }
   .agg-detail-block {
     height: 100%;
-    margin: 15px 15px 15px 235px;
+    margin: 15px;
     overflow-y: auto;
     padding-bottom: 15px;
     position: relative;
+    min-width: 750px;
+    flex: 1;
     .content {
       color: @text-normal-color;
       .is-used {
