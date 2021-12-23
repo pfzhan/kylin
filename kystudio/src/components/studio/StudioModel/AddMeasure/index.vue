@@ -93,7 +93,8 @@
         </div>
         <p class="sync-comment-tip" v-if="!forbidenSync">{{$t('syncCommentTip1', {comment: measure.comment})}}<span class="sync-content" @click="handleSyncComment">{{$t('syncContent')}}</span></p>
       </el-form-item>
-      <CCEditForm ref="ccEditForm" class="ksd-mb-8" key="ccEditForm" v-if="ccVisible" @checkSuccess="saveCC" @delSuccess="delCC" :hideCancel="isEditMeasure" :isEditMeasureCC="!isEdit" source="createMeasure" :ccDesc="ccObject" :modelInstance="modelInstance" @resetSubmitLoading="resetSubmitType" @saveError="resetSubmitType"></CCEditForm>
+      <CCEditForm ref="ccEditForm" class="ksd-mb-8" :class="{'error-tips': corrColumnError}" key="ccEditForm" v-if="ccVisible" @checkSuccess="saveCC" @delSuccess="delCC" :hideCancel="isEditMeasure" :isEditMeasureCC="!isEdit" source="createMeasure" :ccDesc="ccObject" :modelInstance="modelInstance" @resetSubmitLoading="resetSubmitType" @saveError="resetSubmitType"></CCEditForm>
+      <div class="error-tips ksd-mt-8" v-if="corrColumnError">{{$t('corrColDatatypeError')}}</div>
       <el-form-item :label="isGroupBy" v-if="(measure.expression === 'COUNT_DISTINCT' || measure.expression === 'TOP_N')&&measure.convertedColumns.length>0" prop="convertedColumns[0].value" :rules="rules.convertedColValidate" key="topNItem" :class="{'measure-column-multiple': measure.expression === 'COUNT_DISTINCT'}">
         <div class="measure-flex-row" v-for="(column, index) in measure.convertedColumns" :key="index" :class="{'ksd-mt-10': !isGroupBy || (isGroupBy && index > 0)}">
           <div class="flex-item">
@@ -160,7 +161,7 @@
           <common-tip :content="$t('addCCTip')"><el-button size="medium" icon="el-ksd-icon-auto_computed_column_old" type="primary" plain class="ksd-ml-6" @click="newCorrCC" :disabled="(isCorrCCEdit && corrCCVisible) || !!isHybridModel"></el-button></common-tip>
         </div>
       </el-form-item>
-      <CCEditForm class="ksd-mb-24" key="corrEditForm" style="margin-top: -16px;" ref="corrEditForm" v-if="corrCCVisible" @checkSuccess="saveCorrCC" @delSuccess="delCorrCC" :hideCancel="isEditMeasure" :isEditMeasureCC="!isCorrCCEdit" source="createMeasure" :ccDesc="corrCCObject" :modelInstance="modelInstance" @resetSubmitLoading="resetSubmitType" @saveError="resetSubmitType"></CCEditForm>
+      <CCEditForm class="ksd-mb-24" :class="{'error-tips': corrColumnError}" key="corrEditForm" style="margin-top: -16px;" ref="corrEditForm" v-if="corrCCVisible" @checkSuccess="saveCorrCC" @delSuccess="delCorrCC" :hideCancel="isEditMeasure" :isEditMeasureCC="!isCorrCCEdit" source="createMeasure" :ccDesc="corrCCObject" :modelInstance="modelInstance" @resetSubmitLoading="resetSubmitType" @saveError="resetSubmitType"></CCEditForm>
       <div class="error-tips" v-if="corrColumnError">{{$t('corrColDatatypeError')}}</div>
       <el-form-item :label="$t('name')" prop="name">
         <div>
@@ -237,7 +238,7 @@ import $ from 'jquery'
       addMeasureTitle: 'Add Measure',
       sameColumn: 'Column has been defined as a measure by the same function',
       selectMutipleColumnsTip: 'The {expression} function supports only one column when the function parameter is {params}.',
-      createCCMeasureTips: 'This column’s type is Varchar. It couldn’t be referenced by the selected function {expression}.',
+      createCCMeasureTips: 'This column’s type is {datatype}. It couldn’t be referenced by the selected function {expression}.',
       duplicateColumns: 'Same Statement',
       noProvideDecimalType: 'PERCENTILE function does not support columns with {datatype} data type.',
       syncCommentTip1: 'This column’s comment is "{comment}", ',
@@ -263,7 +264,7 @@ import $ from 'jquery'
       addMeasureTitle: '添加度量',
       sameColumn: '该列已被相同函数定义为度量',
       selectMutipleColumnsTip: '{expression} 函数在函数参数为 {params} 时仅支持选择单列。',
-      createCCMeasureTips: '该列的类型为 Varchar，不能被已选择的函数类型 {expression} 引用。',
+      createCCMeasureTips: '该列的类型为 {datatype}，不能被已选择的函数类型 {expression} 引用。',
       duplicateColumns: '重复定义',
       noProvideDecimalType: 'PERCENTILE 函数不支持 {datatype} 类型的列。',
       syncCommentTip1: '检测当前列注释名称为“{comment}”，您可以',
@@ -369,7 +370,7 @@ export default class AddMeasure extends Vue {
         { required: true, message: this.$t('requiredParamValue'), trigger: 'change' },
         { validator: this.checkColumn }
       ],
-      convertedColValidate: [{ required: true, message: this.$t('requiredParamValue'), trigger: 'blur, change' }]
+      convertedColValidate: [{ required: true, message: this.$t('requiredParamValue'), trigger: 'blur, change' }, { validator: this.checkColumn }]
     }
   }
   get ccRules () {
@@ -403,7 +404,7 @@ export default class AddMeasure extends Vue {
   }
 
   get forbidenSync () {
-    return !this.measure.parameterValue.value || this.ccVisible || ['SUM(constant)', 'COUNT_DISTINCT'].includes(this.measure.expression) || !this.measure.comment
+    return !this.measure.parameterValue.value || this.ccVisible || ['SUM(constant)', 'COUNT_DISTINCT', 'CORR'].includes(this.measure.expression) || !this.measure.comment
   }
 
   // 获取列的注释
@@ -452,7 +453,8 @@ export default class AddMeasure extends Vue {
 
   checkColumn (rule, value, callback) {
     // TOP_N 度量无需判断列是否已经被使用过了
-    if (this.measure.expression === 'TOP_N') {
+    // CORR 度量需要判断两个列都选择重复后报错
+    if (this.measure.expression === 'TOP_N' || this.measure.expression === 'CORR' && (!this.measure.parameterValue.value || !this.measure.convertedColumns[0].value)) {
       callback()
       return
     }
@@ -477,6 +479,9 @@ export default class AddMeasure extends Vue {
     this.isCorrCCEdit = false
     this.showMutipleColumnsTip = false
     this.measureError = ''
+    this.$refs['measureForm'].clearValidate('parameterValue.value')
+    this.$refs['measureForm'].clearValidate('convertedColumns[0].value')
+    this.corrColumnError = ''
     if (this.measure.expression === 'SUM(constant)' || this.measure.expression === 'COUNT(constant)') {
       this.measure.parameterValue.type = 'constant'
       this.measure.parameterValue.value = 1
@@ -527,6 +532,7 @@ export default class AddMeasure extends Vue {
   }
 
   changeParamValue (value, measure) {
+    measure.expression === 'CORR' && this.$refs['measureForm'].clearValidate('convertedColumns[0].value')
     const alias = value.split('.')[0]
     const nTable = this.modelInstance.getTableByAlias(alias)
     measure.parameterValue.table_guid = nTable && nTable.guid
@@ -545,6 +551,9 @@ export default class AddMeasure extends Vue {
     this.syncComment = false
     this.corrColumnError = false
     this.measureError = ''
+    this.$nextTick(() => {
+      measure.expression === 'CORR' && measure.convertedColumns[0].value && this.$refs['measureForm'].validateField('convertedColumns[0].value')
+    })
   }
 
   changeConColParamValue (value, index) {
@@ -555,6 +564,7 @@ export default class AddMeasure extends Vue {
   }
 
   changeCORRParamValue (value, measure) {
+    this.$refs['measureForm'].clearValidate('parameterValue.value')
     const alias = value.split('.')[0]
     const nTable = this.modelInstance.getTableByAlias(alias)
     measure.convertedColumns[0].table_guid = nTable && nTable.guid
@@ -569,6 +579,9 @@ export default class AddMeasure extends Vue {
     }
     this.corrColumnError = false
     this.measureError = ''
+    this.$nextTick(() => {
+      this.$refs['measureForm'].validateField('parameterValue.value')
+    })
   }
 
   checkSameGroupByColumns () {
@@ -617,11 +630,11 @@ export default class AddMeasure extends Vue {
   }
   checkNewCC (cc, ref) {
     this.$nextTick(() => {
-      if (cc.datatype === 'VARCHAR' && (['SUM(column)', 'PERCENTILE_APPROX', 'CORR'].includes(this.measure.expression))) {
+      if (!measureSumAndTopNDataType.includes(cc.datatype.match(/^(\w+)\(?/)[1].toLocaleLowerCase()) && (['SUM(column)', 'CORR'].includes(this.measure.expression))) {
         this.$refs[ref] && (this.$refs[ref].isEdit = true)
-        this.$refs[ref] && (this.$refs[ref].errorMsg = this.$t('createCCMeasureTips', {expression: this.measure.expression}))
+        this.$refs[ref] && (this.$refs[ref].errorMsg = this.$t('createCCMeasureTips', {expression: this.measure.expression, datatype: cc.datatype}))
         this.ccValidateError = true
-      } else if ((cc.datatype.indexOf('DECIMAL') > -1 || cc.datatype === 'DOUBLE') && this.measure.expression === 'PERCENTILE_APPROX') {
+      } else if (!measurePercenDataType.includes(cc.datatype.toLocaleLowerCase()) && this.measure.expression === 'PERCENTILE_APPROX') {
         this.$refs[ref] && (this.$refs[ref].isEdit = true)
         this.$refs[ref] && (this.$refs[ref].errorMsg = this.$t('noProvideDecimalType', {datatype: cc.datatype.match(/^(\w+)\(?/)[1].toLocaleLowerCase()}))
         this.ccValidateError = true
@@ -808,9 +821,9 @@ export default class AddMeasure extends Vue {
           if (!this.isEditMeasure && measureClone.expression === 'SUM') {
             const name = measureClone.parameter_value.length ? measureClone.parameter_value[0].value : ''
             if (name) {
-              const currentMeasure = this.allTableColumns.filter(it => it.full_colname === name)
-              if (currentMeasure.length && currentMeasure[0].datatype.toLocaleLowerCase().indexOf('varchar') >= 0) {
-                this.$message({ type: 'error', closeOtherMessages: true, message: this.$t('createCCMeasureTips', {expression: measureClone.expression}) })
+              const currentMeasure = [...this.allTableColumns, ...this.ccGroups].filter(it => it.full_colname === name)
+              if (currentMeasure.length && !measureSumAndTopNDataType.includes(currentMeasure[0].datatype.match(/^(\w+)\(?/)[1].toLocaleLowerCase())) {
+                this.$message({ type: 'error', closeOtherMessages: true, message: this.$t('createCCMeasureTips', {expression: measureClone.expression, datatype: currentMeasure[0].datatype}) })
                 return
               }
             }
@@ -892,6 +905,7 @@ export default class AddMeasure extends Vue {
     this.allTableColumns = this.modelInstance && this.modelInstance.getTableColumns()
     this.ccGroups = this.modelInstance.computed_columns.map(c => {
       c.name = c.tableAlias + '.' + c.columnName
+      c.full_colname = c.tableAlias + '.' + c.columnName
       return c
     })
     this.initExpression()

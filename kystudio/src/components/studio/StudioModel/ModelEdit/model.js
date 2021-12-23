@@ -1155,6 +1155,7 @@ class NModel extends Schama {
   }
   checkSameEditMeasureColumn (measure) {
     let column = measure.parameterValue
+    let corrCol = measure.convertedColumns[0]
     let expression = measure.expression
     if (measure.expression.indexOf('SUM') !== -1) {
       expression = 'SUM'
@@ -1163,8 +1164,12 @@ class NModel extends Schama {
       expression = 'COUNT'
     }
     for (let k = 0; k < this._mount.all_measures.length; k++) {
-      if (this._mount.all_measures[k].guid !== measure.guid && this._mount.all_measures[k].expression === expression && column.value === this._mount.all_measures[k].parameter_value[0].value) {
-        return false
+      if (this._mount.all_measures[k].guid !== measure.guid && this._mount.all_measures[k].expression === expression) {
+        if (expression !== 'CORR' && column.value === this._mount.all_measures[k].parameter_value[0].value) {
+          return false
+        } else if (indexOfObjWithSomeKey(this._mount.all_measures[k].parameter_value, 'value', column.value) !== -1 && corrCol && indexOfObjWithSomeKey(this._mount.all_measures[k].parameter_value, 'value', corrCol.value) !== -1) {
+          return false
+        }
       }
     }
     return true
