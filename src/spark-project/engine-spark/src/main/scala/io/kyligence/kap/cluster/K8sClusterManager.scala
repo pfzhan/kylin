@@ -57,12 +57,12 @@ class K8sClusterManager extends IClusterManager with Logging {
   }
 
   override def killApplication(jobStepId: String): Unit = {
-    logInfo("Kill Application $jobStepId !")
+    logInfo(s"Kill Application $jobStepId !")
     killApplication(s"$JOB_STEP_PREFIX", jobStepId)
   }
 
   override def killApplication(jobStepPrefix: String, jobStepId: String): Unit = {
-    logInfo("Kill Application $jobStepPrefix $jobStepId !")
+    logInfo(s"Kill Application $jobStepPrefix $jobStepId !")
     withKubernetesClient(kubernetesClient => {
       val pName = jobStepPrefix + jobStepId
       val namespace = DEFAULT_NAMESPACE
