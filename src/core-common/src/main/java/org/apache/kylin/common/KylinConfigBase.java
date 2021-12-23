@@ -1475,6 +1475,10 @@ public abstract class KylinConfigBase implements Serializable {
     // QUERY
     // ============================================================================
 
+    public boolean partialMatchNonEquiJoins() {
+        return Boolean.parseBoolean(getOptional("kylin.query.match-partial-non-equi-join-model", FALSE));
+    }
+
     public boolean asyncProfilingEnabled() {
         return !Boolean.parseBoolean(System.getProperty("spark.local", FALSE))
                 && Boolean.parseBoolean(getOptional("kylin.query.async-profiler-enabled", TRUE));

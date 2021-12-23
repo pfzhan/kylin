@@ -35,6 +35,7 @@ public class ModelReuseContextOfSemiV2 extends AbstractSemiContextV2 {
     public ModelReuseContextOfSemiV2(KylinConfig kylinConfig, String project, String[] sqlArray) {
         super(kylinConfig, project, sqlArray);
         this.partialMatch = getSmartConfig().getKylinConfig().isQueryMatchPartialInnerJoinModel();
+        this.partialMatchNonEqui = getSmartConfig().getKylinConfig().partialMatchNonEquiJoins();
     }
 
     public ModelReuseContextOfSemiV2(KylinConfig kylinConfig, String project, String[] sqlArray,

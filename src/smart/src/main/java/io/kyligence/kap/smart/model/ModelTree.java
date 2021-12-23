@@ -89,10 +89,10 @@ public class ModelTree {
         return tableRef.getTableIdentity().equals(rootFactTable.getIdentity());
     }
 
-    public boolean isExactlyMatch(NDataModel dataModel, boolean partialMatch) {
+    public boolean isExactlyMatch(NDataModel dataModel, boolean partialMatch, boolean partialMatchNonEqui) {
         TableRef rootFactTable = dataModel.getRootFactTable();
         return hasSameRootFactTable(rootFactTable) //
-                && getJoinGraph(rootFactTable).match(dataModel.getJoinsGraph(), Maps.newHashMap(), partialMatch);
+                && getJoinGraph(rootFactTable).match(dataModel.getJoinsGraph(), Maps.newHashMap(), partialMatch, partialMatchNonEqui);
     }
 
     public boolean hasSameSubGraph(NDataModel dataModel) {

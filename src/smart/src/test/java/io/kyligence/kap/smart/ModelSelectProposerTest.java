@@ -181,10 +181,10 @@ public class ModelSelectProposerTest extends NLocalWithSparkSessionTest {
         Assert.assertFalse(modelTree.hasSameSubGraph(dataModel));
 
         // A <-> B can match A <-> B <-> C in expertMode and semiAutoMode, when enable partial match
-        Assert.assertTrue(modelTree.isExactlyMatch(dataModel, true));
+        Assert.assertTrue(modelTree.isExactlyMatch(dataModel, true, true));
 
         // A <-> B can't match A <-> B <-> C in expertMode and semiAutoMode, when disable partial match
-        Assert.assertFalse(modelTree.isExactlyMatch(dataModel, false));
+        Assert.assertFalse(modelTree.isExactlyMatch(dataModel, false, false));
     }
 
     @Test
@@ -210,8 +210,8 @@ public class ModelSelectProposerTest extends NLocalWithSparkSessionTest {
         Assert.assertTrue(modelTree.hasSameSubGraph(dataModel));
 
         // [A -> B] can always exactly match with [A -> B && A -> C]
-        Assert.assertTrue(modelTree.isExactlyMatch(dataModel, false));
-        Assert.assertTrue(modelTree.isExactlyMatch(dataModel, true));
+        Assert.assertTrue(modelTree.isExactlyMatch(dataModel, false, false));
+        Assert.assertTrue(modelTree.isExactlyMatch(dataModel, true, true));
     }
 
     @Test

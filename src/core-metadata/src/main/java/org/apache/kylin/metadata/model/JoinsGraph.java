@@ -54,6 +54,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 
 import com.google.common.base.Preconditions;
@@ -319,6 +320,11 @@ public class JoinsGraph implements Serializable {
     }
 
     public boolean match(JoinsGraph pattern, Map<String, String> matchAlias, boolean matchPatial) {
+        return match(pattern, matchAlias, matchPatial, false);
+    }
+
+    public boolean match(JoinsGraph pattern, Map<String, String> matchAlias,
+                         boolean matchPatial, boolean matchPartialNonEquiJoin) {
         if (pattern == null || pattern.center == null) {
             throw new IllegalArgumentException("pattern(model) should have a center: " + pattern);
         }
@@ -339,7 +345,7 @@ public class JoinsGraph implements Serializable {
 
             AtomicReference<Map<TableRef, TableRef>> finalMatchRef = new AtomicReference<>();
             innerMatch(pattern, trialMatch, matchPatial, finalMatchRef);
-            if (finalMatchRef.get() != null && checkNonEquiJoinMatches(finalMatchRef.get(), pattern)) {
+            if (finalMatchRef.get() != null && (matchPartialNonEquiJoin || checkNonEquiJoinMatches(finalMatchRef.get(), pattern))) {
                 matchAlias.clear();
                 matchAlias.putAll(finalMatchRef.get().entrySet().stream()
                         .collect(Collectors.toMap(e -> e.getKey().getAlias(), e -> e.getValue().getAlias())));
@@ -375,7 +381,8 @@ public class JoinsGraph implements Serializable {
 
     /**
      * check if any non-equi join is missed in the pattern
-     * if so, we cannot match the current graph with the the pattern graph
+     * if so, we cannot match the current graph with the the pattern graph.
+     * set `kylin.query.match-partial-non-equi-join-model` to skip this checking
      * @param matches
      * @return
      */
@@ -538,6 +545,12 @@ public class JoinsGraph implements Serializable {
 
     private List<Edge> edgesFrom(TableRef thisSide) {
         return edgesFromNode.getOrDefault(thisSide, Lists.newArrayList());
+    }
+
+    public Map<String, String> matchAlias(JoinsGraph joinsGraph, KylinConfig kylinConfig) {
+        Map<String, String> matchAlias = Maps.newHashMap();
+        match(joinsGraph, matchAlias, kylinConfig.isQueryMatchPartialInnerJoinModel(), kylinConfig.partialMatchNonEquiJoins());
+        return matchAlias;
     }
 
     public Map<String, String> matchAlias(JoinsGraph joinsGraph, boolean matchPartial) {

@@ -243,7 +243,7 @@ public class ModelSelectProposer extends AbstractProposer {
 
             boolean match = proposeContext instanceof SmartContext //
                     ? modelTree.hasSameSubGraph(model)
-                    : modelTree.isExactlyMatch(model, proposeContext.isPartialMatch());
+                    : modelTree.isExactlyMatch(model, proposeContext.isPartialMatch(), proposeContext.isPartialMatchNonEqui());
 
             if (match) {
                 List<OLAPContext> disabledList = modelTree.getOlapContexts().stream()

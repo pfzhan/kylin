@@ -182,7 +182,7 @@ public class ModelMaster {
             for (ModelTree modelTree : modelTrees) {
                 boolean match = proposeContext instanceof SmartContext //
                         ? modelTree.hasSameSubGraph(dataModel)
-                        : modelTree.isExactlyMatch(dataModel, proposeContext.isPartialMatch());
+                        : modelTree.isExactlyMatch(dataModel, proposeContext.isPartialMatch(), proposeContext.isPartialMatchNonEqui());
                 if (match) {
                     updatedModelTree = modelTree;
                     break;

@@ -515,7 +515,7 @@ public class QueryAliasMatcher {
             // 1st round: dry run without cc expr comparison to collect model alias matching
             joinsGraph.setJoinEdgeMatcher(new CCJoinEdgeMatcher(null, false));
 
-            Map<String, String> matches = joinsGraph.matchAlias(model.getJoinsGraph(), projectConfig.isQueryMatchPartialInnerJoinModel());
+            Map<String, String> matches = joinsGraph.matchAlias(model.getJoinsGraph(), projectConfig);
             if (matches == null || matches.isEmpty()) {
                 return null;
             }
@@ -530,7 +530,7 @@ public class QueryAliasMatcher {
         }
 
         // try match the subquery with model
-        Map<String, String> matches = joinsGraph.matchAlias(model.getJoinsGraph(), projectConfig.isQueryMatchPartialInnerJoinModel());
+        Map<String, String> matches = joinsGraph.matchAlias(model.getJoinsGraph(), projectConfig);
         if (matches == null || matches.isEmpty()) {
             return null;
         }

@@ -296,8 +296,8 @@ public class GreedyModelTreesBuilder {
             JoinsGraph graphA = new JoinsGraph(ctxA.firstTableScan.getTableRef(), Lists.newArrayList(ctxA.joins));
             JoinsGraph graphB = new JoinsGraph(ctxB.firstTableScan.getTableRef(), Lists.newArrayList(ctxB.joins));
 
-            return graphA.match(graphB, Maps.newHashMap(), proposeContext.isPartialMatch()) //
-                    || graphB.match(graphA, Maps.newHashMap(), proposeContext.isPartialMatch())
+            return graphA.match(graphB, Maps.newHashMap(), proposeContext.isPartialMatch(), proposeContext.isPartialMatchNonEqui()) //
+                    || graphB.match(graphA, Maps.newHashMap(), proposeContext.isPartialMatch(), proposeContext.isPartialMatchNonEqui())
                     || (graphA.unmatched(graphB).stream().allMatch(e -> e.isLeftJoin() && !e.isNonEquiJoin())
                             && graphB.unmatched(graphA).stream().allMatch(e -> e.isLeftJoin() && !e.isNonEquiJoin()));
         }

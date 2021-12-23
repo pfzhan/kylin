@@ -218,7 +218,7 @@ public class RealizationChooser {
         logger.info("Context join graph: {}", context.getJoinsGraph());
         for (NDataModel model : modelMap.keySet()) {
             OLAPContextProp preservedOLAPContext = QueryRouter.preservePropsBeforeRewrite(context);
-            List<Candidate> candidate = selectRealizationFromModel(model, context, false, modelMap, model2AliasMap);
+            List<Candidate> candidate = selectRealizationFromModel(model, context, false, false, modelMap, model2AliasMap);
             if (candidate != null && !candidate.isEmpty()) {
                 candidates.addAll(candidate);
                 logger.info("context & model({}, {}) match info: {}", model.getUuid(), model.getAlias(), true);
@@ -228,10 +228,11 @@ public class RealizationChooser {
         }
 
         // Step 2.2 if no exactly model and user config to try partial model match, then try partial match model
-        if (CollectionUtils.isEmpty(candidates) && isQueryMatchPartialInnerJoinModel()) {
+        if (CollectionUtils.isEmpty(candidates) && (partialMatchInnerJoin() || partialMatchNonEquiJoin())) {
             for (NDataModel model : modelMap.keySet()) {
                 OLAPContextProp preservedOLAPContext = QueryRouter.preservePropsBeforeRewrite(context);
-                List<Candidate> candidate = selectRealizationFromModel(model, context, true, modelMap, model2AliasMap);
+                List<Candidate> candidate = selectRealizationFromModel(model, context,
+                        partialMatchInnerJoin(), partialMatchNonEquiJoin(), modelMap, model2AliasMap);
                 if (candidate != null) {
                     candidates.addAll(candidate);
                 }
@@ -286,9 +287,9 @@ public class RealizationChooser {
     }
 
     private static List<Candidate> selectRealizationFromModel(NDataModel model, OLAPContext context,
-            boolean isPartialMatch, Multimap<NDataModel, IRealization> modelMap,
+            boolean isPartialMatch, boolean isPartialMatchNonEquiJoin, Multimap<NDataModel, IRealization> modelMap,
             Map<NDataModel, Map<String, String>> model2AliasMap) {
-        final Map<String, String> map = matchJoins(model, context, isPartialMatch);
+        final Map<String, String> map = matchJoins(model, context, isPartialMatch, isPartialMatchNonEquiJoin);
         if (map == null) {
             return null;
         }
@@ -594,7 +595,8 @@ public class RealizationChooser {
         return buf.toString();
     }
 
-    public static Map<String, String> matchJoins(NDataModel model, OLAPContext ctx, boolean partialMatch) {
+    public static Map<String, String> matchJoins(NDataModel model, OLAPContext ctx,
+                                                 boolean partialMatch, boolean partialMatchNonEquiJoin) {
         Map<String, String> matchUp = Maps.newHashMap();
         TableRef firstTable = ctx.firstTableScan.getTableRef();
         boolean matched;
@@ -616,7 +618,7 @@ public class RealizationChooser {
             if (ctx.getJoinsGraph() == null) {
                 ctx.setJoinsGraph(new JoinsGraph(firstTable, ctx.joins));
             }
-            matched = ctx.getJoinsGraph().match(model.getJoinsGraph(), matchUp, partialMatch);
+            matched = ctx.getJoinsGraph().match(model.getJoinsGraph(), matchUp, partialMatch, partialMatchNonEquiJoin);
             if (!matched) {
                 KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
                 if (kylinConfig.isJoinMatchOptimizationEnabled()) {
@@ -624,7 +626,7 @@ public class RealizationChooser {
                             "Query match join with join match optimization mode, trying to match with newly rewrite join graph.");
                     ctx.matchJoinWithFilterTransformation();
                     ctx.matchJoinWithEnhancementTransformation();
-                    matched = ctx.getJoinsGraph().match(model.getJoinsGraph(), matchUp, partialMatch);
+                    matched = ctx.getJoinsGraph().match(model.getJoinsGraph(), matchUp, partialMatch, partialMatchNonEquiJoin);
                     logger.info("Match result for match join with join match optimization mode is: {}", matched);
                 }
                 logger.debug("Context join graph missed model {}, model join graph {}", model, model.getJoinsGraph());
@@ -644,7 +646,7 @@ public class RealizationChooser {
     }
 
     public static Map<String, String> matchJoins(NDataModel model, OLAPContext ctx) {
-        return matchJoins(model, ctx, isQueryMatchPartialInnerJoinModel());
+        return matchJoins(model, ctx, partialMatchInnerJoin(), partialMatchNonEquiJoin());
     }
 
     private static Multimap<NDataModel, IRealization> makeOrderedModelMap(OLAPContext context) {
@@ -674,17 +676,25 @@ public class RealizationChooser {
         return mapModelToRealizations;
     }
 
-    private static boolean isQueryMatchPartialInnerJoinModel() {
+    private static boolean partialMatchInnerJoin() {
+        return getProjectConfig().isQueryMatchPartialInnerJoinModel();
+    }
+
+    private static boolean partialMatchNonEquiJoin() {
+        return getProjectConfig().partialMatchNonEquiJoins();
+    }
+
+    private static KylinConfig getProjectConfig() {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         try {
             if (QueryContext.current().getProject() != null) {
                 return NProjectManager.getInstance(kylinConfig).getProject(QueryContext.current().getProject())
-                        .getConfig().isQueryMatchPartialInnerJoinModel();
+                        .getConfig();
             }
         } catch (Exception e) {
             logger.error("Fail to get project config is query match partial inner join model.", e);
         }
-        return kylinConfig.isQueryMatchPartialInnerJoinModel();
+        return kylinConfig;
     }
 
 }

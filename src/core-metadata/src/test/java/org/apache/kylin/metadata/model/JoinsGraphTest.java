@@ -260,6 +260,20 @@ public class JoinsGraphTest extends NLocalFileMetadataTestCase {
                     .nonEquiLeftJoin("BUYER_ACCOUNT", "TEST_ORDER", "TEST_ORDER.BUYER_ID").build();
             Assert.assertFalse(graph1.match(graph2, new HashMap<String, String>()));
         }
+
+        {
+            JoinsGraph graph1 = new MockJoinGraphBuilder(modelDesc, "TEST_KYLIN_FACT").build();
+            JoinsGraph graph2 = new MockJoinGraphBuilder(modelDesc, "TEST_KYLIN_FACT")
+                    .leftJoin(new String[] { "TEST_KYLIN_FACT.ORDER_ID" }, new String[] { "TEST_ORDER.ORDER_ID" })
+                    .nonEquiLeftJoin("BUYER_ACCOUNT", "TEST_ORDER", "TEST_ORDER.BUYER_ID").build();
+            Assert.assertTrue(graph1.match(graph2, new HashMap<>(), false, true));
+
+            graph1 = new MockJoinGraphBuilder(modelDesc, "TEST_KYLIN_FACT")
+                    .leftJoin(new String[] { "TEST_KYLIN_FACT.ORDER_ID" }, new String[] { "TEST_ORDER.ORDER_ID" })
+                    .build();
+            Assert.assertTrue(graph1.match(graph2, new HashMap<>(), false, true));
+        }
+
     }
 
     @Test
@@ -310,6 +324,19 @@ public class JoinsGraphTest extends NLocalFileMetadataTestCase {
                     .innerJoin(new String[] { "TEST_KYLIN_FACT.ORDER_ID" }, new String[] { "TEST_ORDER.ORDER_ID" })
                     .nonEquiInnerJoin("BUYER_ACCOUNT", "TEST_ORDER", "TEST_ORDER.BUYER_ID").build();
             Assert.assertFalse(graph1.match(graph2, matchesMapSupplier.get()));
+        }
+
+        {
+            JoinsGraph graph1 = new MockJoinGraphBuilder(modelDesc, "TEST_KYLIN_FACT")
+                    .innerJoin(new String[] { "TEST_KYLIN_FACT.ORDER_ID" }, new String[] { "TEST_ORDER.ORDER_ID" })
+                    .build();
+            JoinsGraph graph2 = new MockJoinGraphBuilder(modelDesc, "TEST_KYLIN_FACT")
+                    .innerJoin(new String[] { "TEST_KYLIN_FACT.ORDER_ID" }, new String[] { "TEST_ORDER.ORDER_ID" })
+                    .nonEquiInnerJoin("BUYER_ACCOUNT", "TEST_ORDER", "TEST_ORDER.BUYER_ID").build();
+            //partial match inner join is allowed even if kylin.query.match-partial-non-equi-join-model is on
+            Assert.assertFalse(graph1.match(graph2, matchesMapSupplier.get(), false, true));
+            //partial match inner join is allowed
+            Assert.assertTrue(graph1.match(graph2, matchesMapSupplier.get(), true, true));
         }
     }
 }

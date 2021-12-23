@@ -95,6 +95,7 @@ public abstract class AbstractContext implements IKeep {
     @Setter
     private boolean skipEvaluateCC;
     protected boolean partialMatch;
+    protected boolean partialMatchNonEqui;
 
     protected AbstractContext(KylinConfig kylinConfig, String project, String[] sqlArray) {
         this.smartConfig = SmartConfig.wrap(kylinConfig);
@@ -103,6 +104,7 @@ public abstract class AbstractContext implements IKeep {
         this.preProcessProposers = createPreProcessProposers();
         this.processProposers = createTransactionProposers();
         this.partialMatch = false;
+        this.partialMatchNonEqui = false;
         filterSqlRelatedModelsAndTables();
     }
 

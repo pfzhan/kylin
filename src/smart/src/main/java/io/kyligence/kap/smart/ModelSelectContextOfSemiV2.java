@@ -47,6 +47,7 @@ public class ModelSelectContextOfSemiV2 extends AbstractSemiContextV2 {
         super(kylinConfig, project, sqls);
         this.canCreateNewModel = getSmartConfig().getModelOptRule().equalsIgnoreCase(AbstractJoinRule.APPEND);
         this.partialMatch = getSmartConfig().getKylinConfig().isQueryMatchPartialInnerJoinModel();
+        this.partialMatchNonEqui = getSmartConfig().getKylinConfig().partialMatchNonEquiJoins();
     }
 
     @Override
