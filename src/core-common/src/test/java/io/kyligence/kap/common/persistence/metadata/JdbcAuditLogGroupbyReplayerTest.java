@@ -34,11 +34,17 @@ import org.apache.kylin.common.persistence.StringEntity;
 import org.apache.kylin.common.util.RandomUtil;
 import org.awaitility.Awaitility;
 import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
 
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.AbstractJdbcMetadataTestCase;
+import io.kyligence.kap.junit.rule.Repeat;
+import io.kyligence.kap.junit.rule.RepeatRule;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -47,8 +53,13 @@ public class JdbcAuditLogGroupbyReplayerTest extends AbstractJdbcMetadataTestCas
 
     private static final String LOCAL_INSTANCE = "127.0.0.1";
     private final Charset charset = Charset.defaultCharset();
+    public ExpectedException thrown = ExpectedException.none();
+
+    @Rule
+    public TestRule chain = RuleChain.outerRule(new RepeatRule()).around(thrown);
 
     @Test
+    @Repeat(3)
     public void testReplayGroupbyProject() throws Exception {
         val workerStore = initResourceStore();
         String project1 = "abc1";
