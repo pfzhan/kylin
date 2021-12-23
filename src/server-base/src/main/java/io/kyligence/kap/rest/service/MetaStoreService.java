@@ -128,6 +128,7 @@ public class MetaStoreService extends BasicService {
 
     private static final String BASE_CUBOID_ALWAYS_VALID_KEY = "kylin.cube.aggrgroup.is-base-cuboid-always-valid";
     private static final Pattern MD5_PATTERN = Pattern.compile(".*([a-fA-F\\d]{32})\\.zip");
+    private static final String RULE_SCHEDULER_DATA_KEY = "kylin.index.rule-scheduler-data";
 
     @Autowired
     public AclEvaluate aclEvaluate;
@@ -189,7 +190,7 @@ public class MetaStoreService extends BasicService {
 
         NIndexPlanManager indexPlanManager = getIndexPlanManager(modelDesc.getProject());
         IndexPlan indexPlan = indexPlanManager.getIndexPlan(modelDesc.getUuid());
-        if (!indexPlan.getOverrideProps().isEmpty()
+        if (!isEmptyAfterExcludeBlockData(indexPlan)
                 || (modelDesc.getSegmentConfig() != null && modelDesc.getSegmentConfig().getAutoMergeEnabled() != null
                         && modelDesc.getSegmentConfig().getAutoMergeEnabled())) {
             modelPreviewResponse.setHasOverrideProps(true);
@@ -207,6 +208,15 @@ public class MetaStoreService extends BasicService {
         }
         modelPreviewResponse.setTables(tables);
         return modelPreviewResponse;
+    }
+
+    private boolean isEmptyAfterExcludeBlockData(IndexPlan indexPlan) {
+        val overrideProps = indexPlan.getOverrideProps();
+        boolean isEmpty = overrideProps.isEmpty();
+        if (overrideProps.size() == 1 && overrideProps.containsKey(RULE_SCHEDULER_DATA_KEY)) {
+            isEmpty = true;
+        }
+        return isEmpty;
     }
 
     public ByteArrayOutputStream getCompressedModelMetadata(String project, List<String> modelList,
@@ -242,6 +252,10 @@ public class MetaStoreService extends BasicService {
                     if (copyIndexPlan.getOverrideProps().get(BASE_CUBOID_ALWAYS_VALID_KEY) != null) {
                         overridePropes.put(BASE_CUBOID_ALWAYS_VALID_KEY,
                                 copyIndexPlan.getOverrideProps().get(BASE_CUBOID_ALWAYS_VALID_KEY));
+                    }
+                    if (copyIndexPlan.getOverrideProps().containsKey(RULE_SCHEDULER_DATA_KEY)) {
+                        overridePropes.put(RULE_SCHEDULER_DATA_KEY,
+                                copyIndexPlan.getOverrideProps().get(RULE_SCHEDULER_DATA_KEY));
                     }
                     copyIndexPlan.setOverrideProps(overridePropes);
                     modelDesc.setSegmentConfig(new SegmentConfig());

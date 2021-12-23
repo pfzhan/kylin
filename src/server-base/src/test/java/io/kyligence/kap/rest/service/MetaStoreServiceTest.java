@@ -161,6 +161,22 @@ public class MetaStoreServiceTest extends ServiceTestBase {
 
         Assert.assertTrue(
                 modelPreviewResponseList.stream().anyMatch(ModelPreviewResponse::isHasMultiplePartitionValues));
+
+        val dfMgr = modelService.getDataflowManager("default");
+        val id = "7212bf0c-0716-4cef-b623-69c161981262";
+        val dataflow = dfMgr.getDataflow(id);
+        val idxPlanMgr = modelService.getIndexPlanManager("default");
+        val indexPlan = idxPlanMgr.getIndexPlan(id);
+
+        idxPlanMgr.updateIndexPlan(id, updater -> {
+            val overrideProps = new LinkedHashMap<String, String>();
+            overrideProps.put("kylin.index.rule-scheduler-data", "");
+            updater.setOverrideProps(overrideProps);
+        });
+        modelPreviewResponseList = metaStoreService.getPreviewModels("default", Lists.newArrayList(id));
+        Assert.assertTrue(
+                idxPlanMgr.getIndexPlan(id).getOverrideProps().containsKey("kylin.index.rule-scheduler-data"));
+        Assert.assertFalse(modelPreviewResponseList.get(0).isHasOverrideProps());
     }
 
     @Test
@@ -172,9 +188,11 @@ public class MetaStoreServiceTest extends ServiceTestBase {
         val modelConfigRequest = new ModelConfigRequest();
         String modelId = modelIdList.get(0);
         String affectProp = "kylin.cube.aggrgroup.is-base-cuboid-always-valid";
+        String ruleSchedDataProp = "kylin.index.rule-scheduler-data";
         modelConfigRequest.setOverrideProps(new LinkedHashMap<String, String>() {
             {
                 put(affectProp, "false");
+                put(ruleSchedDataProp, "");
             }
         });
         modelService.updateModelConfig(getProject(), modelId, modelConfigRequest);
@@ -208,6 +226,8 @@ public class MetaStoreServiceTest extends ServiceTestBase {
         Assert.assertTrue(indexPlanManager.listAllIndexPlans().stream()
                 .anyMatch(indexPlan -> !indexPlan.getOverrideProps().isEmpty()));
         Assert.assertEquals("false", indexPlanManager.getIndexPlan(modelId).getOverrideProps().get(affectProp));
+        Assert.assertEquals("", indexPlanManager.getIndexPlan(modelId).getOverrideProps().get(ruleSchedDataProp));
+
     }
 
     @Test
