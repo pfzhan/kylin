@@ -47,7 +47,6 @@ import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
-import java.util.stream.Stream;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -314,16 +313,6 @@ public class KapConfigTest extends NLocalFileMetadataTestCase {
     @After
     public void teardown() {
         cleanupTestMetadata();
-    }
-
-    @Test
-    public void testKapConfigTestMethodCount() {
-        KapConfig kapConfig = KapConfig.getInstanceFromEnv();
-        Class<? extends KapConfig> configClass = kapConfig.getClass();
-        // remove $jacoco method
-        long methodsCount = Stream.of(configClass.getDeclaredMethods())
-                .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
-        Assert.assertEquals(133, methodsCount);
     }
 
     @Test

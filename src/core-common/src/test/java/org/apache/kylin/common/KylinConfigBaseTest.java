@@ -61,7 +61,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
 
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.util.TimeZoneUtils;
@@ -904,22 +903,6 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         cleanupTestMetadata();
     }
 
-    @Test
-    public void testKylinBaseConfigMethodsCount() {
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
-        Class<? extends KylinConfig> configClass = config.getClass();
-        Stream.of(configClass.getSuperclass().getDeclaredMethods()).forEach(method -> {
-            try {
-                method.invoke(config, null);
-            } catch (Exception e) {
-            }
-        });
-        // remove $jacoco method
-        long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
-                .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
-        // if you fail on this assertion, you should not only change the expected value but also put the configuration you added into the map above
-        Assert.assertEquals(559, methodsCount);
-    }
 
     @Test
     public void testGetStreamingJobTmpOutputStorePath() {
