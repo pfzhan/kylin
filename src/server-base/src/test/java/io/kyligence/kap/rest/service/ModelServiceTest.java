@@ -68,9 +68,6 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.model.util.ExpandableMeasureUtil;
-import io.kyligence.kap.query.util.KapQueryUtil;
-import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
@@ -192,6 +189,7 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.RetentionRange;
 import io.kyligence.kap.metadata.model.VolatileRange;
+import io.kyligence.kap.metadata.model.util.ExpandableMeasureUtil;
 import io.kyligence.kap.metadata.model.util.scd2.SCD2CondChecker;
 import io.kyligence.kap.metadata.model.util.scd2.SCD2SqlConverter;
 import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinTableDesc;
@@ -202,6 +200,7 @@ import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
 import io.kyligence.kap.metadata.user.ManagedUser;
+import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
 import io.kyligence.kap.rest.constant.ModelAttributeEnum;
 import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
@@ -235,6 +234,7 @@ import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import io.kyligence.kap.rest.response.SuggestionResponse;
 import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
 import io.kyligence.kap.rest.service.params.MergeSegmentParams;
+import io.kyligence.kap.rest.service.params.ModelQueryParams;
 import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
 import io.kyligence.kap.rest.util.ModelTriple;
 import io.kyligence.kap.rest.util.SCD2SimplificationConvertUtil;
@@ -245,6 +245,7 @@ import io.kyligence.kap.secondstorage.metadata.NodeGroup;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.ProposerJob;
 import io.kyligence.kap.smart.SmartMaster;
+import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
 import io.kyligence.kap.streaming.jobs.StreamingJobListener;
 import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import lombok.val;
@@ -6556,6 +6557,20 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 Arrays.asList(ModelAttributeEnum.BATCH, ModelAttributeEnum.STREAMING, ModelAttributeEnum.HYBRID), null,
                 null, false);
         Assert.assertEquals(6, modelList7.getValue().size());
+    }
+
+    @Test
+    public void testConvertToDataModelResponseBroken() {
+        List<ModelAttributeEnum> modelAttributeSet = Lists.newArrayList(ModelAttributeEnum.BATCH);
+        ModelQueryParams modelQueryParams = new ModelQueryParams("", null, true, "default", null, null, 0, 10, "", true,
+                null, modelAttributeSet, null, null, true);
+
+        val tripleList = modelQueryService.getModels(modelQueryParams);
+        ModelTriple modelTriple = tripleList.get(0);
+        NDataModel dataModel = modelTriple.getDataModel();
+
+        NDataModelResponse nDataModelResponse = modelService.convertToDataModelResponseBroken(dataModel);
+        Assert.assertEquals(ModelStatusToDisplayEnum.BROKEN, nDataModelResponse.getStatus());
     }
 
     @Test

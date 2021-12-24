@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -44,11 +43,13 @@ package org.apache.kylin.metadata.model;
 
 import java.io.Serializable;
 import java.util.Iterator;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
-import com.google.common.base.Preconditions;
 import org.apache.kylin.common.util.DateFormat;
+
+import com.google.common.base.Preconditions;
 
 public class TimeRange implements Serializable {
     long start;
@@ -60,21 +61,26 @@ public class TimeRange implements Serializable {
     public TimeRange(Long s, Long e) {
         this.start = (s == null || s <= 0) ? 0 : s;
         this.end = (e == null || e == Long.MAX_VALUE) ? Long.MAX_VALUE : e;
-
-        Preconditions.checkState(this.start < this.end);
+        Preconditions.checkState(this.start <= this.end, getRangeCheckErrorMsg(this.start, this.end));
     }
 
     public TimeRange(Long s, Long e, Map<Integer, Long> offsetStart, Map<Integer, Long> offsetEnd) {
         this.start = (s == null || s <= 0) ? 0 : s;
         this.end = (e == null || e == Long.MAX_VALUE) ? Long.MAX_VALUE : e;
 
-        Preconditions.checkState(this.start <= this.end);
+        Preconditions.checkState(this.start <= this.end, getRangeCheckErrorMsg(this.start, this.end));
         Iterator<Map.Entry<Integer, Long>> iter = offsetStart.entrySet().iterator();
         while (iter.hasNext()) {
             Map.Entry<Integer, Long> entry = iter.next();
             Integer partition = entry.getKey();
-            Preconditions.checkState(offsetStart.get(partition) <= offsetEnd.get(partition));
+            Long startOffset = offsetStart.get(partition);
+            Long endOffset = offsetEnd.get(partition);
+            Preconditions.checkState(startOffset <= endOffset, getRangeCheckErrorMsg(startOffset, endOffset));
         }
+    }
+
+    private String getRangeCheckErrorMsg(Long start, Long end) {
+        return String.format(Locale.ROOT, "expect: start <= end, actually: %s <= %s", start, end);
     }
 
     public long getStart() {

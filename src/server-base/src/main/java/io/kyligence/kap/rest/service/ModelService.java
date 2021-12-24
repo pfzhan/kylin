@@ -93,7 +93,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.google.common.base.Strings;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
@@ -175,6 +174,7 @@ import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -736,8 +736,16 @@ public class ModelService extends BasicService {
                 totalSize.getAndIncrement();
                 return null;
             }
-            return convertToDataModelResponse(t.getDataModel(), projectName, dfManager, status,
-                    queryElem.isOnlyNormalDim());
+            NDataModel dataModel = t.getDataModel();
+            try {
+                return convertToDataModelResponse(dataModel, projectName, dfManager, status,
+                        queryElem.isOnlyNormalDim());
+            } catch (Exception e) {
+                String errorMsg = String.format(Locale.ROOT, "convert NDataModelResponse failed, mark to broken. %s, %s",
+                        dataModel.getAlias(), dataModel.getUuid());
+                logger.error(errorMsg, e);
+                return convertToDataModelResponseBroken(dataModel);
+            }
         }).filter(Objects::nonNull).forEach(nDataModelResponse -> {
             if (PagingUtil.isInCurrentPage(totalSize.get(), offset, limit)) {
                 filterModels.add(nDataModelResponse);
@@ -746,6 +754,12 @@ public class ModelService extends BasicService {
         });
 
         return new Pair<>(filterModels, totalSize.get());
+    }
+
+    public NDataModelResponse convertToDataModelResponseBroken(NDataModel modelDesc) {
+        NDataModelResponse response = new NDataModelResponse(modelDesc);
+        response.setStatus(ModelStatusToDisplayEnum.BROKEN);
+        return response;
     }
 
     public List<NDataModelResponse> getModels(final String modelAlias, final String projectName, boolean exactMatch,
