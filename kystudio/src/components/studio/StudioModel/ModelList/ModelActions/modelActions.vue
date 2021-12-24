@@ -7,9 +7,9 @@
       </common-tip>
     </template>
     <template v-else>
-      <common-tip :content="$t('kylinLang.common.edit')" class="ksd-mr-8" v-if="currentModel.status !== 'BROKEN' && datasourceActions.includes('modelActions')" :disabled="!!editText">
-        <span v-if="!editText" class="item" @click="(e) => handleEditModel(currentModel.alias, e)"><i :class="['icon-item', 'edit-icon', 'el-ksd-icon-edit_22']"></i></span>
-        <el-button v-else class="item" @click="(e) => handleEditModel(currentModel.alias, e)" icon="el-ksd-icon-edit_22" type="primary" text>{{editText}}</el-button>
+      <common-tip :content="isStreamModelEnableEdit ? $t('kylinLang.common.edit'): $t('disableEditModel')" class="ksd-mr-8" v-if="currentModel.status !== 'BROKEN' && datasourceActions.includes('modelActions')" :disabled="!!editText&&isStreamModelEnableEdit">
+        <span v-if="!editText" class="item" @click="(e) => handleEditModel(currentModel.alias, e)"><i :class="['icon-item', 'edit-icon', 'el-ksd-icon-edit_22', isStreamModelEnableEdit ? '' : 'is-disable']"></i></span>
+        <el-button v-else class="item" :disabled="!isStreamModelEnableEdit" @click="(e) => handleEditModel(currentModel.alias, e)" icon="el-ksd-icon-edit_22" type="primary" text>{{editText}}</el-button>
       </common-tip>
       <common-tip :content="$t('kylinLang.common.repair')" class="ksd-mr-8" v-if="currentModel.broken_reason === 'SCHEMA' && datasourceActions.includes('modelActions')" :disabled="!!editText">
         <span v-if="!editText" class="item" @click="(e) => handleEditModel(currentModel.alias, e)"><i :class="['icon-item', 'el-ksd-icon-repair_22']"></i></span>
@@ -458,6 +458,7 @@ export default class ModelActions extends Vue {
 
   // 编辑model
   handleEditModel (modelName, event) {
+    if (!this.isStreamModelEnableEdit) return
     event && event.target.parentElement.className.split(' ').includes('icon') && event.target.parentElement.blur()
 
     if (this.$store.state.capacity.maintenance_mode || this.isOnlyQueryNode) {
@@ -700,6 +701,10 @@ export default class ModelActions extends Vue {
     return this.currentModel.partition_desc && !!this.currentModel.partition_desc.partition_date_column
   }
 
+  get isStreamModelEnableEdit () {
+    return this.currentModel.model_update_enabled && this.currentModel.model_type !== 'BATCH' || this.currentModel.model_type === 'BATCH'
+  }
+
   openSecStorageDialog () {
     if (this.currentModel.model_type !== 'BATCH') {
       return
@@ -860,6 +865,10 @@ export default class ModelActions extends Vue {
   }
   .edit-icon {
     margin-top: -3px;
+    &.is-disable {
+      color: @color-text-disabled;
+      cursor: not-allowed;
+    }
   }
 }
 .disabled-action {
