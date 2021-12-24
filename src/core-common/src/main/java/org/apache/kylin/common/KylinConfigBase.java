@@ -3296,6 +3296,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.model.skip-check-flattable", FALSE));
     }
 
+    public boolean isUnitOfWorkSimulationEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.env.unitofwork-simulation-enabled", FALSE));
+    }
+
     public ForceToTieredStorage getSystemForcedToTieredStorage() {
         int i = Integer.parseInt(getOptional("kylin.second-storage.route-when-ch-fail", "0"));
         return ForceToTieredStorage.values()[i];
