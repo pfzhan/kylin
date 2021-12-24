@@ -532,7 +532,7 @@ export default class AddMeasure extends Vue {
   }
 
   changeParamValue (value, measure) {
-    measure.expression === 'CORR' && this.$refs['measureForm'].clearValidate('convertedColumns[0].value')
+    this.$refs['measureForm'] && measure.expression === 'CORR' && this.$refs['measureForm'].clearValidate('convertedColumns[0].value')
     const alias = value.split('.')[0]
     const nTable = this.modelInstance.getTableByAlias(alias)
     measure.parameterValue.table_guid = nTable && nTable.guid
@@ -552,7 +552,7 @@ export default class AddMeasure extends Vue {
     this.corrColumnError = false
     this.measureError = ''
     this.$nextTick(() => {
-      measure.expression === 'CORR' && measure.convertedColumns[0].value && this.$refs['measureForm'].validateField('convertedColumns[0].value')
+      this.$refs['measureForm'] && measure.expression === 'CORR' && measure.convertedColumns[0].value && this.$refs['measureForm'].validateField('convertedColumns[0].value')
     })
   }
 
@@ -564,7 +564,7 @@ export default class AddMeasure extends Vue {
   }
 
   changeCORRParamValue (value, measure) {
-    this.$refs['measureForm'].clearValidate('parameterValue.value')
+    this.$refs['measureForm'] && this.$refs['measureForm'].clearValidate('parameterValue.value')
     const alias = value.split('.')[0]
     const nTable = this.modelInstance.getTableByAlias(alias)
     measure.convertedColumns[0].table_guid = nTable && nTable.guid
@@ -580,7 +580,7 @@ export default class AddMeasure extends Vue {
     this.corrColumnError = false
     this.measureError = ''
     this.$nextTick(() => {
-      this.$refs['measureForm'].validateField('parameterValue.value')
+      this.$refs['measureForm'] && this.$refs['measureForm'].validateField('parameterValue.value')
     })
   }
 
