@@ -32,14 +32,15 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.scheduler.EventBusFactory;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -61,8 +62,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.rest.config.initialize.ModelUpdateListener;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.FusionModel;
 import io.kyligence.kap.metadata.model.FusionModelManager;
@@ -71,6 +72,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.rest.config.initialize.ModelUpdateListener;
 import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
 import io.kyligence.kap.rest.request.IndexesToSegmentsRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
@@ -78,6 +80,7 @@ import io.kyligence.kap.rest.request.OwnerChangeRequest;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
+import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import lombok.val;
 import lombok.var;
 
@@ -442,7 +445,6 @@ public class FusionModelServiceTest extends CSVSourceTestCase {
         val dataModel1 = modelManager.getDataModelDesc("334671fd-e383-4fc9-b5c2-94fce832f77a");
         Assert.assertNull(dataModel1);
 
-
         fusionModelService.dropModel("4965c827-fbb4-4ea1-a744-3f341a3b030d", project, true);
         val dataModel2 = modelManager.getDataModelDesc("4965c827-fbb4-4ea1-a744-3f341a3b030d");
         Assert.assertNull(dataModel2);
@@ -452,5 +454,44 @@ public class FusionModelServiceTest extends CSVSourceTestCase {
         fusionModelService.dropModel("4965c827-fbb4-4ea1-a744-3f341a3b030d", project, true);
         val dataModel4 = modelManager.getDataModelDesc("4965c827-fbb4-4ea1-a744-3f341a3b030d");
         Assert.assertNull(dataModel4);
+    }
+
+    @Test
+    public void testSetModelUpdateEnabled() {
+        // broken streaming model
+        var models = modelService.getModels("model_streaming_broken", "streaming_test", true, "", null, "", false);
+        Assert.assertTrue(models.get(0).isModelUpdateEnabled());
+        fusionModelService.setModelUpdateEnabled(DataResult.get(Arrays.asList(models.get(0)), 1));
+        Assert.assertFalse(models.get(0).isModelUpdateEnabled());
+
+        // batch model
+        models = modelService.getModels("batch", "streaming_test", true, "", null, "", false);
+        Assert.assertTrue(models.get(0).isModelUpdateEnabled());
+        fusionModelService.setModelUpdateEnabled(DataResult.get(Arrays.asList(models.get(0)), 1));
+        Assert.assertTrue(models.get(0).isModelUpdateEnabled());
+
+        // streaming model and has segment
+        models = modelService.getModels("model_streaming", "streaming_test", true, "", null, "", false);
+        Assert.assertTrue(models.get(0).isModelUpdateEnabled());
+        fusionModelService.setModelUpdateEnabled(DataResult.get(Arrays.asList(models.get(0)), 1));
+        Assert.assertFalse(models.get(0).isModelUpdateEnabled());
+
+        // streaming model and Running
+        testSetModelUpdateEnabled(JobStatusEnum.RUNNING);
+
+        // streaming model and Starting
+        testSetModelUpdateEnabled(JobStatusEnum.STARTING);
+
+        // streaming model and Stopping
+        testSetModelUpdateEnabled(JobStatusEnum.STOPPING);
+    }
+
+    private void testSetModelUpdateEnabled(JobStatusEnum jobStatus) {
+        val models = modelService.getModels("streaming_test", "streaming_test", true, "", null, "", false);
+        Assert.assertTrue(models.get(0).isModelUpdateEnabled());
+        val mgr = StreamingJobManager.getInstance(getTestConfig(), "streaming_test");
+        mgr.updateStreamingJob(models.get(0).getId() + "_build", updater -> updater.setCurrentStatus(jobStatus));
+        fusionModelService.setModelUpdateEnabled(DataResult.get(Arrays.asList(models.get(0)), 1));
+        Assert.assertFalse(models.get(0).isModelUpdateEnabled());
     }
 }

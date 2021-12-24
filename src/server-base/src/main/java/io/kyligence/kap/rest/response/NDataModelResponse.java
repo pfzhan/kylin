@@ -142,6 +142,9 @@ public class NDataModelResponse extends NDataModel {
     @JsonProperty("second_storage_enabled")
     private boolean secondStorageEnabled;
 
+    @JsonProperty("model_update_enabled")
+    private boolean modelUpdateEnabled = true;
+
     private long lastModify;
 
     @JsonIgnore

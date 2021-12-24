@@ -195,7 +195,7 @@ public class NModelController extends NBasicController {
         DataResult<List<NDataModel>> filterModels = modelService.getModels(modelId, modelAlias, exactMatch, project,
                 owner, status, table, offset, limit, sortBy, reverse, modelAliasOrOwner, modelAttributes,
                 lastModifyFrom, lastModifyTo, onlyNormalDim);
-
+        fusionModelService.setModelUpdateEnabled(filterModels);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, filterModels, "");
     }
 

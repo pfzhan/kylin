@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.service;
 import static org.apache.kylin.common.exception.ServerErrorCode.STREAMING_INDEX_UPDATE_DISABLE;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -73,6 +74,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service("fusionIndexService")
 public class FusionIndexService extends BasicService {
+    private static final List<JobStatusEnum> runningStatus = Arrays.asList(JobStatusEnum.STARTING,
+            JobStatusEnum.RUNNING, JobStatusEnum.STOPPING);
 
     @Autowired
     private IndexPlanService indexPlanService;
@@ -455,7 +458,7 @@ public class FusionIndexService extends BasicService {
         return !checkStreamingJobAndSegments(project, modelId);
     }
 
-    private static boolean checkStreamingJobAndSegments(String project, String modelId) {
+    public static boolean checkStreamingJobAndSegments(String project, String modelId) {
         String jobId = StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_BUILD.name());
         val config = KylinConfig.getInstanceFromEnv();
         StreamingJobManager mgr = StreamingJobManager.getInstance(config, project);
@@ -463,7 +466,6 @@ public class FusionIndexService extends BasicService {
 
         NDataflowManager dataflowManager = NDataflowManager.getInstance(config, project);
         NDataflow df = dataflowManager.getDataflow(modelId);
-
-        return JobStatusEnum.RUNNING == meta.getCurrentStatus() || !df.getSegments().isEmpty();
+        return runningStatus.contains(meta.getCurrentStatus()) || !df.getSegments().isEmpty();
     }
 }

@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.service;
 
 import static org.apache.kylin.common.exception.ServerErrorCode.SEGMENT_UNSUPPORTED_OPERATOR;
 
+import java.util.List;
 import java.util.Locale;
 
 import org.apache.commons.lang.ArrayUtils;
@@ -34,6 +35,7 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.service.BasicService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -49,6 +51,7 @@ import io.kyligence.kap.rest.request.OwnerChangeRequest;
 import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
 import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.response.JobInfoResponseWithFailure;
+import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
 import io.kyligence.kap.streaming.event.StreamingJobKillEvent;
 import lombok.val;
@@ -224,5 +227,17 @@ public class FusionModelService extends BasicService {
         if (model.isStreaming()) {
             EventBusFactory.getInstance().postSync(new StreamingJobKillEvent(project, modelId));
         }
+    }
+
+    public void setModelUpdateEnabled(DataResult<List<NDataModel>> dataResult) {
+        val dataModelList = dataResult.getValue();
+        dataModelList.stream().filter(model -> model.isStreaming()).forEach(model -> {
+            if (model.isBroken()) {
+                ((NDataModelResponse) model).setModelUpdateEnabled(false);
+            } else {
+                ((NDataModelResponse) model).setModelUpdateEnabled(
+                        !FusionIndexService.checkStreamingJobAndSegments(model.getProject(), model.getUuid()));
+            }
+        });
     }
 }
