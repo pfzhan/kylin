@@ -42,17 +42,21 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.Exchanger;
 
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
 
+import io.kyligence.kap.query.pushdown.SparkSqlClient;
+import lombok.val;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.query.exception.NAsyncQueryIllegalParamException;
@@ -60,6 +64,8 @@ import org.apache.kylin.query.util.AsyncQueryUtil;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.apache.kylin.rest.service.ServiceTestBase;
 import org.apache.parquet.Strings;
+import org.apache.spark.sql.SparderEnv;
+import org.apache.spark.sql.SparkSession;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -79,6 +85,8 @@ public class AysncQueryServiceTest extends ServiceTestBase {
     private static String TEST_BASE_DIR;
     private static File BASE;
     private static String PROJECT = "default";
+
+    protected static SparkSession ss = SparderEnv.getSparkSession();
 
     @Autowired
     @Qualifier("asyncQueryService")
@@ -130,6 +138,82 @@ public class AysncQueryServiceTest extends ServiceTestBase {
     }
 
     @Test
+    public void testAsyncQueryDownCsvResultByParquet() throws IOException {
+        QueryContext queryContext = QueryContext.current();
+        String queryId = queryContext.getQueryId();
+        mockMetadata(queryId, true);
+        queryContext.getQueryTagInfo().setAsyncQuery(true);
+        queryContext.getQueryTagInfo().setFileFormat("csv");
+        queryContext.getQueryTagInfo().setFileEncode("utf-8");
+        String sql = "select '123\"','123'";
+        queryContext.setProject(PROJECT);
+        SparkSqlClient.executeSql(ss, sql, UUID.fromString(queryId), PROJECT);
+        assertSame(AsyncQueryService.QueryStatus.SUCCESS, asyncQueryService.queryStatus(PROJECT, queryId));
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        ServletOutputStream servletOutputStream = mock(ServletOutputStream.class);
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        when(response.getOutputStream()).thenReturn(servletOutputStream);
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
+                Object[] arguments = invocationOnMock.getArguments();
+                baos.write((byte[]) arguments[0], (int) arguments[1], (int) arguments[2]);
+                return null;
+            }
+        }).when(servletOutputStream).write(any(byte[].class), anyInt(), anyInt());
+        asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, false, response, "csv", encodeDefault);
+        List<org.apache.spark.sql.Row> rowList = ss.read().parquet(asyncQueryService.getAsyncQueryResultDir(PROJECT, queryId).toString()).collectAsList();
+        List<String> result = Lists.newArrayList();
+        rowList.stream().forEach(row -> {
+            val list = row.toSeq().toList();
+            for (int i = 0; i < list.size(); i++) {
+                Object cell = list.apply(i);
+                String column = cell == null ? "" : cell.toString();
+                result.add(column);
+            }
+        });
+        assertEquals("123\"" + "123", result.get(0) + result.get(1));
+    }
+
+    @Test
+    public void testSuccessQueryAndDownloadXlsxResultByParquet() throws IOException {
+        QueryContext queryContext = QueryContext.current();
+        String queryId = queryContext.getQueryId();
+        mockMetadata(queryId, true);
+        queryContext.getQueryTagInfo().setAsyncQuery(true);
+        queryContext.getQueryTagInfo().setFileFormat("xlsx");
+        queryContext.getQueryTagInfo().setFileEncode("utf-8");
+        String sql = "select '123\"','123'";
+        queryContext.setProject(PROJECT);
+        SparkSqlClient.executeSql(ss, sql, UUID.fromString(queryId), PROJECT);
+        assertSame(AsyncQueryService.QueryStatus.SUCCESS, asyncQueryService.queryStatus(PROJECT, queryId));
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ServletOutputStream servletOutputStream = mock(ServletOutputStream.class);
+        when(response.getOutputStream()).thenReturn(servletOutputStream);
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
+                Object[] arguments = invocationOnMock.getArguments();
+                baos.write((byte[]) arguments[0], (int) arguments[1], (int) arguments[2]);
+                return null;
+            }
+        }).when(servletOutputStream).write(any(byte[].class), anyInt(), anyInt());
+        asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, false, response, "xlsx", encodeDefault);
+        List<org.apache.spark.sql.Row> rowList = ss.read().parquet(asyncQueryService.getAsyncQueryResultDir(PROJECT, queryId).toString()).collectAsList();
+        List<String> result = Lists.newArrayList();
+        rowList.stream().forEach(row -> {
+                    val list = row.toSeq().toList();
+                    for (int i = 0; i < list.size(); i++) {
+                        Object cell = list.apply(i);
+                        String column = cell == null ? "" : cell.toString();
+                        result.add(column);
+                    }
+                });
+        assertEquals("123\"" + "123", result.get(0) + result.get(1));
+    }
+
+    @Test
     public void testSuccessQueryAndDownloadResult() throws IOException, InterruptedException {
         SQLResponse sqlResponse = mock(SQLResponse.class);
         when(sqlResponse.isException()).thenReturn(false);
@@ -159,7 +243,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
         SQLResponse sqlResponse = mock(SQLResponse.class);
         when(sqlResponse.isException()).thenReturn(false);
         String queryId = RandomUtil.randomUUIDStr();
-        mockMetadata(queryId);
+        mockMetadata(queryId, false);
         mockResultFile(queryId, false, true);
         assertSame(AsyncQueryService.QueryStatus.SUCCESS, asyncQueryService.queryStatus(PROJECT, queryId));
         HttpServletResponse response = mock(HttpServletResponse.class);
@@ -503,7 +587,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
     public void testGetMetadata() throws IOException, InterruptedException {
         String queryId = RandomUtil.randomUUIDStr();
         mockResultFile(queryId, false, true);
-        mockMetadata(queryId);
+        mockMetadata(queryId, false);
         List<List<String>> metaData = asyncQueryService.getMetaData(PROJECT, queryId);
         assertArrayEquals(columnNames.toArray(), metaData.get(0).toArray());
         assertArrayEquals(dataTypes.toArray(), metaData.get(1).toArray());
@@ -558,7 +642,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
         return asyncQueryResultDir;
     }
 
-    public void mockMetadata(String queryId) throws IOException {
+    public void mockMetadata(String queryId, boolean needMeta) throws IOException {
         FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
         Path asyncQueryResultDir = asyncQueryService.getAsyncQueryResultDir(PROJECT, queryId);
         if (!fileSystem.exists(asyncQueryResultDir)) {
@@ -569,7 +653,10 @@ public class AysncQueryServiceTest extends ServiceTestBase {
                 OutputStreamWriter osw = new OutputStreamWriter(os, StandardCharsets.UTF_8)) { //
             String metaString = Strings.join(columnNames, ",") + "\n" + Strings.join(dataTypes, ",");
             osw.write(metaString);
-
+            if (needMeta) {
+                fileSystem.createNewFile(new Path(asyncQueryResultDir, AsyncQueryUtil.getMetaDataFileName()));
+                fileSystem.createNewFile(new Path(asyncQueryResultDir, AsyncQueryUtil.getFileInfo()));
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }

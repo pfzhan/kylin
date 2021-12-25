@@ -60,7 +60,6 @@ import org.apache.kylin.query.exception.NAsyncQueryIllegalParamException;
 import org.apache.kylin.query.util.AsyncQueryUtil;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.service.BasicService;
-import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -151,13 +150,15 @@ public class AsyncQueryService extends BasicService {
             }
             switch (fileFormat) {
             case "csv":
-                processCSV(outputStream, dataPath, includeHeader, columnNames);
+                CSVExcelWriter csvExcelWriter = new CSVExcelWriter();
+                processCSV(outputStream, dataPath, includeHeader, columnNames, csvExcelWriter);
                 break;
             case "json":
                 processJSON(outputStream, dataPath, encode);
                 break;
             case "xlsx":
-                processXLSX(outputStream, dataPath, encode, includeHeader, columnNames);
+                XLSXExcelWriter xlsxExcelWriter = new XLSXExcelWriter();
+                processXLSX(outputStream, dataPath, includeHeader, columnNames, xlsxExcelWriter);
                 break;
             default:
                 logger.info("Query:{}, processed", queryId);
@@ -350,21 +351,14 @@ public class AsyncQueryService extends BasicService {
         return null;
     }
 
-    private void processCSV(OutputStream outputStream, Path dataPath, boolean includeHeader, String columnNames)
+    private void processCSV(OutputStream outputStream, Path dataPath, boolean includeHeader, String columnNames, CSVExcelWriter excelWriter)
             throws IOException {
         FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
         FileStatus[] fileStatuses = fileSystem.listStatus(dataPath);
         if (includeHeader) {
             IOUtils.copy(IOUtils.toInputStream(columnNames), outputStream);
         }
-
-        for (FileStatus f : fileStatuses) {
-            if (!f.getPath().getName().startsWith("_")) {
-                try (FSDataInputStream inputStream = fileSystem.open(f.getPath())) {
-                    IOUtils.copy(inputStream, outputStream);
-                }
-            }
-        }
+        excelWriter.writeData(fileStatuses, outputStream);
     }
 
     private void processJSON(OutputStream outputStream, Path dataPath, String encode) throws IOException {
@@ -384,40 +378,21 @@ public class AsyncQueryService extends BasicService {
         IOUtils.copy(IOUtils.toInputStream(json), outputStream);
     }
 
-    private void processXLSX(OutputStream outputStream, Path dataPath, String encode, boolean includeHeader,
-            String columnNames) throws IOException {
-        List<String[]> results = Lists.newArrayList();
-        List<String> rowResults = Lists.newArrayList();
+    private void processXLSX(OutputStream outputStream, Path dataPath, boolean includeHeader, String columnNames, XLSXExcelWriter excelWriter)
+            throws IOException {
         FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
         FileStatus[] fileStatuses = fileSystem.listStatus(dataPath);
-        for (FileStatus f : fileStatuses) {
-            if (!f.getPath().getName().startsWith("_")) {
-                try (FSDataInputStream inputStream = fileSystem.open(f.getPath())) {
-                    BufferedReader bufferedReader = new BufferedReader(
-                            new InputStreamReader(inputStream, Charset.forName(encode)));
-                    rowResults.addAll(Lists.newArrayList(bufferedReader.lines().collect(Collectors.toList())));
-                }
-            }
-        }
-
-        //Apply column names
-        if (includeHeader && columnNames != null) {
-            results.add(columnNames.split(SparderEnv.getSeparator()));
-        }
-        for (String row : rowResults) {
-            results.add(row.split(SparderEnv.getSeparator()));
-        }
         try (Workbook wb = new XSSFWorkbook()) {
             Sheet sheet = wb.createSheet("query_result");
-
-            //Apply query result to excel table
-            for (int i = 0; i < results.size(); i++) {
-                Row row = sheet.createRow(i);
-                String[] rowValues = results.get(i);
-                for (int j = 0; j < rowValues.length; j++) {
-                    row.createCell(j).setCellValue(rowValues[j]);
+            // Apply column names
+            if (includeHeader && columnNames != null) {
+                org.apache.poi.ss.usermodel.Row excelRow = sheet.createRow(0);
+                String[] columnNameArray = columnNames.split(SparderEnv.getSeparator());
+                for (int i = 0; i < columnNameArray.length; i++) {
+                    excelRow.createCell(i).setCellValue(columnNameArray[i]);
                 }
             }
+            excelWriter.writeData(fileStatuses, sheet);
             wb.write(outputStream);
         }
     }

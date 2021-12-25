@@ -213,8 +213,8 @@ object ResultPlan extends LogEx {
           df.write.mode(SaveMode.Overwrite).option("encoding", encode).option("charset", "utf-8").parquet(path)
         }
         sqlContext.setConf("spark.sql.parquet.writeLegacyFormat", "false")
-      case _ => df.write.option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZ").option("sep", SparderEnv.getSeparator)
-        .option("encoding", encode).option("charset", "utf-8").mode(SaveMode.Append).csv(path)
+      case _ => df.write.option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZ").option("encoding", encode)
+        .option("charset", "utf-8").mode(SaveMode.Append).parquet(path)
     }
     AsyncQueryUtil.createSuccessFlag(QueryContext.current().getProject, QueryContext.current().getQueryId)
     if (kapConfig.isQuerySparkJobTraceEnabled) {
