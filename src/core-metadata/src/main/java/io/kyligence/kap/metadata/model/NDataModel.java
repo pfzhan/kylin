@@ -139,19 +139,6 @@ public class NDataModel extends RootPersistentEntity {
     @Getter
     @Setter
     @AllArgsConstructor
-    public static class ModelRenameEvent extends SchedulerEventNotifier {
-        private String newName;
-
-        public ModelRenameEvent(String project, String subject, String newName) {
-            this.project = project;
-            this.subject = subject;
-            this.newName = newName;
-        }
-    }
-
-    @Getter
-    @Setter
-    @AllArgsConstructor
     public static class ModelBrokenEvent extends SchedulerEventNotifier {
         public ModelBrokenEvent(String project, String subject) {
             this.project = project;
