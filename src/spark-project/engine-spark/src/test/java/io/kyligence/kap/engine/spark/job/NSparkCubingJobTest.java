@@ -77,6 +77,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.sparkproject.guava.collect.Sets;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
@@ -99,6 +100,8 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.favorite.FavoriteRule;
+import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
@@ -308,6 +311,82 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         validateCube(df2.getSegments().getFirstSegment().getId());
         validateTableIndex(df2.getSegments().getFirstSegment().getId());
         //        validateTableExt(df.getModel());
+        //validate lastBuildTime
+        oneSeg = dsMgr.getDataflow(dfName).getSegment(oneSeg.getId());
+        Assert.assertTrue(oneSeg.getLastBuildTime() > startLong);
+        getLookTables(df).forEach(table -> Assert.assertTrue(table.getSnapshotTotalRows() > 0));
+    }
+
+    @Test
+    public void testBuildJobWithExcludeTable() throws Exception {
+        String dfName = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        long startLong = System.currentTimeMillis();
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
+        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+
+        Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));
+
+        cleanupSegments(dsMgr, dfName);
+        NDataflow df = dsMgr.getDataflow(dfName);
+
+        // ready dataflow, segment, cuboid layout
+        NDataSegment oneSeg = dsMgr.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
+        List<LayoutEntity> round1 = new ArrayList<>();
+        round1.add(df.getIndexPlan().getLayoutEntity(20_000_020_001L));
+        round1.add(df.getIndexPlan().getLayoutEntity(1_000_001L));
+        round1.add(df.getIndexPlan().getLayoutEntity(30001L));
+        round1.add(df.getIndexPlan().getLayoutEntity(10002L));
+
+        NSpanningTree nSpanningTree = NSpanningTreeFactory.fromLayouts(round1, df.getUuid());
+        for (IndexEntity rootCuboid : nSpanningTree.getRootIndexEntities()) {
+            LayoutEntity layout = NCuboidLayoutChooser.selectLayoutForBuild(oneSeg, rootCuboid);
+            Assert.assertNull(layout);
+        }
+
+        // add ExcludedTables
+        FavoriteRuleManager ruleManager = FavoriteRuleManager.getInstance(config, df.getProject());
+        List<FavoriteRule.Condition> conds = Lists.newArrayList();
+        //        isEnabled = request.isExcludeTablesEnable();
+        conds.add(new FavoriteRule.Condition(null, df.getModel().getRootFactTableName()));
+        ruleManager.updateRule(conds, true, FavoriteRule.EXCLUDED_TABLES_RULE);
+
+        // Round1. Build new segment
+        NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(round1), "ADMIN",
+                null);
+        NSparkCubingStep sparkStep = job.getSparkCubingStep();
+        StorageURL distMetaUrl = StorageURL.valueOf(sparkStep.getDistMetaUrl());
+        Assert.assertEquals("hdfs", distMetaUrl.getScheme());
+        Assert.assertTrue(distMetaUrl.getParameter("path").startsWith(config.getHdfsWorkingDirectory()));
+
+        // launch the job
+        execMgr.addJob(job);
+
+        // wait job done
+        ExecutableState status = wait(job);
+        Assert.assertEquals(ExecutableState.SUCCEED, status);
+
+        long buildEndTime = sparkStep.getEndTime();
+        long startOfDay = TimeUtil.getDayStart(buildEndTime);
+
+        JobStatisticsManager jobStatisticsManager = JobStatisticsManager.getInstance(config, sparkStep.getProject());
+        Pair<Integer, JobStatistics> overallJobStats = jobStatisticsManager.getOverallJobStats(startOfDay,
+                buildEndTime);
+        JobStatistics jobStatistics = overallJobStats.getSecond();
+        // assert date is recorded correctly before metadata merge
+        Assert.assertEquals(startOfDay, jobStatistics.getDate());
+        Assert.assertEquals(1, jobStatistics.getCount());
+
+        val merger = new AfterBuildResourceMerger(config, getProject());
+        merger.mergeAfterIncrement(df.getUuid(), oneSeg.getId(), ExecutableUtils.getLayoutIds(sparkStep),
+                ExecutableUtils.getRemoteStore(config, sparkStep));
+
+        Pair<Integer, JobStatistics> overallJobStats2 = jobStatisticsManager.getOverallJobStats(startOfDay,
+                buildEndTime);
+        JobStatistics jobStatistics2 = overallJobStats2.getSecond();
+        // assert job stats recorded correctly after metadata merge
+        Assert.assertEquals(startOfDay, jobStatistics2.getDate());
+        Assert.assertEquals(1, jobStatistics2.getCount());
+
         //validate lastBuildTime
         oneSeg = dsMgr.getDataflow(dfName).getSegment(oneSeg.getId());
         Assert.assertTrue(oneSeg.getLastBuildTime() > startLong);

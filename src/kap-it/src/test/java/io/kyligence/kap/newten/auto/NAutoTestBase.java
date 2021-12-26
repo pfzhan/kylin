@@ -95,7 +95,38 @@ public class NAutoTestBase extends NSuggestTestBase {
         RecAndQueryCompareUtil.computeCompareRank(kylinConfig, getProject(), compareMap);
         // 5. check layout
         // "blocked by KE-30323"
-//        assertOrPrintCmpResult(compareMap);
+        //        assertOrPrintCmpResult(compareMap);
+        log.debug("compare realization cost {} s", System.currentTimeMillis() - startTime);
+
+        // 6. summary info
+        val rankInfoMap = RecAndQueryCompareUtil.summarizeRankInfo(compareMap);
+        StringBuilder sb = new StringBuilder();
+        sb.append("All used queries: ").append(compareMap.size()).append('\n');
+        rankInfoMap.forEach((key, value) -> sb.append(key).append(": ").append(value).append("\n"));
+        log.debug(sb.toString());
+        return compareMap;
+    }
+
+    protected Map<String, RecAndQueryCompareUtil.CompareEntity> executeTestScenarioWithExcludeTable(
+            Integer expectModelNum, NSuggestTestBase.TestScenario... testScenarios) throws Exception {
+
+        // 1. execute auto-modeling propose
+        long startTime = System.currentTimeMillis();
+        final SmartMaster smartMaster = proposeWithSmartMaster(getProject(), testScenarios);
+        final Map<String, RecAndQueryCompareUtil.CompareEntity> compareMap = collectCompareEntity(smartMaster);
+        log.debug("smart proposal cost {} ms", System.currentTimeMillis() - startTime);
+        if (expectModelNum != null) {
+            Assert.assertEquals(expectModelNum.intValue(), smartMaster.context.getProposedModels().size());
+        }
+
+        buildAndCompareWithExcludeTable(compareMap, testScenarios);
+
+        startTime = System.currentTimeMillis();
+        // 4. compare layout propose result and query cube result
+        RecAndQueryCompareUtil.computeCompareRank(kylinConfig, getProject(), compareMap);
+        // 5. check layout
+        // "blocked by KE-30323"
+        //        assertOrPrintCmpResult(compareMap);
         log.debug("compare realization cost {} s", System.currentTimeMillis() - startTime);
 
         // 6. summary info

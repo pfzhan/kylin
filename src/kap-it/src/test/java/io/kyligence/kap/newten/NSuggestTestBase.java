@@ -35,6 +35,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.favorite.FavoriteRule;
+import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -316,6 +318,71 @@ public abstract class NSuggestTestBase extends NLocalWithSparkSessionTest {
         persistBuildData();
     }
 
+    public void buildAllCubesWithExcludeTable(KylinConfig kylinConfig, String proj) throws InterruptedException {
+        kylinConfig.clearManagers();
+        NProjectManager projectManager = NProjectManager.getInstance(kylinConfig);
+        NExecutableManager execMgr = NExecutableManager.getInstance(kylinConfig, proj);
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(kylinConfig, proj);
+        FavoriteRuleManager ruleManager = FavoriteRuleManager.getInstance(kylinConfig, proj);
+
+        boolean noBuild = Boolean.parseBoolean(System.getProperty("noBuild", "false"));
+        if (noBuild) {
+            reuseBuildData();
+            return;
+        }
+        for (IRealization realization : projectManager.listAllRealizations(proj)) {
+            NDataflow df = (NDataflow) realization;
+            List<FavoriteRule.Condition> conds = Lists.newArrayList();
+            //        isEnabled = request.isExcludeTablesEnable();
+            conds.add(new FavoriteRule.Condition(null, df.getModel().getRootFactTableName()));
+            ruleManager.updateRule(conds, true, FavoriteRule.EXCLUDED_TABLES_RULE);
+            Segments<NDataSegment> readySegments = df.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING);
+            NDataSegment oneSeg;
+            List<LayoutEntity> layouts;
+            boolean isAppend = false;
+            if (readySegments.isEmpty()) {
+                oneSeg = dataflowManager.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
+                layouts = df.getIndexPlan().getAllLayouts();
+                isAppend = true;
+                readySegments.add(oneSeg);
+            } else {
+                oneSeg = readySegments.getFirstSegment();
+                layouts = df.getIndexPlan().getAllLayouts().stream()
+                        .filter(c -> !oneSeg.getLayoutsMap().containsKey(c.getId())).collect(Collectors.toList());
+            }
+
+            // create cubing job
+            if (!layouts.isEmpty()) {
+                NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(readySegments),
+                        Sets.newLinkedHashSet(layouts), "ADMIN", null);
+                execMgr.addJob(job);
+                while (true) {
+                    Thread.sleep(500);
+                    ExecutableState status = job.getStatus();
+                    if (!status.isProgressing()) {
+                        if (status == ExecutableState.ERROR) {
+                            throw new IllegalStateException(firstFailedJobErrorMessage(execMgr, job));
+                        } else
+                            break;
+                    }
+                }
+                val buildStore = ExecutableUtils.getRemoteStore(kylinConfig, job.getSparkCubingStep());
+                AfterBuildResourceMerger merger = new AfterBuildResourceMerger(kylinConfig, proj);
+                val layoutIds = layouts.stream().map(LayoutEntity::getId).collect(Collectors.toSet());
+                if (isAppend) {
+                    merger.mergeAfterIncrement(df.getUuid(), oneSeg.getId(), layoutIds, buildStore);
+                } else {
+                    val segIds = readySegments.stream().map(nDataSegment -> nDataSegment.getId())
+                            .collect(Collectors.toSet());
+                    merger.mergeAfterCatchup(df.getUuid(), segIds, layoutIds, buildStore, null);
+                }
+
+                SchemaProcessor.checkSchema(SparderEnv.getSparkSession(), df.getUuid(), proj);
+            }
+        }
+        persistBuildData();
+    }
+
     private void reuseBuildData() {
         val element = Arrays.stream(Thread.currentThread().getStackTrace())
                 .filter(ele -> ele.getClassName().startsWith("io.kyligence.kap")) //
@@ -485,6 +552,39 @@ public abstract class NSuggestTestBase extends NLocalWithSparkSessionTest {
             // 2. execute cube building
             long startTime = System.currentTimeMillis();
             buildAllCubes(kylinConfig, getProject());
+            log.info("build cube cost {} ms", System.currentTimeMillis() - startTime);
+
+            // dump metadata for debugging
+            dumpMetadata();
+
+            // 3. validate results between SparkSQL and cube
+            populateSSWithCSVData(kylinConfig, getProject(), SparderEnv.getSparkSession());
+            startTime = System.currentTimeMillis();
+            Arrays.stream(testScenarios).forEach(testScenario -> {
+                populateSSWithCSVData(kylinConfig, getProject(), SparderEnv.getSparkSession());
+                if (testScenario.isLimit()) {
+                    NExecAndComp.execLimitAndValidateNew(testScenario.queries, getProject(), JoinType.DEFAULT.name(),
+                            compareMap);
+                } else if (testScenario.isDynamicSql()) {
+                    NExecAndComp.execAndCompareDynamic(testScenario.queries, getProject(),
+                            testScenario.getCompareLevel(), testScenario.joinType.name(), compareMap);
+                } else {
+                    NExecAndComp.execAndCompareNew(testScenario.queries, getProject(), testScenario.getCompareLevel(),
+                            testScenario.joinType.name(), compareMap);
+                }
+            });
+            log.debug("compare result cost {} s", System.currentTimeMillis() - startTime);
+        } finally {
+            FileUtils.deleteQuietly(new File("../kap-it/metastore_db"));
+        }
+    }
+
+    protected void buildAndCompareWithExcludeTable(Map<String, RecAndQueryCompareUtil.CompareEntity> compareMap,
+            TestScenario... testScenarios) throws Exception {
+        try {
+            // 2. execute cube building
+            long startTime = System.currentTimeMillis();
+            buildAllCubesWithExcludeTable(kylinConfig, getProject());
             log.info("build cube cost {} ms", System.currentTimeMillis() - startTime);
 
             // dump metadata for debugging

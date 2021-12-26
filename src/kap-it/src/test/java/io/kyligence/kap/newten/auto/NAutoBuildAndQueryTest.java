@@ -172,6 +172,16 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
     }
 
     @Test
+    public void testBuildAndQueryWithExcludeTable() throws Exception {
+        excludedSqlPatterns.addAll(loadWhiteListPatterns());
+        overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");
+        overwriteSystemProp("kylin.query.non-equi-join-model-enabled", "TRUE");
+        overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
+
+        executeTestScenarioWithExcludeTable(2, new TestScenario(CompareLevel.SAME, "query/h2"));
+    }
+
+    @Test
     public void testSpecialJoin() throws Exception {
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");
         overwriteSystemProp("kylin.query.non-equi-join-model-enabled", "TRUE");
