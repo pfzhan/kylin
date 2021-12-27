@@ -92,7 +92,19 @@ export default {
     excludeRuleDetailMsg1: 'If the data of certain columns in a dimension table change frequently, the table can be added into the exclude list, and aggregate indexes containing these columns should be deleted.',
     excludeRuleDetailMsg2: 'Then the foreign key in fact table will be included in the recommended index, replacing columns in the following tables. After building the indexes, queries for these tables can be retrieved through the foreign key.',
     limitExcludedTablesTip: 'Only 50 tables would be displayed. Please enter keyword to search.',
-    forbidenSwitchJdbcTips: 'Can\'t turn it OFF when there exists JDBC table in the project'
+    forbidenSwitchJdbcTips: 'Can\'t turn it OFF when there exists JDBC table in the project',
+    hitRules: 'Hit Rules',
+    ruleTips: 'Only the recommendations complying the following rules will be recommended.',
+    ruleTooltips: 'If the query does not hit the existing index, an optimization recommendation will be generated.',
+    timeFrame: 'Time Frame: In Recent',
+    days: 'Day(s)',
+    hitNums: 'Number of Hits: At Least',
+    hitNumTips: 'Hit(s). It\'s recommended to set this value higher according to the actual situation to reduce the number of low-value recommendations.',
+    recommendationFrequency: 'Recommendation Frequency: Every',
+    recommendationFrequencyTips: 'Day(s) update recommendations sorted by hits in the time frame you set.',
+    effectiveDaysEmptyTips: 'Please input time frame',
+    minHitCountEmptyTips: 'Please input number of hits',
+    upadateFreEmptyTips: 'Please input recommendation frequency'
   },
   'zh-cn': {
     basicInfo: '通用信息',
@@ -186,6 +198,18 @@ export default {
     excludeRuleDetailMsg1: '维度表中的部分列若数据经常发生变化，则可将这些表添加到屏蔽设置中，并删除现有包含这些列的聚合索引。',
     excludeRuleDetailMsg2: '设置生效后，事实表中的外键将代替以下表中的列被推荐到优化建议中，构建后可通过外键衍生查询以下表中的列。',
     limitExcludedTablesTip: '默认仅展示 50 张表。请输入关键词进行搜索。',
-    forbidenSwitchJdbcTips: '项目中存在 JDBC 数据源表时无法关闭'
+    forbidenSwitchJdbcTips: '项目中存在 JDBC 数据源表时无法关闭',
+    hitRules: '命中规则',
+    ruleTips: '只有符合以下规则的优化建议会被系统推荐。',
+    ruleTooltips: '若查询没有命中已有索引则会生成优化建议。',
+    timeFrame: '时间范围：最近',
+    days: '天',
+    hitNums: '命中次数：至少',
+    hitNumTips: '次。建议根据实际情况将该值设置得高一些，可显著减少低价值优化建议数量。',
+    recommendationFrequency: '推荐频率：每',
+    recommendationFrequencyTips: '天推荐一次优化建议，按所设置的“时间范围”内命中次数从高到低选取。详情请查看手册。',
+    effectiveDaysEmptyTips: '请输入时间范围',
+    minHitCountEmptyTips: '请输入命中次数',
+    upadateFreEmptyTips: '请输入推荐频率'
   }
 }

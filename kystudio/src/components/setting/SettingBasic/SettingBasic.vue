@@ -284,7 +284,7 @@
       :is-edited="isFormEdited(form, 'accleration-rule-settings')"
       @submit="(scb, ecb) => handleSubmit('accleration-rule-settings', scb, ecb)"
       @cancel="(scb, ecb) => handleResetForm('accleration-rule-settings', scb, ecb)">
-      <el-form ref="rulesForm" :rules="rulesSettingRules" :show-message="false" :model="rulesObj" size="medium" class="ruleSetting">
+      <el-form ref="rulesForm" :rules="rulesSettingRules" :model="rulesObj" size="medium" class="ruleSetting">
         <!-- <div class="conds">
           <div class="conds-title">
             <span>{{$t('queryFrequency')}}</span>
@@ -334,34 +334,17 @@
           <div class="conds-content clearfix">
             <div class="ksd-mt-8 ksd-fs-12">
               {{$t('from')}}
-              <el-form-item prop="min_duration" style="display: inline-block;">
-                <el-input v-model.trim="rulesObj.min_duration" v-number="rulesObj.min_duration" size="small" :class="['rule-setting-input', rulesObj.duration_enable && durationError && 'is-error']" :disabled="!rulesObj.duration_enable" @blur="$refs.rulesForm.validateField('max_duration')"></el-input>
+              <el-form-item prop="min_duration" :show-message="false" style="display: inline-block;">
+                <el-input v-model.trim="rulesObj.min_duration" v-number="rulesObj.min_duration" size="small" :class="['rule-setting-input', rulesObj.duration_enable && durationError && 'is-error']" :disabled="!rulesObj.duration_enable" @blur="$refs.rulesForm.validateField('min_duration')"></el-input>
               </el-form-item>
               {{$t('to')}}
-              <el-form-item prop="max_duration" style="display: inline-block;">
-                <el-input v-model.trim="rulesObj.max_duration" v-number="rulesObj.max_duration" size="small" :class="['rule-setting-input', rulesObj.duration_enable && durationError && 'is-error']" :disabled="!rulesObj.duration_enable" @blur="$refs.rulesForm.validateField('min_duration')"></el-input>
+              <el-form-item prop="max_duration" :show-message="false" style="display: inline-block;">
+                <el-input v-model.trim="rulesObj.max_duration" v-number="rulesObj.max_duration" size="small" :class="['rule-setting-input', rulesObj.duration_enable && durationError && 'is-error']" :disabled="!rulesObj.duration_enable" @blur="$refs.rulesForm.validateField('max_duration')"></el-input>
               </el-form-item>
               {{$t('secondes')}}
             </div>
             <span class="error-msg" v-if="durationError && durationErrorMsg">{{durationErrorMsg}}</span>
           </div>
-        </div>
-        <div class="conds">
-          <div class="conds-title">
-            <span class="setting-label font-medium">{{$t('optimizationSuggestions')}}</span>
-            <!-- <el-switch size="small" v-model="rulesObj.recommendation_enable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch> -->
-          </div>
-          <div class="conds-content clearfix">
-              <div class="ksd-mt-8 ksd-fs-12">
-                {{$t('suggestionTip1')}}
-                <el-form-item prop="recommendations_value" style="display: inline-block;">
-                  <el-select v-model="rulesObj.recommendations_value" v-event-stop size="mini" :disabled="!rulesObj.recommendation_enable" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" class="ksd-mt-5" style="width:70px">
-                    <el-option v-for="item in [10, 20, 50, 100]" :key="item" :label="item" :value="item"></el-option>
-                  </el-select>
-                </el-form-item>
-                <span v-html="$t('suggestionTip2')"></span>
-              </div>
-            </div>
         </div>
         <div class="conds">
           <div class="conds-title">
@@ -401,6 +384,56 @@
                 </el-form-item>
               </div>
             </div>
+        </div>
+        <div class="conds">
+          <div class="conds-title">
+            <span class="setting-label font-medium">{{$t('hitRules')}}</span>
+          </div>
+          <div class="conds-content clearfix">
+            <div class="ksd-fs-12 ksd-mt-8">
+              {{$t('ruleTips')}}
+              <el-tooltip effect="dark" :content="$t('ruleTooltips')" placement="top"><i class="el-ksd-icon-more_info_16 icon ksd-fs-16"></i></el-tooltip>
+            </div>
+            <div class="ksd-fs-12 ksd-mt-8">
+                {{$t('timeFrame')}}
+                <el-form-item prop="effective_days" class="inline-form-item">
+                  <el-input-number style="width:100px;" v-model="rulesObj.effective_days" size="small" :min="1" :max="30" ></el-input-number>
+                </el-form-item>
+                {{$t('days')}}
+            </div>
+            <div class="ksd-fs-12 ksd-mt-8">
+                {{$t('hitNums')}}
+                <el-form-item prop="min_hit_count" class="inline-form-item">
+                  <el-input style="width:100px;" v-model.trim="rulesObj.min_hit_count" v-number4="rulesObj.min_hit_count" size="small"></el-input>
+                </el-form-item>
+                {{$t('hitNumTips')}}
+            </div>
+          </div>
+        </div>
+        <div class="conds">
+          <div class="conds-title">
+            <span class="setting-label font-medium">{{$t('optimizationSuggestions')}}</span>
+          </div>
+          <div class="conds-content clearfix">
+            <div class="conds-content clearfix">
+              <div class="ksd-mt-8 ksd-fs-12">
+                {{$t('suggestionTip1')}}
+                <el-form-item prop="recommendations_value" style="display: inline-block;">
+                  <el-select v-model="rulesObj.recommendations_value" v-event-stop size="mini" :disabled="!rulesObj.recommendation_enable" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" class="ksd-mt-5" style="width:70px">
+                    <el-option v-for="item in [10, 20, 50, 100]" :key="item" :label="item" :value="item"></el-option>
+                  </el-select>
+                </el-form-item>
+                <span v-html="$t('suggestionTip2')"></span>
+              </div>
+            </div>
+            <div class="ksd-fs-12 ksd-mt-12">
+                {{$t('recommendationFrequency')}}
+                <el-form-item prop="update_frequency" class="inline-form-item">
+                  <el-input-number style="width:100px;" v-model="rulesObj.update_frequency" size="small" :min="1"></el-input-number>
+                </el-form-item>
+                {{$t('recommendationFrequencyTips')}}
+            </div>
+          </div>
         </div>
       </el-form>
     </EditableBlock>
@@ -472,7 +505,10 @@ export default class SettingBasic extends Vue {
   rulesSettingRules = {
     count_value: [{validator: this.validatePass, trigger: 'blur'}],
     min_duration: [{validator: this.validatePass, trigger: 'blur'}],
-    max_duration: [{validator: this.validatePass, trigger: 'blur'}]
+    max_duration: [{validator: this.validatePass, trigger: 'blur'}],
+    effective_days: [{validator: this.validatePass, trigger: 'blur'}],
+    min_hit_count: [{validator: this.validatePass, trigger: 'blur'}],
+    update_frequency: [{validator: this.validatePass, trigger: 'blur'}]
   }
   allSubmittersOptions = {
     user: [],
@@ -492,7 +528,10 @@ export default class SettingBasic extends Vue {
     recommendation_enable: true,
     recommendations_value: 20,
     excluded_tables_enable: false,
-    excluded_tables: []
+    excluded_tables: [],
+    effective_days: 2,
+    min_hit_count: 30,
+    update_frequency: 2
   }
   rulesAccerationDefault = {}
   durationError = false
@@ -569,6 +608,24 @@ export default class SettingBasic extends Vue {
     } else if (rule.field === 'count_value' && this.rulesObj.count_enable) {
       if (!value && value !== 0) {
         callback(new Error(null))
+      } else {
+        callback()
+      }
+    } else if (rule.field === 'effective_days') {
+      if (!value && value !== 0) {
+        callback(new Error(this.$t('effectiveDaysEmptyTips')))
+      } else {
+        callback()
+      }
+    } else if (rule.field === 'min_hit_count') {
+      if (!value && value !== 0) {
+        callback(new Error(this.$t('minHitCountEmptyTips')))
+      } else {
+        callback()
+      }
+    } else if (rule.field === 'update_frequency') {
+      if (!value && value !== 0) {
+        callback(new Error(this.$t('upadateFreEmptyTips')))
       } else {
         callback()
       }
@@ -838,10 +895,10 @@ export default class SettingBasic extends Vue {
           const res = await this.resetConfig({project: this.currentSelectedProject, reset_item: 'favorite_rule_config'})
           const data = await handleSuccessAsync(res)
           const { favorite_rules } = data
-          favorite_rules.min_duration = data.min_duration || 0
-          favorite_rules.max_duration = data.max_duration || 0
+          favorite_rules.excluded_tables = favorite_rules.excluded_tables ? favorite_rules.excluded_tables.split(',') : []
           this.rulesObj = {...this.rulesObj, ...favorite_rules}
           this.rulesAccerationDefault = {...this.rulesAccerationDefault, ...favorite_rules}
+          this.$refs['rulesForm'].resetFields()
         }
       }
       successCallback()
@@ -1118,6 +1175,11 @@ export default class SettingBasic extends Vue {
     }
     .el-form-item {
       margin-bottom: 0;
+      &.inline-form-item {
+        display: inline-block;
+        vertical-align: top;
+        margin-top: -4px;
+      }
     }
     .conds {
       margin-bottom: 16px;
