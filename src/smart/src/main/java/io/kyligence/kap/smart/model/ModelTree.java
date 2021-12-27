@@ -63,7 +63,7 @@ public class ModelTree {
         this.tableRefAliasMap = Maps.newHashMap();
     }
 
-    private JoinsGraph getJoinGraph(TableRef defaultFactTable) {
+    public JoinsGraph getJoinGraph(TableRef defaultFactTable) {
         List<JoinDesc> modelTreeJoins = Lists.newArrayListWithExpectedSize(joins.size());
         TableRef factTblRef = null;
         if (joins.isEmpty()) {

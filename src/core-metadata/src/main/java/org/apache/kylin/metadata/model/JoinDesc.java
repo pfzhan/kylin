@@ -77,6 +77,7 @@ public class JoinDesc implements Serializable {
     private String primaryTable;
     @JsonProperty("foreign_table")
     private String foreignTable;
+    private boolean leftOrInner = false;
 
     private TblColRef[] primaryKeyColumns;
     private TblColRef[] foreignKeyColumns;
@@ -92,7 +93,7 @@ public class JoinDesc implements Serializable {
     }
 
     public boolean isLeftOrInnerJoin() {
-        return "LEFT_OR_INNER".equalsIgnoreCase(type);
+        return leftOrInner;
     }
 
     public void setPrimaryKeyColumns(TblColRef[] primaryKeyColumns) {
@@ -258,6 +259,7 @@ public class JoinDesc implements Serializable {
         private TableRef foreignTableRef;
         private NonEquiJoinCondition nonEquiJoinCondition;
         private String type;
+        private boolean leftOrInner = false;
 
         public JoinDescBuilder addPrimaryKeys(String[] pkColNames, TblColRef[] colRefs) {
             pks.addAll(Arrays.asList(pkColNames));
@@ -301,6 +303,10 @@ public class JoinDesc implements Serializable {
             this.type = type;
         }
 
+        public void setLeftOrInner(Boolean leftOrInner) {
+            this.leftOrInner = leftOrInner;
+        }
+
         public JoinDesc build() {
             JoinDesc join = new JoinDesc();
             join.setForeignKey(fks.toArray(new String[0]));
@@ -313,6 +319,7 @@ public class JoinDesc implements Serializable {
             join.foreignTableRef = foreignTableRef;
             join.nonEquiJoinCondition = nonEquiJoinCondition;
             join.type = type;
+            join.leftOrInner = leftOrInner;
             return join;
         }
     }

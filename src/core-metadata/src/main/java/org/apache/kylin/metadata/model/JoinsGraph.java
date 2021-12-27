@@ -103,7 +103,7 @@ public class JoinsGraph implements Serializable {
         }
 
         public boolean isLeftJoin() {
-            return join.isLeftJoin();
+            return !join.isLeftOrInnerJoin() && join.isLeftJoin();
         }
 
         public boolean isLeftOrInnerJoin() {
@@ -111,7 +111,7 @@ public class JoinsGraph implements Serializable {
         }
 
         public boolean isInnerJoin() {
-            return join.isInnerJoin();
+            return !join.isLeftOrInnerJoin() && join.isInnerJoin();
         }
 
         private TableRef left() {
@@ -289,11 +289,11 @@ public class JoinsGraph implements Serializable {
 
     public void setJoinToLeftOrInner(JoinDesc join) {
         if (!join.isLeftJoin()) {
-            join.setType("LEFT_OR_INNER");
+            join.setLeftOrInner(true);
             return;
         }
 
-        join.setType("LEFT_OR_INNER");
+        join.setLeftOrInner(true);
         TableRef fkTable = join.getFKSide();
         TableRef pkTable = join.getPKSide();
         Edge edge = edges.stream().filter(e -> e.isJoinMatched(join)).findFirst().orElse(null);

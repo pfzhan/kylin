@@ -184,6 +184,88 @@ public class ModelControllerWithServiceTest extends ServiceTestBase {
                 });
     }
 
+    @Test
+    public void testSuggestModelsWithMatchJoins1() throws Exception {
+        changeProjectToSemiAutoMode("default");
+        getTestConfig().setProperty("kylin.query.join-match-optimization-enabled", "true");
+        String sql = "SELECT \n" + "COUNT(\"TEST_KYLIN_FACT\".\"SELLER_ID\")\n" + "FROM \n"
+                + "\"DEFAULT\".\"TEST_KYLIN_FACT\" as \"TEST_KYLIN_FACT\" \n"
+                + "INNER JOIN \"DEFAULT\".\"TEST_ORDER\" as \"TEST_ORDER\"\n" + // left or inner join
+                "ON \"TEST_KYLIN_FACT\".\"ORDER_ID\"=\"TEST_ORDER\".\"ORDER_ID\"\n"
+                + "INNER JOIN \"EDW\".\"TEST_SELLER_TYPE_DIM\" as \"TEST_SELLER_TYPE_DIM\"\n"
+                + "ON \"TEST_KYLIN_FACT\".\"SLR_SEGMENT_CD\"=\"TEST_SELLER_TYPE_DIM\".\"SELLER_TYPE_CD\"\n"
+                + "INNER JOIN \"EDW\".\"TEST_CAL_DT\" as \"TEST_CAL_DT\"\n"
+                + "ON \"TEST_KYLIN_FACT\".\"CAL_DT\"=\"TEST_CAL_DT\".\"CAL_DT\"\n"
+                + "INNER JOIN \"DEFAULT\".\"TEST_CATEGORY_GROUPINGS\" as \"TEST_CATEGORY_GROUPINGS\"\n"
+                + "ON \"TEST_KYLIN_FACT\".\"LEAF_CATEG_ID\"=\"TEST_CATEGORY_GROUPINGS\".\"LEAF_CATEG_ID\" AND "
+                + "\"TEST_KYLIN_FACT\".\"LSTG_SITE_ID\"=\"TEST_CATEGORY_GROUPINGS\".\"SITE_ID\"\n"
+                + "INNER JOIN \"EDW\".\"TEST_SITES\" as \"TEST_SITES\"\n"
+                + "ON \"TEST_KYLIN_FACT\".\"LSTG_SITE_ID\"=\"TEST_SITES\".\"SITE_ID\"\n"
+                + "INNER JOIN \"DEFAULT\".\"TEST_ACCOUNT\" as \"SELLER_ACCOUNT\"\n" + // left or inner join
+                "ON \"TEST_KYLIN_FACT\".\"SELLER_ID\"=\"SELLER_ACCOUNT\".\"ACCOUNT_ID\"\n"
+                + "INNER JOIN \"DEFAULT\".\"TEST_ACCOUNT\" as \"BUYER_ACCOUNT\"\n" + // left or inner join
+                "ON \"TEST_ORDER\".\"BUYER_ID\"=\"BUYER_ACCOUNT\".\"ACCOUNT_ID\"\n"
+                + "INNER JOIN \"DEFAULT\".\"TEST_COUNTRY\" as \"SELLER_COUNTRY\"\n"
+                + "ON \"SELLER_ACCOUNT\".\"ACCOUNT_COUNTRY\"=\"SELLER_COUNTRY\".\"COUNTRY\"\n"
+                + "LEFT JOIN \"DEFAULT\".\"TEST_COUNTRY\" as \"BUYER_COUNTRY\"\n"
+                + "ON \"BUYER_ACCOUNT\".\"ACCOUNT_COUNTRY\"=\"BUYER_COUNTRY\".\"COUNTRY\"\n"
+                + "WHERE \"BUYER_COUNTRY\".\"COUNTRY\" is not null\n" + "GROUP BY \"TEST_KYLIN_FACT\".\"TRANS_ID\"";
+        List<String> sqls = Lists.newArrayList(sql);
+        val favoriteRequest = new SqlAccelerateRequest("default", sqls, true);
+        val ref = new TypeReference<EnvelopeResponse<ModelSuggestionRequest>>() {
+        };
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/suggest_model").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(favoriteRequest))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk()) //
+                .andExpect(result1 -> {
+                    val response = JsonUtil.readValue(result1.getResponse().getContentAsString(), ref);
+                    val reusedModels = response.getData().getReusedModels();
+                    Assert.assertEquals(1, reusedModels.size());
+                });
+    }
+
+    @Test
+    public void testSuggestModelsWithMatchJoins2() throws Exception {
+        changeProjectToSemiAutoMode("default");
+        getTestConfig().setProperty("kylin.query.join-match-optimization-enabled", "true");
+        String sql = "SELECT \n" + "COUNT(\"TEST_KYLIN_FACT\".\"SELLER_ID\")\n" + "FROM \n"
+                + "\"DEFAULT\".\"TEST_KYLIN_FACT\" as \"TEST_KYLIN_FACT\" \n"
+                + "LEFT JOIN \"DEFAULT\".\"TEST_ORDER\" as \"TEST_ORDER\"\n" + // left or inner join
+                "ON \"TEST_KYLIN_FACT\".\"ORDER_ID\"=\"TEST_ORDER\".\"ORDER_ID\"\n"
+                + "INNER JOIN \"EDW\".\"TEST_SELLER_TYPE_DIM\" as \"TEST_SELLER_TYPE_DIM\"\n"
+                + "ON \"TEST_KYLIN_FACT\".\"SLR_SEGMENT_CD\"=\"TEST_SELLER_TYPE_DIM\".\"SELLER_TYPE_CD\"\n"
+                + "INNER JOIN \"EDW\".\"TEST_CAL_DT\" as \"TEST_CAL_DT\"\n"
+                + "ON \"TEST_KYLIN_FACT\".\"CAL_DT\"=\"TEST_CAL_DT\".\"CAL_DT\"\n"
+                + "INNER JOIN \"DEFAULT\".\"TEST_CATEGORY_GROUPINGS\" as \"TEST_CATEGORY_GROUPINGS\"\n"
+                + "ON \"TEST_KYLIN_FACT\".\"LEAF_CATEG_ID\"=\"TEST_CATEGORY_GROUPINGS\".\"LEAF_CATEG_ID\" AND "
+                + "\"TEST_KYLIN_FACT\".\"LSTG_SITE_ID\"=\"TEST_CATEGORY_GROUPINGS\".\"SITE_ID\"\n"
+                + "INNER JOIN \"EDW\".\"TEST_SITES\" as \"TEST_SITES\"\n"
+                + "ON \"TEST_KYLIN_FACT\".\"LSTG_SITE_ID\"=\"TEST_SITES\".\"SITE_ID\"\n"
+                + "LEFT JOIN \"DEFAULT\".\"TEST_ACCOUNT\" as \"SELLER_ACCOUNT\"\n" + // left or inner join
+                "ON \"TEST_KYLIN_FACT\".\"SELLER_ID\"=\"SELLER_ACCOUNT\".\"ACCOUNT_ID\"\n"
+                + "LEFT JOIN \"DEFAULT\".\"TEST_ACCOUNT\" as \"BUYER_ACCOUNT\"\n" + // left or inner join
+                "ON \"TEST_ORDER\".\"BUYER_ID\"=\"BUYER_ACCOUNT\".\"ACCOUNT_ID\"\n"
+                + "INNER JOIN \"DEFAULT\".\"TEST_COUNTRY\" as \"SELLER_COUNTRY\"\n"
+                + "ON \"SELLER_ACCOUNT\".\"ACCOUNT_COUNTRY\"=\"SELLER_COUNTRY\".\"COUNTRY\"\n"
+                + "INNER JOIN \"DEFAULT\".\"TEST_COUNTRY\" as \"BUYER_COUNTRY\"\n"
+                + "ON \"BUYER_ACCOUNT\".\"ACCOUNT_COUNTRY\"=\"BUYER_COUNTRY\".\"COUNTRY\"\n"
+                + "GROUP BY \"TEST_KYLIN_FACT\".\"TRANS_ID\"";
+        List<String> sqls = Lists.newArrayList(sql);
+        val favoriteRequest = new SqlAccelerateRequest("default", sqls, true);
+        val ref = new TypeReference<EnvelopeResponse<ModelSuggestionRequest>>() {
+        };
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/suggest_model").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(favoriteRequest))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk()) //
+                .andExpect(result1 -> {
+                    val response = JsonUtil.readValue(result1.getResponse().getContentAsString(), ref);
+                    val reusedModels = response.getData().getReusedModels();
+                    Assert.assertEquals(1, reusedModels.size());
+                });
+    }
+
     private void changeProjectToSemiAutoMode(String project) {
         NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
         projectManager.updateProject(project, copyForWrite -> {
