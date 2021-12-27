@@ -182,6 +182,27 @@ public class AclPermissionUtil {
         return false;
     }
 
+    public static boolean isSpecificPermissionInProject(String group, String project, Permission aclPermission) {
+        MutableAclRecord acl = getProjectAcl(project);
+        return isSpecificPermissionInProject(group, aclPermission, acl);
+    }
+
+    public static boolean isSpecificPermissionInProject(String group, Permission aclPermission, MutableAclRecord acl) {
+        if (Objects.isNull(acl)) {
+            return false;
+        }
+        Sid sid;
+        for (AccessControlEntry ace : acl.getEntries()) {
+            if (ace.getPermission().getMask() == aclPermission.getMask()) {
+                sid = ace.getSid();
+                if (isCurrentGroup(sid, Sets.newHashSet(group))) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     private static boolean isCurrentUser(Sid sid, String username) {
         return (sid instanceof PrincipalSid) && (username.equals(((PrincipalSid) sid).getPrincipal()));
     }

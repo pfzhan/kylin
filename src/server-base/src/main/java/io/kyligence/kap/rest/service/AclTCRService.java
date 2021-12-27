@@ -28,7 +28,6 @@ import static org.apache.kylin.common.exception.ServerErrorCode.ACL_INVALID_COLU
 import static org.apache.kylin.common.exception.ServerErrorCode.ACL_INVALID_ROW_FIELD;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
-import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
 import static org.springframework.security.acls.domain.BasePermission.ADMINISTRATION;
 
 import java.io.IOException;
@@ -180,9 +179,16 @@ public class AclTCRService extends BasicService {
             if (hasAdminPermission) {
                 return true;
             }
-        } else if (ROLE_ADMIN.equals(sid)) {
+        } else {
             // role admin group
-            return true;
+            if (userGroupService.isAdminGroup(sid)) {
+                return true;
+            }
+
+            // project admin
+            if (AclPermissionUtil.isSpecificPermissionInProject(sid, project, ADMINISTRATION)) {
+                return true;
+            }
         }
         return false;
     }

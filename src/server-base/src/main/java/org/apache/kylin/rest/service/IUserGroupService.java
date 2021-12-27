@@ -42,10 +42,14 @@
 
 package org.apache.kylin.rest.service;
 
+import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.apache.kylin.common.KylinConfig;
 
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.usergroup.UserGroup;
@@ -84,4 +88,9 @@ public interface IUserGroupService {
     List<UserGroupResponseKI> getUserGroupResponse(List<UserGroup> userGroups) throws IOException;
 
     void addGroups(List<String> groups);
+
+    default boolean isAdminGroup(String group) {
+        return ROLE_ADMIN.equalsIgnoreCase(group)
+                || KylinConfig.getInstanceFromEnv().getLDAPAdminRole().equalsIgnoreCase(group);
+    }
 }

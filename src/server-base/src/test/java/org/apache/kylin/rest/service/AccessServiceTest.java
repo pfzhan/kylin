@@ -152,6 +152,7 @@ public class AccessServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(aclTCRService, "accessService", accessService);
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
         ReflectionTestUtils.setField(aclTCRService, "userService", userService);
+        ReflectionTestUtils.setField(aclTCRService, "userGroupService", userGroupService);
 
         // Init users
         ManagedUser adminUser = new ManagedUser("ADMIN", "KYLIN", false, Arrays.asList(//
