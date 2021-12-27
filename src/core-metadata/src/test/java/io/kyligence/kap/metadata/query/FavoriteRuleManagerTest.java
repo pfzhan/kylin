@@ -81,7 +81,7 @@ public class FavoriteRuleManagerTest extends NLocalFileMetadataTestCase {
         cond1.setLeftThreshold("10");
         conds = Lists.newArrayList(cond1, cond2);
         newRule.setConds(conds);
-        manager.updateRule((List<FavoriteRule.Condition>) (List<?>) conds, true, newRule.getName());
+        manager.updateRule(conds, true, newRule.getName());
 
         Assert.assertEquals(6, manager.getAll().size());
         FavoriteRule updatedNewRule = manager.getByName("new_rule");

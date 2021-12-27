@@ -621,6 +621,18 @@ public class Message {
         return "The query delay threshold cannot be empty";
     }
 
+    public String getMIN_HIT_COUNT_NOT_EMPTY(){
+        return "The hits cannot be empty";
+    }
+
+    public String getEFFECTIVE_DAYS_NOT_EMPTY() {
+        return "The time frame cannot be empty";
+    }
+
+    public String getUPDATE_FREQUENCY_NOT_EMPTY() {
+        return "The recommendation frequency cannot be empty";
+    }
+
     public String getSQL_NUMBER_EXCEEDS_LIMIT() {
         return "Up to %s SQLs could be imported at a time";
     }

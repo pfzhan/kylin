@@ -649,6 +649,21 @@ public class CnMessage extends Message {
     }
 
     @Override
+    public String getMIN_HIT_COUNT_NOT_EMPTY(){
+        return "命中次数不能为空";
+    }
+
+    @Override
+    public String getEFFECTIVE_DAYS_NOT_EMPTY() {
+        return "时间范围不能为空";
+    }
+
+    @Override
+    public String getUPDATE_FREQUENCY_NOT_EMPTY() {
+        return "推荐频率不能为空";
+    }
+
+    @Override
     public String getSQL_NUMBER_EXCEEDS_LIMIT() {
         return "最多可同时导入 %s 条 SQL";
     }

@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.metadata.favorite;
 
+import static io.kyligence.kap.metadata.favorite.FavoriteRule.FAVORITE_RULE_NAMES;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -41,9 +43,11 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.guava20.shaded.common.annotations.VisibleForTesting;
 import lombok.val;
 
 public class FavoriteRuleManager {
+
     private static final Logger logger = LoggerFactory.getLogger(FavoriteRuleManager.class);
 
     private final String project;
@@ -85,15 +89,46 @@ public class FavoriteRuleManager {
         crud.reloadAll();
     }
 
-    public void createRule(final FavoriteRule rule) {
-        if (getByName(rule.getName()) != null)
-            return;
+    public List<FavoriteRule> getAll() {
+        List<FavoriteRule> favoriteRules = Lists.newArrayList();
 
-        crud.save(rule);
+        favoriteRules.addAll(crud.listAll());
+        return favoriteRules;
     }
 
-    public void updateRule(List<FavoriteRule.Condition> conditions, boolean isEnabled, String ruleName) {
-        FavoriteRule copy = crud.copyForWrite(FavoriteRule.getDefaultRule(getByName(ruleName), ruleName));
+    public List<FavoriteRule> listAll() {
+        return FAVORITE_RULE_NAMES.stream().map(ruleName -> getOrDefaultByName(ruleName)).collect(Collectors.toList());
+    }
+
+    public FavoriteRule getByName(String name) {
+        for (FavoriteRule rule : getAll()) {
+            if (rule.getName().equals(name))
+                return rule;
+        }
+        return null;
+    }
+
+    public String getValue(String ruleName) {
+        val rule = getOrDefaultByName(ruleName);
+        FavoriteRule.Condition condition = (FavoriteRule.Condition) rule.getConds().get(0);
+        return condition.getRightThreshold();
+    }
+
+    public FavoriteRule getOrDefaultByName(String ruleName) {
+        return FavoriteRule.getDefaultRuleIfNull(getByName(ruleName), ruleName);
+    }
+
+    public void resetRule() {
+        FavoriteRule.getAllDefaultRule().forEach(rule -> updateRule(rule));
+    }
+
+    public void updateRule(FavoriteRule rule) {
+        updateRule(rule.getConds(), rule.isEnabled(), rule.getName());
+    }
+
+    public void updateRule(List<FavoriteRule.AbstractCondition> conditions, boolean isEnabled, String ruleName) {
+        FavoriteRule copy = crud.copyForWrite(getOrDefaultByName(ruleName));
+
         copy.setEnabled(isEnabled);
 
         List<FavoriteRule.AbstractCondition> newConditions = Lists.newArrayList();
@@ -105,13 +140,19 @@ public class FavoriteRuleManager {
         crud.save(copy);
     }
 
-    public List<FavoriteRule> getAll() {
-        List<FavoriteRule> favoriteRules = Lists.newArrayList();
-
-        favoriteRules.addAll(crud.listAll());
-        return favoriteRules;
+    public void delete(FavoriteRule favoriteRule) {
+        crud.delete(favoriteRule);
     }
 
+    @VisibleForTesting
+    public void createRule(final FavoriteRule rule) {
+        if (getByName(rule.getName()) != null)
+            return;
+
+        crud.save(rule);
+    }
+
+    @VisibleForTesting
     public List<FavoriteRule> getAllEnabled() {
         List<FavoriteRule> enabledRules = Lists.newArrayList();
 
@@ -124,36 +165,13 @@ public class FavoriteRuleManager {
         return enabledRules;
     }
 
-    public FavoriteRule getByName(String name) {
-        for (FavoriteRule rule : getAll()) {
-            if (rule.getName().equals(name))
-                return rule;
-        }
-
-        return null;
-    }
-
-    public Set<String> getBlacklistSqls() {
-        val blacklist = getByName(FavoriteRule.BLACKLIST_NAME);
-        if (blacklist == null)
-            return Sets.newHashSet();
-
-        return blacklist.getConds().stream().map(cond -> ((FavoriteRule.SQLCondition) cond).getSqlPattern())
-                .collect(Collectors.toSet());
-    }
-
     public Set<String> getExcludedTables() {
-        FavoriteRule rule = getByName(FavoriteRule.EXCLUDED_TABLES_RULE);
-        FavoriteRule favoriteRule = FavoriteRule.getDefaultRule(rule, FavoriteRule.EXCLUDED_TABLES_RULE);
+        FavoriteRule favoriteRule = getOrDefaultByName(FavoriteRule.EXCLUDED_TABLES_RULE);
         if (!favoriteRule.isEnabled()) {
             return Sets.newHashSet();
         }
         FavoriteRule.Condition condition = (FavoriteRule.Condition) favoriteRule.getConds().get(0);
         return Arrays.stream(condition.getRightThreshold().split(",")) //
                 .map(table -> table.toUpperCase(Locale.ROOT)).collect(Collectors.toSet());
-    }
-
-    public void delete(FavoriteRule favoriteRule) {
-        crud.delete(favoriteRule);
     }
 }

@@ -345,7 +345,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
 
         // add ExcludedTables
         FavoriteRuleManager ruleManager = FavoriteRuleManager.getInstance(config, df.getProject());
-        List<FavoriteRule.Condition> conds = Lists.newArrayList();
+        List<FavoriteRule.AbstractCondition> conds = Lists.newArrayList();
         //        isEnabled = request.isExcludeTablesEnable();
         conds.add(new FavoriteRule.Condition(null, df.getModel().getRootFactTableName()));
         ruleManager.updateRule(conds, true, FavoriteRule.EXCLUDED_TABLES_RULE);

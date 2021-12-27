@@ -332,7 +332,7 @@ public abstract class NSuggestTestBase extends NLocalWithSparkSessionTest {
         }
         for (IRealization realization : projectManager.listAllRealizations(proj)) {
             NDataflow df = (NDataflow) realization;
-            List<FavoriteRule.Condition> conds = Lists.newArrayList();
+            List<FavoriteRule.AbstractCondition> conds = Lists.newArrayList();
             //        isEnabled = request.isExcludeTablesEnable();
             conds.add(new FavoriteRule.Condition(null, df.getModel().getRootFactTableName()));
             ruleManager.updateRule(conds, true, FavoriteRule.EXCLUDED_TABLES_RULE);

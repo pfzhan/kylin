@@ -680,7 +680,7 @@ public class SemiV2ExcludedTableTest extends SemiAutoTestBase {
     }
 
     private void mockExcludeTableRule(String excludedTables) {
-        List<FavoriteRule.Condition> conditions = Lists.newArrayList();
+        List<FavoriteRule.AbstractCondition> conditions = Lists.newArrayList();
         FavoriteRule.Condition condition = new FavoriteRule.Condition();
         condition.setLeftThreshold(null);
         condition.setRightThreshold(excludedTables);

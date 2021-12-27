@@ -25,7 +25,6 @@ package io.kyligence.kap.rest.config.initialize;
 
 import java.io.IOException;
 
-import io.kyligence.kap.streaming.jobs.scheduler.StreamingScheduler;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.job.engine.JobEngineConfig;
@@ -45,9 +44,11 @@ import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.rest.service.task.QueryHistoryTaskScheduler;
+import io.kyligence.kap.rest.service.task.RecommendationTopNUpdateScheduler;
 import io.kyligence.kap.rest.util.CreateAdminUserUtils;
 import io.kyligence.kap.rest.util.InitResourceGroupUtils;
 import io.kyligence.kap.rest.util.InitUserGroupUtils;
+import io.kyligence.kap.streaming.jobs.scheduler.StreamingScheduler;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -63,6 +64,10 @@ public class EpochChangedListener {
     @Autowired
     @Qualifier("userService")
     UserService userService;
+
+    @Autowired
+    @Qualifier("recommendationUpdateScheduler")
+    RecommendationTopNUpdateScheduler recommendationUpdateScheduler;
 
     @Subscribe
     public void onProjectControlled(ProjectControlledNotifier notifier) throws IOException {
@@ -98,6 +103,7 @@ public class EpochChangedListener {
                     throw new RuntimeException(
                             "Query history accelerate scheduler for " + project + " has not been started");
                 }
+                recommendationUpdateScheduler.addProject(project);
                 return 0;
             }, project, 1);
         } else {
@@ -123,6 +129,7 @@ public class EpochChangedListener {
                 QueryHistoryTaskScheduler.shutdownByProject(project);
                 NDefaultScheduler.shutdownByProject(project);
                 StreamingScheduler.shutdownByProject(project);
+                recommendationUpdateScheduler.removeProject(project);
             } catch (Exception e) {
                 log.warn("error when shutdown " + project + " thread", e);
             }

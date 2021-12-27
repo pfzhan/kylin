@@ -162,7 +162,7 @@ public class OptRecV2TestBase extends NLocalFileMetadataTestCase {
     }
 
     protected void changeRecTopN(int topN) {
-        FavoriteRule recRule = FavoriteRule.getDefaultRule(null, FavoriteRule.REC_SELECT_RULE_NAME);
+        FavoriteRule recRule = FavoriteRule.getDefaultRuleIfNull(null, FavoriteRule.REC_SELECT_RULE_NAME);
         FavoriteRule.Condition abstractCondition = (FavoriteRule.Condition) recRule.getConds().get(0);
         abstractCondition.setRightThreshold(String.valueOf(topN));
         FavoriteRuleManager favoriteRuleManager = FavoriteRuleManager.getInstance(getTestConfig(), getProject());

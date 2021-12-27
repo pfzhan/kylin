@@ -1023,6 +1023,10 @@ public class ProjectServiceTest extends ServiceTestBase {
         request.setUsers(Lists.newArrayList("userA", "userB", "userC", "ADMIN"));
         request.setRecommendationEnable(true);
         request.setRecommendationsValue("30");
+        request.setMinHitCount("11");
+        request.setEffectiveDays("11");
+        request.setUpdateFrequency("3");
+
         projectService.updateRegularRule(PROJECT, request);
         Map<String, Object> favoriteRuleResponse = projectService.getFavoriteRules(PROJECT);
         Assert.assertEquals(false, favoriteRuleResponse.get("duration_enable"));
@@ -1035,6 +1039,10 @@ public class ProjectServiceTest extends ServiceTestBase {
         Assert.assertEquals(30L, favoriteRuleResponse.get("recommendations_value"));
         Assert.assertEquals(false, favoriteRuleResponse.get("excluded_tables_enable"));
         Assert.assertEquals("", favoriteRuleResponse.get("excluded_tables"));
+        Assert.assertEquals(11, favoriteRuleResponse.get("min_hit_count"));
+        Assert.assertEquals(11, favoriteRuleResponse.get("effective_days"));
+        Assert.assertEquals(3, favoriteRuleResponse.get("update_frequency"));
+
 
         // check excluded_tables
         request.setExcludeTablesEnable(true);
@@ -1078,7 +1086,7 @@ public class ProjectServiceTest extends ServiceTestBase {
         Map<String, Object> favoriteRules = projectService.getFavoriteRules(PROJECT);
 
         Assert.assertEquals(false, favoriteRules.get("freq_enable"));
-        Assert.assertNull(favoriteRules.get("freq_value"));
+        Assert.assertEquals(0.1f, favoriteRules.get("freq_value"));
 
         Assert.assertEquals(true, favoriteRules.get("count_enable"));
         Assert.assertEquals(10.0f, favoriteRules.get("count_value"));
@@ -1088,14 +1096,19 @@ public class ProjectServiceTest extends ServiceTestBase {
         Assert.assertEquals(Lists.newArrayList("ROLE_ADMIN"), favoriteRules.get("user_groups"));
 
         Assert.assertEquals(false, favoriteRules.get("duration_enable"));
-        Assert.assertNull(favoriteRules.get("min_duration"));
-        Assert.assertNull(favoriteRules.get("max_duration"));
+        Assert.assertEquals(0L, favoriteRules.get("min_duration"));
+        Assert.assertEquals(180L, favoriteRules.get("max_duration"));
 
         Assert.assertEquals(true, favoriteRules.get("recommendation_enable"));
         Assert.assertEquals(20L, favoriteRules.get("recommendations_value"));
 
         Assert.assertEquals(false, favoriteRules.get("excluded_tables_enable"));
         Assert.assertEquals("", favoriteRules.get("excluded_tables"));
+
+        Assert.assertEquals(30, favoriteRules.get("min_hit_count"));
+        Assert.assertEquals(2, favoriteRules.get("effective_days"));
+        Assert.assertEquals(2, favoriteRules.get("update_frequency"));
+
     }
 
     @Test
@@ -1108,7 +1121,7 @@ public class ProjectServiceTest extends ServiceTestBase {
         Assert.assertEquals(0, projectStatistics.getAdditionalRecPatternCount());
         Assert.assertEquals(0, projectStatistics.getRemovalRecPatternCount());
         Assert.assertEquals(0, projectStatistics.getRecPatternCount());
-        Assert.assertEquals(3, projectStatistics.getEffectiveRuleSize());
+        Assert.assertEquals(7, projectStatistics.getEffectiveRuleSize());
         Assert.assertEquals(0, projectStatistics.getApprovedRecCount());
         Assert.assertEquals(0, projectStatistics.getApprovedAdditionalRecCount());
         Assert.assertEquals(0, projectStatistics.getApprovedRemovalRecCount());
@@ -1129,7 +1142,7 @@ public class ProjectServiceTest extends ServiceTestBase {
         request.setRecommendationsValue("30");
         projectService.updateRegularRule("gc_test", request);
         ProjectStatisticsResponse projectStatistics2 = projectService.getProjectStatistics("gc_test");
-        Assert.assertEquals(4, projectStatistics2.getEffectiveRuleSize());
+        Assert.assertEquals(7, projectStatistics2.getEffectiveRuleSize());
 
         ProjectStatisticsResponse statisticsOfProjectDefault = projectService.getProjectStatistics(PROJECT);
         Assert.assertEquals(3, statisticsOfProjectDefault.getDatabaseSize());

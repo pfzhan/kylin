@@ -31,6 +31,10 @@ import static io.kyligence.kap.common.constant.Constants.KYLIN_SOURCE_JDBC_PASS_
 import static io.kyligence.kap.common.constant.Constants.KYLIN_SOURCE_JDBC_SOURCE_ENABLE_KEY;
 import static io.kyligence.kap.common.constant.Constants.KYLIN_SOURCE_JDBC_SOURCE_NAME_KEY;
 import static io.kyligence.kap.common.constant.Constants.KYLIN_SOURCE_JDBC_USER_KEY;
+import static io.kyligence.kap.metadata.favorite.FavoriteRule.EFFECTIVE_DAYS;
+import static io.kyligence.kap.metadata.favorite.FavoriteRule.FAVORITE_RULE_NAMES;
+import static io.kyligence.kap.metadata.favorite.FavoriteRule.MIN_HIT_COUNT;
+import static io.kyligence.kap.metadata.favorite.FavoriteRule.UPDATE_FREQUENCY;
 import static org.apache.kylin.common.exception.ServerErrorCode.DATABASE_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_PROJECT_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_EMAIL;
@@ -192,11 +196,6 @@ public class ProjectService extends BasicService {
     private static final String DEFAULT_VAL = "default";
 
     private static final String SPARK_YARN_QUEUE = "kylin.engine.spark-conf.spark.yarn.queue";
-
-    private static final List<String> favoriteRuleNames = Lists.newArrayList(FavoriteRule.COUNT_RULE_NAME,
-            FavoriteRule.FREQUENCY_RULE_NAME, FavoriteRule.DURATION_RULE_NAME, FavoriteRule.SUBMITTER_RULE_NAME,
-            FavoriteRule.SUBMITTER_GROUP_RULE_NAME, FavoriteRule.REC_SELECT_RULE_NAME,
-            FavoriteRule.EXCLUDED_TABLES_RULE);
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     @Transaction(project = -1)
@@ -395,27 +394,8 @@ public class ProjectService extends BasicService {
         if (!getProjectManager().getProject(project).isSemiAutoMode()) {
             return -1;
         }
-        int effectiveRuleSize = 1;
-        Map<String, Object> favoriteRules = getFavoriteRules(project);
-        Object durationEnable = favoriteRules.get("duration_enable");
-        if (durationEnable instanceof Boolean && Boolean.TRUE.equals(durationEnable)) {
-            effectiveRuleSize++;
-        }
-        Object submitterEnable = favoriteRules.get("submitter_enable");
-        if (submitterEnable instanceof Boolean && Boolean.TRUE.equals(submitterEnable)) {
-            if (favoriteRules.containsKey("users")) {
-                effectiveRuleSize++;
-            }
-            if (favoriteRules.containsKey("user_groups")) {
-                effectiveRuleSize++;
-            }
-        }
-        Object excludedTablesEnable = favoriteRules.get("excluded_tables_enable");
-        if (excludedTablesEnable instanceof Boolean && Boolean.TRUE.equals(excludedTablesEnable)) {
-            effectiveRuleSize++;
-        }
 
-        return effectiveRuleSize;
+        return (int) getFavoriteRuleManager(project).listAll().stream().filter(rule -> rule.isEnabled()).count();
     }
 
     private int[] getRecPatternCount(String project) {
@@ -1115,7 +1095,7 @@ public class ProjectService extends BasicService {
     public Map<String, Object> getFavoriteRules(String project) {
         Map<String, Object> result = Maps.newHashMap();
 
-        for (String ruleName : favoriteRuleNames) {
+        for (String ruleName : FAVORITE_RULE_NAMES) {
             getSingleRule(project, ruleName, result);
         }
 
@@ -1165,22 +1145,35 @@ public class ProjectService extends BasicService {
             String excludedTables = conds.get(0).getRightThreshold();
             result.put("excluded_tables", excludedTables);
             break;
+        case FavoriteRule.MIN_HIT_COUNT:
+            result.put("min_hit_count", parseInt(conds.get(0).getRightThreshold()));
+            break;
+        case FavoriteRule.EFFECTIVE_DAYS:
+            result.put("effective_days", parseInt(conds.get(0).getRightThreshold()));
+            break;
+        case FavoriteRule.UPDATE_FREQUENCY:
+            result.put("update_frequency", parseInt(conds.get(0).getRightThreshold()));
+            break;
         default:
             break;
         }
+    }
+
+    private Integer parseInt(String str) {
+        return StringUtils.isEmpty(str) ? null:Integer.parseInt(str);
     }
 
     private FavoriteRule getFavoriteRule(String project, String ruleName) {
         Preconditions.checkArgument(StringUtils.isNotEmpty(project));
         Preconditions.checkArgument(StringUtils.isNotEmpty(ruleName));
 
-        return FavoriteRule.getDefaultRule(getFavoriteRuleManager(project).getByName(ruleName), ruleName);
+        return getFavoriteRuleManager(project).getOrDefaultByName(ruleName);
     }
 
     @Transaction(project = 0)
     public void updateRegularRule(String project, FavoriteRuleUpdateRequest request) {
         aclEvaluate.checkProjectWritePermission(project);
-        favoriteRuleNames.forEach(ruleName -> updateSingleRule(project, ruleName, request));
+        FAVORITE_RULE_NAMES.forEach(ruleName -> updateSingleRule(project, ruleName, request));
 
         NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project).listAllModels().forEach(model -> {
             updateListeners.forEach(listener -> listener.onUpdate(project, model.getUuid()));
@@ -1188,9 +1181,8 @@ public class ProjectService extends BasicService {
     }
 
     private void updateSingleRule(String project, String ruleName, FavoriteRuleUpdateRequest request) {
-        List<FavoriteRule.Condition> conds = Lists.newArrayList();
+        List<FavoriteRule.AbstractCondition> conds = Lists.newArrayList();
         boolean isEnabled = false;
-
         switch (ruleName) {
         case FavoriteRule.FREQUENCY_RULE_NAME:
             isEnabled = request.isFreqEnable();
@@ -1222,6 +1214,18 @@ public class ProjectService extends BasicService {
             isEnabled = request.isExcludeTablesEnable();
             conds.add(new FavoriteRule.Condition(null,
                     request.getExcludedTables() == null ? "" : request.getExcludedTables()));
+            break;
+        case EFFECTIVE_DAYS:
+            isEnabled = true;
+            conds.add(new FavoriteRule.Condition(null, request.getEffectiveDays()));
+            break;
+        case UPDATE_FREQUENCY:
+            isEnabled = true;
+            conds.add(new FavoriteRule.Condition(null, request.getUpdateFrequency()));
+            break;
+        case MIN_HIT_COUNT:
+            isEnabled = true;
+            conds.add(new FavoriteRule.Condition(null, request.getMinHitCount()));
             break;
         default:
             break;
@@ -1305,20 +1309,7 @@ public class ProjectService extends BasicService {
     }
 
     private void resetProjectRecommendationConfig(String project) {
-        val countList = Lists.newArrayList(FavoriteRule.getDefaultCondition(FavoriteRule.COUNT_RULE_NAME));
-        val submitterList = Lists.newArrayList(FavoriteRule.getDefaultCondition(FavoriteRule.SUBMITTER_RULE_NAME));
-        val groupList = Lists.newArrayList(FavoriteRule.getDefaultCondition(FavoriteRule.SUBMITTER_GROUP_RULE_NAME));
-        val recList = Lists.newArrayList(FavoriteRule.getDefaultCondition(FavoriteRule.REC_SELECT_RULE_NAME));
-        val excludedTableList = Lists.newArrayList(FavoriteRule.getDefaultCondition(FavoriteRule.EXCLUDED_TABLES_RULE));
-
-        getFavoriteRuleManager(project).updateRule(Lists.newArrayList(), false, FavoriteRule.FREQUENCY_RULE_NAME);
-        getFavoriteRuleManager(project).updateRule(countList, true, FavoriteRule.COUNT_RULE_NAME);
-        getFavoriteRuleManager(project).updateRule(Lists.newArrayList(), false, FavoriteRule.DURATION_RULE_NAME);
-        getFavoriteRuleManager(project).updateRule(submitterList, true, FavoriteRule.SUBMITTER_RULE_NAME);
-        getFavoriteRuleManager(project).updateRule(groupList, true, FavoriteRule.SUBMITTER_GROUP_RULE_NAME);
-        getFavoriteRuleManager(project).updateRule(recList, true, FavoriteRule.REC_SELECT_RULE_NAME);
-        getFavoriteRuleManager(project).updateRule(excludedTableList, false, FavoriteRule.EXCLUDED_TABLES_RULE);
-
+        getFavoriteRuleManager(project).resetRule();
         NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project).listAllModels().forEach(model -> {
             updateListeners.forEach(listener -> listener.onUpdate(project, model.getUuid()));
         });

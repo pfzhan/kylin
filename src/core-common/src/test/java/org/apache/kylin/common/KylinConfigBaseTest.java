@@ -903,7 +903,6 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         cleanupTestMetadata();
     }
 
-
     @Test
     public void testGetStreamingJobTmpOutputStorePath() {
         String project = "default";

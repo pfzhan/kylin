@@ -37,6 +37,7 @@ import java.util.Map;
 
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
@@ -497,12 +498,43 @@ public class NProjectControllerTest extends NLocalFileMetadataTestCase {
         FavoriteRuleUpdateRequest request = new FavoriteRuleUpdateRequest();
         request.setProject(project);
         request.setFreqEnable(false);
+        request.setMinHitCount("1");
+        request.setUpdateFrequency("1");
+        request.setEffectiveDays("1");
         mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/{project}/favorite_rules", project)
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         Mockito.verify(nProjectController).updateFavoriteRules(Mockito.any(request.getClass()));
+    }
+
+
+    @Test
+    public void testCheckUpdateFavoriteRuleArgsWithEmtpyFrequency() {
+        FavoriteRuleUpdateRequest request = new FavoriteRuleUpdateRequest();
+        request.setMinHitCount("1");
+        request.setEffectiveDays("1");
+        thrown.expect(KylinException.class);
+        thrown.expectMessage(MsgPicker.getMsg().getUPDATE_FREQUENCY_NOT_EMPTY());
+        NProjectController.checkUpdateFavoriteRuleArgs(request);
+    }
+
+    @Test
+    public void testCheckUpdateFavoriteRuleArgsWithEmptyHitCount() {
+        FavoriteRuleUpdateRequest request = new FavoriteRuleUpdateRequest();
+        thrown.expect(KylinException.class);
+        thrown.expectMessage(MsgPicker.getMsg().getMIN_HIT_COUNT_NOT_EMPTY());
+        NProjectController.checkUpdateFavoriteRuleArgs(request);
+    }
+
+    @Test
+    public void testCheckUpdateFavoriteRuleArgsWithEmpty() {
+        FavoriteRuleUpdateRequest request = new FavoriteRuleUpdateRequest();
+        request.setMinHitCount("1");
+        thrown.expect(KylinException.class);
+        thrown.expectMessage(MsgPicker.getMsg().getEFFECTIVE_DAYS_NOT_EMPTY());
+        NProjectController.checkUpdateFavoriteRuleArgs(request);
     }
 
     @Test

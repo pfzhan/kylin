@@ -24,7 +24,7 @@
 
 package io.kyligence.kap.metadata.recommendation.candidate;
 
-import static org.apache.commons.lang3.time.DateUtils.MILLIS_PER_DAY;
+import static io.kyligence.kap.metadata.recommendation.candidate.RawRecItem.CostMethod.getCostMethod;
 import static org.mybatis.dynamic.sql.SqlBuilder.count;
 import static org.mybatis.dynamic.sql.SqlBuilder.isEqualTo;
 import static org.mybatis.dynamic.sql.SqlBuilder.isIn;
@@ -66,9 +66,12 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.persistence.metadata.JdbcDataSource;
 import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
+import io.kyligence.kap.metadata.favorite.FavoriteRule;
+import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.schema.ImportModelContext;
+import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem.CostMethod;
 import io.kyligence.kap.metadata.recommendation.util.RawRecStoreUtil;
 import lombok.Getter;
 import lombok.val;
@@ -566,6 +569,9 @@ public class JdbcRawRecStore {
     public void updateAllCost(String project) {
         final int batchToUpdate = 1000;
         long currentTime = System.currentTimeMillis();
+        int effectiveDays = Integer.parseInt(FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .getValue(FavoriteRule.EFFECTIVE_DAYS));
+        CostMethod costMethod = getCostMethod(project);
         try (SqlSession session = sqlSessionFactory.openSession(ExecutorType.BATCH)) {
             RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
             // if no records, no need to update cost
@@ -578,7 +584,7 @@ public class JdbcRawRecStore {
                 List<RawRecItem> rawRecItems = mapper.selectMany(getSelectLayoutProvider(project, batchToUpdate,
                         batchToUpdate * i, RawRecItem.RawRecState.INITIAL, RawRecItem.RawRecState.RECOMMENDED));
                 int size = rawRecItems.size();
-                updateCost(currentTime, session, mapper, rawRecItems);
+                updateCost(effectiveDays, costMethod, currentTime, session, mapper, rawRecItems);
                 totalUpdated += size;
                 if (size < batchToUpdate) {
                     break;
@@ -608,7 +614,8 @@ public class JdbcRawRecStore {
         }
     }
 
-    private void updateCost(long currentTime, SqlSession session, RawRecItemMapper mapper, List<RawRecItem> oneBatch) {
+    private void updateCost(int effectiveDays, CostMethod costMethod, long currentTime, SqlSession session,
+            RawRecItemMapper mapper, List<RawRecItem> oneBatch) {
         if (oneBatch.isEmpty()) {
             return;
         }
@@ -618,9 +625,7 @@ public class JdbcRawRecStore {
                 recItem.setUpdateTime(currentTime);
                 return;
             }
-            LayoutMetric.LatencyMap latencyMap = recItem.getLayoutMetric().getLatencyMap();
-            recItem.setTotalLatencyOfLastDay(latencyMap.getLatencyByDate(System.currentTimeMillis() - MILLIS_PER_DAY));
-            recItem.setCost((recItem.getCost() + recItem.getTotalLatencyOfLastDay()) / Math.E);
+            recItem.updateCost(costMethod, currentTime, effectiveDays);
             recItem.setUpdateTime(currentTime);
         });
         List<UpdateStatementProvider> providers = Lists.newArrayList();

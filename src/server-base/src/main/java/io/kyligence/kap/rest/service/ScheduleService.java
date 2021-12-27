@@ -86,22 +86,6 @@ public class ScheduleService {
         MetricsGroup.hostTagCounterInc(MetricsName.METADATA_OPS_CRON_SUCCESS, MetricsCategory.GLOBAL, GLOBAL);
     }
 
-    @Scheduled(cron = "${kylin.metadata.top-recs-filter-cron:0 0 0 * * *}")
-    public void selectTopRec() {
-
-        MetricsGroup.hostTagCounterInc(MetricsName.METADATA_OPS_CRON, MetricsCategory.GLOBAL, GLOBAL);
-
-        try (SetThreadName ignored = new SetThreadName("UpdateTopNRecommendationsWorker")) {
-            log.info("Routine task to update cost and topN recommendations");
-
-            rawRecService.updateCostsAndTopNCandidates(null);
-
-            log.info("Updating cost and topN recommendations finished.");
-        }
-
-        MetricsGroup.hostTagCounterInc(MetricsName.METADATA_OPS_CRON_SUCCESS, MetricsCategory.GLOBAL, GLOBAL);
-    }
-
     @Scheduled(cron = "${kylin.metadata.history-source-usage-cron:0 0 0 * * *}")
     public void updateHistorySourceUsage() {
         if (EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochOwner(EpochManager.GLOBAL)) {

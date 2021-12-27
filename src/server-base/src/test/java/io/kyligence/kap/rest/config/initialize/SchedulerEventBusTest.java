@@ -70,6 +70,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.service.JobService;
+import io.kyligence.kap.rest.service.task.RecommendationTopNUpdateScheduler;
 import lombok.val;
 import lombok.var;
 
@@ -251,6 +252,8 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
     public void testEpochChangedListener() throws Exception {
         val prj = "test_epoch";
         val listener = new EpochChangedListener();
+        ReflectionTestUtils.setField(listener, "recommendationUpdateScheduler",
+                new RecommendationTopNUpdateScheduler());
         val prjMgr = NProjectManager.getInstance(getTestConfig());
         prjMgr.createProject("test_epoch", "ADMIN", "", null, MaintainModelType.MANUAL_MAINTAIN);
         int oriCount = NDefaultScheduler.listAllSchedulers().size();

@@ -258,10 +258,9 @@ public class OptRecV2 {
 
     private List<RawRecItem> queryBestLayoutRecItems() {
         FavoriteRule favoriteRule = FavoriteRuleManager.getInstance(config, project)
-                .getByName(FavoriteRule.REC_SELECT_RULE_NAME);
+                .getOrDefaultByName(FavoriteRule.REC_SELECT_RULE_NAME);
         int topN = Integer.parseInt(
-                ((FavoriteRule.Condition) FavoriteRule.getDefaultRule(favoriteRule, FavoriteRule.REC_SELECT_RULE_NAME)
-                        .getConds().get(0)).getRightThreshold());
+                ((FavoriteRule.Condition) favoriteRule.getConds().get(0)).getRightThreshold());
         return RawRecSelection.getInstance().selectBestLayout(topN, uuid, project);
     }
 

@@ -4920,7 +4920,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     private void mockExcludeTableRule(String excludedTables) {
-        List<FavoriteRule.Condition> conditions = com.clearspring.analytics.util.Lists.newArrayList();
+        List<FavoriteRule.AbstractCondition> conditions = com.clearspring.analytics.util.Lists.newArrayList();
         FavoriteRule.Condition condition = new FavoriteRule.Condition();
         condition.setLeftThreshold(null);
         condition.setRightThreshold(excludedTables);

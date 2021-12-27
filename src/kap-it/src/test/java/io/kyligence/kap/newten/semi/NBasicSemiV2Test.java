@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.TimeZone;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.IUserGroupService;
@@ -890,8 +891,74 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
 
     @Test
     public void testUpdateCostsAndTopNCandidates() {
-        long yesterday = System.currentTimeMillis() - MILLIS_PER_DAY;
+        overwriteSystemProp("kylin.smart.update-cost-method", "TIME_DECAY");
+        val pair = prepareRecItems();
+        List<RawRecItem> rawRecItems = pair.getValue();
+        String modelId = pair.getKey();
 
+        Assert.assertEquals(9, rawRecItems.size());
+        Assert.assertEquals(18.39, rawRecItems.get(5).getCost(), 0.01);
+        Assert.assertEquals(RawRecItem.RawRecState.INITIAL, rawRecItems.get(5).getState());
+        Assert.assertNotEquals(rawRecItems.get(5).getCreateTime(), rawRecItems.get(5).getUpdateTime());
+        Assert.assertEquals(22.07, rawRecItems.get(6).getCost(), 0.01);
+        Assert.assertEquals(RawRecItem.RawRecState.INITIAL, rawRecItems.get(6).getState());
+        Assert.assertNotEquals(rawRecItems.get(6).getCreateTime(), rawRecItems.get(6).getUpdateTime());
+        Assert.assertEquals(25.75, rawRecItems.get(7).getCost(), 0.01);
+        Assert.assertEquals(RawRecItem.RawRecState.RECOMMENDED, rawRecItems.get(7).getState());
+        Assert.assertNotEquals(rawRecItems.get(7).getCreateTime(), rawRecItems.get(7).getUpdateTime());
+        Assert.assertEquals(25.75, rawRecItems.get(8).getCost(), 0.01);
+        Assert.assertEquals(RawRecItem.RawRecState.RECOMMENDED, rawRecItems.get(8).getState());
+        Assert.assertNotEquals(rawRecItems.get(8).getCreateTime(), rawRecItems.get(8).getUpdateTime());
+
+        // change to old version RawRecItem with recSource is null then updateCost and validate
+
+        List<RawRecItem> layoutRecItems = jdbcRawRecStore.queryAll();
+        layoutRecItems.forEach(recItem -> recItem.setRecSource(null));
+        jdbcRawRecStore.update(layoutRecItems);
+        for (RawRecItem recItem : jdbcRawRecStore.queryAll()) {
+            Assert.assertNull(recItem.getRecSource());
+        }
+        RawRecManager.getInstance(getProject()).clearExistingCandidates(getProject(), modelId);
+        List<RawRecItem> recItemsAfterClear = jdbcRawRecStore.queryAll();
+        recItemsAfterClear.forEach(recItem -> Assert.assertEquals(RawRecItem.RawRecState.INITIAL, recItem.getState()));
+        recItemsAfterClear.forEach(recItem -> {
+            if (recItem.isLayoutRec()) {
+                recItem.setRecSource("QUERY_HISTORY");
+            }
+        });
+        jdbcRawRecStore.update(recItemsAfterClear);
+        jdbcRawRecStore.queryAll().forEach(recItem -> {
+            if (recItem.isLayoutRec()) {
+                Assert.assertEquals("QUERY_HISTORY", recItem.getRecSource());
+            }
+        });
+        RawRecManager.getInstance(getProject()).updateRecommendedTopN(getProject(), modelId, 100);
+        List<RawRecItem> allRecItems = jdbcRawRecStore.queryAll();
+        allRecItems.forEach(recItem -> {
+            if (recItem.isLayoutRec()) {
+                Assert.assertEquals(RawRecItem.RawRecState.RECOMMENDED, recItem.getState());
+            }
+        });
+
+        // reset
+        FavoriteRuleManager.getInstance(kylinConfig, getProject()).updateRule(
+                Lists.newArrayList(new FavoriteRule.Condition(null, "20")), true, FavoriteRule.REC_SELECT_RULE_NAME);
+    }
+
+    @Test
+    public void testUpdateCostsAndTopNCandidatesByHitCount() {
+        overwriteSystemProp("kylin.smart.update-cost-method", "HIT_COUNT");
+        List<RawRecItem> rawRecItems = prepareRecItems().getValue();
+        Assert.assertEquals(9, rawRecItems.size());
+        Assert.assertEquals(1, (int) rawRecItems.get(5).getCost());
+        Assert.assertEquals(RawRecItem.RawRecState.INITIAL, rawRecItems.get(5).getState());
+        Assert.assertNotEquals(rawRecItems.get(5).getCreateTime(), rawRecItems.get(5).getUpdateTime());
+        Assert.assertEquals(2, (int) rawRecItems.get(8).getCost());
+        Assert.assertEquals(RawRecItem.RawRecState.INITIAL, rawRecItems.get(6).getState());
+    }
+
+    private Pair<String, List<RawRecItem>> prepareRecItems() {
+        long yesterday = System.currentTimeMillis() - MILLIS_PER_DAY;
         // prepare raw recommendation
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { "select price from test_kylin_fact" });
@@ -899,6 +966,10 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         smartMaster.runUtWithContext(null);
         smartContext.saveMetadata();
         AccelerationContextUtil.onlineModel(smartContext);
+
+        List<AbstractContext.ModelContext> modelContexts = smartContext.getModelContexts();
+        Assert.assertEquals(1, modelContexts.size());
+        String modelId = modelContexts.get(0).getTargetModel().getUuid();
 
         QueryHistory queryHistory1 = new QueryHistory();
         queryHistory1.setSql("select count(price) from test_kylin_fact group by cal_dt");
@@ -945,55 +1016,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
             }
             return o1.getType().id() - o2.getType().id();
         });
-        Assert.assertEquals(9, rawRecItems.size());
-        Assert.assertEquals(18.39, rawRecItems.get(5).getCost(), 0.01);
-        Assert.assertEquals(RawRecItem.RawRecState.INITIAL, rawRecItems.get(5).getState());
-        Assert.assertNotEquals(rawRecItems.get(5).getCreateTime(), rawRecItems.get(5).getUpdateTime());
-        Assert.assertEquals(22.07, rawRecItems.get(6).getCost(), 0.01);
-        Assert.assertEquals(RawRecItem.RawRecState.INITIAL, rawRecItems.get(6).getState());
-        Assert.assertNotEquals(rawRecItems.get(6).getCreateTime(), rawRecItems.get(6).getUpdateTime());
-        Assert.assertEquals(25.75, rawRecItems.get(7).getCost(), 0.01);
-        Assert.assertEquals(RawRecItem.RawRecState.RECOMMENDED, rawRecItems.get(7).getState());
-        Assert.assertNotEquals(rawRecItems.get(7).getCreateTime(), rawRecItems.get(7).getUpdateTime());
-        Assert.assertEquals(25.75, rawRecItems.get(8).getCost(), 0.01);
-        Assert.assertEquals(RawRecItem.RawRecState.RECOMMENDED, rawRecItems.get(8).getState());
-        Assert.assertNotEquals(rawRecItems.get(8).getCreateTime(), rawRecItems.get(8).getUpdateTime());
-
-        // change to old version RawRecItem with recSource is null then updateCost and validate
-        List<AbstractContext.ModelContext> modelContexts = smartContext.getModelContexts();
-        Assert.assertEquals(1, modelContexts.size());
-        String modelId = modelContexts.get(0).getTargetModel().getUuid();
-        List<RawRecItem> layoutRecItems = jdbcRawRecStore.queryAll();
-        layoutRecItems.forEach(recItem -> recItem.setRecSource(null));
-        jdbcRawRecStore.update(layoutRecItems);
-        for (RawRecItem recItem : jdbcRawRecStore.queryAll()) {
-            Assert.assertNull(recItem.getRecSource());
-        }
-        RawRecManager.getInstance(getProject()).clearExistingCandidates(getProject(), modelId);
-        List<RawRecItem> recItemsAfterClear = jdbcRawRecStore.queryAll();
-        recItemsAfterClear.forEach(recItem -> Assert.assertEquals(RawRecItem.RawRecState.INITIAL, recItem.getState()));
-        recItemsAfterClear.forEach(recItem -> {
-            if (recItem.isLayoutRec()) {
-                recItem.setRecSource("QUERY_HISTORY");
-            }
-        });
-        jdbcRawRecStore.update(recItemsAfterClear);
-        jdbcRawRecStore.queryAll().forEach(recItem -> {
-            if (recItem.isLayoutRec()) {
-                Assert.assertEquals("QUERY_HISTORY", recItem.getRecSource());
-            }
-        });
-        RawRecManager.getInstance(getProject()).updateRecommendedTopN(getProject(), modelId, 100);
-        List<RawRecItem> allRecItems = jdbcRawRecStore.queryAll();
-        allRecItems.forEach(recItem -> {
-            if (recItem.isLayoutRec()) {
-                Assert.assertEquals(RawRecItem.RawRecState.RECOMMENDED, recItem.getState());
-            }
-        });
-
-        // reset
-        FavoriteRuleManager.getInstance(kylinConfig, getProject()).updateRule(
-                Lists.newArrayList(new FavoriteRule.Condition(null, "20")), true, FavoriteRule.REC_SELECT_RULE_NAME);
+        return Pair.newPair(modelId, rawRecItems);
     }
 
     private List<QueryHistory> queryHistories() {

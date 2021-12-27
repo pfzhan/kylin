@@ -103,24 +103,23 @@ public class AccelerateRuleUtil {
     }
 
     boolean matchCustomerRule(QueryHistory queryHistory, String project) {
-        var submitterRule = FavoriteRule.getDefaultRule(FavoriteRuleManager
-                .getInstance(KylinConfig.getInstanceFromEnv(), project).getByName(FavoriteRule.SUBMITTER_RULE_NAME),
-                FavoriteRule.SUBMITTER_RULE_NAME);
+        var submitterRule = FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .getOrDefaultByName(FavoriteRule.SUBMITTER_RULE_NAME);
         boolean submitterMatch = matchRule(queryHistory, submitterRule,
                 (queryHistory1, conditions) -> conditions.stream().anyMatch(cond -> queryHistory1.getQuerySubmitter()
                         .equals(((FavoriteRule.Condition) cond).getRightThreshold())));
 
-        var groupRule = FavoriteRule
-                .getDefaultRule(FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                        .getByName(FavoriteRule.SUBMITTER_GROUP_RULE_NAME), FavoriteRule.SUBMITTER_GROUP_RULE_NAME);
+        var groupRule = FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .getOrDefaultByName(FavoriteRule.SUBMITTER_GROUP_RULE_NAME);
+
         boolean userGroupMatch = matchRule(queryHistory, groupRule,
                 (queryHistory1, conditions) -> conditions.stream()
                         .anyMatch(cond -> getUserGroups(queryHistory1.getQuerySubmitter())
                                 .contains(((FavoriteRule.Condition) cond).getRightThreshold())));
 
-        var durationRule = FavoriteRule.getDefaultRule(FavoriteRuleManager
-                .getInstance(KylinConfig.getInstanceFromEnv(), project).getByName(FavoriteRule.DURATION_RULE_NAME),
-                FavoriteRule.DURATION_RULE_NAME);
+        var durationRule = FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .getOrDefaultByName(FavoriteRule.DURATION_RULE_NAME);
+
         boolean durationMatch = matchRule(queryHistory, durationRule,
                 (queryHistory1, conditions) -> conditions.stream().anyMatch(cond -> (queryHistory1
                         .getDuration() >= Long.parseLong(((FavoriteRule.Condition) cond).getLeftThreshold()) * 1000L

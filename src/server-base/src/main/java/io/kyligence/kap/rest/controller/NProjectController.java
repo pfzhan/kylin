@@ -28,9 +28,12 @@ import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLI
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_COUNT_RULE_VALUE;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_DURATION_RULE_VALUE;
+import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_EFFECTIVE_DAYS;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_FREQUENCY_RULE_VALUE;
+import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_MIN_HIT_COUNT;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_REC_RULE_VALUE;
+import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_UPDATE_FREQUENCY;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PROJECT_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
@@ -290,7 +293,7 @@ public class NProjectController extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
-    private void checkUpdateFavoriteRuleArgs(FavoriteRuleUpdateRequest request) {
+    protected static void checkUpdateFavoriteRuleArgs(FavoriteRuleUpdateRequest request) {
         // either disabled or arguments not empty
         if (request.isFreqEnable() && StringUtils.isEmpty(request.getFreqValue())) {
             throw new KylinException(EMPTY_FREQUENCY_RULE_VALUE,
@@ -309,6 +312,19 @@ public class NProjectController extends NBasicController {
         if (request.isRecommendationEnable() && StringUtils.isEmpty(request.getRecommendationsValue().trim())) {
             throw new KylinException(EMPTY_REC_RULE_VALUE, MsgPicker.getMsg().getRECOMMENDATION_LIMIT_NOT_EMPTY());
         }
+
+        if(StringUtils.isEmpty(request.getMinHitCount())){
+            throw new KylinException(EMPTY_MIN_HIT_COUNT, MsgPicker.getMsg().getMIN_HIT_COUNT_NOT_EMPTY());
+        }
+
+        if(StringUtils.isEmpty(request.getEffectiveDays())){
+            throw new KylinException(EMPTY_EFFECTIVE_DAYS, MsgPicker.getMsg().getEFFECTIVE_DAYS_NOT_EMPTY());
+        }
+
+        if(StringUtils.isEmpty(request.getUpdateFrequency())){
+            throw new KylinException(EMPTY_UPDATE_FREQUENCY, MsgPicker.getMsg().getUPDATE_FREQUENCY_NOT_EMPTY());
+        }
+
     }
 
     @ApiOperation(value = "getFavoriteRules", tags = {

@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.metadata.recommendation.candidate;
 
+import static io.kyligence.kap.metadata.favorite.FavoriteRule.MIN_HIT_COUNT;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -37,9 +39,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem.CostMethod;
 import io.kyligence.kap.metadata.recommendation.ref.LayoutRef;
 import io.kyligence.kap.metadata.recommendation.ref.OptRecV2;
 import lombok.extern.slf4j.Slf4j;
@@ -138,6 +142,10 @@ public class RawRecManager {
         rawRecManager.clearExistingCandidates(project, model);
         OptRecV2 optRecV2 = new OptRecV2(project, model, false);
         List<RawRecItem> topNCandidates = Lists.newArrayList();
+        int minCost = Integer.parseInt(
+                FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getValue(MIN_HIT_COUNT));
+
+        CostMethod costMethod = CostMethod.getCostMethod(project);
         int offset = 0;
         while (topNCandidates.size() < topN) {
             List<RawRecItem> rawRecItems = jdbcRawRecStore.chooseTopNCandidates(project, model, topN, offset,
@@ -149,6 +157,9 @@ public class RawRecManager {
             rawRecItems.forEach(recItem -> {
                 LayoutRef layoutRef = optRecV2.getAdditionalLayoutRefs().get(-recItem.getId());
                 if (layoutRef.isExcluded()) {
+                    return;
+                }
+                if (costMethod == CostMethod.HIT_COUNT && recItem.getCost() < minCost) {
                     return;
                 }
                 topNCandidates.add(optRecV2.getRawRecItemMap().get(recItem.getId()));

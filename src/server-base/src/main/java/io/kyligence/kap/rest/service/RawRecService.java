@@ -230,8 +230,7 @@ public class RawRecService {
 
     public static int recommendationSize(String project) {
         FavoriteRuleManager ruleManager = FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        FavoriteRule favoriteRule = FavoriteRule.getDefaultRule(
-                ruleManager.getByName(FavoriteRule.REC_SELECT_RULE_NAME), FavoriteRule.REC_SELECT_RULE_NAME);
+        FavoriteRule favoriteRule = ruleManager.getOrDefaultByName(FavoriteRule.REC_SELECT_RULE_NAME);
         FavoriteRule.Condition condition = (FavoriteRule.Condition) favoriteRule.getConds().get(0);
         return Integer.parseInt(condition.getRightThreshold());
     }

@@ -24,14 +24,19 @@
 
 package io.kyligence.kap.metadata.recommendation.candidate;
 
+import static org.apache.commons.lang3.time.DateUtils.MILLIS_PER_DAY;
+
 import java.io.IOException;
 import java.util.Locale;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.TimeUtil;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.base.Preconditions;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.entity.CCRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.DimensionRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
@@ -40,6 +45,7 @@ import io.kyligence.kap.metadata.recommendation.entity.RecItemV2;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+import lombok.val;
 
 @Getter
 @Setter
@@ -139,6 +145,27 @@ public class RawRecItem {
         if (state == RawRecState.DISCARD) {
             state = RawRecState.INITIAL;
         }
+    }
+
+    public void updateCost(CostMethod costMethod, long currentTime, int effectiveDays) {
+        long dayStart = getDateInMillis(currentTime);
+        double cost = 0;
+        if (costMethod == CostMethod.HIT_COUNT) {
+            val frequencyMap = getLayoutMetric().getFrequencyMap().getDateFrequency();
+            for (int days = 0; days < effectiveDays; days++) {
+                cost += frequencyMap.getOrDefault(dayStart - days * MILLIS_PER_DAY, 0);
+            }
+        } else {
+            LayoutMetric.LatencyMap latencyMap = getLayoutMetric().getLatencyMap();
+            for (int days = 0; days < effectiveDays; days++) {
+                cost += latencyMap.getLatencyByDate(dayStart - days * MILLIS_PER_DAY) / (Math.pow(Math.E, days));
+            }
+        }
+        setCost(cost);
+    }
+
+    private long getDateInMillis(final long queryTime) {
+        return TimeUtil.getDayStart(queryTime);
     }
 
     /**
@@ -253,5 +280,15 @@ public class RawRecItem {
 
     public enum IndexRecType {
         ADD_AGG_INDEX, REMOVE_AGG_INDEX, ADD_TABLE_INDEX, REMOVE_TABLE_INDEX
+    }
+
+    public enum CostMethod {
+        HIT_COUNT, TIME_DECAY;
+
+        public static CostMethod getCostMethod(String project) {
+            String method = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project)
+                    .getConfig().getRecommendationCostMethod();
+            return CostMethod.valueOf(method);
+        }
     }
 }

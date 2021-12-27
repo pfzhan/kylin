@@ -108,5 +108,4 @@ public class FrequencyMap implements Serializable {
     private long getDateInMillis(final long queryTime) {
         return TimeUtil.getDayStart(queryTime);
     }
-
 }

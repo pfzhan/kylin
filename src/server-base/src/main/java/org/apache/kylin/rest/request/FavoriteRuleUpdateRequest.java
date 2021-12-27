@@ -71,4 +71,10 @@ public class FavoriteRuleUpdateRequest implements Serializable, ProjectInsensiti
     private boolean excludeTablesEnable;
     @JsonProperty("excluded_tables")
     private String excludedTables;
+    @JsonProperty("min_hit_count")
+    private String minHitCount;
+    @JsonProperty("effective_days")
+    private String effectiveDays;
+    @JsonProperty("update_frequency")
+    private String updateFrequency;
 }

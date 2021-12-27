@@ -26,6 +26,7 @@ package io.kyligence.kap.metadata.favorite;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.RandomUtil;
@@ -43,14 +44,24 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 public class FavoriteRule extends RootPersistentEntity {
+
     public static final String FREQUENCY_RULE_NAME = "frequency";
     public static final String COUNT_RULE_NAME = "count";
     public static final String DURATION_RULE_NAME = "duration";
     public static final String SUBMITTER_RULE_NAME = "submitter";
     public static final String SUBMITTER_GROUP_RULE_NAME = "submitter_group";
     public static final String REC_SELECT_RULE_NAME = "recommendations";
-    public static final String BLACKLIST_NAME = "blacklist";
     public static final String EXCLUDED_TABLES_RULE = "excluded_tables";
+    public final static String MIN_HIT_COUNT = "min_hit_count";
+    public final static String EFFECTIVE_DAYS = "effective_days";
+    public final static String UPDATE_FREQUENCY = "update_frequency";
+
+    public static final List<String> FAVORITE_RULE_NAMES = Lists.newArrayList(FavoriteRule.COUNT_RULE_NAME,
+            FavoriteRule.FREQUENCY_RULE_NAME, FavoriteRule.DURATION_RULE_NAME, FavoriteRule.SUBMITTER_RULE_NAME,
+            FavoriteRule.SUBMITTER_GROUP_RULE_NAME, FavoriteRule.REC_SELECT_RULE_NAME,
+            FavoriteRule.EXCLUDED_TABLES_RULE, MIN_HIT_COUNT, EFFECTIVE_DAYS, UPDATE_FREQUENCY);
+
+    public static final List<String> NON_USE_RULES = Lists.newArrayList(FavoriteRule.FREQUENCY_RULE_NAME);
 
     public FavoriteRule(List<AbstractCondition> conds, String name, boolean isEnabled) {
         this.conds = conds;
@@ -64,6 +75,56 @@ public class FavoriteRule extends RootPersistentEntity {
     private String name;
     @JsonProperty("enabled")
     private boolean enabled;
+
+    public static List<FavoriteRule> getAllDefaultRule() {
+        return FAVORITE_RULE_NAMES.stream().map(ruleName -> getDefaultRuleIfNull(null, ruleName))
+                .collect(Collectors.toList());
+    }
+
+    public static FavoriteRule getDefaultRuleIfNull(FavoriteRule rule, String name) {
+        switch (name) {
+        case COUNT_RULE_NAME:
+        case SUBMITTER_GROUP_RULE_NAME:
+        case SUBMITTER_RULE_NAME:
+        case REC_SELECT_RULE_NAME:
+        case MIN_HIT_COUNT:
+        case UPDATE_FREQUENCY:
+        case EFFECTIVE_DAYS:
+            return rule == null ? new FavoriteRule(Lists.newArrayList(getDefaultCondition(name)), name, true) : rule;
+        case FREQUENCY_RULE_NAME:
+        case DURATION_RULE_NAME:
+        case EXCLUDED_TABLES_RULE:
+            return rule == null ? new FavoriteRule(Lists.newArrayList(getDefaultCondition(name)), name, false) : rule;
+        default:
+            return rule;
+        }
+    }
+
+    public static Condition getDefaultCondition(String ruleName) {
+        switch (ruleName) {
+        case COUNT_RULE_NAME:
+            return new Condition(null, "10");
+        case FREQUENCY_RULE_NAME:
+            return new Condition(null, "0.1");
+        case SUBMITTER_RULE_NAME:
+            return new Condition(null, "ADMIN");
+        case SUBMITTER_GROUP_RULE_NAME:
+            return new Condition(null, "ROLE_ADMIN");
+        case DURATION_RULE_NAME:
+            return new Condition("0", "180");
+        case REC_SELECT_RULE_NAME:
+            return new Condition(null, "20");
+        case EXCLUDED_TABLES_RULE:
+            return new Condition(null, "");
+        case MIN_HIT_COUNT:
+            return new Condition(null, "30");
+        case UPDATE_FREQUENCY:
+        case EFFECTIVE_DAYS:
+            return new Condition(null, "2");
+        default:
+            return null;
+        }
+    }
 
     @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS)
     @NoArgsConstructor
@@ -125,43 +186,6 @@ public class FavoriteRule extends RootPersistentEntity {
         @Override
         public int hashCode() {
             return this.sqlPattern.hashCode();
-        }
-    }
-
-    public static FavoriteRule getDefaultRule(FavoriteRule rule, String name) {
-        switch (name) {
-        case COUNT_RULE_NAME:
-        case SUBMITTER_GROUP_RULE_NAME:
-        case SUBMITTER_RULE_NAME:
-        case REC_SELECT_RULE_NAME:
-            return rule == null ? new FavoriteRule(Lists.newArrayList(getDefaultCondition(name)), name, true) : rule;
-        case FREQUENCY_RULE_NAME:
-        case DURATION_RULE_NAME:
-        case EXCLUDED_TABLES_RULE:
-            return rule == null ? new FavoriteRule(Lists.newArrayList(getDefaultCondition(name)), name, false) : rule;
-        default:
-            return rule;
-        }
-    }
-
-    public static Condition getDefaultCondition(String ruleName) {
-        switch (ruleName) {
-        case COUNT_RULE_NAME:
-            return new Condition(null, "10");
-        case FREQUENCY_RULE_NAME:
-            return new Condition(null, "0.1");
-        case SUBMITTER_RULE_NAME:
-            return new Condition(null, "ADMIN");
-        case SUBMITTER_GROUP_RULE_NAME:
-            return new Condition(null, "ROLE_ADMIN");
-        case DURATION_RULE_NAME:
-            return new Condition("0", "180");
-        case REC_SELECT_RULE_NAME:
-            return new Condition(null, "20");
-        case EXCLUDED_TABLES_RULE:
-            return new Condition(null, "");
-        default:
-            return null;
         }
     }
 }

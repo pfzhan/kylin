@@ -3065,7 +3065,6 @@ public abstract class KylinConfigBase implements Serializable {
         return Long.parseLong(getOptional("kylin.cache.ehcache.exception-time-to-idle-seconds", "600"));
     }
 
-
     public boolean isSkipBasicAuthorization() {
         return Boolean.parseBoolean(getOptional("kap.authorization.skip-basic-authorization", FALSE));
     }
@@ -3100,5 +3099,16 @@ public abstract class KylinConfigBase implements Serializable {
             longArray = Arrays.stream(dft).mapToLong(Long::parseLong).toArray();
         }
         return longArray;
+    }
+
+    public String getUpdateTopNTime() {
+        return getOptional("kylin.smart.update-topn-time", "00:00");
+    }
+    public long getUpdateTopNTimeGap() {
+        return Long.parseLong(getOptional("kylin.smart.update-topn-time-gap", "3600000"));
+    }
+
+    public String getRecommendationCostMethod() {
+        return getOptional("kylin.smart.update-cost-method", "HIT_COUNT");
     }
 }
