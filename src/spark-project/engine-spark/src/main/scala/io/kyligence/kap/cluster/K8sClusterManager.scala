@@ -65,12 +65,11 @@ class K8sClusterManager extends IClusterManager with Logging {
     logInfo(s"Kill Application $jobStepPrefix $jobStepId !")
     withKubernetesClient(kubernetesClient => {
       val pName = jobStepPrefix + jobStepId
-      val namespace = DEFAULT_NAMESPACE
       val pods = getPods(pName, kubernetesClient)
       if (!pods.isEmpty) {
         val ops = kubernetesClient
           .pods
-          .inNamespace(namespace)
+          .inNamespace(kubernetesClient.getNamespace)
         ops.delete(pods.asJava)
       }
     })
@@ -100,10 +99,9 @@ class K8sClusterManager extends IClusterManager with Logging {
   }
 
   private def getPods(pName: String, kubernetesClient: KubernetesClient) = {
-    val namespace = DEFAULT_NAMESPACE
     val ops = kubernetesClient
       .pods
-      .inNamespace(namespace)
+      .inNamespace(kubernetesClient.getNamespace)
     val pods = ops
       .list()
       .getItems
