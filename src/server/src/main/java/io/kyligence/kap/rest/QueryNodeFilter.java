@@ -44,7 +44,6 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import io.kyligence.kap.metadata.resourcegroup.ResourceGroupManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -79,6 +78,7 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.resourcegroup.ResourceGroupManager;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.interceptor.ProjectInfoParser;
 import lombok.val;
@@ -205,7 +205,7 @@ public class QueryNodeFilter implements Filter {
                     return;
                 }
 
-                if (EpochManager.getInstance(kylinConfig).isMaintenanceMode()) {
+                if (EpochManager.getInstance().isMaintenanceMode()) {
                     servletRequest.setAttribute(ERROR, new KylinException(SystemErrorCode.WRITE_IN_MAINTENANCE_MODE,
                             MsgPicker.getMsg().getWRITE_IN_MAINTENANCE_MODE()));
                     servletRequest.getRequestDispatcher(API_ERROR).forward(servletRequest, response);
@@ -316,7 +316,7 @@ public class QueryNodeFilter implements Filter {
             return false;
         }
 
-        if(!EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochOwner(project)){
+        if(!EpochManager.getInstance().checkEpochOwner(project)){
             return false;
         }
 

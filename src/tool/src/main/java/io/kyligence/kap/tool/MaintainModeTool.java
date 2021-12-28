@@ -124,7 +124,7 @@ public class MaintainModeTool extends ExecutableApplication {
         projects.add(UnitOfWork.GLOBAL_UNIT);
 
         owner = ipAndPort + "|" + Long.MAX_VALUE;
-        epochManager = EpochManager.getInstance(config);
+        epochManager = EpochManager.getInstance();
         epochManager.setIdentity(owner);
     }
 

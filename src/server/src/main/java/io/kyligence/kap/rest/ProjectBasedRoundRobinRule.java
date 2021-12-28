@@ -29,7 +29,6 @@ import static org.apache.kylin.common.exception.ServerErrorCode.SYSTEM_IS_RECOVE
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -67,7 +66,7 @@ public class ProjectBasedRoundRobinRule extends AbstractLoadBalancerRule {
     private Server choose(HttpServletRequest request) {
         Pair<String, HttpServletRequest> projectInfo = ProjectInfoParser.parseProjectInfo(request);
         String project = projectInfo.getFirst();
-        String owner = EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).getEpochOwner(project);
+        String owner = EpochManager.getInstance().getEpochOwner(project);
         if (StringUtils.isBlank(owner)) {
             Message msg = MsgPicker.getMsg();
             throw new KylinException(SYSTEM_IS_RECOVER, msg.getLEADERS_HANDLE_OVER());

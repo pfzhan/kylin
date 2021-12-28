@@ -22,8 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
-
 package io.kyligence.kap.metadata.epoch;
 
 import java.util.concurrent.Executors;
@@ -66,7 +64,7 @@ public class EpochOrchestrator {
     }
 
     public EpochOrchestrator(KylinConfig kylinConfig) {
-        epochMgr = EpochManager.getInstance(kylinConfig);
+        epochMgr = EpochManager.getInstance();
         String serverMode = kylinConfig.getServerMode();
         if (!kylinConfig.isJobNode()) {
             logger.info("server mode: {},  no need to run EventOrchestrator", serverMode);
@@ -129,7 +127,7 @@ public class EpochOrchestrator {
                 }
                 epochMgr.getEpochUpdateManager().tryRenewOwnedEpochs();
             } catch (Exception e) {
-                logger.error("Failed to renew epochs");
+                logger.error("Failed to renew epochs", e);
             } finally {
                 raceCheck.compareAndSet(true, false);
             }

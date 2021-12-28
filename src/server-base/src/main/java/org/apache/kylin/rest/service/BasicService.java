@@ -50,14 +50,9 @@ import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 
-import io.kyligence.kap.metadata.model.FusionModelManager;
-import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
-import io.kyligence.kap.metadata.streaming.StreamingJobStatsManager;
-import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
-import io.kyligence.kap.tool.restclient.RestClient;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.execution.NExecutableManager;
@@ -84,6 +79,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
+import io.kyligence.kap.metadata.model.FusionModelManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -93,6 +89,10 @@ import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
 import io.kyligence.kap.metadata.resourcegroup.ResourceGroupManager;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
+import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
+import io.kyligence.kap.metadata.streaming.StreamingJobStatsManager;
+import io.kyligence.kap.streaming.manager.StreamingJobManager;
+import io.kyligence.kap.tool.restclient.RestClient;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -239,7 +239,7 @@ public abstract class BasicService {
     public boolean remoteRequest(BroadcastEventReadyNotifier notifier, String projectId) {
         try {
             String projectName = notifier.getProject();
-            EpochManager epochManager = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
+            EpochManager epochManager = EpochManager.getInstance();
             if (StringUtils.isNotBlank(projectId)) {
                 projectName = getProjectManager().getProjectById(projectId).getName();
             }

@@ -184,7 +184,7 @@ public class RawRecService {
 
     public void updateCostsAndTopNCandidates(String projectName) {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        EpochManager epochMgr = EpochManager.getInstance(kylinConfig);
+        EpochManager epochMgr = EpochManager.getInstance();
 
         List<ProjectInstance> projectList = Lists.newArrayList();
         if (StringUtils.isEmpty(projectName)) {

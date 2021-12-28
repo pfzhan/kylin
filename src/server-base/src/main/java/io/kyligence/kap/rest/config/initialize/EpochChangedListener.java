@@ -73,14 +73,24 @@ public class EpochChangedListener {
     public void onProjectControlled(ProjectControlledNotifier notifier) throws IOException {
         String project = notifier.getProject();
         val kylinConfig = KylinConfig.getInstanceFromEnv();
+        val epochManager = EpochManager.getInstance();
         if (!GLOBAL.equals(project)) {
-            if (NDefaultScheduler.getInstance(project).hasStarted()) {
+
+            if (!EpochManager.getInstance().checkEpochValid(project)) {
+                log.warn("epoch:{} is invalid in project controlled", project);
                 return;
             }
 
-            if (!EpochManager.getInstance(kylinConfig).checkEpochValid(project)) {
-                log.warn("epoch:{} is invalid in project controlled", project);
+            val oldScheduler = NDefaultScheduler.getInstance(project);
+
+            if (oldScheduler.hasStarted()
+                    && epochManager.checkEpochId(oldScheduler.getContext().getEpochId(), project)) {
                 return;
+            }
+
+            // if epoch id check failed, shutdown first
+            if (oldScheduler.hasStarted()) {
+                oldScheduler.forceShutdown();
             }
 
             log.info("start thread of project: {}", project);

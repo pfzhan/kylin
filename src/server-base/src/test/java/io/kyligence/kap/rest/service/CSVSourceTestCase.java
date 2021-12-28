@@ -103,7 +103,7 @@ public class CSVSourceTestCase extends ServiceTestBase {
     }
 
     public EpochManager spyEpochManager() throws Exception {
-        return spyManager(EpochManager.getInstance(getTestConfig()), EpochManager.class);
+        return spyManager(EpochManager.getInstance(), EpochManager.class);
     }
 
     public NDataModelManager spyNDataModelManager() throws Exception {

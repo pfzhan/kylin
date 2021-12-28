@@ -25,9 +25,7 @@ package io.kyligence.kap.rest.config.initialize;
 
 import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasourceParameters;
 
-import io.kyligence.kap.rest.service.SourceUsageService;
 import org.apache.commons.dbcp.BasicDataSourceFactory;
-import org.apache.kylin.common.KylinConfig;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -44,6 +42,7 @@ import io.kyligence.kap.common.scheduler.SourceUsageVerifyNotifier;
 import io.kyligence.kap.common.util.LogOutputTestCase;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.epoch.EpochOrchestrator;
+import io.kyligence.kap.rest.service.SourceUsageService;
 import lombok.val;
 
 public class SourceUsageUpdateListenerTest extends LogOutputTestCase {
@@ -78,7 +77,7 @@ public class SourceUsageUpdateListenerTest extends LogOutputTestCase {
 
     @Test
     public void testOnUpdate() {
-        EpochManager epochManager = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
+        EpochManager epochManager = EpochManager.getInstance();
 
         String ownerIdentity = EpochOrchestrator.getOwnerIdentity();
         Epoch epoch = epochManager.getEpoch(EpochManager.GLOBAL);
@@ -107,7 +106,7 @@ public class SourceUsageUpdateListenerTest extends LogOutputTestCase {
 
     @Test
     public void testOnVerify() {
-        EpochManager epochManager = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
+        EpochManager epochManager = EpochManager.getInstance();
 
         String ownerIdentity = EpochOrchestrator.getOwnerIdentity();
         Epoch epoch = epochManager.getEpoch("default");

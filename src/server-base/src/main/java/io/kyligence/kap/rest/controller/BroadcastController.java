@@ -29,7 +29,6 @@ import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLI
 
 import java.io.IOException;
 
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.service.AccessService;
@@ -93,7 +92,7 @@ public class BroadcastController extends NBasicController {
 //        } else if (notifier instanceof RefreshVolumeBroadcastEventNotifier) {
 //            licenseInfoService.refreshLicenseVolume();
         } else if (notifier instanceof EpochCheckBroadcastNotifier) {
-            EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).updateAllEpochs();
+            EpochManager.getInstance().updateAllEpochs();
 //        } else if (notifier instanceof SourceUsageUpdateNotifier) {
 //            licenseInfoService.updateSourceUsage();
         } else if (notifier instanceof AclGrantEventNotifier) {

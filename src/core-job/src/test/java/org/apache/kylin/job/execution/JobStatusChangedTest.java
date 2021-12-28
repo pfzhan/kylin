@@ -61,7 +61,7 @@ public class JobStatusChangedTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void test_KE24110_FailSamplingJobWithEpochChanged() throws Exception {
-        EpochManager epcMgr = EpochManager.getInstance(config);
+        EpochManager epcMgr = EpochManager.getInstance();
         epcMgr.tryUpdateEpoch(project, true);
 
         NExecutableManager execMgr = NExecutableManager.getInstance(config, project);

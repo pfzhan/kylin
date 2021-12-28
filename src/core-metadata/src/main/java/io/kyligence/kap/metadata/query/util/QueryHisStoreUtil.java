@@ -177,7 +177,7 @@ public class QueryHisStoreUtil {
             getQueryHistoryDao().deleteQueryHistoriesIfMaxSizeReached();
             getQueryHistoryDao().deleteQueryHistoriesIfRetainTimeReached();
             for (ProjectInstance project : projectManager.listAllProjects()) {
-                if (!EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochOwner(project.getName()))
+                if (!EpochManager.getInstance().checkEpochOwner(project.getName()))
                     continue;
                 try {
                     long startTime = System.currentTimeMillis();

@@ -116,7 +116,7 @@ public class RecommendationTopNUpdateScheduler {
 
     private boolean notOwner(String project) {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        EpochManager epochMgr = EpochManager.getInstance(kylinConfig);
+        EpochManager epochMgr = EpochManager.getInstance();
         return !kylinConfig.isUTEnv() && !epochMgr.checkEpochOwner(project);
     }
 

@@ -34,10 +34,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
-
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.Unsafe;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
 import io.kyligence.kap.tool.MaintainModeTool;
@@ -54,7 +53,7 @@ public class KapPasswordResetCLI {
         maintainModeTool.init();
         try {
             maintainModeTool.markEpochs();
-            if (EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).isMaintenanceMode()) {
+            if (EpochManager.getInstance().isMaintenanceMode()) {
                 Runtime.getRuntime().addShutdownHook(new Thread(maintainModeTool::releaseEpochs));
             }
             exit = reset() ? 0 : 1;

@@ -35,7 +35,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
-import io.kyligence.kap.tool.restclient.RestClient;
 import org.apache.kylin.rest.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,6 +55,7 @@ import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
 import io.kyligence.kap.rest.service.MaintenanceModeService;
+import io.kyligence.kap.tool.restclient.RestClient;
 
 public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider {
 
@@ -144,7 +144,7 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
 
     private void updateUser(ManagedUser managedUser) {
         boolean isOwner = false;
-        EpochManager manager = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
+        EpochManager manager = EpochManager.getInstance();
         try {
             isOwner = manager.checkEpochOwner(EpochManager.GLOBAL);
         } catch (Exception e) {

@@ -27,9 +27,12 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import io.kyligence.kap.common.util.AbstractJdbcMetadataTestCase;
+import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.tool.MaintainModeTool;
+import lombok.val;
 
 public class MaintainModeToolTest extends AbstractJdbcMetadataTestCase {
 
@@ -53,6 +56,27 @@ public class MaintainModeToolTest extends AbstractJdbcMetadataTestCase {
     public void testEnterMaintainMode() {
         MaintainModeTool maintainModeTool = new MaintainModeTool();
         maintainModeTool.execute(new String[] { "-on", "-reason", "test" });
+    }
+
+    @Test
+    public void testEnterMaintainModeEpochCheck() {
+        EpochManager epochManager = EpochManager.getInstance();
+        epochManager.tryUpdateEpoch(EpochManager.GLOBAL, true);
+
+        val globalEpoch = epochManager.getGlobalEpoch();
+        int id = 1234;
+        globalEpoch.setEpochId(id);
+
+        ReflectionTestUtils.invokeMethod(epochManager, "insertOrUpdateEpoch", globalEpoch);
+
+        Assert.assertEquals(epochManager.getGlobalEpoch().getEpochId(), id);
+        MaintainModeTool maintainModeTool = new MaintainModeTool();
+        maintainModeTool.execute(new String[] { "-on", "-reason", "test" });
+
+        Assert.assertEquals(epochManager.getGlobalEpoch().getEpochId(), id + 1);
+
+        maintainModeTool.execute(new String[] { "-off", "--force" });
+        Assert.assertEquals(epochManager.getGlobalEpoch().getEpochId(), id + 2);
     }
 
     @Test

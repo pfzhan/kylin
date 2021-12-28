@@ -27,8 +27,10 @@ package io.kyligence.kap.metadata.epoch;
 import static io.kyligence.kap.common.util.AddressUtil.MAINTAIN_MODE_MOCK_PORT;
 import static io.kyligence.kap.metadata.epoch.EpochUpdateLockManager.executeEpochWithLock;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -37,6 +39,7 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -45,7 +48,6 @@ import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import io.kyligence.kap.common.scheduler.SourceUsageVerifyNotifier;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -67,6 +69,7 @@ import io.kyligence.kap.common.scheduler.EpochStartedNotifier;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.scheduler.ProjectControlledNotifier;
 import io.kyligence.kap.common.scheduler.ProjectEscapedNotifier;
+import io.kyligence.kap.common.scheduler.SourceUsageVerifyNotifier;
 import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.guava20.shaded.common.collect.Sets;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -78,10 +81,10 @@ import lombok.val;
 public class EpochManager {
     private static final Logger logger = LoggerFactory.getLogger(EpochManager.class);
 
-    public static EpochManager getInstance(KylinConfig config) {
+    public static EpochManager getInstance() {
         return Singletons.getInstance(EpochManager.class, clz -> {
             try {
-                return newInstance(config);
+                return new EpochManager();
             } catch (Exception e) {
                 throw Throwables.propagate(e);
             }
@@ -92,19 +95,14 @@ public class EpochManager {
 
     private static final String MAINTAIN_OWNER;
 
-    private EpochStore epochStore;
+    private final EpochStore epochStore;
 
-    // called by reflection
-    @SuppressWarnings("unused")
-    private static EpochManager newInstance(KylinConfig config) throws Exception {
-        return new EpochManager(config);
-    }
-
-    // ============================================================================
-
-    private KylinConfig config;
+    private final KylinConfig config;
     private String identity;
-    private EventBusFactory eventBusFactory;
+    private final EventBusFactory eventBusFactory;
+    private final String serverMode;
+    private final boolean epochCheckEnabled;
+    private final long epochExpiredTime;
 
     @Getter
     private final EpochUpdateManager epochUpdateManager;
@@ -113,34 +111,44 @@ public class EpochManager {
         MAINTAIN_OWNER = AddressUtil.getMockPortAddress() + "|" + Long.MAX_VALUE;
     }
 
-    private EpochManager(KylinConfig cfg) throws Exception {
-        this.config = cfg;
+    private EpochManager() throws Exception {
+        this.config = KylinConfig.readSystemKylinConfig();
         this.identity = EpochOrchestrator.getOwnerIdentity();
-        eventBusFactory = EventBusFactory.getInstance();
-        epochStore = EpochStore.getEpochStore(config);
-        epochUpdateManager = new EpochUpdateManager();
+        this.eventBusFactory = EventBusFactory.getInstance();
+        this.epochStore = EpochStore.getEpochStore(config);
+        this.serverMode = config.getServerMode();
+        this.epochCheckEnabled = config.getEpochCheckerEnabled();
+        this.epochExpiredTime = config.getEpochExpireTimeSecond();
+        this.epochUpdateManager = new EpochUpdateManager();
 
     }
 
     public class EpochUpdateManager {
-        private AtomicBoolean updateStarted = new AtomicBoolean(false);
+        private final AtomicBoolean updateStarted;
 
         private final ExecutorService renewExecutor;
 
         private final Object renewLock = new Object();
         private final Object updateLock = new Object();
 
+        private final int renewWorkerSize = config.getRenewEpochWorkerPoolSize();
+        private final int renewBatchSize = config.getRenewEpochBatchSize();
+
+        private final Set<String> lastRenewEpochSet = Sets.newConcurrentHashSet();
+
         EpochUpdateManager() {
-            renewExecutor = Executors.newFixedThreadPool(config.getRenewEpochWorkerPoolSize(),
-                    new NamedThreadFactory("renew-epoch"));
+            Preconditions.checkArgument(renewWorkerSize > 0, "illegal renew worker size %s", renewWorkerSize);
+            Preconditions.checkArgument(renewBatchSize > 0, "illegal renew renew batch size %s", renewBatchSize);
+            updateStarted = new AtomicBoolean(false);
+            renewExecutor = Executors.newFixedThreadPool(renewWorkerSize, new NamedThreadFactory("renew-epoch"));
         }
 
-        private List<String> queryEpochAlreadyOwned() {
-            return epochStore.list().stream().filter(EpochManager.this::checkEpochOwnerOnly).map(Epoch::getEpochTarget)
+        private List<Epoch> queryEpochAlreadyOwned() {
+            return epochStore.list().stream().filter(EpochManager.this::checkEpochOwnerOnly)
                     .collect(Collectors.toList());
         }
 
-        private Pair<HashSet<String>, List<String>> checkAndGetProjectEpoch(boolean removeOutdatedEpoch) {
+        private Pair<HashSet<Epoch>, List<String>> checkAndGetProjectEpoch(boolean removeOutdatedEpoch) {
             if (checkInMaintenanceMode()) {
                 return null;
             }
@@ -155,12 +163,14 @@ public class EpochManager {
             return new Pair<>(oriEpochs, projects);
         }
 
-        private void removeOutdatedOwnedEpoch(final Set<String> alreadyOwnedSets, final Set<String> projectSets) {
+        private void removeOutdatedOwnedEpoch(final Set<Epoch> alreadyOwnedSets, final Set<String> projectSets) {
             if (CollectionUtils.isEmpty(alreadyOwnedSets)) {
                 return;
             }
 
-            val outdatedProjects = new HashSet<>(Sets.difference(alreadyOwnedSets, projectSets));
+            val epochTargetList = alreadyOwnedSets.stream().map(Epoch::getEpochTarget).collect(Collectors.toSet());
+
+            val outdatedProjects = new HashSet<>(Sets.difference(epochTargetList, projectSets));
 
             if (CollectionUtils.isNotEmpty(outdatedProjects)) {
                 outdatedProjects.forEach(EpochManager.this::deleteEpoch);
@@ -172,72 +182,114 @@ public class EpochManager {
         @Synchronized("renewLock")
         void tryRenewOwnedEpochs() {
             logger.debug("Start renew owned epoch.........");
+            long startTime = System.currentTimeMillis();
 
             //1.check and get project
             val epochSetProjectListPair = checkAndGetProjectEpoch(true);
             if (Objects.isNull(epochSetProjectListPair)) {
                 return;
             }
-            val oriEpochs = epochSetProjectListPair.getFirst();
+            val oriOwnedEpochSet = epochSetProjectListPair.getFirst();
             val projects = epochSetProjectListPair.getSecond();
 
             //2.only retain the project that is legal
-            if (CollectionUtils.isNotEmpty(oriEpochs) && CollectionUtils.isNotEmpty(projects)) {
-                oriEpochs.retainAll(projects);
+            if (CollectionUtils.isNotEmpty(oriOwnedEpochSet) && CollectionUtils.isNotEmpty(projects)) {
+                oriOwnedEpochSet.removeIf(epoch -> !projects.contains(epoch.getEpochTarget()));
             }
 
-            if (CollectionUtils.isEmpty(oriEpochs)) {
+            if (CollectionUtils.isEmpty(oriOwnedEpochSet)) {
                 logger.info("current node own none project, end renew...");
                 return;
             }
 
             //3.concurrent to update
-            CountDownLatch latch = new CountDownLatch(oriEpochs.size());
+            final Set<String> afterRenewEpochSets = innerRenewEpochWithRetry(
+                    Collections.unmodifiableSet(oriOwnedEpochSet));
 
-            val newRenewEpochs = Sets.<String> newConcurrentHashSet();
+            notifierAfterUpdatedEpoch("renew", lastRenewEpochSet, afterRenewEpochSets);
+            lastRenewEpochSet.clear();
+            lastRenewEpochSet.addAll(afterRenewEpochSets);
+            logger.debug("End renew owned epoch,cost:{}.........",
+                    TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - startTime));
+        }
 
-            oriEpochs.forEach(project -> {
+        private Set<String> innerRenewEpochWithRetry(Set<Epoch> oriEpochs) {
+            val successRenewEpochSets = Sets.<String> newHashSet();
+            int retry = 1;
+            Set<Epoch> needRenewSets = oriEpochs;
+            while (retry >= 0) {
+                retry--;
+
+                // sort by renew time
+                val renewEpochList = new ArrayList<>(needRenewSets);
+                renewEpochList.sort(Comparator.comparingLong(Epoch::getLastEpochRenewTime));
+
+                Set<String> finishedSets = innerRenewEpoch(renewEpochList);
+                successRenewEpochSets.addAll(finishedSets);
+
+                if (successRenewEpochSets.size() == needRenewSets.size()) {
+                    break;
+                }
+
+                // need retry
+                // check epoch owner again
+                val curOwnedEpochTargetSet = queryEpochAlreadyOwned().stream().map(Epoch::getEpochTarget)
+                        .collect(Collectors.toSet());
+                needRenewSets = oriEpochs.stream().filter(e -> !finishedSets.contains(e.getEpochTarget())
+                        && curOwnedEpochTargetSet.contains(e.getEpochTarget())).collect(Collectors.toSet());
+            }
+
+            return successRenewEpochSets;
+        }
+
+        private Set<String> innerRenewEpoch(List<Epoch> oriEpochs) {
+            val newRenewEpochSets = Sets.<String> newConcurrentHashSet();
+
+            val totalTask = Lists.partition(oriEpochs, renewBatchSize);
+
+            CountDownLatch countDownLatch = new CountDownLatch(totalTask.size());
+
+            totalTask.forEach(taskEpochList -> {
+                val epochTargetList = taskEpochList.stream().map(Epoch::getEpochTarget).collect(Collectors.toList());
                 renewExecutor.submit(() -> {
                     try {
-                        executeEpochWithLock(project, () -> {
-                            if (updateEpochByProject(project)) {
-                                newRenewEpochs.add(project);
-                            }
-                            return null;
-                        });
+                        if (CollectionUtils.isNotEmpty(epochTargetList)) {
+                            batchRenewEpoch(taskEpochList);
+                            newRenewEpochSets.addAll(epochTargetList);
+                        }
                     } catch (Exception e) {
-                        logger.error("update epoch project:{} error,", project, e);
+                        logger.error("renew task error,", e);
                     } finally {
-                        latch.countDown();
+                        countDownLatch.countDown();
                     }
-
                 });
             });
 
             try {
-                latch.await();
+                if (!countDownLatch.await(epochExpiredTime, TimeUnit.SECONDS)) {
+                    logger.error("renew not finished,{}/{}...", newRenewEpochSets.size(), oriEpochs.size());
+                }
             } catch (InterruptedException e) {
-                logger.error("renew epoch is interrupted....", e);
-                return;
+                logger.error("renew timeout...", e);
             }
-
-            notifierAfterUpdatedEpoch("renew", oriEpochs, newRenewEpochs);
-            logger.debug("End renew owned epoch.........");
+            return newRenewEpochSets;
         }
 
         @Synchronized("updateLock")
         void tryUpdateAllEpochs() {
             logger.debug("Start update Epochs.........");
+            long startTime = System.currentTimeMillis();
 
             //1.check and get project
             val epochSetProjectListPair = checkAndGetProjectEpoch(false);
             if (Objects.isNull(epochSetProjectListPair)) {
                 return;
             }
-            val oriEpochs = epochSetProjectListPair.getFirst();
+            val oriEpochs = epochSetProjectListPair.getFirst().stream().map(Epoch::getEpochTarget)
+                    .collect(Collectors.toSet());
             val projects = epochSetProjectListPair.getSecond();
 
-            //2.if update owned epoch only, remove all already project
+            //2.if update owned epoch only, remove all already owned project
             if (CollectionUtils.isNotEmpty(oriEpochs)) {
                 projects.removeAll(oriEpochs);
             }
@@ -248,11 +300,12 @@ public class EpochManager {
             }
 
             //3.update one by one
-            Set<String> updatedNewEpochs = tryUpdateEpochByProjects(projects);
+            Set<String> updatedMewEpochs = tryUpdateEpochByProjects(projects);
 
-            notifierAfterUpdatedEpoch("update", null, updatedNewEpochs);
+            notifierAfterUpdatedEpoch("update", Collections.emptySet(), updatedMewEpochs);
 
-            logger.debug("End update Epochs:.........");
+            logger.debug("End update Epochs,cost:{}:.........",
+                    TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - startTime));
         }
 
         private Set<String> tryUpdateEpochByProjects(final List<String> projects) {
@@ -285,27 +338,36 @@ public class EpochManager {
         }
 
         private void notifierEscapedProject(final Collection<String> escapedProjects) {
-            if (CollectionUtils.isNotEmpty(escapedProjects)) {
-                for (String project : escapedProjects) {
-                    eventBusFactory.postAsync(new ProjectEscapedNotifier(project));
-                }
-
-                logger.warn("notifier escaped project:{}", String.join(",", escapedProjects));
+            if (CollectionUtils.isEmpty(escapedProjects)) {
+                return;
             }
+
+            for (String project : escapedProjects) {
+                eventBusFactory.postAsync(new ProjectEscapedNotifier(project));
+            }
+
+            logger.warn("notifier escaped project:{}", String.join(",", escapedProjects));
         }
 
-        private void notifierAfterUpdatedEpoch(String updateTypeName, @Nullable Set<String> oriEpochs,
-                Set<String> newEpochs) {
+        private void notifierAfterUpdatedEpoch(String updateTypeName, Set<String> oriEpochs, Set<String> newEpochs) {
             logger.debug("after {} new epoch size:{}, Project {} owned by {}", updateTypeName, newEpochs.size(),
                     String.join(",", newEpochs), identity);
 
-            for (String project : newEpochs) {
-                eventBusFactory.postAsync(new ProjectControlledNotifier(project));
+            if (CollectionUtils.isNotEmpty(newEpochs)) {
+                Collection<String> newControlledProjects = new HashSet<>(Sets.difference(newEpochs, oriEpochs));
+                if (CollectionUtils.isNotEmpty(newControlledProjects)) {
+                    logger.debug("after {} controlled projects: {}", updateTypeName,
+                            String.join(",", newControlledProjects));
+                    newControlledProjects.forEach(p -> eventBusFactory.postAsync(new ProjectControlledNotifier(p)));
+                }
             }
 
             if (CollectionUtils.isNotEmpty(oriEpochs)) {
                 Collection<String> escapedProjects = new HashSet<>(Sets.difference(oriEpochs, newEpochs));
-                notifierEscapedProject(escapedProjects);
+                if (CollectionUtils.isNotEmpty(escapedProjects)) {
+                    logger.debug("after {} escaped projects: {}", updateTypeName, String.join(",", escapedProjects));
+                    notifierEscapedProject(escapedProjects);
+                }
             }
 
             if (updateStarted.compareAndSet(false, true)) {
@@ -316,7 +378,7 @@ public class EpochManager {
     }
 
     private List<String> listProjectWithPermission() {
-        List<String> projects = config.getEpochCheckerEnabled() ? getProjectsToMarkOwner()
+        List<String> projects = epochCheckEnabled ? getProjectsToMarkOwner()
                 : NProjectManager.getInstance(config).listAllProjects().stream().map(ProjectInstance::getName)
                         .collect(Collectors.toList());
         projects.add(GLOBAL);
@@ -379,6 +441,23 @@ public class EpochManager {
                 .collect(Collectors.toList());
     }
 
+    public void batchRenewEpoch(Collection<Epoch> epochList) {
+        List<Epoch> needUpdateEpochList = Lists.newArrayList();
+        epochList.forEach(epoch -> {
+            Pair<Epoch, Epoch> pair = oldEpoch2NewEpoch(epoch, epoch.getEpochTarget(), true, null);
+            if (Objects.nonNull(pair)) {
+                needUpdateEpochList.add(pair.getSecond());
+            }
+        });
+
+        epochStore.executeWithTransaction(() -> {
+            if (CollectionUtils.isNotEmpty(needUpdateEpochList)) {
+                epochStore.updateBatch(needUpdateEpochList);
+            }
+            return null;
+        });
+    }
+
     /**
      * the method only update epoch'meta,
      * will not post ProjectControlledNotifier event
@@ -390,7 +469,7 @@ public class EpochManager {
      * @param expectedIsMaintenance the expected maintenance mode
      * @return
      */
-    public boolean tryForceInsertOrUpdateEpochBatchTransaction(List<String> projects, boolean skipCheckMaintMode,
+    public boolean tryForceInsertOrUpdateEpochBatchTransaction(Collection<String> projects, boolean skipCheckMaintMode,
             String maintenanceModeReason, boolean expectedIsMaintenance) {
         if ((!skipCheckMaintMode && !checkExpectedIsMaintenance(expectedIsMaintenance))
                 || CollectionUtils.isEmpty(projects)) {
@@ -509,19 +588,22 @@ public class EpochManager {
     }
 
     private Epoch getNewEpoch(@Nullable Epoch epoch, boolean force, @Nonnull String epochTarget) {
-        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        if (!kylinConfig.getEpochCheckerEnabled()) {
-            Epoch newEpoch = new Epoch(1L, epochTarget, identity, Long.MAX_VALUE, kylinConfig.getServerMode(), null,
-                    0L);
+        if (!epochCheckEnabled || (isMaintenanceIdentity(identity) && epoch == null)) {
+            Epoch newEpoch = new Epoch(1L, epochTarget, identity, Long.MAX_VALUE, serverMode, null, 0L);
             newEpoch.setMvcc(epoch == null ? 0 : epoch.getMvcc());
             return newEpoch;
         }
+
+        if (isMaintenanceIdentity(identity)) {
+            return new Epoch(epoch.getEpochId() + 1, epochTarget, identity, Long.MAX_VALUE, serverMode, null,
+                    epoch.getMvcc());
+        }
+
         if (!currentInstanceHasPermissionToOwn(epochTarget, force)) {
             return null;
         }
         if (epoch == null) {
-            epoch = new Epoch(1L, epochTarget, identity, System.currentTimeMillis(), kylinConfig.getServerMode(), null,
-                    0L);
+            epoch = new Epoch(1L, epochTarget, identity, System.currentTimeMillis(), serverMode, null, 0L);
         } else {
             if (!checkEpochOwnerOnly(epoch)) {
                 if (isEpochLegal(epoch) && !force) {
@@ -529,7 +611,7 @@ public class EpochManager {
                 }
                 epoch.setEpochId(epoch.getEpochId() + 1);
             }
-            epoch.setServerMode(kylinConfig.getServerMode());
+            epoch.setServerMode(serverMode);
             epoch.setLastEpochRenewTime(System.currentTimeMillis());
             epoch.setCurrentEpochOwner(identity);
         }
@@ -586,7 +668,7 @@ public class EpochManager {
         if (force) {
             return true;
         }
-        ResourceGroupManager rgManager = ResourceGroupManager.getInstance(KylinConfig.getInstanceFromEnv());
+        ResourceGroupManager rgManager = ResourceGroupManager.getInstance(config);
         return rgManager.instanceHasPermissionToOwnEpochTarget(epochTarget, AddressUtil.getLocalInstance());
     }
 
@@ -597,10 +679,9 @@ public class EpochManager {
         } else if (StringUtils.isEmpty(epoch.getCurrentEpochOwner())) {
             logger.debug("Epoch {}'s owner is empty", epoch);
             return false;
-        } else if (System.currentTimeMillis() - epoch.getLastEpochRenewTime() > config.getEpochExpireTimeSecond()
-                * 1000) {
+        } else if (System.currentTimeMillis() - epoch.getLastEpochRenewTime() > epochExpiredTime * 1000) {
             logger.warn("Epoch {}'s last renew time is expired. Current time is {}, expiredTime is {}", epoch,
-                    System.currentTimeMillis(), config.getEpochExpireTimeSecond());
+                    System.currentTimeMillis(), epochExpiredTime);
             return false;
         }
 
@@ -631,8 +712,7 @@ public class EpochManager {
 
         //get origin project name
         if (!isGlobalProject(epochTargetTemp)) {
-            val targetProjectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
-                    .getProject(epochTargetTemp);
+            val targetProjectInstance = NProjectManager.getInstance(config).getProject(epochTargetTemp);
             if (Objects.isNull(targetProjectInstance)) {
                 logger.warn("get epoch failed, because the project:{} dose not exist", epochTargetTemp);
                 return null;
@@ -694,11 +774,15 @@ public class EpochManager {
 
     public Pair<Boolean, String> getMaintenanceModeDetail(String epochTarget) {
         Epoch epoch = epochStore.getEpoch(epochTarget);
-        if (epoch != null && epoch.getCurrentEpochOwner().contains(":" + MAINTAIN_MODE_MOCK_PORT)) {
+        if (epoch != null && isMaintenanceIdentity(epoch.getCurrentEpochOwner())) {
             return Pair.newPair(true, epoch.getMaintenanceModeReason());
         }
 
         return Pair.newPair(false, null);
+    }
+
+    public static boolean isMaintenanceIdentity(String identity) {
+        return StringUtils.contains(identity, ":" + MAINTAIN_MODE_MOCK_PORT);
     }
 
     public boolean isMaintenanceMode() {

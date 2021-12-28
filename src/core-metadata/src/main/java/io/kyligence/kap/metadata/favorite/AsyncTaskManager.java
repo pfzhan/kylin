@@ -114,7 +114,7 @@ public class AsyncTaskManager {
             return;
         }
 
-        if (!EpochManager.getInstance(kylinConfig).checkEpochOwner(project) && !kylinConfig.isUTEnv()) {
+        if (!EpochManager.getInstance().checkEpochOwner(project) && !kylinConfig.isUTEnv()) {
             return;
         }
 

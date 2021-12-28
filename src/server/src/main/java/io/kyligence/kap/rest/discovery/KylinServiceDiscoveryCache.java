@@ -49,7 +49,6 @@ import org.apache.curator.x.discovery.ServiceCache;
 import org.apache.curator.x.discovery.ServiceDiscovery;
 import org.apache.curator.x.discovery.ServiceInstance;
 import org.apache.curator.x.discovery.details.ServiceCacheListener;
-import org.apache.kylin.common.KylinConfig;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -88,7 +87,7 @@ public class KylinServiceDiscoveryCache implements KylinServiceDiscovery {
 
     private static final Callback UPDATE_ALL_EPOCHS = () -> {
         try {
-            EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).updateAllEpochs();
+            EpochManager.getInstance().updateAllEpochs();
         } catch (Exception e) {
             logger.error("UpdateAllEpochs failed", e);
         }

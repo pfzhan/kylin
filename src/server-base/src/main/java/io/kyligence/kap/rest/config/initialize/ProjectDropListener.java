@@ -23,14 +23,8 @@
  */
 package io.kyligence.kap.rest.config.initialize;
 
-import io.kyligence.kap.common.metrics.MetricsGroup;
-import io.kyligence.kap.metadata.epoch.EpochManager;
-import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
-import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
-import io.kyligence.kap.rest.service.task.QueryHistoryTaskScheduler;
-import io.kyligence.kap.streaming.manager.StreamingJobManager;
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
+import java.io.IOException;
+
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
@@ -38,7 +32,14 @@ import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 
-import java.io.IOException;
+import io.kyligence.kap.common.metrics.MetricsGroup;
+import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
+import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
+import io.kyligence.kap.rest.service.task.QueryHistoryTaskScheduler;
+import io.kyligence.kap.streaming.manager.StreamingJobManager;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ProjectDropListener {
@@ -60,7 +61,7 @@ public class ProjectDropListener {
             if (KylinConfig.getInstanceFromEnv().isPrometheusMetricsEnabled()) {
                 MetricsRegistry.deletePrometheusProjectMetrics(project);
             }
-            EpochManager epochManager = EpochManager.getInstance(kylinConfig);
+            EpochManager epochManager = EpochManager.getInstance();
             epochManager.deleteEpoch(project);
             deleteStorage(kylinConfig, project.split("\\.")[0]);
         } catch (Exception e) {

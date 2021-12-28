@@ -60,7 +60,7 @@ public class EnhancedUnitOfWork {
         MetadataStore metadataStore = ResourceStore.getKylinMetaStore(config).getMetadataStore();
         if (!config.isUTEnv() && metadataStore instanceof JdbcMetadataStore) {
             params.setEpochChecker(() -> {
-                if (!EpochManager.getInstance(config).checkEpochOwner(params.getUnitName())) {
+                if (!EpochManager.getInstance().checkEpochOwner(params.getUnitName())) {
                     throw new EpochNotMatchException(MsgPicker.getMsg().getLEADERS_HANDLE_OVER(), params.getUnitName());
                 }
                 return null;

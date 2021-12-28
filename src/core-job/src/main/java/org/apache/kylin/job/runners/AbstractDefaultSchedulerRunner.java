@@ -23,15 +23,17 @@
  */
 package org.apache.kylin.job.runners;
 
-import io.kyligence.kap.common.logging.SetLogCategory;
-import io.kyligence.kap.metadata.epoch.EpochManager;
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.ExecutableContext;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.kyligence.kap.common.logging.SetLogCategory;
+import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import lombok.SneakyThrows;
 
 public abstract class AbstractDefaultSchedulerRunner implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(AbstractDefaultSchedulerRunner.class);
@@ -41,15 +43,21 @@ public abstract class AbstractDefaultSchedulerRunner implements Runnable {
 
     protected final String project;
 
-
     public AbstractDefaultSchedulerRunner(final NDefaultScheduler nDefaultScheduler) {
         this.nDefaultScheduler = nDefaultScheduler;
         this.context = nDefaultScheduler.getContext();
         this.project = nDefaultScheduler.getProject();
     }
 
+    @SneakyThrows
     private boolean checkEpochIdFailed() {
-        if (!KylinConfig.getInstanceFromEnv().isUTEnv() && !EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochId(context.getEpochId(), project)) {
+        //check failed if isInterrupted
+        if (Thread.currentThread().isInterrupted()) {
+            throw new InterruptedException();
+        }
+
+        if (!KylinConfig.getInstanceFromEnv().isUTEnv()
+                && !EpochManager.getInstance().checkEpochId(context.getEpochId(), project)) {
             nDefaultScheduler.forceShutdown();
             return true;
         }
@@ -70,7 +78,7 @@ public abstract class AbstractDefaultSchedulerRunner implements Runnable {
                     }
                     return null;
                 }, context.getEpochId(), project);
-            }catch (Exception e) {
+            } catch (Exception e) {
                 logger.warn("[UNEXPECTED_THINGS_HAPPENED] project {} job {} failed to pause", project, jobId, e);
             }
         }

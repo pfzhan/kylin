@@ -33,7 +33,6 @@ import javax.servlet.ReadListener;
 import javax.servlet.ServletInputStream;
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.junit.After;
 import org.junit.Assert;
@@ -121,7 +120,7 @@ public class ProjectBasedRoundRobinRuleTest extends NLocalFileMetadataTestCase {
     private void createTestProjectAndEpoch(String project) {
         NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
         projectManager.createProject(project, "abcd", "", null, MaintainModelType.MANUAL_MAINTAIN);
-        EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).updateEpochWithNotifier(project, false);
+        EpochManager.getInstance().updateEpochWithNotifier(project, false);
 
     }
 

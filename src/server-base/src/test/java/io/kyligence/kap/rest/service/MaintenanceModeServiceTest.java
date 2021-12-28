@@ -63,7 +63,7 @@ public class MaintenanceModeServiceTest extends CSVSourceTestCase {
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
         ReflectionTestUtils.setField(maintenanceModeService, "aclEvaluate", aclEvaluate);
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        EpochManager epochManager = EpochManager.getInstance(config);
+        EpochManager epochManager = EpochManager.getInstance();
         Assert.assertNull(epochManager.getGlobalEpoch());
         try {
             epochManager.tryUpdateEpoch(EpochManager.GLOBAL, false);
@@ -75,7 +75,7 @@ public class MaintenanceModeServiceTest extends CSVSourceTestCase {
     @Test
     public void testSetMaintenanceMode() throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        EpochManager epochManager = EpochManager.getInstance(config);
+        EpochManager epochManager = EpochManager.getInstance();
         Assert.assertFalse(epochManager.isMaintenanceMode());
         maintenanceModeService.setMaintenanceMode("MODE1");
         Assert.assertTrue(epochManager.isMaintenanceMode());
@@ -86,7 +86,7 @@ public class MaintenanceModeServiceTest extends CSVSourceTestCase {
     @Test
     public void testSetMaintenanceModeTwice() throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        EpochManager epochManager = EpochManager.getInstance(config);
+        EpochManager epochManager = EpochManager.getInstance();
         Assert.assertFalse(epochManager.isMaintenanceMode());
         maintenanceModeService.setMaintenanceMode("MODE1");
         Assert.assertTrue(epochManager.isMaintenanceMode());
@@ -98,7 +98,7 @@ public class MaintenanceModeServiceTest extends CSVSourceTestCase {
     @Test
     public void testUnsetMaintenanceModeTwice() throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        EpochManager epochManager = EpochManager.getInstance(config);
+        EpochManager epochManager = EpochManager.getInstance();
         Assert.assertFalse(epochManager.isMaintenanceMode());
         thrown.expect(KylinException.class);
         thrown.expectMessage("System is not in maintenance mode");

@@ -23,7 +23,6 @@
  */
 package io.kyligence.kap.tool.routine;
 
-import lombok.val;
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.Assert;
 import org.junit.Before;
@@ -35,6 +34,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import io.kyligence.kap.common.persistence.metadata.Epoch;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.epoch.EpochManager;
+import lombok.val;
 
 public class RoutineToolTest extends NLocalFileMetadataTestCase {
 
@@ -48,7 +48,7 @@ public class RoutineToolTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testFastRoutineToolMaintenanceMode() {
-        EpochManager epochManager = EpochManager.getInstance(getTestConfig());
+        EpochManager epochManager = EpochManager.getInstance();
         epochManager.tryUpdateEpoch(EpochManager.GLOBAL, false);
 
         FastRoutineTool routineTool = new FastRoutineTool();
@@ -61,7 +61,7 @@ public class RoutineToolTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testFastRoutineToolMaintenanceMode2() {
-        EpochManager epochManager = EpochManager.getInstance(getTestConfig());
+        EpochManager epochManager = EpochManager.getInstance();
         epochManager.tryUpdateEpoch(EpochManager.GLOBAL, false);
 
         FastRoutineTool routineTool = new FastRoutineTool();
@@ -165,7 +165,7 @@ public class RoutineToolTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testExecuteRoutineReleaseEpochs1() {
-        EpochManager epochManager = EpochManager.getInstance(getTestConfig());
+        EpochManager epochManager = EpochManager.getInstance();
         epochManager.tryUpdateEpoch(EpochManager.GLOBAL, false);
 
         RoutineTool routineTool = new RoutineTool();

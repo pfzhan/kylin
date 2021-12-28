@@ -59,7 +59,7 @@ public class FastRoutineTool extends RoutineTool {
                 MaintainModeTool maintainModeTool = new MaintainModeTool("fast routine tool");
                 maintainModeTool.init();
                 maintainModeTool.markEpochs();
-                if (EpochManager.getInstance(kylinConfig).isMaintenanceMode()) {
+                if (EpochManager.getInstance().isMaintenanceMode()) {
                     Runtime.getRuntime().addShutdownHook(new Thread(maintainModeTool::releaseEpochs));
                 }
                 cleanMeta(projectsToCleanup);

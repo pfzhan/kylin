@@ -27,10 +27,6 @@ package io.kyligence.kap.rest.service;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.common.util.AddressUtil;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.resourcegroup.ResourceGroupManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.service.BasicService;
@@ -40,7 +36,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.resourcegroup.ResourceGroupManager;
 
 @Component("epochService")
 public class EpochService extends BasicService {
@@ -54,7 +54,7 @@ public class EpochService extends BasicService {
         if (!client)
             aclEvaluate.checkIsGlobalAdmin();
 
-        EpochManager epochMgr = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
+        EpochManager epochMgr = EpochManager.getInstance();
 
         NProjectManager projectMgr = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         if (projects.isEmpty()) {
@@ -82,7 +82,7 @@ public class EpochService extends BasicService {
     }
 
     public boolean isMaintenanceMode() {
-        EpochManager epochMgr = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
+        EpochManager epochMgr = EpochManager.getInstance();
         return epochMgr.isMaintenanceMode();
     }
 }

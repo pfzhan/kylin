@@ -62,7 +62,7 @@ public class ScheduleService {
     @Scheduled(cron = "${kylin.metadata.ops-cron:0 0 0 * * *}")
     public void routineTask() throws Exception {
 
-        EpochManager epochManager = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
+        EpochManager epochManager = EpochManager.getInstance();
 
         MetricsGroup.hostTagCounterInc(MetricsName.METADATA_OPS_CRON, MetricsCategory.GLOBAL, GLOBAL);
 
@@ -88,7 +88,7 @@ public class ScheduleService {
 
     @Scheduled(cron = "${kylin.metadata.history-source-usage-cron:0 0 0 * * *}")
     public void updateHistorySourceUsage() {
-        if (EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochOwner(EpochManager.GLOBAL)) {
+        if (EpochManager.getInstance().checkEpochOwner(EpochManager.GLOBAL)) {
             log.info("Start to update history source usage.");
             val sourceUsageRecord = sourceUsageService.refreshLatestSourceUsageRecord();
 

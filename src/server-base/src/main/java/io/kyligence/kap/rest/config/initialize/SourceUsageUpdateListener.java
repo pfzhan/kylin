@@ -32,7 +32,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.rest.service.SourceUsageService;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.PartitionDesc;
@@ -60,6 +59,7 @@ import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord;
+import io.kyligence.kap.rest.service.SourceUsageService;
 import io.kyligence.kap.tool.restclient.RestClient;
 import lombok.extern.slf4j.Slf4j;
 import scala.Option;
@@ -79,7 +79,7 @@ public class SourceUsageUpdateListener {
     @Subscribe
     public void onUpdate(SourceUsageUpdateNotifier notifier) {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        EpochManager epochManager = EpochManager.getInstance(kylinConfig);
+        EpochManager epochManager = EpochManager.getInstance();
         if (epochManager.checkEpochOwner(EpochManager.GLOBAL)) {
             log.debug("Start to update source usage...");
             SourceUsageRecord sourceUsageRecord = sourceUsageService.refreshLatestSourceUsageRecord();
@@ -108,7 +108,7 @@ public class SourceUsageUpdateListener {
     public void onVerify(SourceUsageVerifyNotifier notifier) {
         log.debug("Verify model partition is aligned with source table partition.");
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        final EpochManager epochManager = EpochManager.getInstance(config);
+        final EpochManager epochManager = EpochManager.getInstance();
         List<String> projects = NProjectManager.getInstance(config).listAllProjects().stream() //
                 .map(ProjectInstance::getName) //
                 .filter(epochManager::checkEpochOwner) // project owner

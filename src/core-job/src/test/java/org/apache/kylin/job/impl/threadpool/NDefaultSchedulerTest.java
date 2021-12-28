@@ -1927,7 +1927,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         NDefaultScheduler instance = NDefaultScheduler.getInstance(project);
         Assert.assertTrue(instance.hasStarted());
         Thread.sleep(2000);
-        EpochManager manager = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
+        EpochManager manager = EpochManager.getInstance();
         manager.tryUpdateEpoch(EpochManager.GLOBAL, false);
         manager.updateEpochWithNotifier(project, true);
         instance.fetchJobsImmediately();

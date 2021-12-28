@@ -2517,6 +2517,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kylin.server.renew-epoch-pool-size", "3"));
     }
 
+    public int getRenewEpochBatchSize() {
+        return Integer.parseInt(getOptional("kylin.server.renew-batch-size", "10"));
+    }
+
     public boolean getJStackDumpTaskEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.task.jstack-dump-enabled", "true"));
     }

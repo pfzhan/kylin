@@ -132,7 +132,7 @@ public class BootstrapServer implements ApplicationListener<ApplicationEvent> {
             logger.info("init backend end...");
         } else if (event instanceof ContextClosedEvent) {
             logger.info("Stop Kyligence node...");
-            EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).releaseOwnedEpochs();
+            EpochManager.getInstance().releaseOwnedEpochs();
         }
     }
 }

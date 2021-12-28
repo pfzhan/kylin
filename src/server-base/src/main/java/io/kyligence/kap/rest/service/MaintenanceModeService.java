@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.rest.service;
 
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.SystemErrorCode;
 import org.apache.kylin.common.util.Pair;
@@ -48,7 +47,7 @@ public class MaintenanceModeService extends BasicService {
 
     public void setMaintenanceMode(String reason) {
         aclEvaluate.checkIsGlobalAdmin();
-        EpochManager epochMgr = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
+        EpochManager epochMgr = EpochManager.getInstance();
         if (!epochMgr.setMaintenanceMode(reason)) {
             throw new KylinException(SystemErrorCode.FAILED_ENTER_MAINTENANCE_MODE,
                     "System is already in maintenance mode");
@@ -58,7 +57,7 @@ public class MaintenanceModeService extends BasicService {
 
     public void unsetMaintenanceMode(String reason) {
         aclEvaluate.checkIsGlobalAdmin();
-        EpochManager epochMgr = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
+        EpochManager epochMgr = EpochManager.getInstance();
         if (!epochMgr.unsetMaintenanceMode(reason)) {
             throw new KylinException(SystemErrorCode.FAILED_LEAVE_MAINTENANCE_MODE,
                     "System is not in maintenance mode");
@@ -67,7 +66,7 @@ public class MaintenanceModeService extends BasicService {
     }
 
     public MaintenanceModeResponse getMaintenanceMode() {
-        EpochManager epochMgr = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
+        EpochManager epochMgr = EpochManager.getInstance();
         Pair<Boolean, String> maintenanceModeDetail = epochMgr.getMaintenanceModeDetail();
         return new MaintenanceModeResponse(maintenanceModeDetail.getFirst(), maintenanceModeDetail.getSecond());
     }

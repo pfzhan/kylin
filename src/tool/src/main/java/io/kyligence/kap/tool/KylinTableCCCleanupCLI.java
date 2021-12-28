@@ -70,7 +70,7 @@ public class KylinTableCCCleanupCLI extends ExecutableApplication {
         maintainModeTool.init();
         try {
             maintainModeTool.markEpochs();
-            if (EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).isMaintenanceMode()) {
+            if (EpochManager.getInstance().isMaintenanceMode()) {
                 Runtime.getRuntime().addShutdownHook(new Thread(maintainModeTool::releaseEpochs));
             }
             new KylinTableCCCleanupCLI().execute(args);

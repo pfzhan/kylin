@@ -59,6 +59,7 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.SystemInfoCollector;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import lombok.Getter;
+import lombok.SneakyThrows;
 import lombok.val;
 
 /**
@@ -133,7 +134,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable> {
 
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         if (!config.isUTEnv()) {
-            this.epochId = EpochManager.getInstance(config).getEpochId(project);
+            this.epochId = EpochManager.getInstance().getEpochId(project);
         }
 
         String serverMode = jobEngineConfig.getServerMode();
@@ -190,8 +191,14 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable> {
         hasStarted.set(true);
     }
 
+    @SneakyThrows
     @Override
     public void shutdown() {
+        if (Thread.currentThread().isInterrupted()) {
+            logger.warn("shutdown->current thread is interrupted,{}", Thread.currentThread().getName());
+            throw new InterruptedException();
+        }
+
         logger.info("Shutting down DefaultScheduler for project {} ....", project);
         releaseResources();
         if (null != fetcherPool) {
@@ -202,7 +209,13 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable> {
         }
     }
 
+    @SneakyThrows
     public void forceShutdown() {
+        if (Thread.currentThread().isInterrupted()) {
+            logger.warn("shutdownNow->current thread is interrupted,{}", Thread.currentThread().getName());
+            throw new InterruptedException();
+        }
+
         logger.info("Force to shut down DefaultScheduler for project {} ....", project);
         releaseResources();
         ExecutorServiceUtil.forceShutdown(fetcherPool);

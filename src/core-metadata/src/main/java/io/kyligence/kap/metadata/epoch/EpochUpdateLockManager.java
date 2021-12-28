@@ -23,23 +23,25 @@
  */
 package io.kyligence.kap.metadata.epoch;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.Singletons;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
-import com.google.common.cache.RemovalListener;
+import com.google.common.collect.Maps;
 
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -47,21 +49,10 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class EpochUpdateLockManager {
 
-    private final LoadingCache<String, ReentrantLock> epochLockCache;
+    private final Map<String, ReentrantLock> epochLockCache;
 
     private EpochUpdateLockManager() {
-        long epochExpiredTime = KylinConfig.getInstanceFromEnv().getEpochExpireTimeSecond();
-
-        epochLockCache = CacheBuilder.newBuilder().expireAfterAccess(epochExpiredTime, TimeUnit.SECONDS)
-                .removalListener((RemovalListener<String, ReentrantLock>) notification -> log
-                        .warn("epoch lock: {}, is expired after: {} seconds", notification.getKey(), epochExpiredTime))
-                .build(new CacheLoader<String, ReentrantLock>() {
-                    @Override
-                    public ReentrantLock load(@Nonnull String project) {
-                        log.debug("load new epoch lock: {}, size: {}", project, getLockCacheSize() + 1);
-                        return new ReentrantLock(true);
-                    }
-                });
+        epochLockCache = Maps.newConcurrentMap();
     }
 
     public interface Callback<T> {
@@ -69,6 +60,11 @@ public class EpochUpdateLockManager {
     }
 
     private Lock getLockFromCache(String project) throws ExecutionException {
+        if (!epochLockCache.containsKey(project)) {
+            synchronized (epochLockCache) {
+                epochLockCache.putIfAbsent(project, new ReentrantLock(true));
+            }
+        }
         return epochLockCache.get(project);
     }
 
@@ -88,15 +84,6 @@ public class EpochUpdateLockManager {
         return epochLockCache.size();
     }
 
-    /**
-     * clean up cache that is expired,
-     * only for test
-     */
-    @VisibleForTesting
-    static void cleanUp() {
-        getInstance().epochLockCache.cleanUp();
-    }
-
     @VisibleForTesting
     static Lock getLock(String project) {
         try {
@@ -104,6 +91,15 @@ public class EpochUpdateLockManager {
         } catch (ExecutionException e) {
             throw Throwables.propagate(e);
         }
+    }
+
+    @VisibleForTesting
+    static List<Lock> getLock(@Nonnull List<String> projects) {
+        Preconditions.checkNotNull(projects, "projects is null");
+
+        val sortedProjects = new ArrayList<>(projects);
+        sortedProjects.sort(Comparator.naturalOrder());
+        return sortedProjects.stream().map(EpochUpdateLockManager::getLock).collect(Collectors.toList());
     }
 
     static <T> T executeEpochWithLock(@Nonnull String project, @Nonnull Callback<T> callback) {
@@ -121,6 +117,35 @@ public class EpochUpdateLockManager {
             throw Throwables.propagate(e);
         } finally {
             lock.unlock();
+        }
+    }
+
+    /**
+     * be carefully to avoid dead lock
+     * @param projects you should
+     * @param callback
+     * @param <T>
+     * @return
+     */
+    static <T> T executeEpochWithLock(@Nonnull List<String> projects, @Nonnull Callback<T> callback) {
+        Preconditions.checkNotNull(projects, "projects is null");
+        Preconditions.checkNotNull(callback, "callback is null");
+
+        if (projects.size() == 1) {
+            return executeEpochWithLock(projects.get(0), callback);
+        }
+        List<Lock> locks = getLock(projects);
+
+        Preconditions.checkState(locks.stream().allMatch(Objects::nonNull), "locks from cache is null");
+
+        try {
+            locks.forEach(Lock::lock);
+            return callback.handle();
+        } catch (Exception e) {
+            throw Throwables.propagate(e);
+        } finally {
+            Collections.reverse(locks);
+            locks.forEach(Lock::unlock);
         }
     }
 

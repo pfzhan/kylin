@@ -29,10 +29,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
-import io.kyligence.kap.metadata.streaming.util.StreamingJobRecordStoreUtil;
-import io.kyligence.kap.metadata.streaming.util.StreamingJobStatsStoreUtil;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.kylin.common.KylinConfig;
@@ -44,9 +40,13 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.util.QueryHisStoreUtil;
+import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
+import io.kyligence.kap.metadata.streaming.util.StreamingJobRecordStoreUtil;
+import io.kyligence.kap.metadata.streaming.util.StreamingJobStatsStoreUtil;
 import io.kyligence.kap.tool.MaintainModeTool;
 import io.kyligence.kap.tool.garbage.GarbageCleaner;
 import io.kyligence.kap.tool.garbage.SourceUsageCleaner;
@@ -93,7 +93,7 @@ public class RoutineTool extends ExecutableApplication {
         MaintainModeTool maintainModeTool = new MaintainModeTool("routine tool");
         maintainModeTool.init();
         maintainModeTool.markEpochs();
-        if (EpochManager.getInstance(kylinConfig).isMaintenanceMode()) {
+        if (EpochManager.getInstance().isMaintenanceMode()) {
             Runtime.getRuntime().addShutdownHook(new Thread(maintainModeTool::releaseEpochs));
         }
         doCleanup(projectsToCleanup);

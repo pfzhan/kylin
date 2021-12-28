@@ -108,7 +108,7 @@ public class QueryHistoryTaskScheduler {
         ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(project);
 
-        EpochManager epochManager = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
+        EpochManager epochManager = EpochManager.getInstance();
         if (!KylinConfig.getInstanceFromEnv().isUTEnv()) {
             this.epochId = epochManager.getEpoch(projectInstance.getName()).getEpochId();
         }
@@ -446,7 +446,7 @@ public class QueryHistoryTaskScheduler {
                         "%s task, batch size: %d , maxsize: %d is illegal", name(), batchSize, maxSize));
             }
             if (!KylinConfig.getInstanceFromEnv().isUTEnv()
-                    && !EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochId(epochId, project)) {
+                    && !EpochManager.getInstance().checkEpochId(epochId, project)) {
                 shutdownByProject(project);
                 return;
             }

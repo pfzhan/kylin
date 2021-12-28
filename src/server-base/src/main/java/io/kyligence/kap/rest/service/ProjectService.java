@@ -241,7 +241,7 @@ public class ProjectService extends BasicService {
 
     public List<String> getOwnedProjects() {
         val config = KylinConfig.getInstanceFromEnv();
-        val epochManager = EpochManager.getInstance(config);
+        val epochManager = EpochManager.getInstance();
         return NProjectManager.getInstance(config).listAllProjects().stream() //
                 .map(ProjectInstance::getName) //
                 .filter(epochManager::checkEpochOwner) // project owner
@@ -480,7 +480,7 @@ public class ProjectService extends BasicService {
             cleanupAcl();
             val config = KylinConfig.getInstanceFromEnv();
             val projectManager = NProjectManager.getInstance(config);
-            val epochMgr = EpochManager.getInstance(config);
+            val epochMgr = EpochManager.getInstance();
             for (ProjectInstance project : projectManager.listAllProjects()) {
                 if (!config.isUTEnv() && !epochMgr.checkEpochOwner(project.getName()))
                     continue;

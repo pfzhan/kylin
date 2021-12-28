@@ -799,7 +799,7 @@ public class LicenseInfoService extends BasicService {
     }
 
     public void updateSourceUsage() {
-        if (EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochOwner(EpochManager.GLOBAL)) {
+        if (EpochManager.getInstance().checkEpochOwner(EpochManager.GLOBAL)) {
             SourceUsageRecord sourceUsageRecord = sourceUsageService.refreshLatestSourceUsageRecord();
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv()).updateSourceUsage(sourceUsageRecord);

@@ -85,7 +85,7 @@ public class EnhancedUnitOfWorkTest extends NLocalFileMetadataTestCase {
     @Test
     public void testEpochNull() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        EpochManager epochManager = EpochManager.getInstance(config);
+        EpochManager epochManager = EpochManager.getInstance();
         Assert.assertNull(epochManager.getGlobalEpoch());
         thrown.expect(TransactionException.class);
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
@@ -98,7 +98,7 @@ public class EnhancedUnitOfWorkTest extends NLocalFileMetadataTestCase {
     public void testEpochExpired() throws Exception {
         overwriteSystemProp("kylin.server.leader-race.heart-beat-timeout", "1");
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        EpochManager epochManager = EpochManager.getInstance(config);
+        EpochManager epochManager = EpochManager.getInstance();
 
         epochManager.tryUpdateEpoch(EpochManager.GLOBAL, false);
         TimeUnit.SECONDS.sleep(2);
@@ -112,7 +112,7 @@ public class EnhancedUnitOfWorkTest extends NLocalFileMetadataTestCase {
     @Test
     public void testEpochIdNotMatch() throws Exception {
         KylinConfig config = getTestConfig();
-        EpochManager epochManager = EpochManager.getInstance(config);
+        EpochManager epochManager = EpochManager.getInstance();
         epochManager.tryUpdateEpoch(EpochManager.GLOBAL, false);
         val epoch = epochManager.getGlobalEpoch();
         epoch.setLastEpochRenewTime(System.currentTimeMillis());
@@ -130,7 +130,7 @@ public class EnhancedUnitOfWorkTest extends NLocalFileMetadataTestCase {
     @Test
     public void testSetMaintenanceMode() throws Exception {
         KylinConfig config = getTestConfig();
-        EpochManager epochManager = EpochManager.getInstance(config);
+        EpochManager epochManager = EpochManager.getInstance();
         epochManager.tryUpdateEpoch(EpochManager.GLOBAL, false);
         epochManager.setMaintenanceMode("MODE1");
         transactionThrown.expectInTransaction(EpochNotMatchException.class);
@@ -147,7 +147,7 @@ public class EnhancedUnitOfWorkTest extends NLocalFileMetadataTestCase {
     @Ignore
     public void testUnsetMaintenanceMode() throws Exception {
         testSetMaintenanceMode();
-        EpochManager epochManager = EpochManager.getInstance(getTestConfig());
+        EpochManager epochManager = EpochManager.getInstance();
         epochManager.unsetMaintenanceMode("MODE1");
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
