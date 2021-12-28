@@ -36,8 +36,10 @@ import java.util.stream.Collectors;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.QueryTrace;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.metadata.realization.RoutingIndicatorException;
@@ -134,8 +136,8 @@ public class QueryMetricsContext extends QueryMetrics {
 
         if (context.getQueryTagInfo().isHitExceptionCache() || context.getQueryTagInfo().isStorageCacheUsed()) {
             this.isCacheHit = true;
-            this.cacheType = KylinConfig.getInstanceFromEnv().isRedisEnabled()
-                    ? QueryHistory.CacheType.REDIS.name() : QueryHistory.CacheType.EHCACHE.name();
+            this.cacheType = KylinConfig.getInstanceFromEnv().isRedisEnabled() ? QueryHistory.CacheType.REDIS.name()
+                    : QueryHistory.CacheType.EHCACHE.name();
         }
         this.resultRowCount = context.getMetrics().getResultRowCount();
         this.queryMsg = context.getMetrics().getQueryMsg();
@@ -167,19 +169,30 @@ public class QueryMetricsContext extends QueryMetrics {
         queryHistoryInfo.setQueryMsg(this.queryMsg);
         this.queryHistoryInfo = queryHistoryInfo;
 
-
-        this.queryHistoryInfo.setTraces(context.getQueryTrace().spans().stream()
-                .map(span -> new QueryHistoryInfo.QueryTraceSpan(span.getName(), span.getGroup(), span.getDuration()))
-                .collect(Collectors.toList()));
+        this.queryHistoryInfo.setTraces(createTraces(context));
     }
 
-    public static void updateSecondStorageStatus(final QueryContext context, final List<RealizationMetrics> realizationMetricList) {
+    public static List<QueryHistoryInfo.QueryTraceSpan> createTraces(final QueryContext context) {
+        return context.getQueryTrace().spans().stream().map(span -> {
+            if (!KapConfig.getInstanceFromEnv().isQuerySparkJobTraceEnabled()
+                    && QueryTrace.PREPARE_AND_SUBMIT_JOB.equals(span.getName())) {
+                return new QueryHistoryInfo.QueryTraceSpan(QueryTrace.SPARK_JOB_EXECUTION, span.getGroup(),
+                        span.getDuration());
+            } else {
+                return new QueryHistoryInfo.QueryTraceSpan(span.getName(), span.getGroup(), span.getDuration());
+            }
+        }).collect(Collectors.toList());
+    }
+
+    public static void updateSecondStorageStatus(final QueryContext context,
+            final List<RealizationMetrics> realizationMetricList) {
         realizationMetricList.forEach(metric -> {
             if (Objects.isNull(metric.getLayoutId())) {
                 // When query conditions don't meet segment range, layout id will be null.
                 metric.setSecondStorage(false);
             } else {
-                metric.setSecondStorage(context.getSecondStorageUsageMap().getOrDefault(Long.parseLong(metric.getLayoutId()), false));
+                metric.setSecondStorage(
+                        context.getSecondStorageUsageMap().getOrDefault(Long.parseLong(metric.getLayoutId()), false));
             }
         });
     }
@@ -217,15 +230,17 @@ public class QueryMetricsContext extends QueryMetrics {
         }
     }
 
-    public List<RealizationMetrics> collectRealizationMetrics(List<QueryContext.NativeQueryRealization> queryRealization) {
+    public List<RealizationMetrics> collectRealizationMetrics(
+            List<QueryContext.NativeQueryRealization> queryRealization) {
         List<RealizationMetrics> realizationMetricList = new ArrayList<>();
         if (CollectionUtils.isEmpty(queryRealization)) {
             return realizationMetricList;
         }
 
         for (QueryContext.NativeQueryRealization realization : queryRealization) {
-            RealizationMetrics realizationMetrics = new RealizationMetrics(Objects.toString(realization.getLayoutId(), null),
-                    realization.getIndexType(), realization.getModelId(), realization.getSnapshots());
+            RealizationMetrics realizationMetrics = new RealizationMetrics(
+                    Objects.toString(realization.getLayoutId(), null), realization.getIndexType(),
+                    realization.getModelId(), realization.getSnapshots());
             realizationMetrics.setQueryId(queryId);
             realizationMetrics.setDuration(queryDuration);
             realizationMetrics.setQueryTime(queryTime);

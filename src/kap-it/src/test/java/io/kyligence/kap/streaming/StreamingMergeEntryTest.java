@@ -47,8 +47,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.Mockito;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
@@ -64,7 +62,6 @@ import lombok.val;
 import lombok.var;
 
 public class StreamingMergeEntryTest extends StreamingTestCase {
-    private static final Logger logger = LoggerFactory.getLogger(StreamingMergeEntryTest.class);
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
@@ -86,37 +83,40 @@ public class StreamingMergeEntryTest extends StreamingTestCase {
      * test l0 merge
      */
     @Test
-    public void testMergeSegmentLayer0() throws Exception {
+    public void testMergeSegmentLayer0() {
         val config = getTestConfig();
         config.setProperty("kylin.engine.streaming-segment-merge-interval", "1");
         config.setProperty("kylin.engine.spark.cluster-manager-class-name",
                 "io.kyligence.kap.streaming.util.MockClusterManager");
-        StreamingMergeEntry streamingMergeEntry = Mockito.spy(new StreamingMergeEntry());
-        streamingMergeEntry.setThresholdOfSegSize(20 * 1024);
-        streamingMergeEntry.setNumberOfSeg(10);
-        streamingMergeEntry.setSparkSession(createSparkSession());
-        val mgr = NDataflowManager.getInstance(getTestConfig(), PROJECT);
-        NDataflow df = mgr.getDataflow(DATAFLOW_ID);
-        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
-        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
-        mgr.updateDataflow(update);
-        df = mgr.getDataflow(DATAFLOW_ID);
-        df = createSegments(mgr, df, 11);
-        df = setSegmentStorageSize(mgr, df, 1024);
+        Callback callback = () -> {
+            StreamingMergeEntry streamingMergeEntry = Mockito.spy(new StreamingMergeEntry());
+            streamingMergeEntry.setThresholdOfSegSize(20 * 1024);
+            streamingMergeEntry.setNumberOfSeg(10);
+            streamingMergeEntry.setSparkSession(createSparkSession());
+            val mgr = NDataflowManager.getInstance(getTestConfig(), PROJECT);
+            NDataflow df = mgr.getDataflow(DATAFLOW_ID);
+            NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
+            update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+            mgr.updateDataflow(update);
+            df = mgr.getDataflow(DATAFLOW_ID);
+            df = createSegments(mgr, df, 11);
+            df = setSegmentStorageSize(mgr, df, 1024);
 
-        val latch = new CountDownLatch(1);
-        shutdownStreamingMergeJob(latch);
-        try {
-            mockRestSupport(streamingMergeEntry, config, 0);
-            streamingMergeEntry.schedule(PROJECT, DATAFLOW_ID);
-        } finally {
-            latch.await(15, TimeUnit.SECONDS);
-        }
+            val latch = new CountDownLatch(1);
+            shutdownStreamingMergeJob(latch);
+            try {
+                mockRestSupport(streamingMergeEntry, config, 0);
+                streamingMergeEntry.schedule(PROJECT, DATAFLOW_ID);
+            } finally {
+                latch.await(15, TimeUnit.SECONDS);
+            }
 
-        df = mgr.getDataflow(DATAFLOW_ID);
-        Assert.assertEquals(2, df.getSegments().size());
-        Assert.assertEquals("1", df.getSegments().get(0).getAdditionalInfo().get("file_layer"));
-        Assert.assertTrue(df.getSegments().get(1).getAdditionalInfo().isEmpty());
+            df = mgr.getDataflow(DATAFLOW_ID);
+            Assert.assertEquals(2, df.getSegments().size());
+            Assert.assertEquals("1", df.getSegments().get(0).getAdditionalInfo().get("file_layer"));
+            Assert.assertTrue(df.getSegments().get(1).getAdditionalInfo().isEmpty());
+        };
+        testWithRetry(callback);
     }
 
     /**
@@ -128,267 +128,289 @@ public class StreamingMergeEntryTest extends StreamingTestCase {
         config.setProperty("kylin.engine.streaming-segment-merge-interval", "1");
         config.setProperty("kylin.engine.spark.cluster-manager-class-name",
                 "io.kyligence.kap.streaming.util.MockClusterManager");
-        StreamingMergeEntry streamingMergeEntry = Mockito.spy(new StreamingMergeEntry());
-        streamingMergeEntry.setThresholdOfSegSize(20 * 1024);
-        streamingMergeEntry.setNumberOfSeg(3);
-        streamingMergeEntry.setSparkSession(createSparkSession());
-        val mgr = NDataflowManager.getInstance(getTestConfig(), PROJECT);
-        NDataflow df = mgr.getDataflow(DATAFLOW_ID);
-        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
-        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
-        mgr.updateDataflow(update);
-        df = mgr.getDataflow(DATAFLOW_ID);
-        df = createSegments(mgr, df, 10);
-        setSegmentStorageSize(mgr, df, 1024);
+        Callback callback = () -> {
+            StreamingMergeEntry streamingMergeEntry = Mockito.spy(new StreamingMergeEntry());
+            streamingMergeEntry.setThresholdOfSegSize(20 * 1024);
+            streamingMergeEntry.setNumberOfSeg(3);
+            streamingMergeEntry.setSparkSession(createSparkSession());
+            val mgr = NDataflowManager.getInstance(getTestConfig(), PROJECT);
+            NDataflow df = mgr.getDataflow(DATAFLOW_ID);
+            NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
+            update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+            mgr.updateDataflow(update);
+            df = mgr.getDataflow(DATAFLOW_ID);
+            df = createSegments(mgr, df, 10);
+            setSegmentStorageSize(mgr, df, 1024);
 
-        val latch = new CountDownLatch(1);
-        shutdownStreamingMergeJob(latch);
-        try {
-            mockRestSupport(streamingMergeEntry, config, 0);
-            streamingMergeEntry.schedule(PROJECT, DATAFLOW_ID);
-        } finally {
-            latch.await(15, TimeUnit.SECONDS);
-        }
-        df = mgr.getDataflow(DATAFLOW_ID);
-        Assert.assertEquals(2, df.getSegments().size());
-        Assert.assertEquals("2", df.getSegments().get(0).getAdditionalInfo().get("file_layer"));
-        Assert.assertTrue(df.getSegments().get(1).getAdditionalInfo().isEmpty());
+            val latch = new CountDownLatch(1);
+            shutdownStreamingMergeJob(latch);
+            try {
+                mockRestSupport(streamingMergeEntry, config, 0);
+                streamingMergeEntry.schedule(PROJECT, DATAFLOW_ID);
+            } finally {
+                latch.await(15, TimeUnit.SECONDS);
+            }
+            df = mgr.getDataflow(DATAFLOW_ID);
+            Assert.assertEquals(2, df.getSegments().size());
+            Assert.assertEquals("2", df.getSegments().get(0).getAdditionalInfo().get("file_layer"));
+            Assert.assertTrue(df.getSegments().get(1).getAdditionalInfo().isEmpty());
+        };
+        testWithRetry(callback);
     }
 
     /**
      * test no merge for L1 layer
      */
     @Test
-    public void testMergeSegmentLayer1() throws Exception {
+    public void testMergeSegmentLayer1() {
         val config = getTestConfig();
         config.setProperty("kylin.engine.streaming-segment-merge-interval", "1");
-        StreamingMergeEntry streamingMergeEntry = Mockito.spy(new StreamingMergeEntry());
-        streamingMergeEntry.setThresholdOfSegSize(20 * 1024);
-        streamingMergeEntry.setNumberOfSeg(3);
-        streamingMergeEntry.setSparkSession(createSparkSession());
-        val mgr = NDataflowManager.getInstance(getTestConfig(), PROJECT);
-        NDataflow df = mgr.getDataflow(DATAFLOW_ID);
-        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
-        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
-        mgr.updateDataflow(update);
-        df = mgr.getDataflow(DATAFLOW_ID);
-        df = createSegments(mgr, df, 10, 1);
-        df = setSegmentStorageSize(mgr, df, 1024);
+        Callback callback = () -> {
+            StreamingMergeEntry streamingMergeEntry = Mockito.spy(new StreamingMergeEntry());
+            streamingMergeEntry.setThresholdOfSegSize(20 * 1024);
+            streamingMergeEntry.setNumberOfSeg(3);
+            streamingMergeEntry.setSparkSession(createSparkSession());
+            val mgr = NDataflowManager.getInstance(getTestConfig(), PROJECT);
+            NDataflow df = mgr.getDataflow(DATAFLOW_ID);
+            NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
+            update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+            mgr.updateDataflow(update);
+            df = mgr.getDataflow(DATAFLOW_ID);
+            df = createSegments(mgr, df, 10, 1);
+            df = setSegmentStorageSize(mgr, df, 1024);
 
-        val latch = new CountDownLatch(1);
-        shutdownStreamingMergeJob(latch);
-        try {
-            mockRestSupport(streamingMergeEntry, config, 0);
-            streamingMergeEntry.schedule(PROJECT, DATAFLOW_ID);
-        } finally {
-            latch.await(15, TimeUnit.SECONDS);
-        }
-        df = mgr.getDataflow(DATAFLOW_ID);
-        Assert.assertEquals(10, df.getSegments().size());
-        df.getSegments().stream().forEach(item -> Assert.assertEquals("1", item.getAdditionalInfo().get("file_layer")));
+            val latch = new CountDownLatch(1);
+            shutdownStreamingMergeJob(latch);
+            try {
+                mockRestSupport(streamingMergeEntry, config, 0);
+                streamingMergeEntry.schedule(PROJECT, DATAFLOW_ID);
+            } finally {
+                latch.await(15, TimeUnit.SECONDS);
+            }
+            df = mgr.getDataflow(DATAFLOW_ID);
+            Assert.assertEquals(10, df.getSegments().size());
+            df.getSegments().stream()
+                    .forEach(item -> Assert.assertEquals("1", item.getAdditionalInfo().get("file_layer")));
+        };
+        testWithRetry(callback);
     }
 
     @Test
-    public void testMergeSegmentOfCatchup1() throws Exception {
+    public void testMergeSegmentOfCatchup1() {
         val config = getTestConfig();
         config.setProperty("kylin.engine.streaming-segment-merge-interval", "1");
-        StreamingMergeEntry streamingMergeEntry = Mockito.spy(new StreamingMergeEntry());
-        streamingMergeEntry.setThresholdOfSegSize(20 * 1024);
-        streamingMergeEntry.setNumberOfSeg(3);
-        streamingMergeEntry.setSparkSession(createSparkSession());
-        val mgr = NDataflowManager.getInstance(getTestConfig(), PROJECT);
-        NDataflow df = mgr.getDataflow(DATAFLOW_ID);
-        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
-        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
-        mgr.updateDataflow(update);
-        df = mgr.getDataflow(DATAFLOW_ID);
-        df = createSegments(mgr, df, 16);
-        setSegmentStorageSize(mgr, df, 1024);
+        Callback callback = () -> {
+            StreamingMergeEntry streamingMergeEntry = Mockito.spy(new StreamingMergeEntry());
+            streamingMergeEntry.setThresholdOfSegSize(20 * 1024);
+            streamingMergeEntry.setNumberOfSeg(3);
+            streamingMergeEntry.setSparkSession(createSparkSession());
+            val mgr = NDataflowManager.getInstance(getTestConfig(), PROJECT);
+            NDataflow df = mgr.getDataflow(DATAFLOW_ID);
+            NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
+            update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+            mgr.updateDataflow(update);
+            df = mgr.getDataflow(DATAFLOW_ID);
+            df = createSegments(mgr, df, 16);
+            setSegmentStorageSize(mgr, df, 1024);
 
-        val latch = new CountDownLatch(1);
-        shutdownStreamingMergeJob(latch);
-        try {
-            mockRestSupport(streamingMergeEntry, config, 0);
-            streamingMergeEntry.schedule(PROJECT, DATAFLOW_ID);
-        } finally {
-            latch.await(15, TimeUnit.SECONDS);
-        }
-        df = mgr.getDataflow(DATAFLOW_ID);
-        Assert.assertEquals(2, df.getSegments().size());
-        Assert.assertEquals("1", df.getSegments().get(0).getAdditionalInfo().get("file_layer"));
-        Assert.assertTrue(df.getSegments().get(1).getAdditionalInfo().isEmpty());
+            val latch = new CountDownLatch(1);
+            shutdownStreamingMergeJob(latch);
+            try {
+                mockRestSupport(streamingMergeEntry, config, 0);
+                streamingMergeEntry.schedule(PROJECT, DATAFLOW_ID);
+            } finally {
+                latch.await(15, TimeUnit.SECONDS);
+            }
+            df = mgr.getDataflow(DATAFLOW_ID);
+            Assert.assertEquals(2, df.getSegments().size());
+            Assert.assertEquals("1", df.getSegments().get(0).getAdditionalInfo().get("file_layer"));
+            Assert.assertTrue(df.getSegments().get(1).getAdditionalInfo().isEmpty());
+        };
+        testWithRetry(callback);
     }
 
     @Test
-    public void testMergeSegmentOfCatchup2() throws Exception {
+    public void testMergeSegmentOfCatchup2() {
         val config = getTestConfig();
         config.setProperty("kylin.engine.streaming-segment-merge-ratio", "1");
         config.setProperty("kylin.engine.streaming-segment-merge-interval", "1");
-        StreamingMergeEntry streamingMergeEntry = Mockito.spy(new StreamingMergeEntry());
+        Callback callback = () -> {
+            StreamingMergeEntry streamingMergeEntry = Mockito.spy(new StreamingMergeEntry());
 
-        streamingMergeEntry.setThresholdOfSegSize(14 * 1024);
-        streamingMergeEntry.setNumberOfSeg(3);
-        streamingMergeEntry.setSparkSession(createSparkSession());
-        val mgr = NDataflowManager.getInstance(getTestConfig(), PROJECT);
-        NDataflow df = mgr.getDataflow(DATAFLOW_ID);
-        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
-        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
-        mgr.updateDataflow(update);
-        df = mgr.getDataflow(DATAFLOW_ID);
-        df = createSegments(mgr, df, 16);
-        Assert.assertEquals(16, df.getSegments().size());
-        setSegmentStorageSize(mgr, df, 1024);
+            streamingMergeEntry.setThresholdOfSegSize(14 * 1024);
+            streamingMergeEntry.setNumberOfSeg(3);
+            streamingMergeEntry.setSparkSession(createSparkSession());
+            val mgr = NDataflowManager.getInstance(getTestConfig(), PROJECT);
+            NDataflow df = mgr.getDataflow(DATAFLOW_ID);
+            NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
+            update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+            mgr.updateDataflow(update);
+            df = mgr.getDataflow(DATAFLOW_ID);
+            df = createSegments(mgr, df, 16);
+            Assert.assertEquals(16, df.getSegments().size());
+            setSegmentStorageSize(mgr, df, 1024);
 
-        val latch = new CountDownLatch(1);
-        shutdownStreamingMergeJob(latch);
-        try {
-            mockRestSupport(streamingMergeEntry, config, 0);
-            streamingMergeEntry.schedule(PROJECT, DATAFLOW_ID);
-        } finally {
-            latch.await(15, TimeUnit.SECONDS);
-        }
-        df = mgr.getDataflow(DATAFLOW_ID);
-        Assert.assertEquals(3, df.getSegments().size());
-        Assert.assertEquals("1", df.getSegments().get(0).getAdditionalInfo().get("file_layer"));
-        Assert.assertTrue(df.getSegments().get(1).getAdditionalInfo().isEmpty());
-        Assert.assertTrue(df.getSegments().get(2).getAdditionalInfo().isEmpty());
+            val latch = new CountDownLatch(1);
+            shutdownStreamingMergeJob(latch);
+            try {
+                mockRestSupport(streamingMergeEntry, config, 0);
+                streamingMergeEntry.schedule(PROJECT, DATAFLOW_ID);
+            } finally {
+                latch.await(15, TimeUnit.SECONDS);
+            }
+            df = mgr.getDataflow(DATAFLOW_ID);
+            Assert.assertEquals(3, df.getSegments().size());
+            Assert.assertEquals("1", df.getSegments().get(0).getAdditionalInfo().get("file_layer"));
+            Assert.assertTrue(df.getSegments().get(1).getAdditionalInfo().isEmpty());
+            Assert.assertTrue(df.getSegments().get(2).getAdditionalInfo().isEmpty());
+        };
+        testWithRetry(callback);
     }
 
     @Test
-    public void testMergeSegmentOfCatchup3() throws Exception {
+    public void testMergeSegmentOfCatchup3() {
         val config = getTestConfig();
         config.setProperty("kylin.engine.streaming-segment-merge-ratio", "1");
         config.setProperty("kylin.engine.streaming-segment-merge-interval", "1");
-        StreamingMergeEntry streamingMergeEntry = Mockito.spy(new StreamingMergeEntry());
+        Callback callback = () -> {
+            StreamingMergeEntry streamingMergeEntry = Mockito.spy(new StreamingMergeEntry());
 
-        streamingMergeEntry.setThresholdOfSegSize(30 * 1024);
-        streamingMergeEntry.setNumberOfSeg(3);
-        streamingMergeEntry.setSparkSession(createSparkSession());
-        val mgr = NDataflowManager.getInstance(getTestConfig(), PROJECT);
-        NDataflow df = mgr.getDataflow(DATAFLOW_ID);
-        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
-        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
-        mgr.updateDataflow(update);
-        df = mgr.getDataflow(DATAFLOW_ID);
-        df = createSegments(mgr, df, 21, null, copyForWrite -> {
-            for (int i = 0; i < 2; i++) {
-                val seg = copyForWrite.getSegments().get(i);
-                seg.getAdditionalInfo().put("file_layer", "2");
+            streamingMergeEntry.setThresholdOfSegSize(30 * 1024);
+            streamingMergeEntry.setNumberOfSeg(3);
+            streamingMergeEntry.setSparkSession(createSparkSession());
+            val mgr = NDataflowManager.getInstance(getTestConfig(), PROJECT);
+            NDataflow df = mgr.getDataflow(DATAFLOW_ID);
+            NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
+            update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+            mgr.updateDataflow(update);
+            df = mgr.getDataflow(DATAFLOW_ID);
+            df = createSegments(mgr, df, 21, null, copyForWrite -> {
+                for (int i = 0; i < 2; i++) {
+                    val seg = copyForWrite.getSegments().get(i);
+                    seg.getAdditionalInfo().put("file_layer", "2");
+                }
+                for (int i = 2; i < 5; i++) {
+                    val seg = copyForWrite.getSegments().get(i);
+                    seg.getAdditionalInfo().put("file_layer", "1");
+                }
+            });
+            setSegmentStorageSize(mgr, df, 1024);
+            val latch = new CountDownLatch(1);
+            shutdownStreamingMergeJob(latch);
+            try {
+                mockRestSupport(streamingMergeEntry, config, 0);
+                streamingMergeEntry.schedule(PROJECT, DATAFLOW_ID);
+            } finally {
+                latch.await(15, TimeUnit.SECONDS);
             }
-            for (int i = 2; i < 5; i++) {
-                val seg = copyForWrite.getSegments().get(i);
-                seg.getAdditionalInfo().put("file_layer", "1");
-            }
-        });
-        setSegmentStorageSize(mgr, df, 1024);
-        val latch = new CountDownLatch(1);
-        shutdownStreamingMergeJob(latch);
-        try {
-            mockRestSupport(streamingMergeEntry, config, 0);
-            streamingMergeEntry.schedule(PROJECT, DATAFLOW_ID);
-        } finally {
-            latch.await(15, TimeUnit.SECONDS);
-        }
-        df = mgr.getDataflow(DATAFLOW_ID);
-        Assert.assertEquals(2, df.getSegments().size());
-        Assert.assertEquals("1", df.getSegments().get(0).getAdditionalInfo().get("file_layer"));
-        Assert.assertTrue(df.getSegments().get(1).getAdditionalInfo().isEmpty());
+            df = mgr.getDataflow(DATAFLOW_ID);
+            Assert.assertEquals(2, df.getSegments().size());
+            Assert.assertEquals("1", df.getSegments().get(0).getAdditionalInfo().get("file_layer"));
+            Assert.assertTrue(df.getSegments().get(1).getAdditionalInfo().isEmpty());
+        };
+        testWithRetry(callback);
     }
 
     @Test
-    public void testMergeSegmentOfCatchup4() throws Exception {
+    public void testMergeSegmentOfCatchup4() {
         val config = getTestConfig();
         config.setProperty("kylin.engine.streaming-segment-merge-ratio", "1");
         config.setProperty("kylin.engine.streaming-segment-merge-interval", "1");
-        StreamingMergeEntry streamingMergeEntry = Mockito.spy(new StreamingMergeEntry());
+        Callback callback = () -> {
+            StreamingMergeEntry streamingMergeEntry = Mockito.spy(new StreamingMergeEntry());
 
-        streamingMergeEntry.setThresholdOfSegSize(16 * 1024);
-        streamingMergeEntry.setNumberOfSeg(3);
-        streamingMergeEntry.setSparkSession(createSparkSession());
-        val mgr = NDataflowManager.getInstance(getTestConfig(), PROJECT);
-        NDataflow df = mgr.getDataflow(DATAFLOW_ID);
-        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
-        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
-        mgr.updateDataflow(update);
-        df = mgr.getDataflow(DATAFLOW_ID);
-        df = createSegments(mgr, df, 19, null, copyForWrite -> {
-            for (int i = 0; i < 1; i++) {
-                val seg = copyForWrite.getSegments().get(i);
-                seg.getAdditionalInfo().put("file_layer", "2");
+            streamingMergeEntry.setThresholdOfSegSize(16 * 1024);
+            streamingMergeEntry.setNumberOfSeg(3);
+            streamingMergeEntry.setSparkSession(createSparkSession());
+            val mgr = NDataflowManager.getInstance(getTestConfig(), PROJECT);
+            NDataflow df = mgr.getDataflow(DATAFLOW_ID);
+            NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
+            update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+            mgr.updateDataflow(update);
+            df = mgr.getDataflow(DATAFLOW_ID);
+            df = createSegments(mgr, df, 19, null, copyForWrite -> {
+                for (int i = 0; i < 1; i++) {
+                    val seg = copyForWrite.getSegments().get(i);
+                    seg.getAdditionalInfo().put("file_layer", "2");
+                }
+                for (int i = 1; i < 2; i++) {
+                    val seg = copyForWrite.getSegments().get(i);
+                    seg.getAdditionalInfo().put("file_layer", "1");
+                }
+            });
+            setSegmentStorageSize(mgr, df, 1024);
+            val latch = new CountDownLatch(1);
+            shutdownStreamingMergeJob(latch);
+            try {
+                mockRestSupport(streamingMergeEntry, config, 0);
+                streamingMergeEntry.schedule(PROJECT, DATAFLOW_ID);
+            } finally {
+                latch.await(15, TimeUnit.SECONDS);
             }
-            for (int i = 1; i < 2; i++) {
-                val seg = copyForWrite.getSegments().get(i);
-                seg.getAdditionalInfo().put("file_layer", "1");
-            }
-        });
-        setSegmentStorageSize(mgr, df, 1024);
-        val latch = new CountDownLatch(1);
-        shutdownStreamingMergeJob(latch);
-        try {
-            mockRestSupport(streamingMergeEntry, config, 0);
-            streamingMergeEntry.schedule(PROJECT, DATAFLOW_ID);
-        } finally {
-            latch.await(15, TimeUnit.SECONDS);
-        }
-        df = mgr.getDataflow(DATAFLOW_ID);
-        Assert.assertEquals(4, df.getSegments().size());
-        Assert.assertEquals("1", df.getSegments().get(0).getAdditionalInfo().get("file_layer"));
-        Assert.assertTrue(df.getSegments().get(1).getAdditionalInfo().isEmpty());
-        Assert.assertTrue(df.getSegments().get(2).getAdditionalInfo().isEmpty());
-        Assert.assertTrue(df.getSegments().get(3).getAdditionalInfo().isEmpty());
+            df = mgr.getDataflow(DATAFLOW_ID);
+            Assert.assertEquals(4, df.getSegments().size());
+            Assert.assertEquals("1", df.getSegments().get(0).getAdditionalInfo().get("file_layer"));
+            Assert.assertTrue(df.getSegments().get(1).getAdditionalInfo().isEmpty());
+            Assert.assertTrue(df.getSegments().get(2).getAdditionalInfo().isEmpty());
+            Assert.assertTrue(df.getSegments().get(3).getAdditionalInfo().isEmpty());
+        };
+        testWithRetry(callback);
     }
 
     @Test
-    public void testMergeSegmentOfPeak1() throws Exception {
+    public void testMergeSegmentOfPeak1() {
         val config = getTestConfig();
         config.setProperty("kylin.engine.streaming-segment-merge-interval", "1");
-        StreamingMergeEntry streamingMergeEntry = Mockito.spy(new StreamingMergeEntry());
+        Callback callback = () -> {
+            StreamingMergeEntry streamingMergeEntry = Mockito.spy(new StreamingMergeEntry());
 
-        streamingMergeEntry.setThresholdOfSegSize(5 * 1024);
-        streamingMergeEntry.setNumberOfSeg(5);
-        streamingMergeEntry.setSparkSession(createSparkSession());
-        Assert.assertNotNull(streamingMergeEntry.getSparkSession());
-        val mgr = NDataflowManager.getInstance(getTestConfig(), PROJECT);
-        NDataflow df = mgr.getDataflow(DATAFLOW_ID);
-        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
-        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
-        mgr.updateDataflow(update);
-        df = mgr.getDataflow(DATAFLOW_ID);
-        df = createSegments(mgr, df, 6, null, copyForWrite -> {
-            for (int i = 0; i < 2; i++) {
-                val seg = copyForWrite.getSegments().get(i);
-                seg.getAdditionalInfo().put("file_layer", "2");
-            }
-            for (int i = 2; i < 4; i++) {
-                val seg = copyForWrite.getSegments().get(i);
-                seg.getAdditionalInfo().put("file_layer", "1");
+            streamingMergeEntry.setThresholdOfSegSize(5 * 1024);
+            streamingMergeEntry.setNumberOfSeg(5);
+            streamingMergeEntry.setSparkSession(createSparkSession());
+            Assert.assertNotNull(streamingMergeEntry.getSparkSession());
+            val mgr = NDataflowManager.getInstance(getTestConfig(), PROJECT);
+            NDataflow df = mgr.getDataflow(DATAFLOW_ID);
+            NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
+            update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+            mgr.updateDataflow(update);
+            df = mgr.getDataflow(DATAFLOW_ID);
+            df = createSegments(mgr, df, 6, null, copyForWrite -> {
+                for (int i = 0; i < 2; i++) {
+                    val seg = copyForWrite.getSegments().get(i);
+                    seg.getAdditionalInfo().put("file_layer", "2");
+                }
+                for (int i = 2; i < 4; i++) {
+                    val seg = copyForWrite.getSegments().get(i);
+                    seg.getAdditionalInfo().put("file_layer", "1");
+                }
+                for (int i = 4; i < 6; i++) {
+                    val seg = copyForWrite.getSegments().get(i);
+                }
+            });
+            for (int i = 0; i < 4; i++) {
+                val seg = df.getSegments().get(i);
+                setSegmentStorageSize(seg, 2048L);
             }
             for (int i = 4; i < 6; i++) {
-                val seg = copyForWrite.getSegments().get(i);
+                val seg = df.getSegments().get(i);
+                setSegmentStorageSize(seg, 5 * 1024L);
             }
-        });
-        for (int i = 0; i < 4; i++) {
-            val seg = df.getSegments().get(i);
-            setSegmentStorageSize(seg, 2048L);
-        }
-        for (int i = 4; i < 6; i++) {
-            val seg = df.getSegments().get(i);
-            setSegmentStorageSize(seg, 5 * 1024L);
-        }
-        mgr.getDataflow(df.getId());
-        val latch = new CountDownLatch(1);
-        shutdownStreamingMergeJob(latch);
-        try {
-            mockRestSupport(streamingMergeEntry, config, 0);
-            streamingMergeEntry.schedule(PROJECT, DATAFLOW_ID);
-        } finally {
-            latch.await(15, TimeUnit.SECONDS);
-        }
-        streamingMergeEntry.getSparkSession().stop();
-        df = mgr.getDataflow(DATAFLOW_ID);
-        Assert.assertEquals(2, df.getSegments().size());
-        Assert.assertEquals("1", df.getSegments().get(0).getAdditionalInfo().get("file_layer"));
-        Assert.assertTrue(df.getSegments().get(1).getAdditionalInfo().isEmpty());
+            mgr.getDataflow(df.getId());
+            val latch = new CountDownLatch(1);
+            shutdownStreamingMergeJob(latch);
+            try {
+                mockRestSupport(streamingMergeEntry, config, 0);
+                streamingMergeEntry.schedule(PROJECT, DATAFLOW_ID);
+            } finally {
+                latch.await(15, TimeUnit.SECONDS);
+            }
+            streamingMergeEntry.getSparkSession().stop();
+            df = mgr.getDataflow(DATAFLOW_ID);
+            Assert.assertEquals(2, df.getSegments().size());
+            Assert.assertEquals("1", df.getSegments().get(0).getAdditionalInfo().get("file_layer"));
+            Assert.assertTrue(df.getSegments().get(1).getAdditionalInfo().isEmpty());
+        };
+        testWithRetry(callback);
     }
 
     @Test

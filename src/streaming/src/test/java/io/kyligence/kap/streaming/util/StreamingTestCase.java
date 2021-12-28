@@ -24,6 +24,8 @@
 package io.kyligence.kap.streaming.util;
 
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
@@ -35,6 +37,7 @@ import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.source.ISource;
 import org.apache.kylin.source.SourceFactory;
 import org.apache.spark.sql.SparkSession;
+import org.awaitility.Awaitility;
 import org.junit.Assert;
 
 import com.google.common.cache.Cache;
@@ -183,4 +186,28 @@ public class StreamingTestCase extends NLocalFileMetadataTestCase {
         assert source.supportBuildSnapShotByPartition();
         return source;
     }
+
+    public void testWithRetry(Callback callback) {
+        val assertMeet = new AtomicBoolean(false);
+        Awaitility.await().atMost(60, TimeUnit.SECONDS).until(() -> {
+            for (int i = 0; i < 3; i++) {
+                try {
+                    callback.call();
+                    assertMeet.set(true);
+                    break;
+                } catch (Exception e) {
+                    continue;
+                }
+            }
+            return true;
+        });
+        if (!assertMeet.get()) {
+            Assert.fail();
+        }
+    }
+
+    public static interface Callback {
+        public void call() throws Exception;
+    }
+
 }
