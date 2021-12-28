@@ -168,8 +168,7 @@ public class MultiPartitionDesc implements Serializable, IKeep {
         public String buildMultiPartitionCondition(final PartitionDesc partDesc, final MultiPartitionDesc multiPartDesc,
                 final LinkedList<Long> partitionIds, final ISegment seg, final SegmentRange segRange) {
             String timeRange;
-            if (Objects.isNull(partDesc) || Objects.isNull(partDesc.getPartitionDateColumn())
-                    || Objects.isNull(segRange) || segRange.isInfinite()) {
+            if (PartitionDesc.isEmptyPartitionDesc(partDesc) || Objects.isNull(segRange) || segRange.isInfinite()) {
                 timeRange = null;
             } else {
                 timeRange = buildDateRangeCondition(partDesc, seg, segRange);

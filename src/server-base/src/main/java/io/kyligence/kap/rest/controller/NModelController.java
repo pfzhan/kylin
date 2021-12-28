@@ -745,7 +745,7 @@ public class NModelController extends NBasicController {
 
     public void validatePartitionDesc(PartitionDesc partitionDesc) {
         if (partitionDesc != null) {
-            if (StringUtils.isEmpty(partitionDesc.getPartitionDateColumn())) {
+            if (partitionDesc.isEmpty()) {
                 throw new KylinException(INVALID_PARTITION_COLUMN, MsgPicker.getMsg().getPARTITION_COLUMN_NOT_EXIST());
             }
             if (!isSupportFormatsFormats(partitionDesc)) {

@@ -5637,6 +5637,28 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testUpdatePartitionColumn_PartitionEmptyCol() throws IOException {
+        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        val project = "default";
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), project);
+        val dataflow = dfMgr.getDataflow(modelId);
+        NDataflowUpdate update = new NDataflowUpdate(modelId);
+        update.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[0]));
+        dfMgr.updateDataflow(update);
+        Assert.assertEquals(0, dfMgr.getDataflow(modelId).getSegments().size());
+        val modelMgr = NDataModelManager.getInstance(getTestConfig(), project);
+        modelMgr.updateDataModel(modelId, model -> {
+            model.setManagementType(ManagementType.MODEL_BASED);
+            model.setPartitionDesc(new PartitionDesc());
+        });
+        modelService.updatePartitionColumn(project, modelId, null, null);
+        Assert.assertEquals(1, dfMgr.getDataflow(modelId).getSegments().size());
+        val afterUpdateSegments = dfMgr.getDataflow(modelId).getSegments().getFirstSegment();
+        Assert.assertEquals(0, afterUpdateSegments.getTSRange().getStart());
+        Assert.assertEquals(Long.MAX_VALUE, afterUpdateSegments.getTSRange().getEnd());
+    }
+
+    @Test
     public void testUpdatePartitionColumnException() throws IOException {
         val modelId = "511a9163-7888-4a60-aa24-ae735937cc87";
         val project = "streaming_test";

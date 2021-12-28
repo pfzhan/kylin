@@ -32,7 +32,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinsGraph;
-import org.apache.kylin.metadata.model.PartitionDesc;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
@@ -72,7 +71,6 @@ public class ModelMaster {
         dataModel.setRootFactTableName(modelContext.getModelTree().getRootFactTable().getIdentity());
         dataModel.setDescription(StringUtils.EMPTY);
         dataModel.setFilterCondition(StringUtils.EMPTY);
-        dataModel.setPartitionDesc(new PartitionDesc());
         dataModel.setComputedColumnDescs(Lists.newArrayList());
 
         FunctionDesc countStar = CubeUtils.newCountStarFuncDesc(dataModel);

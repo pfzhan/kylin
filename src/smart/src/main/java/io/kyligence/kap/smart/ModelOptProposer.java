@@ -53,7 +53,6 @@ public class ModelOptProposer extends AbstractProposer {
             try {
                 NDataModel model = modelCtx.getTargetModel();
                 model = modelMaster.proposeJoins(model);
-                model = modelMaster.proposePartition(model);
                 model = modelMaster.proposeComputedColumn(model);
                 model = modelMaster.proposeScope(model);
                 model = modelMaster.shrinkComputedColumn(model);

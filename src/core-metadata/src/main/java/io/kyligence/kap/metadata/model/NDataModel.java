@@ -1089,7 +1089,7 @@ public class NDataModel extends RootPersistentEntity {
     public boolean isIncrementBuildOnExpertMode() {
         if (NProjectManager.getInstance(this.config).getProject(getProject())
                 .getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
-            return getPartitionDesc() != null && !StringUtils.isEmpty(partitionDesc.getPartitionDateColumn())
+            return !PartitionDesc.isEmptyPartitionDesc(getPartitionDesc())
                     && !StringUtils.isEmpty(partitionDesc.getPartitionDateFormat());
         }
         return false;

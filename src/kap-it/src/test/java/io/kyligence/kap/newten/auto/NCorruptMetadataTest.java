@@ -34,8 +34,6 @@ import org.junit.Test;
 
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
-import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.ProposerJob;
 import io.kyligence.kap.smart.SmartMaster;
@@ -424,66 +422,6 @@ public class NCorruptMetadataTest extends NAutoTestBase {
         final AbstractContext.ModelContext modelContext = smartMaster.getContext().getModelContexts().get(0);
         Assert.assertEquals(modelContext.getTargetModel(), modelContext.getOriginModel());
         Assert.assertEquals(7, modelContext.getOriginModel().getEffectiveCols().size());
-    }
-
-    /**
-     * Missing partition in the model's json file, the program ends normally.
-     */
-    @Test
-    public void testModelMissingPartition() {
-
-        preparePartition();
-
-        String[] sqls = new String[] { "select lstg_format_name, sum(price) from test_kylin_fact "
-                + "group by lstg_format_name order by lstg_format_name" };
-        val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "model_missing_partition", sqls);
-        SmartMaster smartMaster = new SmartMaster(context);
-        smartMaster.runUtWithContext(null);
-        context.saveMetadata();
-        AccelerationContextUtil.onlineModel(context);
-        Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
-        AccelerateInfo accelerateInfo = accelerateInfoMap.get(sqls[0]);
-        Assert.assertFalse(accelerateInfo.isFailed());
-        Assert.assertEquals(1, accelerateInfo.getRelatedLayouts().size());
-        final AbstractContext.ModelContext modelContext = smartMaster.getContext().getModelContexts().get(0);
-        Assert.assertNotNull(modelContext.getOriginModel());
-        Assert.assertNull(modelContext.getOriginModel().getPartitionDesc().getPartitionDateColumn());
-        Assert.assertNotNull(modelContext.getTargetModel());
-        Assert.assertEquals("TEST_KYLIN_FACT.CAL_DT",
-                modelContext.getTargetModel().getPartitionDesc().getPartitionDateColumn());
-    }
-
-    @Test
-    public void testModelMissingPartitionManually() {
-
-        preparePartition();
-        AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), "model_missing_partition");
-
-        String[] sqls = new String[] { "select lstg_format_name, sum(price) from test_kylin_fact "
-                + "group by lstg_format_name order by lstg_format_name" };
-        val context = AccelerationContextUtil.newModelReuseContextOfSemiAutoMode(getTestConfig(),
-                "model_missing_partition", sqls);
-        SmartMaster smartMaster = new SmartMaster(context);
-        smartMaster.runUtWithContext(null);
-        context.saveMetadata();
-        AccelerationContextUtil.onlineModel(context);
-        Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
-        AccelerateInfo accelerateInfo = accelerateInfoMap.get(sqls[0]);
-        Assert.assertFalse(accelerateInfo.isFailed());
-        Assert.assertEquals(1, accelerateInfo.getRelatedLayouts().size());
-        final AbstractContext.ModelContext modelContext = smartMaster.getContext().getModelContexts().get(0);
-        Assert.assertNull(modelContext.getOriginModel().getPartitionDesc().getPartitionDateColumn());
-        Assert.assertEquals("TEST_KYLIN_FACT.CAL_DT",
-                modelContext.getTargetModel().getPartitionDesc().getPartitionDateColumn());
-    }
-
-    private void preparePartition() {
-        NDataLoadingRange dataLoadingRange = new NDataLoadingRange();
-        dataLoadingRange.updateRandomUuid();
-        dataLoadingRange.setTableName("DEFAULT.TEST_KYLIN_FACT");
-        dataLoadingRange.setColumnName("TEST_KYLIN_FACT.CAL_DT");
-        NDataLoadingRangeManager.getInstance(getTestConfig(), "model_missing_partition")
-                .createDataLoadingRange(dataLoadingRange);
     }
 
     private void assertAccelerationInfoMap(String[] sqls, SmartMaster smartMaster) {

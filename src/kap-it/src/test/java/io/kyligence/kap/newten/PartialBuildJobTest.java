@@ -33,6 +33,7 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.constant.Constant;
@@ -295,7 +296,10 @@ public class PartialBuildJobTest extends SemiAutoTestBase {
         String modelId = smartMaster.getContext().getModelContexts().get(0).getTargetModel().getUuid();
 
         NDataModelManager.getInstance(getTestConfig(), getProject()).updateDataModel(modelId, //
-                copyForWrite -> copyForWrite.getPartitionDesc().setPartitionDateColumn("P_LINEORDER.LO_ORDERDATE"));
+                copyForWrite -> {
+                    copyForWrite.setPartitionDesc(new PartitionDesc());
+                    copyForWrite.getPartitionDesc().setPartitionDateColumn("P_LINEORDER.LO_ORDERDATE");
+                });
 
         NDataModel originModel = NDataModelManager.getInstance(getTestConfig(), getProject()).getDataModelDesc(modelId);
         IndexDependencyParser parser = new IndexDependencyParser(originModel);
@@ -390,6 +394,7 @@ public class PartialBuildJobTest extends SemiAutoTestBase {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
         NDataModel modelDesc = modelManager.getDataModelDesc(modelId);
         NDataModel modelUpdate = modelManager.copyForWrite(modelDesc);
+        modelUpdate.setPartitionDesc(new PartitionDesc());
         modelUpdate.getPartitionDesc().setPartitionDateFormat("yyyy-MM-dd");
         modelUpdate.setManagementType(ManagementType.MODEL_BASED);
         modelManager.updateDataModelDesc(modelUpdate);

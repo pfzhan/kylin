@@ -2261,8 +2261,7 @@ public class ModelService extends BasicService {
         indexPlanManager.createIndexPlan(indexPlan);
         val df = dataflowManager.createDataflow(indexPlan, model.getOwner(), RealizationStatusEnum.OFFLINE);
         SegmentRange range = null;
-        if (model.getPartitionDesc() == null
-                || StringUtils.isEmpty(model.getPartitionDesc().getPartitionDateColumn())) {
+        if (PartitionDesc.isEmptyPartitionDesc(model.getPartitionDesc())) {
             range = SegmentRange.TimePartitionedSegmentRange.createInfinite();
         } else if (StringUtils.isNotEmpty(modelRequest.getStart()) && StringUtils.isNotEmpty(modelRequest.getEnd())) {
             range = getSegmentRangeByModel(project, model.getUuid(), modelRequest.getStart(), modelRequest.getEnd());
@@ -2469,7 +2468,7 @@ public class ModelService extends BasicService {
 
     private String probeDateFormatIfNotExist(String project, NDataModel modelDesc) throws Exception {
         val partitionDesc = modelDesc.getPartitionDesc();
-        if (partitionDesc == null || StringUtils.isEmpty(partitionDesc.getPartitionDateColumn())
+        if (PartitionDesc.isEmptyPartitionDesc(partitionDesc)
                 || StringUtils.isNotEmpty(partitionDesc.getPartitionDateFormat()))
             return "";
 
@@ -2612,8 +2611,7 @@ public class ModelService extends BasicService {
             throw new KylinException(PARTITION_VALUE_NOT_SUPPORT, String.format(Locale.ROOT,
                     MsgPicker.getMsg().getPARTITION_VALUE_NOT_SUPPORT(), modelDesc.getAlias()));
         }
-        if (modelDesc.getPartitionDesc() == null
-                || StringUtils.isEmpty(modelDesc.getPartitionDesc().getPartitionDateColumn())) {
+        if (PartitionDesc.isEmptyPartitionDesc(modelDesc.getPartitionDesc())) {
             return fullBuildSegmentsManually(new FullBuildSegmentParams(project, modelId, needBuild)
                     .withIgnoredSnapshotTables(ignoredSnapshotTables).withPriority(priority)
                     .withPartialBuild(partialBuild).withBatchIndexIds(batchIndexIds).withYarnQueue(yarnQueue)
@@ -2846,8 +2844,7 @@ public class ModelService extends BasicService {
         aclEvaluate.checkProjectOperationPermission(project);
         checkModelPermission(project, params.getModelId());
         val modelManager = getDataModelManager(project);
-        if (params.getPartitionDesc() == null
-                || StringUtils.isEmpty(params.getPartitionDesc().getPartitionDateColumn())) {
+        if (PartitionDesc.isEmptyPartitionDesc(params.getPartitionDesc())) {
             throw new KylinException(EMPTY_PARTITION_COLUMN, "Partition column is null.'");
         }
 
@@ -2888,8 +2885,7 @@ public class ModelService extends BasicService {
             params.setSegmentHoles(Lists.newArrayList());
         }
         NDataModel modelDesc = getDataModelManager(params.getProject()).getDataModelDesc(params.getModelId());
-        if (modelDesc.getPartitionDesc() == null
-                || StringUtils.isEmpty(modelDesc.getPartitionDesc().getPartitionDateColumn())
+        if (PartitionDesc.isEmptyPartitionDesc(modelDesc.getPartitionDesc())
                 || !modelDesc.getPartitionDesc().equals(params.getPartitionDesc()) || !ModelSemanticHelper
                         .isMultiPartitionDescSame(modelDesc.getMultiPartitionDesc(), params.getMultiPartitionDesc())) {
             aclEvaluate.checkProjectWritePermission(params.getProject());
@@ -2954,7 +2950,7 @@ public class ModelService extends BasicService {
         val model = df.getModel();
         ModelUtils.checkPartitionColumn(model, partitionDesc, MsgPicker.getMsg().getPARTITION_COLUMN_SAVE_ERROR());
 
-        if (partitionDesc == null && model.getPartitionDesc() == null && df.getFirstSegment() == null
+        if (PartitionDesc.isEmptyPartitionDesc(model.getPartitionDesc()) && df.getFirstSegment() == null
                 && !model.isMultiPartitionModel()) {
             dataflowManager.fillDfManually(df,
                     Lists.newArrayList(SegmentRange.TimePartitionedSegmentRange.createInfinite()));

@@ -49,7 +49,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.cube.model.NDataflow;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
@@ -75,6 +74,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.MultiPartitionDesc;
 import io.kyligence.kap.metadata.model.MultiPartitionKeyMapping;
@@ -110,7 +110,7 @@ public class RealizationPruner {
         val partitionDesc = isBatchFusionModel ? getStreamingPartitionDesc(dataflow.getModel(), kylinConfig, projectName)
                 :dataflow.getModel().getPartitionDesc();
         // no partition column
-        if (partitionDesc == null || partitionDesc.getPartitionDateColumn() == null) {
+        if (PartitionDesc.isEmptyPartitionDesc(partitionDesc)) {
             log.info("No partition column");
             return allReadySegments;
         }

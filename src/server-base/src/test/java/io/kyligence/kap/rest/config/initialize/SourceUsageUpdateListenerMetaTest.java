@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.config.initialize;
 
 import org.apache.kylin.metadata.model.ISourceAware;
+import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.junit.After;
 import org.junit.Assert;
@@ -69,15 +70,15 @@ public class SourceUsageUpdateListenerMetaTest extends LocalFileMetadataTestCase
         val partColRef = new TblColRef(model.getRootFactTable(),
                 model.getColRef(model.getColumnIdByColumnName("P_LINEORDER.LO_ORDERDATE")).getColumnDesc());
         partColRef.getTableRef().getTableDesc().setSourceType(ISourceAware.ID_STREAMING);
+        model.setPartitionDesc(new PartitionDesc());
         model.getPartitionDesc().setPartitionDateColumnRef(partColRef);
 
         NDataModelManager.getInstance(getTestConfig(), project).copyForWrite(model);
 
-        @SuppressWarnings("unchecked")
-        val resultList = (Boolean) (ReflectionTestUtils.invokeMethod(new SourceUsageUpdateListener(), "verifyProject",
-                getTestConfig(), project, null, null));
+        Boolean verifyResult = ReflectionTestUtils.invokeMethod(new SourceUsageUpdateListener(), "verifyProject",
+                getTestConfig(), project, null, null);
 
-        Assert.assertTrue(resultList);
+        Assert.assertTrue(verifyResult);
 
     }
 }

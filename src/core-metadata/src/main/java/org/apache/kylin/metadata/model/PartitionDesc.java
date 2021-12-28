@@ -238,6 +238,10 @@ public class PartitionDesc implements Serializable {
         }
     }
 
+    public static boolean isEmptyPartitionDesc(PartitionDesc partitionDesc){
+        return partitionDesc == null || partitionDesc.isEmpty();
+    }
+
     // ============================================================================
 
     public static interface IPartitionConditionBuilder {

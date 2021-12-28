@@ -66,6 +66,7 @@ import org.apache.kylin.common.util.Application;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.TimeZoneUtils;
+import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.spark.SparkConf;
 import org.apache.spark.application.NoRetryException;
@@ -531,7 +532,7 @@ public abstract class SparkApplication implements Application, IKeep {
         }
 
         val partitionDesc = modelDesc.getPartitionDesc();
-        if (partitionDesc == null || org.apache.commons.lang.StringUtils.isEmpty(partitionDesc.getPartitionDateColumn())
+        if (PartitionDesc.isEmptyPartitionDesc(partitionDesc)
                 || org.apache.commons.lang.StringUtils.isEmpty(partitionDesc.getPartitionDateFormat()))
             return;
 

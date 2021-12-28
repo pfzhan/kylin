@@ -206,6 +206,33 @@ public class ModelMasterTest extends AutoTestOnLearnKylinData {
     }
 
     @Test
+    public void testProposePartition() {
+        // we expect sqls can be accelerated will not blocked by its counterpart
+        String[] sqls = new String[] { //
+                " SELECT SUM((CASE WHEN 1.1000000000000001 = 0 THEN CAST(NULL AS DOUBLE) "
+                        + "ELSE \"TEST_KYLIN_FACT\".\"PRICE\" / 1.1000000000000001 END)) "
+                        + "AS \"sum_price\" FROM \"DEFAULT\".\"TEST_KYLIN_FACT\" \"TEST_KYLIN_FACT\"",
+
+                " SELECT SUM(\"TEST_KYLIN_FACT\".\"PRICE\" * 2 + 2) "
+                        + "AS \"double_price\" FROM \"DEFAULT\".\"TEST_KYLIN_FACT\" \"TEST_KYLIN_FACT\"",
+
+                "SELECT \"TEST_KYLIN_FACT\".\"LSTG_FORMAT_NAME\" AS \"LSTG_FORMAT_NAME\",\n"
+                        + "  SUM(\"TEST_KYLIN_FACT\".\"PRICE\") AS \"sum_price\"\n"
+                        + "FROM \"DEFAULT\".\"TEST_KYLIN_FACT\" \"TEST_KYLIN_FACT\"\n"
+                        + "GROUP BY \"TEST_KYLIN_FACT\".\"LSTG_FORMAT_NAME\"",
+
+        };
+        val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sqls);
+        context.setSkipEvaluateCC(true);
+        SmartMaster smartMaster = new SmartMaster(context);
+        smartMaster.runUtWithContext(null);
+        final AbstractContext smartContext = smartMaster.getContext();
+        final List<AbstractContext.ModelContext> modelContexts = smartContext.getModelContexts();
+        Assert.assertEquals(1, modelContexts.size());
+        Assert.assertNull(modelContexts.get(0).getTargetModel().getPartitionDesc());
+    }
+
+    @Test
     public void testSqlWithEmptyAllColsInContext() {
         String[] sqls = new String[] { "SELECT count(*) as cnt from " + "KYLIN_SALES as KYLIN_SALES  \n"
                 + "INNER JOIN KYLIN_CAL_DT as KYLIN_CAL_DT ON KYLIN_SALES.PART_DT = KYLIN_CAL_DT.CAL_DT \n"

@@ -34,8 +34,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
-import com.google.common.collect.Sets;
-import io.kyligence.kap.rest.constant.ModelAttributeEnum;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -45,8 +43,11 @@ import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 
+import com.google.common.collect.Sets;
+
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.rest.constant.ModelAttributeEnum;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import lombok.val;
@@ -71,7 +72,7 @@ public class ModelUtils {
 
     public static void checkPartitionColumn(NDataModel model, PartitionDesc partitionDesc, String errMsg) {
         if (!model.isBroken() && model.isStreaming()) {
-            if (partitionDesc == null || StringUtils.isEmpty(partitionDesc.getPartitionDateColumn())
+            if (PartitionDesc.isEmptyPartitionDesc(partitionDesc)
                     || !DateFormat.isTimestampFormat(partitionDesc.getPartitionDateFormat())) {
                 throw new KylinException(INVALID_PARTITION_COLUMN, errMsg);
             }
