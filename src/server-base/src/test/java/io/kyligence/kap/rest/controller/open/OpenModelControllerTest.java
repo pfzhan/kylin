@@ -795,6 +795,19 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testCheckMLPNotEmpty() {
+        String fieldName = "sub_partition_values";
+        List<String[]> subPartitionValues = new ArrayList<>();
+        try {
+            OpenModelController.checkMLP(fieldName, subPartitionValues);
+        } catch (KylinException e) {
+            Assert.assertEquals("999", e.getCode());
+            Assert.assertEquals(String.format(Locale.ROOT, "'%s' cannot be empty.", fieldName), e.getMessage());
+        }
+
+    }
+
+    @Test
     public void testUpdatePartition() throws Exception {
         String modelName = "multi_level_partition";
         String project = "multi_level_partition";

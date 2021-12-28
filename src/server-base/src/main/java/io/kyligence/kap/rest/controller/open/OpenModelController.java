@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.controller.open;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_SQL_EXPRESSION;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_MODEL_NAME;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.UNSUPPORTED_STREAMING_OPERATION;
 
@@ -666,10 +667,11 @@ public class OpenModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> deleteMultiPartition(@RequestParam("model") String modelAlias,
             @RequestParam("project") String project, @RequestParam("segment_id") String segmentId,
-            @RequestParam(value = "sub_partition_values") List<String[]> subPartitionValues) {
+            @RequestParam("sub_partition_values") List<String[]> subPartitionValues) {
         String projectName = checkProjectName(project);
         checkProjectMLP(projectName);
         checkRequiredArg("sub_partition_values", subPartitionValues);
+        checkMLP("sub_partition_values", subPartitionValues);
         NDataModel model = getModel(modelAlias, projectName);
         modelService.deletePartitionsByValues(project, segmentId, model.getId(), subPartitionValues);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
@@ -737,6 +739,12 @@ public class OpenModelController extends NBasicController {
     static void checkNotEmpty(List<String> sqls) {
         if (CollectionUtils.isEmpty(sqls)) {
             throw new KylinException(EMPTY_SQL_EXPRESSION, MsgPicker.getMsg().getNULL_EMPTY_SQL());
+        }
+    }
+
+    static void checkMLP(String fieldName, List<String[]> subPartitionValues) {
+        if (subPartitionValues.isEmpty()) {
+            throw new KylinException(INVALID_PARAMETER, String.format(Locale.ROOT, "'%s' cannot be empty.", fieldName));
         }
     }
 }
