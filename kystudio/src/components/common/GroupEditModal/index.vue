@@ -254,7 +254,7 @@ export default class GroupEditModal extends Vue {
 
     typeof value !== 'undefined' && value ? (this.totalSizes = [this.totalUsersSize - searchUserIsSelected.length]) : (this.totalSizes = [data.total_size - this.form.selected_users.length])
 
-    const users = [ ...(this.page_offset === 0 ? [] : this.totalUsers), ...remoteUsers, ...selectedUsersNotInRemote ]
+    const users = [...new Set([ ...(this.page_offset === 0 ? [] : this.totalUsers), ...remoteUsers, ...selectedUsersNotInRemote ].map(it => it.key))].map(item => ({key: item, label: item}))
 
     this.autoLoadMoreData(users, value)
 

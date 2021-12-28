@@ -362,7 +362,7 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       unExistLayoutTip: 'This index has been deleted',
       filteredTotalSize: '{totalSize} result(s)',
       secStorage: 'Tiered Storage',
-      streamingTag: 'streming',
+      streamingTag: 'streaming',
       downloadQueryDiagnosticPackage: 'Download Query Diagnostic Package',
       queryError: 'Query error.',
       viewDetails: 'View Details',
