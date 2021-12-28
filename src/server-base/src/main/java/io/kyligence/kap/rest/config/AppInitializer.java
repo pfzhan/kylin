@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.config;
 import java.util.Date;
 
 import io.kyligence.kap.rest.config.initialize.ModelUpdateListener;
+import io.kyligence.kap.rest.source.DataSourceState;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -64,7 +65,6 @@ import io.kyligence.kap.rest.config.initialize.SparderStartEvent;
 import io.kyligence.kap.rest.config.initialize.TableSchemaChangeListener;
 import io.kyligence.kap.rest.service.QueryCacheManager;
 import io.kyligence.kap.rest.service.QueryHistoryScheduler;
-import io.kyligence.kap.rest.source.NHiveTableName;
 import io.kyligence.kap.rest.util.JStackDumpTask;
 import io.kyligence.kap.streaming.jobs.StreamingJobListener;
 import io.kyligence.kap.tool.daemon.KapGuardianHATask;
@@ -176,7 +176,7 @@ public class AppInitializer {
         if (kylinConfig.isJobNode()) {
             new EpochOrchestrator(kylinConfig);
             if (kylinConfig.getLoadHiveTablenameEnabled()) {
-                taskScheduler.scheduleWithFixedDelay(NHiveTableName.getInstance(),
+                taskScheduler.scheduleWithFixedDelay(DataSourceState.getInstance(),
                         kylinConfig.getLoadHiveTablenameIntervals() * Constant.SECOND);
             }
         }

@@ -27,6 +27,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_KERBEROS
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 
 import java.io.File;
+import java.security.PrivilegedAction;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -35,12 +36,14 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.Singletons;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.source.ISourceMetadataExplorer;
+import org.apache.kylin.source.SourceFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.common.util.FileUtils;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.rest.source.NHiveTableName;
 import lombok.val;
 
 public class KerberosLoginManager {
@@ -113,8 +116,19 @@ public class KerberosLoginManager {
         checkKerberosInfo(principal, keytab);
 
         UserGroupInformation ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytab);
-        if (!NHiveTableName.getInstance().checkExistsTablesAccess(ugi, project)) {
+        if (!checkExistsTablesAccess(ugi, project)) {
             throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getPROJECT_HIVE_PERMISSION_ERROR());
         }
+    }
+
+    private boolean checkExistsTablesAccess(UserGroupInformation ugi, String project) {
+        val kapConfig = KapConfig.getInstanceFromEnv();
+        val projectManager = NProjectManager.getInstance(kapConfig.getKylinConfig());
+        return ugi.doAs((PrivilegedAction<Boolean>) () -> {
+            ProjectInstance projectInstance = projectManager.getProject(project);
+            val tables = projectInstance.getTables();
+            ISourceMetadataExplorer explorer = SourceFactory.getSource(projectInstance).getSourceMetadataExplorer();
+            return explorer.checkTablesAccess(tables);
+        });
     }
 }

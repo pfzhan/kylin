@@ -118,8 +118,8 @@ import io.kyligence.kap.rest.response.NInitTablesResponse;
 import io.kyligence.kap.rest.response.TableDescResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
+import io.kyligence.kap.rest.source.DataSourceState;
 import io.kyligence.kap.rest.source.NHiveSourceInfo;
-import io.kyligence.kap.rest.source.NHiveTableName;
 import io.kyligence.kap.streaming.jobs.StreamingJobListener;
 import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import lombok.val;
@@ -1193,7 +1193,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         NHiveSourceInfo sourceInfo = new NHiveSourceInfo();
         sourceInfo.setTables(testData);
         UserGroupInformation ugi = UserGroupInformation.getLoginUser();
-        NHiveTableName.getInstance().setAllTablesForTest(sourceInfo, "ugi#" + ugi.getUserName());
+        DataSourceState.getInstance().putCache("ugi#" + ugi.getUserName(), sourceInfo);
         List<?> tables = tableService.getTableNameResponsesInCache("default", "t", "a");
         Assert.assertEquals(tables.size(), 2);
     }
@@ -1247,7 +1247,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         NHiveSourceInfo sourceInfo = new NHiveSourceInfo();
         sourceInfo.setTables(testData);
         UserGroupInformation ugi = UserGroupInformation.getLoginUser();
-        NHiveTableName.getInstance().setAllTablesForTest(sourceInfo, "project#default");
+        DataSourceState.getInstance().putCache("project#default", sourceInfo);
         List<?> tables = tableService.getTableNameResponsesInCache("default", "t", "a");
         Assert.assertEquals(tables.size(), 2);
     }

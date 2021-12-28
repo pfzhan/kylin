@@ -167,10 +167,10 @@ public class NTableController extends NBasicController {
             @RequestParam(value = "source_type", required = false, defaultValue = "9") List<Integer> sourceType)
             throws Exception {
 
-        checkProjectName(project);
+        String projectName = checkProjectName(project);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
-                tableService.getProjectTables(project, table, offset, limit, false, (databaseName, tableName) -> {
-                    return tableService.getTableDescByTypes(project, withExt, tableName, databaseName, isFuzzy,
+                tableService.getProjectTables(projectName, table, offset, limit, false, (databaseName, tableName) -> {
+                    return tableService.getTableDescByTypes(projectName, withExt, tableName, databaseName, isFuzzy,
                             sourceType);
                 }), "");
     }
@@ -409,11 +409,11 @@ public class NTableController extends NBasicController {
             @RequestParam(value = "table", required = false, defaultValue = "") String table,
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit) throws Exception {
-        checkProjectName(project);
+        String projectName = checkProjectName(project);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
-                tableService.getProjectTables(project, table, offset, limit, true, (databaseName, tableName) -> {
-                    return tableService.getHiveTableNameResponses(project, databaseName, tableName);
-                }), "");
+                tableService.getProjectTables(projectName, table, offset, limit, true, (databaseName,
+                        tableName) -> tableService.getHiveTableNameResponses(projectName, databaseName, tableName)),
+                "");
     }
 
     @ApiOperation(value = "getTablesAndColumns", tags = {

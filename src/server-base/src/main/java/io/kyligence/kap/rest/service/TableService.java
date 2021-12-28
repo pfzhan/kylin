@@ -180,7 +180,7 @@ import io.kyligence.kap.rest.response.TableDescResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
 import io.kyligence.kap.rest.security.KerberosLoginManager;
-import io.kyligence.kap.rest.source.NHiveTableName;
+import io.kyligence.kap.rest.source.DataSourceState;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import lombok.val;
 import lombok.var;
@@ -1930,7 +1930,7 @@ public class TableService extends BasicService {
         aclEvaluate.checkProjectReadPermission(project);
         List<TableNameResponse> responses = new ArrayList<>();
         NTableMetadataManager tableManager = getTableManager(project);
-        List<String> tables = NHiveTableName.getInstance().getTables(project, database);
+        List<String> tables = DataSourceState.getInstance().getTables(project, database);
         for (String tableName : tables) {
             if (StringUtils.isEmpty(table)
                     || tableName.toUpperCase(Locale.ROOT).contains(table.toUpperCase(Locale.ROOT))) {
@@ -1959,14 +1959,13 @@ public class TableService extends BasicService {
     }
 
     public void loadHiveTableNameToCache() throws Exception {
-        NHiveTableName.getInstance().loadHiveTableName();
+        DataSourceState.getInstance().loadAllSourceInfoToCache();
     }
 
     public NHiveTableNameResponse loadProjectHiveTableNameToCacheImmediately(String project, boolean force)
             throws Exception {
         aclEvaluate.checkProjectWritePermission(project);
-        UserGroupInformation ugi = KerberosLoginManager.getInstance().getProjectUGI(project);
-        return NHiveTableName.getInstance().fetchTablesImmediately(ugi, project, force);
+        return DataSourceState.getInstance().loadAllSourceInfoToCacheForced(project, force);
     }
 
     private static final String SSB_ERROR_MSG = "import ssb data error.";
