@@ -278,7 +278,7 @@
         <poi.version>4.1.2</poi.version>
 
         <!-- clickhouse -->
-        <clickhouse-native-jdbc.version>2.6.1</clickhouse-native-jdbc.version>
+        <clickhouse-native-jdbc.version>2.5.7</clickhouse-native-jdbc.version>
         <clickhouse-jdbc.version>0.2.4</clickhouse-jdbc.version>
         <clickhouse.group>ru.yandex.clickhouse</clickhouse.group>
         <clickhouse.artifact>clickhouse-jdbc</clickhouse.artifact>
@@ -428,8 +428,8 @@
                 <artifactId>clickhouse-native-jdbc</artifactId>
                 <exclusions>
                     <exclusion>
-                        <groupId>net.jpountz.lz4</groupId>
-                        <artifactId>lz4</artifactId>
+                        <groupId>org.lz4</groupId>
+                        <artifactId>lz4-java</artifactId>
                     </exclusion>
                 </exclusions>
                 <version>${clickhouse-native-jdbc.version}</version>
