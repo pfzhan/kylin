@@ -138,6 +138,10 @@
             <scope>test</scope>
             <version>${mockito.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>log4j-over-slf4j</artifactId>
+        </dependency>
 
 <!--        hadoop-mini-clusters-hdfs dependency-->
         <dependency>
