@@ -333,6 +333,7 @@ public class QueryUtilTest extends NLocalFileMetadataTestCase {
     public void testMassageAndExpandComputedColumn() {
         String modelUuid = "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96";
         final KylinConfig config = KylinConfig.getInstanceFromEnv();
+        config.setProperty("kylin.query.optimized-sum-cast-double-rule-enabled", "false");
         NDataModelManager modelManager = NDataModelManager.getInstance(config, "default");
         modelManager.updateDataModel(modelUuid, copyForWrite -> {
             ComputedColumnDesc cc = new ComputedColumnDesc();

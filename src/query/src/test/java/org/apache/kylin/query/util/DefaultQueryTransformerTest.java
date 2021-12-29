@@ -44,9 +44,25 @@ package org.apache.kylin.query.util;
 
 import static org.junit.Assert.assertTrue;
 
+import org.apache.kylin.common.KylinConfig;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
-public class DefaultQueryTransformerTest {
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+
+public class DefaultQueryTransformerTest extends NLocalFileMetadataTestCase {
+
+    @Before
+    public void setUp() throws Exception {
+        this.createTestMetadata();
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.query.optimized-sum-cast-double-rule-enabled", "false");
+    }
+
+    @After
+    public void after() throws Exception {
+        this.cleanupTestMetadata();
+    }
 
     @Test
     public void transformSumNumericLiteral() {

@@ -1522,6 +1522,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.query.convert-sum-expression-enabled", FALSE));
     }
 
+    public boolean isOptimizedSumCastDoubleRuleEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.query.optimized-sum-cast-double-rule-enabled", TRUE));
+    }
+
     public boolean isConvertCountDistinctExpressionEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.query.convert-count-distinct-expression-enabled", FALSE));
     }

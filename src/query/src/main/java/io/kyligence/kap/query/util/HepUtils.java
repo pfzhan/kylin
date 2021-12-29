@@ -25,6 +25,7 @@
 package io.kyligence.kap.query.util;
 
 import io.kyligence.kap.query.optrule.CountDistinctCaseWhenFunctionRule;
+import io.kyligence.kap.query.optrule.KapAggSumCastRule;
 import io.kyligence.kap.query.optrule.KapAggregateRule;
 import io.kyligence.kap.query.optrule.KapEquiJoinConditionFixRule;
 import io.kyligence.kap.query.optrule.KapJoinRule;
@@ -86,6 +87,12 @@ public class HepUtils {
             KapProjectRule.INSTANCE,
             KapAggregateRule.INSTANCE,
             KapJoinRule.EQUAL_NULL_SAFE_INSTANT
+    );
+
+    public static final ImmutableList<RelOptRule> SumCastDoubleRules = ImmutableList.of(
+            KapAggSumCastRule.INSTANCE,
+            KapProjectRule.INSTANCE,
+            KapAggregateRule.INSTANCE
     );
 
 

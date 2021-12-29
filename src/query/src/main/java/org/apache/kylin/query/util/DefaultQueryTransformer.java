@@ -45,6 +45,7 @@ package org.apache.kylin.query.util;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.query.util.QueryUtil.IQueryTransformer;
 
 /**
@@ -79,14 +80,16 @@ public class DefaultQueryTransformer implements IQueryTransformer {
 
     // Case: SUM(CAST (column_name AS DOUBLE))
     private static String transformSumOfCast(String sql) {
-        Matcher m;
-        while (true) {
-            m = PIN_SUM_OF_CAST.matcher(sql);
-            if (!m.find())
-                break;
+        if (!KylinConfig.getInstanceFromEnv().isOptimizedSumCastDoubleRuleEnabled()) {
+            Matcher m;
+            while (true) {
+                m = PIN_SUM_OF_CAST.matcher(sql);
+                if (!m.find())
+                    break;
 
-            sql = sql.substring(0, m.start()) + " SUM(" + m.group(1).trim() + ")"
-                    + sql.substring(m.end(), sql.length());
+                sql = sql.substring(0, m.start()) + " SUM(" + m.group(1).trim() + ")"
+                        + sql.substring(m.end(), sql.length());
+            }
         }
         return sql;
     }

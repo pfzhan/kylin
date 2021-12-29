@@ -70,6 +70,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
     public void setupCCConf() {
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
+        overwriteSystemProp("kylin.query.optimized-sum-cast-double-rule-enabled", "FALSE");
     }
 
     @Test
