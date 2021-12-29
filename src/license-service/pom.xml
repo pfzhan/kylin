@@ -56,34 +56,41 @@
         </dependency>
     </dependencies>
 
-<!--    <build>-->
+    <build>
 
-<!--        <plugins>-->
-<!--            <plugin>-->
-<!--                <groupId>com.github.wvengen</groupId>-->
-<!--                <artifactId>proguard-maven-plugin</artifactId>-->
-<!--                <version>2.5.2</version>-->
-<!--                <executions>-->
-<!--                    <execution>-->
-<!--                        <id>obf</id>-->
-<!--                        <phase>package</phase>-->
-<!--                        <goals>-->
-<!--                            <goal>proguard</goal>-->
-<!--                        </goals>-->
-<!--                        <configuration>-->
-<!--                            <options>-->
-<!--                                <option>-allowaccessmodification</option>-->
-<!--                                <option>-dontshrink</option>-->
-<!--                                <option>-keep public class io.kyligence.kap.common.obf.** { *; }</option>-->
-<!--                                <option>-keepattributes *Annotation*</option>-->
-<!--                            </options>-->
-<!--                            <libs>-->
-<!--                                <lib>${java.home}/lib/rt.jar</lib>-->
-<!--                            </libs>-->
-<!--                        </configuration>-->
-<!--                    </execution>-->
-<!--                </executions>-->
-<!--            </plugin>-->
-<!--        </plugins>-->
-<!--    </build>-->
+        <plugins>
+            <plugin>
+                <groupId>com.github.wvengen</groupId>
+                <artifactId>proguard-maven-plugin</artifactId>
+                <version>2.5.2</version>
+                <executions>
+                    <execution>
+                        <id>obf</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>proguard</goal>
+                        </goals>
+                        <configuration>
+                            <options>
+                                <option>-dontshrink</option>
+                                <option>-dontoptimize</option>
+                                <option>-keepdirectories</option>
+                                <option>-dontnote</option>
+                                <option>-dontwarn</option>
+                                <option>-allowaccessmodification</option>
+                                <option>-keepattributes Exceptions,Signature,Deprecated,SourceFile,LineNumberTable,
+                                    *Annotation*,EnclosingMethod,InnerClasses
+                                </option>
+                                <option>-repackageclasses 'io.kyligence'</option>
+                                <option>-keep public class * extends java.applet.Applet { *; }</option>
+                            </options>
+                            <libs>
+                                <lib>${java.home}/lib/rt.jar</lib>
+                            </libs>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>
