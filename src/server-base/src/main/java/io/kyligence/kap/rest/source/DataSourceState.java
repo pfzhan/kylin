@@ -169,7 +169,8 @@ public class DataSourceState implements Runnable {
         runningStateMap.put(cacheKey, true);
         NHiveSourceInfo sourceInfo = fetchUgiSourceInfo(projectUGI, getHiveFilterList(projectInstance));
         putCache(cacheKey, sourceInfo);
-        response.setIsRunning(runningStateMap.put(cacheKey, false));
+        runningStateMap.put(cacheKey, false);
+        response.setIsRunning(runningStateMap.get(cacheKey));
         response.setTime(0L);
         return response;
     }
