@@ -67,6 +67,7 @@ import static org.awaitility.Awaitility.await;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -370,7 +371,7 @@ public class IncrementalWithIntPartitionTest implements JobWaiter {
         waitJobFinish(project, job.get().getId());
     }
 
-    @Test
+    @Ignore
     public void testJobPaused() throws Exception {
         buildIncrementalLoadQuery("2012-01-01", "2012-01-02");
         buildIncrementalLoadQuery("2012-01-02", "2012-01-03");
