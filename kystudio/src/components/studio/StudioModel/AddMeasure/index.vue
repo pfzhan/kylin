@@ -108,7 +108,7 @@
                 <el-tooltip :content="item.name" effect="dark" placement="top"><span>{{item.name | omit(30, '...')}}</span></el-tooltip>
                 <span class="ky-option-sub-info">{{item.datatype}}</span>
               </el-option>
-              <el-option-group key="ccolumn" :label="$t('ccolumns')" v-if="measure.expression === 'TOP_N' && getCCGroups().length">
+              <el-option-group key="ccolumn" :label="$t('ccolumns')" v-if="measure.expression === 'TOP_N' && getCCGroups(isGroupBy).length">
                 <el-option
                   v-for="item in getCCGroups(isGroupBy)"
                   :key="item.guid"
