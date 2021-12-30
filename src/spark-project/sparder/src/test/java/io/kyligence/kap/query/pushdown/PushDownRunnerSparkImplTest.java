@@ -28,6 +28,7 @@ package io.kyligence.kap.query.pushdown;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
@@ -180,5 +181,15 @@ public class PushDownRunnerSparkImplTest extends NLocalFileMetadataTestCase {
             Assert.assertEquals(1, resp.getColumns().size());
             Assert.assertEquals(1, resp.getSize());
         }
+    }
+
+    @Test
+    public void testAsyncQueryWriteParquet() {
+        QueryContext queryContext = QueryContext.current();
+        queryContext.getQueryTagInfo().setAsyncQuery(true);
+        queryContext.getQueryTagInfo().setFileFormat("parquet");
+        queryContext.getQueryTagInfo().setFileEncode("utf-8");
+        String sql = "select * from TEST_KYLIN_FACT";
+        SparkSqlClient.executeSql(ss, sql, UUID.randomUUID(), "tpch");
     }
 }

@@ -118,7 +118,7 @@ object SparkSqlClient {
     try {
       val queryTagInfo = QueryContext.current().getQueryTagInfo
       if (queryTagInfo.isAsyncQuery) {
-        saveAsyncQueryResult(df, queryTagInfo.getFileFormat, queryTagInfo.getFileEncode)
+        saveAsyncQueryResult(df, queryTagInfo.getFileFormat, queryTagInfo.getFileEncode, null)
         val fieldList = df.schema.map(field => SparderTypeUtil.convertSparkFieldToJavaField(field)).asJava
         return (Lists.newArrayList(), 0, fieldList)
       }

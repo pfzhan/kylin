@@ -160,7 +160,7 @@ object ResultPlan extends LogEx {
   def getResult(df: DataFrame, rowType: RelDataType): ExecuteResult = withScope(df) {
     val queryTagInfo = QueryContext.current().getQueryTagInfo
     if (queryTagInfo.isAsyncQuery) {
-      saveAsyncQueryResult(df, queryTagInfo.getFileFormat, queryTagInfo.getFileEncode)
+      saveAsyncQueryResult(df, queryTagInfo.getFileFormat, queryTagInfo.getFileEncode, rowType)
     }
     val result = if (SparderEnv.needCompute() && !QueryContext.current().getQueryTagInfo.isAsyncQuery) {
       collectInternal(df, rowType)
@@ -178,7 +178,14 @@ object ResultPlan extends LogEx {
     new ExecuteResult(new util.LinkedList[util.List[String]], 0)
   }
 
-  def saveAsyncQueryResult(df: DataFrame, format: String, encode: String): Unit = {
+  def wrapAlias(originDS: DataFrame, rowType: RelDataType): DataFrame = {
+    val newFields = rowType.getFieldList.asScala.map(t => t.getName)
+    val newDS = originDS.toDF(newFields: _*)
+    logInfo(s"Wrap ALIAS ${originDS.schema.treeString} TO ${newDS.schema.treeString}")
+    newDS
+  }
+
+  def saveAsyncQueryResult(df: DataFrame, format: String, encode: String, rowType: RelDataType): Unit = {
     val kapConfig = KapConfig.getInstanceFromEnv
     SparderEnv.setDF(df)
     val path = KapConfig.getInstanceFromEnv.getAsyncResultBaseDir(QueryContext.current().getProject) + "/" +
@@ -196,6 +203,16 @@ object ResultPlan extends LogEx {
     format match {
       case "json" => df.write.option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZ").option("encoding", encode)
         .option("charset", "utf-8").mode(SaveMode.Append).json(path)
+      case "parquet" =>
+        val sqlContext = SparderEnv.getSparkSession.sqlContext
+        sqlContext.setConf("spark.sql.parquet.writeLegacyFormat", "true")
+        if (rowType != null) {
+          val newDf = wrapAlias(df, rowType)
+          newDf.write.mode(SaveMode.Overwrite).option("encoding", encode).option("charset", "utf-8").parquet(path)
+        } else {
+          df.write.mode(SaveMode.Overwrite).option("encoding", encode).option("charset", "utf-8").parquet(path)
+        }
+        sqlContext.setConf("spark.sql.parquet.writeLegacyFormat", "false")
       case _ => df.write.option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZ").option("sep", SparderEnv.getSeparator)
         .option("encoding", encode).option("charset", "utf-8").mode(SaveMode.Append).csv(path)
     }
@@ -203,13 +220,15 @@ object ResultPlan extends LogEx {
     if (kapConfig.isQuerySparkJobTraceEnabled) {
       jobTrace.jobFinished()
     }
-    val newExecution = QueryToExecutionIDCache.getQueryExecution(queryExecutionId)
-    val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(newExecution.executedPlan)
-    logInfo(s"scanRows is ${scanRows}, scanBytes is ${scanBytes}")
-    QueryContext.current().getMetrics.setScanRows(scanRows)
-    QueryContext.current().getMetrics.setScanBytes(scanBytes)
-    QueryContext.current().getMetrics.setResultRowCount(newExecution.executedPlan.metrics.get("numOutputRows")
-      .map(_.value).get)
+    if (!KylinConfig.getInstanceFromEnv.isUTEnv) {
+      val newExecution = QueryToExecutionIDCache.getQueryExecution(queryExecutionId)
+      val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(newExecution.executedPlan)
+      logInfo(s"scanRows is ${scanRows}, scanBytes is ${scanBytes}")
+      QueryContext.current().getMetrics.setScanRows(scanRows)
+      QueryContext.current().getMetrics.setScanBytes(scanBytes)
+      QueryContext.current().getMetrics.setResultRowCount(newExecution.executedPlan.metrics.get("numOutputRows")
+        .map(_.value).get)
+    }
   }
 
 }

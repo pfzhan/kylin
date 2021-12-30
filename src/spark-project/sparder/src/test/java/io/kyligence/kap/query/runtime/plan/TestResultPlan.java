@@ -25,6 +25,9 @@
 package io.kyligence.kap.query.runtime.plan;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.query.MockContext;
+import lombok.val;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.query.SlowQueryDetector;
 import org.apache.kylin.query.exception.UserStopQueryException;
 import org.apache.spark.scheduler.JobFailed;
@@ -118,6 +121,17 @@ public class TestResultPlan extends NLocalFileMetadataTestCase {
         isJobEnd.await(10, TimeUnit.SECONDS);
         Assert.assertTrue(sparkJobEnd.get().jobResult() instanceof JobFailed);
         Assert.assertTrue(((JobFailed)sparkJobEnd.get().jobResult()).exception().getMessage().contains("cancelled part of cancelled job group"));
+    }
+
+    @Test
+    public void testAsyncQueryWriteParquet() {
+        QueryContext queryContext = QueryContext.current();
+        queryContext.getQueryTagInfo().setAsyncQuery(true);
+        queryContext.getQueryTagInfo().setFileFormat("parquet");
+        queryContext.getQueryTagInfo().setFileEncode("utf-8");
+        String sql = "select * from TEST_KYLIN_FACT";
+        val resultType = MockContext.current().getRelDataType();
+        ResultPlan.getResult(ss.sql(sql), resultType);
     }
 
 }

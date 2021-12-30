@@ -84,7 +84,7 @@ public class NAsyncQueryController extends NBasicController {
     private static final Logger logger = LoggerFactory.getLogger(NAsyncQueryController.class);
 
     private static final List<String> FILE_ENCODING = Lists.newArrayList("utf-8", "gbk");
-    private static final List<String> FILE_FORMAT = Lists.newArrayList("csv", "json", "xlsx");
+    private static final List<String> FILE_FORMAT = Lists.newArrayList("csv", "json", "xlsx", "parquet");
 
     @Autowired
     @Qualifier("queryService")
