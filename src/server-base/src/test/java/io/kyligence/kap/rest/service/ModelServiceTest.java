@@ -1118,6 +1118,34 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testDetectInvalidIndexes() throws Exception {
+        val modelRequest = JsonUtil.readValue(
+                new File("src/test/resources/ut_meta/internal_measure.model_desc/nmodel_test.json"),
+                ModelRequest.class);
+        modelRequest.setProject("default");
+        modelRequest.setPartitionDesc(new PartitionDesc());
+        val resp = modelService.detectInvalidIndexes(modelRequest);
+        Assert.assertEquals(0, resp.getIndexes().size());
+    }
+
+    @Test
+    public void testExpandModelRequest() throws Exception {
+        String brokenModelId = "cb596712-3a09-46f8-aea1-988b43fe9b6c";
+        NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), "default");
+        NDataModel brokenModel = modelManager.getDataModelDesc(brokenModelId);
+        brokenModel.setBroken(true);
+        brokenModel.setBrokenReason(NDataModel.BrokenReason.SCHEMA);
+        modelManager.updateDataBrokenModelDesc(brokenModel);
+
+        val request = new ModelRequest(JsonUtil.deepCopy(brokenModel, NDataModel.class));
+        request.setPartitionDesc(null);
+        request.setProject("default");
+        request.setUuid(brokenModelId);
+        semanticService.expandModelRequest(request);
+        Assert.assertTrue(request.getSimplifiedMeasures().isEmpty());
+    }
+
+    @Test
     public void testGetModelJson() throws IOException {
         String modelJson = modelService.getModelJson("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default");
         Assert.assertTrue(JsonUtil.readValue(modelJson, NDataModel.class).getUuid()

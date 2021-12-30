@@ -3838,7 +3838,7 @@ public class ModelService extends BasicService {
     }
 
     public void discardInvalidColumnAndMeasure(NDataModel brokenModel, ModelRequest modelRequest) {
-        NDataModel newModel = convertAndInitDataModel(modelRequest, brokenModel.getProject());
+        NDataModel newModel = initDataModel(convertToDataModel(modelRequest), brokenModel.getProject());
         Set<String> aliasDotColumns = newModel.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isExist)
                 .map(NDataModel.NamedColumn::getAliasDotColumn).collect(Collectors.toSet());
         for (NDataModel.NamedColumn column : brokenModel.getAllNamedColumns()) {
@@ -4804,7 +4804,13 @@ public class ModelService extends BasicService {
         String project = request.getProject();
         aclEvaluate.checkProjectReadPermission(project);
 
-        NDataModel model = convertAndInitDataModel(request, project);
+        NDataModel originModel = convertToDataModel(request);
+        // check partition date column
+        val partitionDateColumn = originModel.getRootFactTable().getColumn(request.getPartitionDesc().getPartitionDateColumn());
+        if (partitionDateColumn == null) {
+            originModel.setPartitionDesc(null);
+        }
+        NDataModel model = initDataModel(originModel, project);
 
         String uuid = model.getUuid();
         List<JoinTableDesc> joinTables = model.getJoinTables();
@@ -4847,8 +4853,7 @@ public class ModelService extends BasicService {
         return response;
     }
 
-    private NDataModel convertAndInitDataModel(ModelRequest request, String project) {
-        NDataModel model = convertToDataModel(request);
+    private NDataModel initDataModel(NDataModel model, String project) {
         Map<String, TableDesc> allTables = getTableManager(project).getAllTablesMap();
         Map<String, TableDesc> initialAllTables = model.getExtendedTables(allTables);
         model.init(KylinConfig.getInstanceFromEnv(), initialAllTables,
