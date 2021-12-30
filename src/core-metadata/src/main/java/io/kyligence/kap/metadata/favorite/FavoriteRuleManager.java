@@ -97,7 +97,7 @@ public class FavoriteRuleManager {
     }
 
     public List<FavoriteRule> listAll() {
-        return FAVORITE_RULE_NAMES.stream().map(ruleName -> getOrDefaultByName(ruleName)).collect(Collectors.toList());
+        return FAVORITE_RULE_NAMES.stream().map(this::getOrDefaultByName).collect(Collectors.toList());
     }
 
     public FavoriteRule getByName(String name) {
@@ -119,7 +119,7 @@ public class FavoriteRuleManager {
     }
 
     public void resetRule() {
-        FavoriteRule.getAllDefaultRule().forEach(rule -> updateRule(rule));
+        FavoriteRule.getAllDefaultRule().forEach(this::updateRule);
     }
 
     public void updateRule(FavoriteRule rule) {

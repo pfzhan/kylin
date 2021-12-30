@@ -2003,4 +2003,8 @@ public class CnMessage extends Message {
     public String getSQL_BLACKLIST_QUERY_CONCUTTENT_LIMIT_EXCEEDED() {
         return "查询被黑名单终止，因为超出了并发限制, 黑名单条目 id: %s, 并发限制: {%s}";
     }
+
+    public String getINVALID_RANGE() {
+        return "%s 不是 [%s - %s] 范围内整数";
+    }
 }

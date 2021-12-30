@@ -58,6 +58,7 @@ import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
+import io.kyligence.kap.metadata.recommendation.candidate.LayoutMetric;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.ref.LayoutRef;
 import io.kyligence.kap.metadata.recommendation.ref.ModelColumnRef;
@@ -221,7 +222,7 @@ public class OptRecV2TestBase extends NLocalFileMetadataTestCase {
         return recItems;
     }
 
-    private RawRecItem parseRawRecItem(JsonNode recItemNode) {
+    private RawRecItem parseRawRecItem(JsonNode recItemNode) throws IOException {
         RawRecItem item = new RawRecItem();
         item.setId(recItemNode.get("id").asInt());
         item.setProject(recItemNode.get("project").asText());
@@ -243,6 +244,7 @@ public class OptRecV2TestBase extends NLocalFileMetadataTestCase {
         item.setUpdateTime(recItemNode.get("update_time").asLong());
         item.setCreateTime(recItemNode.get("create_time").asLong());
         item.setRecSource(recItemNode.get("reserved_field_1").asText());
+        item.setLayoutMetric(JsonUtil.readValue(recItemNode.get("layout_metric").asText(), LayoutMetric.class));
         return item;
     }
 

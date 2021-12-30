@@ -46,6 +46,8 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
@@ -75,6 +77,11 @@ public class OptRecServiceGeneralTest extends OptRecV2TestBase {
         Assert.assertEquals(ImmutableSet.of(0, 1), dataModel.getEffectiveDimensions().keySet());
         Assert.assertEquals(ImmutableMap.of(100000, "COUNT_ALL", 100001, "MEASURE_AUTO_1"),
                 extractIdToName(dataModel.getEffectiveMeasures()));
+        Map<Long, FrequencyMap> layoutHitCount = NDataflowManager.getInstance(getTestConfig(), getProject())
+                .getDataflow(getDefaultUUID()).getLayoutHitCount();
+        Assert.assertEquals(1, layoutHitCount.size());
+        Assert.assertEquals(1, layoutHitCount.get(10001L).getDateFrequency().size());
+        Assert.assertEquals(ImmutableMap.of(1599580800000L, 1), layoutHitCount.get(10001L).getMap());
 
         List<List<Integer>> layoutColOrder = ImmutableList.<List<Integer>> builder() //
                 .add(ImmutableList.of(1, 100000)) //

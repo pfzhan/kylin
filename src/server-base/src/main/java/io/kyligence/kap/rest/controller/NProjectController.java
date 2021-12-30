@@ -26,6 +26,8 @@ package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static io.kyligence.kap.metadata.favorite.FavoriteRule.EFFECTIVE_DAYS_MAX;
+import static io.kyligence.kap.metadata.favorite.FavoriteRule.EFFECTIVE_DAYS_MIN;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_COUNT_RULE_VALUE;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_DURATION_RULE_VALUE;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_EFFECTIVE_DAYS;
@@ -36,6 +38,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_REC_RULE_V
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_UPDATE_FREQUENCY;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PROJECT_NAME;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_RANGE;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NAME_ILLEGAL;
 import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
@@ -325,6 +328,23 @@ public class NProjectController extends NBasicController {
             throw new KylinException(EMPTY_UPDATE_FREQUENCY, MsgPicker.getMsg().getUPDATE_FREQUENCY_NOT_EMPTY());
         }
 
+        checkRange(request.getEffectiveDays(), EFFECTIVE_DAYS_MIN, EFFECTIVE_DAYS_MAX);
+        checkRange(request.getUpdateFrequency(), 1, Integer.MAX_VALUE);
+    }
+
+    private static void checkRange(String value, int start, int end) {
+        boolean inRightRange;
+        try {
+            int i = Integer.parseInt(value);
+            inRightRange = (i >= start && i <= end);
+        } catch (Exception e) {
+            inRightRange = false;
+        }
+
+        if (!inRightRange) {
+            throw new KylinException(INVALID_RANGE,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_RANGE(), value, start, end));
+        }
     }
 
     @ApiOperation(value = "getFavoriteRules", tags = {

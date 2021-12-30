@@ -73,6 +73,7 @@ public class RawRecItem {
     private LayoutMetric layoutMetric;
     private int hitCount;
     private double cost;
+    @Deprecated
     private double totalLatencyOfLastDay;
     private double totalTime;
     private double maxTime;
@@ -149,19 +150,19 @@ public class RawRecItem {
 
     public void updateCost(CostMethod costMethod, long currentTime, int effectiveDays) {
         long dayStart = getDateInMillis(currentTime);
-        double cost = 0;
+        double newCost = 0;
         if (costMethod == CostMethod.HIT_COUNT) {
             val frequencyMap = getLayoutMetric().getFrequencyMap().getDateFrequency();
-            for (int days = 0; days < effectiveDays; days++) {
-                cost += frequencyMap.getOrDefault(dayStart - days * MILLIS_PER_DAY, 0);
+            for (int days = 1; days <= effectiveDays; days++) {
+                newCost += frequencyMap.getOrDefault(dayStart - days * MILLIS_PER_DAY, 0);
             }
         } else {
             LayoutMetric.LatencyMap latencyMap = getLayoutMetric().getLatencyMap();
-            for (int days = 0; days < effectiveDays; days++) {
-                cost += latencyMap.getLatencyByDate(dayStart - days * MILLIS_PER_DAY) / (Math.pow(Math.E, days));
+            for (int days = 1; days <= effectiveDays; days++) {
+                newCost += latencyMap.getLatencyByDate(dayStart - days * MILLIS_PER_DAY) / (Math.pow(Math.E, days));
             }
         }
-        setCost(cost);
+        setCost(newCost);
     }
 
     private long getDateInMillis(final long queryTime) {

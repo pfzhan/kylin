@@ -34,6 +34,7 @@ import org.apache.kylin.common.util.RandomUtil;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import lombok.Getter;
@@ -52,16 +53,16 @@ public class FavoriteRule extends RootPersistentEntity {
     public static final String SUBMITTER_GROUP_RULE_NAME = "submitter_group";
     public static final String REC_SELECT_RULE_NAME = "recommendations";
     public static final String EXCLUDED_TABLES_RULE = "excluded_tables";
-    public final static String MIN_HIT_COUNT = "min_hit_count";
-    public final static String EFFECTIVE_DAYS = "effective_days";
-    public final static String UPDATE_FREQUENCY = "update_frequency";
+    public static final String MIN_HIT_COUNT = "min_hit_count";
+    public static final String EFFECTIVE_DAYS = "effective_days";
+    public static final String UPDATE_FREQUENCY = "update_frequency";
+    public static final int EFFECTIVE_DAYS_MIN = 1;
+    public static final int EFFECTIVE_DAYS_MAX = 30;
 
-    public static final List<String> FAVORITE_RULE_NAMES = Lists.newArrayList(FavoriteRule.COUNT_RULE_NAME,
+    public static final List<String> FAVORITE_RULE_NAMES = ImmutableList.of(FavoriteRule.COUNT_RULE_NAME,
             FavoriteRule.FREQUENCY_RULE_NAME, FavoriteRule.DURATION_RULE_NAME, FavoriteRule.SUBMITTER_RULE_NAME,
             FavoriteRule.SUBMITTER_GROUP_RULE_NAME, FavoriteRule.REC_SELECT_RULE_NAME,
             FavoriteRule.EXCLUDED_TABLES_RULE, MIN_HIT_COUNT, EFFECTIVE_DAYS, UPDATE_FREQUENCY);
-
-    public static final List<String> NON_USE_RULES = Lists.newArrayList(FavoriteRule.FREQUENCY_RULE_NAME);
 
     public FavoriteRule(List<AbstractCondition> conds, String name, boolean isEnabled) {
         this.conds = conds;

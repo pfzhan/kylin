@@ -24,10 +24,13 @@
 package io.kyligence.kap.rest.service.task;
 
 import static io.kyligence.kap.metadata.epoch.EpochManager.GLOBAL;
+import static io.kyligence.kap.metadata.favorite.AsyncTaskManager.ASYNC_ACCELERATION_TASK;
+import static io.kyligence.kap.metadata.favorite.AsyncTaskManager.getInstance;
+import static org.apache.commons.lang3.time.DateUtils.MILLIS_PER_DAY;
 
 import java.time.LocalTime;
 import java.util.Map;
-import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -45,8 +48,10 @@ import io.kyligence.kap.common.metrics.MetricsName;
 import io.kyligence.kap.guava20.shaded.common.annotations.VisibleForTesting;
 import io.kyligence.kap.guava20.shaded.common.collect.Maps;
 import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.metadata.favorite.AsyncAccelerationTask;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.service.RawRecService;
 import lombok.extern.slf4j.Slf4j;
@@ -55,19 +60,22 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class RecommendationTopNUpdateScheduler {
 
-    private static final long ONE_DAY_TO_MILLISECONDS = 24 * 60 * 60 * 1000;
-
     @Autowired
     private RawRecService rawRecService;
 
     private ScheduledThreadPoolExecutor taskScheduler;
 
-    private Map<String, ScheduledFuture> needUpdateProjects = Maps.newConcurrentMap();
+    private Map<String, Future> needUpdateProjects = Maps.newConcurrentMap();
 
     public RecommendationTopNUpdateScheduler() {
         taskScheduler = new ScheduledThreadPoolExecutor(10, new NamedThreadFactory("recommendation-update-topn"));
-        taskScheduler.setKeepAliveTime(5, TimeUnit.MINUTES);
+        taskScheduler.setKeepAliveTime(1, TimeUnit.MINUTES);
         taskScheduler.allowCoreThreadTimeOut(true);
+    }
+
+    public synchronized void reScheduleProject(String project) {
+        removeProject(project);
+        addProject(project);
     }
 
     public synchronized void addProject(String project) {
@@ -77,9 +85,9 @@ public class RecommendationTopNUpdateScheduler {
     }
 
     public synchronized void removeProject(String project) {
-        ScheduledFuture task = needUpdateProjects.get(project);
+        Future task = needUpdateProjects.get(project);
         if (task != null) {
-            log.debug("cancel future task");
+            log.debug("cancel {} future task", project);
             task.cancel(false);
         }
         needUpdateProjects.remove(project);
@@ -93,6 +101,9 @@ public class RecommendationTopNUpdateScheduler {
             needUpdateProjects.remove(project);
             return false;
         }
+        if(!isFirstSchedule){
+            saveTaskTime(project);
+        }
         long nextMilliSeconds = computeNextTaskTimeGap(project);
         needUpdateProjects.put(project,
                 taskScheduler.schedule(() -> work(project), nextMilliSeconds, TimeUnit.MILLISECONDS));
@@ -101,7 +112,7 @@ public class RecommendationTopNUpdateScheduler {
 
     private void work(String project) {
         if (!scheduleNextTask(project, false)) {
-            log.debug("cancel this task");
+            log.debug("{} task can't run, skip this time", project);
             return;
         }
         MetricsGroup.hostTagCounterInc(MetricsName.METADATA_OPS_CRON, MetricsCategory.GLOBAL, GLOBAL);
@@ -122,20 +133,37 @@ public class RecommendationTopNUpdateScheduler {
 
     @VisibleForTesting
     protected long computeNextTaskTimeGap(String project) {
-        long currentTime = System.currentTimeMillis();
-        long nextTaskTime = computeNextTaskTime(currentTime, project);
+        long lastTaskTime = getLastTaskTime(project);
+        long nextTaskTime = computeNextTaskTime(lastTaskTime, project);
         log.debug("project {} next task time is {}", project, nextTaskTime);
-        return nextTaskTime - currentTime;
+        return nextTaskTime - lastTaskTime;
     }
 
-    private long computeNextTaskTime(long currentTime, String project) {
+    private long getLastTaskTime(String project) {
+        AsyncAccelerationTask task = (AsyncAccelerationTask) getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .get(ASYNC_ACCELERATION_TASK);
+        return task.getLastUpdateTopNTime() == 0 ? System.currentTimeMillis() : task.getLastUpdateTopNTime();
+    }
+
+    private void saveTaskTime(String project) {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            AsyncAccelerationTask asyncAcceleration = (AsyncAccelerationTask) getInstance(
+                    KylinConfig.getInstanceFromEnv(), project).get(ASYNC_ACCELERATION_TASK);
+            asyncAcceleration.setLastUpdateTopNTime(System.currentTimeMillis());
+            getInstance(KylinConfig.getInstanceFromEnv(), project).save(asyncAcceleration);
+            return null;
+        }, project);
+    }
+
+    private long computeNextTaskTime(long lastTaskTime, String project) {
         ProjectInstance projectInst = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project);
-        long lastTaskDayStart = getDateInMillis(currentTime);
+        long lastTaskDayStart = getDateInMillis(lastTaskTime);
         int days = Integer.parseInt(FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                 .getValue(FavoriteRule.UPDATE_FREQUENCY));
-        long taskStartInDay = LocalTime.parse(projectInst.getConfig().getUpdateTopNTime()).toSecondOfDay() * 1000;
-        long nextTaskTime = lastTaskDayStart + ONE_DAY_TO_MILLISECONDS * days + taskStartInDay;
-        return nextTaskTime > currentTime ? nextTaskTime : currentTime + projectInst.getConfig().getUpdateTopNTimeGap();
+        long taskStartInDay = LocalTime.parse(projectInst.getConfig().getUpdateTopNTime()).toSecondOfDay() * 1000L;
+        long nextTaskTime = lastTaskDayStart + MILLIS_PER_DAY * days + taskStartInDay;
+        return nextTaskTime > lastTaskTime ? nextTaskTime
+                : lastTaskTime + projectInst.getConfig().getUpdateTopNTimeGap();
     }
 
     private long getDateInMillis(final long queryTime) {

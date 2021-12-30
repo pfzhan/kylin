@@ -35,9 +35,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -135,9 +137,10 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 if (isAdd) {
                     rewriteModel(rawRecItems);
-                    List<Long> addedLayouts = rewriteIndexPlan(rawRecItems);
-                    checkAndRemoveDirtyLayouts(addedLayouts);
-                    addedLayoutIdList.addAll(addedLayouts);
+                    Map<Long, RawRecItem> addedLayouts = rewriteIndexPlan(rawRecItems);
+                    addedLayouts = checkAndRemoveDirtyLayouts(addedLayouts);
+                    addedLayoutIdList.addAll(addedLayouts.keySet());
+                    addLayoutHitCount(recommendation.getProject(), recommendation.getUuid(), addedLayouts);
                 } else {
                     shiftLayoutHitCount(recommendation.getProject(), recommendation.getUuid(), rawRecItems);
                     List<Long> removedLayouts = reduceIndexPlan(rawRecItems);
@@ -148,7 +151,23 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
             return rawRecItems;
         }
 
-        private void checkAndRemoveDirtyLayouts(List<Long> addedLayouts) {
+        private void addLayoutHitCount(String project, String modelUuid, Map<Long, RawRecItem> rawRecItems) {
+            if (MapUtils.isEmpty(rawRecItems)) {
+                return;
+            }
+            KylinConfig config = KylinConfig.getInstanceFromEnv();
+            NDataflowManager dfMgr = NDataflowManager.getInstance(config, project);
+            dfMgr.updateDataflow(modelUuid, copyForWrite -> {
+                Map<Long, FrequencyMap> layoutHitCount = copyForWrite.getLayoutHitCount();
+                rawRecItems.forEach((id, rawRecItem) -> {
+                    if (rawRecItem.getLayoutMetric() != null) {
+                        layoutHitCount.put(id, rawRecItem.getLayoutMetric().getFrequencyMap());
+                    }
+                });
+            });
+        }
+
+        private Map<Long, RawRecItem> checkAndRemoveDirtyLayouts(Map<Long, RawRecItem> addedLayouts) {
             KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
             NDataModelManager modelManager = NDataModelManager.getInstance(kylinConfig, project);
             NDataModel model = modelManager.getDataModelDesc(recommendation.getUuid());
@@ -160,12 +179,11 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
             IndexPlan indexPlan = indexPlanManager.getIndexPlan(recommendation.getUuid());
             Map<Long, LayoutEntity> allLayoutsMap = indexPlan.getAllLayoutsMap();
 
-            addedLayouts.removeIf(layoutId -> {
-                if (!allLayoutsMap.containsKey(layoutId)) {
-                    return true;
-                }
-                return !queryScopes.containsAll(allLayoutsMap.get(layoutId).getColOrder());
-            });
+            return addedLayouts.entrySet().stream().filter(entry -> {
+                long layoutId = entry.getKey();
+                return allLayoutsMap.containsKey(layoutId)
+                        && queryScopes.containsAll(allLayoutsMap.get(layoutId).getColOrder());
+            }).collect(Collectors.toMap(entry -> entry.getKey(), entry -> entry.getValue()));
         }
 
         public List<RawRecItem> getAllRelatedRecItems(List<Integer> layoutIds, boolean isAdd) {
@@ -368,9 +386,9 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
             logWriteProperty(rawRecItem, columnInModel);
         }
 
-        private List<Long> rewriteIndexPlan(List<RawRecItem> recItems) {
+        private Map<Long, RawRecItem> rewriteIndexPlan(List<RawRecItem> recItems) {
             if (CollectionUtils.isEmpty(recItems)) {
-                return Lists.newArrayList();
+                return Maps.newHashMap();
             }
             List<Long> layoutIds = Lists.newArrayList();
             logBeginRewrite("augment IndexPlan");
@@ -378,6 +396,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
             NDataModel model = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                     .getDataModelDesc(recommendation.getUuid());
 
+            HashMap<Long, RawRecItem> approvedLayouts = Maps.newHashMap();
             indexMgr.updateIndexPlan(recommendation.getUuid(), copyForWrite -> {
                 IndexPlan.IndexPlanUpdateHandler updateHandler = copyForWrite.createUpdateHandler();
                 for (RawRecItem rawRecItem : recItems) {
@@ -407,7 +426,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                     layout.setSortByColumns(nSortBy);
                     layout.setPartitionByColumns(nPartitionBy);
                     updateHandler.add(layout, rawRecItem.isAgg());
-
+                    approvedLayouts.put(layout.getId(), rawRecItem);
                     log.info("RawRecItem({}) rewrite colOrder({}) to ({})", rawRecItem.getId(), colOrder, nColOrder);
                     log.info("RawRecItem({}) rewrite shardBy({}) to ({})", rawRecItem.getId(), shardBy, nShardBy);
                     log.info("RawRecItem({}) rewrite sortBy({}) to ({})", rawRecItem.getId(), sortBy, nSortBy);
@@ -418,7 +437,9 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                 layoutIds.addAll(updateHandler.getAddedLayouts());
             });
             logFinishRewrite("augment IndexPlan");
-            return layoutIds;
+
+            return layoutIds.stream().filter(id -> approvedLayouts.containsKey(id))
+                    .collect(Collectors.toMap(Function.identity(), id -> approvedLayouts.get(id)));
         }
 
         private boolean isInvalidColId(List<Integer> cols, NDataModel model) {

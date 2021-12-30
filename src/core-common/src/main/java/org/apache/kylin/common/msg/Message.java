@@ -1767,4 +1767,8 @@ public class Message {
     public String getSQL_BLACKLIST_QUERY_CONCUTTENT_LIMIT_EXCEEDED() {
         return "Query is rejected by blacklist because concurrent limit is exceeded, blacklist item id: %s, concurrent limit: {%s}";
     }
+
+    public String getINVALID_RANGE() {
+        return "%s is not integer in range [%s - %s] ";
+    }
 }

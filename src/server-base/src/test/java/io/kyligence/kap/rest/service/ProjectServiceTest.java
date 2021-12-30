@@ -112,6 +112,7 @@ import io.kyligence.kap.rest.request.SegmentConfigRequest;
 import io.kyligence.kap.rest.request.ShardNumConfigRequest;
 import io.kyligence.kap.rest.response.ProjectStatisticsResponse;
 import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
+import io.kyligence.kap.rest.service.task.RecommendationTopNUpdateScheduler;
 import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import io.kyligence.kap.streaming.metadata.StreamingJobMeta;
 import lombok.val;
@@ -159,6 +160,9 @@ public class ProjectServiceTest extends ServiceTestBase {
         ReflectionTestUtils.setField(projectService, "asyncTaskService", asyncTaskService);
         ReflectionTestUtils.setField(projectService, "accessService", accessService);
         ReflectionTestUtils.setField(projectService, "userService", userService);
+        ReflectionTestUtils.setField(projectService, "recommendationTopNUpdateScheduler",
+                new RecommendationTopNUpdateScheduler());
+
         ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
         projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
     }
@@ -1140,6 +1144,7 @@ public class ProjectServiceTest extends ServiceTestBase {
         request.setUsers(Lists.newArrayList("userA", "userB", "userC", "ADMIN"));
         request.setRecommendationEnable(true);
         request.setRecommendationsValue("30");
+        request.setUpdateFrequency("1");
         projectService.updateRegularRule("gc_test", request);
         ProjectStatisticsResponse projectStatistics2 = projectService.getProjectStatistics("gc_test");
         Assert.assertEquals(7, projectStatistics2.getEffectiveRuleSize());

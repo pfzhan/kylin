@@ -94,6 +94,7 @@ import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -122,6 +123,7 @@ import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.favorite.AsyncAccelerationTask;
 import io.kyligence.kap.metadata.favorite.AsyncTaskManager;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
+import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -156,6 +158,7 @@ import io.kyligence.kap.rest.response.ProjectStatisticsResponse;
 import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
 import io.kyligence.kap.rest.security.KerberosLoginManager;
 import io.kyligence.kap.rest.service.task.QueryHistoryTaskScheduler;
+import io.kyligence.kap.rest.service.task.RecommendationTopNUpdateScheduler;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import io.kyligence.kap.tool.garbage.GarbageCleaner;
 import lombok.Setter;
@@ -188,6 +191,10 @@ public class ProjectService extends BasicService {
 
     @Autowired
     UserService userService;
+
+    @Autowired
+    @Qualifier("recommendationUpdateScheduler")
+    RecommendationTopNUpdateScheduler recommendationTopNUpdateScheduler;
 
     @Setter
     @Autowired
@@ -395,7 +402,7 @@ public class ProjectService extends BasicService {
             return -1;
         }
 
-        return (int) getFavoriteRuleManager(project).listAll().stream().filter(rule -> rule.isEnabled()).count();
+        return (int) getFavoriteRuleManager(project).listAll().stream().filter(FavoriteRule::isEnabled).count();
     }
 
     private int[] getRecPatternCount(String project) {
@@ -1160,7 +1167,7 @@ public class ProjectService extends BasicService {
     }
 
     private Integer parseInt(String str) {
-        return StringUtils.isEmpty(str) ? null:Integer.parseInt(str);
+        return StringUtils.isEmpty(str) ? null : Integer.parseInt(str);
     }
 
     private FavoriteRule getFavoriteRule(String project, String ruleName) {
@@ -1230,8 +1237,20 @@ public class ProjectService extends BasicService {
         default:
             break;
         }
-
+        boolean updateFrequencyChange = isChangeFreqRule(project, ruleName, request);
         getFavoriteRuleManager(project).updateRule(conds, isEnabled, ruleName);
+        if (updateFrequencyChange) {
+            recommendationTopNUpdateScheduler.reScheduleProject(project);
+        }
+    }
+
+    private boolean isChangeFreqRule(String project, String ruleName, FavoriteRuleUpdateRequest request) {
+        if (!UPDATE_FREQUENCY.equals(ruleName)) {
+            return false;
+        }
+        String currentVal = FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .getValue(UPDATE_FREQUENCY);
+        return !currentVal.equals(request.getUpdateFrequency());
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
