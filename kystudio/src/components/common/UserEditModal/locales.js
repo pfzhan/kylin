@@ -27,6 +27,7 @@ export default {
     passwordValid4: 'Contains at least 8 characters',
     usernamePld: 'Not support Chinese, nor special symbols (/:\\*?"<>|\')',
     saveUserSuccess: 'Added the user successfully.',
+    updateUserOrGroupSuccess: 'Adjusted the assigned users and user groups successfully.',
     updateUserSuccess: 'Updated the user successfully'
   },
   'zh-cn': {
@@ -57,6 +58,7 @@ export default {
     passwordValid4: '长度至少 8 位',
     usernamePld: '不支持中文和特殊字符（/:\\*?"<>|\'）',
     saveUserSuccess: '添加用户成功。',
+    updateUserOrGroupSuccess: '调整分配用户和用户组成功。',
     updateUserSuccess: '更新用户成功。'
   }
 }

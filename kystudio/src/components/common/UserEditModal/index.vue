@@ -359,9 +359,11 @@ export default class UserEditModal extends Vue {
       // 成功提示
       this.$message({
         type: 'success',
-        message: this.editType !== 'password'
+        message: this.editType === 'new'
           ? this.$t('saveUserSuccess')
-          : this.$t('updateUserSuccess')
+          : this.editType === 'group'
+            ? this.$t('updateUserOrGroupSuccess')
+            : this.$t('updateUserSuccess')
       })
       // 关闭模态框，通知父组件成功
       this.closeHandler(true)

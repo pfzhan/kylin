@@ -210,7 +210,7 @@ export default class GroupEditModal extends Vue {
       // 成功提示
       this.$message({
         type: 'success',
-        message: this.$t('saveUserGroupSuccess')
+        message: this.editType === 'assign' ? this.$t('updateUserOrGroupSuccess') : this.$t('saveUserGroupSuccess')
       })
       this.submitLoading = false
       // 关闭模态框，通知父组件成功
