@@ -23,7 +23,7 @@ import org.apache.spark.sql.connector.read.{Scan, ScanBuilder, SupportsPushDownF
 import org.apache.spark.sql.execution.datasources.DataSourceStrategy
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.sources
-import org.apache.spark.sql.types.{DecimalType, StructType}
+import org.apache.spark.sql.types.{DataType, DecimalType, StructType}
 
 import scala.collection.mutable
 
@@ -72,9 +72,14 @@ object PushDownUtils2 extends PredicateHelper {
     }
   }
 
+  private def unsupportedDecimalType(dt: DataType): Boolean = dt match {
+    case decimal: DecimalType => decimal.scale != 0 && decimal.scale != decimal.precision
+    case _ => false
+  }
+
   private def unsupportedFilter(filter: Expression): Boolean = filter.find {
-    case b @ BinaryComparison(column, value) =>
-      DecimalType.acceptsType(column.dataType) || DecimalType.acceptsType(value.dataType)
+    case BinaryComparison(column, value) =>
+      unsupportedDecimalType(column.dataType) || unsupportedDecimalType(value.dataType)
     case _ => false
   }.nonEmpty
 

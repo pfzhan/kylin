@@ -108,13 +108,22 @@ public class ClickHouseV2QueryTest extends NLocalWithSparkSessionTest {
             executeAndCheck(sql1, expectedRow1);
 
             String sql2 = String.format(Locale.ROOT,
-                    "select s2, i1, i2, n3 from %s.%s where n3 != 0 and i1 > 1", catalogName, table);
+                    "select s2, i1, i2, n3 from %s.%s where n4 > 2", catalogName, table);
+            List<Row> expectedRow2 = ImmutableList.of();
+            executeAndCheck(sql2, expectedRow2);
+
+            String sql3 = String.format(Locale.ROOT,
+                    "select s2, i1, i2, n3 from %s.%s where n3 != 0 and i1 > 1 order by i1", catalogName, table);
             BigDecimal decimal = new BigDecimal("-18.22");
             decimal.setScale(4, BigDecimal.ROUND_HALF_UP);
-            List<Row> expectedRow2 = ImmutableList.of(
-                    RowFactory.create("3", 3, 3L, decimal),
-                    RowFactory.create("2", 2, 2L, decimal));
-            executeAndCheck(sql2, expectedRow2);
+            List<Row> expectedRow3 = ImmutableList.of(
+                    RowFactory.create("2", 2, 2L, decimal),
+                    RowFactory.create("3", 3, 3L, decimal));
+            executeAndCheck(sql3, expectedRow3);
+
+            String sql4 = String.format(Locale.ROOT,
+                    "select s2, i1, i2, n3 from %s.%s where n4 != 0 and i1 > 1 order by i1", catalogName, table);
+            executeAndCheck(sql4, expectedRow3);
             return true;
         });
         Assert.assertTrue(result);
