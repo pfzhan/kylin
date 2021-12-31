@@ -24,13 +24,10 @@
 
 package io.kyligence.kap.engine.spark.job
 
-import java.util
-import java.util.Objects
-import java.util.concurrent.ForkJoinPool
-
 import com.google.common.collect.{Lists, Queues}
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork
 import io.kyligence.kap.engine.spark.job.SegmentExec.{LayoutResult, ResultType, SourceStats}
+import io.kyligence.kap.engine.spark.job.stage.merge.MergeStage
 import io.kyligence.kap.engine.spark.scheduler.JobRuntime
 import io.kyligence.kap.metadata.cube.model._
 import io.kyligence.kap.metadata.model.NDataModel
@@ -41,6 +38,9 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.sql.datasource.storage.{StorageListener, StorageStoreFactory, WriteTaskStats}
 import org.apache.spark.sql.{Column, Dataset, Row, SparkSession}
 
+import java.util
+import java.util.Objects
+import java.util.concurrent.ForkJoinPool
 import scala.collection.JavaConverters._
 import scala.collection.parallel.ForkJoinTaskSupport
 
@@ -232,6 +232,16 @@ trait SegmentExec extends Logging {
     stats
   }
 
+  private def intersectDimensions(dimensions: util.Set[Integer], ds: Dataset[Row]): util.Set[Integer] = {
+    if (this.isInstanceOf[MergeStage]) {
+      val fieldNames = ds.schema.fieldNames.toSet
+      val dimensionsStrings = dimensions.asScala.map(dim => String.valueOf(dim)).toSet
+      val intersection = fieldNames.intersect(dimensionsStrings).map(dim => Integer.valueOf(dim))
+      return intersection.asJava
+    }
+    dimensions
+  }
+
   protected def calDimRange(segment: NDataSegment, ds: Dataset[Row]): java.util.HashMap[String, DimensionRangeInfo] = {
     val dimensions = segment.getDataflow.getIndexPlan.getEffectiveDimCols.keySet()
     val dimRangeInfo = new java.util.HashMap[String, DimensionRangeInfo]
@@ -242,7 +252,8 @@ trait SegmentExec extends Logging {
       val start = System.currentTimeMillis()
       import org.apache.spark.sql.functions._
 
-      val columns = NSparkCubingUtil.getColumns(dimensions)
+      val intersectionDimensions = intersectDimensions(dimensions, ds)
+      val columns = NSparkCubingUtil.getColumns(intersectionDimensions)
       val dimDS = ds.select(columns: _*)
 
       // Calculate max and min of all dimensions
@@ -250,7 +261,7 @@ trait SegmentExec extends Logging {
       val maxCols: Array[Column] = dimDS.columns.map(max)
       val cols = Array.concat(minCols, maxCols)
       val row = dimDS.agg(cols.head, cols.tail: _*).head.toSeq.splitAt(columns.length)
-      (dimensions.asScala.toSeq, row._1, row._2)
+      (intersectionDimensions.asScala.toSeq, row._1, row._2)
         .zipped.map {
         case (_, null, null) =>
         case (column, min, max) => dimRangeInfo.put(column.toString, new DimensionRangeInfo(min.toString, max.toString))
