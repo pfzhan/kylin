@@ -38,7 +38,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.NamedThreadFactory;
 import org.apache.kylin.common.util.SetThreadName;
 import org.apache.kylin.common.util.TimeUtil;
-import org.apache.kylin.metadata.project.ProjectInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -101,7 +100,7 @@ public class RecommendationTopNUpdateScheduler {
             needUpdateProjects.remove(project);
             return false;
         }
-        if(!isFirstSchedule){
+        if (!isFirstSchedule) {
             saveTaskTime(project);
         }
         long nextMilliSeconds = computeNextTaskTimeGap(project);
@@ -142,28 +141,32 @@ public class RecommendationTopNUpdateScheduler {
     private long getLastTaskTime(String project) {
         AsyncAccelerationTask task = (AsyncAccelerationTask) getInstance(KylinConfig.getInstanceFromEnv(), project)
                 .get(ASYNC_ACCELERATION_TASK);
-        return task.getLastUpdateTopNTime() == 0 ? System.currentTimeMillis() : task.getLastUpdateTopNTime();
+        return task.getLastUpdateTonNTime() == 0 ? System.currentTimeMillis() : task.getLastUpdateTonNTime();
     }
 
     private void saveTaskTime(String project) {
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             AsyncAccelerationTask asyncAcceleration = (AsyncAccelerationTask) getInstance(
                     KylinConfig.getInstanceFromEnv(), project).get(ASYNC_ACCELERATION_TASK);
-            asyncAcceleration.setLastUpdateTopNTime(System.currentTimeMillis());
+            asyncAcceleration.setLastUpdateTonNTime(System.currentTimeMillis());
             getInstance(KylinConfig.getInstanceFromEnv(), project).save(asyncAcceleration);
             return null;
         }, project);
     }
 
     private long computeNextTaskTime(long lastTaskTime, String project) {
-        ProjectInstance projectInst = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project);
+        KylinConfig config = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project)
+                .getConfig();
+        if (!config.getUsingUpdateFrequencyRule()) {
+            return lastTaskTime + config.getUpdateTopNTimeGap();
+        }
+
         long lastTaskDayStart = getDateInMillis(lastTaskTime);
         int days = Integer.parseInt(FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                 .getValue(FavoriteRule.UPDATE_FREQUENCY));
-        long taskStartInDay = LocalTime.parse(projectInst.getConfig().getUpdateTopNTime()).toSecondOfDay() * 1000L;
+        long taskStartInDay = LocalTime.parse(config.getUpdateTopNTime()).toSecondOfDay() * 1000L;
         long nextTaskTime = lastTaskDayStart + MILLIS_PER_DAY * days + taskStartInDay;
-        return nextTaskTime > lastTaskTime ? nextTaskTime
-                : lastTaskTime + projectInst.getConfig().getUpdateTopNTimeGap();
+        return nextTaskTime;
     }
 
     private long getDateInMillis(final long queryTime) {

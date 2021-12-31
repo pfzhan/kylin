@@ -44,7 +44,7 @@ public class AsyncAccelerationTask extends AbstractAsyncTask {
 
     //record last task time in RecommendationTopNUpdateScheduler
     @JsonProperty("last_update_topn_time")
-    private long lastUpdateTopNTime;
+    private long lastUpdateTonNTime;
 
     public AsyncAccelerationTask(boolean alreadyRunning, Map<String, Boolean> userRefreshedTagMap, String taskType) {
         super(taskType);

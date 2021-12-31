@@ -153,12 +153,12 @@ public class RawRecItem {
         double newCost = 0;
         if (costMethod == CostMethod.HIT_COUNT) {
             val frequencyMap = getLayoutMetric().getFrequencyMap().getDateFrequency();
-            for (int days = 1; days <= effectiveDays; days++) {
+            for (int days = 0; days < effectiveDays; days++) {
                 newCost += frequencyMap.getOrDefault(dayStart - days * MILLIS_PER_DAY, 0);
             }
         } else {
             LayoutMetric.LatencyMap latencyMap = getLayoutMetric().getLatencyMap();
-            for (int days = 1; days <= effectiveDays; days++) {
+            for (int days = 0; days < effectiveDays; days++) {
                 newCost += latencyMap.getLatencyByDate(dayStart - days * MILLIS_PER_DAY) / (Math.pow(Math.E, days));
             }
         }

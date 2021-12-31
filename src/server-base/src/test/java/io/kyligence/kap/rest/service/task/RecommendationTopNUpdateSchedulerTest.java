@@ -28,7 +28,6 @@ import static org.awaitility.Awaitility.await;
 
 import java.util.concurrent.TimeUnit;
 
-import org.apache.kylin.common.KylinConfig;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -36,9 +35,6 @@ import org.mockito.Mockito;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import io.kyligence.kap.common.util.LogOutputTestCase;
-import io.kyligence.kap.metadata.favorite.FavoriteRule;
-import io.kyligence.kap.metadata.favorite.FavoriteRule.Condition;
-import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.rest.service.RawRecService;
 
 public class RecommendationTopNUpdateSchedulerTest extends LogOutputTestCase {
@@ -61,11 +57,8 @@ public class RecommendationTopNUpdateSchedulerTest extends LogOutputTestCase {
     @Test
     public void testSchedulerTask() {
         overwriteSystemProp("kylin.smart.update-topn-time-gap", "0");
+        overwriteSystemProp("kylin.smart.frequency-rule-enable", "false");
         Mockito.doNothing().when(rawRecService).updateCostsAndTopNCandidates(PROJECT);
-
-        FavoriteRule rule = FavoriteRule.getDefaultRuleIfNull(null, FavoriteRule.UPDATE_FREQUENCY);
-        ((Condition) rule.getConds().get(0)).setRightThreshold("0");
-        FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT).updateRule(rule);
         recommendationTopNUpdateScheduler.addProject(PROJECT);
         await().atMost(3, TimeUnit.SECONDS)
                 .until(() -> containsLog("Updating default cost and topN recommendations finished."));

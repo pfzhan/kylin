@@ -3110,8 +3110,13 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public String getUpdateTopNTime() {
-        return getOptional("kylin.smart.update-topn-time", "00:00");
+        return getOptional("kylin.smart.update-topn-time", "23:00");
     }
+
+    public boolean getUsingUpdateFrequencyRule() {
+        return Boolean.parseBoolean(getOptional("kylin.smart.frequency-rule-enable", "true"));
+    }
+
     public long getUpdateTopNTimeGap() {
         return Long.parseLong(getOptional("kylin.smart.update-topn-time-gap", "3600000"));
     }
