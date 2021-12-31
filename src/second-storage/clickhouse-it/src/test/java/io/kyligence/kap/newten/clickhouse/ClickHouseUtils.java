@@ -233,6 +233,7 @@ public class ClickHouseUtils {
                             .columns(new ColumnWithType("i2", "Nullable(Int64)"))
                             .columns(new ColumnWithType("s2", "String"))
                             .columns(new ColumnWithType("n3", "Decimal(19,4)"))
+                            .columns(new ColumnWithType("n4", "Decimal(19,0)"))
                             .columns(new ColumnWithType("d4", "Nullable(Date)"))
                             .columns(new ColumnWithType("str_date4", "Nullable(String)"))
                             .engine("MergeTree()");
@@ -246,6 +247,7 @@ public class ClickHouseUtils {
                             .set("i2", i2)
                             .set("s2", s2)
                             .set("n3", -18.22)
+                            .set("n4", -18)
                             .set("str_date4", date0);
             singleQuery(connection, insertInto.toSql(render));
         }
