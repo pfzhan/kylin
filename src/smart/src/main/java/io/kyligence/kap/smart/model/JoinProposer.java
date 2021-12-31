@@ -91,6 +91,7 @@ public class JoinProposer extends AbstractModelProposer {
                     if (oldJoinTable != null) {
                         String flattenable = oldJoinTable.getFlattenable();
                         joinTableDesc.setFlattenable(flattenable);
+                        joinTableDesc.getJoin().setType(oldJoinTable.getJoin().getType());
                     }
                 });
                 joinTables.putAll(tmpJoinTablesMap);

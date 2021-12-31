@@ -60,6 +60,7 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.controller.open.OpenModelController;
 import io.kyligence.kap.rest.request.ModelSuggestionRequest;
@@ -138,6 +139,94 @@ public class ModelControllerWithServiceTest extends ServiceTestBase {
                                 Assert.assertEquals(RealizationStatusEnum.ONLINE, df.getStatus());
                                 Assert.assertEquals(1, df.getSegments().size());
                                 Assert.assertEquals(SegmentStatusEnum.READY, df.getSegments().get(0).getStatus());
+                            });
+                });
+    }
+
+    @Test
+    public void testReuseSuggestModelJoinType() throws Exception {
+        changeProjectToSemiAutoMode("default");
+        val dataflowManager = NDataflowManager.getInstance(getTestConfig(), "default");
+
+        val modelManager = NDataModelManager.getInstance(getTestConfig(), "default");
+        modelManager.listAllModels().forEach(nDataModel -> {
+            modelManager.dropModel(nDataModel.getId());
+            dataflowManager.dropDataflow(nDataModel.getId());
+        });
+
+        String createNewModelSql = "SELECT * FROM\n"
+                + "(SELECT TEST_KYLIN_FACT.SELLER_ID,TEST_KYLIN_FACT.LSTG_FORMAT_NAME,TEST_KYLIN_FACT.LEAF_CATEG_ID,\n"
+                + "TEST_KYLIN_FACT.CAL_DT,TEST_KYLIN_FACT.SLR_SEGMENT_CD,TEST_ACCOUNT.ACCOUNT_ID,TEST_ACCOUNT.ACCOUNT_BUYER_LEVEL,\n"
+                + "TEST_ACCOUNT.ACCOUNT_COUNTRY,TEST_ACCOUNT.ACCOUNT_BUYER_LEVEL,TEST_ACCOUNT.ACCOUNT_CONTACT,\n"
+                + "SUM(TEST_KYLIN_FACT.SELLER_ID),SUM(TEST_KYLIN_FACT.TRANS_ID)\n"
+                + "FROM TEST_KYLIN_FACT LEFT JOIN TEST_ACCOUNT ON TEST_KYLIN_FACT.SELLER_ID = TEST_ACCOUNT.ACCOUNT_ID\n"
+                + "GROUP BY TEST_KYLIN_FACT.SELLER_ID,TEST_KYLIN_FACT.LSTG_FORMAT_NAME,TEST_KYLIN_FACT.LEAF_CATEG_ID,\n"
+                + "TEST_KYLIN_FACT.CAL_DT,TEST_KYLIN_FACT.SLR_SEGMENT_CD,TEST_ACCOUNT.ACCOUNT_ID,TEST_ACCOUNT.ACCOUNT_BUYER_LEVEL,\n"
+                + "TEST_ACCOUNT.ACCOUNT_COUNTRY,TEST_ACCOUNT.ACCOUNT_BUYER_LEVEL,TEST_ACCOUNT.ACCOUNT_CONTACT) D\n"
+                + "WHERE D.ACCOUNT_ID>1;";
+
+        String suggestReuseModelSql = "SELECT * FROM\n"
+                + "(SELECT TEST_KYLIN_FACT.TRANS_ID,TEST_KYLIN_FACT.LSTG_FORMAT_NAME,TEST_KYLIN_FACT.LEAF_CATEG_ID,\n"
+                + "TEST_KYLIN_FACT.CAL_DT,TEST_KYLIN_FACT.SLR_SEGMENT_CD,TEST_ACCOUNT.ACCOUNT_ID,TEST_ACCOUNT.ACCOUNT_BUYER_LEVEL,\n"
+                + "TEST_ACCOUNT.ACCOUNT_COUNTRY,TEST_ACCOUNT.ACCOUNT_BUYER_LEVEL,TEST_ACCOUNT.ACCOUNT_CONTACT,\n"
+                + "SUM(TEST_KYLIN_FACT.SELLER_ID),SUM(TEST_KYLIN_FACT.TRANS_ID)\n"
+                + "FROM TEST_KYLIN_FACT INNER JOIN TEST_ACCOUNT ON TEST_KYLIN_FACT.SELLER_ID = TEST_ACCOUNT.ACCOUNT_ID\n"
+                + "GROUP BY TEST_KYLIN_FACT.TRANS_ID,TEST_KYLIN_FACT.LSTG_FORMAT_NAME,TEST_KYLIN_FACT.LEAF_CATEG_ID,\n"
+                + "TEST_KYLIN_FACT.CAL_DT,TEST_KYLIN_FACT.SLR_SEGMENT_CD,TEST_ACCOUNT.ACCOUNT_ID,TEST_ACCOUNT.ACCOUNT_BUYER_LEVEL,\n"
+                + "TEST_ACCOUNT.ACCOUNT_COUNTRY,TEST_ACCOUNT.ACCOUNT_BUYER_LEVEL,TEST_ACCOUNT.ACCOUNT_CONTACT) D\n"
+                + "WHERE D.ACCOUNT_ID>1;";
+
+        List<String> sqls = Lists.newArrayList(createNewModelSql);
+        val favoriteRequest = new SqlAccelerateRequest("default", sqls, false);
+
+        val ref = new TypeReference<EnvelopeResponse<ModelSuggestionRequest>>() {
+        };
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/suggest_model").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(favoriteRequest))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk()) //
+                .andExpect(result1 -> {
+                    val response = JsonUtil.readValue(result1.getResponse().getContentAsString(), ref);
+                    val req = response.getData();
+                    req.setProject("default");
+                    req.setWithEmptySegment(true);
+                    req.setWithModelOnline(true);
+                    val modelId = req.getNewModels().get(0).getId();
+                    mockMvc.perform(MockMvcRequestBuilders.post("/api/models/model_recommendation")
+                            .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(req))
+                            .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_JSON)))
+                            .andExpect(MockMvcResultMatchers.status().isOk()) //
+                            .andExpect(result2 -> {
+                                val df = dataflowManager.getDataflow(modelId);
+                                Assert.assertEquals(RealizationStatusEnum.ONLINE, df.getStatus());
+                                Assert.assertEquals(1, df.getSegments().size());
+                                Assert.assertEquals(SegmentStatusEnum.READY, df.getSegments().get(0).getStatus());
+                            });
+                });
+
+        getTestConfig().setProperty("kylin.query.join-match-optimization-enabled", "true");
+        List<String> sqls2 = Lists.newArrayList(suggestReuseModelSql);
+        val favoriteRequest2 = new SqlAccelerateRequest("default", sqls2, true);
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/suggest_model").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(favoriteRequest2))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk()) //
+                .andExpect(result1 -> {
+                    val response = JsonUtil.readValue(result1.getResponse().getContentAsString(), ref);
+                    val req = response.getData();
+                    req.setProject("default");
+                    req.setWithEmptySegment(true);
+                    req.setWithModelOnline(true);
+                    val modelId = req.getReusedModels().get(0).getId();
+                    mockMvc.perform(MockMvcRequestBuilders.post("/api/models/model_recommendation")
+                            .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(req))
+                            .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_JSON)))
+                            .andExpect(MockMvcResultMatchers.status().isOk()) //
+                            .andExpect(result2 -> {
+                                val dataModel = modelManager.getDataModelDesc(modelId);
+                                Assert.assertEquals("LEFT", dataModel.getJoinTables().get(0).getJoin().getType());
                             });
                 });
     }
