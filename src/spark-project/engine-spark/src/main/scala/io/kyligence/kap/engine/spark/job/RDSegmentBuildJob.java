@@ -31,7 +31,7 @@ import org.apache.spark.sql.hive.utils.ResourceDetectUtils;
 
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 
-public class RDSegmentBuildJob extends SegmentJob {
+public class RDSegmentBuildJob extends SegmentJob implements ResourceDetect {
 
     @Override
     protected final void doExecute() throws Exception {

@@ -93,6 +93,7 @@ import io.kyligence.kap.engine.spark.job.BuildJobInfos;
 import io.kyligence.kap.engine.spark.job.KylinBuildEnv;
 import io.kyligence.kap.engine.spark.job.LogJobInfoUtils;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
+import io.kyligence.kap.engine.spark.job.ResourceDetect;
 import io.kyligence.kap.engine.spark.job.SparkJobConstants;
 import io.kyligence.kap.engine.spark.job.UdfManager;
 import io.kyligence.kap.engine.spark.utils.JobMetricsUtils;
@@ -299,7 +300,7 @@ public abstract class SparkApplication implements Application {
             infos.recordJobStepId(System.getProperty("spark.driver.param.taskId", jobId));
             HadoopUtil.setCurrentConfiguration(new Configuration());
             SparkConf sparkConf = buildEnv.sparkConf();
-            if (isJobOnCluster(sparkConf)) {
+            if (isJobOnCluster(sparkConf) && !(this instanceof ResourceDetect)) {
                 if (getSparkConfigOverride(config).size() > 0) {
                     Map<String, String> sparkConfigOverride = getApplicationSparkConfig(config);
                     for (Map.Entry<String, String> entry : sparkConfigOverride.entrySet()) {
@@ -525,7 +526,7 @@ public abstract class SparkApplication implements Application {
         }
         val modelManager = NDataModelManager.getInstance(config, project);
         NDataModel modelDesc = modelManager.getDataModelDesc(modelId);
-        if(checkRangePartitionTableIsExist(modelDesc)){
+        if (checkRangePartitionTableIsExist(modelDesc)) {
             logger.info("Range partitioned tables do not support pushdown, so do not need to perform subsequent logic");
             return;
         }

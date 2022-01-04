@@ -46,7 +46,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import scala.collection.JavaConversions;
 import scala.collection.JavaConverters;
 
-public class ResourceDetectBeforeMergingJob extends SparkApplication {
+public class ResourceDetectBeforeMergingJob extends SparkApplication implements ResourceDetect {
     protected static final Logger logger = LoggerFactory.getLogger(ResourceDetectBeforeMergingJob.class);
 
     @Override
@@ -72,9 +72,8 @@ public class ResourceDetectBeforeMergingJob extends SparkApplication {
             infos.recordSparkPlan(afterMerge.queryExecution().sparkPlan());
             List<Path> paths = JavaConversions
                     .seqAsJavaList(ResourceDetectUtils.getPaths(afterMerge.queryExecution().sparkPlan()));
-            resourceSize.put(String.valueOf(entry.getKey()),
-                ResourceDetectUtils.getResourceSize(
-                    JavaConverters.asScalaIteratorConverter(paths.iterator()).asScala().toSeq()));
+            resourceSize.put(String.valueOf(entry.getKey()), ResourceDetectUtils
+                    .getResourceSize(JavaConverters.asScalaIteratorConverter(paths.iterator()).asScala().toSeq()));
         }
         ResourceDetectUtils.write(new Path(config.getJobTmpShareDir(project, jobId),
                 mergedSeg.getId() + "_" + ResourceDetectUtils.fileName()), resourceSize);
