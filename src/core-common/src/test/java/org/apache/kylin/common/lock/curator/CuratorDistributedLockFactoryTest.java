@@ -58,12 +58,18 @@ import org.apache.kylin.common.util.RandomUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.junit.rule.Repeat;
+import io.kyligence.kap.junit.rule.RepeatRule;
 import io.kyligence.kap.shaded.curator.org.apache.curator.framework.CuratorFramework;
 import io.kyligence.kap.shaded.curator.org.apache.curator.framework.state.ConnectionState;
 import io.kyligence.kap.shaded.curator.org.apache.curator.framework.state.ConnectionStateListener;
@@ -73,6 +79,10 @@ public class CuratorDistributedLockFactoryTest extends NLocalFileMetadataTestCas
     private TestingServer zkTestServer;
     private volatile boolean locked = false;
     private volatile boolean isInterrupted = false;
+
+    public ExpectedException thrown = ExpectedException.none();
+    @Rule
+    public TestRule chain = RuleChain.outerRule(new RepeatRule()).around(thrown);
 
     @Before
     public void setup() throws Exception {
@@ -100,6 +110,8 @@ public class CuratorDistributedLockFactoryTest extends NLocalFileMetadataTestCas
         Assert.assertFalse(lock.isAcquiredInThisThread());
     }
 
+
+    @Repeat(3)
     @Test
     public void testInterruptWhenLost() throws Exception {
         String path = "/test/distributed_lock_factory_test/test_interrupt_lost/" + RandomUtil.randomUUIDStr();
