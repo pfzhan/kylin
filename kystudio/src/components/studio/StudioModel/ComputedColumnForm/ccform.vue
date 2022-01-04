@@ -353,7 +353,7 @@ export default class CCForm extends Vue {
       border: 1px solid @line-border-color;
       padding: 15px;
       background-color: @table-stripe-color;
-      margin-top: 10px;
+      margin-top: 8px;
     }
     .is-datatype-error {
       border-color: @ke-color-danger;
@@ -372,6 +372,7 @@ export default class CCForm extends Vue {
       padding: 15px 10px;
       box-sizing: border-box;
       margin-bottom: 10px;
+      color: @color-text-secondary;
       p {
         line-height: 20px;
       }

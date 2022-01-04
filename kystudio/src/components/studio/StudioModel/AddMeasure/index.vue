@@ -40,7 +40,7 @@
       <div class="ksd-fs-16 ksd-mb-6 value-label" v-if="measure.expression === 'TOP_N'">
         {{$t('paramValue')}}
       </div>
-      <el-form-item class="ksd-mb-10" :class="{'is-error': corrColumnError || (ccValidateError&&ccVisible)}" prop="parameterValue.value" key="parameterItem">
+      <el-form-item :class="{'is-error': corrColumnError || (ccValidateError&&ccVisible), 'cc-item': ccVisible, 'corr-item': measure.expression ==='CORR'}" prop="parameterValue.value" key="parameterItem">
         <span slot="label" class="withIconLabel"><span>{{isOrderBy}}</span>
           <el-tooltip effect="dark" placement="top" v-if="measure.expression ==='CORR'"><span slot="content" v-html="$t('corrTips')"></span><i class="el-ksd-icon-more_info_22 icon ksd-ml-5"></i></el-tooltip>
         </span>
@@ -94,7 +94,7 @@
         <p class="sync-comment-tip" v-if="!forbidenSync">{{$t('syncCommentTip1', {comment: measure.comment})}}<span class="sync-content" @click="handleSyncComment">{{$t('syncContent')}}</span></p>
       </el-form-item>
       <CCEditForm ref="ccEditForm" class="ksd-mb-8" :class="{'error-tips': corrColumnError}" key="ccEditForm" v-if="ccVisible" @checkSuccess="saveCC" @delSuccess="delCC" :hideCancel="isEditMeasure" :isEditMeasureCC="!isEdit" source="createMeasure" :ccDesc="ccObject" :modelInstance="modelInstance" @resetSubmitLoading="resetSubmitType" @saveError="resetSubmitType"></CCEditForm>
-      <div class="error-tips ksd-mt-8" v-if="corrColumnError">{{$t('corrColDatatypeError')}}</div>
+      <div class="error-tips" v-if="corrColumnError">{{$t('corrColDatatypeError')}}</div>
       <el-form-item :label="isGroupBy" v-if="(measure.expression === 'COUNT_DISTINCT' || measure.expression === 'TOP_N')&&measure.convertedColumns.length>0" prop="convertedColumns[0].value" :rules="rules.convertedColValidate" key="topNItem" :class="{'measure-column-multiple': measure.expression === 'COUNT_DISTINCT'}">
         <div class="measure-flex-row" v-for="(column, index) in measure.convertedColumns" :key="index" :class="{'ksd-mt-10': !isGroupBy || (isGroupBy && index > 0)}">
           <div class="flex-item">
@@ -125,7 +125,7 @@
            type="primary" icon="el-icon-minus" size="mini" circle @click="deleteProperty(index)" class="del-pro" :class="[measure.expression === 'COUNT_DISTINCT' ? 'ksd-ml-10' : 'ksd-ml-5', {'del-margin-more': measure.expression === 'TOP_N' && index > 0}]" :disabled="measure.expression === 'TOP_N' && measure.convertedColumns.length == 1"></el-button>
         </div>
       </el-form-item>
-      <el-form-item v-if="measure.expression ==='CORR'" class="ksd-mt-10" :class="{'is-error': corrColumnError || (ccValidateError&&corrCCVisible)}" prop="convertedColumns[0].value" :rules="rules.convertedColValidate" key="corrItem">
+      <el-form-item v-if="measure.expression ==='CORR'" :class="{'is-error': corrColumnError || (ccValidateError&&corrCCVisible), 'cc-item': corrCCVisible}" prop="convertedColumns[0].value" :rules="rules.convertedColValidate" key="corrItem">
         <div>
           <el-select class="measures-addCC" size="medium" v-model="measure.convertedColumns[0].value" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" filterable @change="(v) => changeCORRParamValue(v, measure)" :disabled="isCorrCCEdit">
             <i slot="prefix" class="el-input__icon el-ksd-icon-search_22" v-if="!measure.convertedColumns[0].value"></i>
@@ -161,7 +161,7 @@
           <common-tip :content="$t('addCCTip')"><el-button size="medium" icon="el-ksd-icon-auto_computed_column_old" type="primary" plain class="ksd-ml-6" @click="newCorrCC" :disabled="(isCorrCCEdit && corrCCVisible) || !!isHybridModel"></el-button></common-tip>
         </div>
       </el-form-item>
-      <CCEditForm class="ksd-mb-24" :class="{'error-tips': corrColumnError}" key="corrEditForm" style="margin-top: -16px;" ref="corrEditForm" v-if="corrCCVisible" @checkSuccess="saveCorrCC" @delSuccess="delCorrCC" :hideCancel="isEditMeasure" :isEditMeasureCC="!isCorrCCEdit" source="createMeasure" :ccDesc="corrCCObject" :modelInstance="modelInstance" @resetSubmitLoading="resetSubmitType" @saveError="resetSubmitType"></CCEditForm>
+      <CCEditForm class="ksd-mb-8" :class="{'error-tips': corrColumnError}" key="corrEditForm" ref="corrEditForm" v-if="corrCCVisible" @checkSuccess="saveCorrCC" @delSuccess="delCorrCC" :hideCancel="isEditMeasure" :isEditMeasureCC="!isCorrCCEdit" source="createMeasure" :ccDesc="corrCCObject" :modelInstance="modelInstance" @resetSubmitLoading="resetSubmitType" @saveError="resetSubmitType"></CCEditForm>
       <div class="error-tips" v-if="corrColumnError">{{$t('corrColDatatypeError')}}</div>
       <el-form-item :label="$t('name')" prop="name">
         <div>
@@ -601,6 +601,7 @@ export default class AddMeasure extends Vue {
     this.ccObject = null
     this.corrCCObject = null
     this.ccValidateError = false
+    this.corrColumnError = false
   }
 
   newCC () {
@@ -653,11 +654,13 @@ export default class AddMeasure extends Vue {
     this.measure.parameterValue.value = ''
     this.ccVisible = false
     this.isEdit = false
+    this.corrColumnError = false
   }
   delCorrCC (cc) {
     this.measure.convertedColumns[0].value = ''
     this.corrCCVisible = false
     this.isCorrCCEdit = false
+    this.corrColumnError = false
   }
 
   get isOrderBy () {
@@ -956,10 +959,16 @@ export default class AddMeasure extends Vue {
 <style lang="less">
   @import '../../../../assets/styles/variables.less';
   .add-measure {
+    .el-form-item.cc-item,
+    .el-form-item.is-error {
+      margin-bottom: 8px;
+    }
+    .corr-item {
+      margin-bottom: 16px;
+    }
     .error-tips {
       color: @ke-color-danger;
       font-size: 12px;
-      margin-top: -16px;
       margin-bottom: 24px;
     }
     .measure-flex-row {
