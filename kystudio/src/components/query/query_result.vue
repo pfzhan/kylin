@@ -676,10 +676,7 @@ export default class queryResult extends Vue {
   filterTableData () {
     if (this.resultFilter) {
       const filteredData = this.extraoption.results && this.extraoption.results.filter((item) => {
-        const cur = item
-        const trans = scToFloat(cur)
-        const finalItem = showNull(trans)
-        return finalItem.toString().toLocaleUpperCase().indexOf(this.resultFilter.toLocaleUpperCase()) !== -1
+        return item.toString().toLocaleUpperCase().indexOf(this.resultFilter.toLocaleUpperCase()) !== -1
       })
       this.modelsTotal = filteredData.length
       return filteredData
@@ -700,7 +697,12 @@ export default class queryResult extends Vue {
       var innerLen = this.tableData[i].length
       for (var m = 0; m < innerLen; m++) {
         var cur = this.tableData[i][m]
-        var trans = scToFloat(cur)
+        var colType = this.extraoption.columnMetas[m].columnTypeName
+        // char varchar 类型列不进行科学计算转数字显示的转换
+        var trans = cur
+        if (colType.toLocaleLowerCase().indexOf('char') === -1) {
+          trans = scToFloat(cur)
+        }
         this.tableData[i][m] = showNull(trans)
       }
     }
