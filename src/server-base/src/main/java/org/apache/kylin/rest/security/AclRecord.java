@@ -113,7 +113,7 @@ public class AclRecord extends RootPersistentEntity implements Acl, OwnershipAcl
     }
 
     public void init(Acl parentAcl, PermissionFactory aclPermissionFactory,
-                     PermissionGrantingStrategy permissionGrantingStrategy) {
+            PermissionGrantingStrategy permissionGrantingStrategy) {
         this.aclPermissionFactory = aclPermissionFactory;
         this.permissionGrantingStrategy = permissionGrantingStrategy;
         this.parentAcl = parentAcl;
@@ -126,13 +126,14 @@ public class AclRecord extends RootPersistentEntity implements Acl, OwnershipAcl
             for (LegacyAceInfo legacy : legacyAceInfo.values()) {
                 entries.add(new AceImpl(legacy));
             }
-            Collections.sort(entries, AceImpl.SID_ORDER);
             legacyAceInfo = null;
         }
 
         for (int i = 0; i < entries.size(); i++) {
             entries.get(i).init(this, i);
         }
+
+        entries.sort(AceImpl.SID_ORDER);
     }
 
     @Override

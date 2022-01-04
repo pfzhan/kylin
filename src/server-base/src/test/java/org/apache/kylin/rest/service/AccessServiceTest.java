@@ -79,6 +79,7 @@ import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 import org.springframework.context.ApplicationContext;
+import org.springframework.security.acls.domain.BasePermission;
 import org.springframework.security.acls.domain.GrantedAuthoritySid;
 import org.springframework.security.acls.domain.PermissionFactory;
 import org.springframework.security.acls.domain.PrincipalSid;
@@ -144,7 +145,7 @@ public class AccessServiceTest extends NLocalFileMetadataTestCase {
         PowerMockito.when(UserGroupInformation.getCurrentUser()).thenReturn(userGroupInformation);
 
         overwriteSystemProp("HADOOP_USER_NAME", "root");
-        createTestMetadata();
+        createTestMetadata("src/test/resources/ut_access");
         Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
@@ -549,5 +550,68 @@ public class AccessServiceTest extends NLocalFileMetadataTestCase {
     public void testGetGroupsOfCurrentUser() {
         List<String> result = accessService.getGroupsOfCurrentUser();
         Assert.assertEquals(4, result.size());
+    }
+
+    @Test
+    public void testAclWithUnNaturalOrder() {
+        AclEntity ae = accessService.getAclEntity(AclEntityType.PROJECT_INSTANCE,
+                "1eaca32a-a33e-4b69-83dd-0bb8b1f8c91b");
+
+        // read from metadata
+        MutableAclRecord acl = accessService.getAcl(ae);
+        // order by sid_order in aceImpl
+        // ADL6911(group), BDL6911(group), aCL6911(group), ACZ5815(user), ACZ5815(user), czw9976(user)
+        List<AccessControlEntry> entries = acl.getEntries();
+
+        Assert.assertEquals(6, entries.size());
+
+        Assert.assertEquals("ADL6911", ((GrantedAuthoritySid) entries.get(0).getSid()).getGrantedAuthority());
+        Assert.assertEquals("BDL6911", ((GrantedAuthoritySid) entries.get(1).getSid()).getGrantedAuthority());
+        Assert.assertEquals("aCL6911", ((GrantedAuthoritySid) entries.get(2).getSid()).getGrantedAuthority());
+        Assert.assertEquals("ACZ5815", ((PrincipalSid) entries.get(3).getSid()).getPrincipal());
+        Assert.assertEquals("CCL6911", ((PrincipalSid) entries.get(4).getSid()).getPrincipal());
+        Assert.assertEquals("czw9976", ((PrincipalSid) entries.get(5).getSid()).getPrincipal());
+
+
+        // grant
+        acl = accessService.grant(ae, BasePermission.ADMINISTRATION, accessService.getSid("atest1", true));
+
+        entries = acl.getEntries();
+        Assert.assertEquals(7, entries.size());
+
+        Assert.assertEquals("ADL6911", ((GrantedAuthoritySid) entries.get(0).getSid()).getGrantedAuthority());
+        Assert.assertEquals("BDL6911", ((GrantedAuthoritySid) entries.get(1).getSid()).getGrantedAuthority());
+        Assert.assertEquals("aCL6911", ((GrantedAuthoritySid) entries.get(2).getSid()).getGrantedAuthority());
+        Assert.assertEquals("ACZ5815", ((PrincipalSid) entries.get(3).getSid()).getPrincipal());
+        Assert.assertEquals("CCL6911", ((PrincipalSid) entries.get(4).getSid()).getPrincipal());
+        Assert.assertEquals("atest1", ((PrincipalSid) entries.get(5).getSid()).getPrincipal());
+        Assert.assertEquals("czw9976", ((PrincipalSid) entries.get(6).getSid()).getPrincipal());
+
+        // revoke czw9976
+        acl = accessService.revoke(ae, 6);
+
+        entries = acl.getEntries();
+        Assert.assertEquals(6, entries.size());
+
+        Assert.assertEquals("ADL6911", ((GrantedAuthoritySid) entries.get(0).getSid()).getGrantedAuthority());
+        Assert.assertEquals("BDL6911", ((GrantedAuthoritySid) entries.get(1).getSid()).getGrantedAuthority());
+        Assert.assertEquals("aCL6911", ((GrantedAuthoritySid) entries.get(2).getSid()).getGrantedAuthority());
+        Assert.assertEquals("ACZ5815", ((PrincipalSid) entries.get(3).getSid()).getPrincipal());
+        Assert.assertEquals("CCL6911", ((PrincipalSid) entries.get(4).getSid()).getPrincipal());
+        Assert.assertEquals("atest1", ((PrincipalSid) entries.get(5).getSid()).getPrincipal());
+
+
+        // update atest1
+        Assert.assertEquals(BasePermission.ADMINISTRATION, entries.get(5).getPermission());
+
+        acl = accessService.update(ae, 5, BasePermission.READ);
+        entries = acl.getEntries();
+        Assert.assertEquals("ADL6911", ((GrantedAuthoritySid) entries.get(0).getSid()).getGrantedAuthority());
+        Assert.assertEquals("BDL6911", ((GrantedAuthoritySid) entries.get(1).getSid()).getGrantedAuthority());
+        Assert.assertEquals("aCL6911", ((GrantedAuthoritySid) entries.get(2).getSid()).getGrantedAuthority());
+        Assert.assertEquals("ACZ5815", ((PrincipalSid) entries.get(3).getSid()).getPrincipal());
+        Assert.assertEquals("CCL6911", ((PrincipalSid) entries.get(4).getSid()).getPrincipal());
+        Assert.assertEquals("atest1", ((PrincipalSid) entries.get(5).getSid()).getPrincipal());
+        Assert.assertEquals(BasePermission.READ, entries.get(5).getPermission());
     }
 }
