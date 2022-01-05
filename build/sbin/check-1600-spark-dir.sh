@@ -73,8 +73,8 @@ if [[ ${spark_log_dir} != ${spark_eventlog_dir} ]]; then
     checkDirExistAndPermission ${spark_eventlog_dir} "spark history event log"
 fi
 
-sparder_log_dir=`$KYLIN_HOME/bin/get-properties.sh kylin.storage.columnar.spark-conf.spark.history.fs.logDirectory`
-sparder_eventlog_dir=`$KYLIN_HOME/bin/get-properties.sh kylin.storage.columnar.spark-conf.spark.eventLog.dir`
+sparder_log_dir=`$KYLIN_HOME/bin/get-properties.sh kap.storage.columnar.spark-conf.spark.history.fs.logDirectory`
+sparder_eventlog_dir=`$KYLIN_HOME/bin/get-properties.sh kap.storage.columnar.spark-conf.spark.eventLog.dir`
 
 checkDirExistAndPermission ${sparder_log_dir} "sparder history log"
 

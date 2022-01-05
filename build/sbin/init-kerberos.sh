@@ -23,7 +23,6 @@
 ## (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 ## OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ##
-source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh $@
 
 KAP_KERBEROS_ENABLED=`$KYLIN_HOME/bin/get-properties.sh kylin.kerberos.enabled`
 
@@ -47,7 +46,7 @@ function exportKRB5() {
     fi
 
     export KRB5_CONFIG=${KYLIN_HOME}"/conf/"${KAP_KERBEROS_KRB5}
-    verboseLog "KRB5_CONFIG is set to ${KRB5_CONFIG}"
+    echo "KRB5_CONFIG is set to ${KRB5_CONFIG}"
 }
 
 function prepareKerberosOpts() {

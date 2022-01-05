@@ -39,20 +39,6 @@ function isValidJavaVersion() {
     echo "true"
 }
 
-function verboseLog() {
-    (>&2 echo `date '+%F %H:%M:%S'` "$@")
-}
-
-function exportPropertiesToFile() {
-  if [[ "${_KYLIN_GET_PROPERTIES_FROM_LOCAL}" == "true" ]]; then
-    $KYLIN_HOME/bin/get-properties.sh -e || quit "export properties error"
-  else
-    verboseLog "_KYLIN_GET_PROPERTIES_FROM_LOCAL is false, skip export.."
-  fi
-
-
-}
-
 # avoid re-entering
 if [[ "$dir" == "" ]]
 then
