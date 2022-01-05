@@ -28,6 +28,10 @@ if [ -z $KYLIN_HOME ];then
     export KYLIN_HOME=$(cd -P -- "$(dirname -- "$0")"/../ && pwd -P)
 fi
 
+if [[ -z ${MAPR_HOME} ]];then
+    export MAPR_HOME="/opt/mapr"
+fi
+
 if [ -z ${kylin_hadoop_conf_dir} ]; then
     export kylin_hadoop_conf_dir=$KYLIN_HOME/hadoop_conf
 fi
@@ -74,8 +78,12 @@ function runTool() {
         kylin_tools_log4j="file:${KYLIN_HOME}/tool/conf/kylin-tools-log4j.xml"
     fi
 
+    if [[ $(hadoop version) == *"mapr"* ]]; then
+        MAPR_AUTHENTICATION="-Djava.security.auth.login.config=${MAPR_HOME}/conf/mapr.login.conf"
+    fi
+
     mkdir -p ${KYLIN_HOME}/logs
-    local result=`java ${KYLIN_KERBEROS_OPTS} -Dlog4j.configurationFile=${kylin_tools_log4j} -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -cp "${kylin_hadoop_conf_dir}:${KYLIN_HOME}/lib/ext/*:${KYLIN_HOME}/server/jars/*:${SPARK_HOME}/jars/*" "$@" 2>>${KYLIN_HOME}/logs/shell.stderr`
+    local result=`java ${KYLIN_KERBEROS_OPTS} -Dlog4j.configurationFile=${kylin_tools_log4j} -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current ${MAPR_AUTHENTICATION} -cp "${kylin_hadoop_conf_dir}:${KYLIN_HOME}/lib/ext/*:${KYLIN_HOME}/server/jars/*:${SPARK_HOME}/jars/*" "$@" 2>>${KYLIN_HOME}/logs/shell.stderr`
 
     echo "$result"
 }

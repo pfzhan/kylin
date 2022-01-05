@@ -52,11 +52,9 @@ function parseSkipCheckArgs() {
 }
 
 function checkArguments() {
-   local local_properties="false"
-   #enabled when check env by pass
-   if [[ -f ${KYLIN_HOME}/bin/check-env-bypass ]]; then
-     local_properties="true"
-   fi
+   #enabled when it is "ture"
+   local local_properties="true"
+
    case $1 in
        "start" | "restart")
              export _KYLIN_GET_PROPERTIES_FROM_LOCAL=${_KYLIN_GET_PROPERTIES_FROM_LOCAL:-"${local_properties}"}

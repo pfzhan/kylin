@@ -46,7 +46,11 @@ function verboseLog() {
 function exportPropertiesToFile() {
   if [[ "${_KYLIN_GET_PROPERTIES_FROM_LOCAL}" == "true" ]]; then
     $KYLIN_HOME/bin/get-properties.sh -e || quit "export properties error"
+  else
+    verboseLog "_KYLIN_GET_PROPERTIES_FROM_LOCAL is false, skip export.."
   fi
+
+
 }
 
 # avoid re-entering
@@ -125,5 +129,9 @@ then
         export JAVA=$JAVA_HOME/bin/java
         [[ -e "${JAVA}" ]] || quit "${JAVA} does not exist. Please set JAVA_HOME correctly."
         verbose "java is ${JAVA}" 
+    fi
+
+    if [[ -z ${MAPR_HOME} ]];then
+        export MAPR_HOME="/opt/mapr"
     fi
 fi
