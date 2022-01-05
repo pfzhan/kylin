@@ -41,7 +41,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.tool.util.ToolMainWrapper;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
@@ -60,7 +59,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
-import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.metrics.MetricsCategory;
 import io.kyligence.kap.common.metrics.MetricsGroup;
@@ -73,7 +71,9 @@ import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.common.util.MetadataChecker;
 import io.kyligence.kap.common.util.OptionBuilder;
 import io.kyligence.kap.common.util.Unsafe;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 import io.kyligence.kap.tool.util.ScreenPrintUtil;
+import io.kyligence.kap.tool.util.ToolMainWrapper;
 import lombok.Getter;
 import lombok.val;
 import lombok.var;
@@ -270,51 +270,52 @@ public class MetadataTool extends ExecutableApplication {
         abortIfAlreadyExists(backupPath);
         logger.info("The backup metadataUrl is {} and backup path is {}", backupMetadataUrl, backupPath);
 
-        val backupResourceStore = ResourceStore.getKylinMetaStore(backupConfig);
+        try (val backupResourceStore = ResourceStore.getKylinMetaStore(backupConfig)) {
 
-        val backupMetadataStore = backupResourceStore.getMetadataStore();
+           val backupMetadataStore = backupResourceStore.getMetadataStore();
 
-        if (StringUtils.isBlank(project)) {
-            logger.info("start to copy all projects from ResourceStore.");
-            val auditLogStore = resourceStore.getAuditLogStore();
-            long finalOffset = getOffset(auditLogStore);
-                backupResourceStore.putResourceWithoutCheck(ResourceStore.METASTORE_IMAGE,
-                        ByteSource.wrap(JsonUtil.writeValueAsBytes(new ImageDesc(finalOffset))),
-                        System.currentTimeMillis(), -1);
-                var projectFolders = resourceStore.listResources("/");
-                if (projectFolders == null) {
-                    return;
-                }
-                UnitOfWork.doInTransactionWithRetry(()->{
-                    backupProjects(projectFolders, backupResourceStore, excludeTableExd);
-                    return null;
-                }, UnitOfWork.GLOBAL_UNIT);
+           if (StringUtils.isBlank(project)) {
+               logger.info("start to copy all projects from ResourceStore.");
+               val auditLogStore = resourceStore.getAuditLogStore();
+               long finalOffset = getOffset(auditLogStore);
+               backupResourceStore.putResourceWithoutCheck(ResourceStore.METASTORE_IMAGE,
+                       ByteSource.wrap(JsonUtil.writeValueAsBytes(new ImageDesc(finalOffset))),
+                       System.currentTimeMillis(), -1);
+               var projectFolders = resourceStore.listResources("/");
+               if (projectFolders == null) {
+                   return;
+               }
+               UnitOfWork.doInTransactionWithRetry(() -> {
+                   backupProjects(projectFolders, backupResourceStore, excludeTableExd);
+                   return null;
+               }, UnitOfWork.GLOBAL_UNIT);
 
-                val uuid = resourceStore.getResource(ResourceStore.METASTORE_UUID_TAG);
-                if (uuid != null) {
-                    backupResourceStore.putResourceWithoutCheck(uuid.getResPath(), uuid.getByteSource(),
-                            uuid.getTimestamp(), -1);
-                }
-            logger.info("start to backup all projects");
+               val uuid = resourceStore.getResource(ResourceStore.METASTORE_UUID_TAG);
+               if (uuid != null) {
+                   backupResourceStore.putResourceWithoutCheck(uuid.getResPath(), uuid.getByteSource(),
+                           uuid.getTimestamp(), -1);
+               }
+               logger.info("start to backup all projects");
 
-        } else {
-            logger.info("start to copy project {} from ResourceStore.", project);
-            UnitOfWork.doInTransactionWithRetry(
-                    UnitOfWorkParams.builder().readonly(true).unitName(project).processor(() -> {
-                        copyResourceStore("/" + project, resourceStore, backupResourceStore, true, excludeTableExd);
-                        val uuid = resourceStore.getResource(ResourceStore.METASTORE_UUID_TAG);
-                        backupResourceStore.putResourceWithoutCheck(uuid.getResPath(), uuid.getByteSource(),
-                                uuid.getTimestamp(), -1);
-                        return null;
-                    }).build());
-            if (Thread.currentThread().isInterrupted()) {
-                throw new InterruptedException("metadata task is interrupt");
-            }
-            logger.info("start to backup project {}", project);
-        }
-        backupResourceStore.deleteResource(ResourceStore.METASTORE_TRASH_RECORD);
-        backupMetadataStore.dump(backupResourceStore);
-        logger.info("backup successfully at {}", backupPath);
+           } else {
+               logger.info("start to copy project {} from ResourceStore.", project);
+               UnitOfWork.doInTransactionWithRetry(
+                       UnitOfWorkParams.builder().readonly(true).unitName(project).processor(() -> {
+                           copyResourceStore("/" + project, resourceStore, backupResourceStore, true, excludeTableExd);
+                           val uuid = resourceStore.getResource(ResourceStore.METASTORE_UUID_TAG);
+                           backupResourceStore.putResourceWithoutCheck(uuid.getResPath(), uuid.getByteSource(),
+                                   uuid.getTimestamp(), -1);
+                           return null;
+                       }).build());
+               if (Thread.currentThread().isInterrupted()) {
+                   throw new InterruptedException("metadata task is interrupt");
+               }
+               logger.info("start to backup project {}", project);
+           }
+           backupResourceStore.deleteResource(ResourceStore.METASTORE_TRASH_RECORD);
+           backupMetadataStore.dump(backupResourceStore);
+           logger.info("backup successfully at {}", backupPath);
+       }
     }
 
     private long getOffset(AuditLogStore auditLogStore) {
