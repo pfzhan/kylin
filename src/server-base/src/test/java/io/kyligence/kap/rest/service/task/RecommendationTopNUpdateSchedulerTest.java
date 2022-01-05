@@ -36,12 +36,15 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import io.kyligence.kap.common.util.LogOutputTestCase;
 import io.kyligence.kap.rest.service.RawRecService;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class RecommendationTopNUpdateSchedulerTest extends LogOutputTestCase {
 
     private RawRecService rawRecService = Mockito.mock(RawRecService.class);
     private static final String PROJECT = "default";
-    private RecommendationTopNUpdateScheduler recommendationTopNUpdateScheduler = new RecommendationTopNUpdateScheduler();
+    private RecommendationTopNUpdateScheduler recommendationTopNUpdateScheduler = Mockito
+            .spy(new RecommendationTopNUpdateScheduler());
 
     @Before
     public void setUp() throws Exception {
@@ -55,6 +58,18 @@ public class RecommendationTopNUpdateSchedulerTest extends LogOutputTestCase {
     }
 
     @Test
+    public void testSaveTimeFail() {
+        overwriteSystemProp("kylin.smart.update-topn-time-gap", "0");
+        overwriteSystemProp("kylin.smart.frequency-rule-enable", "false");
+        Mockito.doNothing().when(rawRecService).updateCostsAndTopNCandidates(PROJECT);
+        Mockito.doThrow(Exception.class).doCallRealMethod().when(recommendationTopNUpdateScheduler)
+                .saveTaskTime(PROJECT);
+        recommendationTopNUpdateScheduler.addProject(PROJECT);
+        await().atMost(3, TimeUnit.SECONDS)
+                .until(() -> containsLog("Updating default cost and topN recommendations finished."));
+    }
+
+    @Test
     public void testSchedulerTask() {
         overwriteSystemProp("kylin.smart.update-topn-time-gap", "0");
         overwriteSystemProp("kylin.smart.frequency-rule-enable", "false");
@@ -63,5 +78,4 @@ public class RecommendationTopNUpdateSchedulerTest extends LogOutputTestCase {
         await().atMost(3, TimeUnit.SECONDS)
                 .until(() -> containsLog("Updating default cost and topN recommendations finished."));
     }
-
 }

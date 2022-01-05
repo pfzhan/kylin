@@ -46,7 +46,6 @@ import io.kyligence.kap.common.metrics.MetricsGroup;
 import io.kyligence.kap.common.metrics.MetricsName;
 import io.kyligence.kap.guava20.shaded.common.annotations.VisibleForTesting;
 import io.kyligence.kap.guava20.shaded.common.collect.Maps;
-import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.favorite.AsyncAccelerationTask;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
@@ -96,17 +95,23 @@ public class RecommendationTopNUpdateScheduler {
         if (!isFirstSchedule && !needUpdateProjects.containsKey(project)) {
             return false;
         }
-        if (notOwner(project)) {
-            needUpdateProjects.remove(project);
-            return false;
+
+        boolean happenException = false;
+        try {
+            if (!isFirstSchedule) {
+                saveTaskTime(project);
+            }
+        } catch (Exception e) {
+            happenException = true;
+            log.warn("{} task cancel, due to exception ", project, e);
         }
-        if (!isFirstSchedule) {
-            saveTaskTime(project);
-        }
-        long nextMilliSeconds = computeNextTaskTimeGap(project);
+
+        long nextMilliSeconds = happenException ? computeNextTaskTimeGap(System.currentTimeMillis(), project)
+                : computeNextTaskTimeGap(project);
         needUpdateProjects.put(project,
                 taskScheduler.schedule(() -> work(project), nextMilliSeconds, TimeUnit.MILLISECONDS));
-        return true;
+
+        return !happenException;
     }
 
     private void work(String project) {
@@ -124,18 +129,16 @@ public class RecommendationTopNUpdateScheduler {
         MetricsGroup.hostTagCounterInc(MetricsName.METADATA_OPS_CRON_SUCCESS, MetricsCategory.GLOBAL, GLOBAL);
     }
 
-    private boolean notOwner(String project) {
-        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        EpochManager epochMgr = EpochManager.getInstance();
-        return !kylinConfig.isUTEnv() && !epochMgr.checkEpochOwner(project);
+    private long computeNextTaskTimeGap(long lastTaskTime, String project) {
+        long nextTaskTime = computeNextTaskTime(lastTaskTime, project);
+        log.debug("project {} next task time is {}", project, nextTaskTime);
+        return nextTaskTime - System.currentTimeMillis();
     }
 
     @VisibleForTesting
     protected long computeNextTaskTimeGap(String project) {
         long lastTaskTime = getLastTaskTime(project);
-        long nextTaskTime = computeNextTaskTime(lastTaskTime, project);
-        log.debug("project {} next task time is {}", project, nextTaskTime);
-        return nextTaskTime - lastTaskTime;
+        return computeNextTaskTimeGap(lastTaskTime, project);
     }
 
     private long getLastTaskTime(String project) {
@@ -144,11 +147,12 @@ public class RecommendationTopNUpdateScheduler {
         return task.getLastUpdateTonNTime() == 0 ? System.currentTimeMillis() : task.getLastUpdateTonNTime();
     }
 
-    private void saveTaskTime(String project) {
+    protected void saveTaskTime(String project) {
+        long currentTime = System.currentTimeMillis();
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             AsyncAccelerationTask asyncAcceleration = (AsyncAccelerationTask) getInstance(
                     KylinConfig.getInstanceFromEnv(), project).get(ASYNC_ACCELERATION_TASK);
-            asyncAcceleration.setLastUpdateTonNTime(System.currentTimeMillis());
+            asyncAcceleration.setLastUpdateTonNTime(currentTime);
             getInstance(KylinConfig.getInstanceFromEnv(), project).save(asyncAcceleration);
             return null;
         }, project);
@@ -173,4 +177,7 @@ public class RecommendationTopNUpdateScheduler {
         return TimeUtil.getDayStart(queryTime);
     }
 
+    public int getTaskCount() {
+        return needUpdateProjects.size();
+    }
 }
