@@ -62,6 +62,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.logging.SetLogCategory;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
@@ -288,7 +289,9 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                 }
 
                 // Protect the model from being damaged
-                log.info(copyForWrite.getUuid());
+                try (SetLogCategory logCategory = new SetLogCategory("smart")) {
+                    log.info(copyForWrite.getUuid());
+                }
                 copyForWrite.keepColumnOrder();
                 copyForWrite.keepMeasureOrder();
                 List<NDataModel.NamedColumn> existedColumns = copyForWrite.getAllNamedColumns().stream()
@@ -314,8 +317,10 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
             MeasureRef measureRef = (MeasureRef) recommendationRef;
             NDataModel.Measure measure = measureRef.getMeasure();
             if (functionToMeasureMap.containsKey(measure.getFunction().toString())) {
-                log.error("Fail to rewrite RawRecItem({}) for conflicting function ({})", rawRecItem.getId(),
-                        measure.getFunction().toString());
+                try (SetLogCategory logCategory = new SetLogCategory("smart")) {
+                    log.error("Fail to rewrite RawRecItem({}) for conflicting function ({})", rawRecItem.getId(),
+                            measure.getFunction().toString());
+                }
                 return;
             }
             int maxMeasureId = model.getMaxMeasureId();
@@ -417,7 +422,9 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                     if (isInvalidColId(nColOrder, model) || isInvalidColId(nShardBy, model)
                             || isInvalidColId(nSortBy, model) || isInvalidColId(nPartitionBy, model)
                             || (Sets.newHashSet(nColOrder).size() != colOrder.size())) {
-                        log.error("Fail to rewrite illegal RawRecItem({})", rawRecItem.getId());
+                        try (SetLogCategory logCategory = new SetLogCategory("smart")) {
+                            log.error("Fail to rewrite illegal RawRecItem({})", rawRecItem.getId());
+                        }
                         continue;
                     }
 
@@ -426,12 +433,14 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                     layout.setSortByColumns(nSortBy);
                     layout.setPartitionByColumns(nPartitionBy);
                     updateHandler.add(layout, rawRecItem.isAgg());
-                    approvedLayouts.put(layout.getId(), rawRecItem);
-                    log.info("RawRecItem({}) rewrite colOrder({}) to ({})", rawRecItem.getId(), colOrder, nColOrder);
-                    log.info("RawRecItem({}) rewrite shardBy({}) to ({})", rawRecItem.getId(), shardBy, nShardBy);
-                    log.info("RawRecItem({}) rewrite sortBy({}) to ({})", rawRecItem.getId(), sortBy, nSortBy);
-                    log.info("RawRecItem({}) rewrite partitionBy({}) to ({})", rawRecItem.getId(), partitionBy,
-                            nPartitionBy);
+                    try (SetLogCategory logCategory = new SetLogCategory("smart")) {
+                        approvedLayouts.put(layout.getId(), rawRecItem);
+                        log.info("RawRecItem({}) rewrite colOrder({}) to ({})", rawRecItem.getId(), colOrder, nColOrder);
+                        log.info("RawRecItem({}) rewrite shardBy({}) to ({})", rawRecItem.getId(), shardBy, nShardBy);
+                        log.info("RawRecItem({}) rewrite sortBy({}) to ({})", rawRecItem.getId(), sortBy, nSortBy);
+                        log.info("RawRecItem({}) rewrite partitionBy({}) to ({})", rawRecItem.getId(), partitionBy,
+                                nPartitionBy);
+                    }
                 }
                 updateHandler.complete();
                 layoutIds.addAll(updateHandler.getAddedLayouts());
@@ -499,24 +508,33 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         }
 
         private void logBeginRewrite(String rewriteInfo) {
-            log.info("Start to rewrite RawRecItems to {}({}/{})", rewriteInfo, recommendation.getProject(),
-                    recommendation.getUuid());
+            try (SetLogCategory logCategory = new SetLogCategory("smart")) {
+                log.info("Start to rewrite RawRecItems to {}({}/{})", rewriteInfo, recommendation.getProject(),
+                        recommendation.getUuid());
+            }
         }
 
         private void logFinishRewrite(String rewrite) {
-            log.info("Rewrite RawRecItems to {}({}/{}) successfully", rewrite, recommendation.getProject(),
-                    recommendation.getUuid());
+            try (SetLogCategory logCategory = new SetLogCategory("smart")) {
+                log.info("Rewrite RawRecItems to {}({}/{}) successfully", rewrite, recommendation.getProject(),
+                        recommendation.getUuid());
+
+            }
         }
 
         private void logWriteProperty(RawRecItem recItem, Object obj) {
             if (obj instanceof NDataModel.NamedColumn) {
                 NDataModel.NamedColumn column = (NDataModel.NamedColumn) obj;
-                log.info("Write RawRecItem({}) to model as Column with id({}), name({}), isDimension({})", //
-                        recItem.getId(), column.getId(), column.getName(), column.isDimension());
+                try (SetLogCategory logCategory = new SetLogCategory("smart")) {
+                    log.info("Write RawRecItem({}) to model as Column with id({}), name({}), isDimension({})", //
+                            recItem.getId(), column.getId(), column.getName(), column.isDimension());
+                }
             } else if (obj instanceof NDataModel.Measure) {
                 NDataModel.Measure measure = (NDataModel.Measure) obj;
-                log.info("Write RawRecItem({}) to model as Measure with id({}), name({}) ", //
-                        recItem.getId(), measure.getId(), measure.getName());
+                try (SetLogCategory logCategory = new SetLogCategory("smart")) {
+                    log.info("Write RawRecItem({}) to model as Measure with id({}), name({}) ", //
+                            recItem.getId(), measure.getId(), measure.getName());
+                }
             }
         }
     }
@@ -866,7 +884,9 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         Set<Integer> allRecItemIds = Sets.newHashSet(optRecV2.getRawIds());
         Set<Integer> brokenRefIds = optRecV2.getBrokenRefIds();
         if (!allRecItemIds.contains(recItemId) || brokenRefIds.contains(recItemId)) {
-            log.info("all recommendation ids {}, broken ref ids {}", allRecItemIds, brokenRefIds);
+            try (SetLogCategory logCategory = new SetLogCategory("smart")) {
+                log.info("all recommendation ids {}, broken ref ids {}", allRecItemIds, brokenRefIds);
+            }
             throw new KylinException(REC_LIST_OUT_OF_DATE, MsgPicker.getMsg().getREC_LIST_OUT_OF_DATE());
         }
         Map<Integer, LayoutRef> layoutRefs = isAdd //

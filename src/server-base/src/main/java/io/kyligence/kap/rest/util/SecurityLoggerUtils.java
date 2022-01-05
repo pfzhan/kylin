@@ -24,13 +24,13 @@
 
 package io.kyligence.kap.rest.util;
 
-import java.util.Locale;
-
+import io.kyligence.kap.common.logging.SetLogCategory;
+import io.kyligence.kap.common.util.AddressUtil;
 import org.apache.kylin.common.util.DateFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.common.util.AddressUtil;
+import java.util.Locale;
 
 public class SecurityLoggerUtils {
     private static final Logger securityLogger = LoggerFactory.getLogger(SecurityLoggerUtils.SECURITY_LOG_APPENDER);
@@ -46,19 +46,25 @@ public class SecurityLoggerUtils {
         String loginSuccessMsg = String.format(Locale.ROOT, SecurityLoggerUtils.LOGIN, username,
                 DateFormat.formatToTimeWithoutMilliStr(System.currentTimeMillis()), Boolean.TRUE,
                 AddressUtil.getLocalInstance());
-        securityLogger.info(loginSuccessMsg);
+        try (SetLogCategory logCategory = new SetLogCategory(SecurityLoggerUtils.SECURITY_LOG_APPENDER)) {
+            securityLogger.info(loginSuccessMsg);
+        }
     }
 
     public static void recordLoginFailed(String username, Exception e) {
         String loginErrorMsg = String.format(Locale.ROOT, SecurityLoggerUtils.LOGIN, username,
                 DateFormat.formatToTimeWithoutMilliStr(System.currentTimeMillis()), Boolean.FALSE,
                 AddressUtil.getLocalInstance());
-        securityLogger.error(loginErrorMsg, e);
+        try (SetLogCategory logCategory = new SetLogCategory(SecurityLoggerUtils.SECURITY_LOG_APPENDER)) {
+            securityLogger.error(loginErrorMsg, e);
+        }
     }
 
     public static void recordLogout(String username) {
         String logoutMessage = String.format(Locale.ROOT, SecurityLoggerUtils.LOGOUT, username,
                 DateFormat.formatToTimeWithoutMilliStr(System.currentTimeMillis()), AddressUtil.getLocalInstance());
-        securityLogger.info(logoutMessage);
+        try (SetLogCategory logCategory = new SetLogCategory(SecurityLoggerUtils.SECURITY_LOG_APPENDER)) {
+            securityLogger.info(logoutMessage);
+        }
     }
 }
