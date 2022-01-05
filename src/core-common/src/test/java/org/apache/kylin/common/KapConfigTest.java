@@ -104,8 +104,8 @@ public class KapConfigTest extends NLocalFileMetadataTestCase {
         map.put("getKyAccountSSOUrl",
                 new PropertiesEntity("kylin.kyaccount.url", "https://sso.kyligence.com", "https://sso.kyligence.com"));
 
-        map.put("getKyAccountSiteUrl", new PropertiesEntity("kylin.kyaccount.site-url", "http://account.kyligence.io",
-                "http://account.kyligence.io"));
+        map.put("getKyAccountSiteUrl", new PropertiesEntity("kylin.kyaccount.site-url", "https://account.kyligence.io",
+                "https://account.kyligence.io"));
 
         map.put("getChannelUser", new PropertiesEntity("kylin.env.channel", "on-premises", "on-premises"));
 

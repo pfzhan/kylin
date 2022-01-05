@@ -226,7 +226,7 @@ public class KapConfig {
     }
 
     public String getKyAccountSiteUrl() {
-        return config.getOptional("kylin.kyaccount.site-url", "http://account.kyligence.io");
+        return config.getOptional("kylin.kyaccount.site-url", "https://account.kyligence.io");
     }
 
     public String getChannelUser() {
