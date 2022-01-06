@@ -327,7 +327,8 @@ public class NProjectController extends NBasicController {
         if(StringUtils.isEmpty(request.getUpdateFrequency())){
             throw new KylinException(EMPTY_UPDATE_FREQUENCY, MsgPicker.getMsg().getUPDATE_FREQUENCY_NOT_EMPTY());
         }
-
+        checkRange(request.getRecommendationsValue(), 0, Integer.MAX_VALUE);
+        checkRange(request.getMinHitCount(), 1, Integer.MAX_VALUE);
         checkRange(request.getEffectiveDays(), EFFECTIVE_DAYS_MIN, EFFECTIVE_DAYS_MAX);
         checkRange(request.getUpdateFrequency(), 1, Integer.MAX_VALUE);
     }

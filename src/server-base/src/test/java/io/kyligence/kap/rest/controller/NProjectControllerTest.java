@@ -501,6 +501,7 @@ public class NProjectControllerTest extends NLocalFileMetadataTestCase {
         request.setMinHitCount("1");
         request.setUpdateFrequency("1");
         request.setEffectiveDays("1");
+        request.setRecommendationsValue("1");
         mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/{project}/favorite_rules", project)
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))

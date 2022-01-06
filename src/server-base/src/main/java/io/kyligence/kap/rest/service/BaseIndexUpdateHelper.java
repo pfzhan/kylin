@@ -27,6 +27,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.rest.util.SpringContext;
 
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.rest.request.CreateBaseIndexRequest;
@@ -41,8 +42,10 @@ import io.kyligence.kap.secondstorage.SecondStorageUtil;
  */
 public class BaseIndexUpdateHelper {
 
-    private boolean preExistBaseAggLayout;
-    private boolean preExistBaseTableLayout;
+    private long preBaseAggLayout;
+    private long preBaseTableLayout;
+    private static final long NON_EXIST_LAYOUT = -1;
+
     private String project;
     private String modelId;
     private boolean createIfNotExist;
@@ -62,8 +65,8 @@ public class BaseIndexUpdateHelper {
             project = model.getProject();
             modelId = model.getId();
             this.createIfNotExist = createIfNotExist;
-            preExistBaseAggLayout = existBaseAggLayout();
-            preExistBaseTableLayout = existTableLayout();
+            preBaseAggLayout = getBaseAggLayout();
+            preBaseTableLayout = getBaseTableLayout();
         }
     }
 
@@ -76,19 +79,19 @@ public class BaseIndexUpdateHelper {
         if (!needUpdate) {
             return BuildBaseIndexResponse.EMPTY;
         }
-        if (!preExistBaseAggLayout && !preExistBaseTableLayout && !createIfNotExist) {
+        if (notExist(preBaseAggLayout) && notExist(preBaseTableLayout) && !createIfNotExist) {
             return BuildBaseIndexResponse.EMPTY;
         }
 
-        boolean curExistBaseTableLayout = existTableLayout();
+        long curBaseTableLayout = getBaseTableLayout();
         boolean needCreateBaseTable = createIfNotExist;
-        if (preExistBaseTableLayout && !curExistBaseTableLayout) {
+        if (exist(preBaseTableLayout) && notExist(curBaseTableLayout)) {
             needCreateBaseTable = true;
         }
 
-        boolean curExistBaseAgg = existBaseAggLayout();
+        Long curExistBaseAggLayout = getBaseAggLayout();
         boolean needCreateBaseAgg = createIfNotExist;
-        if (preExistBaseAggLayout && !curExistBaseAgg) {
+        if (exist(preBaseAggLayout) && notExist(curExistBaseAggLayout)) {
             needCreateBaseAgg = true;
         }
         if (secondStorageEnabled) {
@@ -100,23 +103,38 @@ public class BaseIndexUpdateHelper {
         indexRequest.setProject(project);
         BuildBaseIndexResponse response = service.updateBaseIndex(project, indexRequest, needCreateBaseAgg,
                 needCreateBaseTable, true);
-        response.judgeIndexOperateType(preExistBaseAggLayout, true);
-        response.judgeIndexOperateType(preExistBaseTableLayout, false);
-        if (SecondStorageUtil.isModelEnable(project, modelId) && response.hasTableIndexChange()) {
+        response.judgeIndexOperateType(exist(preBaseAggLayout), true);
+        response.judgeIndexOperateType(exist(preBaseTableLayout), false);
+
+        if (SecondStorageUtil.isModelEnable(project, modelId) && hasChange(preBaseTableLayout, curBaseTableLayout)) {
             SecondStorageUpdater updater = SpringContext.getBean(SecondStorageUpdater.class);
             updater.onUpdate(project, modelId);
         }
         return response;
     }
 
-    private boolean existTableLayout() {
-        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        return indexPlanManager.getIndexPlan(modelId).containBaseTableLayout();
+    private boolean notExist(long layout) {
+        return layout == NON_EXIST_LAYOUT;
     }
 
-    private boolean existBaseAggLayout() {
+    private boolean exist(long layout) {
+        return layout != NON_EXIST_LAYOUT;
+    }
+
+    private boolean hasChange(long preId, long curId) {
+        return preId != curId;
+    }
+
+    private long getBaseTableLayout() {
         NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        return indexPlanManager.getIndexPlan(modelId).containBaseAggLayout();
+        LayoutEntity layout = indexPlanManager.getIndexPlan(modelId).getBaseTableLayout();
+        return layout != null ? layout.getId() : NON_EXIST_LAYOUT;
+    }
+
+    private long getBaseAggLayout() {
+        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        LayoutEntity layout = indexPlanManager.getIndexPlan(modelId).getBaseAggLayout();
+        return layout != null ? layout.getId() : NON_EXIST_LAYOUT;
     }
 
 }
