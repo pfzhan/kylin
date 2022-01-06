@@ -101,7 +101,8 @@ object SparkSqlClient {
         val partitions = Math.max(1, JavaUtils.byteStringAsMb(sourceTableSize) / basePartitionSize).toString
         df.sparkSession.sessionState.conf.setLocalProperty("spark.sql.shuffle.partitions", partitions)
         QueryContext.current().setShufflePartitions(partitions.toInt)
-        logger.info(s"Auto set spark.sql.shuffle.partitions $partitions")
+        logger.info(s"Auto set spark.sql.shuffle.partitions $partitions, " +
+          s"sourceTableSize $sourceTableSize, basePartitionSize $basePartitionSize")
       } catch {
         case e: Throwable =>
           logger.error("Auto set spark.sql.shuffle.partitions failed.", e)

@@ -29,13 +29,13 @@ import java.util.{Map => JMap}
 import com.google.common.collect.Maps
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import io.kyligence.kap.metadata.cube.model.{LayoutEntity, DimensionRangeInfo}
+import io.kyligence.kap.metadata.cube.model.{DimensionRangeInfo, LayoutEntity}
 import org.apache.hadoop.fs._
 import org.apache.kylin.common.util.HadoopUtil
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.execution.columnar.InMemoryTableScanExec
 import org.apache.spark.sql.execution.exchange.{BroadcastExchangeExec, ReusedExchangeExec}
-import org.apache.spark.sql.execution.{FileSourceScanExec, LeafExecNode, RowDataSourceScanExec, SparkPlan}
+import org.apache.spark.sql.execution.{FileSourceScanExec, LayoutFileSourceScanExec, LeafExecNode, RowDataSourceScanExec, SparkPlan}
 import org.apache.spark.sql.hive.execution.HiveTableScanExec
 import org.apache.spark.sql.sources.NBaseRelation
 
@@ -49,6 +49,15 @@ object ResourceDetectUtils extends Logging {
     var paths = Seq.empty[Path]
     plan.foreach {
       case plan: FileSourceScanExec =>
+        if (plan.relation.location.partitionSchema.nonEmpty) {
+          val selectedPartitions = plan.relation.location.listFiles(plan.partitionFilters, plan.dataFilters)
+          selectedPartitions.flatMap(partition => partition.files).foreach(file => {
+            paths :+= file.getPath
+          })
+        } else {
+          paths ++= plan.relation.location.rootPaths
+        }
+      case plan: LayoutFileSourceScanExec =>
         if (plan.relation.location.partitionSchema.nonEmpty) {
           val selectedPartitions = plan.relation.location.listFiles(plan.partitionFilters, plan.dataFilters)
           selectedPartitions.flatMap(partition => partition.files).foreach(file => {
