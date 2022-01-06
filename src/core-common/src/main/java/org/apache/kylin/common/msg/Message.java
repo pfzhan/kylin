@@ -782,7 +782,7 @@ public class Message {
     }
 
     public String getCHANGE_DEGAULTADMIN() {
-        return "Since the user ADMIN is the default built-in administrator, you cannot remove the role admin permission, delete or disable the user admin, And only user ADMIN can change the password and user group of user ADMIN";
+        return "Can’t modify the permission of user “ADMIN”, as this user is a built-in admin by default.";
     }
 
     //Query

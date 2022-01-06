@@ -830,7 +830,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getCHANGE_DEGAULTADMIN() {
-        return "由于用户ADMIN是系统默认内置管理员，所以不可以移除ROLE_ADMIN权限，删除，禁用用户ADMIN，并且仅用户ADMIN才可以更改用户ADMIN的密码和用户组";
+        return "无法修改系统默认内置管理员 ADMIN 用户的权限。";
     }
 
     //Query
