@@ -76,16 +76,16 @@
                   :width="$lang === 'en' ? 400 : 320"
                   popper-class="duration-popover"
                   trigger="hover">
-                  <el-row v-for="(step, index) in querySteps" :key="step.name">
+                  <el-row v-for="(step, index) in querySteps" :key="step.name" v-show="step.group !== 'PREPARATION' || (step.group === 'PREPARATION' && isShowDetail)">
                     <el-col :span="14">
-                      <span class="step-name" :class="{'font-medium': index === 0, 'sub-step': step.group === 'PREPARATION'}" v-show="step.group !== 'PREPARATION' || (step.group === 'PREPARATION' && isShowDetail)">{{$t(step.name)}}</span>
+                      <span class="step-name" :class="{'font-medium': index === 0, 'sub-step': step.group === 'PREPARATION'}">{{$t(step.name)}}</span>
                       <i class="el-icon-ksd-more_01" :class="{'up': isShowDetail}" v-if="step.name==='PREPARATION'" @click.stop="isShowDetail = !isShowDetail"></i>
                     </el-col>
                     <el-col :span="4">
-                      <span class="step-duration ksd-fright" v-show="step.group !== 'PREPARATION'" :class="{'font-medium': index === 0}">{{Math.round(step.duration / 1000 * 100) / 100}}s</span>
+                      <span class="step-duration ksd-fright" :class="{'font-medium': index === 0, 'sub-step': step.group === 'PREPARATION'}">{{Math.round(step.duration / 1000 * 100) / 100}}s</span>
                     </el-col>
                     <el-col :span="6" v-if="querySteps&&querySteps[0].duration>0">
-                      <el-progress v-if="step.group !== 'PREPARATION' && index !== 0" :stroke-width="6" :percentage="getProgress(step.duration, querySteps[0].duration)" color="#A6D6F6" :show-text="false"></el-progress>
+                      <el-progress :stroke-width="6" :percentage="getProgress(step.duration, querySteps[0].duration)" color="#A6D6F6" :show-text="false"></el-progress>
                     </el-col>
                   </el-row>
                   <span slot="reference" class="duration">{{Math.round(extraoption.duration / 1000 * 100)/100||0.00}}s</span>
