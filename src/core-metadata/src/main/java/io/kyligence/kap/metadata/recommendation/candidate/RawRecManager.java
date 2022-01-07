@@ -35,23 +35,20 @@ import org.apache.commons.lang3.NotImplementedException;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.Singletons;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem.CostMethod;
 import io.kyligence.kap.metadata.recommendation.ref.LayoutRef;
 import io.kyligence.kap.metadata.recommendation.ref.OptRecV2;
+import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class RawRecManager {
-
-    private static final int LAG_SEMANTIC_VERSION = 1;
 
     private final String project;
     private final JdbcRawRecStore jdbcRawRecStore;
@@ -113,19 +110,22 @@ public class RawRecManager {
         return map;
     }
 
-    public void clearExistingCandidates(String project, String model) {
+    public int clearExistingCandidates(String project, String model) {
+        int updateCount = 0;
         long start = System.currentTimeMillis();
         List<RawRecItem> existingCandidates = jdbcRawRecStore.queryAdditionalLayoutRecItems(project, model);
         long updateTime = System.currentTimeMillis();
-        existingCandidates.forEach(rawRecItem -> {
+        for (val rawRecItem : existingCandidates) {
             rawRecItem.setUpdateTime(updateTime);
             if (!RawRecItem.IMPORTED.equalsIgnoreCase(rawRecItem.getRecSource())) {
                 rawRecItem.setState(RawRecItem.RawRecState.INITIAL);
+                updateCount++;
             }
-        });
+        }
         jdbcRawRecStore.update(existingCandidates);
         log.info("clear all existing candidate recommendations of model({}/{}) takes {} ms.", //
                 project, model, System.currentTimeMillis() - start);
+        return updateCount;
     }
 
     public List<RawRecItem> displayTopNRecItems(String project, String model, int limit) {
@@ -136,19 +136,19 @@ public class RawRecManager {
         return jdbcRawRecStore.queryImportedRawRecItems(project, model, RawRecItem.RawRecState.RECOMMENDED);
     }
 
-    public void updateRecommendedTopN(String project, String model, int topN) {
+    public boolean updateRecommendedTopN(String project, String model, int topN) {
         long current = System.currentTimeMillis();
         RawRecManager rawRecManager = RawRecManager.getInstance(project);
-        rawRecManager.clearExistingCandidates(project, model);
+        int existCandidateCount = rawRecManager.clearExistingCandidates(project, model);
         OptRecV2 optRecV2 = new OptRecV2(project, model, false);
         List<RawRecItem> topNCandidates = Lists.newArrayList();
         int minCost = Integer.parseInt(
                 FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getValue(MIN_HIT_COUNT));
-
         CostMethod costMethod = CostMethod.getCostMethod(project);
+        minCost = costMethod == CostMethod.HIT_COUNT ? minCost : -1;
         int offset = 0;
         while (topNCandidates.size() < topN) {
-            List<RawRecItem> rawRecItems = jdbcRawRecStore.chooseTopNCandidates(project, model, topN, offset,
+            List<RawRecItem> rawRecItems = jdbcRawRecStore.chooseTopNCandidates(project, model, minCost, topN, offset,
                     RawRecItem.RawRecState.INITIAL);
             if (CollectionUtils.isEmpty(rawRecItems)) {
                 break;
@@ -157,9 +157,6 @@ public class RawRecManager {
             rawRecItems.forEach(recItem -> {
                 LayoutRef layoutRef = optRecV2.getAdditionalLayoutRefs().get(-recItem.getId());
                 if (layoutRef.isExcluded()) {
-                    return;
-                }
-                if (costMethod == CostMethod.HIT_COUNT && recItem.getCost() < minCost) {
                     return;
                 }
                 topNCandidates.add(optRecV2.getRawRecItemMap().get(recItem.getId()));
@@ -172,6 +169,7 @@ public class RawRecManager {
             rawRecItem.setState(RawRecItem.RawRecState.RECOMMENDED);
         });
         rawRecManager.saveOrUpdate(topNCandidates);
+        return topNCandidates.size() != existCandidateCount;
     }
 
     public Map<RawRecItem.RawRecType, Integer> getCandidatesByProject(String project) {
@@ -193,29 +191,8 @@ public class RawRecManager {
         jdbcRawRecStore.batchAddOrUpdate(recItems);
     }
 
-    public void deleteAllOutDated(String project) {
-        NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
-        ImmutableList<String> models = projectManager.getProject(project).getModels();
-        models.forEach(model -> deleteOutDated(model, LAG_SEMANTIC_VERSION));
-    }
-
-    public void deleteOutDated(String model, int lagVersion) {
-        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        NDataModel dataModel = modelManager.getDataModelDesc(model);
-        if (dataModel.isBroken()) {
-            log.info("Skip delete outdated RawRecItems of model({}/{})", project, model);
-        } else {
-            int semanticVersion = dataModel.getSemanticVersion();
-            jdbcRawRecStore.deleteBySemanticVersion(semanticVersion - lagVersion, model);
-        }
-    }
-
     public void discardRecItemsOfBrokenModel(String model) {
         jdbcRawRecStore.discardRecItemsOfBrokenModel(model);
-    }
-
-    public void deleteRecItemsOfNonExistModels(String project, Set<String> existingModels) {
-        jdbcRawRecStore.deleteRecItemsOfNonExistModels(project, existingModels);
     }
 
     public void deleteByProject(String project) {
@@ -238,12 +215,16 @@ public class RawRecManager {
         jdbcRawRecStore.updateState(idList, RawRecItem.RawRecState.DISCARD);
     }
 
-    public void updateAllCost(String project) {
-        jdbcRawRecStore.updateAllCost(project);
+    public Set<String> updateAllCost(String project) {
+        return jdbcRawRecStore.updateAllCost(project);
     }
 
     public int getMaxId() {
         return jdbcRawRecStore.getMaxId();
+    }
+
+    public int getMinId() {
+        return jdbcRawRecStore.getMinId();
     }
 
     public RawRecItem getRawRecItemByUniqueFlag(String project, String modelId, String uniqueFlag,

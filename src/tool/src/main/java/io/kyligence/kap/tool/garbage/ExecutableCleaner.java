@@ -35,12 +35,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-public class ExecutableCleaner implements MetadataCleaner {
+public class ExecutableCleaner extends MetadataCleaner {
 
     private static final Logger logger = LoggerFactory.getLogger(ExecutableCleaner.class);
 
+    public ExecutableCleaner(String project) {
+        super(project);
+    }
+
     @Override
-    public void cleanup(String project) {
+    public void cleanup() {
 
         logger.info("Start to clean executable in project {}", project);
 
@@ -67,4 +71,5 @@ public class ExecutableCleaner implements MetadataCleaner {
         }
         logger.info("Clean executable in project {} finished", project);
     }
+
 }

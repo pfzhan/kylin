@@ -24,8 +24,17 @@
 
 package io.kyligence.kap.tool.garbage;
 
-public interface MetadataCleaner {
+public abstract class MetadataCleaner {
+    protected String project;
 
-    void cleanup(String project);
+    public MetadataCleaner(String project) {
+        this.project = project;
+    }
 
+    // do in transaction
+    public abstract void cleanup();
+
+    public void prepare() {
+        // default do nothing
+    }
 }

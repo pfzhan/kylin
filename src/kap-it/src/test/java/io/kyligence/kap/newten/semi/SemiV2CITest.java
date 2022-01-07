@@ -33,7 +33,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.rest.service.IndexPlanService;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
@@ -86,6 +85,7 @@ import io.kyligence.kap.rest.response.OptRecDetailResponse;
 import io.kyligence.kap.rest.response.OptRecResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import io.kyligence.kap.rest.response.SuggestionResponse;
+import io.kyligence.kap.rest.service.IndexPlanService;
 import io.kyligence.kap.rest.service.ModelSemanticHelper;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.NUserGroupService;
@@ -252,7 +252,7 @@ public class SemiV2CITest extends SemiAutoTestBase {
     }
 
     @Test
-    public void testDeleteOutDatedRecommendations() throws IOException {
+    public void testDeleteOutDatedRecommendations() throws Exception {
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
 
         // prepare an origin model
@@ -309,7 +309,9 @@ public class SemiV2CITest extends SemiAutoTestBase {
         });
 
         Assert.assertTrue(modelManager.getDataModelDesc(modelID).isBroken());
-        RawRecManager.getInstance(getProject()).deleteAllOutDated(getProject());
+        val jdbcRawRecStore = new JdbcRawRecStore(KylinConfig.getInstanceFromEnv());
+        jdbcRawRecStore.deleteOutdated();
+        //        RawRecManager.getInstance(getProject()).deleteAllOutDated(getProject());
         Assert.assertEquals(6, jdbcRawRecStore.queryAll().size());
 
         // mock not broken and delete outdated recommendations
@@ -317,7 +319,7 @@ public class SemiV2CITest extends SemiAutoTestBase {
         modelManager.dropModel(backupModel.getId());
         modelManager.createDataModelDesc(backupModel, backupModel.getOwner());
         Assert.assertFalse(modelManager.getDataModelDesc(modelID).isBroken());
-        RawRecManager.getInstance(getProject()).deleteAllOutDated(getProject());
+        jdbcRawRecStore.deleteOutdated();
         Assert.assertEquals(0, jdbcRawRecStore.queryAll().size());
     }
 

@@ -495,7 +495,7 @@ public class ProjectService extends BasicService {
                 try {
                     accelerateImmediately(project.getName());
                     updateStatMetaImmediately(project.getName());
-                    GarbageCleaner.cleanupMetadataAtScheduledTime(project.getName());
+                    GarbageCleaner.cleanMetadata(project.getName());
                     asyncQueryService.cleanOldQueryResult(project.getName(),
                             KylinConfig.getInstanceFromEnv().getAsyncQueryResultRetainDays());
                 } catch (Exception e) {
@@ -536,7 +536,7 @@ public class ProjectService extends BasicService {
     public void cleanupGarbage(String project) throws Exception {
         accelerateImmediately(project);
         updateStatMetaImmediately(project);
-        GarbageCleaner.cleanupMetadataManually(project);
+        GarbageCleaner.cleanMetadata(project);
         asyncTaskService.cleanupStorage();
     }
 

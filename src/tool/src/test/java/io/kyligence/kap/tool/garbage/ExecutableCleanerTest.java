@@ -61,7 +61,7 @@ public class ExecutableCleanerTest extends NLocalFileMetadataTestCase {
         createUnexpiredJob(jobId);
         Assert.assertEquals(1, manager.getJobs().size());
         manager.discardJob(jobId);
-        new ExecutableCleaner().cleanup(DEFAULT_PROJECT);
+        new ExecutableCleaner(DEFAULT_PROJECT).cleanup();
         Assert.assertEquals(1, manager.getJobs().size());
     }
 
@@ -69,7 +69,7 @@ public class ExecutableCleanerTest extends NLocalFileMetadataTestCase {
     public void testCleanupWithRunningJob() {
         createExpiredJob(RandomUtil.randomUUIDStr());
         Assert.assertEquals(1, manager.getJobs().size());
-        new ExecutableCleaner().cleanup(DEFAULT_PROJECT);
+        new ExecutableCleaner(DEFAULT_PROJECT).cleanup();
         Assert.assertEquals(1, manager.getJobs().size());
     }
 
@@ -80,7 +80,7 @@ public class ExecutableCleanerTest extends NLocalFileMetadataTestCase {
         createExpiredJob(jobId);
         manager.discardJob(jobId);
         Assert.assertEquals(1, manager.getJobs().size());
-        new ExecutableCleaner().cleanup(DEFAULT_PROJECT);
+        new ExecutableCleaner(DEFAULT_PROJECT).cleanup();
         Assert.assertEquals(0, manager.getJobs().size());
     }
 

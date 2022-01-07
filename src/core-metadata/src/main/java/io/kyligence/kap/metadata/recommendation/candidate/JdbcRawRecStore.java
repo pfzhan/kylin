@@ -27,8 +27,8 @@ package io.kyligence.kap.metadata.recommendation.candidate;
 import static io.kyligence.kap.metadata.recommendation.candidate.RawRecItem.CostMethod.getCostMethod;
 import static org.mybatis.dynamic.sql.SqlBuilder.count;
 import static org.mybatis.dynamic.sql.SqlBuilder.isEqualTo;
+import static org.mybatis.dynamic.sql.SqlBuilder.isGreaterThanOrEqualTo;
 import static org.mybatis.dynamic.sql.SqlBuilder.isIn;
-import static org.mybatis.dynamic.sql.SqlBuilder.isLessThan;
 import static org.mybatis.dynamic.sql.SqlBuilder.isNotEqualTo;
 import static org.mybatis.dynamic.sql.SqlBuilder.isNotIn;
 import static org.mybatis.dynamic.sql.SqlBuilder.max;
@@ -47,6 +47,7 @@ import java.util.stream.Collectors;
 
 import javax.sql.DataSource;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.ibatis.session.ExecutorType;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
@@ -63,6 +64,7 @@ import org.mybatis.dynamic.sql.update.render.UpdateStatementProvider;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.metadata.JdbcDataSource;
 import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
@@ -71,6 +73,7 @@ import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.schema.ImportModelContext;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem.CostMethod;
 import io.kyligence.kap.metadata.recommendation.util.RawRecStoreUtil;
 import lombok.Getter;
@@ -83,6 +86,7 @@ public class JdbcRawRecStore {
 
     public static final String RECOMMENDATION_CANDIDATE = "_rec_candidate";
     private static final int NON_EXIST_MODEL_SEMANTIC_VERSION = Integer.MIN_VALUE;
+    private static final int LAG_SEMANTIC_VERSION = 1;
 
     private final RawRecItemTable table;
     @VisibleForTesting
@@ -212,7 +216,19 @@ public class JdbcRawRecStore {
         }
     }
 
-    public List<RawRecItem> chooseTopNCandidates(String project, String model, int topN, int offset,
+    public List<RawRecItem> queryFrom(BasicColumn[] cols, int startId, int limit) {
+        try (SqlSession session = sqlSessionFactory.openSession()) {
+            RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
+            SelectStatementProvider statementProvider = select(cols) //
+                    .from(table).where(table.id, isGreaterThanOrEqualTo(startId))//
+                    .orderBy(table.id) //
+                    .limit(limit).build().render(RenderingStrategies.MYBATIS3);
+            List<RawRecItem> rawRecItems = mapper.selectMany(statementProvider);
+            return rawRecItems;
+        }
+    }
+
+    public List<RawRecItem> chooseTopNCandidates(String project, String model, double minCost, int topN, int offset,
             RawRecItem.RawRecState state) {
         int semanticVersion = getSemanticVersion(project, model);
         if (semanticVersion == NON_EXIST_MODEL_SEMANTIC_VERSION) {
@@ -222,14 +238,18 @@ public class JdbcRawRecStore {
         long startTime = System.currentTimeMillis();
         try (SqlSession session = sqlSessionFactory.openSession()) {
             RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
-            SelectStatementProvider statementProvider = select(getSelectFields(table)) //
+            var queryBuilder = select(getSelectFields(table)) //
                     .from(table) //
                     .where(table.project, isEqualTo(project)) //
                     .and(table.semanticVersion, isEqualTo(semanticVersion)) //
                     .and(table.modelID, isEqualTo(model)) //
                     .and(table.type, isEqualTo(RawRecItem.RawRecType.ADDITIONAL_LAYOUT)) //
-                    .and(table.state, isEqualTo(state)) //
-                    .and(table.recSource, isNotEqualTo(RawRecItem.IMPORTED)) //
+                    .and(table.state, isEqualTo(state)); //
+            if (minCost > 0) {
+                queryBuilder = queryBuilder.and(table.cost, isGreaterThanOrEqualTo(minCost));
+            }
+
+            val statementProvider = queryBuilder.and(table.recSource, isNotEqualTo(RawRecItem.IMPORTED)) //
                     .orderBy(table.cost.descending(), table.hitCount.descending(), table.id.descending()) //
                     .limit(topN).offset(offset) //
                     .build().render(RenderingStrategies.MYBATIS3);
@@ -238,6 +258,11 @@ public class JdbcRawRecStore {
                     topN, project, model, semanticVersion, System.currentTimeMillis() - startTime);
             return rawRecItems;
         }
+    }
+
+    public List<RawRecItem> chooseTopNCandidates(String project, String model, int topN, int offset,
+            RawRecItem.RawRecState state) {
+        return chooseTopNCandidates(project, model, -1, topN, offset, state);
     }
 
     public List<RawRecItem> queryImportedRawRecItems(String project, String model, RawRecItem.RawRecState state) {
@@ -507,17 +532,17 @@ public class JdbcRawRecStore {
         }
     }
 
-    public void deleteBySemanticVersion(int semanticVersion, String model) {
+    public void deleteById(List<Integer> ids) {
         long startTime = System.currentTimeMillis();
         try (SqlSession session = sqlSessionFactory.openSession()) {
             RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
             DeleteStatementProvider deleteStatement = SqlBuilder.deleteFrom(table)//
-                    .where(table.semanticVersion, isLessThan(semanticVersion)) //
-                    .and(table.modelID, isEqualTo(model)) //
+                    .where(table.id, SqlBuilder.isIn(ids)) //
                     .build().render(RenderingStrategies.MYBATIS3);
-            int rows = mapper.delete(deleteStatement);
+            int deleteSize = mapper.delete(deleteStatement);
             session.commit();
-            log.info("Delete {} row(s) raw recommendation takes {} ms", rows, System.currentTimeMillis() - startTime);
+            log.info("Delete {} row(s) raw recommendation takes {} ms", deleteSize,
+                    System.currentTimeMillis() - startTime);
         }
     }
 
@@ -540,20 +565,6 @@ public class JdbcRawRecStore {
         }
     }
 
-    public void deleteRecItemsOfNonExistModels(String project, Set<String> existingModels) {
-        long startTime = System.currentTimeMillis();
-        try (SqlSession session = sqlSessionFactory.openSession()) {
-            RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
-            DeleteStatementProvider deleteStatement = SqlBuilder.deleteFrom(table)//
-                    .where(table.project, isEqualTo(project)) //
-                    .and(table.modelID, isNotIn(existingModels)) //
-                    .build().render(RenderingStrategies.MYBATIS3);
-            int rows = mapper.delete(deleteStatement);
-            session.commit();
-            log.info("Delete {} row(s) raw recommendation takes {} ms", rows, System.currentTimeMillis() - startTime);
-        }
-    }
-
     public int getRecItemCountByProject(String project, RawRecItem.RawRecType type) {
         SelectStatementProvider statementProvider = select(count(table.id)) //
                 .from(table) //
@@ -566,17 +577,18 @@ public class JdbcRawRecStore {
         }
     }
 
-    public void updateAllCost(String project) {
+    public Set<String> updateAllCost(String project) {
         final int batchToUpdate = 1000;
         long currentTime = System.currentTimeMillis();
         int effectiveDays = Integer.parseInt(FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                 .getValue(FavoriteRule.EFFECTIVE_DAYS));
         CostMethod costMethod = getCostMethod(project);
+        Set<String> updateModels = Sets.newHashSet();
         try (SqlSession session = sqlSessionFactory.openSession(ExecutorType.BATCH)) {
             RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
             // if no records, no need to update cost
             if (mapper.selectAsInt(getContStarProvider()) == 0) {
-                return;
+                return Sets.newHashSet();
             }
 
             int totalUpdated = 0;
@@ -585,6 +597,7 @@ public class JdbcRawRecStore {
                         batchToUpdate * i, RawRecItem.RawRecState.INITIAL, RawRecItem.RawRecState.RECOMMENDED));
                 int size = rawRecItems.size();
                 updateCost(effectiveDays, costMethod, currentTime, session, mapper, rawRecItems);
+                rawRecItems.forEach(item -> updateModels.add(item.getModelID()));
                 totalUpdated += size;
                 if (size < batchToUpdate) {
                     break;
@@ -592,6 +605,7 @@ public class JdbcRawRecStore {
             }
             log.info("Update the cost of all {} raw recommendation takes {} ms", totalUpdated,
                     System.currentTimeMillis() - currentTime);
+            return updateModels;
         }
     }
 
@@ -632,7 +646,6 @@ public class JdbcRawRecStore {
         oneBatch.forEach(item -> providers.add(getUpdateProvider(item)));
         providers.forEach(mapper::update);
         session.commit();
-        oneBatch.clear();
     }
 
     private SelectStatementProvider getSelectLayoutProvider(String project, int limit, int offset,
@@ -767,5 +780,63 @@ public class JdbcRawRecStore {
             }
             return mapper.selectAsInt(getMaxIdProvider());
         }
+    }
+
+    public int getMinId() {
+        try (SqlSession session = sqlSessionFactory.openSession(ExecutorType.BATCH)) {
+            RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
+            if (mapper.selectAsInt(getContStarProvider()) == 0) {
+                return 0;
+            }
+            return mapper.selectAsInt(getMinIdProvider());
+        }
+    }
+
+    public void deleteOutdated() {
+        int batch = 1000;
+        int maxId = getMaxId();
+        int currentId = getMinId() - 1;
+        List<Integer> outDatedItems = Lists.newArrayList();
+        val cols = BasicColumn.columnList(//
+                table.id, table.project, table.modelID, table.semanticVersion);
+
+        while (currentId < maxId) {
+            // queryFrom just select id, project, modelId, semanticVersion
+            List<RawRecItem> items = queryFrom(cols, currentId, batch);
+            if (CollectionUtils.isEmpty(items)) {
+                break;
+            }
+            for (RawRecItem item : items) {
+                currentId = Math.max(currentId, item.getId());
+                if (outDated(item)) {
+                    outDatedItems.add(item.getId());
+                    if (outDatedItems.size() == batch) {
+                        deleteById(outDatedItems);
+                        outDatedItems = Lists.newArrayList();
+                    }
+                }
+            }
+        }
+        if (!outDatedItems.isEmpty()) {
+            deleteById(outDatedItems);
+        }
+    }
+
+    private boolean outDated(RawRecItem item) {
+        val project = item.getProject();
+        val modelId = item.getModelID();
+        if (NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project) == null) {
+            return true;
+        }
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val dataModel = modelManager.getDataModelDesc(modelId);
+        if (dataModel == null) {
+            return true;
+        }
+        if (dataModel.isBroken()) {
+            return false;
+        }
+
+        return item.getSemanticVersion() < dataModel.getSemanticVersion() - LAG_SEMANTIC_VERSION;
     }
 }

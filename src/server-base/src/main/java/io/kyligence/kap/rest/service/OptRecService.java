@@ -1075,6 +1075,9 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
     }
 
     public void updateRecommendationCount(String project, Set<String> modelList) {
+        if (CollectionUtils.isEmpty(modelList)) {
+            return;
+        }
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             modelList.forEach(modelId -> {
                 NDataModelManager mgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);

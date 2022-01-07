@@ -40,17 +40,17 @@ import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 
-public class SnapshotCleaner implements MetadataCleaner {
+public class SnapshotCleaner extends MetadataCleaner {
     private static final Logger logger = LoggerFactory.getLogger(SnapshotCleaner.class);
 
-    private String project;
     private Set<String> staleSnapshotPaths = new HashSet<>();
 
     public SnapshotCleaner(String project) {
-        this.project = project;
+        super(project);
     }
 
-    public void checkStaleSnapshots() {
+    @Override
+    public void prepare() {
         NTableMetadataManager tMgr = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         tMgr.listAllTables().forEach(tableDesc -> {
             String snapshotPath = tableDesc.getLastSnapshotPath();
@@ -75,7 +75,7 @@ public class SnapshotCleaner implements MetadataCleaner {
     }
 
     @Override
-    public void cleanup(String project) {
+    public void cleanup() {
         logger.info("Start to clean snapshot in project {}", project);
         // remove stale snapshot path from tables
         NTableMetadataManager tblMgr = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project);

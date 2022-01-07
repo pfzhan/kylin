@@ -24,29 +24,45 @@
 
 package io.kyligence.kap.tool.garbage;
 
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.commons.collections.MapUtils;
 import org.apache.kylin.common.KylinConfig;
 
+import com.google.common.collect.Lists;
+
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.optimization.GarbageLayoutType;
 import io.kyligence.kap.metadata.cube.optimization.IndexOptimizerFactory;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
+import io.kyligence.kap.metadata.recommendation.ref.OptRecV2;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class IndexCleaner implements MetadataCleaner {
+public class IndexCleaner extends MetadataCleaner {
 
-    public void cleanup(String project) {
+    List<String> needUpdateModels = Lists.newArrayList();
+
+    public IndexCleaner(String project) {
+        super(project);
+    }
+
+    @Override
+    public void prepare() {
         log.info("Start to clean index in project {}", project);
         val config = KylinConfig.getInstanceFromEnv();
         val dataflowManager = NDataflowManager.getInstance(config, project);
         val projectInstance = NProjectManager.getInstance(config).getProject(project);
+
+        if (projectInstance.isExpertMode()) {
+            log.info("not semiautomode, can't run index clean");
+            return;
+        }
         OptRecManagerV2 recManagerV2 = OptRecManagerV2.getInstance(project);
         for (val model : dataflowManager.listUnderliningDataModels()) {
             val dataflow = dataflowManager.getDataflow(model.getId()).copy();
@@ -56,25 +72,32 @@ public class IndexCleaner implements MetadataCleaner {
             if (MapUtils.isEmpty(garbageLayouts)) {
                 continue;
             }
-
-            if (projectInstance.isSemiAutoMode()) {
-                recManagerV2.genRecItemsFromIndexOptimizer(project, model.getUuid(), garbageLayouts);
-            }
-
-            if (projectInstance.isSmartMode() || projectInstance.isExpertMode()) {
-                // update layout hit count
-                dataflowManager.updateDataflow(dataflow.getUuid(),
-                        copyForWrite -> copyForWrite.setLayoutHitCount(dataflow.getLayoutHitCount()));
-                cleanupIsolatedIndex(project, model.getId(), garbageLayouts.keySet());
+            boolean hasNewRecItem = recManagerV2.genRecItemsFromIndexOptimizer(project, model.getUuid(),
+                    garbageLayouts);
+            if (hasNewRecItem) {
+                needUpdateModels.add(model.getId());
             }
         }
+
         log.info("Clean index in project {} finished", project);
     }
 
-    private void cleanupIsolatedIndex(String project, String modelId, Set<Long> garbageLayouts) {
-        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        val indexPlan = indexPlanManager.getIndexPlan(modelId);
-        indexPlanManager.updateIndexPlan(indexPlan.getUuid(),
-                copyForWrite -> copyForWrite.removeLayouts(garbageLayouts, true, false));
+    @Override
+    public void cleanup() {
+        if (needUpdateModels.isEmpty()) {
+            return;
+        }
+        NDataModelManager mgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        needUpdateModels.forEach(modelId -> {
+            NDataModel dataModel = mgr.getDataModelDesc(modelId);
+            if (dataModel != null && !dataModel.isBroken()) {
+                OptRecV2 optRecV2 = OptRecManagerV2.getInstance(project).loadOptRecV2(modelId);
+                int newSize = optRecV2.getAdditionalLayoutRefs().size() + optRecV2.getRemovalLayoutRefs().size();
+                if (dataModel.getRecommendationsCount() != newSize) {
+                    mgr.updateDataModel(modelId, copyForWrite -> copyForWrite.setRecommendationsCount(newSize));
+                }
+            }
+        });
     }
+
 }

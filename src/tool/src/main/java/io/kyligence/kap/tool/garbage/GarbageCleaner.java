@@ -24,6 +24,9 @@
 
 package io.kyligence.kap.tool.garbage;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,84 +48,28 @@ public class GarbageCleaner {
     }
 
     /**
-     * Clean up metadata manually
-     * Note that this is not a cluster safe method
-     * and should only be used in command line tools while KE is shutdown.
-     * For a safe metadata clean up,
-     * please see {@link io.kyligence.kap.tool.garbage.GarbageCleaner#cleanupMetadataManually(java.lang.String)}
+     * Clean up metadata
      * @param project
      */
-    public static void unsafeCleanupMetadataManually(String project) {
-        if (NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project) == null) {
+    public static void cleanMetadata(String project) {
+        val projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project);
+        if (projectInstance == null) {
             return;
         }
 
-        SnapshotCleaner snapshotCleaner = new SnapshotCleaner(project);
-        snapshotCleaner.checkStaleSnapshots();
-
+        List<MetadataCleaner> cleaners = initCleaners(project);
+        cleaners.forEach(MetadataCleaner::prepare);
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            doCleanupMetadataManually(project, snapshotCleaner);
-            return 0;
-        }, project);
-
-        MetricsGroup.hostTagCounterInc(MetricsName.METADATA_CLEAN, MetricsCategory.PROJECT, project);
-    }
-
-    /**
-     * trigger by user
-     * @param project
-     */
-    public static void cleanupMetadataManually(String project) {
-        SnapshotCleaner snapshotCleaner = new SnapshotCleaner(project);
-        snapshotCleaner.checkStaleSnapshots();
-
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            doCleanupMetadataManually(project, snapshotCleaner);
+            cleaners.forEach(MetadataCleaner::cleanup);
             return 0;
         }, project);
 
         EventBusFactory.getInstance().postAsync(new SourceUsageUpdateNotifier());
-
         MetricsGroup.hostTagCounterInc(MetricsName.METADATA_CLEAN, MetricsCategory.PROJECT, project);
     }
 
-    public static void doCleanupMetadataManually(String project, SnapshotCleaner snapshotCleaner) {
-        val instance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project);
-        if (instance.isSmartMode()) {
-            new BrokenModelCleaner().cleanup(project);
-        }
-
-        if (!instance.isExpertMode()) {
-            new IndexCleaner().cleanup(project);
-        }
-        new ExecutableCleaner().cleanup(project);
-        snapshotCleaner.cleanup(project);
+    private static List<MetadataCleaner> initCleaners(String project) {
+        return Arrays.asList(new SnapshotCleaner(project), new IndexCleaner(project), new ExecutableCleaner(project));
     }
 
-    /**
-     * trigger by a scheduler that is scheduled at 12:00 am every day
-     * @param project
-     */
-    public static void cleanupMetadataAtScheduledTime(String project) {
-        SnapshotCleaner snapshotCleaner = new SnapshotCleaner(project);
-        snapshotCleaner.checkStaleSnapshots();
-
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            val instance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project);
-            if (instance.isSmartMode()) {
-                new BrokenModelCleaner().cleanup(project);
-            }
-
-            if (!instance.isExpertMode()) {
-                new IndexCleaner().cleanup(project);
-            }
-            new ExecutableCleaner().cleanup(project);
-            snapshotCleaner.cleanup(project);
-            return 0;
-        }, project);
-
-        EventBusFactory.getInstance().postAsync(new SourceUsageUpdateNotifier());
-
-        MetricsGroup.hostTagCounterInc(MetricsName.METADATA_CLEAN, MetricsCategory.PROJECT, project);
-    }
 }

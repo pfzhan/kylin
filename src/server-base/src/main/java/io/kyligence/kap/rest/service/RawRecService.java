@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -38,6 +39,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.guava20.shaded.common.collect.ArrayListMultimap;
 import io.kyligence.kap.guava20.shaded.common.collect.ListMultimap;
@@ -202,26 +205,34 @@ public class RawRecService {
             if (!kylinConfig.isUTEnv() && !epochMgr.checkEpochOwner(project)) {
                 continue;
             }
+            if (projectInstance.isExpertMode()) {
+                continue;
+            }
             try {
                 log.info("Running update cost for project<{}>", project);
                 RawRecManager rawRecManager = RawRecManager.getInstance(project);
                 NDataModelManager modelManager = NDataModelManager.getInstance(kylinConfig, project);
-                rawRecManager.updateAllCost(project);
+                Set<String> models = rawRecManager.updateAllCost(project);
                 int topN = recommendationSize(project);
-                for (String model : projectInstance.getModels()) {
+
+                Set<String> needUpdateModels = Sets.newHashSet();
+                for (String model : models) {
                     long current = System.currentTimeMillis();
                     NDataModel dataModel = modelManager.getDataModelDesc(model);
-                    if (dataModel.isBroken()) {
-                        log.warn("Broken model({}/{}) cannot update recommendations.", project, model);
+                    if (dataModel == null || dataModel.isBroken()) {
+                        log.warn("Broken(or nonExist) model({}/{}) cannot update recommendations.", project, model);
                         continue;
                     }
 
                     log.info("Running update topN raw recommendation for model({}/{}).", project, model);
-                    rawRecManager.updateRecommendedTopN(project, model, topN);
-                    optRecService.updateRecommendationCount(project, model);
+                    boolean recommendationCountChange = rawRecManager.updateRecommendedTopN(project, model, topN);
+                    if (recommendationCountChange) {
+                        needUpdateModels.add(model);
+                    }
                     log.info("Update topN raw recommendations for model({}/{}) takes {} ms", //
                             project, model, System.currentTimeMillis() - current);
                 }
+                optRecService.updateRecommendationCount(project, needUpdateModels);
             } catch (Exception e) {
                 log.error("Update cost and update topN failed for project({})", project, e);
             }

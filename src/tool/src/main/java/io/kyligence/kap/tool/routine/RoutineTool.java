@@ -26,7 +26,6 @@ package io.kyligence.kap.tool.routine;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.cli.Option;
@@ -40,11 +39,10 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.metadata.epoch.EpochManager;
-import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.util.QueryHisStoreUtil;
-import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
+import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.metadata.streaming.util.StreamingJobRecordStoreUtil;
 import io.kyligence.kap.metadata.streaming.util.StreamingJobStatsStoreUtil;
 import io.kyligence.kap.tool.MaintainModeTool;
@@ -52,6 +50,7 @@ import io.kyligence.kap.tool.garbage.GarbageCleaner;
 import io.kyligence.kap.tool.garbage.SourceUsageCleaner;
 import io.kyligence.kap.tool.garbage.StorageCleaner;
 import lombok.Getter;
+import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Getter
@@ -146,7 +145,7 @@ public class RoutineTool extends ExecutableApplication {
     public void cleanMetaByProject(String projectName) {
         log.info("Start to clean up {} meta", projectName);
         try {
-            GarbageCleaner.unsafeCleanupMetadataManually(projectName);
+            GarbageCleaner.cleanMetadata(projectName);
         } catch (Exception e) {
             log.error("Project[{}] cleanup Metadata failed", projectName, e);
         }
@@ -207,17 +206,14 @@ public class RoutineTool extends ExecutableApplication {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         List<ProjectInstance> projectInstances = NProjectManager.getInstance(config).listAllProjects().stream()
                 .filter(projectInstance -> !projectInstance.isExpertMode()).collect(Collectors.toList());
+        if (projectInstances.isEmpty()) {
+            return;
+        }
         try (SetThreadName ignored = new SetThreadName("DeleteRawRecItemsInDB")) {
-            for (ProjectInstance instance : projectInstances) {
-                try {
-                    RawRecManager rawRecManager = RawRecManager.getInstance(instance.getName());
-                    rawRecManager.deleteAllOutDated(instance.getName());
-                    Set<String> modelIds = NDataModelManager.getInstance(config, instance.getName()).listAllModelIds();
-                    rawRecManager.deleteRecItemsOfNonExistModels(instance.getName(), modelIds);
-                } catch (Exception e) {
-                    log.error("project<" + instance.getName() + "> delete raw recommendations in DB failed", e);
-                }
-            }
+            val jdbcRawRecStore = new JdbcRawRecStore(KylinConfig.getInstanceFromEnv());
+            jdbcRawRecStore.deleteOutdated();
+        } catch (Exception e) {
+            log.error("delete outdated advice fail: ", e);
         }
     }
 

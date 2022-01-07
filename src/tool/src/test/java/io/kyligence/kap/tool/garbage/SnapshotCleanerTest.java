@@ -84,9 +84,9 @@ public class SnapshotCleanerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testSnapshotCleanerCleanStaleSnapshots() {
         SnapshotCleaner snapshotCleaner = new SnapshotCleaner(DEFAULT_PROJECT);
-        snapshotCleaner.checkStaleSnapshots();
+        snapshotCleaner.prepare();
         UnitOfWork.doInTransactionWithRetry(() -> {
-            snapshotCleaner.cleanup(DEFAULT_PROJECT);
+            snapshotCleaner.cleanup();
             return 0;
         }, DEFAULT_PROJECT);
 

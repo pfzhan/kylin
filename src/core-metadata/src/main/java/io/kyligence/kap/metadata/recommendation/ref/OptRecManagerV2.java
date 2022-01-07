@@ -47,7 +47,6 @@ import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
 import io.kyligence.kap.metadata.cube.optimization.GarbageLayoutType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.recommendation.candidate.LayoutMetric;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
@@ -93,10 +92,10 @@ public class OptRecManagerV2 {
         rawManager.discardByIds(layoutRawIds);
     }
 
-    public void genRecItemsFromIndexOptimizer(String project, String modelId,
+    public boolean genRecItemsFromIndexOptimizer(String project, String modelId,
             Map<Long, GarbageLayoutType> garbageLayouts) {
         if (garbageLayouts.isEmpty()) {
-            return;
+            return false;
         }
         log.info("Generating raw recommendations from index optimizer for model({}/{})", project, modelId);
         KylinConfig config = KylinConfig.getInstanceFromEnv();
@@ -164,18 +163,8 @@ public class OptRecManagerV2 {
             }
         });
         RawRecManager.getInstance(project).saveOrUpdate(rawRecItems);
-
-        if (newRecCount.get() > 0) {
-            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-                NDataModelManager modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-                modelMgr.updateDataModel(modelId, copyForWrite -> {
-                    int oldCount = copyForWrite.getRecommendationsCount();
-                    copyForWrite.setRecommendationsCount(oldCount + newRecCount.get());
-                });
-
-                return null;
-            }, project);
-        }
         log.info("Raw recommendations from index optimizer for model({}/{}) successfully generated.", project, modelId);
+
+        return newRecCount.get() > 0;
     }
 }
