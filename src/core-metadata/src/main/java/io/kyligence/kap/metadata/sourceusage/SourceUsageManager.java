@@ -26,6 +26,7 @@ package io.kyligence.kap.metadata.sourceusage;
 import static io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.CapacityStatus.OVERCAPACITY;
 import static org.apache.kylin.common.exception.CommonErrorCode.LICENSE_OVER_CAPACITY;
 
+import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Collections;
@@ -47,6 +48,7 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.DateFormat;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.MailHelper;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
@@ -297,6 +299,24 @@ public class SourceUsageManager {
 
     public List<SourceUsageRecord> getAllRecords() {
         return this.crud.listAll();
+    }
+
+    // no init means only use json object
+    public List<SourceUsageRecord> getAllRecordsWithoutInit() {
+        val resourceStore = ResourceStore.getKylinMetaStore(config);
+        val allResourcePaths = resourceStore.listResources(ResourceStore.HISTORY_SOURCE_USAGE);
+        return allResourcePaths.stream().map(path -> getRecordWithoutInit(path)).collect(Collectors.toList());
+    }
+
+    private SourceUsageRecord getRecordWithoutInit(String path) {
+        try {
+            val resource = ResourceStore.getKylinMetaStore(config).getResource(path);
+            SourceUsageRecord record = JsonUtil.readValue(resource.getByteSource().read(), SourceUsageRecord.class);
+            record.setMvcc(resource.getMvcc());
+            return record;
+        } catch (IOException e) {
+            throw new RuntimeException();
+        }
     }
 
     public void delSourceUsage(String resourceName) {

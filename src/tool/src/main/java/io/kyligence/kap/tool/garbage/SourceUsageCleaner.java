@@ -42,7 +42,7 @@ public class SourceUsageCleaner {
         long expirationTime = config.getSourceUsageSurvivalTimeThreshold();
 
         SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(config);
-        List<SourceUsageRecord> allRecords = sourceUsageManager.getAllRecords();
+        List<SourceUsageRecord> allRecords = sourceUsageManager.getAllRecordsWithoutInit();
         int totalSize = allRecords.size();
         if (totalSize <= 1)
             return;
