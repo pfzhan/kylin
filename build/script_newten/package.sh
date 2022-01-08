@@ -50,6 +50,52 @@ echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit
 cat > build/CHANGELOG.md <<'EOL'
 ### Release History
 
+#### Kyligence Enterprise 4.5.6 release note
+
+**Enhancement**
+
+- Support function CORR
+- Support CDP and Apache Hive transaction table
+- Support range partition table for TDH environment
+- Adapt to big data cloud sso
+- Support Transwarp TDH text, ORC partition table, partition transaction table data source
+- Support "Transwarp TDH"
+- History table model query allows partial matching of association relationships
+- When an error is reported after retrying the build taskOptimize, abnormal swallowing behavior
+- Update prometheus monitoring indicators and alarm rules document
+- Public the prepare unload table and unload table API
+- Under Huawei FusionInsight Platform with a read/write separation deployment
+- Stability index development
+- Remove the Beta logo of the history table
+- Optimize the error code of the error report interface
+
+**Bugfix**
+
+- Some complex expressions cannot hit the model
+- CORR、 SUM  and PERCENTILE_ Approx use CC column as parameter type verification, missing date  Timestamp, boolean type verification
+- The model is in the BROKEN status, and it fails to reload a table that is not referenced by this model
+- In the full loaded model created by SQL, the partitionDesc of the model is not null, so that the full segment cannot be generated when it is set to no partition column
+- When model is broken, you cannot create a new model
+- Shuffle partitions of push down calculation is incorrect. The execution of shuffle stage is very slow
+- Support parameter configuration of Spark view cache
+- Resume the suspended job of loading data to Tiered Storage, the job went wrong
+- Delete tables containing ongoing tasks. Unknown error codes are reported after the task is stopped
+- Count (1) when answering count (column), an error is reported, and the index is out of range
+- Close the pop-up window during model import, and select model import again, prompting that the analysis failed
+- After deleting the model, the tiered storage data is not cleaned up
+- The information returned by the pre-reloaded Hive table API is inaccurate
+- When querying 50 million data, the query history shows success, but the actual front-end interface is always loading
+- After deleting the project, the job of the model is not deleted on yarn
+- KYLIN_ When home ends with - query, the system diagnostic package fails to be printed
+- After the index is built, the segment in the waring state can be refreshed normally
+- Reload table prompt information is inaccurate
+- After the snapshot is automatically generated, the metadata snapshot_last_modified value is not recorded
+- The page of build task details read the same IP
+- The index ID displayed in the query result is inconsistent with the ID displayed on the index details page
+- Users can change permissions for themselves
+- Cannot answer count() with tiered storage
+- After the model is renamed, the model name on the streaming job page does not change
+
 #### Kyligence Enterprise 4.5.5 release note
 
 **Enhancement**
