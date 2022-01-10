@@ -1382,6 +1382,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kylin.engine.driver-memory-base", "1024"));
     }
 
+    public boolean useDynamicResourcePlan() {
+        return Boolean.parseBoolean(getOptional("kylin.engine.dynamic-resource-plan-enabled", FALSE));
+    }
+
     public boolean isSanityCheckEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.engine.sanity-check-enabled", TRUE));
     }

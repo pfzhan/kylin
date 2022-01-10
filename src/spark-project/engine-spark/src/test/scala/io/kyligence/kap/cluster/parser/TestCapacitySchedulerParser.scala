@@ -33,6 +33,7 @@ class TestCapacitySchedulerParser extends SparderBaseFunSuite {
   private val config = Mockito.mock(classOf[KylinConfig])
   Mockito.when(config.getClusterManagerClassName).thenReturn("org.apache.spark.application.MockClusterManager")
   Mockito.when(config.getClusterManagerTimeoutThreshold).thenReturn(10 * 1000)
+  Mockito.when(config.useDynamicResourcePlan()).thenReturn(true)
 
   /**
    * value store in json:
@@ -52,6 +53,17 @@ class TestCapacitySchedulerParser extends SparderBaseFunSuite {
     assert(defaultResource == AvailableResource(ResourceInfo(10, 20), ResourceInfo(429496729, 429496729)))
     val devResource = parser.availableResource("dev_test")
     assert(devResource == AvailableResource(ResourceInfo(10, 20), ResourceInfo(73727, 1073741823)))
+  }
+
+  test("return correct available resource in target queue ") {
+    KylinBuildEnv.clean()
+    val env = KylinBuildEnv.getOrCreate(config)
+
+    val content = TestUtils.getContent("schedulerInfo/mockCapacitySchedulerInfo.json")
+    val parser = new CapacitySchedulerParser
+    parser.parse(content)
+    val sys_kylin_w = parser.availableResource("sys_kylin_w")
+    assert(sys_kylin_w.max.vCores == Int.MaxValue)
   }
 
   protected override def afterAll(): Unit = {

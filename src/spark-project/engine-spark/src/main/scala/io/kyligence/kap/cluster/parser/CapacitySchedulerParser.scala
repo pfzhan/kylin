@@ -23,9 +23,9 @@
 package io.kyligence.kap.cluster.parser
 
 import java.util.{List => JList}
-
 import com.fasterxml.jackson.databind.JsonNode
 import io.kyligence.kap.cluster.{AvailableResource, ResourceInfo}
+import io.kyligence.kap.engine.spark.application.SparkApplication
 import io.kyligence.kap.engine.spark.job.KylinBuildEnv
 
 import scala.collection.JavaConverters._
@@ -37,13 +37,21 @@ class CapacitySchedulerParser extends SchedulerParser {
     val nodes = queues.asScala.filter(queue => parseValue(queue.get("queueName")).equals(queueName))
     require(nodes.size == 1)
 
-    val (queueAvailable, queueMax) = queueCapacity(nodes.head)
+    var (queueAvailable, queueMax) = queueCapacity(nodes.head)
     val totalResource = calTotalResource(nodes.head)
     val clusterNode = root.findValue("schedulerInfo")
     val cluster = clusterAvailableCapacity(clusterNode)
-    val min = Math.min(queueAvailable, cluster)
+    var min = Math.min(queueAvailable, cluster)
+    logInfo(s"queueAvailable is ${queueAvailable}, min is ${min}, queueMax is ${queueMax}")
+    if (KylinBuildEnv.get().kylinConfig.useDynamicResourcePlan() && queueMax == 0.0) {
+      logInfo("configure yarn queue using dynamic resource plan in capacity scheduler")
+      queueMax = 1.0
+    }
+    if (KylinBuildEnv.get().kylinConfig.useDynamicResourcePlan() && min == 0.0) {
+      logInfo("configure yarn queue using dynamic resource plan in capacity scheduler")
+      min = 1.0
+    }
     var resource = AvailableResource(totalResource.percentage(min), totalResource.percentage(queueMax))
-
     try {
       val queueAvailableRes = KylinBuildEnv.get.clusterManager.fetchQueueStatistics(queueName)
       resource = AvailableResource(queueAvailableRes, totalResource.percentage(queueMax))
