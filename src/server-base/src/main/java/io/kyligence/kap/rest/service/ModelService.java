@@ -2908,8 +2908,8 @@ public class ModelService extends BasicService {
             request.setPartitionDesc(params.getPartitionDesc());
             request.setProject(params.getProject());
             request.setMultiPartitionDesc(params.getMultiPartitionDesc());
-            updateSecondStorageModel(params.getProject(), request.getId());
-            updateDataModelSemantic(params.getProject(), request);
+            boolean isClean = updateSecondStorageModel(params.getProject(), request.getId(), true);
+            updateDataModelSemantic(params.getProject(), request, !isClean);
             params.getSegmentHoles().clear();
         }
         List<JobInfoResponse.JobInfo> res = Lists.newArrayListWithCapacity(params.getSegmentHoles().size() + 2);
@@ -2977,8 +2977,8 @@ public class ModelService extends BasicService {
             request.setPartitionDesc(partitionDesc);
             request.setSaveOnly(true);
             request.setMultiPartitionDesc(multiPartitionDesc);
-            updateSecondStorageModel(project, modelId);
-            updateDataModelSemantic(project, request);
+            boolean isClean = updateSecondStorageModel(project, modelId, true);
+            updateDataModelSemantic(project, request, !isClean);
         }
     }
 
@@ -3550,8 +3550,12 @@ public class ModelService extends BasicService {
         return jobIds;
     }
 
-    @Transaction(project = 0)
     public BuildBaseIndexResponse updateDataModelSemantic(String project, ModelRequest request) {
+        return updateDataModelSemantic(project, request, true);
+    }
+
+    @Transaction(project = 0)
+    public BuildBaseIndexResponse updateDataModelSemantic(String project, ModelRequest request, boolean needClean) {
         aclEvaluate.checkProjectWritePermission(project);
         semanticUpdater.expandModelRequest(request);
         checkModelRequest(request);
@@ -3595,34 +3599,44 @@ public class ModelService extends BasicService {
         checkIndexColumnExist(project, modelId, originModel);
 
         checkFlatTableSql(newModel);
-        val needBuild = semanticUpdater.doHandleSemanticUpdate(project, modelId, originModel, request.getStart(),
-                request.getEnd());
+
+        val result = semanticUpdater.doHandleSemanticUpdate(project, modelId, originModel, request.getStart(),
+                request.getEnd(), needClean);
+        var needBuild = result.getFirst();
+        if (result.getSecond()) {
+            needClean = false;
+        }
         updateExcludedCheckerResult(project, request);
         baseIndexUpdater.setSecondStorageEnabled(request.isWithSecondStorage());
+        baseIndexUpdater.setNeedCleanSecondStorage(needClean);
         BuildBaseIndexResponse baseIndexResponse = baseIndexUpdater.update(indexPlanService);
         if (!request.isSaveOnly() && (needBuild || baseIndexResponse.hasIndexChange())) {
             semanticUpdater.buildForModel(project, modelId);
         }
         updateListeners.forEach(listener -> listener.onUpdate(project, modelId));
-        changeSecondStorageIfNeeded(project, request, baseIndexResponse);
+        if (baseIndexResponse.isCleanSecondStorage()){
+            needClean = false;
+        }
+        changeSecondStorageIfNeeded(project, request, needClean);
         return baseIndexResponse;
     }
 
-    public void updateSecondStorageModel(String project, String modelId) {
+    public boolean updateSecondStorageModel(String project, String modelId, boolean needCleanSecondStorage) {
         if (SecondStorageUtil.isModelEnable(project, modelId)) {
             SecondStorageUpdater updater = SpringContext.getBean(SecondStorageUpdater.class);
-            updater.onUpdate(project, modelId);
+            return updater.onUpdate(project, modelId, needCleanSecondStorage);
         }
+        return false;
     }
 
-    public void changeSecondStorageIfNeeded(String project, ModelRequest request,
-            BuildBaseIndexResponse baseIndexResponse) {
-
+    public void changeSecondStorageIfNeeded(String project, ModelRequest request, boolean needClean) {
         // disable second storage
         if (request.getId() != null && SecondStorageUtil.isModelEnable(project, request.getId())
                 && !request.isWithSecondStorage()) {
             SecondStorageUtil.validateDisableModel(project, request.getId());
-            triggerModelClean(project, request.getId());
+            if(needClean){
+                triggerModelClean(project, request.getId());
+            }
             SecondStorageUtil.disableModel(project, request.getId());
         } else if (request.getId() != null && !SecondStorageUtil.isModelEnable(project, request.getId())
                 && request.isWithSecondStorage()) {

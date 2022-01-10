@@ -5577,10 +5577,10 @@ public class ModelServiceTest extends CSVSourceTestCase {
         request.setUuid(model);
         BuildBaseIndexResponse changedResponse = Mockito.mock(BuildBaseIndexResponse.class);
         Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded(eq("default"), eq(request),
-                any(BuildBaseIndexResponse.class));
+                eq(true));
 
         Mockito.when(changedResponse.hasTableIndexChange()).thenReturn(true);
-        modelService.changeSecondStorageIfNeeded(project, request, changedResponse);
+        modelService.changeSecondStorageIfNeeded(project, request, true);
         Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
 
         val modelRequest = modelService.convertToRequest(modelService.getModelById(model, project));
@@ -5628,7 +5628,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         request.setUuid(model);
         BuildBaseIndexResponse changedResponse = Mockito.mock(BuildBaseIndexResponse.class);
         Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded(eq("default"), eq(request),
-                any(BuildBaseIndexResponse.class));
+                eq(true));
         Mockito.when(changedResponse.hasTableIndexChange()).thenReturn(true);
 
         modelService.dropModel(model, project, false);
@@ -5657,7 +5657,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         request.setUuid(model);
         BuildBaseIndexResponse changedResponse = Mockito.mock(BuildBaseIndexResponse.class);
         Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded(eq("default"), eq(request),
-                any(BuildBaseIndexResponse.class));
+                eq(true));
         Mockito.when(changedResponse.hasTableIndexChange()).thenReturn(true);
 
         modelService.purgeModel(model, project);
@@ -6495,23 +6495,29 @@ public class ModelServiceTest extends CSVSourceTestCase {
         BuildBaseIndexResponse emptyResponse = new BuildBaseIndexResponse();
         BuildBaseIndexResponse changedResponse = Mockito.mock(BuildBaseIndexResponse.class);
         Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded(eq("default"), eq(request),
-                any(BuildBaseIndexResponse.class));
+                eq(true));
 
         Mockito.when(changedResponse.hasTableIndexChange()).thenReturn(true);
-        modelService.changeSecondStorageIfNeeded("default", request, changedResponse);
+        modelService.changeSecondStorageIfNeeded("default", request, true);
         Assert.assertFalse(SecondStorageUtil.isModelEnable("default", model));
 
         ModelRequest request2 = new ModelRequest();
         request2.setWithSecondStorage(true);
         request2.setUuid(model);
-        modelService.changeSecondStorageIfNeeded("default", request2, changedResponse);
+        modelService.changeSecondStorageIfNeeded("default", request2, true);
         Assert.assertTrue(SecondStorageUtil.isModelEnable("default", model));
 
         ModelRequest request3 = new ModelRequest();
         request3.setWithSecondStorage(true);
         request3.setUuid(model);
-        modelService.changeSecondStorageIfNeeded("default", request3, emptyResponse);
+        modelService.changeSecondStorageIfNeeded("default", request3, true);
         Assert.assertTrue(SecondStorageUtil.isModelEnable("default", model));
+
+        ModelRequest request4 = new ModelRequest();
+        request4.setWithSecondStorage(false);
+        request4.setUuid(model);
+        modelService.changeSecondStorageIfNeeded("default", request4, true);
+        Assert.assertFalse(SecondStorageUtil.isModelEnable("default", model));
     }
 
     @Test
@@ -6911,4 +6917,59 @@ public class ModelServiceTest extends CSVSourceTestCase {
             }
         }
     }
+
+    @Test
+    public void testChangePartitionDescAndSegWithSecondStorage() throws Exception {
+        val model = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        val project = "default";
+        MockSecondStorage.mock("default", new ArrayList<>(), this);
+        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            indexPlanManager.updateIndexPlan(model, indexPlan -> {
+                indexPlan.createAndAddBaseIndex(indexPlan.getModel());
+            });
+            return null;
+        }, project);
+        SecondStorageUtil.initModelMetaData(project, model);
+        Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
+
+        val modelRequest = prepare();
+        modelRequest.setWithSecondStorage(false);
+        modelRequest.getPartitionDesc().setPartitionDateColumn(null);
+        modelRequest.setWithBaseIndex(true);
+        modelRequest.setSaveOnly(true);
+
+        val indexResponse = modelService.updateDataModelSemantic(project, modelRequest);
+        Assert.assertFalse(indexResponse.isCleanSecondStorage());
+    }
+
+    @Test
+    public void testChangeSegWithSecondStorage() throws Exception {
+        val model = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        val project = "default";
+        MockSecondStorage.mock("default", new ArrayList<>(), this);
+        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            indexPlanManager.updateIndexPlan(model, indexPlan -> {
+                indexPlan.createAndAddBaseIndex(indexPlan.getModel());
+            });
+            return null;
+        }, project);
+        SecondStorageUtil.initModelMetaData(project, model);
+        Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
+
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        NDataModel modelAll = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+
+        val modelRequest = prepare();
+        modelRequest.setWithSecondStorage(false);
+        modelRequest.setWithBaseIndex(true);
+        modelRequest.setSaveOnly(true);
+        modelRequest.getSimplifiedDimensions().addAll(modelAll.getAllNamedColumns().stream()
+                .filter(x -> "DIM_UPD_USER".equalsIgnoreCase(x.getName())).collect(Collectors.toList()));
+
+        val indexResponse = modelService.updateDataModelSemantic(project, modelRequest);
+        Assert.assertTrue(indexResponse.isCleanSecondStorage());
+    }
+
 }

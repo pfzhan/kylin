@@ -597,6 +597,13 @@ public class SecondStorageService extends BasicService implements SecondStorageU
     @Transaction(project = 0)
     public void onUpdate(final String project, final String modelId) {
         if (!SecondStorageUtil.isModelEnable(project, modelId)) return;
+        onUpdate(project, modelId, true);
+    }
+
+    @Override
+    @Transaction(project = 0)
+    public boolean onUpdate(final String project, final String modelId, boolean needClean) {
+        if (!SecondStorageUtil.isModelEnable(project, modelId)) return false;
         val tableFlowManager = SecondStorageUtil.tableFlowManager(getConfig(), project);
         val tablePlanManager = SecondStorageUtil.tablePlanManager(getConfig(), project);
         val indexPlanManager = NIndexPlanManager.getInstance(getConfig(), project);
@@ -605,8 +612,12 @@ public class SecondStorageService extends BasicService implements SecondStorageU
         Preconditions.checkState(tableFlowManager.isPresent());
         val tableFlow = tableFlowManager.get().get(modelId);
         Preconditions.checkState(tableFlow.isPresent());
+        boolean isClean = false;
         if (indexPlan.getBaseTableLayout() != null) {
-            triggerModelClean(project, modelId);
+            if (needClean) {
+                triggerModelClean(project, modelId);
+                isClean = true;
+            }
             tableFlowManager.get().get(modelId).map(tf -> {
                 tf.update(TableFlow::cleanTableData);
                 return tf;
@@ -617,6 +628,7 @@ public class SecondStorageService extends BasicService implements SecondStorageU
                 return tp;
             });
         }
+        return isClean;
     }
 
     public void resetStorage() {

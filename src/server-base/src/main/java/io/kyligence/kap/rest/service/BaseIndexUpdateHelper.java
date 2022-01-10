@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.rest.service;
 
+import lombok.Setter;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.rest.util.SpringContext;
 
@@ -51,6 +52,8 @@ public class BaseIndexUpdateHelper {
     private boolean createIfNotExist;
     private boolean needUpdate;
     private boolean secondStorageEnabled = false;
+    @Setter
+    private boolean needCleanSecondStorage = true;
 
     public BaseIndexUpdateHelper(NDataModel model, boolean createIfNotExist) {
 
@@ -106,9 +109,11 @@ public class BaseIndexUpdateHelper {
         response.judgeIndexOperateType(exist(preBaseAggLayout), true);
         response.judgeIndexOperateType(exist(preBaseTableLayout), false);
 
-        if (SecondStorageUtil.isModelEnable(project, modelId) && hasChange(preBaseTableLayout, curBaseTableLayout)) {
+        long updatedBaseTableLayout = getBaseTableLayout();
+
+        if (SecondStorageUtil.isModelEnable(project, modelId) && hasChange(preBaseTableLayout, updatedBaseTableLayout)) {
             SecondStorageUpdater updater = SpringContext.getBean(SecondStorageUpdater.class);
-            updater.onUpdate(project, modelId);
+            response.setCleanSecondStorage(updater.onUpdate(project, modelId, needCleanSecondStorage));
         }
         return response;
     }

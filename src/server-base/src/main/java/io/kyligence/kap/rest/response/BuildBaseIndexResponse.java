@@ -28,6 +28,7 @@ import static io.kyligence.kap.metadata.model.NDataModel.MEASURE_ID_BASE;
 
 import java.util.Set;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
@@ -49,6 +50,9 @@ public class BuildBaseIndexResponse extends BasicResponse {
 
     @JsonProperty("base_agg_index")
     private IndexInfo aggIndex;
+
+    @JsonIgnore
+    private boolean isCleanSecondStorage = false;
 
     public static BuildBaseIndexResponse from(IndexPlan indexPlan) {
         BuildBaseIndexResponse response = new BuildBaseIndexResponse();

@@ -26,4 +26,5 @@ package io.kyligence.kap.secondstorage;
 
 public interface SecondStorageUpdater {
     void onUpdate(String project, String modelId);
+    boolean onUpdate(String project, String modelId, boolean needClean);
 }
