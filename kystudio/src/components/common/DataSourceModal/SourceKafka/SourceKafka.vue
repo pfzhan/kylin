@@ -63,6 +63,7 @@
               </el-tree>
             </div>
           </div>
+          <div class="selected-topics ksd-mt-4" v-if="kafkaMeta.subscribe">{{$t('selected')}}{{kafkaMeta.subscribe}}</div>
         </el-col>
         <el-col :span='15' style="position:relative;">
           <div class="ksd-mb-10 clearfix">
@@ -76,7 +77,7 @@
           <div class="json-empty-tips" v-if="!sourceSchema&&!isEmptyTopic&&!isShowError">
             {{$t('emptyDataTips')}}
           </div>
-          <div class="json-error-tips" v-if="isShowError">
+          <div class="json-error-tips2 ksd-mt-4" v-if="isShowError">
             <i class="el-icon-ksd-error_01"></i>
             {{$t('jsonDataErrorTips')}}
           </div>
@@ -84,7 +85,6 @@
             {{$t('emptyTopicTips')}}
           </div>
         </el-col>
-        <div class="selected-topics" v-if="kafkaMeta.subscribe">{{$t('selected')}}{{kafkaMeta.subscribe}}</div>
       </el-row>
       <div class="ksd-title-label-small ksd-mb-4">{{$t('parserName')}}</div>
       <el-input v-model="kafkaMeta.parser_name" disabled size="medium" @input="resetParser"></el-input>
@@ -474,6 +474,13 @@ export default class SourceKafka extends Vue {
       i {
         color: @error-color-1;
         font-size: 16px;
+      }
+    }
+    .json-error-tips2 {
+      font-size: 12px;
+      i {
+        color: @error-color-1;
+        font-size: 14px;
       }
     }
     .json-empty-tips {
