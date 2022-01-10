@@ -119,7 +119,7 @@
                 style="width: 100%;">
                 <el-table-column v-for="(value, index) in tableMeta" :key="index"
                   :prop="''+index"
-                  :min-width="value.label&&value.label.length > 100 ? 52+8*(value.label&&value.label.length || 0) : 52+15*(value.label&&value.label.length || 0)"
+                  :min-width="value.label&&value.label.length > 100 ? 52+8*(value.label&&value.label.length || 0) : 52+10*(value.label&&value.label.length || 0)"
                   show-overflow-tooltip
                   :label="value.label">
                   <template slot-scope="props">
