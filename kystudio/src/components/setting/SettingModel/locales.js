@@ -93,7 +93,7 @@ export default {
     'isDel_kylin.engine.spark-conf.spark.sql.shuffle.partitions': '确认删除 spark.sql.shuffle.partitions 设置项吗？',
     'isDel_kylin.cube.aggrgroup.is-base-cuboid-always-valid': '确认删除 is-base-cuboid-always-valid 设置项吗？',
     autoMergeTip: '根据不同层级的时间周期，系统可以自动合并 Segment 碎片。合并 Segment 就像碎片整理，可以优化查询提升查询性能。',
-    volatileTip: '”自动合并“将不会合并”变动范围“内的 Segment，默认值为 0。',
+    volatileTip: '“自动合并”将不会合并“变动范围”内的 Segment，默认值为 0。',
     retentionThresholdDesc: '在留存阈值内的 Segment 将会被系统保留，之外的将会被自动移除。',
     pleaseSetAutoMerge: '请先添加”自动合并“设置项。',
     'Auto-merge': '自动合并',
