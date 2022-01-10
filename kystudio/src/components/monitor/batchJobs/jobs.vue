@@ -1298,7 +1298,7 @@ export default class JobsList extends Vue {
     targetJobs.forEach((job) => {
       const obj = {}
       obj['job_name'] = this.$t(job.job_name)
-      obj['target_subject'] = job.target_subject
+      obj['target_subject'] = this.getTargetSubject(job)
       obj['data_range'] = job.data_range_end === 9223372036854776000 ? this.$t('fullLoad') : transToServerGmtTime(job.data_range_start) + '-' + transToServerGmtTime(job.data_range_end)
       obj['highlight'] = isShowHighlight && !job.discard_safety
       tableData.push(obj)
