@@ -194,7 +194,7 @@ export default {
     exportMetadata: '导出元数据',
     noModelsExport: '该项目中无任何模型,无法导出模型元数据。',
     exportMetadatas: '导出模型',
-    exportMetadataSuccess: '正在生成模型元数据包。生成后将开始下载，请稍后。',
+    exportMetadataSuccess: '正在生成模型元数据包。生成后将开始下载，请稍候。',
     exportMetadataFailed: '无法导出，请重试。',
     bokenModelExportMetadatasTip: '该模型状态为 BROKEN，无法导出',
     importModels: '导入模型',

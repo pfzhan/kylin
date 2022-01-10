@@ -28,7 +28,7 @@ export default {
     emptyText: '搜索结果为空',
     placeholder: '搜索模型名称',
     factTable: '事实表',
-    exportSuccess: '正在生成模型元数据包。生成后将开始下载，请稍后。',
+    exportSuccess: '正在生成模型元数据包。生成后将开始下载，请稍候。',
     exportFailed: '无法导出，请重试。',
     export: '导出',
     fetchModelsFailed: '无法获取模型列表。',
