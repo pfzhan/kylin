@@ -421,7 +421,7 @@ export default class DataSourceBar extends Vue {
     const results = await handleSuccessAsync(response)
     if (results.databases.length) {
       // 没有筛选条件时，需要将数据库和 size 做个映射
-      if (!filterText) {
+      if (!filterText && datasource.sourceType === 9) { // 只针对hive数据源的loaded table 计数，kafka的同名数据源会混淆
         results.databases.forEach((item) => {
           this.databaseSizeObj[item.dbname] = item.size
         })
