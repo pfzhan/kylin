@@ -10,7 +10,7 @@
             <PatternLayout pattern="%d{ISO8601} %-5p %X{request.project}[%t] %c{2} : %mask{%m}%n"/>
         </RollingRandomAccessFile>
         <Routing name="routing">
-            <Routes pattern="${ctx:logCategory}">
+            <Routes pattern="$${ctx:logCategory}">
                 <Route>
                     <RollingFile name="rolling-${ctx:logCategory}"
                                  fileName="${env:KYLIN_HOME}/logs/kylin.${ctx:logCategory}.log"
@@ -23,7 +23,7 @@
                     </RollingFile>
                 </Route>
 
-                <Route ref="server" key="${ctx:logCategory}"/>
+                <Route ref="server" key="$${ctx:logCategory}"/>
             </Routes>
         </Routing>
         <RollingFile name="query-log-spark" fileName="${env:KYLIN_HOME}/logs/kylin.query.log" append="true"
