@@ -8,7 +8,8 @@ export default {
     userGroupPld: 'Please enter user group name',
     userPld: 'Search by username',
     saveUserGroupSuccess: ' Added the user group successfully.',
-    updateUserOrGroupSuccess: 'Adjusted the assigned users and user groups successfully.'
+    updateUserOrGroupSuccess: 'Adjusted the assigned users and user groups successfully.',
+    groupnamePld: 'Not support Chinese, nor special symbols (/:\\*?"<>|\')'
   },
   'zh-cn': {
     createGroup: '添加用户组',
@@ -19,6 +20,7 @@ export default {
     userGroupPld: '请输入用户组名',
     userPld: '搜索用户名',
     saveUserGroupSuccess: '添加用户组成功。',
-    updateUserOrGroupSuccess: '调整分配用户和用户组成功。'
+    updateUserOrGroupSuccess: '调整分配用户和用户组成功。',
+    groupnamePld: '不支持中文和特殊字符（/:\\*?"<>|\'）'
   }
 }
