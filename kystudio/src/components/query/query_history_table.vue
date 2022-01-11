@@ -80,20 +80,16 @@
                         v-if="props.row.query_steps.length&&props.row.query_status==='SUCCEEDED'"
                         popper-class="duration-popover"
                         trigger="hover">
-                        <el-row v-for="(step, index) in props.row.query_steps" :key="step.name" v-show="!step.group || (step.group === 'PREPARATION' && isShowDetail_PREPARATION) ||  (step.group === 'JOB_EXECUTION' && isShowDetail_JOB_EXECUTION)">
+                        <el-row v-for="(step, index) in props.row.query_steps" :key="step.name">
                           <el-col :span="14">
-                            <span class="step-name"
-                              :class="{'font-medium': index === 0, 'sub-step': ['PREPARATION', 'JOB_EXECUTION'].includes(step.group)}">{{$t(step.name)}}</span>
-                            <i class="el-icon-ksd-more_01"
-                              :class="{'up': (step.name === 'PREPARATION' && isShowDetail_PREPARATION) ||  (step.group === 'JOB_EXECUTION' && isShowDetail_JOB_EXECUTION)}"
-                              v-if="['PREPARATION', 'JOB_EXECUTION'].includes(step.name)"
-                              @click.stop="toggleDetail(step.name)"></i>
+                            <span class="step-name" :class="{'font-medium': index === 0, 'sub-step': step.group === 'PREPARATION'}" v-show="step.group !== 'PREPARATION' || (step.group === 'PREPARATION' && isShowDetail)">{{$t(step.name)}}</span>
+                            <i class="el-icon-ksd-more_01" :class="{'up': isShowDetail}" v-if="step.name==='PREPARATION'" @click.stop="isShowDetail = !isShowDetail"></i>
                           </el-col>
                           <el-col :span="4">
-                            <span class="step-duration ksd-fright" :class="{'font-medium': index === 0, 'sub-step': ['PREPARATION', 'JOB_EXECUTION'].includes(step.group)}">{{Math.round(step.duration / 1000 * 100) / 100}}s</span>
+                            <span class="step-duration ksd-fright" v-show="step.group !== 'PREPARATION'" :class="{'font-medium': index === 0}">{{Math.round(step.duration / 1000 * 100) / 100}}s</span>
                           </el-col>
                           <el-col :span="6" v-if="props.row.query_steps&&props.row.query_steps[0].duration>0">
-                            <el-progress :stroke-width="6" :percentage="getProgress(step.duration, props.row.query_steps[0].duration)" color="#A6D6F6" :show-text="false"></el-progress>
+                            <el-progress v-if="step.group !== 'PREPARATION' && index !== 0" :stroke-width="6" :percentage="getProgress(step.duration, props.row.query_steps[0].duration)" color="#A6D6F6" :show-text="false"></el-progress>
                           </el-col>
                         </el-row>
                         <span slot="reference" class="duration">{{Math.round(props.row.duration / 1000 * 100) / 100}}s</span>
@@ -356,7 +352,6 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       EXECUTION: 'Executing',
       FETCH_RESULT: 'Receiving result',
       SPARK_JOB_EXECUTION: 'Spark Job Execution',
-      JOB_EXECUTION: 'Spark Job Execution',
       SQL_PUSHDOWN_TRANSFORMATION: 'SQL pushdown transformation',
       CONSTANT_QUERY: 'Constant query',
       HIT_CACHE: 'Cache hit',
@@ -401,7 +396,6 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       EXECUTION: '执行',
       FETCH_RESULT: '返回结果',
       SPARK_JOB_EXECUTION: 'Spark 任务执行',
-      JOB_EXECUTION: 'Spark 任务执行',
       SQL_PUSHDOWN_TRANSFORMATION: '下压 SQL 转换',
       CONSTANT_QUERY: '常数查询',
       HIT_CACHE: '击中缓存',
@@ -452,8 +446,7 @@ export default class QueryHistoryTable extends Vue {
   sqlLimitRows = 20 * 10
   statusList = ['SUCCEEDED', 'FAILED']
   filterTags = []
-  isShowDetail_PREPARATION = false // 展开查询步骤详情
-  isShowDetail_JOB_EXECUTION = false // 展开spark任务执行步骤详情
+  isShowDetail = false // 展开查询步骤详情
   cuboidData = {}
   indexDetailTitle = ''
   indexDetailShow = false
@@ -609,21 +602,12 @@ export default class QueryHistoryTable extends Vue {
         {name: 'PREPARATION', duration: 0}
       ]
       let preStepNum = 0
-      let jobExecutionIndex = -1
       steps.forEach((s) => {
         renderSteps[0].duration = renderSteps[0].duration + s.duration
         if (s.group === 'PREPARATION') {
           preStepNum++
           let preparationIndex = renderSteps.findIndex(item => item.name === 'PREPARATION')
           renderSteps[preparationIndex].duration = renderSteps[preparationIndex].duration + s.duration
-          renderSteps.push(s)
-        } else if (s.group === 'JOB_EXECUTION') {
-          jobExecutionIndex = renderSteps.findIndex(item => item.name === 'JOB_EXECUTION')
-          if (jobExecutionIndex === -1) {
-            renderSteps.push({name: 'JOB_EXECUTION', duration: 0})
-            jobExecutionIndex = renderSteps.length - 1
-          }
-          renderSteps[jobExecutionIndex].duration = renderSteps[jobExecutionIndex].duration + s.duration
           renderSteps.push(s)
         } else if (s.name === 'HTTP_RECEPTION') {
           renderSteps.splice(1, 0, {name: 'HTTP_RECEPTION', duration: s.duration})
@@ -694,16 +678,11 @@ export default class QueryHistoryTable extends Vue {
   }
 
   sqlOverLimit (sql) {
-    return sql && sql.length > this.sqlLimitRows
-  }
-
-  toggleDetail (group) {
-    this[`isShowDetail_${group}`] = !this[`isShowDetail_${group}`]
+    return sql.length > this.sqlLimitRows
   }
 
   expandChange (e) {
-    this.isShowDetail_PREPARATION = false // 每次展开重置查询详情为隐藏
-    this.isShowDetail_JOB_EXECUTION = false
+    this.isShowDetail = false // 每次展开重置查询详情为隐藏
     if (this.toggleExpandId.includes(e.query_id)) {
       const index = this.toggleExpandId.indexOf(e.query_id)
       this.toggleExpandId.splice(index, 1)
@@ -1355,9 +1334,6 @@ export default class QueryHistoryTable extends Vue {
     }
     .step-duration {
       color: @color-text-primary;
-      &.sub-step {
-        color: @color-text-placeholder;
-      }
     }
     .el-icon-ksd-more_01 {
       transform: scale(0.6);
