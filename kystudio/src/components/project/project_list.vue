@@ -459,7 +459,7 @@ export default {
       changeDesc: '该项目的所有者可以选择系统管理员或该项目的管理员。',
       changeTo: '变更所有者为',
       pleaseChangeOwner: '请选择项目所有者',
-      changeProSuccess: '项目 “{porject}” 的所有者已经变更为用户 “{owner}”。'
+      changeProSuccess: '项目 “{project}” 的所有者已经变更为用户 “{owner}”。'
     }
   }
 }
