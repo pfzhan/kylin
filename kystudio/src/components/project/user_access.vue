@@ -217,7 +217,7 @@
       <div v-for="(row, key) in rowLists" :key="key" class="ksd-mb-10">
         <el-select v-model="row.column_name" class="row-column" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" filterable :disabled="isRowAuthorEdit" @change="isUnCharColumn(row.column_name)">
           <i slot="prefix" class="el-input__icon el-icon-search" v-if="!row.column_name"></i>
-          <el-option v-for="c in columns" :disabled="c.datatype.indexOf('char') === -1 && c.datatype.indexOf('varchar') === -1 && row.joinType === 'LIKE'" :key="c.name" :label="c.name" :value="c.name">
+          <el-option v-for="c in checkedColumns" :disabled="c.datatype.indexOf('char') === -1 && c.datatype.indexOf('varchar') === -1 && row.joinType === 'LIKE'" :key="c.name" :label="c.name" :value="c.name">
             <el-tooltip :content="c.name" effect="dark" placement="top"><span>{{c.name | omit(30, '...')}}</span></el-tooltip>
             <span class="ky-option-sub-info">{{c.datatype.toLocaleLowerCase()}}</span>
           </el-option>
@@ -340,7 +340,7 @@ import { pageSizeMapping, maxFilterAndFilterValues } from '../../config'
       add: '添加',
       filters: '过滤器',
       filterGroups: '过滤组',
-      filterTips: '同一过滤器的不同值的关系为 “或” (OR) ',
+      filterTips: '同一过滤器的不同值的关系为 “或”（OR）',
       deleteFilterGroupTips: '确定要删除过滤组吗？过滤组中的过滤器会被一并删除。',
       deleteFilterGroupTitle: '删除过滤组',
       expandAll: '展开全部',
@@ -492,6 +492,9 @@ export default class UserAccess extends Vue {
     } else {
       this.isNeedDisableLike = false
     }
+  }
+  get checkedColumns () {
+    return this.columns.filter(c => c.authorized)
   }
   get pagedFilterColumns () {
     const filterCols = objectClone(this.columns)
