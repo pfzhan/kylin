@@ -36,7 +36,6 @@ import org.apache.kylin.common.exception.{KylinException, KylinTimeoutException,
 import org.apache.kylin.common.msg.MsgPicker
 import org.apache.kylin.common.{KylinConfig, QueryContext}
 import org.apache.spark.internal.Logging
-import org.apache.spark.memory.MonitorEnv
 import org.apache.spark.scheduler.{SparkListener, SparkListenerEvent, SparkListenerLogRollUp}
 import org.apache.spark.sql.KylinSession._
 import org.apache.spark.sql.catalyst.parser.ParseException
@@ -245,7 +244,6 @@ object SparderEnv extends Logging {
           .getContextClassLoader
           .toString)
       registerListener(sparkSession.sparkContext)
-      initMonitorEnv()
       APP_MASTER_TRACK_URL = null
       startSparkFailureTimes = 0
       lastStartSparkFailureTime = 0
@@ -270,14 +268,6 @@ object SparderEnv extends Logging {
       }
     }
     sc.addSparkListener(sparkListener)
-  }
-
-  def initMonitorEnv(): Unit = {
-    val env = SparkEnv.get
-    val rpcEnv = env.rpcEnv
-    val sparkConf = new SparkConf
-    MonitorEnv.create(sparkConf, env.executorId, rpcEnv, null, isDriver = true)
-    logInfo("setup master endpoint finished." + "hostPort:" + rpcEnv.address.hostPort)
   }
 
   /**

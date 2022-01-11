@@ -29,11 +29,9 @@ import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_RANGE;
 
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.spark.memory.MetricsCollectHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
@@ -59,42 +57,20 @@ public class NMonitorController extends NBasicController {
     @Qualifier("monitorService")
     private MonitorService monitorService;
 
+    @Deprecated
     @ApiOperation(value = "getMemoryMetrics", tags = { "SM" }, notes = "Update URL: memory_info")
     @GetMapping(value = "/memory_info")
     @ResponseBody
     public EnvelopeResponse<List<ExecutorMemoryResponse>> getMemoryMetrics() {
-        Map<String, List<String>> memorySnapshotMap = MetricsCollectHelper.getMemorySnapshot();
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, parseToMemoryResponse(memorySnapshotMap), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, Lists.newArrayList(), "");
     }
 
+    @Deprecated
     @ApiOperation(value = "getThreadInfoMetrics", tags = { "SM" }, notes = "Update URL: thread_info")
     @GetMapping(value = "/thread_info")
     @ResponseBody
     public EnvelopeResponse<List<ExecutorThreadInfoResponse>> getThreadInfoMetrics() {
-        Map<String, List<String>> threadInfoSnapshotMap = MetricsCollectHelper.getThreadInfoSnapshot();
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, parseToThreadInfoResponse(threadInfoSnapshotMap), "");
-    }
-
-    private List<ExecutorMemoryResponse> parseToMemoryResponse(Map<String, List<String>> memList) {
-        List<ExecutorMemoryResponse> responseList = Lists.newArrayList();
-        memList.forEach((name, list) -> {
-            ExecutorMemoryResponse result = new ExecutorMemoryResponse();
-            result.setExecutorName(name);
-            result.setMemInfos(list);
-            responseList.add(result);
-        });
-        return responseList;
-    }
-
-    private List<ExecutorThreadInfoResponse> parseToThreadInfoResponse(Map<String, List<String>> threadInfos) {
-        List<ExecutorThreadInfoResponse> responseList = Lists.newArrayList();
-        threadInfos.forEach((name, list) -> {
-            ExecutorThreadInfoResponse result = new ExecutorThreadInfoResponse();
-            result.setExecutorName(name);
-            result.setThreadInfos(list);
-            responseList.add(result);
-        });
-        return responseList;
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, Lists.newArrayList(), "");
     }
 
     @ApiOperation(value = "getStatus", tags = { "SM" })

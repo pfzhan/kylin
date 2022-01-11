@@ -263,9 +263,7 @@
         <scala.version>2.12.13</scala.version>
 
         <!-- swagger api-->
-        <swagger.version>1.5.24</swagger.version>
-        <springfox.version>2.9.2</springfox.version>
-        <swagger2markup.version>1.3.3</swagger2markup.version>
+        <springfox.version>3.0.0</springfox.version>
         <rhino.version>1.7.13</rhino.version>
         <jsoup.version>1.14.2</jsoup.version>
 
@@ -296,7 +294,6 @@
         <module>src/query</module>
         <module>src/kap-it</module>
         <module>src/smart</module>
-        <module>src/udf</module>
         <module>src/core-common</module>
         <module>src/core-metadata</module>
         <module>src/source-hive</module>
@@ -2194,30 +2191,9 @@
 
             <!-- Swagger API -->
             <dependency>
-                <groupId>io.swagger</groupId>
-                <artifactId>swagger-core</artifactId>
-                <scope>compile</scope>
-                <version>${swagger.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>javax.ws.rs</groupId>
-                        <artifactId>jsr311-api</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>com.fasterxml.jackson.dataformat</groupId>
-                        <artifactId>*</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
                 <groupId>io.springfox</groupId>
-                <artifactId>springfox-swagger2</artifactId>
+                <artifactId>springfox-boot-starter</artifactId>
                 <version>${springfox.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.github.swagger2markup</groupId>
-                <artifactId>swagger2markup</artifactId>
-                <version>${swagger2markup.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.mozilla</groupId>
@@ -2883,31 +2859,6 @@
                             <meminitial>1024m</meminitial>
                             <maxmem>2048m</maxmem>
                         </configuration>
-                    </plugin>
-
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-dependency-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>copy-jamm</id>
-                                <goals>
-                                    <goal>copy</goal>
-                                </goals>
-                                <phase>generate-test-resources</phase>
-                                <configuration>
-                                    <artifactItems>
-                                        <artifactItem>
-                                            <groupId>com.github.jbellis</groupId>
-                                            <artifactId>jamm</artifactId>
-                                            <outputDirectory>${project.build.testOutputDirectory}
-                                            </outputDirectory>
-                                            <destFileName>jamm.jar</destFileName>
-                                        </artifactItem>
-                                    </artifactItems>
-                                </configuration>
-                            </execution>
-                        </executions>
                     </plugin>
 
                     <plugin>
