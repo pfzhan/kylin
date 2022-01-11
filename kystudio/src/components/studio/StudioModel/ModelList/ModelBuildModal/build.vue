@@ -173,6 +173,7 @@
               <div class="ky-no-br-space" style="height:32px;">
                 <el-date-picker
                   type="datetime"
+                  style="width: 44%;"
                   :class="['ksd-mr-5', {'is-error': dateErrorMsg}]"
                   ref="prevPicker"
                   v-model="modelBuildMeta.dataRangeVal[0]"
@@ -185,6 +186,7 @@
                 </el-date-picker>
                 <el-date-picker
                   type="datetime"
+                  style="width: 44%;"
                   ref="nextPicker"
                   :class="{'is-error': dateErrorMsg}"
                   v-model="modelBuildMeta.dataRangeVal[1]"
@@ -1277,6 +1279,12 @@
     .select-sub-partition.error-border {
       .el-input__inner {
         border-color: @error-color-1;
+      }
+    }
+    .select-sub-partition {
+      // 针对 IE 游览器下中文输入法下输入文字后面会自带叉叉问题
+      .el-select__input::-ms-clear {
+        display: none;
       }
     }
     .el-icon-info {

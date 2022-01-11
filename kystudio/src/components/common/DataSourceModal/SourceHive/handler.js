@@ -93,10 +93,9 @@ export function getTableTree (database, res, isTableReset, selectTablesNames) {
         const currentEl = document.getElementById(currentId)
         const parentEl = currentEl && currentEl.parentNode.parentNode.parentNode
         if (parentEl) {
-          parentEl.style.backgroundColor = !data.clickable ? 'transparent' : null
-          parentEl.style.cursor = !data.clickable ? 'not-allowed' : null
+          parentEl.style.cssText = `background-color: ${!data.clickable ? 'transparent' : null}; cursor: ${!data.clickable ? 'not-allowed' : null};`
         }
-      })
+      }, 100)
       const itemClassName = isLoaded || isExistedName ? 'is-synced' : ''
       return (
         <div class={itemClassName}>

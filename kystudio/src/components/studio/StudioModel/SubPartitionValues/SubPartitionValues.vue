@@ -274,6 +274,7 @@ export default class subPartitionValues extends Vue {
     const {sort_by, reverse, page_size} = this.filter
     const size = pageSize || page_size
     this.filter.page_offset = currentPage
+    this.filter.page_size = size
     const filteredData = this.subPartitionValuesList.filter((s) => {
       return s.partition_value[0].toLowerCase().indexOf(this.subParValuesFilter) !== -1
     }).sort((prev, next) => {

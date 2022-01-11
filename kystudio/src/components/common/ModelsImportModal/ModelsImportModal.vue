@@ -31,7 +31,7 @@
     <!-- 解析zip元数据包界面 -->
     <div class="modal-parse-contain" v-loading="isSubmiting" v-else-if="step === 'second'">
       <div class="modal-tables">
-        <el-table class="model-list" border :data="models" size="small" refs="parseModelList" :row-class-name="tableRowClassName" @row-click="activeModal">
+        <el-table class="model-list" border :data="models" size="small" ref="parseModelList" :row-class-name="tableRowClassName" @row-click="activeModal">
           <el-table-column prop="target_name" class-name="model-name-item" :label="$t('modelName')">
             <template slot-scope="scope">
               <span class="import-models" v-if="showParseTable">
@@ -734,6 +734,7 @@ export default class ModelsImportModal extends Vue {
           this.showParseTable = false
           this.$nextTick(() => {
             this.showParseTable = true
+            this.$refs.parseModelList.doLayout()
           })
         } catch (e) {
           if (!this.isShow || !this.form.file) return

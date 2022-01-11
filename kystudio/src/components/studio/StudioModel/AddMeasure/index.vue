@@ -958,6 +958,11 @@ export default class AddMeasure extends Vue {
 
 <style lang="less">
   @import '../../../../assets/styles/variables.less';
+  .add-measure-modal {
+    .el-dialog {
+      width: 500px\0 !important;
+    }
+  }
   .add-measure {
     .el-form-item.cc-item,
     .el-form-item.is-error {

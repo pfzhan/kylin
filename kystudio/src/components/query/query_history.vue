@@ -83,7 +83,7 @@ import { pageRefTags, apiUrl } from 'config'
   beforeRouteEnter (to, from, next) {
     next(vm => {
       if (from.name && from.name === 'Dashboard' && to.params.source && to.params.source === 'homepage-history') {
-        let tm = new Date(new Date().toLocaleDateString()).getTime()
+        let tm = new Date(new Date().toDateString()).getTime()
         vm.filterDirectData.startTimeFrom = tm - 1000 * 60 * 60 * 24 * 7
         vm.filterDirectData.startTimeTo = tm
         return

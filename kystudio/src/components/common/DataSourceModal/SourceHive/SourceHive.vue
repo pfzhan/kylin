@@ -1024,6 +1024,7 @@ export default class SourceHive extends Vue {
       right: 14px;
       color: @text-disabled-color;
       transform: translateY(-50%);
+      font-size: 13px\0;
     }
     .tree-item {
       &>div {

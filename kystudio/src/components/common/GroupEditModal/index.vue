@@ -1,5 +1,5 @@
 <template>
-  <el-dialog class="group-edit-modal" :width="modalWidth"
+  <el-dialog :class="['group-edit-modal', {'assign-group': editType === 'assign'}]" :width="modalWidth"
     :title="$t(modalTitle)"
     :visible="isShow"
     limited-area
@@ -282,6 +282,11 @@ export default class GroupEditModal extends Vue {
 <style lang="less">
 @import '../../../assets/styles/variables.less';
 .group-edit-modal {
+  &.assign-group {
+    .el-dialog {
+      width: 650px\0 !important;
+    }
+  }
   .el-form-item__content {
     line-height: 1;
   }
