@@ -25,7 +25,6 @@
 package io.kyligence.kap.query.engine.exec.sparder;
 
 import java.util.List;
-import java.util.Objects;
 
 import io.kyligence.kap.query.engine.exec.ExecuteResult;
 import org.apache.calcite.DataContext;
@@ -156,21 +155,24 @@ public class SparderQueryPlanExec implements QueryPlanExec {
 
         QueryContext.current().getQueryTagInfo().setSparderUsed(true);
 
-        boolean exactlyMatch = true;
-        for (OLAPContext ctx : ContextUtil.listContextsHavingScan()) {
-            NLayoutCandidate candidate = ctx.storageContext.getCandidate();
-            if (Objects.nonNull(candidate) && IndexEntity.isAggIndex(candidate.getLayoutEntity().getId())
-                    && !ctx.isExactlyAggregate()) {
-                exactlyMatch = false;
-                break;
-            }
-        }
+        boolean exactlyMatch = ContextUtil.listContextsHavingScan().stream().noneMatch(this::isAggImperfectMatch);
+
         QueryContext.current().getMetrics().setExactlyMatch(exactlyMatch);
 
         KapContext.setKapRel((KapRel) rel.getInput(0));
         KapContext.setRowType(rel.getRowType());
 
         QueryContext.current().record("end_rewrite");
+    }
+
+    private boolean isAggImperfectMatch(OLAPContext ctx) {
+        NLayoutCandidate candidate = ctx.storageContext.getCandidate();
+        if (candidate == null) {
+            return false;
+        }
+        long layoutId = candidate.getLayoutEntity().getId();
+        return IndexEntity.isAggIndex(layoutId) && !ctx.isExactlyAggregate()
+                || IndexEntity.isTableIndex(layoutId) && ctx.isHasAgg();
     }
 
 }
