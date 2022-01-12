@@ -94,6 +94,12 @@
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-datasource-sdk</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>yinglong-enterprise-core-metadata</artifactId>
+        </dependency>
+
         <!-- these plug-in modules, should not have API dependencies -->
 
         <dependency>
@@ -290,6 +296,12 @@
         <dependency>
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-core-metadata</artifactId>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>yinglong-enterprise-core-metadata</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>

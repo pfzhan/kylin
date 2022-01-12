@@ -56,6 +56,10 @@
         </dependency>
         <dependency>
             <groupId>io.kyligence.ke</groupId>
+            <artifactId>yinglong-enterprise-core-metadata</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-external-curator</artifactId>
         </dependency>
         <dependency>

@@ -294,6 +294,7 @@
         <module>src/udf</module>
         <module>src/core-common</module>
         <module>src/core-metadata</module>
+        <module>src/yinglong-enterprise-core-metadata</module>
         <module>src/source-hive</module>
         <module>src/server-base</module>
         <module>src/license-service</module>
@@ -466,6 +467,11 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
+                <artifactId>yinglong-enterprise-core-metadata</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-core-job</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -522,6 +528,12 @@
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-core-metadata</artifactId>
+                <version>${project.version}</version>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.ke</groupId>
+                <artifactId>yinglong-enterprise-core-metadata</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
             </dependency>

@@ -30,7 +30,7 @@
     <packaging>jar</packaging>
     <name>KAP - Core Metadata</name>
     <url>http://kyligence.io</url>
-    <description>Kyligence Core Metadata</description>
+    <description>Kyligence Open Source Meta</description>
 
 
     <parent>
