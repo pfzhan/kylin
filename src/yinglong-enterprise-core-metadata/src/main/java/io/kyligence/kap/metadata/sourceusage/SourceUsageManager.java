@@ -39,6 +39,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.util.SizeConvertUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
@@ -469,15 +470,18 @@ public class SourceUsageManager {
             logger.warn("Capacity status is not ok: {}, will not block build job", capacityStatus);
             return;
         }
+
+        String currentCapacity = SizeConvertUtil.byteCountToDisplaySize(info.getCurrentCapacity());
+        String capacity = SizeConvertUtil.byteCountToDisplaySize(info.getCapacity());
+
         if (checkProject) {
             if (info.getCapacityStatus() == OVERCAPACITY && info.getNodeStatus() == OVERCAPACITY) {
                 throw new KylinException(LICENSE_OVER_CAPACITY,
                         String.format(Locale.ROOT, MsgPicker.getMsg().getLICENSE_PROJECT_SOURCE_NODES_OVER_CAPACITY(),
-                                info.getCurrentCapacity(), info.getCapacity(), info.getCurrentNode(), info.getNode()));
+                                currentCapacity, capacity, info.getCurrentNode(), info.getNode()));
             } else if (info.getCapacityStatus() == OVERCAPACITY) {
-                throw new KylinException(LICENSE_OVER_CAPACITY,
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getLICENSE_PROJECT_SOURCE_OVER_CAPACITY(),
-                                info.getCurrentCapacity(), info.getCapacity()));
+                throw new KylinException(LICENSE_OVER_CAPACITY, String.format(Locale.ROOT,
+                        MsgPicker.getMsg().getLICENSE_PROJECT_SOURCE_OVER_CAPACITY(), currentCapacity, capacity));
             } else if (info.getNodeStatus() == OVERCAPACITY) {
                 throw new KylinException(LICENSE_OVER_CAPACITY, String.format(Locale.ROOT,
                         MsgPicker.getMsg().getLICENSE_NODES_OVER_CAPACITY(), info.getCurrentNode(), info.getNode()));
@@ -487,11 +491,10 @@ public class SourceUsageManager {
             if (info.getCapacityStatus() == OVERCAPACITY && info.getNodeStatus() == OVERCAPACITY) {
                 throw new KylinException(LICENSE_OVER_CAPACITY,
                         String.format(Locale.ROOT, MsgPicker.getMsg().getLICENSE_SOURCE_NODES_OVER_CAPACITY(),
-                                info.getCurrentCapacity(), info.getCapacity(), info.getCurrentNode(), info.getNode()));
+                                currentCapacity, capacity, info.getCurrentNode(), info.getNode()));
             } else if (info.getCapacityStatus() == OVERCAPACITY) {
-                throw new KylinException(LICENSE_OVER_CAPACITY,
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getLICENSE_SOURCE_OVER_CAPACITY(),
-                                info.getCurrentCapacity(), info.getCapacity()));
+                throw new KylinException(LICENSE_OVER_CAPACITY, String.format(Locale.ROOT,
+                        MsgPicker.getMsg().getLICENSE_SOURCE_OVER_CAPACITY(), currentCapacity, capacity));
             } else if (info.getNodeStatus() == OVERCAPACITY) {
                 throw new KylinException(LICENSE_OVER_CAPACITY, String.format(Locale.ROOT,
                         MsgPicker.getMsg().getLICENSE_NODES_OVER_CAPACITY(), info.getCurrentNode(), info.getNode()));
