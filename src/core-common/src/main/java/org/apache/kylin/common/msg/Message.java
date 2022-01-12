@@ -566,6 +566,10 @@ public class Message {
         return "The user/group doesn’t have access to this project.";
     }
 
+    public String getACCESS_DENY() {
+        return "The user doesn't have access.";
+    }
+
     // Async Query
     public String getQUERY_RESULT_NOT_FOUND() {
         return "Can’t find the query by this query ID in this project. Please check and try again.";
@@ -621,7 +625,7 @@ public class Message {
         return "The query delay threshold cannot be empty";
     }
 
-    public String getMIN_HIT_COUNT_NOT_EMPTY(){
+    public String getMIN_HIT_COUNT_NOT_EMPTY() {
         return "The hits cannot be empty";
     }
 

@@ -478,6 +478,11 @@ public class CnMessage extends Message {
         return "用户/组没有当前项目访问权限";
     }
 
+    @Override
+    public String getACCESS_DENY() {
+        return "当前用户无访问权限。";
+    }
+
     // user group
 
     @Override
@@ -649,7 +654,7 @@ public class CnMessage extends Message {
     }
 
     @Override
-    public String getMIN_HIT_COUNT_NOT_EMPTY(){
+    public String getMIN_HIT_COUNT_NOT_EMPTY() {
         return "命中次数不能为空";
     }
 
@@ -1765,7 +1770,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getADMIN_PERMISSION_UPDATE_ABANDON() {
-        return "管理员不支持被更新权限.";
+        return "管理员不支持被更新权限。";
     }
 
     @Override

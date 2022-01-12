@@ -210,8 +210,8 @@ public class NBasicController {
     @ExceptionHandler(AccessDeniedException.class)
     @ResponseBody
     ErrorResponse handleAccessDenied(HttpServletRequest req, Throwable ex) {
-        KylinException e = new KylinException(ACCESS_DENIED, ex);
-        getLogger().error("", e);
+        getLogger().error("", ex);
+        KylinException e = new KylinException(ACCESS_DENIED, MsgPicker.getMsg().getACCESS_DENY());
         return new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(req), e);
     }
 
