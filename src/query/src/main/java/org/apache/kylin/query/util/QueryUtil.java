@@ -86,7 +86,7 @@ public class QueryUtil {
 
     public static String normalizeForTableDetecting(String project, String sql) {
         KylinConfig kylinConfig = QueryUtil.getKylinConfig(project);
-        String convertedSql = normalMassageSql(kylinConfig, sql, 1, 1);
+        String convertedSql = normalMassageSql(kylinConfig, sql, 0, 0);
         String defaultSchema = "DEFAULT";
         try {
             ProjectSchemaFactory schemaFactory = new ProjectSchemaFactory(project, kylinConfig);

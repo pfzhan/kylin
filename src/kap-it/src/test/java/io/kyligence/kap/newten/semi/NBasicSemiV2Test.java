@@ -35,6 +35,7 @@ import java.util.TimeZone;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.TimeUtil;
+import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -136,6 +137,13 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
     @Override
     public String getProject() {
         return "newten";
+    }
+
+    @Test
+    public void testNormalizeForTableDetecting() {
+        String sql = "SELECT price * item_count FROM test_kylin_fact FETCH NEXT 1000 ROWS ONLY";
+        String normalizedSql = QueryUtil.normalizeForTableDetecting(getProject(), sql);
+        Assert.assertEquals(sql, normalizedSql);
     }
 
     @Test
