@@ -43,6 +43,7 @@ import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -196,6 +197,7 @@ public class StreamingMergeEntryTest extends StreamingTestCase {
     }
 
     @Test
+    @Ignore
     public void testMergeSegmentOfCatchup1() {
         val config = getTestConfig();
         config.setProperty("kylin.engine.streaming-segment-merge-interval", "1");

@@ -48,6 +48,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sparkproject.guava.collect.Sets;
@@ -320,6 +321,7 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest implements Adap
     }
 
     @Test
+    @Ignore
     public void testSegmentPruningDate() throws Exception {
         val modelId = "8c670664-8d05-466a-802f-83c023b56c80";
         buildMultiSegs(modelId, 10005);

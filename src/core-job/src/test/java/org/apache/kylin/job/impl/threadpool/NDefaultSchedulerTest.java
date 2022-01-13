@@ -72,6 +72,7 @@ import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.assertj.core.api.Assertions;
 import org.awaitility.core.ConditionTimeoutException;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -770,6 +771,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     }
 
     @Test
+    @Ignore
     public void testSuicide_RemoveLayout() {
         val currMem = NDefaultScheduler.currentAvailableMem();
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
