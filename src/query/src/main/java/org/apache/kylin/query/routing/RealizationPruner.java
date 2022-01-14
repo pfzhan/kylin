@@ -42,21 +42,37 @@
 
 package org.apache.kylin.query.routing;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.model.MultiPartitionDesc;
+import io.kyligence.kap.metadata.model.MultiPartitionKeyMapping;
+import io.kyligence.kap.metadata.model.MultiPartitionKeyMappingProvider;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.extern.slf4j.Slf4j;
+import lombok.val;
+import lombok.var;
 import org.apache.calcite.plan.RelOptPredicateList;
+import org.apache.calcite.rel.type.RelDataTypeFamily;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexSimplify;
+import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
+import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.TimestampString;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -70,21 +86,13 @@ import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPTableScan;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.model.MultiPartitionDesc;
-import io.kyligence.kap.metadata.model.MultiPartitionKeyMapping;
-import io.kyligence.kap.metadata.model.MultiPartitionKeyMappingProvider;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import lombok.val;
-import lombok.var;
-import lombok.extern.slf4j.Slf4j;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class RealizationPruner {
@@ -125,12 +133,26 @@ public class RealizationPruner {
         }
 
         val selectedSegments = Lists.<NDataSegment> newArrayList();
-        val filterConditions = olapContext.getExpandedFilterConditions();
+        var filterConditions = olapContext.getExpandedFilterConditions();
         val relOptCluster = olapContext.firstTableScan.getCluster();
         val rexBuilder = relOptCluster.getRexBuilder();
         val rexSimplify = new RexSimplify(relOptCluster.getRexBuilder(), RelOptPredicateList.EMPTY, true,
                 relOptCluster.getPlanner().getExecutor());
-        val simplifiedSqlFilter = rexSimplify.simplifyAnds(filterConditions);
+
+        val partitionColInputRef = transformColumn2RexInputRef(partitionColumn, olapContext.allTableScans);
+        if (allReadySegments.size() > 0 && dateFormat != null) {
+            val firstSegmentRanges = transformSegment2RexCall(allReadySegments.get(0), dateFormat, rexBuilder, partitionColInputRef,
+                    partitionColumn.getType(), dataflow.isStreaming());
+            RelDataTypeFamily segmentLiteralTypeFamily = getSegmentLiteralTypeFamily(firstSegmentRanges.getFirst());
+            List<RexNode> newFilterConditions = new ArrayList<>();
+            for (RexNode filterCondition : filterConditions) {
+                newFilterConditions.add(rewriteRexCall(filterCondition, rexBuilder,
+                        segmentLiteralTypeFamily, partitionColInputRef, dateFormat));
+            }
+            filterConditions = newFilterConditions;
+        }
+        var simplifiedSqlFilter = rexSimplify.simplifyAnds(filterConditions);
+
         // sql filter condition is always false
         if (simplifiedSqlFilter.isAlwaysFalse()) {
             log.info("SQL filter condition is always false, pruning all ready segments");
@@ -141,7 +163,7 @@ public class RealizationPruner {
             log.info("SQL filter condition is always true, pruning no segment");
             return allReadySegments;
         }
-        val partitionColInputRef = transformColumn2RexInputRef(partitionColumn, olapContext.allTableScans);
+
         for (NDataSegment dataSegment : allReadySegments) {
             try {
                 val segmentRanges = transformSegment2RexCall(dataSegment, dateFormat, rexBuilder, partitionColInputRef,
@@ -167,8 +189,107 @@ public class RealizationPruner {
                 selectedSegments.add(dataSegment);
             }
         }
-
+        log.info("Scan segment.size: {} after segment pruning", selectedSegments.size());
         return selectedSegments;
+    }
+
+    public static RexNode rewriteRexCall(RexNode rexNode, RexBuilder rexBuilder,
+                                         RelDataTypeFamily relDataTypeFamily, RexInputRef partitionColInputRef, String dateFormat) {
+        if (rexNode instanceof RexCall) {
+            RexCall rewriteRexCall = (RexCall) rexNode;
+            if (rewriteRexCall.getOperator().kind == SqlKind.GREATER_THAN
+                    || rewriteRexCall.getOperator().kind == SqlKind.GREATER_THAN_OR_EQUAL
+                    || rewriteRexCall.getOperator().kind == SqlKind.LESS_THAN
+                    || rewriteRexCall.getOperator().kind == SqlKind.LESS_THAN_OR_EQUAL
+                    || rewriteRexCall.getOperator().kind == SqlKind.IN
+                    || rewriteRexCall.getOperator().kind == SqlKind.NOT_IN
+                    || rewriteRexCall.getOperator().kind == SqlKind.EQUALS
+                    || rewriteRexCall.getOperator().kind == SqlKind.NOT_EQUALS) {
+                boolean isContainsPartitionColumn = false;
+                boolean isContainsLiteral = false;
+                for (RexNode sonRexNode : rewriteRexCall.getOperands()) {
+                    if (sonRexNode instanceof RexInputRef) {
+                        RexInputRef rexInputRef = (RexInputRef) sonRexNode;
+                        String columnName = rexInputRef.getName();
+                        if (partitionColInputRef.getName().contains(columnName)) {
+                            isContainsPartitionColumn = true;
+                        }
+                    } else if (sonRexNode instanceof RexLiteral) {
+                        isContainsLiteral = true;
+                    }
+                }
+                if (isContainsPartitionColumn && isContainsLiteral) {
+                    return rewriteRexNodeLiteral(rexNode, rexBuilder, relDataTypeFamily, dateFormat);
+                } else {
+                    return rexNode;
+                }
+            } else {
+                List<RexNode> opList = new ArrayList<>();
+                for (RexNode sonRexNode : rewriteRexCall.getOperands()) {
+                    opList.add(rewriteRexCall(sonRexNode, rexBuilder,
+                            relDataTypeFamily, partitionColInputRef, dateFormat));
+                }
+                return rexBuilder.makeCall(rewriteRexCall.getOperator(), opList);
+            }
+        }
+        return rexNode;
+    }
+
+    public static RexNode rewriteRexNodeLiteral(RexNode rexNodeLiteral, RexBuilder rexBuilder,
+                                                RelDataTypeFamily relDataTypeFamily, String dateFormat) {
+        if (rexNodeLiteral instanceof RexCall) {
+            try {
+                RexCall rexCall = (RexCall) rexNodeLiteral;
+                List<RexNode> oldRexNodes = rexCall.getOperands();
+                List<RexNode> newRexNodes = new ArrayList<>();
+                for (RexNode rexNode : oldRexNodes) {
+                    if (rexNode instanceof RexLiteral) {
+                        RexLiteral rexLiteral = (RexLiteral) rexNode;
+                        String dateStr;
+                        if (rexLiteral.getType().getFamily() == SqlTypeFamily.DATE) {
+                            dateStr = dateIntToDateStr((Integer) rexLiteral.getValue2(), dateFormat);
+                        } else {
+                            dateStr = rexLiteral.getValue2().toString();
+                        }
+                        if (relDataTypeFamily == SqlTypeFamily.DATE) {
+                            newRexNodes.add(rexBuilder.makeLiteral(new DateString(dateStr),
+                                    new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.DATE), true));
+                        } else if (relDataTypeFamily == SqlTypeFamily.CHARACTER) {
+                            newRexNodes.add(rexBuilder.makeLiteral(new NlsString(dateStr, "UTF-16LE", SqlCollation.IMPLICIT),
+                                    new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.CHAR), true));
+                        } else {
+                            newRexNodes.add(rexNode);
+                        }
+                    } else {
+                        newRexNodes.add(rexNode);
+                    }
+                }
+                rexNodeLiteral = rexBuilder.makeCall(rexCall.getOperator(), newRexNodes);
+            } catch (Exception e) {
+                log.warn("RewriteRexNodeLiteral failed rexNodeLiteral:{} relDataTypeFamily:{} dateFormat:{}",
+                        rexNodeLiteral.toString(), relDataTypeFamily.toString(), dateFormat);
+            }
+        }
+        return rexNodeLiteral;
+    }
+
+    private static String dateIntToDateStr(Integer dateInt, String dateFormat) {
+        Long timestamp = dateInt.longValue() * 24 * 3600000;
+        String date = new java.text.SimpleDateFormat(dateFormat).format(timestamp);
+        return date;
+    }
+
+    public static RelDataTypeFamily getSegmentLiteralTypeFamily(RexNode rangeRexNode) {
+        if (rangeRexNode instanceof RexCall) {
+            RexCall rexCall = (RexCall) rangeRexNode;
+            List<RexNode> oldRexNodes = rexCall.getOperands();
+            for (RexNode rexNode : oldRexNodes) {
+                if (rexNode instanceof RexLiteral) {
+                    return rexNode.getType().getFamily();
+                }
+            }
+        }
+        return null;
     }
 
     private static PartitionDesc getStreamingPartitionDesc(NDataModel model, KylinConfig kylinConfig, String project) {
