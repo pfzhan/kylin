@@ -3550,6 +3550,7 @@ public class ModelService extends BasicService {
         return jobIds;
     }
 
+    @Transaction(project = 0)
     public BuildBaseIndexResponse updateDataModelSemantic(String project, ModelRequest request) {
         return updateDataModelSemantic(project, request, true);
     }
