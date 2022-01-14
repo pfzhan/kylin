@@ -985,11 +985,12 @@ export default class SourceHive extends Vue {
         width: 377px;
       }
       .database .label {
-        text-overflow:ellipsis!important; 
-        overflow:hidden!important; 
-        word-break:keep-all!important;
-        white-space:nowrap!important;
+        text-overflow:ellipsis !important;
+        overflow:hidden !important;
+        word-break:keep-all !important;
+        white-space:nowrap !important;
         width: 98%;
+        line-height: 35px\0;
       }
       &:hover .database .label{
         width: 85%;
@@ -1039,6 +1040,7 @@ export default class SourceHive extends Vue {
       user-select: none;
       width: 100%;
       white-space: normal;
+      line-height: 35px\0;
     }
     .el-icon-ksd-good_health {
       color: @color-success;
