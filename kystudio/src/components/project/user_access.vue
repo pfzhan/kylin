@@ -623,10 +623,10 @@ export default class UserAccess extends Vue {
   }
   handleLoadMoreStyle () {
     this.$nextTick(() => {
-      const loadMore = this.$el.querySelectorAll('.acl-tree .load-more')
+      const loadMore = this.$el.querySelectorAll('.acl-tree .load-more') || this.$el.getElementsByClassName('.acl-tree .load-more')
       const indeterminateNodes = this.$el.querySelectorAll('.acl-tree .indeterminate-node')
       if (loadMore.length) {
-        loadMore.forEach((m) => {
+        Array.prototype.forEach.call(loadMore, (m) => {
           const targetCheckbox = m.parentNode.parentNode.querySelector('.el-checkbox')
           if (targetCheckbox) {
             targetCheckbox.style.display = 'none'
@@ -634,7 +634,7 @@ export default class UserAccess extends Vue {
         })
       }
       if (indeterminateNodes.length) {
-        indeterminateNodes.forEach((n) => {
+        Array.prototype.forEach.call(indeterminateNodes, (n) => {
           const indeterminateCheckbox = n.parentNode.parentNode.querySelector('.el-checkbox .el-checkbox__input')
           if (indeterminateCheckbox) {
             indeterminateCheckbox.className = 'el-checkbox__input is-indeterminate'

@@ -96,6 +96,7 @@
                   <div style="display: inline-block;">
                     <el-button
                       size="medium"
+                      class="auto-detect-btn"
                       :loading="isLoadingFormat"
                       :disabled="isLoadingNewRange || !datasourceActions.includes('changePartition')"
                       icon="el-ksd-icon-data_range_search_old"
@@ -175,10 +176,11 @@
                   type="datetime"
                   style="width: 44%;"
                   :class="['ksd-mr-5', {'is-error': dateErrorMsg}]"
+                  :key="`prevPicker_${new Date(modelBuildMeta.dataRangeVal[0]).getTime()}`"
                   ref="prevPicker"
                   v-model="modelBuildMeta.dataRangeVal[0]"
                   :disabled="modelBuildMeta.isLoadExisted || isLoadingNewRange"
-                  @change="resetError"
+                  @change="(v) => handleChangeDateTime(v, 'start')"
                   value-format="timestamp"
                   :is-auto-complete="true"
                   :format="partitionFormat"
@@ -189,10 +191,11 @@
                   style="width: 44%;"
                   ref="nextPicker"
                   :class="{'is-error': dateErrorMsg}"
+                  :key="`prevPicker_${new Date(modelBuildMeta.dataRangeVal[1]).getTime()}`"
                   v-model="modelBuildMeta.dataRangeVal[1]"
                   :disabled="modelBuildMeta.isLoadExisted || isLoadingNewRange"
                   value-format="timestamp"
-                  @change="resetError"
+                  @change="(v) => handleChangeDateTime(v, 'end')"
                   :is-auto-complete="true"
                   :format="partitionFormat"
                 >
@@ -200,7 +203,7 @@
                 <common-tip :content="noPartition ? $t('partitionFirst'):$t('detectAvailableRange')" placement="top">
                   <el-button
                     size="medium"
-                    class="ksd-ml-10"
+                    class="auto-detect-btn ksd-ml-10"
                     v-if="$store.state.project.projectPushdownConfig&&!isStreamModel"
                     :disabled="modelBuildMeta.isLoadExisted || noPartition"
                     :loading="isLoadingNewRange"
@@ -484,9 +487,22 @@
       }
       this.dateErrorMsg = ''
       this.isShowWarning = this.isHaveSegment && (this.buildType !== this.defaultBuildType || JSON.stringify(this.prevPartitionMeta) !== JSON.stringify(this.partitionMeta))
-      // this.$nextTick(() => {
-      //   this.changePartitionSetting()
-      // })
+    }
+    handleChangeDateTime (val, pos) {
+      // 仅在 IE 浏览器下做兼容处理
+      if (val && navigator.userAgent.indexOf('Windows NT') >= 0) {
+        const newDate = function (date) {
+          if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}/.test(date)) {
+            return new Date(date.replace(/-/g, '/'))
+          } else {
+            return new Date(date)
+          }
+        }
+        let dateVal = this.modelBuildMeta.dataRangeVal
+        pos === 'start' ? dateVal.splice(0, 1, newDate(val).getTime()) : dateVal.splice(1, 1, newDate(val).getTime())
+        this.$set(this.modelBuildMeta, 'dataRangeVal', dateVal)
+      }
+      this.resetError()
     }
     validateBrokenColumn (rule, value, callback) {
       if (value) {
@@ -1179,6 +1195,9 @@
           margin-left: 3px;
         }
       }
+    }
+    .auto-detect-btn {
+      line-height: 22px;
     }
     .detail-content {
       background-color: @base-background-color-1;
