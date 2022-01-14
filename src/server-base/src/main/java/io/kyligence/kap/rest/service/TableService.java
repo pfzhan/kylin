@@ -1434,7 +1434,7 @@ public class TableService extends BasicService {
                 tableRef.getIdentity().equals(context.getTableDesc().getIdentity()) ? context.getTableDesc() : tableRef,
                 isFilterCC));
         try {
-            modelService.updateDataModelSemantic(projectName, request);
+            modelService.updateDataModelSemantic(projectName, request, false);
         } catch (TransactionException e) {
             Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);
             String tableName = context.getTableDesc().getName();
