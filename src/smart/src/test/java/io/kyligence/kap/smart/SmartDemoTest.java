@@ -29,16 +29,15 @@ import static io.kyligence.kap.smart.model.GreedyModelTreesBuilderTest.smartUtHo
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.util.List;
-import java.util.Properties;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfig.SetAndUnsetThreadLocalConfig;
+import org.apache.kylin.common.util.AbstractTestCase;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
@@ -53,8 +52,8 @@ import io.kyligence.kap.smart.util.AccelerationContextUtil;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class SmartDemoTest {
-    private static String TEST_META_BASE = "src/test/resources/nsmart/";
+public class SmartDemoTest extends AbstractTestCase {
+    private static final String TEST_META_BASE = "src/test/resources/nsmart/";
 
     @After
     public void afterClass() {
@@ -62,31 +61,31 @@ public class SmartDemoTest {
     }
 
     @Test
-    public void testE2E_LearnKylin() throws IOException {
+    public void testE2E_LearnKylin() throws Exception {
         testInternal(TEST_META_BASE + "learn_kylin/meta", "learn_kylin", TEST_META_BASE + "learn_kylin/sql");
     }
 
     @Test
-    public void testE2E_SSB() throws IOException {
+    public void testE2E_SSB() throws Exception {
         testInternal(TEST_META_BASE + "ssb/meta", "ssb", TEST_META_BASE + "ssb/sql");
     }
 
     @Test
-    public void testE2E_TPCH_LineItem() throws IOException {
+    public void testE2E_TPCH_LineItem() throws Exception {
         testInternal(TEST_META_BASE + "tpch/meta", "tpch", TEST_META_BASE + "tpch/sql_tmp");
     }
 
     @Test
-    public void testE2E_Airline() throws IOException {
+    public void testE2E_Airline() throws Exception {
         testInternal(TEST_META_BASE + "airline/meta", "airline", TEST_META_BASE + "airline/sql");
     }
 
     @Test
-    public void testE2E_TPCDS() throws IOException {
+    public void testE2E_TPCDS() throws Exception {
         testInternal(TEST_META_BASE + "tpcds/meta", "TPC_DS_2", TEST_META_BASE + "tpcds/sql_ss");
     }
 
-    private void testInternal(String metaDir, String projectName, String sqlDir) throws IOException {
+    private void testInternal(String metaDir, String projectName, String sqlDir) throws Exception {
         List<String> sqlList = Lists.newArrayList();
         if (sqlDir != null) {
             File sqlFile = new File(sqlDir);
@@ -118,16 +117,19 @@ public class SmartDemoTest {
             }
         }
 
-        File tmpMeta = Files.createTempDir();
+        File tmpHome = Files.createTempDir();
+        File tmpMeta = new File(tmpHome, "metadata");
+        overwriteSystemProp("KYLIN_HOME", tmpHome.getAbsolutePath());
         FileUtils.copyDirectory(new File(metaDir), tmpMeta);
-
-        Properties props = new Properties();
-        props.setProperty("kylin.metadata.url", tmpMeta.getCanonicalPath());
-
-        KylinConfig kylinConfig = KylinConfig.createKylinConfig(props);
-        kylinConfig.setProperty("kylin.env", "UT");
+        FileUtils.touch(new File(tmpHome.getAbsolutePath() + "/kylin.properties"));
+        KylinConfig.setKylinConfigForLocalTest(tmpHome.getCanonicalPath());
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         kylinConfig.setProperty("kylin.query.security.acl-tcr-enabled", "false");
-        try (SetAndUnsetThreadLocalConfig autoUnset = KylinConfig.setAndUnsetThreadLocalConfig(kylinConfig)) {
+        kylinConfig.setProperty("kylin.smart.conf.propose-runner-type", "in-memory");
+        kylinConfig.setProperty("kylin.env", "UT");
+        Class.forName("org.h2.Driver");
+
+        try (SetAndUnsetThreadLocalConfig ignored = KylinConfig.setAndUnsetThreadLocalConfig(kylinConfig)) {
             AbstractContext context = AccelerationContextUtil.newSmartContext(kylinConfig, projectName,
                     sqlList.toArray(new String[0]));
             SmartMaster smartMaster = new SmartMaster(context);

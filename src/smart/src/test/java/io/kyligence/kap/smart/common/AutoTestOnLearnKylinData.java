@@ -26,7 +26,6 @@ package io.kyligence.kap.smart.common;
 
 import java.io.File;
 import java.util.List;
-import java.util.Properties;
 import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
@@ -58,18 +57,17 @@ public abstract class AutoTestOnLearnKylinData extends AbstractTestCase {
         overwriteSystemProp("spark.local", "true");
         String metaDir = "src/test/resources/nsmart/learn_kylin/meta";
         File tmpHome = Files.createTempDir();
-        tmpMeta = new File(tmpHome, "meta");
+        tmpMeta = new File(tmpHome, "metadata");
         overwriteSystemProp("KYLIN_HOME", tmpHome.getAbsolutePath());
         FileUtils.copyDirectory(new File(metaDir), tmpMeta);
-
-        Properties props = new Properties();
-        props.setProperty("kylin.metadata.url", tmpMeta.getCanonicalPath());
-        props.setProperty("kylin.smart.conf.propose-runner-type", "in-memory");
-
-        KylinConfig kylinConfig = KylinConfig.createKylinConfig(props);
-        kylinConfig.setProperty("kylin.env", "UT");
+        FileUtils.touch(new File(tmpHome.getAbsolutePath() + "/kylin.properties"));
+        KylinConfig.setKylinConfigForLocalTest(tmpHome.getCanonicalPath());
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         kylinConfig.setProperty("kylin.query.security.acl-tcr-enabled", "false");
+        kylinConfig.setProperty("kylin.smart.conf.propose-runner-type", "in-memory");
+        kylinConfig.setProperty("kylin.env", "UT");
         localConfig = KylinConfig.setAndUnsetThreadLocalConfig(kylinConfig);
+        Class.forName("org.h2.Driver");
     }
 
     public KylinConfig getTestConfig() {
