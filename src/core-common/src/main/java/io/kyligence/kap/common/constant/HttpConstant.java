@@ -29,6 +29,9 @@ public class HttpConstant {
     private HttpConstant() {
     }
 
+    /** kylin api client accept */
+    public static final String HTTP_VND_APACHE_KYLIN_EARLY_JSON = "application/json";
+
     /** KAP 2x and 3x api client accept */
     public static final String HTTP_VND_APACHE_KYLIN_V2_JSON = "application/vnd.apache.kylin-v2+json";
 

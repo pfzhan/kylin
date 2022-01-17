@@ -360,6 +360,10 @@ public class NBasicController {
         return data;
     }
 
+    public List<?> getDataNoEnvelopeResponse(List<?> result, int offset, int limit){
+        return PagingUtil.cutPage(result, offset, limit);
+    }
+
     public String checkProjectName(String project) {
         if (StringUtils.isEmpty(project)) {
             throw new KylinException(EMPTY_PROJECT_NAME, MsgPicker.getMsg().getEMPTY_PROJECT_NAME());
