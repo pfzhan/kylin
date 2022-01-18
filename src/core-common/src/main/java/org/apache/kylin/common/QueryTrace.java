@@ -46,11 +46,6 @@ public class QueryTrace {
     public static final String WAIT_FOR_EXECUTION = "WAIT_FOR_EXECUTION";
     public static final String EXECUTION = "EXECUTION";
     public static final String FETCH_RESULT = "FETCH_RESULT";
-    /**
-     * SPARK_JOB_EXECUTION: PREPARE_AND_SUBMIT_JOB + WAIT_FOR_EXECUTION + EXECUTION + FETCH_RESULT
-     */
-    public static final String SPARK_JOB_EXECUTION = "SPARK_JOB_EXECUTION";
-
     public static final String SQL_PUSHDOWN_TRANSFORMATION = "SQL_PUSHDOWN_TRANSFORMATION";
     public static final String HIT_CACHE = "HIT_CACHE";
 

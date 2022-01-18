@@ -75,27 +75,6 @@ public class QueryTraceTest {
         }
     }
 
-    @Test
-    public void testGroupsOfSPARK_JOB_EXECUTION() {
-        QueryTrace trace = new QueryTrace();
-        trace.startSpan(QueryTrace.GET_ACL_INFO);
-        trace.startSpan(QueryTrace.SQL_TRANSFORMATION);
-        trace.startSpan(QueryTrace.SQL_PARSE_AND_OPTIMIZE);
-        trace.startSpan(QueryTrace.MODEL_MATCHING);
-        trace.startSpan(QueryTrace.SPARK_JOB_EXECUTION);
-        trace.startSpan(QueryTrace.SQL_PUSHDOWN_TRANSFORMATION);
-        trace.startSpan(QueryTrace.HIT_CACHE);
-        trace.endLastSpan();
-
-        for (QueryTrace.Span span : trace.spans()) {
-            if (QueryTrace.PREPARATION.equals(span.getGroup())) {
-                Assert.assertTrue(QueryTrace.SPAN_GROUPS.containsKey(span.getName()));
-            } else {
-                Assert.assertFalse(QueryTrace.SPAN_GROUPS.containsKey(span.getName()));
-            }
-        }
-    }
-
     private void assertTimeEqual(long expected, long actual) {
         Assert.assertTrue(Math.abs(expected - actual) < 1000);
     }

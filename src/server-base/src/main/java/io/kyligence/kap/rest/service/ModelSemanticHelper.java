@@ -182,9 +182,6 @@ public class ModelSemanticHelper extends BasicService {
             NDataModel existingModel =
                     NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), modelRequest.getProject())
                             .getDataModelDesc(modelRequest.getUuid());
-            if (existingModel.isBroken()) {
-                return;
-            }
             Set<Integer> internalIds = new HashSet<>();
             for (SimplifiedMeasure measure : modelRequest.getSimplifiedMeasures()) {
                 if (existingModel.getEffectiveExpandedMeasures().containsKey(measure.getId())) {

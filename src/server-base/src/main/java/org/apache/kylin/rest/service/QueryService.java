@@ -42,8 +42,9 @@
 
 package org.apache.kylin.rest.service;
 
+import static org.apache.kylin.common.QueryTrace.EXECUTION;
+import static org.apache.kylin.common.QueryTrace.FETCH_RESULT;
 import static org.apache.kylin.common.QueryTrace.GET_ACL_INFO;
-import static org.apache.kylin.common.QueryTrace.SPARK_JOB_EXECUTION;
 import static org.apache.kylin.common.exception.ServerErrorCode.ACCESS_DENIED;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PROJECT_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_SQL_EXPRESSION;
@@ -264,7 +265,8 @@ public class QueryService extends BasicService {
                 logger.debug("Return fake response, is exception? {}", fakeResponse.isException());
                 fakeResponse.setEngineType(QueryHistory.EngineType.CONSTANTS.name());
                 QueryContext.current().getQueryTagInfo().setConstantQuery(true);
-                QueryContext.currentTrace().startSpan(SPARK_JOB_EXECUTION);
+                QueryContext.currentTrace().startSpan(EXECUTION);
+                QueryContext.currentTrace().startSpan(FETCH_RESULT);
                 return fakeResponse;
             }
 
@@ -438,13 +440,9 @@ public class QueryService extends BasicService {
                 sqlRequest.setUsername(getUsername());
             QueryLimiter.tryAcquire();
             SQLResponse response = doQueryWithCache(sqlRequest);
-            response.setTraces(QueryContext.currentTrace().spans().stream().map(span -> {
-                if (QueryTrace.PREPARE_AND_SUBMIT_JOB.equals(span.getName())) {
-                    return new SQLResponseTrace(QueryTrace.SPARK_JOB_EXECUTION, span.getGroup(), span.getDuration());
-                } else {
-                    return new SQLResponseTrace(span.getName(), span.getGroup(), span.getDuration());
-                }
-            }).collect(Collectors.toList()));
+            response.setTraces(QueryContext.currentTrace().spans().stream()
+                    .map(span -> new SQLResponseTrace(span.getName(), span.getGroup(), span.getDuration()))
+                    .collect(Collectors.toList()));
             if (null == response.getExceptionMessage()) {
                 removeExceptionCache(sqlRequest);
             }
@@ -545,7 +543,6 @@ public class QueryService extends BasicService {
             }
 
             QueryUtils.updateQueryContextSQLMetrics();
-            QueryContext.currentTrace().amendLast(QueryTrace.PREPARE_AND_SUBMIT_JOB, System.currentTimeMillis());
             QueryContext.currentTrace().endLastSpan();
             QueryContext.currentMetrics().setQueryEndTime(System.currentTimeMillis());
 
