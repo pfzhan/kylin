@@ -269,7 +269,7 @@
 
 <script>
 import Vue from 'vue'
-import { Component } from 'vue-property-decorator'
+import { Component, Watch } from 'vue-property-decorator'
 import { mapActions, mapGetters, mapMutations } from 'vuex'
 import { cacheLocalStorage, getQueryString, objectClone, indexOfObjWithSomeKey, countObjWithSomeKey } from 'util/index'
 import { handleError, handleSuccess, postCloudUrlMessage, transToGmtTime, kapConfirm } from 'util/business'
@@ -396,6 +396,17 @@ export default class StreamingJobsList extends Vue {
       return this.$t('noPartitonColumnDisableStartJobTips')
     } else {
       return this.$t('disableStartJobTips')
+    }
+  }
+
+  @Watch('$store.state.project.isAllProject')
+  selectAllProject (curVal) {
+    if (curVal) {
+      this.jobsList = []
+      this.$nextTick(() => {
+        this.manualRefreshJobs()
+        this.loadModelObjectList()
+      })
     }
   }
 
@@ -936,7 +947,11 @@ export default class StreamingJobsList extends Vue {
   }
   async loadModelObjectList (filterValue) {
     try {
-      const res = await this.getModelObjectList({project: this.currentSelectedProject, model_name: filterValue, page_size: 100})
+      const data = { project: this.currentSelectedProject, model_name: filterValue, page_size: 100 }
+      if (this.$store.state.project.isAllProject) {
+        delete data.project
+      }
+      const res = await this.getModelObjectList(data)
       this.modelFilteArr = await handleSuccessAsync(res)
     } catch (e) {
       handleError(e)
