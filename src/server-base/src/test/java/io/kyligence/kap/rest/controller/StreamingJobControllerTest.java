@@ -233,6 +233,14 @@ public class StreamingJobControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testGetStreamingModelNameListNonProject() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/streaming_jobs/model_name")
+                        .contentType(MediaType.APPLICATION_JSON).param("page_size", "20").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+        Mockito.verify(streamingJobController).getStreamingModelNameList("", "", 20);
+    }
+
+    @Test
     public void testAddSegment() throws Exception {
         val request = new StreamingSegmentRequest();
         request.setJobExecutionId(0);

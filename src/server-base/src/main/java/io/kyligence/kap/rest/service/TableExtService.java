@@ -28,9 +28,11 @@ import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -159,13 +161,17 @@ public class TableExtService extends BasicService {
     public LoadTableResponse loadTablesByDatabase(String project, final String[] databases) throws Exception {
         aclEvaluate.checkProjectWritePermission(project);
         LoadTableResponse loadTableByDatabaseResponse = new LoadTableResponse();
+        NTableMetadataManager tableManager = getTableManager(project);
         for (final String database : databases) {
             List<String> tables = tableService.getSourceTableNames(project, database, "");
-            List<String> identities = tables.stream().map(s -> database + "." + s).collect(Collectors.toList());
-            String[] tableToLoad = new String[identities.size()];
-            LoadTableResponse loadTableResponse = loadTables(identities.toArray(tableToLoad), project);
-            loadTableByDatabaseResponse.getLoaded().addAll(loadTableResponse.getLoaded());
-            loadTableByDatabaseResponse.getFailed().addAll(loadTableResponse.getFailed());
+            List<String> identities = tables.stream().map(s -> database + "." + s)
+                    .filter(t -> Objects.isNull(tableManager.getTableDesc(t))).collect(Collectors.toList());
+            if (CollectionUtils.isNotEmpty(identities)) {
+                String[] tableToLoad = new String[identities.size()];
+                LoadTableResponse loadTableResponse = loadTables(identities.toArray(tableToLoad), project);
+                loadTableByDatabaseResponse.getLoaded().addAll(loadTableResponse.getLoaded());
+                loadTableByDatabaseResponse.getFailed().addAll(loadTableResponse.getFailed());
+            }
         }
         return loadTableByDatabaseResponse;
     }

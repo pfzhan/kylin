@@ -106,7 +106,21 @@ public class TableExtServiceTest extends NLocalFileMetadataTestCase {
         Mockito.doReturn(Lists.newArrayList(tableNames)).when(tableService).getSourceTableNames("default", "EDW", "");
         Mockito.doReturn(loadTableResponse).when(tableExtService).loadTables(tableIdentities, "default");
         LoadTableResponse response = tableExtService.loadTablesByDatabase("default", new String[] { "EDW" });
-        Assert.assertTrue(response.getLoaded().size() == 3);
+        Assert.assertTrue(response.getLoaded().size() == 0);
+    }
+
+    @Test
+    public void testLoadTablesByDatabaseNotInCache() throws Exception {
+        String[] tableIdentities = {"EDW.TEST_CAL_DT"};
+        String[] tableNames = {"TEST_CAL_DT"};
+        LoadTableResponse loadTableResponse = new LoadTableResponse();
+        loadTableResponse.setLoaded(Sets.newHashSet(tableIdentities));
+        Mockito.doReturn(Lists.newArrayList(tableNames)).when(tableService).getSourceTableNames("default", "EDW", "");
+        Mockito.doReturn(loadTableResponse).when(tableExtService).loadTables(tableIdentities, "default");
+        NTableMetadataManager tableManager = NTableMetadataManager.getInstance(getTestConfig(), "default");
+        tableManager.removeSourceTable("EDW.TEST_CAL_DT");
+        LoadTableResponse response = tableExtService.loadTablesByDatabase("default", new String[]{"EDW"});
+        Assert.assertTrue(response.getLoaded().size() == 1);
     }
 
     @Test
