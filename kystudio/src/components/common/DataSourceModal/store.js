@@ -52,7 +52,6 @@ const initialState = JSON.stringify({
       username: '',
       password: ''
     },
-    databaseSizeObj: null,
     kafkaMeta: null,
     convertData: null,
     sampleData: null,
@@ -65,6 +64,7 @@ const initialState = JSON.stringify({
       synced: false
     }
   },
+  databaseSizeObj: null,
   datasource: null,
   project: null
 })
@@ -92,7 +92,6 @@ export default {
       state.datasource && _getDatasourceSettings(state)
     },
     [types.UPDATE_JDBC_CONFIG] (state, sourceType) {
-      console.log(sourceType, 333)
       const { override_kylin_properties } = state.project
       if (!override_kylin_properties) return
       if (+override_kylin_properties['kylin.source.default'] === sourceType &&
