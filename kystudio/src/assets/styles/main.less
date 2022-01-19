@@ -509,6 +509,11 @@ i[class^=el-icon-]{
     }
   }
 
+// IE 下 tooltip 更改
+.el-tooltip__popper .popper__arrow::after {
+  content: none\0;
+}
+
 // 组件特殊覆盖代码
 .el-dialog {
   .el-dialog__body {

@@ -978,7 +978,7 @@ export default class SourceHive extends Vue {
       position: static;
     }
     .el-tree-node {
-      overflow-x: hidden;
+      overflow: hidden;
     }
     .el-tree .el-tree-node__content {
       .tree-item {
