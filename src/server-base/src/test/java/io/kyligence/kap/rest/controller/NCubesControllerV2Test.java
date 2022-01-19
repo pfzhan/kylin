@@ -29,6 +29,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.kyligence.kap.rest.service.ModelBuildService;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.RandomUtil;
@@ -72,6 +73,9 @@ public class NCubesControllerV2Test extends NLocalFileMetadataTestCase {
 
     @Mock
     private ModelService modelService;
+
+    @Mock
+    private ModelBuildService modelBuildService;
 
     @InjectMocks
     private NCubesControllerV2 nCubesControllerV2 = Mockito.spy(new NCubesControllerV2());
@@ -154,7 +158,7 @@ public class NCubesControllerV2Test extends NLocalFileMetadataTestCase {
         Mockito.when(modelService.getCube("model1", null)).thenReturn(mockModels().get(0));
         String startTime = String.valueOf(0L);
         String endTime = String.valueOf(Long.MAX_VALUE - 1);
-        Mockito.doReturn(new JobInfoResponse()).when(modelService).buildSegmentsManually("default", "model1", startTime,
+        Mockito.doReturn(new JobInfoResponse()).when(modelBuildService).buildSegmentsManually("default", "model1", startTime,
                 endTime);
 
         CubeRebuildRequest rebuildRequest = new CubeRebuildRequest();
@@ -172,7 +176,7 @@ public class NCubesControllerV2Test extends NLocalFileMetadataTestCase {
     @Test
     public void testRebuildRefresh() throws Exception {
         Mockito.when(modelService.getCube("model1", null)).thenReturn(mockModels().get(1));
-        Mockito.doReturn(Lists.newArrayList(new JobInfoResponse.JobInfo())).when(modelService)
+        Mockito.doReturn(Lists.newArrayList(new JobInfoResponse.JobInfo())).when(modelBuildService)
                 .refreshSegmentById(new RefreshSegmentParams("default", "model1", new String[] { "seg1", "seg2" }));
 
         CubeRebuildRequest rebuildRequest = new CubeRebuildRequest();
@@ -191,7 +195,7 @@ public class NCubesControllerV2Test extends NLocalFileMetadataTestCase {
     public void testManageSegmentsMerge() throws Exception {
         JobInfoResponse.JobInfo jobInfo = new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_MERGE.toString(), "");
         Mockito.when(modelService.getCube("model1", null)).thenReturn(mockModels().get(0));
-        Mockito.doReturn(jobInfo).when(modelService)
+        Mockito.doReturn(jobInfo).when(modelBuildService)
                 .mergeSegmentsManually(new MergeSegmentParams("default", "model1", new String[] { "seg1", "seg2" }));
 
         SegmentMgmtRequest request = new SegmentMgmtRequest();
@@ -210,7 +214,7 @@ public class NCubesControllerV2Test extends NLocalFileMetadataTestCase {
     public void testManageSegmentsFresh() throws Exception {
         JobInfoResponse.JobInfo jobInfo = new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_MERGE.toString(), "");
         Mockito.when(modelService.getCube("model1", null)).thenReturn(mockModels().get(0));
-        Mockito.doReturn(Lists.newArrayList(jobInfo)).when(modelService)
+        Mockito.doReturn(Lists.newArrayList(jobInfo)).when(modelBuildService)
                 .refreshSegmentById(new RefreshSegmentParams("default", "model1", new String[] { "seg1", "seg2" }));
 
         SegmentMgmtRequest request = new SegmentMgmtRequest();

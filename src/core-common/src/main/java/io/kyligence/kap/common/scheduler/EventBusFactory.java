@@ -52,6 +52,7 @@ public class EventBusFactory {
     private EventBus asyncEventBus;
     private EventBus syncEventBus;
     private EventBus broadcastEventBus;
+    private EventBus serviceEventBus;
 
     private ThreadPoolExecutor eventExecutor;
     private ExecutorService broadcastExecutor;
@@ -76,6 +77,7 @@ public class EventBusFactory {
         asyncEventBus = new AsyncEventBus(eventExecutor);
         syncEventBus = new SyncThrowExceptionEventBus();
         broadcastEventBus = new AsyncEventBus(broadcastExecutor);
+        serviceEventBus = new SyncThrowExceptionEventBus();
     }
 
     public void registerBroadcast(Object broadcastListener) {
@@ -88,6 +90,10 @@ public class EventBusFactory {
         } else {
             asyncEventBus.register(listener);
         }
+    }
+
+    public void registerService(Object listener) {
+        serviceEventBus.register(listener);
     }
 
     public void unregister(Object listener) {
@@ -103,6 +109,14 @@ public class EventBusFactory {
         }
         try {
             broadcastEventBus.unregister(listener);
+        } catch (IllegalArgumentException ignore) {
+            // ignore it
+        }
+    }
+
+    public void unregisterService(Object listener) {
+        try {
+            serviceEventBus.unregister(listener);
         } catch (IllegalArgumentException ignore) {
             // ignore it
         }
@@ -129,6 +143,11 @@ public class EventBusFactory {
     public void postSync(Object event) {
         log.debug("Post event {} sync", event);
         syncEventBus.post(event);
+    }
+
+    public void callService(Object event) {
+        log.debug("Post Service event {} sync", event);
+        serviceEventBus.post(event);
     }
 
     @VisibleForTesting

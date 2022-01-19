@@ -53,7 +53,6 @@ import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryInfo;
 import io.kyligence.kap.metadata.query.QueryMetrics;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
-import io.kyligence.kap.rest.service.RawRecService;
 
 @RunWith(TimeZoneTestRunner.class)
 public class QueryHistoryTaskSchedulerTest extends NLocalFileMetadataTestCase {
@@ -81,7 +80,6 @@ public class QueryHistoryTaskSchedulerTest extends NLocalFileMetadataTestCase {
     public void testQueryAcc() {
         qhAccelerateScheduler.queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
         qhAccelerateScheduler.accelerateRuleUtil = Mockito.mock(AccelerateRuleUtil.class);
-        qhAccelerateScheduler.rawRecService = Mockito.mock(RawRecService.class);
         Mockito.when(qhAccelerateScheduler.queryHistoryDAO.queryQueryHistoriesByIdOffset(Mockito.anyLong(),
                 Mockito.anyInt(), Mockito.anyString())).thenReturn(queryHistories()).thenReturn(null);
 
@@ -110,7 +108,6 @@ public class QueryHistoryTaskSchedulerTest extends NLocalFileMetadataTestCase {
     public void testQueryAccResetOffset() {
         qhAccelerateScheduler.queryHistoryDAO = Mockito.spy(RDBMSQueryHistoryDAO.getInstance());
         qhAccelerateScheduler.accelerateRuleUtil = Mockito.mock(AccelerateRuleUtil.class);
-        qhAccelerateScheduler.rawRecService = Mockito.mock(RawRecService.class);
         Mockito.when(qhAccelerateScheduler.queryHistoryDAO.queryQueryHistoriesByIdOffset(Mockito.anyLong(),
                 Mockito.anyInt(), Mockito.anyString())).thenReturn(Lists.newArrayList());
 
@@ -133,7 +130,6 @@ public class QueryHistoryTaskSchedulerTest extends NLocalFileMetadataTestCase {
     public void testQueryAccNotResetOffset() {
         qhAccelerateScheduler.queryHistoryDAO = Mockito.spy(RDBMSQueryHistoryDAO.getInstance());
         qhAccelerateScheduler.accelerateRuleUtil = Mockito.mock(AccelerateRuleUtil.class);
-        qhAccelerateScheduler.rawRecService = Mockito.mock(RawRecService.class);
         Mockito.when(qhAccelerateScheduler.queryHistoryDAO.queryQueryHistoriesByIdOffset(Mockito.anyLong(),
                 Mockito.anyInt(), Mockito.anyString())).thenReturn(Lists.newArrayList());
         Mockito.when(qhAccelerateScheduler.queryHistoryDAO.getQueryHistoryMaxId(Mockito.anyString())).thenReturn(12L);
@@ -157,7 +153,6 @@ public class QueryHistoryTaskSchedulerTest extends NLocalFileMetadataTestCase {
     public void testUpdateMetadata() {
         qhAccelerateScheduler.queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
         qhAccelerateScheduler.accelerateRuleUtil = Mockito.mock(AccelerateRuleUtil.class);
-        qhAccelerateScheduler.rawRecService = Mockito.mock(RawRecService.class);
         Mockito.when(qhAccelerateScheduler.queryHistoryDAO.queryQueryHistoriesByIdOffset(Mockito.anyLong(),
                 Mockito.anyInt(), Mockito.anyString())).thenReturn(queryHistories()).thenReturn(null);
 
@@ -204,7 +199,6 @@ public class QueryHistoryTaskSchedulerTest extends NLocalFileMetadataTestCase {
     public void testUpdateMetadataWithStringRealization() {
         qhAccelerateScheduler.queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
         qhAccelerateScheduler.accelerateRuleUtil = Mockito.mock(AccelerateRuleUtil.class);
-        qhAccelerateScheduler.rawRecService = Mockito.mock(RawRecService.class);
         Mockito.when(qhAccelerateScheduler.queryHistoryDAO.queryQueryHistoriesByIdOffset(Mockito.anyLong(),
                 Mockito.anyInt(), Mockito.anyString())).thenReturn(queryHistoriesWithStringRealization()).thenReturn(null);
 
@@ -251,7 +245,6 @@ public class QueryHistoryTaskSchedulerTest extends NLocalFileMetadataTestCase {
     public void testNotUpdateMetadataForUserTriggered() {
         qhAccelerateScheduler.queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
         qhAccelerateScheduler.accelerateRuleUtil = Mockito.mock(AccelerateRuleUtil.class);
-        qhAccelerateScheduler.rawRecService = Mockito.mock(RawRecService.class);
         Mockito.when(qhAccelerateScheduler.queryHistoryDAO.queryQueryHistoriesByIdOffset(Mockito.anyLong(),
                 Mockito.anyInt(), Mockito.anyString())).thenReturn(queryHistories()).thenReturn(null);
         Mockito.when(qhAccelerateScheduler.accelerateRuleUtil.findMatchedCandidate(Mockito.anyString(),
@@ -285,7 +278,6 @@ public class QueryHistoryTaskSchedulerTest extends NLocalFileMetadataTestCase {
     public void testBatchUpdate() {
         qhAccelerateScheduler.queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
         qhAccelerateScheduler.accelerateRuleUtil = Mockito.mock(AccelerateRuleUtil.class);
-        qhAccelerateScheduler.rawRecService = Mockito.mock(RawRecService.class);
         Mockito.when(qhAccelerateScheduler.queryHistoryDAO.queryQueryHistoriesByIdOffset(Mockito.anyLong(),
                 Mockito.anyInt(), Mockito.anyString())).thenReturn(queryHistories()).thenReturn(queryHistories());
 

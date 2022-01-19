@@ -59,7 +59,7 @@ import io.kyligence.kap.rest.request.SnapshotTableConfigRequest;
 import io.kyligence.kap.rest.request.TablePartitionsRequest;
 import io.kyligence.kap.rest.request.TableReloadPartitionColRequest;
 import io.kyligence.kap.rest.service.SnapshotService;
-import io.kyligence.kap.rest.service.SnapshotService.SnapshotStatus;
+import io.kyligence.kap.rest.constant.SnapshotStatus;
 
 public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
 

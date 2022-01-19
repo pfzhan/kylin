@@ -79,8 +79,8 @@ public class StageTest extends NLocalFileMetadataTestCase {
     @Mock
     private final ModelService modelService = Mockito.spy(ModelService.class);
 
-    @Mock
-    private final TableExtService tableExtService = Mockito.spy(TableExtService.class);
+//    @Mock
+//    private final TableExtService tableExtService = Mockito.spy(TableExtService.class);
 
     @Mock
     private final AclUtil aclUtil = Mockito.spy(AclUtil.class);
@@ -102,7 +102,7 @@ public class StageTest extends NLocalFileMetadataTestCase {
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
         ReflectionTestUtils.setField(jobService, "aclEvaluate", aclEvaluate);
-        ReflectionTestUtils.setField(jobService, "tableExtService", tableExtService);
+        //ReflectionTestUtils.setField(jobService, "tableExtService", tableExtService);
         ReflectionTestUtils.setField(jobService, "projectService", projectService);
         ReflectionTestUtils.setField(jobService, "modelService", modelService);
     }

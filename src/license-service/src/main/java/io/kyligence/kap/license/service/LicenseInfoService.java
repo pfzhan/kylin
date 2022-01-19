@@ -62,6 +62,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.rest.service.SourceUsageService;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
@@ -104,10 +107,9 @@ import com.google.common.hash.Hashing;
 import io.kyligence.kap.common.constant.Constants;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.scheduler.SourceUsageUpdateNotifier;
+import io.kyligence.kap.common.event.SourceUsageUpdateReqEvent;
 import io.kyligence.kap.common.util.Unsafe;
-import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.ProjectCapacityDetail;
@@ -124,7 +126,6 @@ import io.kyligence.kap.rest.response.NodeMonitorInfoResponse;
 import io.kyligence.kap.rest.response.ProjectCapacityResponse;
 import io.kyligence.kap.rest.response.RemoteLicenseResponse;
 import io.kyligence.kap.rest.response.ServerInfoResponse;
-import io.kyligence.kap.rest.service.SourceUsageService;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -142,6 +143,9 @@ public class LicenseInfoService extends BasicService {
     private static final String CAPACITY = "capacity";
 
     private static final Logger logger = LoggerFactory.getLogger(LicenseInfoService.class);
+
+    @Autowired
+    SourceUsageService sourceUsageService;
 
     public static File getDefaultLicenseFile() {
         File kylinHome = KapConfig.getKylinHomeAtBestEffort();
@@ -173,9 +177,6 @@ public class LicenseInfoService extends BasicService {
 
     @Autowired
     private ClusterManager clusterManager;
-
-    @Autowired
-    private SourceUsageService sourceUsageService;
 
     @EventListener(AfterMetadataReadyEvent.class)
     public void init() {
@@ -1007,6 +1008,8 @@ public class LicenseInfoService extends BasicService {
     }
 
     public void updateSourceUsage() {
+        EventBusFactory.getInstance().callService(new SourceUsageUpdateReqEvent());
+
         if (EpochManager.getInstance().checkEpochOwner(EpochManager.GLOBAL)) {
             SourceUsageRecord sourceUsageRecord = sourceUsageService.refreshLatestSourceUsageRecord();
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {

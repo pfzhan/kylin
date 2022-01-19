@@ -40,6 +40,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.rest.service.ModelBuildService;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
@@ -87,6 +88,11 @@ public class NCubesControllerV2 extends NBasicController {
 
     @Autowired
     private ModelSemanticHelper semanticService;
+
+    @Autowired
+    @Qualifier("modelBuildService")
+    private ModelBuildService modelBuildService;
+
 
     @ApiOperation(value = "getCubes", tags = { "AI" })
     @GetMapping(value = "")
@@ -150,7 +156,7 @@ public class NCubesControllerV2 extends NBasicController {
         JobInfoResponseV2 result = null;
         switch (request.getBuildType()) {
         case "BUILD":
-            val buildResponse = modelService.buildSegmentsManually(dataModelResponse.getProject(),
+            val buildResponse = modelBuildService.buildSegmentsManually(dataModelResponse.getProject(),
                     dataModelResponse.getId(), startTime, endTime);
             if (CollectionUtils.isNotEmpty(buildResponse.getJobs())) {
                 result = JobInfoResponseV2
@@ -173,7 +179,7 @@ public class NCubesControllerV2 extends NBasicController {
                 throw new KylinException(INVALID_SEGMENT_PARAMETER,
                         "You should choose at most one segment to refresh!");
             }
-            val refreshResponse = modelService.refreshSegmentById(new RefreshSegmentParams(
+            val refreshResponse = modelBuildService.refreshSegmentById(new RefreshSegmentParams(
                     dataModelResponse.getProject(), dataModelResponse.getId(), idList.toArray(new String[0])));
             if (CollectionUtils.isNotEmpty(refreshResponse)) {
                 result = JobInfoResponseV2.convert(refreshResponse.stream()
@@ -221,7 +227,7 @@ public class NCubesControllerV2 extends NBasicController {
                 throw new KylinException(INVALID_SEGMENT_PARAMETER,
                         "You should choose at least two segments to merge!");
             }
-            val mergeResponse = modelService.mergeSegmentsManually(new MergeSegmentParams(
+            val mergeResponse = modelBuildService.mergeSegmentsManually(new MergeSegmentParams(
                     dataModelResponse.getProject(), dataModelResponse.getId(), idList.toArray(new String[0])));
             return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, JobInfoResponseV2.convert(mergeResponse), "");
         case "REFRESH":
@@ -229,7 +235,7 @@ public class NCubesControllerV2 extends NBasicController {
                 throw new KylinException(INVALID_SEGMENT_PARAMETER,
                         "You should choose at least one segment to refresh!");
             }
-            val refreshResponse = modelService.refreshSegmentById(new RefreshSegmentParams(
+            val refreshResponse = modelBuildService.refreshSegmentById(new RefreshSegmentParams(
                     dataModelResponse.getProject(), dataModelResponse.getId(), idList.toArray(new String[0])));
             return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, JobInfoResponseV2.convert(refreshResponse), "");
         case "DROP":

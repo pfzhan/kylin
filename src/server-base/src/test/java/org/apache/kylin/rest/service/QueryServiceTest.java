@@ -214,7 +214,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         origin = new QueryService();
         queryService = Mockito.spy(origin);
         queryService.queryRoutingEngine = Mockito.spy(QueryRoutingEngine.class);
-
+        //Mockito.when(SpringContext.getBean(QueryService.class)).thenReturn(queryService);
+        Mockito.when(SpringContext.getBean(CacheSignatureQuerySupporter.class)).thenReturn(queryService);
         ReflectionTestUtils.setField(queryService, "aclEvaluate", Mockito.mock(AclEvaluate.class));
         ReflectionTestUtils.setField(queryService, "queryCacheManager", queryCacheManager);
         ReflectionTestUtils.setField(queryService, "clusterManager", clusterManager);
@@ -398,7 +399,9 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
         // case of not hitting cache
         String expectedQueryID = QueryContext.current().getQueryId();
-        Mockito.when(SpringContext.getBean(QueryService.class)).thenReturn(queryService);
+        //Mockito.when(SpringContext.getBean(QueryService.class)).thenReturn(queryService);
+        Mockito.when(SpringContext.getBean(CacheSignatureQuerySupporter.class)).thenReturn(queryService);
+        //Mockito.when(queryService.createAclSignature(project)).thenReturn("root");
         final SQLResponse firstSuccess = queryService.queryWithCache(request);
         Assert.assertEquals(expectedQueryID, firstSuccess.getQueryId());
         Assert.assertEquals(2, firstSuccess.getNativeRealizations().size());

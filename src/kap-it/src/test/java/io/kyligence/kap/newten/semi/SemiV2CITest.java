@@ -28,6 +28,7 @@ import static io.kyligence.kap.metadata.model.util.ComputedColumnUtil.CC_NAME_PR
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -88,6 +89,7 @@ import io.kyligence.kap.rest.response.SuggestionResponse;
 import io.kyligence.kap.rest.service.IndexPlanService;
 import io.kyligence.kap.rest.service.ModelSemanticHelper;
 import io.kyligence.kap.rest.service.ModelService;
+import io.kyligence.kap.rest.service.ModelSmartService;
 import io.kyligence.kap.rest.service.NUserGroupService;
 import io.kyligence.kap.rest.service.OptRecService;
 import io.kyligence.kap.rest.service.ProjectService;
@@ -113,9 +115,12 @@ public class SemiV2CITest extends SemiAutoTestBase {
     private RDBMSQueryHistoryDAO queryHistoryDAO;
     private ProjectService projectService;
 
+    @Mock
     OptRecService optRecService = Mockito.spy(new OptRecService());
     @Mock
     ModelService modelService = Mockito.spy(ModelService.class);
+    @Mock
+    ModelSmartService modelSmartService = Mockito.spy(ModelSmartService.class);
     @Mock
     private final IndexPlanService indexPlanService = Mockito.spy(new IndexPlanService());
     @Mock
@@ -139,7 +144,9 @@ public class SemiV2CITest extends SemiAutoTestBase {
         ReflectionTestUtils.setField(modelService, "indexPlanService", indexPlanService);
         queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance();
         prepareACL();
-        QueryHistoryTaskScheduler.getInstance(getProject()).init();
+        QueryHistoryTaskScheduler queryHistoryTaskScheduler = QueryHistoryTaskScheduler.getInstance(getProject());
+        ReflectionTestUtils.setField(queryHistoryTaskScheduler, "querySmartSupporter", rawRecService);
+        queryHistoryTaskScheduler.init();
     }
 
     @After
@@ -152,13 +159,21 @@ public class SemiV2CITest extends SemiAutoTestBase {
     private void prepareACL() {
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
         ReflectionTestUtils.setField(optRecService, "aclEvaluate", aclEvaluate);
+        ReflectionTestUtils.setField(optRecService, "modelService", modelService);
+        ReflectionTestUtils.setField(optRecService, "indexPlanService", indexPlanService);
         ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(modelService, "userGroupService", userGroupService);
-        ReflectionTestUtils.setField(modelService, "optRecService", optRecService);
+        ReflectionTestUtils.setField(modelService, "modelChangeSupporters", Arrays.asList(rawRecService));
+        ReflectionTestUtils.setField(modelSmartService, "optRecService", optRecService);
+        ReflectionTestUtils.setField(modelSmartService, "modelService", modelService);
+        ReflectionTestUtils.setField(modelSmartService, "indexPlanService", indexPlanService);
+        ReflectionTestUtils.setField(modelSmartService, "rawRecService", rawRecService);
+        ReflectionTestUtils.setField(modelSmartService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(projectService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(projectService, "userGroupService", userGroupService);
+        ReflectionTestUtils.setField(projectService, "projectSmartSupporter", rawRecService);
         ReflectionTestUtils.setField(rawRecService, "optRecService", optRecService);
-        ReflectionTestUtils.setField(projectService, "rawRecService", rawRecService);
+        ReflectionTestUtils.setField(rawRecService, "projectService", projectService);
         TestingAuthenticationToken auth = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
         SecurityContextHolder.getContext().setAuthentication(auth);
     }
@@ -519,11 +534,11 @@ public class SemiV2CITest extends SemiAutoTestBase {
         List<String> li = Lists.newArrayList();
         li.add("select test_kylin_fact.order_id, lstg_format_name\n"
                 + "from test_kylin_fact left join test_order on test_kylin_fact.order_id = test_order.order_id\n");
-        AbstractContext proposeContext = modelService.suggestModel(project, li, true, false);
+        AbstractContext proposeContext = modelSmartService.suggestModel(project, li, true, false);
 
         List<AbstractContext.ModelContext> modelContextList = proposeContext.getModelContexts();
         Assert.assertEquals(1, modelContextList.size());
-        SuggestionResponse suggestionResponse = modelService.buildModelSuggestionResponse(proposeContext);
+        SuggestionResponse suggestionResponse = modelSmartService.buildModelSuggestionResponse(proposeContext);
         List<SuggestionResponse.ModelRecResponse> reusedModels = suggestionResponse.getReusedModels();
         List<SuggestionResponse.ModelRecResponse> newModels = suggestionResponse.getNewModels();
         List<ModelRequest> reusedModelRequests = mockModelRequest(reusedModels);
@@ -578,11 +593,11 @@ public class SemiV2CITest extends SemiAutoTestBase {
         List<String> li = Lists.newArrayList();
         li.add("select lstg_format_name, trans_id, count(item_count) from test_kylin_fact group by lstg_format_name, trans_id");
         li.add("select leaf_categ_id, count(seller_id) from test_kylin_fact group by leaf_categ_id");
-        AbstractContext proposeContext = modelService.suggestModel(project, li, true, false);
+        AbstractContext proposeContext = modelSmartService.suggestModel(project, li, true, false);
 
         List<AbstractContext.ModelContext> modelContextList = proposeContext.getModelContexts();
         Assert.assertEquals(1, modelContextList.size());
-        SuggestionResponse suggestionResponse = modelService.buildModelSuggestionResponse(proposeContext);
+        SuggestionResponse suggestionResponse = modelSmartService.buildModelSuggestionResponse(proposeContext);
         List<SuggestionResponse.ModelRecResponse> reusedModels = suggestionResponse.getReusedModels();
         List<SuggestionResponse.ModelRecResponse> newModels = suggestionResponse.getNewModels();
         List<ModelRequest> reusedModelRequests = mockModelRequest(reusedModels);
@@ -605,7 +620,7 @@ public class SemiV2CITest extends SemiAutoTestBase {
         // suggest again and assert result again
         List<String> sqlList = Lists.newArrayList();
         sqlList.add("select order_id, count(seller_id) from test_kylin_fact group by order_id");
-        AbstractContext proposeContextSecond = modelService.suggestModel(project, sqlList, true, true);
+        AbstractContext proposeContextSecond = modelSmartService.suggestModel(project, sqlList, true, true);
         List<AbstractContext.ModelContext> modelContextsTwice = proposeContextSecond.getModelContexts();
         Assert.assertEquals(1, modelContextsTwice.size());
         AbstractContext.ModelContext modelContextTwice = modelContextsTwice.get(0);
@@ -702,7 +717,7 @@ public class SemiV2CITest extends SemiAutoTestBase {
                         + "on test_kylin_fact.cal_dt = test_cal_dt.cal_dt group by price, item_count",
                 "select lstg_format_name, item_count, count(item_count), sum(price) "
                         + "from test_kylin_fact group by lstg_format_name, item_count");
-        AbstractContext proposeContext = modelService.suggestModel(getProject(), sqlList, true, false);
+        AbstractContext proposeContext = modelSmartService.suggestModel(getProject(), sqlList, true, false);
         AccelerateInfo failedInfo = proposeContext.getAccelerateInfoMap().get(sqlList.get(0));
         Assert.assertTrue(failedInfo.isNotSucceed());
         Assert.assertEquals(ModelSelectProposer.NO_MODEL_MATCH_PENDING_MSG, failedInfo.getPendingMsg());
@@ -757,7 +772,7 @@ public class SemiV2CITest extends SemiAutoTestBase {
                 + "left join test_kylin_fact on test_order.order_id = test_kylin_fact.order_id "
                 + "and buyer_id >= seller_id and buyer_id < leaf_categ_id " //
                 + "group by test_order.order_id,test_date_enc");
-        AbstractContext proposeContext = modelService.suggestModel(getProject(), sqlList, true, false);
+        AbstractContext proposeContext = modelSmartService.suggestModel(getProject(), sqlList, true, false);
         rawRecService.transferAndSaveRecommendations(proposeContext);
 
         // assert result
@@ -801,8 +816,8 @@ public class SemiV2CITest extends SemiAutoTestBase {
                         + "on test_kylin_fact.cal_dt = test_cal_dt.cal_dt group by price, item_count",
                 "select lstg_format_name, item_count, sum(price+1), sum(price+2) "
                         + "from test_kylin_fact group by lstg_format_name, item_count");
-        AbstractContext proposeContext = modelService.suggestModel(getProject(), sqlList, true, true);
-        SuggestionResponse suggestionResp = modelService.buildModelSuggestionResponse(proposeContext);
+        AbstractContext proposeContext = modelSmartService.suggestModel(getProject(), sqlList, true, true);
+        SuggestionResponse suggestionResp = modelSmartService.buildModelSuggestionResponse(proposeContext);
         List<SuggestionResponse.ModelRecResponse> reusedModels = suggestionResp.getReusedModels();
         Assert.assertEquals(1, reusedModels.size());
         SuggestionResponse.ModelRecResponse recommendedModelResponse = reusedModels.get(0);
@@ -873,8 +888,8 @@ public class SemiV2CITest extends SemiAutoTestBase {
         // suggest model, add same index but not same layout
         List<String> sqlList = ImmutableList
                 .of("select count(*) from test_kylin_fact where lstg_format_name = '1' group by price");
-        AbstractContext proposeContext = modelService.suggestModel(getProject(), sqlList, true, true);
-        SuggestionResponse suggestionResp = modelService.buildModelSuggestionResponse(proposeContext);
+        AbstractContext proposeContext = modelSmartService.suggestModel(getProject(), sqlList, true, true);
+        SuggestionResponse suggestionResp = modelSmartService.buildModelSuggestionResponse(proposeContext);
 
         List<SuggestionResponse.ModelRecResponse> reusedModels = suggestionResp.getReusedModels();
         Assert.assertEquals(1, reusedModels.size());
@@ -1021,13 +1036,13 @@ public class SemiV2CITest extends SemiAutoTestBase {
         // optimize with a batch of sql list
         List<String> li = Lists.newArrayList();
         li.add("SELECT sum(LO_CUSTKEY) from SSB.P_LINEORDER_STR group by LO_CUSTKEY");
-        AbstractContext proposeContext = modelService.suggestModel(project, li, false, true);
+        AbstractContext proposeContext = modelSmartService.suggestModel(project, li, false, true);
         List<AbstractContext.ModelContext> modelContextList = proposeContext.getModelContexts();
         Assert.assertEquals(1, modelContextList.size());
         Assert.assertEquals(NDataModel.ModelType.STREAMING, modelContextList.get(0).getTargetModel().getModelType());
 
         String modelID = modelContextList.get(0).getTargetModel().getUuid();
-        SuggestionResponse suggestionResponse = modelService.buildModelSuggestionResponse(proposeContext);
+        SuggestionResponse suggestionResponse = modelSmartService.buildModelSuggestionResponse(proposeContext);
         List<SuggestionResponse.ModelRecResponse> reusedModels = suggestionResponse.getReusedModels();
         List<SuggestionResponse.ModelRecResponse> newModels = suggestionResponse.getNewModels();
         List<ModelRequest> reusedModelRequests = mockModelRequest(reusedModels);
@@ -1055,13 +1070,13 @@ public class SemiV2CITest extends SemiAutoTestBase {
         // optimize with a batch of sql list
         List<String> li = Lists.newArrayList();
         li.add("SELECT sum(LO_CUSTKEY) from SSB.P_LINEORDER_STR group by LO_CUSTKEY");
-        AbstractContext proposeContext = modelService.suggestModel(project, li, false, true);
+        AbstractContext proposeContext = modelSmartService.suggestModel(project, li, false, true);
         List<AbstractContext.ModelContext> modelContextList = proposeContext.getModelContexts();
         Assert.assertEquals(1, modelContextList.size());
         Assert.assertEquals(NDataModel.ModelType.STREAMING, modelContextList.get(0).getTargetModel().getModelType());
 
         String modelID = modelContextList.get(0).getTargetModel().getUuid();
-        SuggestionResponse suggestionResponse = modelService.buildModelSuggestionResponse(proposeContext);
+        SuggestionResponse suggestionResponse = modelSmartService.buildModelSuggestionResponse(proposeContext);
         List<SuggestionResponse.ModelRecResponse> reusedModels = suggestionResponse.getReusedModels();
         List<SuggestionResponse.ModelRecResponse> newModels = suggestionResponse.getNewModels();
         List<ModelRequest> reusedModelRequests = mockModelRequest(reusedModels);

@@ -52,6 +52,7 @@ import java.util.regex.Pattern;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import io.kyligence.kap.rest.service.ModelBuildService;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -130,6 +131,7 @@ import io.kyligence.kap.rest.response.SegmentCheckResponse;
 import io.kyligence.kap.rest.response.SegmentPartitionResponse;
 import io.kyligence.kap.rest.response.SuggestionResponse;
 import io.kyligence.kap.rest.service.FusionIndexService;
+import io.kyligence.kap.rest.service.ModelSmartService;
 import io.kyligence.kap.rest.service.FusionModelService;
 import io.kyligence.kap.rest.service.IndexPlanService;
 import io.kyligence.kap.rest.service.ModelService;
@@ -160,6 +162,9 @@ public class NModelController extends NBasicController {
     private ModelService modelService;
 
     @Autowired
+    private ModelSmartService modelSmartService;
+
+    @Autowired
     private FusionModelService fusionModelService;
 
     @Autowired
@@ -167,6 +172,11 @@ public class NModelController extends NBasicController {
 
     @Autowired
     private FusionIndexService fusionIndexService;
+
+    @Autowired
+    @Qualifier("modelBuildService")
+    private ModelBuildService modelBuildService;
+
 
     @ApiOperation(value = "getModels{Red}", tags = {
             "AI" }, notes = "Update Param: page_offset, page_size, sort_by; Update Response: total_size")
@@ -260,10 +270,10 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse<SuggestionResponse> suggestModel(@RequestBody SqlAccelerateRequest request) {
         checkProjectName(request.getProject());
         checkProjectNotSemiAuto(request.getProject());
-        AbstractContext proposeContext = modelService.suggestModel(request.getProject(), request.getSqls(),
+        AbstractContext proposeContext = modelSmartService.suggestModel(request.getProject(), request.getSqls(),
                 request.getReuseExistedModel(), true);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
-                modelService.buildModelSuggestionResponse(proposeContext), "");
+                modelSmartService.buildModelSuggestionResponse(proposeContext), "");
     }
 
     @ApiOperation(value = "suggestModel", tags = { "AI" }, notes = "")
@@ -305,7 +315,7 @@ public class NModelController extends NBasicController {
         checkProjectName(request.getProject());
         checkProjectNotSemiAuto(request.getProject());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
-                modelService.couldAnsweredByExistedModel(request.getProject(), request.getSqls()), "");
+                modelSmartService.couldAnsweredByExistedModel(request.getProject(), request.getSqls()), "");
     }
 
     /**
@@ -444,7 +454,7 @@ public class NModelController extends NBasicController {
 
         modelService.validateCCType(modelId, request.getProject());
 
-        val response = modelService.buildIndicesManually(modelId, request.getProject(), request.getPriority(),
+        val response = modelBuildService.buildIndicesManually(modelId, request.getProject(), request.getPriority(),
                 request.getYarnQueue(), request.getTag());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
@@ -882,7 +892,7 @@ public class NModelController extends NBasicController {
             if (ArrayUtils.isEmpty(segIds)) {
                 throw new KylinException(FAILED_REFRESH_SEGMENT, MsgPicker.getMsg().getINVALID_REFRESH_SEGMENT());
             }
-            jobInfos = modelService.refreshSegmentById(
+            jobInfos = modelBuildService.refreshSegmentById(
                     new RefreshSegmentParams(request.getProject(), modelId, segIds, request.isRefreshAllIndexes())
                             .withIgnoredSnapshotTables(request.getIgnoredSnapshotTables())
                             .withPriority(request.getPriority()).withPartialBuild(request.isPartialBuild())
@@ -893,7 +903,7 @@ public class NModelController extends NBasicController {
                 throw new KylinException(FAILED_MERGE_SEGMENT,
                         MsgPicker.getMsg().getINVALID_MERGE_SEGMENT_BY_TOO_LESS());
             }
-            val jobInfo = modelService.mergeSegmentsManually(
+            val jobInfo = modelBuildService.mergeSegmentsManually(
                     new MergeSegmentParams(request.getProject(), modelId, segIds).withPriority(request.getPriority())
                             .withYarnQueue(request.getYarnQueue()).withTag(request.getTag()));
             if (jobInfo != null) {
@@ -931,7 +941,7 @@ public class NModelController extends NBasicController {
                 modelId);
         validateDataRange(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(), partitionColumnFormat);
         modelService.validateCCType(modelId, buildSegmentsRequest.getProject());
-        JobInfoResponse response = modelService.buildSegmentsManually(buildSegmentsRequest.getProject(), modelId,
+        JobInfoResponse response = modelBuildService.buildSegmentsManually(buildSegmentsRequest.getProject(), modelId,
                 buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(),
                 buildSegmentsRequest.isBuildAllIndexes(), buildSegmentsRequest.getIgnoredSnapshotTables(),
                 buildSegmentsRequest.getSubPartitionValues(), buildSegmentsRequest.getPriority(),
@@ -984,7 +994,7 @@ public class NModelController extends NBasicController {
             @RequestBody IndexesToSegmentsRequest buildSegmentsRequest) {
         checkProjectName(buildSegmentsRequest.getProject());
         checkParamLength("tag", buildSegmentsRequest.getTag(), 1024);
-        JobInfoResponseWithFailure response = modelService.addIndexesToSegments(buildSegmentsRequest.getProject(),
+        JobInfoResponseWithFailure response = modelBuildService.addIndexesToSegments(buildSegmentsRequest.getProject(),
                 modelId, buildSegmentsRequest.getSegmentIds(), null, buildSegmentsRequest.isParallelBuildBySegment(),
                 buildSegmentsRequest.getPriority());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
@@ -1051,7 +1061,7 @@ public class NModelController extends NBasicController {
         checkParamLength("tag", param.getTag(), 1024);
         checkRequiredArg("segment_id", param.getSegmentId());
         checkRequiredArg("sub_partition_values", param.getSubPartitionValues());
-        val response = modelService.buildSegmentPartitionByValue(param.getProject(), modelId, param.getSegmentId(),
+        val response = modelBuildService.buildSegmentPartitionByValue(param.getProject(), modelId, param.getSegmentId(),
                 param.getSubPartitionValues(), param.isParallelBuildBySegment(), param.isBuildAllSubPartitions(),
                 param.getPriority(), param.getYarnQueue(), param.getTag());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
@@ -1065,7 +1075,7 @@ public class NModelController extends NBasicController {
         checkProjectName(param.getProject());
         checkParamLength("tag", param.getTag(), 1024);
         checkRequiredArg("segment_id", param.getSegmentId());
-        val response = modelService.refreshSegmentPartition(param, modelId);
+        val response = modelBuildService.refreshSegmentPartition(param, modelId);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 

@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
+import io.kyligence.kap.rest.service.ModelBuildService;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
@@ -97,6 +98,9 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
 
     @Mock
     private ModelService modelService;
+
+    @Mock
+    private ModelBuildService modelBuildService;
 
     @Mock
     private TableExtService tableExtService;
@@ -573,7 +577,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testRefreshSegments() throws Exception {
-        Mockito.doNothing().when(modelService).refreshSegments("default", "TEST_KYLIN_FACT", "0", "100", "0", "100");
+        Mockito.doNothing().when(modelBuildService).refreshSegments("default", "TEST_KYLIN_FACT", "0", "100", "0", "100");
         RefreshSegmentsRequest refreshSegmentsRequest = new RefreshSegmentsRequest();
         refreshSegmentsRequest.setProject("default");
         refreshSegmentsRequest.setRefreshStart("0");

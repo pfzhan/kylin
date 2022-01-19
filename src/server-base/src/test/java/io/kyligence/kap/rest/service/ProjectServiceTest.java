@@ -132,6 +132,9 @@ public class ProjectServiceTest extends ServiceTestBase {
     @InjectMocks
     private final ModelService modelService = Mockito.spy(ModelService.class);
 
+    @InjectMocks
+    private final RawRecService rawRecService = Mockito.spy(RawRecService.class);
+
     @Mock
     private final AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
 
@@ -160,6 +163,8 @@ public class ProjectServiceTest extends ServiceTestBase {
         ReflectionTestUtils.setField(projectService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(projectService, "asyncTaskService", asyncTaskService);
         ReflectionTestUtils.setField(projectService, "accessService", accessService);
+        ReflectionTestUtils.setField(projectService, "projectModelSupporter", modelService);
+        ReflectionTestUtils.setField(projectService, "projectSmartSupporter", rawRecService);
         ReflectionTestUtils.setField(projectService, "userService", userService);
         ReflectionTestUtils.setField(projectService, "recommendationTopNUpdateScheduler",
                 new RecommendationTopNUpdateScheduler());

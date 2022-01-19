@@ -261,6 +261,12 @@ public class ModelServiceTest extends CSVSourceTestCase {
     private final ModelService modelService = Mockito.spy(new ModelService());
 
     @InjectMocks
+    private final ModelBuildService modelBuildService = Mockito.spy(new ModelBuildService());
+
+    @InjectMocks
+    private final ModelSmartService modelSmartService = Mockito.spy(new ModelSmartService());
+
+    @InjectMocks
     private final ModelQueryService modelQueryService = Mockito.spy(new ModelQueryService());
 
     @InjectMocks
@@ -329,8 +335,18 @@ public class ModelServiceTest extends CSVSourceTestCase {
                     ComputedColumnEvalUtil.evaluateExprAndType(model, ccDesc);
                 }));
         ReflectionTestUtils.setField(modelService, "projectService", projectService);
-        ReflectionTestUtils.setField(modelService, "modelQueryService", modelQueryService);
+        ReflectionTestUtils.setField(modelService, "modelQuerySupporter", modelQueryService);
         ReflectionTestUtils.setField(tableService, "jobService", jobService);
+
+        ReflectionTestUtils.setField(modelService, "modelBuildService", modelBuildService);
+
+        ReflectionTestUtils.setField(modelBuildService, "modelService", modelService);
+        ReflectionTestUtils.setField(modelBuildService, "segmentHelper", segmentHelper);
+        ReflectionTestUtils.setField(modelBuildService, "aclEvaluate", aclEvaluate);
+
+        ReflectionTestUtils.setField(modelSmartService, "modelService", modelService);
+        ReflectionTestUtils.setField(modelSmartService, "aclEvaluate", aclEvaluate);
+
         modelService.setSemanticUpdater(semanticService);
         modelService.setSegmentHelper(segmentHelper);
         modelService.setIndexPlanService(indexPlanService);
@@ -1616,7 +1632,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     public void testSuggestModel() {
         List<String> sqls = Lists.newArrayList();
         Mockito.doReturn(false).when(modelService).isProjectNotExist(getProject());
-        val result = modelService.couldAnsweredByExistedModel(getProject(), sqls);
+        val result = modelSmartService.couldAnsweredByExistedModel(getProject(), sqls);
         Assert.assertTrue(result);
     }
 
@@ -1632,7 +1648,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         List<String> sqls = Lists.newArrayList("select order_id, count(*) from test_order group by order_id limit 1");
         Mockito.doReturn(false).when(modelService).isProjectNotExist(getProject());
-        val result = modelService.couldAnsweredByExistedModel(getProject(), sqls);
+        val result = modelSmartService.couldAnsweredByExistedModel(getProject(), sqls);
         Assert.assertTrue(result);
     }
 
@@ -1683,8 +1699,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         + "ON \"SELLER_ACCOUNT\".\"ACCOUNT_COUNTRY\"=\"SELLER_COUNTRY\".\"COUNTRY\"\n"
                         + "INNER JOIN \"DEFAULT\".\"TEST_COUNTRY\" as \"BUYER_COUNTRY\"\n"
                         + "ON \"BUYER_ACCOUNT\".\"ACCOUNT_COUNTRY\"=\"BUYER_COUNTRY\".\"COUNTRY\" group by test_kylin_fact.cal_dt");
-        AbstractContext proposeContext = modelService.suggestModel(getProject(), sqls, true, true);
-        val response = modelService.buildModelSuggestionResponse(proposeContext);
+        AbstractContext proposeContext = modelSmartService.suggestModel(getProject(), sqls, true, true);
+        val response = modelSmartService.buildModelSuggestionResponse(proposeContext);
         Assert.assertEquals(3, response.getReusedModels().size());
         Assert.assertEquals(0, response.getNewModels().size());
         response.getReusedModels().forEach(recommendedModelResponse -> {
@@ -1692,8 +1708,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
             Assert.assertTrue(indexes.isEmpty());
         });
 
-        AbstractContext proposeContext2 = modelService.suggestModel(getProject(), sqls.subList(0, 2), true, true);
-        val response2 = modelService.buildModelSuggestionResponse(proposeContext2);
+        AbstractContext proposeContext2 = modelSmartService.suggestModel(getProject(), sqls.subList(0, 2), true, true);
+        val response2 = modelSmartService.buildModelSuggestionResponse(proposeContext2);
         Assert.assertEquals(2, response2.getReusedModels().size());
         Assert.assertEquals(0, response2.getNewModels().size());
         response2.getReusedModels().forEach(recommendedModelResponse -> {
@@ -1739,7 +1755,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 + "where lstg_format_name = 'USA' group by lstg_format_name, cal_dt");
         sqlList.add("select lstg_format_name, cal_dt, count(item_count) from test_kylin_fact "
                 + "where cal_dt = '2012-01-02' group by lstg_format_name, cal_dt");
-        AbstractContext proposeContext = modelService.suggestModel(project, sqlList, true, true);
+        AbstractContext proposeContext = modelSmartService.suggestModel(project, sqlList, true, true);
 
         // assert optimization result
         List<AbstractContext.ModelContext> modelContextsAfterOptimization = proposeContext.getModelContexts();
@@ -1749,8 +1765,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(2, indexRexItemMap.size()); // if no merge, the result will be 3.
 
         // apply recommendations
-        SuggestionResponse modelSuggestionResponse = modelService.buildModelSuggestionResponse(proposeContext);
-        modelService.saveRecResult(modelSuggestionResponse, project);
+        SuggestionResponse modelSuggestionResponse = modelSmartService.buildModelSuggestionResponse(proposeContext);
+        modelSmartService.saveRecResult(modelSuggestionResponse, project);
 
         // assert result after apply recommendations
         NDataModel modelAfterSuggestModel = modelManager.getDataModelDesc(targetModel.getUuid());
@@ -1767,7 +1783,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertTrue(indexPlanRefreshed.getAllLayouts().isEmpty());
 
         // suggest again and assert result again
-        AbstractContext proposeContextSecond = modelService.suggestModel(project, sqlList, true, true);
+        AbstractContext proposeContextSecond = modelSmartService.suggestModel(project, sqlList, true, true);
         List<AbstractContext.ModelContext> modelContextsTwice = proposeContextSecond.getModelContexts();
         Assert.assertEquals(1, modelContextsTwice.size());
         AbstractContext.ModelContext modelContextTwice = modelContextsTwice.get(0);
@@ -1782,9 +1798,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         List<String> sqlList = Lists.newArrayList();
         sqlList.add("select floor(date'2020-11-17' TO day), ceil(date'2020-11-17' TO day) from test_kylin_fact");
-        AbstractContext proposeContext = modelService.suggestModel(project, sqlList, false, true);
-        SuggestionResponse modelSuggestionResponse = modelService.buildModelSuggestionResponse(proposeContext);
-        modelService.saveRecResult(modelSuggestionResponse, project);
+        AbstractContext proposeContext = modelSmartService.suggestModel(project, sqlList, false, true);
+        SuggestionResponse modelSuggestionResponse = modelSmartService.buildModelSuggestionResponse(proposeContext);
+        modelSmartService.saveRecResult(modelSuggestionResponse, project);
 
         List<AbstractContext.ModelContext> modelContexts = proposeContext.getModelContexts();
         Assert.assertEquals(1, modelContexts.size());
@@ -1819,9 +1835,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         List<String> sqlList = Lists.newArrayList();
         sqlList.add("select lstg_format_name, sum(price) from test_kylin_fact group by lstg_format_name");
-        AbstractContext proposeContext = modelService.suggestModel(project, sqlList, true, true);
-        SuggestionResponse modelSuggestionResponse = modelService.buildModelSuggestionResponse(proposeContext);
-        modelService.saveRecResult(modelSuggestionResponse, project);
+        AbstractContext proposeContext = modelSmartService.suggestModel(project, sqlList, true, true);
+        SuggestionResponse modelSuggestionResponse = modelSmartService.buildModelSuggestionResponse(proposeContext);
+        modelSmartService.saveRecResult(modelSuggestionResponse, project);
 
         NDataModel modelAfterSuggestModel = modelManager.getDataModelDesc(targetModel.getUuid());
         long dimensionCountRefreshed = modelAfterSuggestModel.getAllNamedColumns().stream()
@@ -2164,7 +2180,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dfManager.updateDataflow(update);
 
         try {
-            modelService.mergeSegmentsManually(new MergeSegmentParams("default", dfId,
+            modelBuildService.mergeSegmentsManually(new MergeSegmentParams("default", dfId,
                     new String[] { dataSegment1.getId(), dataSegment3.getId() }));
             Assert.fail();
         } catch (Exception e) {
@@ -2174,7 +2190,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                     e.getMessage());
         }
 
-        modelService.mergeSegmentsManually(new MergeSegmentParams("default", dfId,
+        modelBuildService.mergeSegmentsManually(new MergeSegmentParams("default", dfId,
                 new String[] { dataSegment1.getId(), dataSegment2.getId(), dataSegment3.getId() }));
         val execManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         val executables = getRunningExecutables("default", "741ca86a-1f13-46da-a59f-95fb68615e3a");
@@ -2189,7 +2205,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         try {
             //refresh exception
-            modelService.mergeSegmentsManually(
+            modelBuildService.mergeSegmentsManually(
                     new MergeSegmentParams("default", dfId, new String[] { dataSegment2.getId() }));
             Assert.fail();
         } catch (KylinException e) {
@@ -2238,7 +2254,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         thrown.expectMessage(String.format(Locale.ROOT,
                 MsgPicker.getMsg().getSEGMENT_STATUS(SegmentStatusEnumToDisplay.LOADING.name()),
                 dataSegment1.displayIdName()));
-        modelService.mergeSegmentsManually(
+        modelBuildService.mergeSegmentsManually(
                 new MergeSegmentParams("default", dfId, new String[] { dataSegment1.getId(), dataSegment2.getId() }));
 
         // clear segments
@@ -2278,13 +2294,13 @@ public class ModelServiceTest extends CSVSourceTestCase {
         update.setToUpdateSegs(segments.toArray(new NDataSegment[0]));
         dataflowManager.updateDataflow(update);
         //refresh normally
-        modelService.refreshSegmentById(new RefreshSegmentParams("default", "741ca86a-1f13-46da-a59f-95fb68615e3a",
+        modelBuildService.refreshSegmentById(new RefreshSegmentParams("default", "741ca86a-1f13-46da-a59f-95fb68615e3a",
                 new String[] { dataSegment2.getId() }));
         thrown.expect(KylinException.class);
         thrown.expectMessage(
                 String.format(Locale.ROOT, MsgPicker.getMsg().getSEGMENT_LOCKED(), dataSegment2.displayIdName()));
         //refresh exception
-        modelService.refreshSegmentById(new RefreshSegmentParams("default", "741ca86a-1f13-46da-a59f-95fb68615e3a",
+        modelBuildService.refreshSegmentById(new RefreshSegmentParams("default", "741ca86a-1f13-46da-a59f-95fb68615e3a",
                 new String[] { dataSegment2.getId() }));
     }
 
@@ -2305,7 +2321,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         thrown.expect(KylinException.class);
         thrown.expectMessage("Can’t find the segment by ID \"not_exist_01\". Please check and try again.");
         //refresh exception
-        modelService.refreshSegmentById(new RefreshSegmentParams("default", "741ca86a-1f13-46da-a59f-95fb68615e3a",
+        modelBuildService.refreshSegmentById(new RefreshSegmentParams("default", "741ca86a-1f13-46da-a59f-95fb68615e3a",
                 new String[] { "not_exist_01" }));
     }
 
@@ -2519,19 +2535,19 @@ public class ModelServiceTest extends CSVSourceTestCase {
         String normSql = "select test_order.order_id,buyer_id from test_order "
                 + " join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
                 + "group by test_order.order_id,buyer_id";
-        OpenSuggestionResponse normalResponse = modelService.suggestOrOptimizeModels(smartRequest(project, normSql));
+        OpenSuggestionResponse normalResponse = modelSmartService.suggestOrOptimizeModels(smartRequest(project, normSql));
         Assert.assertEquals(1, normalResponse.getModels().size());
 
         normSql = "select test_order.order_id,sum(price) from test_order "
                 + " join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
                 + "group by test_order.order_id";
-        normalResponse = modelService.suggestOrOptimizeModels(rewriteReq.apply(smartRequest(project, normSql)));
+        normalResponse = modelSmartService.suggestOrOptimizeModels(rewriteReq.apply(smartRequest(project, normSql)));
         Assert.assertEquals(1, normalResponse.getModels().size());
 
         normSql = "select test_order.order_id,buyer_id,max(price) from test_order "
                 + " join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
                 + "group by test_order.order_id,buyer_id,LSTG_FORMAT_NAME";
-        normalResponse = modelService.suggestOrOptimizeModels(rewriteReq.apply(smartRequest(project, normSql)));
+        normalResponse = modelSmartService.suggestOrOptimizeModels(rewriteReq.apply(smartRequest(project, normSql)));
 
         Assert.assertEquals(3,
                 indexMgr.getIndexPlan(normalResponse.getModels().get(0).getUuid()).getAllLayouts().size());
@@ -2551,7 +2567,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val request = smartRequest(project, sql1);
         request.setForce2CreateNewModel(false);
         //create new model
-        OpenAccSqlResponse normalResponse = modelService.suggestAndOptimizeModels(request);
+        OpenAccSqlResponse normalResponse = modelSmartService.suggestAndOptimizeModels(request);
         Assert.assertEquals(1, normalResponse.getCreatedModels().size());
         Assert.assertEquals(0, normalResponse.getOptimizedModels().size());
 
@@ -2563,12 +2579,12 @@ public class ModelServiceTest extends CSVSourceTestCase {
         String sql3 = "select max(order_id) from test_order";
         request2.getSqls().add(sql3);
         request2.setForce2CreateNewModel(false);
-        normalResponse = modelService.suggestAndOptimizeModels(request2);
+        normalResponse = modelSmartService.suggestAndOptimizeModels(request2);
         Assert.assertEquals(1, normalResponse.getCreatedModels().size());
         Assert.assertEquals(1, normalResponse.getOptimizedModels().size());
 
         //acc again, due to model online, so have no impact
-        normalResponse = modelService.suggestAndOptimizeModels(request2);
+        normalResponse = modelSmartService.suggestAndOptimizeModels(request2);
         Assert.assertEquals(0, normalResponse.getCreatedModels().size());
         Assert.assertEquals(2, normalResponse.getOptimizedModels().size());
         Assert.assertEquals(2, normalResponse.getErrorSqlList().size());
@@ -2588,7 +2604,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         String normSql = "select test_order.order_id,buyer_id from test_order "
                 + "left join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
                 + "group by test_order.order_id,buyer_id";
-        OpenSuggestionResponse normalResponse = modelService.suggestOrOptimizeModels(smartRequest(project, normSql));
+        OpenSuggestionResponse normalResponse = modelSmartService.suggestOrOptimizeModels(smartRequest(project, normSql));
         Assert.assertEquals(1, normalResponse.getModels().size());
         String modelId = normalResponse.getModels().get(0).getUuid();
         final NDataModel model1 = modelManager.getDataModelDesc(modelId);
@@ -2602,7 +2618,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 + "group by test_order.order_id";
         OpenSqlAccelerateRequest request1 = smartRequest(project, normSql);
         request1.setForce2CreateNewModel(false);
-        normalResponse = modelService.suggestOrOptimizeModels(request1);
+        normalResponse = modelSmartService.suggestOrOptimizeModels(request1);
         Assert.assertEquals(0, normalResponse.getModels().size());
         Assert.assertEquals(1, normalResponse.getErrorSqlList().size());
 
@@ -2612,7 +2628,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         });
         OpenSqlAccelerateRequest request2 = smartRequest(project, normSql);
         request2.setForce2CreateNewModel(false);
-        normalResponse = modelService.suggestOrOptimizeModels(request2);
+        normalResponse = modelSmartService.suggestOrOptimizeModels(request2);
         Assert.assertEquals(1, normalResponse.getModels().size());
         NDataModel model2 = modelManager.getDataModelDesc(modelId);
         Assert.assertEquals(2, model2.getJoinTables().size());
@@ -2624,7 +2640,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 + "group by test_order.order_id,buyer_id,LSTG_FORMAT_NAME";
         OpenSqlAccelerateRequest request3 = smartRequest(project, normSql);
         request3.setForce2CreateNewModel(false);
-        normalResponse = modelService.suggestOrOptimizeModels(request3);
+        normalResponse = modelSmartService.suggestOrOptimizeModels(request3);
         Assert.assertEquals(1, normalResponse.getModels().size());
         Assert.assertEquals(3, indexMgr.getIndexPlan(modelId).getAllLayouts().size());
     }
@@ -2655,12 +2671,12 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 + "left join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
                 + "and buyer_id>=seller_id and buyer_id<leaf_categ_id " //
                 + "group by test_order.order_id,buyer_id";
-        val scd2Response = modelService.suggestOrOptimizeModels(smartRequest(project, scd2Sql));
+        val scd2Response = modelSmartService.suggestOrOptimizeModels(smartRequest(project, scd2Sql));
 
         String normSql = "select test_order.order_id,buyer_id from test_order "
                 + " join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
                 + "group by test_order.order_id,buyer_id";
-        val normalResponse = modelService.suggestOrOptimizeModels(smartRequest(project, normSql));
+        val normalResponse = modelSmartService.suggestOrOptimizeModels(smartRequest(project, normSql));
 
         String nonEquivModelId = scd2Response.getModels().get(0).getUuid();
         String normalModelId = normalResponse.getModels().get(0).getUuid();
@@ -2867,7 +2883,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         thrown.expectInTransaction(KylinException.class);
         thrown.expectMessageInTransaction(
                 "Can’t manually build segments in model \"nmodel_basic\" under the current project settings.");
-        modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "0", "100");
+        modelBuildService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "0", "100");
     }
 
     @Test
@@ -3901,7 +3917,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("Can not build segments, please define table index or aggregate index first!");
         modelService.createModel(modelRequest.getProject(), modelRequest);
-        modelService.buildSegmentsManually("match", "new_model", "0", "100");
+        modelBuildService.buildSegmentsManually("match", "new_model", "0", "100");
     }
 
     public void testBuildSegmentsManually() throws Exception {
@@ -3917,7 +3933,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         NDataflowUpdate dataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
         dataflowUpdate.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[dataflow.getSegments().size()]));
         dataflowManager.updateDataflow(dataflowUpdate);
-        val jobInfo = modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa",
+        val jobInfo = modelBuildService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa",
                 "1577811661000", "1609430400000", true, Sets.newHashSet(), null, 0, false);
 
         Assert.assertEquals(jobInfo.getJobs().size(), 1);
@@ -3948,7 +3964,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
         dataflowUpdate.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[dataflow.getSegments().size()]));
         dataflowManager.updateDataflow(dataflowUpdate);
-        val jobInfo2 = modelService.buildSegmentsManually("default", multiPartitionModelUuid, "1577811661000",
+        val jobInfo2 = modelBuildService.buildSegmentsManually("default", multiPartitionModelUuid, "1577811661000",
                 "1609430400000", true, Sets.newHashSet(), null, 0, true);
         Assert.assertEquals(1, jobInfo2.getJobs().size());
         Assert.assertEquals(jobInfo2.getJobs().get(0).getJobName(), JobTypeEnum.INC_BUILD.name());
@@ -3973,7 +3989,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val minAndMaxTime = PushDownUtil.getMaxAndMinTime(modelUpdate.getPartitionDesc().getPartitionDateColumn(),
                 modelUpdate.getRootFactTableName(), "default");
         val dateFormat = DateFormat.proposeDateFormat(minAndMaxTime.getFirst());
-        modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa",
+        modelBuildService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa",
                 DateFormat.getFormattedDate(minAndMaxTime.getFirst(), dateFormat),
                 DateFormat.getFormattedDate(minAndMaxTime.getSecond(), dateFormat));
         val executables = getRunningExecutables("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -4030,7 +4046,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
             PartitionDesc partitionDesc = new PartitionDesc();
             partitionDesc.setPartitionDateColumn("TEST_KYLIN_FACT.CAL_DT");
             partitionDesc.setPartitionDateFormat(pattern);
-            modelService.incrementBuildSegmentsManually(project, modelId, "1577811661000", "1609430400000",
+            modelBuildService.incrementBuildSegmentsManually(project, modelId, "1577811661000", "1609430400000",
                     partitionDesc, null);
             NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             var dataflow = dataflowManager.getDataflow(modelId);
@@ -4045,7 +4061,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         List<String[]> multiPartitionValues = Lists.newArrayList();
         multiPartitionValues.add(new String[] { "cn" });
         try {
-            modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "", true,
+            modelBuildService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "", true,
                     Sets.newHashSet(), multiPartitionValues);
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
@@ -4073,7 +4089,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dataflowUpdate.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[dataflow.getSegments().size()]));
         dataflow = dataflowManager.updateDataflow(dataflowUpdate);
         Assert.assertEquals(0, dataflow.getSegments().size());
-        modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "", true,
+        modelBuildService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "", true,
                 Sets.newHashSet(), null, 0, false);
         dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(1, dataflow.getSegments().size());
@@ -4087,7 +4103,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         thrown.expectMessageInTransaction(String.format(Locale.ROOT,
                 MsgPicker.getMsg().getSEGMENT_STATUS(SegmentStatusEnumToDisplay.LOADING.name()), dataflowManager
                         .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getSegments().get(0).displayIdName()));
-        modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "");
+        modelBuildService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "");
     }
 
     @Test
@@ -4112,7 +4128,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         request.setProject(project);
         modelService.updateDataModelSemantic(project, request);
         try {
-            modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "");
+            modelBuildService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "");
         } catch (TransactionException exception) {
             Assert.assertTrue(exception.getCause() instanceof KylinException);
             Assert.assertEquals(MsgPicker.getMsg().getADD_JOB_CHECK_FAIL(), exception.getCause().getMessage());
@@ -4429,7 +4445,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         thrown.expect(KylinException.class);
         thrown.expectMessage(
                 "Can’t manually build indexes in model \"all_fixed_length\" under the current project settings.");
-        modelService.buildIndicesManually(modelId, project, 3, null, null);
+        modelBuildService.buildIndicesManually(modelId, project, 3, null, null);
     }
 
     @Test
@@ -4449,7 +4465,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         modelManager.updateDataModel(modelId,
                 copyForWrite -> copyForWrite.setManagementType(ManagementType.MODEL_BASED));
-        val response = modelService.buildIndicesManually(modelId, project, 0, null, null);
+        val response = modelBuildService.buildIndicesManually(modelId, project, 0, null, null);
         Assert.assertEquals(BuildIndexResponse.BuildIndexType.NORM_BUILD, response.getType());
         val executables = getRunningExecutables(project, modelId);
         Assert.assertEquals(1, executables.size());
@@ -4465,7 +4481,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         modelManager.updateDataModel(modelId,
                 copyForWrite -> copyForWrite.setManagementType(ManagementType.MODEL_BASED));
-        val response = modelService.buildIndicesManually(modelId, project, 3, null, null);
+        val response = modelBuildService.buildIndicesManually(modelId, project, 3, null, null);
         Assert.assertEquals(BuildIndexResponse.BuildIndexType.NO_LAYOUT, response.getType());
         val executables = getRunningExecutables(project, modelId);
         Assert.assertEquals(0, executables.size());
@@ -4483,7 +4499,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         modelManager.updateDataModel(modelId,
                 copyForWrite -> copyForWrite.setManagementType(ManagementType.MODEL_BASED));
-        val response = modelService.buildIndicesManually(modelId, project, 3, null, null);
+        val response = modelBuildService.buildIndicesManually(modelId, project, 3, null, null);
         Assert.assertEquals(BuildIndexResponse.BuildIndexType.NO_SEGMENT, response.getType());
         val executables = getRunningExecutables(project, modelId);
         Assert.assertEquals(0, executables.size());
@@ -4501,7 +4517,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         response.setAffectedEnd("120");
         Mockito.doReturn(response).when(modelService).getRefreshAffectedSegmentsResponse("default",
                 "DEFAULT.TEST_KYLIN_FACT", "0", "12223334");
-        modelService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "12223334", "0", "12223334");
+        modelBuildService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "12223334", "0", "12223334");
     }
 
     @Test
@@ -4518,7 +4534,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         loadingRange.setColumnName("TEST_ENCODING.int_dict");
         loadingRange.setCoveredRange(new SegmentRange.TimePartitionedSegmentRange(0L, 12223334L));
         loadingRangeMgr.createDataLoadingRange(loadingRange);
-        modelService.refreshSegments("default", "DEFAULT.TEST_ENCODING", "0", "12223334", "0", "12223334");
+        modelBuildService.refreshSegments("default", "DEFAULT.TEST_ENCODING", "0", "12223334", "0", "12223334");
     }
 
     @Test
@@ -4536,7 +4552,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         loadingRange.setColumnName("TEST_KYLIN_FACT.CAL_DT");
         loadingRange.setCoveredRange(new SegmentRange.TimePartitionedSegmentRange(0L, Long.MAX_VALUE));
         loadingRangeMgr.createDataLoadingRange(loadingRange);
-        modelService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "12223334", "0", "12223334");
+        modelBuildService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "12223334", "0", "12223334");
     }
 
     @Test
@@ -4557,14 +4573,14 @@ public class ModelServiceTest extends CSVSourceTestCase {
         loadingRange.setColumnName("TEST_KYLIN_FACT.CAL_DT");
         loadingRange.setCoveredRange(new SegmentRange.TimePartitionedSegmentRange(0L, Long.MAX_VALUE));
         loadingRangeMgr.createDataLoadingRange(loadingRange);
-        modelService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "12223334", "0", "12223334");
+        modelBuildService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "12223334", "0", "12223334");
     }
 
     //now test cases without exception
     @Test
     public void testRefreshSegmentsByDataRange_TwoOnlineModelAndHasReadySegs() throws IOException {
         prepareTwoOnlineModels();
-        modelService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "9223372036854775807", "0",
+        modelBuildService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "9223372036854775807", "0",
                 "9223372036854775807");
 
         val executables = getRunningExecutables("default", null);
@@ -4590,7 +4606,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         update2.setToRemoveSegs(df2.getSegments().toArray(new NDataSegment[0]));
         dfMgr.updateDataflow(update2);
 
-        modelService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "9223372036854775807", "0",
+        modelBuildService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "9223372036854775807", "0",
                 "9223372036854775807");
 
         val executables = getRunningExecutables("default", null);
@@ -4617,7 +4633,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         df_basic_inner = dfMgr.getDataflowByModelAlias("nmodel_basic_inner");
         val oldSeg = dfMgr.appendSegment(df_basic_inner, SegmentRange.TimePartitionedSegmentRange.createInfinite());
 
-        modelService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "9223372036854775807", "0",
+        modelBuildService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "9223372036854775807", "0",
                 "9223372036854775807");
         val executables = getRunningExecutables("default", null);
         Assert.assertEquals(2, executables.size());
@@ -4660,7 +4676,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 generateAllDataLayout(getProject(), df_basic_inner.getUuid(), Arrays.asList(firstSegment)));
         dfMgr.updateDataflow(update2);
 
-        modelService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "20", "0", "20");
+        modelBuildService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "20", "0", "20");
         val executables = getRunningExecutables("default", null);
         //refresh 2 ready segs and rebuild two new segs
         Assert.assertEquals(4, executables.size());
@@ -4707,7 +4723,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 generateAllDataLayout(getProject(), df_basic_inner.getUuid(), Arrays.asList(firstSegment, secondSeg)));
         dfMgr.updateDataflow(update2);
 
-        modelService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "20", "0", "20");
+        modelBuildService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "20", "0", "20");
 
         val executables = getRunningExecutables("default", null);
         executables.sort(Comparator.comparing(AbstractExecutable::getJobType));
@@ -5801,7 +5817,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         IncrementBuildSegmentParams incrParams = new IncrementBuildSegmentParams(project, modelId, "1633017600000",
                 "1633104000000", model.getPartitionDesc(), model.getMultiPartitionDesc(), segmentTimeRequests, true,
                 buildPartitions);
-        val jobInfo = modelService.incrementBuildSegmentsManually(incrParams);
+        val jobInfo = modelBuildService.incrementBuildSegmentsManually(incrParams);
 
         Assert.assertEquals(2, jobInfo.getJobs().size());
         Assert.assertEquals(jobInfo.getJobs().get(0).getJobName(), JobTypeEnum.INC_BUILD.name());
@@ -5818,7 +5834,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         IncrementBuildSegmentParams incrParams2 = new IncrementBuildSegmentParams(project, modelId, "1633104000000",
                 "1633190400000", model.getPartitionDesc(), model.getMultiPartitionDesc(), null, true, null)
                         .withBuildAllSubPartitions(true);
-        val jobInfo2 = modelService.incrementBuildSegmentsManually(incrParams2);
+        val jobInfo2 = modelBuildService.incrementBuildSegmentsManually(incrParams2);
         Assert.assertEquals(1, jobInfo2.getJobs().size());
         Assert.assertEquals(jobInfo2.getJobs().get(0).getJobName(), JobTypeEnum.INC_BUILD.name());
         val job2 = executableManager.getJob(jobInfo2.getJobs().get(0).getJobId());
@@ -5827,7 +5843,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         // change multi partition desc will clean all segments
         IncrementBuildSegmentParams incrParams3 = new IncrementBuildSegmentParams(project, modelId, "1633017600000",
                 "1633104000000", model.getPartitionDesc(), null, null, true, null);
-        val jobInfo3 = modelService.incrementBuildSegmentsManually(incrParams3);
+        val jobInfo3 = modelBuildService.incrementBuildSegmentsManually(incrParams3);
         val newModel = dataflowManager.getDataflow(modelId).getModel();
         Assert.assertEquals(1, jobInfo3.getJobs().size());
         Assert.assertFalse(newModel.isMultiPartitionModel());
@@ -5839,7 +5855,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val project = "default";
         val segmentId = "0db919f3-1359-496c-aab5-b6f3951adc0e";
         val refreshSegmentParams = new RefreshSegmentParams(project, modelId, new String[] { segmentId });
-        modelService.refreshSegmentById(refreshSegmentParams);
+        modelBuildService.refreshSegmentById(refreshSegmentParams);
 
         val jobs = getRunningExecutables(getProject(), modelId);
         val job = jobs.get(0);
@@ -5906,7 +5922,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         // empty layout in segment4
         try {
-            modelService.mergeSegmentsManually(new MergeSegmentParams(project, modelId,
+            modelBuildService.mergeSegmentsManually(new MergeSegmentParams(project, modelId,
                     new String[] { dataSegment5.getId(), dataSegment6.getId() }));
             Assert.fail();
         } catch (Exception e) {
@@ -5918,7 +5934,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         // index is not aligned in segment3, segment4
         try {
-            modelService.mergeSegmentsManually(new MergeSegmentParams(project, modelId,
+            modelBuildService.mergeSegmentsManually(new MergeSegmentParams(project, modelId,
                     new String[] { dataSegment3.getId(), dataSegment4.getId() }));
             Assert.fail();
         } catch (Exception e) {
@@ -5930,7 +5946,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         // partitions are not aligned in segment2, segment3
         try {
-            modelService.mergeSegmentsManually(new MergeSegmentParams(project, modelId,
+            modelBuildService.mergeSegmentsManually(new MergeSegmentParams(project, modelId,
                     new String[] { dataSegment2.getId(), dataSegment3.getId() }));
             Assert.fail();
         } catch (Exception e) {
@@ -5941,7 +5957,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         }
 
         // success
-        modelService.mergeSegmentsManually(
+        modelBuildService.mergeSegmentsManually(
                 new MergeSegmentParams(project, modelId, new String[] { dataSegment1.getId(), dataSegment2.getId() }));
     }
 
@@ -5998,8 +6014,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         buildPartitions.add(new String[] { "Austria" });
         val multiPartition1 = modelManager.getDataModelDesc(modelId).getMultiPartitionDesc();
         Assert.assertEquals(3, multiPartition1.getPartitions().size());
-        modelService.buildSegmentPartitionByValue(getProject(), modelId, segmentId1, buildPartitions, false, false, 0,
-                null, null);
+        modelBuildService.buildSegmentPartitionByValue(getProject(), modelId, segmentId1, buildPartitions, false, false,
+                0, null, null);
         val multiPartition2 = modelManager.getDataModelDesc(modelId).getMultiPartitionDesc();
         // add two new partitions
         Assert.assertEquals(5, multiPartition2.getPartitions().size());
@@ -6007,15 +6023,15 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(1, jobs1.size());
 
         val segmentId2 = "0db919f3-1359-496c-aab5-b6f3951adc0e";
-        modelService.buildSegmentPartitionByValue(getProject(), modelId, segmentId2, buildPartitions, true, false, 0,
-                null, null);
+        modelBuildService.buildSegmentPartitionByValue(getProject(), modelId, segmentId2, buildPartitions, true, false,
+                0, null, null);
         val jobs2 = getRunningExecutables(getProject(), modelId);
         Assert.assertEquals(4, jobs2.size());
 
         val segmentId3 = "d2edf0c5-5eb2-4968-9ad5-09efbf659324";
         try {
-            modelService.buildSegmentPartitionByValue(getProject(), modelId, segmentId3, buildPartitions, true, false,
-                    0, null, null);
+            modelBuildService.buildSegmentPartitionByValue(getProject(), modelId, segmentId3, buildPartitions, true,
+                    false, 0, null, null);
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
@@ -6033,8 +6049,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
             buildPartitions2.add(new String[] { "AMERICA" });
             buildPartitions2.add(new String[] { "MOROCCO" });
             buildPartitions2.add(new String[] { "INDONESIA" });
-            modelService.buildSegmentPartitionByValue(getProject(), modelId, segmentId4, buildPartitions2, true, false,
-                    0, null, null);
+            modelBuildService.buildSegmentPartitionByValue(getProject(), modelId, segmentId4, buildPartitions2, true,
+                    false, 0, null, null);
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
@@ -6044,7 +6060,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
             Assert.assertEquals(4, getRunningExecutables(getProject(), modelId).size());
         }
 
-        modelService.buildSegmentPartitionByValue(getProject(), modelId, segmentId4, null, false, true, 0, null, null);
+        modelBuildService.buildSegmentPartitionByValue(getProject(), modelId, segmentId4, null, false, true, 0, null,
+                null);
         val jobs4 = getRunningExecutables(getProject(), modelId);
         Assert.assertEquals(3, jobs4.get(0).getTargetPartitions().size());
     }
@@ -6063,19 +6080,19 @@ public class ModelServiceTest extends CSVSourceTestCase {
         // refresh partition by id
         PartitionsRefreshRequest param1 = new PartitionsRefreshRequest(getProject(), segmentId1,
                 Sets.newHashSet(7L, 8L), null, null, 0, null, null);
-        modelService.refreshSegmentPartition(param1, modelId);
+        modelBuildService.refreshSegmentPartition(param1, modelId);
 
         // refresh partition by value
         val partitionValues = Lists.<String[]> newArrayList(new String[] { "usa" }, new String[] { "un" });
         PartitionsRefreshRequest param2 = new PartitionsRefreshRequest(getProject(), segmentId2, null, partitionValues,
                 null, 0, null, null);
-        modelService.refreshSegmentPartition(param2, modelId);
+        modelBuildService.refreshSegmentPartition(param2, modelId);
 
         // no target partition id in segment
         PartitionsRefreshRequest param3 = new PartitionsRefreshRequest(getProject(), segmentId1, Sets.newHashSet(99L),
                 null, null, 0, null, null);
         try {
-            modelService.refreshSegmentPartition(param3, modelId);
+            modelBuildService.refreshSegmentPartition(param3, modelId);
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
@@ -6088,7 +6105,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         PartitionsRefreshRequest param4 = new PartitionsRefreshRequest(getProject(), segmentId1, null, partitionValues,
                 null, 0, null, null);
         try {
-            modelService.refreshSegmentPartition(param4, modelId);
+            modelBuildService.refreshSegmentPartition(param4, modelId);
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
@@ -6100,7 +6117,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         PartitionsRefreshRequest param5 = new PartitionsRefreshRequest(getProject(), segmentId1, null, null, null, 0,
                 null, null);
         try {
-            modelService.refreshSegmentPartition(param5, modelId);
+            modelBuildService.refreshSegmentPartition(param5, modelId);
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
@@ -6140,7 +6157,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         update2.setToUpdateSegs(segments.toArray(new NDataSegment[] {}));
         dfManager.updateDataflow(update2);
 
-        modelService.addIndexesToSegments(project, modelId,
+        modelBuildService.addIndexesToSegments(project, modelId,
                 Lists.newArrayList(dataSegment1.getId(), dataSegment2.getId()), Lists.newArrayList(80001L), false,
                 ExecutablePO.DEFAULT_PRIORITY);
         val executables = getRunningExecutables(getProject(), modelId);
@@ -6791,8 +6808,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val sqls = Lists.newArrayList("select \n"
                 + "count(distinct (case when ORDER_ID > 0  then price when ORDER_ID > 10 then SELLER_ID  else null end))  \n"
                 + "FROM TEST_KYLIN_FACT ");
-        AbstractContext proposeContext = modelService.suggestModel(getProject(), sqls, false, true);
-        val response = modelService.buildModelSuggestionResponse(proposeContext);
+        AbstractContext proposeContext = modelSmartService.suggestModel(getProject(), sqls, false, true);
+        val response = modelSmartService.buildModelSuggestionResponse(proposeContext);
         Assert.assertEquals(1, response.getNewModels().size());
         Assert.assertEquals(1, response.getNewModels().get(0).getIndexes().size());
         Assert.assertEquals(3, response.getNewModels().get(0).getIndexes().get(0).getDimensions().size());
@@ -6812,8 +6829,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
     public void testProposeMeasureWhenSubQueryOnFilter() {
         val sqls = Lists.newArrayList("select LO_ORDERDATE,sum(LO_TAX) from SSB.LINEORDER "
                 + "where LO_ORDERDATE = (select max(LO_ORDERDATE) from SSB.LINEORDER) group by LO_ORDERDATE ;");
-        AbstractContext proposeContext = modelService.suggestModel(getProject(), sqls, false, true);
-        val response = modelService.buildModelSuggestionResponse(proposeContext);
+        AbstractContext proposeContext = modelSmartService.suggestModel(getProject(), sqls, false, true);
+        val response = modelSmartService.buildModelSuggestionResponse(proposeContext);
         Assert.assertEquals(1, response.getNewModels().size());
         Assert.assertEquals(1, response.getNewModels().get(0).getIndexes().size());
         Assert.assertEquals(1, response.getNewModels().get(0).getIndexes().get(0).getDimensions().size());
@@ -6832,20 +6849,20 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testCouldAnsweredByExistedModels() {
         val project = "streaming_test";
-        val proposeContext0 = modelService.probeRecommendation(project, Collections.emptyList());
+        val proposeContext0 = modelSmartService.probeRecommendation(project, Collections.emptyList());
         Assert.assertTrue(proposeContext0.getProposedModels().isEmpty());
 
         val sqlList = Collections.singletonList("SELECT * FROM SSB.P_LINEORDER_STR");
-        val proposeContext1 = modelService.probeRecommendation(project, sqlList);
+        val proposeContext1 = modelSmartService.probeRecommendation(project, sqlList);
         Assert.assertTrue(proposeContext1.getProposedModels().isEmpty());
 
         val sqls = Lists.newArrayList("select * from SSB.LINEORDER");
-        AbstractContext proposeContext = modelService.suggestModel(getProject(), sqls, false, true);
-        val response = modelService.buildModelSuggestionResponse(proposeContext);
+        AbstractContext proposeContext = modelSmartService.suggestModel(getProject(), sqls, false, true);
+        val response = modelSmartService.buildModelSuggestionResponse(proposeContext);
         Assert.assertTrue(response.getReusedModels().isEmpty());
 
         thrown.expect(KylinException.class);
-        modelService.probeRecommendation("not_existed_project", sqlList);
+        modelSmartService.probeRecommendation("not_existed_project", sqlList);
     }
 
     @Test
@@ -6862,8 +6879,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 + "     (SELECT LSTG_FORMAT_NAME, ORDER_ID, SUM (\"PRICE\") AS \"X_measure__0\"\n"
                 + "      FROM TEST_KYLIN_FACT  GROUP  BY LSTG_FORMAT_NAME, ORDER_ID) \"t0\" ON \"自定义 SQL 查询\".\"ORDER_ID\" = \"t0\".\"ORDER_ID\"\n"
                 + "GROUP  BY \"自定义 SQL 查询\".\"CAL_DT\"");
-        AbstractContext proposeContext = modelService.suggestModel(getProject(), sqls, false, true);
-        SuggestionResponse response = modelService.buildModelSuggestionResponse(proposeContext);
+        AbstractContext proposeContext = modelSmartService.suggestModel(getProject(), sqls, false, true);
+        SuggestionResponse response = modelSmartService.buildModelSuggestionResponse(proposeContext);
         Assert.assertEquals(2, response.getNewModels().get(0).getIndexPlan().getIndexes().size());
         Assert.assertTrue(response.getNewModels().get(0).getIndexPlan().getIndexes().get(0).isTableIndex());
         Assert.assertTrue(
@@ -6871,8 +6888,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         // after agg push down, propose two agg index
         overwriteSystemProp("kylin.query.calcite.aggregate-pushdown-enabled", "TRUE");
-        proposeContext = modelService.suggestModel(getProject(), sqls, false, true);
-        response = modelService.buildModelSuggestionResponse(proposeContext);
+        proposeContext = modelSmartService.suggestModel(getProject(), sqls, false, true);
+        response = modelSmartService.buildModelSuggestionResponse(proposeContext);
         Assert.assertEquals(2, response.getNewModels().get(0).getIndexPlan().getIndexes().size());
         Assert.assertTrue(
                 IndexEntity.isAggIndex(response.getNewModels().get(0).getIndexPlan().getIndexes().get(0).getId()));

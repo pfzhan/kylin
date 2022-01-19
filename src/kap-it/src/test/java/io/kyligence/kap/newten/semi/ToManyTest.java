@@ -27,6 +27,7 @@ package io.kyligence.kap.newten.semi;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.kylin.common.util.JsonUtil;
@@ -84,6 +85,7 @@ public class ToManyTest extends SemiAutoTestBase {
     private NIndexPlanManager indexPlanManager;
     private RDBMSQueryHistoryDAO queryHistoryDAO;
 
+    @Mock
     OptRecService optRecService = Mockito.spy(new OptRecService());
     @Mock
     ModelService modelService = Mockito.spy(ModelService.class);
@@ -113,20 +115,23 @@ public class ToManyTest extends SemiAutoTestBase {
         modelService.setSemanticUpdater(semanticService);
         queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance();
         prepareACL();
-        QueryHistoryTaskScheduler.getInstance(getProject()).init();
+        QueryHistoryTaskScheduler queryHistoryTaskScheduler = QueryHistoryTaskScheduler.getInstance(getProject());
+        ReflectionTestUtils.setField(queryHistoryTaskScheduler, "querySmartSupporter", rawRecService);
+        queryHistoryTaskScheduler.init();
     }
 
     private void prepareACL() {
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
         ReflectionTestUtils.setField(optRecService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(optRecService, "modelService", modelService);
+        ReflectionTestUtils.setField(rawRecService, "optRecService", optRecService);
         ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(modelService, "userGroupService", userGroupService);
-        ReflectionTestUtils.setField(modelService, "optRecService", optRecService);
+        ReflectionTestUtils.setField(modelService, "modelChangeSupporters", Arrays.asList(rawRecService));
         ReflectionTestUtils.setField(projectService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(projectService, "userGroupService", userGroupService);
-        ReflectionTestUtils.setField(rawRecService, "optRecService", optRecService);
-        ReflectionTestUtils.setField(projectService, "rawRecService", rawRecService);
+        ReflectionTestUtils.setField(projectService, "projectModelSupporter", modelService);
+        ReflectionTestUtils.setField(projectService, "projectSmartSupporter", rawRecService);
         TestingAuthenticationToken auth = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
         SecurityContextHolder.getContext().setAuthentication(auth);
     }

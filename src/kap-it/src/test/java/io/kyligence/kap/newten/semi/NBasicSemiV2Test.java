@@ -27,6 +27,7 @@ package io.kyligence.kap.newten.semi;
 import static org.apache.commons.lang3.time.DateUtils.MILLIS_PER_DAY;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -121,7 +122,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         ReflectionTestUtils.setField(optRecService, "modelService", modelService);
         ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(modelService, "userGroupService", userGroupService);
-        ReflectionTestUtils.setField(modelService, "optRecService", optRecService);
+        ReflectionTestUtils.setField(modelService, "modelChangeSupporters", Arrays.asList(rawRecService));
         ReflectionTestUtils.setField(rawRecService, "optRecService", optRecService);
         ReflectionTestUtils.setField(rawRecService, "projectService", projectService);
         TestingAuthenticationToken auth = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
