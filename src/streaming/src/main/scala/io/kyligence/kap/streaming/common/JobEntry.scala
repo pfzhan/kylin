@@ -26,9 +26,9 @@ package io.kyligence.kap.streaming.common
 import org.apache.spark.sql.SparkSession
 
 class JobEntry(
-   val project: String,
-   val dataflowId: String,
-   val spark: SparkSession) extends  Serializable {
+                val project: String,
+                val dataflowId: String,
+                val spark: SparkSession) extends Serializable {
   override def toString: String = {
     s"""
        |==========================[JOB INFO]===============================

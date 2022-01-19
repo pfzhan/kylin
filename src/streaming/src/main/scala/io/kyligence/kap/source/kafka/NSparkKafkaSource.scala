@@ -21,9 +21,6 @@
  */
 package io.kyligence.kap.source.kafka
 
-import java.util.Map
-import java.util.concurrent.ArrayBlockingQueue
-
 import io.kyligence.kap.engine.spark.NSparkCubingEngine
 import io.kyligence.kap.engine.spark.source.NSparkMetadataExplorer
 import org.apache.commons.lang.StringUtils
@@ -35,6 +32,8 @@ import org.apache.spark.sql.execution.streaming.MemoryStream
 import org.apache.spark.sql.types.{StringType, StructType}
 import org.apache.spark.sql.{Dataset, Row, SparkSession}
 
+import java.util.Map
+import java.util.concurrent.ArrayBlockingQueue
 import scala.io.Source
 
 
@@ -44,6 +43,7 @@ class NSparkKafkaSource(val kylinConfig: KylinConfig) extends ISource {
   private var memoryStreamEnabled = false
 
   // scalastyle:off
+
   /**
    * Return an explorer to sync table metadata from the data source.
    */

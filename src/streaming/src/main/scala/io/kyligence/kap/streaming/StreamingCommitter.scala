@@ -24,13 +24,13 @@
 
 package io.kyligence.kap.streaming
 
-import java.util.HashMap
-
 import io.kyligence.kap.metadata.cube.model.LayoutEntity
 import org.apache.kylin.common.util.HadoopUtil
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.{Dataset, Row, SparkSession}
 import org.apache.spark.storage.StorageLevel
+
+import java.util.HashMap
 
 object StreamingCommitter extends Logging {
 

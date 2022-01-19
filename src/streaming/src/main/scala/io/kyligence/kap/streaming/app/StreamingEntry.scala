@@ -24,10 +24,6 @@
 
 package io.kyligence.kap.streaming.app
 
-import java.text.SimpleDateFormat
-import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong}
-import java.util.{Locale, TimeZone}
-
 import com.google.common.base.Preconditions
 import io.kyligence.kap.engine.spark.job.{KylinBuildEnv, NSparkCubingUtil, UdfManager}
 import io.kyligence.kap.metadata.cube.cuboid.{NSpanningTree, NSpanningTreeFactory}
@@ -52,6 +48,9 @@ import org.apache.spark.sql.streaming.{StreamingQueryListener, Trigger}
 import org.apache.spark.sql.{DataFrame, Dataset, Row, SparkSession, functions => F}
 import org.apache.spark.storage.StorageLevel
 
+import java.text.SimpleDateFormat
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong}
+import java.util.{Locale, TimeZone}
 import scala.collection.mutable.ArrayBuffer
 
 object StreamingEntry

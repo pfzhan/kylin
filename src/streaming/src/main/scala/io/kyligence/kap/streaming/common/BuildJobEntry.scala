@@ -24,9 +24,9 @@
 
 package io.kyligence.kap.streaming.common
 
-import org.apache.spark.sql.{Dataset, Row, SparkSession}
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree
 import io.kyligence.kap.metadata.cube.model.NDataSegment
+import org.apache.spark.sql.{Dataset, Row, SparkSession}
 
 class BuildJobEntry(
                      spark: SparkSession,
