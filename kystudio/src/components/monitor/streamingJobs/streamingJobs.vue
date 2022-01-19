@@ -59,7 +59,7 @@
               :show-search-input="true"
               :placeholder="$t('pleaseSearch')"
               :emptyFilterText="$t('kylinLang.common.noData')"
-              :filter-filters-change="(v) => fiterList('loadModelObjectList', v)"
+              :filter-filters-change="(v) => loadModelObjectList(v)"
               customFilterClass="filter-submitter"
               :filters="modelFilteArr.map(item => ({text: item, value: item}))"
               :filtered-value="filter.model_names"
