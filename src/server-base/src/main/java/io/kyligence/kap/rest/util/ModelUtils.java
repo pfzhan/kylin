@@ -71,12 +71,14 @@ public class ModelUtils {
     }
 
     public static void checkPartitionColumn(NDataModel model, PartitionDesc partitionDesc, String errMsg) {
-        if (!model.isBroken() && model.isStreaming()) {
-            if (PartitionDesc.isEmptyPartitionDesc(partitionDesc)
-                    || !DateFormat.isTimestampFormat(partitionDesc.getPartitionDateFormat())) {
-                throw new KylinException(INVALID_PARTITION_COLUMN, errMsg);
-            }
+        if (!model.isBroken() && model.isStreaming() && isPartitionEmptyAndNotTimeStamp(partitionDesc)) {
+            throw new KylinException(INVALID_PARTITION_COLUMN, errMsg);
         }
+    }
+
+    private static boolean isPartitionEmptyAndNotTimeStamp(PartitionDesc partitionDesc) {
+        return PartitionDesc.isEmptyPartitionDesc(partitionDesc)
+                || !DateFormat.isTimestampFormat(partitionDesc.getPartitionDateFormat());
     }
 
     public static void checkPartitionColumn(String project, String modelId, String errMsg) {
