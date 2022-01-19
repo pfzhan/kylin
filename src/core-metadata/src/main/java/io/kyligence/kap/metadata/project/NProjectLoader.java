@@ -28,7 +28,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -50,6 +49,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -151,12 +151,7 @@ public class NProjectLoader {
         NTableMetadataManager metaMgr = NTableMetadataManager.getInstance(mgr.getConfig(), project);
         Map<String, TableDesc> projectAllTables = metaMgr.getAllTablesMap();
         NRealizationRegistry registry = NRealizationRegistry.getInstance(mgr.getConfig(), project);
-
-        // before parallel stream, should use outside KylinConfig.getInstanceFromEnv()
-        // in case of load is executed in thread.
-        // eg. io.kyligence.kap.smart.query.AbstractQueryRunner.SUGGESTION_EXECUTOR_POOL
-        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        pi.getRealizationEntries().parallelStream().forEach(entry -> {
+        pi.getRealizationEntries().forEach(entry -> {
             IRealization realization = registry.getRealization(entry.getType(), entry.getRealization());
             if (realization == null) {
                 logger.warn("Realization '{}' defined under project '{}' is not found or it's broken.", entry, project);
@@ -164,7 +159,7 @@ public class NProjectLoader {
             }
             NDataflow dataflow = (NDataflow) realization;
             if (dataflow.getModel().isFusionModel() && dataflow.isStreaming()) {
-                FusionModel fusionModel = FusionModelManager.getInstance(kylinConfig, project)
+                FusionModel fusionModel = FusionModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                         .getFusionModel(dataflow.getModel().getFusionId());
                 if (fusionModel != null) {
                     val batchModel = fusionModel.getBatchModel();
@@ -173,7 +168,7 @@ public class NProjectLoader {
                         return;
                     }
                     String batchDataflowId = batchModel.getUuid();
-                    NDataflow batchRealization = NDataflowManager.getInstance(kylinConfig, project)
+                    NDataflow batchRealization = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                             .getDataflow(batchDataflowId);
                     HybridRealization hybridRealization = new HybridRealization(batchRealization, realization, project);
                     hybridRealization.setConfig(dataflow.getConfig());
@@ -205,7 +200,7 @@ public class NProjectLoader {
             // cuboid which only contains measure on (*) should return true
         }
 
-        return allColumns.parallelStream().allMatch(col -> {
+        for (TblColRef col : allColumns) {
             TableDesc table = projectAllTables.get(col.getTable());
             if (table == null) {
                 logger.error("Realization '{}' reports column '{}', but its table is not found by MetadataManager.",
@@ -222,8 +217,9 @@ public class NProjectLoader {
                     return false;
                 }
             }
-            return true;
-        });
+        }
+
+        return true;
     }
 
     private void mapTableToRealization(ProjectBundle prjCache, IRealization realization) {
@@ -236,7 +232,7 @@ public class NProjectLoader {
 
     private static class ProjectBundle {
         private String project;
-        private Map<String, Set<IRealization>> realizationsByTable = new ConcurrentHashMap<>();
+        private Map<String, Set<IRealization>> realizationsByTable = Maps.newHashMap();
 
         ProjectBundle(String project) {
             this.project = project;
