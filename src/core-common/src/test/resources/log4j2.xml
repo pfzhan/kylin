@@ -15,5 +15,6 @@
         <Logger name="org.apache.kylin" level="DEBUG"/>
         <Logger name="io.kyligence.kap.common.persistence.transaction.MessageSynchronization" level="WARN"/>
         <Logger name="kafka" level="WARN"/>
+        <Logger name="org.testcontainers" level="TRACE"/>
     </Loggers>
 </Configuration>

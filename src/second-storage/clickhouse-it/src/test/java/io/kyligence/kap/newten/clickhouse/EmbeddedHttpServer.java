@@ -28,8 +28,6 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Assert;
 import org.testcontainers.containers.NginxContainer;
-import org.testcontainers.containers.wait.strategy.HttpWaitStrategy;
-import org.testcontainers.utility.DockerImageName;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -38,7 +36,6 @@ import java.net.URL;
 import java.util.Locale;
 
 import static io.kyligence.kap.newten.clickhouse.ClickHouseUtils.NetworkAliases;
-import static io.kyligence.kap.newten.clickhouse.ClickHouseUtils.TEST_NETWORK;
 
 @Slf4j
 public class EmbeddedHttpServer {
@@ -64,8 +61,6 @@ public class EmbeddedHttpServer {
         }
     }
 
-    private static final DockerImageName NGINX_IMAGE = DockerImageName.parse("nginx:1.21.1");
-
     @SneakyThrows
     public static EmbeddedHttpServer startNginx(String workingDir) {
         File working = new File(workingDir);
@@ -76,12 +71,7 @@ public class EmbeddedHttpServer {
         @Cleanup PrintStream printStream = new PrintStream(new FileOutputStream(indexFile));
         printStream.println("<html><body>Hello World!</body></html>");
 
-        NginxContainer<?> nginx = new NginxContainer<>(NGINX_IMAGE)
-                .withCustomContent(workingDir)
-                .withNetwork(TEST_NETWORK)
-                .withNetworkAliases(NetworkAliases)
-                .waitingFor(new HttpWaitStrategy());
-        nginx.start();
+        NginxContainer<?> nginx = NginxContainerFactory.INSTANCE.startNginxContainer(workingDir);
         return new EmbeddedHttpServer(nginx);
     }
 }
