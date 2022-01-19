@@ -1363,6 +1363,8 @@ export default class QueryHistoryTable extends Vue {
   .col-sql-popover {
     max-width: 400px;
     box-sizing: border-box;
+    max-height: 300px;
+    overflow-y: auto;
     .popover-sql-content {
       white-space: pre-wrap;
       word-break: break-all;
