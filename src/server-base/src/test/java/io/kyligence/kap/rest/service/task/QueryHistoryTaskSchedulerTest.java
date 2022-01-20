@@ -86,7 +86,7 @@ public class QueryHistoryTaskSchedulerTest extends NLocalFileMetadataTestCase {
                 Mockito.anyInt(), Mockito.anyString())).thenReturn(queryHistories()).thenReturn(null);
 
         Mockito.when(qhAccelerateScheduler.accelerateRuleUtil.findMatchedCandidate(Mockito.anyString(),
-                Mockito.anyList(), Mockito.anyList())).thenReturn(queryHistories());
+                Mockito.anyList(), Mockito.anyMap(), Mockito.anyList())).thenReturn(queryHistories());
 
         // before update accelerate ratio
         AccelerateRatioManager accelerateRatioManager = AccelerateRatioManager.getInstance(getTestConfig(), PROJECT);
@@ -255,7 +255,7 @@ public class QueryHistoryTaskSchedulerTest extends NLocalFileMetadataTestCase {
         Mockito.when(qhAccelerateScheduler.queryHistoryDAO.queryQueryHistoriesByIdOffset(Mockito.anyLong(),
                 Mockito.anyInt(), Mockito.anyString())).thenReturn(queryHistories()).thenReturn(null);
         Mockito.when(qhAccelerateScheduler.accelerateRuleUtil.findMatchedCandidate(Mockito.anyString(),
-                Mockito.anyList(), Mockito.anyList())).thenReturn(queryHistories());
+                Mockito.anyList(), Mockito.anyMap(), Mockito.anyList())).thenReturn(queryHistories());
 
         // before update accelerate ratio
         AccelerateRatioManager accelerateRatioManager = AccelerateRatioManager.getInstance(getTestConfig(), PROJECT);

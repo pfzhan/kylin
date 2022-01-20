@@ -24,10 +24,12 @@
 
 package io.kyligence.kap.rest.service.task;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
@@ -69,6 +71,8 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kylin.rest.service.IUserGroupService;
+import org.apache.kylin.rest.util.SpringContext;
 
 @Slf4j
 public class QueryHistoryTaskScheduler {
@@ -82,6 +86,7 @@ public class QueryHistoryTaskScheduler {
     @Getter
     private final String project;
     private long epochId;
+    private IUserGroupService userGroupService;
 
     private QueryHistoryAccelerateRunner queryHistoryAccelerateRunner;
     private QueryHistoryMetaUpdateRunner queryHistoryMetaUpdateRunner;
@@ -93,7 +98,7 @@ public class QueryHistoryTaskScheduler {
         queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance();
         accelerateRuleUtil = new AccelerateRuleUtil();
         rawRecService = new RawRecService();
-
+        userGroupService = (IUserGroupService) SpringContext.getApplicationContext().getBean("userGroupService");
         queryHistoryAccelerateRunner = new QueryHistoryAccelerateRunner(false);
         queryHistoryMetaUpdateRunner = new QueryHistoryMetaUpdateRunner();
 
@@ -381,8 +386,9 @@ public class QueryHistoryTaskScheduler {
             }
             // accelerate
             List<Pair<Long, QueryHistoryInfo>> idToQHInfoList = Lists.newArrayList();
+            Map<String, Set<String>> submitterToGroups = getUserToGroups(queryHistories);
             List<QueryHistory> matchedCandidate = accelerateRuleUtil.findMatchedCandidate(project, queryHistories,
-                    idToQHInfoList);
+                    submitterToGroups, idToQHInfoList);
             queryHistoryDAO.batchUpdateQueryHistoriesInfo(idToQHInfoList);
             rawRecService.generateRawRecommendations(project, matchedCandidate, isManual());
 
@@ -393,6 +399,19 @@ public class QueryHistoryTaskScheduler {
                 }
             }
             updateIdOffset(maxId);
+        }
+
+        protected Map<String, Set<String>> getUserToGroups(List<QueryHistory> queryHistories) {
+            Map<String, Set<String>> submitterToGroups = new HashMap<>();
+            for (QueryHistory qh : queryHistories) {
+                QueryHistoryInfo queryHistoryInfo = qh.getQueryHistoryInfo();
+                if (queryHistoryInfo == null) {
+                    continue;
+                }
+                String querySubmitter = qh.getQuerySubmitter();
+                submitterToGroups.putIfAbsent(querySubmitter, userGroupService.listUserGroups(querySubmitter));
+            }
+            return submitterToGroups;
         }
 
         private void updateIdOffset(long maxId) {

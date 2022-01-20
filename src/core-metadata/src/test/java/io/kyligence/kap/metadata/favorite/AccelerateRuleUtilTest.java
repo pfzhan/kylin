@@ -35,6 +35,11 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.query.QueryHistory;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
 public class AccelerateRuleUtilTest extends NLocalFileMetadataTestCase {
 
     private static String PROJECT = "default";
@@ -68,6 +73,9 @@ public class AccelerateRuleUtilTest extends NLocalFileMetadataTestCase {
         QueryHistory qh5 = new QueryHistory();
         qh5.setQuerySubmitter("ADMIN");
         qh5.setDuration(1500L);
+        QueryHistory qh6 = new QueryHistory();
+        qh6.setQuerySubmitter("OTHER2");
+        qh6.setDuration(3000L);
 
         FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT).updateRule(
                 Lists.newArrayList(new FavoriteRule.Condition("1", "2")), true, FavoriteRule.DURATION_RULE_NAME);
@@ -79,14 +87,27 @@ public class AccelerateRuleUtilTest extends NLocalFileMetadataTestCase {
                 Lists.newArrayList(new FavoriteRule.Condition(null, "ROLE_ADMIN")), true,
                 FavoriteRule.SUBMITTER_GROUP_RULE_NAME);
 
+        Set<String> group = new HashSet<>();
+        group.add("ROLE_ADMIN");
+        Set<String> group2 = new HashSet<>();
+        group2.add("ALL_USERS");
+        Map<String, Set<String>> submitterToGroups = new HashMap<>();
+        submitterToGroups.put("OTHER2", group);
+        submitterToGroups.put("OTHER", group2);
+
         // normal user need meet duration rule
-        Assert.assertEquals(false, accelerateRuleUtil.matchCustomerRule(qh1, PROJECT));
-        Assert.assertEquals(true, accelerateRuleUtil.matchCustomerRule(qh2, PROJECT));
-        Assert.assertEquals(false, accelerateRuleUtil.matchCustomerRule(qh3, PROJECT));
+        Assert.assertEquals(false, accelerateRuleUtil.matchCustomerRule(qh1, PROJECT, submitterToGroups));
+        Assert.assertEquals(true, accelerateRuleUtil.matchCustomerRule(qh2, PROJECT, submitterToGroups));
+        Assert.assertEquals(false, accelerateRuleUtil.matchCustomerRule(qh3, PROJECT, submitterToGroups));
 
         // ADMIN user always true
-        Assert.assertEquals(true, accelerateRuleUtil.matchCustomerRule(qh4, PROJECT));
-        Assert.assertEquals(true, accelerateRuleUtil.matchCustomerRule(qh5, PROJECT));
+        Assert.assertEquals(true, accelerateRuleUtil.matchCustomerRule(qh4, PROJECT, submitterToGroups));
+        Assert.assertEquals(true, accelerateRuleUtil.matchCustomerRule(qh5, PROJECT, submitterToGroups));
+
+        // normal user need meet submitter group rule
+        Assert.assertEquals(true, accelerateRuleUtil.matchCustomerRule(qh6, PROJECT, submitterToGroups));
+        // user group to which the user belongs is not specified in rule
+        Assert.assertEquals(false, accelerateRuleUtil.matchCustomerRule(qh1, PROJECT, submitterToGroups));
     }
 
 }
