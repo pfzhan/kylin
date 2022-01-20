@@ -34,6 +34,7 @@ import org.apache.kylin.common.persistence.StringEntity;
 import org.apache.kylin.common.util.RandomUtil;
 import org.awaitility.Awaitility;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -60,6 +61,7 @@ public class JdbcAuditLogGroupbyReplayerTest extends AbstractJdbcMetadataTestCas
 
     @Test
     @Repeat(3)
+    @Ignore
     public void testReplayGroupbyProject() throws Exception {
         val workerStore = initResourceStore();
         String project1 = "abc1";

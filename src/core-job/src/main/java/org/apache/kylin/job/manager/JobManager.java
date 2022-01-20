@@ -145,25 +145,25 @@ public class JobManager {
     private AbstractJobHandler createJobHandler(JobParam jobParam) {
         AbstractJobHandler handler;
         switch (jobParam.getJobTypeEnum()) {
-            case INC_BUILD:
-                handler = new AddSegmentHandler();
-                break;
-            case INDEX_MERGE:
-                handler = new MergeSegmentHandler();
-                break;
-            case INDEX_BUILD:
-            case SUB_PARTITION_BUILD:
-                handler = new AddIndexHandler();
-                break;
-            case INDEX_REFRESH:
-            case SUB_PARTITION_REFRESH:
-                handler = new RefreshSegmentHandler();
-                break;
-            case EXPORT_TO_SECOND_STORAGE:
-                throw new UnsupportedOperationException();
-            default:
-                log.error("jobParam doesn't have matched job: {}", jobParam.getJobTypeEnum());
-                return null;
+        case INC_BUILD:
+            handler = new AddSegmentHandler();
+            break;
+        case INDEX_MERGE:
+            handler = new MergeSegmentHandler();
+            break;
+        case INDEX_BUILD:
+        case SUB_PARTITION_BUILD:
+            handler = new AddIndexHandler();
+            break;
+        case INDEX_REFRESH:
+        case SUB_PARTITION_REFRESH:
+            handler = new RefreshSegmentHandler();
+            break;
+        case EXPORT_TO_SECOND_STORAGE:
+            throw new UnsupportedOperationException();
+        default:
+            log.error("jobParam doesn't have matched job: {}", jobParam.getJobTypeEnum());
+            return null;
         }
         return handler;
     }

@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.newten.auto;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -94,6 +95,12 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");
         overwriteSystemProp("kylin.query.non-equi-join-model-enabled", "TRUE");
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
+
+        NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+        projectManager.updateProject(getProject(), copyForWrite -> {
+            LinkedHashMap<String, String> overrideKylinProps = copyForWrite.getOverrideKylinProps();
+            overrideKylinProps.put("kylin.query.metadata.expose-computed-column", "FALSE");
+        });
 
         executeTestScenario(22,
                 /* CompareLevel = SAME */
@@ -187,16 +194,18 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         overwriteSystemProp("kylin.query.non-equi-join-model-enabled", "TRUE");
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
-        boolean exposeComputedColumnConfBefore = projectManager.getProject(getProject()).getConfig()
-                .exposeComputedColumn();
-        projectManager.updateProject(getProject(), copyForWrite -> copyForWrite.getOverrideKylinProps()
-                .put("kylin.query.metadata.expose-computed-column", "TRUE"));
+        projectManager.updateProject(getProject(), copyForWrite -> {
+            LinkedHashMap<String, String> overrideKylinProps = copyForWrite.getOverrideKylinProps();
+            overrideKylinProps.put("kylin.query.metadata.expose-computed-column", "TRUE");
+        });
 
         executeTestScenario(new TestScenario(CompareLevel.SAME, "query/sql_powerbi"),
                 new TestScenario(CompareLevel.SAME, "query/sql_special_join"));
 
-        projectManager.updateProject(getProject(), copyForWrite -> copyForWrite.getOverrideKylinProps()
-                .put("kylin.query.metadata.expose-computed-column", String.valueOf(exposeComputedColumnConfBefore)));
+        projectManager.updateProject(getProject(), copyForWrite -> {
+            LinkedHashMap<String, String> overrideKylinProps = copyForWrite.getOverrideKylinProps();
+            overrideKylinProps.put("kylin.query.metadata.expose-computed-column", "FALSE");
+        });
 
         executeTestScenario(new TestScenario(CompareLevel.SAME, "query/sql_special_join_condition"));
     }
@@ -231,6 +240,11 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");
         overwriteSystemProp("kylin.query.non-equi-join-model-enabled", "TRUE");
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
+        NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+        projectManager.updateProject(getProject(), copyForWrite -> {
+            LinkedHashMap<String, String> overrideKylinProps = copyForWrite.getOverrideKylinProps();
+            overrideKylinProps.put("kylin.query.metadata.expose-computed-column", "FALSE");
+        });
 
         executeTestScenario(new TestScenario(CompareLevel.SAME, "query/sql_function"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_function/sql_function_nullHandling"), //

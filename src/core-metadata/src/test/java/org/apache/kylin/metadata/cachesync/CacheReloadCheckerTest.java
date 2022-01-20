@@ -42,6 +42,7 @@
 
 package org.apache.kylin.metadata.cachesync;
 
+import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.List;
 
@@ -49,15 +50,19 @@ import org.apache.kylin.common.persistence.MissingRootPersistentEntity;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
 import com.google.common.cache.Cache;
 import com.google.common.collect.Lists;
+
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
-public class CacheReloadCheckerTest {
+public class CacheReloadCheckerTest extends NLocalFileMetadataTestCase {
 
     private final String resPath = "/mock/mock.json";
 
@@ -65,6 +70,17 @@ public class CacheReloadCheckerTest {
     private final String depPath2 = "/mock/mock/dep2.json";
     private final String depPath3 = "/mock/mock/dep3.json";
     private final Charset charset = Charset.defaultCharset();
+
+    @Before
+    public void setup() throws IOException {
+        createTestMetadata();
+    }
+
+    @After
+    public void tearDown() {
+        cleanupTestMetadata();
+    }
+
 
     @Test
     public void test() {

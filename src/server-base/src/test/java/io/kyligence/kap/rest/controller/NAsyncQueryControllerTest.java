@@ -34,12 +34,12 @@ import java.io.IOException;
 import java.text.ParseException;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.query.exception.NAsyncQueryIllegalParamException;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.apache.kylin.rest.service.QueryService;
@@ -52,8 +52,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -102,6 +100,7 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
     @After
     public void teardown() {
         cleanupTestMetadata();
+        QueryContext.current().close();
     }
 
     private AsyncQuerySQLRequest mockAsyncQuerySQLRequest() {
@@ -240,8 +239,9 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(mockAsyncQuerySQLRequest()))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON))).andExpect(result -> {
-                    Assert.assertTrue(result.getResolvedException().getMessage()
-                            .contains("Can’t find the query by this query ID in this project. Please check and try again."));
+                    String message = result.getResolvedException().getMessage();
+                    Assert.assertTrue(message.contains(
+                            "Can’t find the query by this query ID in this project. Please check and try again."));
                 });
 
         Mockito.verify(nAsyncQueryController).downloadQueryResult(Mockito.anyString(), Mockito.anyBoolean(),
@@ -267,8 +267,7 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
         Mockito.doReturn(SUCCESS).when(asyncQueryService).queryStatus(Mockito.anyString(), Mockito.anyString());
         SQLResponse response = new SQLResponse();
         response.setException(false);
-        Mockito.doReturn(response).when(kapQueryService).queryWithCache((SQLRequest) Mockito.any()
-        );
+        Mockito.doReturn(response).when(kapQueryService).queryWithCache(Mockito.any());
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/async_query").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(mockAsyncQuerySQLRequest()))
@@ -302,8 +301,7 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
         Mockito.doReturn(SUCCESS).when(asyncQueryService).queryStatus(Mockito.anyString(), Mockito.anyString());
         SQLResponse response = new SQLResponse();
         response.setException(true);
-        Mockito.doReturn(response).when(kapQueryService).queryWithCache((SQLRequest) Mockito.any()
-        );
+        Mockito.doReturn(response).when(kapQueryService).queryWithCache(Mockito.any());
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/async_query").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(mockAsyncQuerySQLRequest()))
@@ -328,8 +326,7 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
     public void testQuerySuccess() throws Exception {
         SQLResponse response = new SQLResponse();
         response.setException(false);
-        Mockito.doReturn(response).when(kapQueryService).queryWithCache((SQLRequest) Mockito.any()
-        );
+        Mockito.doReturn(response).when(kapQueryService).queryWithCache(Mockito.any());
 
         Mockito.doReturn(SUCCESS).when(asyncQueryService).queryStatus(Mockito.anyString(), Mockito.anyString());
 
@@ -345,8 +342,7 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
     public void testQueryFailed() throws Exception {
         SQLResponse response = new SQLResponse();
         response.setException(false);
-        Mockito.doReturn(response).when(kapQueryService).queryWithCache((SQLRequest) Mockito.any()
-        );
+        Mockito.doReturn(response).when(kapQueryService).queryWithCache(Mockito.any());
 
         Mockito.doReturn(FAILED).when(asyncQueryService).queryStatus(Mockito.anyString(), Mockito.anyString());
 
@@ -362,8 +358,7 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
     public void testQueryRunning() throws Exception {
         SQLResponse response = new SQLResponse();
         response.setException(false);
-        Mockito.doReturn(response).when(kapQueryService).queryWithCache((SQLRequest) Mockito.any()
-        );
+        Mockito.doReturn(response).when(kapQueryService).queryWithCache(Mockito.any());
 
         Mockito.doReturn(RUNNING).when(asyncQueryService).queryStatus(Mockito.anyString(), Mockito.anyString());
 
@@ -379,8 +374,7 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
     public void testQueryMiss() throws Exception {
         SQLResponse response = new SQLResponse();
         response.setException(false);
-        Mockito.doReturn(response).when(kapQueryService).queryWithCache((SQLRequest) Mockito.any()
-        );
+        Mockito.doReturn(response).when(kapQueryService).queryWithCache(Mockito.any());
 
         Mockito.doReturn(MISS).when(asyncQueryService).queryStatus(Mockito.anyString(), Mockito.anyString());
 
@@ -730,12 +724,9 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
         SecurityContextHolder.getContext().setAuthentication(otherUser);
 
         AsyncQueryService service = new AsyncQueryService();
-        Mockito.doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                service.saveQueryUsername(PROJECT, "123");
-                return null;
-            }
+        Mockito.doAnswer(invocation -> {
+            service.saveQueryUsername(PROJECT, "123");
+            return null;
         }).when(asyncQueryService).saveQueryUsername(Mockito.anyString(), Mockito.anyString());
         Mockito.doReturn(SUCCESS).when(asyncQueryService).queryStatus(Mockito.anyString(), Mockito.anyString());
         nAsyncQueryController.query(mockAsyncQuerySQLRequest());
