@@ -91,6 +91,9 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
         if (!scheduler.hasStarted()) {
             throw new RuntimeException("scheduler has not been started");
         }
+        log.info("init scheduler, current quota limit state is {}", scheduler.getContext().isReachQuotaLimit());
+        log.info("start schedule, current kylin.storage.quota-in-giga-bytes is {}",
+                KylinConfig.getInstanceFromEnv().getStorageQuotaSize());
     }
 
     @After
