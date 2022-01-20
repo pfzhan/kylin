@@ -70,6 +70,7 @@ import io.kyligence.kap.guava20.shaded.common.annotations.VisibleForTesting;
 import io.kyligence.kap.guava20.shaded.common.collect.Lists;
 import io.kyligence.kap.guava20.shaded.common.collect.Maps;
 import io.kyligence.kap.guava20.shaded.common.collect.Sets;
+import io.kyligence.kap.guava20.shaded.common.util.concurrent.ExecutionError;
 import io.kyligence.kap.guava20.shaded.common.util.concurrent.SimpleTimeLimiter;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -309,8 +310,8 @@ public class ProposerJob extends ExecutableApplication {
         } catch (InterruptedException e) {
             log.warn("Upload job Interrupted! The job id is: {}", env.getJobId(), e);
             Thread.currentThread().interrupt();
-        } catch (Exception exception) {
-            log.warn("Upload Job Evidence failed {}", env.getJobId(), exception);
+        } catch (ExecutionError | Exception e) {
+            log.warn("Upload Job Evidence failed {}", env.getJobId(), e);
         } finally {
             FileUtils.deleteQuietly(new File(jobContentZip));
         }
