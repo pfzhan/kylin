@@ -50,6 +50,61 @@ echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit
 cat > build/CHANGELOG.md <<'EOL'
 ### Release History
 
+#### Kyligence Enterprise 4.5.7 release note
+
+**Enhancement**
+
+- Add recommendation generation rules
+- Asynchronous query export format can be parquet
+- Support size function
+
+**Bugfix**
+
+- Reload table reports error after changing data column type
+- After adding a model dimension, data cannot be loaded into tiered storage when building index
+- The execution of scheduled tasks is too slow, including performing garbage cleaning and updating optimization suggestions
+- The transaction is opened for capacity accounting, and the memory usage is too high
+- Memory leak when backing up metadata
+- Aggregate queries answered by detailed indexes cannot be converted into optimization suggestions
+- The base table index did not trigger an update when the column type changed
+- In the project setting, optimization recommended time range and recommended frequency are set to decimals or too large integers, the page will report an error after saving
+- After the Epoch times out and recovers, the optimization proposal generation task is not restarted
+- When a user is assigned to a user group or a user group is assigned to a user group, an error message is displayed
+- When too many users are assigned to a user group, the number of users assigned to the user group is inconsistent with the number of users displayed on the page
+- Failed to merge two warning segments.
+- A pop-up wrong message is displayed after the upgrade
+- When there are a large number of user groups and users, some interfaces have poor performance
+- An error occurred when executing diag.sh
+- The required parameter ＂sub_partition_values＂ is not verified in API "Delete Sub-Partition value corresponding index data"
+- When the capacity exceeds the license limit, the hyperlink in the alarm text is hidden on the capacity charging page
+- Pre-delete table API, the information returned by the interface is inaccurate
+- For pure flow models and fusion models, save and build disabled
+- During metadata recovery, if the number of connections to the PostgreSQL metadata database is full, metadata recovery fails but no failure prompt appears
+- After deleting a dimension table from the model and reloading the data to the tiered storage, the size of the tiered storage data in the model list is not updated
+- The model does not have settings to override, you can choose to override the settings when exporting the model
+- After the model is switched between incremental loading data and full loading data, the data cannot be loaded to the tiered storage when building index
+- Failed to create a project after logging in to Kyligence Enterprise with a long user name
+- Hitting the tiered storage query, the date type column returns the wrong result
+- The data in the tiered storage is not purged when purging all segments the model
+- Recomendations change the model join relationship
+- Build error when excluded table as fact table
+- Hit the wrong query, the query status is success, and hit native
+- Pause the build job twice, duration still increasing.
+- After the real-time job switches the host, the task cannot be started
+- In "yarn - cluster" mode can build successful, but test resources have abnormal error log
+- Refresh must be clicked when the data source is first loaded
+- The system reports an error when use sum(cast('varchar' as double)) in query
+- When there are a large number of user groups and users, some interfaces have poor performance
+- The snapshot management API does not verify that the parameter "partitions_to_build" is empty
+- Reload table prompt information is inaccurate
+- Flame diagram - information about download timeout is missing in the log
+- When asynchronous query results contain special characters, the CSV file format of the query results is incorrect
+- The result set is within 1 million, which is required to be returned within 10s, but now the return time is much longer than 10s
+- The resources applied for automatic parameter adjustment are larger than the available resources of the cluster, and the build has been stuck waiting for resources
+- The build task was interrupted when garbage cleaning was performed while the build task was in progress
+- After restarting KE, the status of the build task changed from RUNNING to ERROR
+- A model error prevents the entire model page from being displayed
+
 #### Kyligence Enterprise 4.5.6 release note
 
 **Enhancement**
