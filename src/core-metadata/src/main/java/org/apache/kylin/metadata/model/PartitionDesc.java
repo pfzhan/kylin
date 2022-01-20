@@ -47,7 +47,6 @@ import java.util.LinkedList;
 import java.util.Locale;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.directory.api.util.Strings;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.metadata.datatype.DataType;
@@ -114,7 +113,7 @@ public class PartitionDesc implements Serializable {
     }
 
     public boolean isEmpty() {
-        return Strings.isEmpty(partitionDateColumn);
+        return StringUtils.isEmpty(partitionDateColumn);
     }
 
     public enum TimestampType implements Serializable {
