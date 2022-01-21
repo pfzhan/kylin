@@ -23,65 +23,60 @@
  */
 package io.kyligence.kap.newten.clickhouse;
 
-import lombok.Cleanup;
-import lombok.SneakyThrows;
+import io.kyligence.kap.secondstorage.test.ClickHouseClassRule;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.Assert;
-import org.testcontainers.containers.NginxContainer;
-import org.testcontainers.containers.wait.strategy.HttpWaitStrategy;
-import org.testcontainers.utility.DockerImageName;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.server.handler.ContextHandler;
+import org.eclipse.jetty.server.handler.ResourceHandler;
+import org.testcontainers.Testcontainers;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.PrintStream;
-import java.net.URL;
+import java.net.URI;
 import java.util.Locale;
-
-import static io.kyligence.kap.newten.clickhouse.ClickHouseUtils.NetworkAliases;
-import static io.kyligence.kap.newten.clickhouse.ClickHouseUtils.TEST_NETWORK;
 
 @Slf4j
 public class EmbeddedHttpServer {
-    private final NginxContainer<?> nginx;
+    private final Server server;
+    public final URI serverUri;
+    public final URI uriAccessedByDocker;
 
-   public EmbeddedHttpServer(NginxContainer<?> nginx) {
-        this.nginx = nginx;
+    public EmbeddedHttpServer(Server server, URI serverUri, URI uriAccessedByDocker) {
+        this.server = server;
+        this.serverUri = serverUri;
+        this.uriAccessedByDocker = uriAccessedByDocker;
     }
 
-    @SneakyThrows
-    public URL getBaseUrl() {
-       return nginx.getBaseUrl("http", 80);
-    }
+    public static EmbeddedHttpServer startServer(String workingDir) throws Exception {
+        int port = ClickHouseClassRule.getAvailablePort();
+        log.debug("start http server on port: {}", port);
+        Server server = new Server();
+        ServerConnector connector = new ServerConnector(server);
+        connector.setPort(port);
+        server.addConnector(connector);
 
-    @SneakyThrows
-    public String getDockerAccessURL() {
-       return String.format(Locale.ROOT, "http://%s:%d", NetworkAliases, 80);
-   }
-
-    public void stopServer() {
-        if (nginx != null) {
-            nginx.stop();
+        ContextHandler contextHandler = new ContextHandler();
+        ResourceHandler contentResourceHandler = new ResourceHandler();
+        contentResourceHandler.setDirectoriesListed(true);
+        contentResourceHandler.setResourceBase(workingDir);
+        contextHandler.setContextPath("/");
+        contextHandler.setHandler(contentResourceHandler);
+        server.setHandler(contextHandler);
+        server.start();
+        int listenedPort = connector.getLocalPort();
+        String host = connector.getHost();
+        if (host == null) {
+            host = "localhost";
         }
+        URI serverUri = new URI(String.format(Locale.ROOT, "http://%s:%d", host, listenedPort));
+        Testcontainers.exposeHostPorts(listenedPort);
+        URI uriAccessedByDocker = new URI(String.format(Locale.ROOT, "http://host.testcontainers.internal:%d", listenedPort));
+        return new EmbeddedHttpServer(server, serverUri, uriAccessedByDocker);
     }
 
-    private static final DockerImageName NGINX_IMAGE = DockerImageName.parse("nginx:1.21.1");
-
-    @SneakyThrows
-    public static EmbeddedHttpServer startNginx(String workingDir) {
-        File working = new File(workingDir);
-        if (!working.exists()) {
-            Assert.assertTrue(working.mkdirs());
+    public void stopServer() throws Exception {
+        if (!server.isStopped()) {
+            server.stop();
+            server.join();
         }
-        File indexFile = new File(working, "index.html");
-        @Cleanup PrintStream printStream = new PrintStream(new FileOutputStream(indexFile));
-        printStream.println("<html><body>Hello World!</body></html>");
-
-        NginxContainer<?> nginx = new NginxContainer<>(NGINX_IMAGE)
-                .withCustomContent(workingDir)
-                .withNetwork(TEST_NETWORK)
-                .withNetworkAliases(NetworkAliases)
-                .waitingFor(new HttpWaitStrategy());
-        nginx.start();
-        return new EmbeddedHttpServer(nginx);
     }
 }
