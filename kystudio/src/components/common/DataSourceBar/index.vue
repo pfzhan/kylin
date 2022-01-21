@@ -870,6 +870,7 @@ export default class DataSourceBar extends Vue {
     .tree-item {
       position: relative;
       width: calc(~'100% - 24px');
+      line-height: 34px;
       .database{
         .defaultIcon{
           color:#7f7f7f;
