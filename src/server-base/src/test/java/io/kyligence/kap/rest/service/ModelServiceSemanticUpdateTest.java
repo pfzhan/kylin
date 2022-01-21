@@ -559,8 +559,9 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
                 .forEach(column -> column.setStatus(ColumnStatus.TOMB));
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage("The dimension BUYER_COUNTRY.NAME,TEST_KYLIN_FACT.DEAL_YEAR is being referenced by "
-                + "aggregation group, recommended aggregate index or table index. Please delete this dimension from the above first.");
+        thrown.expectMessage(
+                "The dimension BUYER_COUNTRY.NAME,TEST_KYLIN_FACT.DEAL_YEAR is referenced by indexes or aggregate groups. "
+                        + "Please go to the Data Asset - Model - Index page to view, delete referenced aggregate groups and indexes.");
         modelService.updateDataModelSemantic(getProject(), request);
     }
 
@@ -576,8 +577,8 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         request.getSimplifiedDimensions().remove(dimDesc);
         thrown.expect(KylinException.class);
         thrown.expectMessage(
-                "The dimension TEST_KYLIN_FACT.LSTG_FORMAT_NAME,BUYER_COUNTRY.NAME is being referenced by aggregation group,"
-                        + " recommended aggregate index or table index. Please delete this dimension from the above first.");
+                "The dimension TEST_KYLIN_FACT.LSTG_FORMAT_NAME,BUYER_COUNTRY.NAME is referenced by indexes or aggregate groups. "
+                        + "Please go to the Data Asset - Model - Index page to view, delete referenced aggregate groups and indexes.");
         modelService.updateDataModelSemantic(getProject(), request);
     }
 
@@ -598,9 +599,9 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
             copyForWrite.setRuleBasedIndex(ruleBasedIndex);
         });
         thrown.expect(KylinException.class);
-        thrown.expectMessage("The dimension TEST_KYLIN_FACT.LSTG_FORMAT_NAME "
-                + "is being referenced by aggregation group, "
-                + "recommended aggregate index or table index. Please delete this dimension from the above first.");
+        thrown.expectMessage(
+                "The dimension TEST_KYLIN_FACT.LSTG_FORMAT_NAME is referenced by indexes or aggregate groups. "
+                        + "Please go to the Data Asset - Model - Index page to view, delete referenced aggregate groups and indexes.");
         val request = newSemanticRequest(modelId);
         request.getSimplifiedDimensions().removeIf(col -> col.getName().equalsIgnoreCase("LSTG_FORMAT_NAME"));
         modelService.updateDataModelSemantic(getProject(), request);
@@ -613,8 +614,8 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         val request = newSemanticRequest(modelId);
         request.getSimplifiedMeasures().remove(1);
         thrown.expect(KylinException.class);
-        thrown.expectMessage("The measure GMV_SUM is referenced by indexes. Please try again after "
-                + "deleting it from aggregation group or table index.");
+        thrown.expectMessage("The measure GMV_SUM is referenced by indexes or aggregate groups. Please go to "
+                + "the Data Asset - Model - Index page to view, delete referenced aggregate groups and indexes.");
         modelService.updateDataModelSemantic(getProject(), request);
     }
 
@@ -682,8 +683,8 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
                 .filter(column -> column.getAliasDotColumn().equalsIgnoreCase("TEST_KYLIN_FACT.NEST5"))
                 .forEach(column -> column.setStatus(ColumnStatus.TOMB));
         thrown.expect(IllegalStateException.class);
-        thrown.expectMessage("The dimension TEST_KYLIN_FACT.NEST5 is being referenced by aggregation group, "
-                + "recommended aggregate index or table index. Please delete this dimension from the above first.");
+        thrown.expectMessage("The dimension TEST_KYLIN_FACT.NEST5 is referenced by indexes or aggregate groups. "
+                + "Please go to the Data Asset - Model - Index page to view, delete referenced aggregate groups and indexes.");
         modelService.updateDataModelSemantic(getProject(), request);
     }
 
@@ -914,8 +915,9 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
     @Test
     public void testRemoveDimensionsWithCubePlanRule() throws Exception {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("The dimension TEST_KYLIN_FACT.TEST_COUNT_DISTINCT_BITMAP is being referenced by "
-                + "aggregation group, recommended aggregate index or table index. Please delete this dimension from the above first.");
+        thrown.expectMessage("The dimension TEST_KYLIN_FACT.TEST_COUNT_DISTINCT_BITMAP is referenced "
+                + "by indexes or aggregate groups. Please go to the Data Asset - Model - Index page to view, delete "
+                + "referenced aggregate groups and indexes.");
         val indePlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
         indePlanManager.updateIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa", cubeBasic -> {
             val rule = new RuleBasedIndex();

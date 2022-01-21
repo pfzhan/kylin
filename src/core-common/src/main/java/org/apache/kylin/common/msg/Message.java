@@ -762,11 +762,11 @@ public class Message {
     }
 
     public String getDIMENSION_NOTFOUND() {
-        return "The dimension %s is being referenced by aggregation group, recommended aggregate index or table index. Please delete this dimension from the above first.";
+        return "The dimension %s is referenced by indexes or aggregate groups. Please go to the Data Asset - Model - Index page to view, delete referenced aggregate groups and indexes.";
     }
 
     public String getMEASURE_NOTFOUND() {
-        return "The measure %s is referenced by indexes. Please try again after deleting it from aggregation group or table index.";
+        return "The measure %s is referenced by indexes or aggregate groups. Please go to the Data Asset - Model - Index page to view, delete referenced aggregate groups and indexes.";
     }
 
     public String getNESTED_CC_CASCADE_ERROR() {

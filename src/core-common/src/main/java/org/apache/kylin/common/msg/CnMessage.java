@@ -807,12 +807,12 @@ public class CnMessage extends Message {
 
     @Override
     public String getDIMENSION_NOTFOUND() {
-        return "维度 %s 正在被聚合组、系统推荐的聚合索引或明细索引引用。请将该维度从相关聚合组中删除，或删除相关索引。";
+        return "维度 %s 正在被索引、聚合组引用。请到”数据资产-模型-索引”查看，删除引用的聚合组、索引。";
     }
 
     @Override
     public String getMEASURE_NOTFOUND() {
-        return "度量 %s 正在被索引引用。请在聚合组或明细索引中删除对应字段后再进行操作。";
+        return "度量 %s 正在被索引、聚合组引用。请到”数据资产-模型-索引”查看，删除引用的聚合组、索引。";
     }
 
     @Override

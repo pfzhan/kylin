@@ -320,12 +320,14 @@ public class ModelServiceTest extends CSVSourceTestCase {
         ReflectionTestUtils.setField(modelService, "accessService", accessService);
         ReflectionTestUtils.setField(modelService, "userGroupService", userGroupService);
         ReflectionTestUtils.setField(semanticService, "userGroupService", userGroupService);
-        ReflectionTestUtils.setField(semanticService, "expandableMeasureUtil", new ExpandableMeasureUtil((model, ccDesc) -> {
-            String ccExpression = KapQueryUtil.massageComputedColumn(model, model.getProject(), ccDesc,
-                    AclPermissionUtil.prepareQueryContextACLInfo(model.getProject(), semanticService.getCurrentUserGroups()));
-            ccDesc.setInnerExpression(ccExpression);
-            ComputedColumnEvalUtil.evaluateExprAndType(model, ccDesc);
-        }));
+        ReflectionTestUtils.setField(semanticService, "expandableMeasureUtil",
+                new ExpandableMeasureUtil((model, ccDesc) -> {
+                    String ccExpression = KapQueryUtil.massageComputedColumn(model, model.getProject(), ccDesc,
+                            AclPermissionUtil.prepareQueryContextACLInfo(model.getProject(),
+                                    semanticService.getCurrentUserGroups()));
+                    ccDesc.setInnerExpression(ccExpression);
+                    ComputedColumnEvalUtil.evaluateExprAndType(model, ccDesc);
+                }));
         ReflectionTestUtils.setField(modelService, "projectService", projectService);
         ReflectionTestUtils.setField(modelService, "modelQueryService", modelQueryService);
         ReflectionTestUtils.setField(tableService, "jobService", jobService);
@@ -4811,8 +4813,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val modelRequest = prepare();
         modelRequest.getSimplifiedDimensions().remove(0);
         thrown.expect(KylinException.class);
-        thrown.expectMessage("The dimension TEST_SITES.SITE_NAME is being referenced by aggregation group, "
-                + "recommended aggregate index or table index. Please delete this dimension from the above first.");
+        thrown.expectMessage("The dimension TEST_SITES.SITE_NAME is referenced by indexes or aggregate groups. "
+                + "Please go to the Data Asset - Model - Index page to view, delete referenced aggregate groups and indexes.");
         modelService.updateDataModelSemantic("default", modelRequest);
     }
 
@@ -4823,8 +4825,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 modelRequest.getSimplifiedMeasures().stream().filter(measure -> measure.getId() != 100005)
                         .sorted(Comparator.comparingInt(SimplifiedMeasure::getId)).collect(Collectors.toList()));
         thrown.expect(KylinException.class);
-        thrown.expectMessage("The measure ITEM_COUNT_MAX is referenced by indexes. Please try again after "
-                + "deleting it from aggregation group or table index.");
+        thrown.expectMessage(
+                "The measure ITEM_COUNT_MAX is referenced by indexes or aggregate groups. Please go to the "
+                        + "Data Asset - Model - Index page to view, delete referenced aggregate groups and indexes.");
         modelService.updateDataModelSemantic("default", modelRequest);
     }
 
