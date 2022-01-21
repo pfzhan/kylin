@@ -1064,7 +1064,7 @@ export default class UserAccess extends Vue {
     width: 210px;
   }
   .row-values-edit {
-    width: calc(~'100% - 290px');
+    width: calc(~'100% - 295px');
   }
   .row-values-add {
     width: calc(~'100% - 365px');

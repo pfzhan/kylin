@@ -431,7 +431,7 @@
                 <el-form-item prop="update_frequency" class="inline-form-item">
                   <el-input-number style="width:100px;" v-model="rulesObj.update_frequency" size="small" :min="1"></el-input-number>
                 </el-form-item>
-                {{$t('recommendationFrequencyTips')}}
+                <span v-html="$t('recommendationFrequencyTips')"></span>
             </div>
           </div>
         </div>
