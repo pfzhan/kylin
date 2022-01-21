@@ -182,7 +182,7 @@
     <index-details :index-detail-title="indexDetailTitle" :detail-type="detailType" :cuboid-data="cuboidData" @close="closeDetailDialog" v-if="indexDetailShow" />
     <el-dialog
       :title="$t('indexOverview')"
-      top="5vh"
+      top="10vh"
       limited-area
       :visible.sync="aggDetailVisible"
       class="agg-dialog"

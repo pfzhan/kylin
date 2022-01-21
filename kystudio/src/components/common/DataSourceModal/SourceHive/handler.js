@@ -73,7 +73,7 @@ export function getTableTree (database, res, isTableReset, selectTablesNames) {
     type: 'table',
     database: database.id,
     isSelected: table.loaded || database.isSelected || table.table_name && selectTablesNames && selectTablesNames.includes(`${database.id}.${table.table_name}`),
-    clickable: !table.loaded && !database.isSelected,
+    clickable: !table.loaded && !database.isSelected && !table.existed,
     isLoaded: table.loaded,
     isExistedName: table.existed,
     render: (h, { node, data, store }) => {

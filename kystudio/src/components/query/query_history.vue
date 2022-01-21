@@ -12,7 +12,7 @@
     <kap-pager ref="queryHistoryPager" :refTag="pageRefTags.queryHistoryPager" class="ksd-center ksd-mtb-16" :curPage="queryCurrentPage" :perPageSize="20" :totalSize="queryHistoryData.size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
     <el-dialog
       :title="$t('indexOverview')"
-      top="5vh"
+      top="10vh"
       limited-area
       :visible.sync="aggDetailVisible"
       class="agg-dialog"
@@ -33,7 +33,7 @@
 
     <el-dialog
       :title="$t('kylinLang.model.tableIndex')"
-      top="5vh"
+      top="10vh"
       limited-area
       :visible.sync="tabelIndexVisible"
       class="agg-dialog"
