@@ -34,7 +34,7 @@ import org.apache.kylin.common.util.Pair;
 
 public class KapRelUtil {
 
-    public static String getDigestWithoutRelNodeId(String digest) {
+    public static String getDigestWithoutRelNodeId(String digest, long layoutId, String modelId) {
         StringBuilder digestWithoutId = new StringBuilder();
         boolean isPointToId = false;
         for (char c : digest.toCharArray()) {
@@ -51,7 +51,34 @@ public class KapRelUtil {
             }
             digestWithoutId.append(c);
         }
-        return digestWithoutId.toString();
+        return replaceDigestCtxValueByLayoutIdAndModelId(digestWithoutId.toString(), layoutId, modelId);
+    }
+
+    private final static String CTX = "ctx=";
+
+    public static String replaceDigestCtxValueByLayoutIdAndModelId(String digestId, long layoutId, String modelId) {
+        if (layoutId <= 0 || "".equals(modelId)) {
+            return digestId;
+        }
+        StringBuilder digestBuilder = new StringBuilder();
+        char[] digestArray = digestId.toCharArray();
+        char[] compareArray = CTX.toCharArray();
+        int len = digestArray.length;
+        for (int i = 0; i < len; i++) {
+            char c1 = digestArray[i];
+            if (c1 == compareArray[0] && (i + 3) < len && digestArray[i + 1] == compareArray[1]
+                    && digestArray[i + 2] == compareArray[2] && digestArray[i + 3] == compareArray[3]) {
+                digestBuilder.append(CTX);
+                i = i + 2;
+                while (digestArray[i + 1] != ',' && digestArray[i + 1] != ')') {
+                    i = i + 1;
+                }
+                digestBuilder.append(modelId + "_" + layoutId);
+            } else {
+                digestBuilder.append(c1);
+            }
+        }
+        return digestBuilder.toString();
     }
 
     private static boolean isCharNum(char c) {
