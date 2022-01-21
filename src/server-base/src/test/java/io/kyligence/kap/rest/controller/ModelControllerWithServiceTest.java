@@ -71,7 +71,6 @@ import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
 
-@Ignore("disable this suite, since none business with 9cb51202")
 @Slf4j
 public class ModelControllerWithServiceTest extends ServiceTestBase {
 
