@@ -69,8 +69,8 @@ public class EnableClickHouseJob extends EnableScheduler implements JobWaiter {
             _httpServer.stopServer();
         }
         // setup http server
-        _httpServer = EmbeddedHttpServer.startNginx(getLocalWorkingDirectory());
-        Unsafe.setProperty(ClickHouseLoad.SOURCE_URL, _httpServer.getDockerAccessURL());
+        _httpServer = EmbeddedHttpServer.startServer(getLocalWorkingDirectory());
+        Unsafe.setProperty(ClickHouseLoad.SOURCE_URL, _httpServer.uriAccessedByDocker.toString());
         Unsafe.setProperty(ClickHouseLoad.ROOT_PATH, getLocalWorkingDirectory());
         overwriteSystemProp("kylin.second-storage.class", ClickHouseStorage.class.getCanonicalName());
         ClickHouseUtils.internalConfigClickHouse(clickhouse, replica);
@@ -99,7 +99,7 @@ public class EnableClickHouseJob extends EnableScheduler implements JobWaiter {
 
     @SneakyThrows
     public void checkHttpServer() throws IOException {
-        SimpleRequest sr = new SimpleRequest(_httpServer.getBaseUrl().toURI());
+        SimpleRequest sr = new SimpleRequest(_httpServer.serverUri);
         final String content = sr.getString("/");
         Assert.assertTrue(content.length() > 0);
     }

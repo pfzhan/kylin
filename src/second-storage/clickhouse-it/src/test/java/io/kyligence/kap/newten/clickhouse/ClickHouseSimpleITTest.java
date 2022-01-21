@@ -208,7 +208,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
         doSetup();
 
         if (needHttpServer()) {
-            _httpServer = EmbeddedHttpServer.startNginx(getLocalWorkingDirectory());
+            _httpServer = EmbeddedHttpServer.startServer(getLocalWorkingDirectory());
         }
 
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
@@ -286,7 +286,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
 
     @SneakyThrows
     protected void checkHttpServer() throws IOException {
-        SimpleRequest sr = new SimpleRequest(_httpServer.getBaseUrl().toURI());
+        SimpleRequest sr = new SimpleRequest(_httpServer.serverUri);
         final String content = sr.getString("/");
         Assert.assertTrue(content.length() > 0);
     }
@@ -601,7 +601,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
     }
 
     protected String getSourceUrl() {
-        return _httpServer.getDockerAccessURL();
+        return _httpServer.uriAccessedByDocker.toString();
     }
 
 

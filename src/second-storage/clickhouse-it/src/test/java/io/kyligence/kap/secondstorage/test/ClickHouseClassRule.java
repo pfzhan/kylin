@@ -28,10 +28,35 @@ import io.kyligence.kap.newten.clickhouse.ClickHouseUtils;
 import lombok.SneakyThrows;
 import org.junit.Assert;
 import org.junit.rules.ExternalResource;
+import org.testcontainers.Testcontainers;
 import org.testcontainers.containers.JdbcDatabaseContainer;
+
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.util.stream.IntStream;
 
 public class ClickHouseClassRule extends ExternalResource {
     private final JdbcDatabaseContainer<?>[] clickhouse;
+    public static int[] EXPOSED_PORTS = IntStream.range(24000, 25000).toArray();
+
+    static {
+        Testcontainers.exposeHostPorts(EXPOSED_PORTS);
+    }
+
+    public static int getAvailablePort() {
+        synchronized (ClickHouseClassRule.class) {
+            for (int port : EXPOSED_PORTS) {
+                try {
+                    ServerSocket s = new ServerSocket(port);
+                    s.close();
+                    return port;
+                } catch (IOException e) {
+                    // continue another port
+                }
+            }
+        }
+        throw new IllegalStateException("no available port found");
+    }
 
     @SneakyThrows
     public ClickHouseClassRule(int n) {
