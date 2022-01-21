@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import io.kyligence.kap.rest.request.UserRequest;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
@@ -150,14 +151,16 @@ public class OpenUserControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testUpdateUser() throws Exception {
         val user = new ManagedUser("ADMIN", pwdEncoder.encode("KYLIN"), false);
-
+        val userRequest = new UserRequest();
+        userRequest.setUsername("ADMIN");
+        userRequest.setDisabled(false);
         Mockito.doReturn(user).when(userController).getManagedUser("ADMIN");
         mockMvc.perform(MockMvcRequestBuilders.put("/api/user").contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(user))
+                .content(JsonUtil.writeValueAsString(userRequest))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        Mockito.verify(openUserController).updateUser(Mockito.any(ManagedUser.class));
+        Mockito.verify(openUserController).updateUser(Mockito.any(UserRequest.class));
     }
 
     @Test

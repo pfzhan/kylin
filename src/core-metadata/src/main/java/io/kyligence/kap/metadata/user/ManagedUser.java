@@ -96,8 +96,8 @@ public class ManagedUser extends RootPersistentEntity implements UserDetails, Us
 
     //DISABLED_ROLE is a ancient way to represent disabled user
     //now we no longer support such way, however legacy metadata may still contain it
-    private static final String DISABLED_ROLE = "--disabled--";
-    private static final SimpleGrantedAuthority DEFAULT_GROUP = new SimpleGrantedAuthority(Constant.GROUP_ALL_USERS);
+    public static final String DISABLED_ROLE = "--disabled--";
+    public static final SimpleGrantedAuthority DEFAULT_GROUP = new SimpleGrantedAuthority(Constant.GROUP_ALL_USERS);
 
     public ManagedUser() {
     }

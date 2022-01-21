@@ -48,6 +48,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
 import io.kyligence.kap.metadata.user.ManagedUser;
+import io.kyligence.kap.rest.request.UserRequest;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
 import io.kyligence.kap.metadata.usergroup.NUserGroupManager;
 import io.kyligence.kap.rest.request.PasswordChangeRequest;
@@ -127,14 +128,14 @@ public class NUserControllerTest extends AbstractMVCIntegrationTestCase {
     @Test
     public void testUpdateUserWithBase64EncodePwd() throws Exception {
         String newPassword = "kylin@2022";
-        request = new ManagedUser();
-        request.setUsername(username);
-        request.setPassword(Base64.encodeBase64String(newPassword.getBytes("utf-8")));
-        request.setDisabled(false);
-        request.setAuthorities(
-                Arrays.asList(new SimpleGrantedAuthority(GROUP_ALL_USERS), new SimpleGrantedAuthority(ROLE_ADMIN)));
+        UserRequest userRequest = new UserRequest();
+        userRequest.setUsername(username);
+        userRequest.setPassword(Base64.encodeBase64String(newPassword.getBytes("utf-8")));
+        userRequest.setDisabled(false);
+        userRequest.setAuthorities(
+                Arrays.asList(GROUP_ALL_USERS, ROLE_ADMIN));
         mockMvc.perform(MockMvcRequestBuilders.put("/api/user").contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(request))
+                .content(JsonUtil.writeValueAsString(userRequest))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 

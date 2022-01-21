@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.rest.request.UserRequest;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.response.DataResult;
@@ -98,7 +99,7 @@ public class OpenUserController extends NBasicController {
     @PutMapping(value = "")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public EnvelopeResponse<String> updateUser(@RequestBody ManagedUser user) throws IOException {
+    public EnvelopeResponse<String> updateUser(@RequestBody UserRequest user) throws IOException {
         return userController.updateUser(user);
     }
 
