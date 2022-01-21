@@ -162,9 +162,11 @@ public class SecondStorageService extends BasicService implements SecondStorageU
             val execManager = NExecutableManager.getInstance(config, project);
             List<String> failedModels = new ArrayList<>();
             List<String> submittedModels = new ArrayList<>();
+            List<JobInfoResponse.JobInfo> jobInfos = new ArrayList<>();
             projectRecoveryResponse.setProject(project);
             projectRecoveryResponse.setSubmittedModels(submittedModels);
             projectRecoveryResponse.setFailedModels(failedModels);
+            projectRecoveryResponse.setJobs(jobInfos);
             projectLoadResponse.getLoads().add(projectRecoveryResponse);
             val validModels = allModelAlias.stream()
                     .map(modelName -> modelManager.getDataModelDescByAlias(modelName).getUuid())
@@ -181,7 +183,8 @@ public class SecondStorageService extends BasicService implements SecondStorageU
                     .collect(Collectors.toList());
             for (val modelName : validModels) {
                 try {
-                    this.importSingleModel(project, modelName);
+                    List<JobInfoResponse.JobInfo> jobs = this.importSingleModel(project, modelName);
+                    jobs.stream().map(item->jobInfos.add(item)).collect(Collectors.toList());
                     submittedModels.add(modelName);
                 } catch (Exception e) {
                     failedModels.add(modelName);
@@ -192,7 +195,7 @@ public class SecondStorageService extends BasicService implements SecondStorageU
         return projectLoadResponse;
     }
 
-    public void importSingleModel(String project, String modelName) {
+    public List<JobInfoResponse.JobInfo> importSingleModel(String project, String modelName) {
         val config = KylinConfig.getInstanceFromEnv();
         val modelManager = NDataModelManager.getInstance(config, project);
         val model = modelManager.getDataModelDescByAlias(modelName).getUuid();
@@ -203,7 +206,7 @@ public class SecondStorageService extends BasicService implements SecondStorageU
         val dataflowManager = NDataflowManager.getInstance(config, project);
         val segIds = dataflowManager.getDataflow(model).getQueryableSegments().stream()
                 .map(NDataSegment::getId).collect(Collectors.toList());
-        modelService.exportSegmentToSecondStorage(project, model, segIds.toArray(new String[]{}));
+        return modelService.exportSegmentToSecondStorage(project, model, segIds.toArray(new String[]{}));
     }
 
     @Transaction(project = 0)
