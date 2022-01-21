@@ -24,10 +24,10 @@
 
 package io.kyligence.kap.tool.garbage;
 
+import static org.apache.kylin.common.KylinConfigBase.PATH_DELIMITER;
+
 import java.util.List;
 
-import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
-import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.junit.After;
 import org.junit.Assert;
@@ -35,8 +35,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-
-import static org.apache.kylin.common.KylinConfigBase.PATH_DELIMITER;
+import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
+import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord;
 
 public class SourceUsageCleanerTest extends NLocalFileMetadataTestCase {
 
@@ -97,6 +97,13 @@ public class SourceUsageCleanerTest extends NLocalFileMetadataTestCase {
         sourceUsageCleaner.cleanup();
         allRecords = manager.getAllRecords();
         Assert.assertEquals(1, allRecords.size());
+    }
+
+    @Test
+    public void testCleanupZeroSourceUsage() {
+        List<SourceUsageRecord> allRecords = manager.getAllRecords();
+        sourceUsageCleaner.cleanup();
+        Assert.assertEquals(0, allRecords.size());
     }
 
 }

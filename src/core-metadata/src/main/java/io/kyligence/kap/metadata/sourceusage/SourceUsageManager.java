@@ -305,6 +305,9 @@ public class SourceUsageManager {
     public List<SourceUsageRecord> getAllRecordsWithoutInit() {
         val resourceStore = ResourceStore.getKylinMetaStore(config);
         val allResourcePaths = resourceStore.listResources(ResourceStore.HISTORY_SOURCE_USAGE);
+        if (allResourcePaths == null) {
+            return Lists.newArrayList();
+        }
         return allResourcePaths.stream().map(path -> getRecordWithoutInit(path)).collect(Collectors.toList());
     }
 
