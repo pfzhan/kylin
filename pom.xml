@@ -2981,9 +2981,7 @@
                             <excludes>
                                 <exclude>**/IT*.java</exclude>
                             </excludes>
-                            <argLine>-javaagent:${project.build.testOutputDirectory}/jamm.jar
-                                ${argLine} ${surefireArgLine}
-                            </argLine>
+                            <argLine>${argLine} ${surefireArgLine}</argLine>
                         </configuration>
                     </plugin>
 
