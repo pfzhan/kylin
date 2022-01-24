@@ -25,9 +25,9 @@ import org.apache.spark.sql.catalyst.plans.logical
 import org.apache.spark.sql.catalyst.plans.logical.{Aggregate, LogicalPlan, Project, Sort}
 import org.apache.spark.sql.connector.read.{Scan, ScanBuilder, V1Scan}
 import org.apache.spark.sql.connector.read.sqlpushdown.{NotSupportPushDown, SupportsSQL, SupportsSQLPushDown}
-import org.apache.spark.sql.execution.datasources.DataSourceStrategy
+import org.apache.spark.sql.execution.datasources.{DataSourceStrategy, PushableColumnWithoutNestedColumn}
 import org.apache.spark.sql.execution.datasources.v2.{DataSourceV2Implicits, DataSourceV2Relation, DataSourceV2ScanRelation, PushDownUtils2, V1ScanWrapper}
-import org.apache.spark.sql.execution.datasources.v2.pushdown.sql.{PushDownAggUtils, SingleCatalystStatement}
+import org.apache.spark.sql.execution.datasources.v2.pushdown.sql.{OrderDesc, PushDownAggUtils, SQLBuilder, SingleCatalystStatement}
 import org.apache.spark.sql.sources
 import org.apache.spark.sql.types.{NullType, StructType}
 
@@ -127,6 +127,23 @@ case class PushScanQuery(
     scanBuilder: SupportsSQLPushDown,
     sortOpt: Option[Sort] = None) extends OldPush(project, filters, relation, scanBuilder, sortOpt) {
 
+  /**
+   * Sometimes, the order by col is an alias, not the real column name in ClickHouse.
+   * We should replace it with the real one.
+   */
+  private def translateSortOrder(sortOrder: SortOrder): SortOrder = {
+    val aliasToAttr = project.collect {
+      case Alias(child: AttributeReference, name: String) => (name, child)
+    }.toMap
+
+    sortOrder match {
+      case order @ SortOrder(PushableColumnWithoutNestedColumn(name), _, _, _)
+        if aliasToAttr.contains(name) =>
+        order.copy(child = aliasToAttr(name))
+      case other => other
+    }
+  }
+
   override def pruningColumns(): (Scan, Seq[AttributeReference]) = {
     val prunedSchema = PushDownUtils2.prunedColumns(
       scanBuilder, relation, normalizedProjects, postScanFilters)
@@ -134,7 +151,7 @@ case class PushScanQuery(
     prunedSchema.map { prunedSchema =>
       scanBuilder.pruneColumns(prunedSchema)
       val output = PushDownUtils2.toOutputAttrs(prunedSchema, relation)
-      val orders: Seq[SortOrder] = sortOpt.map(_.order).getOrElse(Seq.empty)
+      val orders: Seq[SortOrder] = sortOpt.map(_.order.map(translateSortOrder)).getOrElse(Seq.empty)
       val pushStatement = SingleCatalystStatement.of(relation, output, pushedFilters, Seq.empty, orders)
       /**
        * output schema set by `SupportsPushDownRequiredColumns#pruneColumns`
