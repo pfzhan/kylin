@@ -28,7 +28,7 @@ import org.apache.spark.sql.connector.read._
 import org.apache.spark.sql.connector.read.sqlpushdown.{SQLStatement, SupportsSQLPushDown}
 import org.apache.spark.sql.execution.datasources.PartitioningUtils
 import org.apache.spark.sql.execution.datasources.jdbc.{JDBCOptions, JDBCRDD, ShardJDBCRelation}
-import org.apache.spark.sql.execution.datasources.v2.pushdown.sql.{SQLBuilder, SingleCatalystStatement, SingleSQLStatement}
+import org.apache.spark.sql.execution.datasources.v2.pushdown.sql.{OrderDesc, SQLBuilder, SingleCatalystStatement, SingleSQLStatement}
 import org.apache.spark.sql.jdbc.JdbcDialects
 import org.apache.spark.sql.sources.Filter
 import org.apache.spark.sql.types.StructType
@@ -87,11 +87,14 @@ case class ShardJDBCScanBuilder(
     val projects = catalystStatement.projects
     val filters = catalystStatement.filters
     val groupBy = catalystStatement.groupBy
+    val orders = catalystStatement.orders
     SingleSQLStatement (
       relation = jdbcOptions.tableOrQuery,
       projects = if (projects.isEmpty) None else Some(projects.map(SQLBuilder.expressionToSql(_))),
       filters = if (filters.isEmpty) None else Some(filters),
       groupBy = if (groupBy.isEmpty) None else Some(groupBy.map(SQLBuilder.expressionToSql(_))),
+      orders = orders.map {order => OrderDesc(SQLBuilder.expressionToSql(order.child),
+        order.direction.sql, order.nullOrdering.sql)},
       url = Some(jdbcOptions.url)
     )
   }

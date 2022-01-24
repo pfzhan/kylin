@@ -35,6 +35,7 @@ import org.apache.spark.sql.execution.datasources.jdbc.ClickHouseDialect$;
 import org.apache.spark.sql.execution.datasources.jdbc.ShardOptions$;
 import org.apache.spark.sql.execution.datasources.v2.V2ScanRelationPushDown2$;
 import org.apache.spark.sql.execution.datasources.v2.jdbc.ShardJDBCScan;
+import org.apache.spark.sql.execution.datasources.v2.pushdown.sql.OrderDesc;
 import org.apache.spark.sql.jdbc.JdbcDialects$;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -92,6 +93,14 @@ public class ClickHouseV2QueryTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(1, shardJDBCScan.relation().parts().length);
     }
 
+    private void executeAndCheck(Dataset<Row> dataset, List<Row> expectedRow) {
+        List<Row> results1 = dataset.collectAsList();
+        Assert.assertEquals(expectedRow, results1);
+
+        ShardJDBCScan shardJDBCScan = ClickHouseUtils.findShardScan(dataset.queryExecution().optimizedPlan());
+        Assert.assertEquals(1, shardJDBCScan.relation().parts().length);
+    }
+
     @Test
     public void testFilterPushDown() throws Exception {
         boolean result =ClickHouseUtils.prepare1Instance(true,
@@ -124,6 +133,84 @@ public class ClickHouseV2QueryTest extends NLocalWithSparkSessionTest {
             String sql4 = String.format(Locale.ROOT,
                     "select s2, i1, i2, n3 from %s.%s where n4 != 0 and i1 > 1 order by i1", catalogName, table);
             executeAndCheck(sql4, expectedRow3);
+            return true;
+        });
+        Assert.assertTrue(result);
+    }
+
+    @Test
+    public void testOrderByPushDown() throws Exception {
+        boolean result =ClickHouseUtils.prepare1Instance(true,
+                (JdbcDatabaseContainer<?> clickhouse, Connection connection) -> {
+
+            final String catalogName = "testOrderByPushDown";
+            final String catalogPrefix = "spark.sql.catalog." + catalogName;
+            setupCatalog(clickhouse, catalogPrefix);
+
+            String table = ClickHouseUtils.PrepareTestData.db + "." + ClickHouseUtils.PrepareTestData.table;
+
+            String sql1 = String.format(Locale.ROOT,
+                    "select s2, i1, i2 from %s.%s where i1 > 1 order by i1", catalogName, table);
+            Dataset<Row> dataset1 = ss.sql(sql1);
+            ShardJDBCScan shardJDBCScan1 =
+                    ClickHouseUtils.findShardScan(dataset1.queryExecution().optimizedPlan());
+            assert shardJDBCScan1.pushedStatement().orders().head().equals(
+                    new OrderDesc("\"i1\"", "ASC", "NULLS FIRST"));
+            List<Row> expectedRow =
+                    ImmutableList.of(RowFactory.create("2", 2, 2L), RowFactory.create("3", 3, 3L));
+            executeAndCheck(dataset1, expectedRow);
+
+            String sql2 = String.format(Locale.ROOT,
+                    "select s2, i1, i2 from %s.%s where i1 > 1 order by i1, i2", catalogName, table);
+            Dataset<Row> dataset2 = ss.sql(sql2);
+            ShardJDBCScan shardJDBCScan2 =
+                    ClickHouseUtils.findShardScan(dataset2.queryExecution().optimizedPlan());
+            assert shardJDBCScan2.pushedStatement().orders().head().equals(
+                    new OrderDesc("\"i1\"", "ASC", "NULLS FIRST"));
+            assert shardJDBCScan2.pushedStatement().orders().last().equals(
+                    new OrderDesc("\"i2\"", "ASC", "NULLS FIRST"));
+            List<Row> expectedRow2 =
+                    ImmutableList.of(RowFactory.create("2", 2, 2L), RowFactory.create("3", 3, 3L));
+            executeAndCheck(dataset2, expectedRow2);
+
+            return true;
+        });
+        Assert.assertTrue(result);
+    }
+
+    @Test
+    public void testOrderByPushDownWithDirection() throws Exception {
+        boolean result =ClickHouseUtils.prepare1Instance(true,
+                (JdbcDatabaseContainer<?> clickhouse, Connection connection) -> {
+
+            final String catalogName = "testOrderByPushDownWithDirection";
+            final String catalogPrefix = "spark.sql.catalog." + catalogName;
+            setupCatalog(clickhouse, catalogPrefix);
+
+            String table = ClickHouseUtils.PrepareTestData.db + "." + ClickHouseUtils.PrepareTestData.table;
+
+            String sql1 = String.format(Locale.ROOT,
+                    "select s2, i1, i2 from %s.%s where i1 > 1 order by i1 asc", catalogName, table);
+            Dataset<Row> dataset1 = ss.sql(sql1);
+            ShardJDBCScan shardJDBCScan1 =
+                    ClickHouseUtils.findShardScan(dataset1.queryExecution().optimizedPlan());
+            assert shardJDBCScan1.pushedStatement().orders().head().equals(
+                    new OrderDesc("\"i1\"", "ASC", "NULLS FIRST"));
+            List<Row> expectedRow1 =
+                    ImmutableList.of(RowFactory.create("2", 2, 2L), RowFactory.create("3", 3, 3L));
+            executeAndCheck(dataset1, expectedRow1);
+
+            String sql2 = String.format(Locale.ROOT,
+                    "select s2, i1, i2 from %s.%s where i1 > 1 order by i1 desc", catalogName, table);
+            Dataset<Row> dataset2 = ss.sql(sql2);
+            ShardJDBCScan shardJDBCScan2 =
+                    ClickHouseUtils.findShardScan(dataset2.queryExecution().optimizedPlan());
+            assert shardJDBCScan2.pushedStatement().orders().head().equals(
+                    new OrderDesc("\"i1\"", "DESC", "NULLS LAST"));
+            List<Row> expectedRow2 =
+                    ImmutableList.of(RowFactory.create("3", 3, 3L), RowFactory.create("2", 2, 2L));
+            executeAndCheck(dataset2, expectedRow2);
+
             return true;
         });
         Assert.assertTrue(result);
