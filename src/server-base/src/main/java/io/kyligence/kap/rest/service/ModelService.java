@@ -2029,13 +2029,16 @@ public class ModelService extends BasicService {
             return;
         }
 
+        Set<String> finishedModelSets = Sets.newHashSet();
         for (ModelContext modelContext : proposeContext.getModelContexts()) {
             if (modelContext.isTargetModelMissing() || modelContext.getOriginModel() == null
-                    || modelContext.getOriginModel().isStreaming()) {
+                    || modelContext.getOriginModel().isStreaming()
+                    || finishedModelSets.contains(modelContext.getOriginModel().getUuid())) {
                 continue;
             }
 
             collectResponseOfOptimalModels(modelContext, errorOrOptimalAccelerateInfoMap, responseOfOptimalModels);
+            finishedModelSets.add(modelContext.getOriginModel().getUuid());
         }
     }
 
