@@ -346,6 +346,7 @@
       :data="pagerTableData"
       style="width: 100%"
       class="ksd-mt-10"
+      v-loading="loadingSubPartition"
       @sort-change="subPartitionSortChange"
       @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="44"> </el-table-column>
@@ -538,6 +539,7 @@ export default class ModelSegment extends Vue {
   subBuildedPartitionValues = [] // 某segment下所有已构建过的子分区值
   modelSubPartitionValues = [] // 模型下所有子分区值
   subPartitionSegmentTotal = 0
+  loadingSubPartition = false
   buildSubParValueVisible = false
   addedPartitionValues = []
   partitionValuesLabels = []
@@ -638,8 +640,10 @@ export default class ModelSegment extends Vue {
     this.currentSegment = row
     this.subSegmentfilter.model_id = this.modelId
     this.subSegmentfilter.segment_id = this.currentSegment.id
-    await this.loadSubPartitions()
     this.isSubPartitionList = true
+    this.loadingSubPartition = true
+    await this.loadSubPartitions()
+    this.loadingSubPartition = false
   }
   async loadSubPartitions () {
     try {
@@ -676,6 +680,9 @@ export default class ModelSegment extends Vue {
     })
     this.subPartitionSegmentTotal = filteredData.length
     this.pagerTableData = filteredData.slice(currentPage * size, (currentPage + 1) * size)
+    this.$nextTick(() => {
+      this.$refs.subPartitionValuesTable && this.$refs.subPartitionValuesTable.doLayout()
+    })
   }
   backToSegmentList () {
     this.isSubPartitionList = false

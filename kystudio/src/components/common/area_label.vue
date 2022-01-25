@@ -181,7 +181,7 @@ export default {
         let indexes = []
         const tags = Array.prototype.slice.call(this.$el.querySelectorAll('.el-tag'))
         const tagText = tags.map(item => item.querySelector('.el-select__tags-text') && item.querySelector('.el-select__tags-text').innerText || item.querySelector('.el-select__tags-text').textContent)
-        tagText.forEach((element, index, self) => {
+        tagText.map(it => it.trim()).forEach((element, index, self) => {
           if (self.indexOf(element.trim()) !== self.lastIndexOf(element.trim())) {
             tags[index] && (tags[index].className += ' error-tag')
             indexes.push(index)

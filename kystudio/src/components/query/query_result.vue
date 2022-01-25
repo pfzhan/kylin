@@ -105,30 +105,32 @@
         </el-col>
       </el-row>
     </div>
-    <div v-if="!isStop" class="result-block">
+    <div v-show="!isStop" class="result-block">
       <!-- <el-button-group class="result-layout-btns">
         <el-button :class="{active: item.value === activeResultType}" size="mini" plain v-for="(item, index) in insightBtnGroups" :key="index" @click="changeDataType(item)">{{item.text}}</el-button>
       </el-button-group> -->
       <el-tabs v-model="activeResultType" class="ksd-mt-16" type="button" :class="{'en-model': $lang==='en'}" @tab-click="changeDataType">
           <el-tab-pane :label="$t('dataBtn')" name="data">
-            <div class="grid-box narrowTable" v-if="!isStop">
-              <el-table
-                :data="pagerTableData"
-                v-scroll-shadow
-                ref="tableLayout"
-                style="width: 100%;">
-                <el-table-column v-for="(value, index) in tableMeta" :key="index"
-                  :prop="''+index"
-                  :min-width="value.label&&value.label.length > 100 ? 52+8*(value.label&&value.label.length || 0) : 52+10*(value.label&&value.label.length || 0)"
-                  show-overflow-tooltip
-                  :label="value.label">
-                  <template slot-scope="props">
-                    <span class="table-cell-text">{{props.row[index]}}</span>
-                  </template>
-                </el-table-column>
-              </el-table>
+            <div class="grid-box narrowTable">
+              <template v-if="!isStop">
+                <el-table
+                  :data="pagerTableData"
+                  v-scroll-shadow
+                  ref="tableLayout"
+                  style="width: 100%;">
+                  <el-table-column v-for="(value, index) in tableMeta" :key="index"
+                    :prop="''+index"
+                    :min-width="value.label&&value.label.length > 100 ? 52+8*(value.label&&value.label.length || 0) : 52+10*(value.label&&value.label.length || 0)"
+                    show-overflow-tooltip
+                    :label="value.label">
+                    <template slot-scope="props">
+                      <span class="table-cell-text">{{props.row[index]}}</span>
+                    </template>
+                  </el-table-column>
+                </el-table>
 
-              <kap-pager v-on:handleCurrentChange='pageSizeChange' :curPage="currentPage+1" class="ksd-center ksd-mtb-16" ref="pager" :refTag="pageRefTags.queryResultPager" :totalSize="modelsTotal"></kap-pager>
+                <kap-pager v-on:handleCurrentChange='pageSizeChange' :curPage="currentPage+1" class="ksd-center ksd-mtb-16" ref="pager" :refTag="pageRefTags.queryResultPager" :totalSize="modelsTotal"></kap-pager>
+              </template>
             </div>
             <form name="export" class="exportTool" action="/kylin/api/query/format/csv" method="post">
               <input type="hidden" name="sql" v-model="sql"/>
@@ -707,6 +709,9 @@ export default class queryResult extends Vue {
       }
     }
     this.pagerTableData = Object.assign([], this.tableData)
+    this.$nextTick(() => {
+      this.$refs.tableLayout && this.$refs.tableLayout.doLayout()
+    })
   }
   getMoreData () {
     if (this.$refs.tableLayout.scrollPosition === 'right') {

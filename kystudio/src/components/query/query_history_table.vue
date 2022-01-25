@@ -190,8 +190,10 @@
             popper-class="col-sql-popover">
             <div class="sql-column" slot="reference" @click="handleExpandType(props)">{{props.row.sql_limit}}</div>
             <template>
-              <p class="popover-sql-content">{{props.row.sql_limit}}</p>
-              <div class="sql-tip" v-if="sqlOverLimit(props.row.sql_limit)">{{$t('sqlDetailTip')}}</div>
+              <div class="sql-container">
+                <p class="popover-sql-content">{{props.row.sql_limit}}</p>
+                <div class="sql-tip" v-if="sqlOverLimit(props.row.sql_limit)">{{$t('sqlDetailTip')}}</div>
+              </div>
             </template>
           </el-popover>
         </template>
@@ -1360,11 +1362,15 @@ export default class QueryHistoryTable extends Vue {
       border-radius: 0;
     }
   }
-  .col-sql-popover {
+  .el-popover.col-sql-popover {
     max-width: 400px;
     box-sizing: border-box;
-    max-height: 300px;
-    overflow-y: auto;
+    padding: 0;
+    .sql-container {
+      max-height: 300px;
+      overflow-y: auto;
+      padding: 16px;
+    }
     .popover-sql-content {
       white-space: pre-wrap;
       word-break: break-all;

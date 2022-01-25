@@ -825,7 +825,7 @@ export default class Snapshot extends Vue {
   .snapshot-table {
     .cell span:first-child {
       line-height: initial;
-      line-height: normal\0;
+      line-height: 23px\0;
       vertical-align: middle;
     }
     .el-table__row.no-authority-model {
