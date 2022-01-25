@@ -655,9 +655,6 @@ public class NDataflowManager implements IRealizationProvider {
         NDataflow cached = getDataflow(dfId);
         NDataflow copy = copy(cached);
         updater.modify(copy);
-        if (copy.getSegments().stream().map(seg -> seg.getLayoutsMap().keySet()).distinct().count() > 1) {
-            logger.warn("Dataflow <{}> is not a prefect square", dfId);
-        }
 
         Set<String> copySegIdSet = copy.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toSet());
         val nDataSegDetailsManager = NDataSegDetailsManager.getInstance(cached.getConfig(), project);

@@ -44,7 +44,7 @@ diff --git a/src/license-service/src/main/java/io/kyligence/kap/license/service/
 +import com.google.common.hash.Hashing;
  
  import io.kyligence.kap.common.constant.Constants;
- import io.kyligence.kap.common.scheduler.EventBusFactory;
+ import io.kyligence.kap.common.event.SourceUsageUpdateReqEvent;
 @@ -198,6 +207,12 @@
          if ("true".equals(System.getProperty(Constants.KE_LICENSE_ISCLOUD))) {
              result.setEvaluation(true);
