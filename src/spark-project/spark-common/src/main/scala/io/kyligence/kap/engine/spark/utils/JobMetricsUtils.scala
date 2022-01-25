@@ -115,8 +115,6 @@ object JobMetricsUtils extends Logging with AdaptiveSparkPlanHelper {
           val nExecutionId = e.localProperties.getProperty(QueryExecutionCache.N_EXECUTION_ID_KEY, "")
           if (nExecutionId != "" && e.queryExecution != null) {
             QueryExecutionCache.setQueryExecution(nExecutionId, e.queryExecution)
-          } else {
-            logDebug("executionIdStr is null, can't get QueryExecution from SQLExecution.")
           }
         case _ => // Ignore
       }
