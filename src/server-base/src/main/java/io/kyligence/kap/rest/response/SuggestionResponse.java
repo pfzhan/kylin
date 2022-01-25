@@ -43,10 +43,13 @@ public class SuggestionResponse {
     List<ModelRecResponse> reusedModels;
     @JsonProperty("new_models")
     List<ModelRecResponse> newModels;
+    @JsonProperty("optimal_models")
+    List<ModelRecResponse> optimalModels;
 
     public SuggestionResponse(List<ModelRecResponse> reusedModels, List<ModelRecResponse> newModels) {
         this.reusedModels = reusedModels;
         this.newModels = newModels;
+        this.optimalModels = Lists.newArrayList();
     }
 
     @Getter
