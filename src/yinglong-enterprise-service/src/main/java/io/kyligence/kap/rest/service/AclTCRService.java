@@ -179,7 +179,7 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
             if (hasAdminPermission) {
                 return true;
             }
-        } else if (Constant.ROLE_ADMIN.equals(sid)) {
+        } else {
             // role admin group
             if (userGroupService.isAdminGroup(sid)) {
                 return true;
