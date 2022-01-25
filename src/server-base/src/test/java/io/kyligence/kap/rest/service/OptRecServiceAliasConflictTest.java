@@ -297,9 +297,9 @@ public class OptRecServiceAliasConflictTest extends OptRecV2TestBase {
         List<LayoutEntity> allLayouts = getIndexPlan().getAllLayouts();
         allLayouts.sort(Comparator.comparing(LayoutEntity::getId));
 
-        Assert.assertEquals(Lists.newArrayList(10, 13, 19), dimensionList);
-        Assert.assertEquals(Lists.newArrayList(100000), measureList);
-        Assert.assertEquals(1, allLayouts.size());
+        Assert.assertEquals(Lists.newArrayList(6, 10, 13, 19), dimensionList);
+        Assert.assertEquals(Lists.newArrayList(100000, 100001), measureList);
+        Assert.assertEquals(2, allLayouts.size());
     }
 
     @Test
@@ -320,9 +320,9 @@ public class OptRecServiceAliasConflictTest extends OptRecV2TestBase {
         measureList.sort(Integer::compareTo);
         List<LayoutEntity> allLayouts = getIndexPlan().getAllLayouts();
         allLayouts.sort(Comparator.comparing(LayoutEntity::getId));
-        Assert.assertEquals("[10, 13, 19]", dimensionList.toString());
-        Assert.assertEquals("[100000]", measureList.toString());
-        Assert.assertEquals(1, allLayouts.size());
+        Assert.assertEquals("[8, 10, 13, 19]", dimensionList.toString());
+        Assert.assertEquals("[100000, 100001, 100002]", measureList.toString());
+        Assert.assertEquals(2, allLayouts.size());
     }
 
     @Test

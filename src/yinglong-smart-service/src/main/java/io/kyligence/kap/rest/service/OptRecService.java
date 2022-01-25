@@ -325,8 +325,10 @@ public class OptRecService extends BasicService {
             int maxMeasureId = model.getMaxMeasureId();
             if (userDefinedRecNameMap.containsKey(negRecItemId)) {
                 measureRef.rebuild(userDefinedRecNameMap.get(negRecItemId));
-                measure = measureRef.getMeasure();
+            } else {
+                measureRef.rebuild(measure.getName());
             }
+            measure = measureRef.getMeasure();
             measure.setId(++maxMeasureId);
             model.getAllMeasures().add(measure);
             measures.put(negRecItemId, measure);
