@@ -34,7 +34,7 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-    <name>KAP - YingLong System Tools</name>
+    <name>YingLong - System Tools</name>
     <groupId>io.kyligence.yinglong</groupId>
     <artifactId>yinglong-systools</artifactId>
 

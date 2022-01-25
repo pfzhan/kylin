@@ -10,11 +10,15 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>yinglong-scheduler-server</artifactId>
+    <name>YingLong - Data Loading Server</name>
+    <groupId>io.kyligence.yinglong</groupId>
+    <artifactId>yinglong-data-loading-server</artifactId>
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
     </properties>
+
+
 
 </project>

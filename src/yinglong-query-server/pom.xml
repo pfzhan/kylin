@@ -10,6 +10,8 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
+    <name>YingLong - Query Server</name>
+    <groupId>io.kyligence.yinglong</groupId>
     <artifactId>yinglong-query-server</artifactId>
 
     <properties>

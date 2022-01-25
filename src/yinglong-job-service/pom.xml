@@ -9,7 +9,7 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-    <name>KAP - YingLong Job Service</name>
+    <name>YingLong - Job Service</name>
     <groupId>io.kyligence.yinglong</groupId>
     <artifactId>yinglong-job-service</artifactId>
 

@@ -34,7 +34,7 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-    <name>KAP - YingLong Common Service</name>
+    <name>YingLong - Common Service</name>
     <groupId>io.kyligence.yinglong</groupId>
     <artifactId>yinglong-common-service</artifactId>
 

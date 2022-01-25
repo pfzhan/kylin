@@ -9,7 +9,9 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-
+    <name>YingLong - Metadata Server</name>
+    <url>https://kyligence.io</url>
+    <description>Kyligence Metadata Server</description>
     <artifactId>yinglong-metadata-server</artifactId>
 
     <properties>

@@ -34,7 +34,7 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-    <name>KAP - YingLong Datasource Service</name>
+    <name>YingLong - Datasource Service</name>
     <groupId>io.kyligence.yinglong</groupId>
     <artifactId>yinglong-datasource-service</artifactId>
 

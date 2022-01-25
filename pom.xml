@@ -36,6 +36,7 @@
     <name>Kyligence Enterprise</name>
     <url>https://kyligence.io</url>
     <inceptionYear>2016</inceptionYear>
+    <description>Kyligence Enterprise YingLong Hatching</description>
 
     <organization>
         <name>Kyligence Inc.</name>
@@ -298,18 +299,7 @@
         <module>src/udf</module>
         <module>src/core-common</module>
         <module>src/core-metadata</module>
-        <module>src/yinglong-enterprise-core-metadata</module>
         <module>src/source-hive</module>
-        <module>src/yinglong-modeling-service</module>
-        <module>src/yinglong-smart-service</module>
-        <module>src/yinglong-query-service</module>
-        <module>src/yinglong-datasource-service</module>
-        <module>src/yinglong-build-service</module>
-        <module>src/yinglong-common-service</module>
-        <module>src/yinglong-systools</module>
-        <module>src/yinglong-job-service</module>
-        <module>src/yinglong-streaming-service</module>
-        <module>src/yinglong-enterprise-service</module>
         <module>src/server-base</module>
         <module>src/license-service</module>
         <module>src/server</module>
@@ -323,13 +313,25 @@
         <module>src/second-storage/core-ui</module>
         <module>src/second-storage/clickhouse</module>
         <module>src/second-storage/clickhouse-it</module>
-        <module>src/yinglong-common-server</module>
-        <module>src/yinglong-metadata-server</module>
-        <module>src/yinglong-job-server</module>
-        <module>src/yinglong-scheduler-server</module>
-        <module>src/yinglong-query-server</module>
+        <!-- yinglong modules -->
+        <module>src/yinglong-enterprise-core-metadata</module>
+        <module>src/yinglong-systools</module>
+        <!-- yinglong service -->
+        <module>src/yinglong-modeling-service</module>
+        <module>src/yinglong-smart-service</module>
+        <module>src/yinglong-query-service</module>
+        <module>src/yinglong-datasource-service</module>
+        <module>src/yinglong-build-service</module>
+        <module>src/yinglong-common-service</module>
+        <module>src/yinglong-job-service</module>
+        <module>src/yinglong-streaming-service</module>
+        <module>src/yinglong-enterprise-service</module>
         <module>src/yinglong-integration-service</module>
-
+        <!-- yinglong server (starter) -->
+        <module>src/yinglong-metadata-server</module>
+        <module>src/yinglong-data-loading-server</module>
+        <module>src/yinglong-smart-server</module>
+        <module>src/yinglong-query-server</module>
     </modules>
 
     <dependencyManagement>
@@ -608,6 +610,12 @@
                 <type>test-jar</type>
             </dependency>
             <dependency>
+                <groupId>io.kyligence.yinglong</groupId>
+                <artifactId>yinglong-datasource-service</artifactId>
+                <version>${project.version}</version>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
                 <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-core-metadata</artifactId>
                 <version>${project.version}</version>
@@ -640,6 +648,12 @@
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-sparder</artifactId>
+                <version>${project.version}</version>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.yinglong</groupId>
+                <artifactId>yinglong-common-service</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
             </dependency>
@@ -1383,7 +1397,7 @@
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>kafka-clients</artifactId>
                 <version>${kafka.version}</version>
-               <scope>provided</scope>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.spark</groupId>
@@ -1491,6 +1505,13 @@
                 <scope>test</scope>
             </dependency>
             <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-core</artifactId>
+                <scope>test</scope>
+                <version>${mockito.version}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>org.dbunit</groupId>
                 <artifactId>dbunit</artifactId>
                 <version>${dbunit.version}</version>
@@ -1517,12 +1538,6 @@
                         <artifactId>junit</artifactId>
                     </exclusion>
                 </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>org.mockito</groupId>
-                <artifactId>mockito-core</artifactId>
-                <version>${mockito.version}</version>
-                <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.powermock</groupId>
@@ -2784,6 +2799,14 @@
                     </attributes>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>versions-maven-plugin</artifactId>
+                <version>2.7</version>
+                <configuration>
+                    <generateBackupPoms>true</generateBackupPoms>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
@@ -2830,74 +2853,12 @@
         <profile>
             <id>kyoffice</id>
 
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
-<!--            <repositories>-->
-<!--                <repository>-->
-<!--                    <id>kyoffice</id>-->
-<!--                    <name>Central Repository</name>-->
-<!--                    <url>http://mvn.ops.kylincorp.com/repository/maven-public/</url>-->
-<!--                    <layout>default</layout>-->
-<!--                    <releases>-->
-<!--                        <enabled>true</enabled>-->
-<!--                    </releases>-->
-<!--                    <snapshots>-->
-<!--                        <enabled>true</enabled>-->
-<!--                    </snapshots>-->
-<!--                </repository>-->
-<!--            </repositories>-->
             <repositories>
                 <repository>
-                    <id>central</id>
+                    <id>kyoffice</id>
                     <name>Central Repository</name>
-                    <url>https://repo.maven.apache.org/maven2</url>
+                    <url>http://mvn.ops.kylincorp.com/repository/maven-public/</url>
                     <layout>default</layout>
-                    <snapshots>
-                        <enabled>false</enabled>
-                    </snapshots>
-                </repository>
-
-                <repository>
-                    <id>nexus</id>
-                    <name>Kyligence Repository</name>
-                    <url>https://repository.kyligence.io/repository/maven-public/
-                    </url>
-                    <releases>
-                        <enabled>true</enabled>
-                    </releases>
-                    <snapshots>
-                        <enabled>true</enabled>
-                    </snapshots>
-                </repository>
-
-                <repository>
-                    <id>cloudera</id>
-                    <url>https://repository.cloudera.com/artifactory/cloudera-repos/
-                    </url>
-                </repository>
-                <repository>
-                    <id>Sonatype</id>
-                    <url>https://repo1.maven.org/maven2/org/scalastyle/scalastyle-maven-plugin/
-                    </url>
-                </repository>
-                <repository>
-                    <id>jcenter-snapshots</id>
-                    <name>jcenter</name>
-                    <url>https://jcenter.bintray.com/</url>
-                </repository>
-                <repository>
-                    <id>spring-release</id>
-                    <url>https://repo.spring.io/libs-release</url>
-                    <snapshots>
-                        <enabled>false</enabled>
-                    </snapshots>
-                </repository>
-
-                <repository>
-                    <id>shibboleth</id>
-                    <name>shibboleth repository</name>
-                    <url>https://build.shibboleth.net/nexus/content/repositories/releases/</url>
                     <releases>
                         <enabled>true</enabled>
                     </releases>
@@ -3028,7 +2989,10 @@
             </properties>
         </profile>
         <profile>
-            <id>outside</id>
+            <id>nexus</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
             <repositories>
                 <repository>
                     <id>central</id>

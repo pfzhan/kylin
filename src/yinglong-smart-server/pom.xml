@@ -10,11 +10,15 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>yinglong-common-server</artifactId>
+    <name>YingLong - Smart Server</name>
+    <groupId>io.kyligence.yinglong</groupId>
+    <artifactId>yinglong-smart-server</artifactId>
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
     </properties>
+
+    
 
 </project>

@@ -10,7 +10,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <name>KAP - YingLong Integration Service</name>
+    <name>YingLong - Integration Service</name>
     <groupId>io.kyligence.yinglong</groupId>
     <artifactId>yinglong-integration-service</artifactId>
     <dependencies>

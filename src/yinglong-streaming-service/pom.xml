@@ -9,7 +9,7 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-    <name>KAP - YingLong Streaming Service</name>
+    <name>YingLong - Streaming Service</name>
     <groupId>io.kyligence.yinglong</groupId>
     <artifactId>yinglong-streaming-service</artifactId>
 
