@@ -56,6 +56,8 @@ public class OpenSqlAccelerateRequest implements Serializable, ProjectInsensitiv
     private boolean saveNewModel = true;
     @JsonProperty("with_base_index")
     private boolean withBaseIndex = false;
+    @JsonProperty("with_optimal_models")
+    private boolean withOptimalModel = false;
 
     public OpenSqlAccelerateRequest(String project, List<String> sqls, Boolean force2CreateNewModel) {
         this.project = project;
