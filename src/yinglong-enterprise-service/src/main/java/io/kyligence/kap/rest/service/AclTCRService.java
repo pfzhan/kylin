@@ -55,7 +55,6 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.security.MutableAclRecord;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.BasicService;
@@ -78,6 +77,9 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.AclGrantEventNotifier;
 import io.kyligence.kap.common.persistence.transaction.AclRevokeEventNotifier;
+import io.kyligence.kap.common.persistence.transaction.AclTCRRevokeEventNotifier;
+import io.kyligence.kap.common.persistence.transaction.BroadcastEventReadyNotifier;
+import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
 import io.kyligence.kap.metadata.acl.AclTCR;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.acl.DependentColumn;
