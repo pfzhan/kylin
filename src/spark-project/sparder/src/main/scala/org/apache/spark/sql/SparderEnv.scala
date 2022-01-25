@@ -307,8 +307,8 @@ object SparderEnv extends Logging {
 
   // clean it after query end
   def clean(): Unit = {
-    _df.set(null)
-    _needCompute.set(null)
+    _df.remove()
+    _needCompute.remove()
   }
 
   def needCompute(): JBoolean = {
