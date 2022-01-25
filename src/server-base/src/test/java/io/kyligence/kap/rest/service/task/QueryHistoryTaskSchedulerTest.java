@@ -26,15 +26,27 @@ package io.kyligence.kap.rest.service.task;
 
 import java.util.List;
 
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.TimeUtil;
+import org.apache.kylin.rest.service.IUserGroupService;
+import org.apache.kylin.rest.util.SpringContext;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PowerMockIgnore;
+import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.powermock.modules.junit4.PowerMockRunner;
+import org.powermock.modules.junit4.PowerMockRunnerDelegate;
+import org.springframework.context.ApplicationContext;
+import org.springframework.security.acls.domain.PermissionFactory;
+import org.springframework.security.acls.model.PermissionGrantingStrategy;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 
@@ -53,8 +65,12 @@ import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryInfo;
 import io.kyligence.kap.metadata.query.QueryMetrics;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
+import io.kyligence.kap.rest.service.NUserGroupService;
 
-@RunWith(TimeZoneTestRunner.class)
+@RunWith(PowerMockRunner.class)
+@PowerMockRunnerDelegate(TimeZoneTestRunner.class)
+@PrepareForTest({ SpringContext.class, UserGroupInformation.class })
+@PowerMockIgnore("javax.management.*")
 public class QueryHistoryTaskSchedulerTest extends NLocalFileMetadataTestCase {
     private static final String PROJECT = "default";
     private static final String DATAFLOW = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
@@ -62,13 +78,26 @@ public class QueryHistoryTaskSchedulerTest extends NLocalFileMetadataTestCase {
     private static final String LAYOUT2 = "1000001";
     private static final Long QUERY_TIME = 1586760398338L;
 
-    @InjectMocks
     private QueryHistoryTaskScheduler qhAccelerateScheduler;
+
+    @Mock
+    private final IUserGroupService userGroupService = Mockito.spy(NUserGroupService.class);
 
     @Before
     public void setUp() throws Exception {
+        PowerMockito.mockStatic(SpringContext.class);
+        PowerMockito.mockStatic(UserGroupInformation.class);
+        UserGroupInformation userGroupInformation = Mockito.mock(UserGroupInformation.class);
+        PowerMockito.when(UserGroupInformation.getCurrentUser()).thenReturn(userGroupInformation);
         createTestMetadata();
+        ApplicationContext applicationContext = PowerMockito.mock(ApplicationContext.class);
+        PowerMockito.when(SpringContext.getApplicationContext()).thenReturn(applicationContext);
+        PowerMockito.when(SpringContext.getBean(PermissionFactory.class))
+                .thenReturn(PowerMockito.mock(PermissionFactory.class));
+        PowerMockito.when(SpringContext.getBean(PermissionGrantingStrategy.class))
+                .thenReturn(PowerMockito.mock(PermissionGrantingStrategy.class));
         qhAccelerateScheduler = Mockito.spy(new QueryHistoryTaskScheduler(PROJECT));
+        ReflectionTestUtils.setField(qhAccelerateScheduler, "userGroupService", userGroupService);
     }
 
     @After
@@ -200,7 +229,8 @@ public class QueryHistoryTaskSchedulerTest extends NLocalFileMetadataTestCase {
         qhAccelerateScheduler.queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
         qhAccelerateScheduler.accelerateRuleUtil = Mockito.mock(AccelerateRuleUtil.class);
         Mockito.when(qhAccelerateScheduler.queryHistoryDAO.queryQueryHistoriesByIdOffset(Mockito.anyLong(),
-                Mockito.anyInt(), Mockito.anyString())).thenReturn(queryHistoriesWithStringRealization()).thenReturn(null);
+                Mockito.anyInt(), Mockito.anyString())).thenReturn(queryHistoriesWithStringRealization())
+                .thenReturn(null);
 
         // before update dataflow usage, layout usage and last query time
         NDataflow dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
@@ -333,8 +363,8 @@ public class QueryHistoryTaskSchedulerTest extends NLocalFileMetadataTestCase {
         queryHistory5.setQueryTime(QUERY_TIME);
         queryHistory5.setEngineType("NATIVE");
         QueryHistoryInfo queryHistoryInfo5 = new QueryHistoryInfo();
-        queryHistoryInfo5.setRealizationMetrics(Lists.newArrayList(new QueryMetrics.RealizationMetrics[]{
-                new QueryMetrics.RealizationMetrics(LAYOUT1, "Table Index", DATAFLOW, Lists.newArrayList())}));
+        queryHistoryInfo5.setRealizationMetrics(Lists.newArrayList(
+                new QueryMetrics.RealizationMetrics(LAYOUT1, "Table Index", DATAFLOW, Lists.newArrayList())));
         queryHistory5.setQueryHistoryInfo(queryHistoryInfo5);
         queryHistory5.setId(5);
 
@@ -345,8 +375,8 @@ public class QueryHistoryTaskSchedulerTest extends NLocalFileMetadataTestCase {
         queryHistory6.setQueryTime(QUERY_TIME);
         queryHistory6.setEngineType("NATIVE");
         QueryHistoryInfo queryHistoryInfo6 = new QueryHistoryInfo();
-        queryHistoryInfo6.setRealizationMetrics(Lists.newArrayList(new QueryMetrics.RealizationMetrics[]{
-                new QueryMetrics.RealizationMetrics(LAYOUT1, "Table Index", DATAFLOW, Lists.newArrayList())}));
+        queryHistoryInfo6.setRealizationMetrics(Lists.newArrayList(
+                new QueryMetrics.RealizationMetrics(LAYOUT1, "Table Index", DATAFLOW, Lists.newArrayList())));
         queryHistory6.setQueryHistoryInfo(queryHistoryInfo6);
         queryHistory6.setId(6);
 
@@ -357,8 +387,8 @@ public class QueryHistoryTaskSchedulerTest extends NLocalFileMetadataTestCase {
         queryHistory7.setQueryTime(QUERY_TIME);
         queryHistory7.setEngineType("NATIVE");
         QueryHistoryInfo queryHistoryInfo7 = new QueryHistoryInfo();
-        queryHistoryInfo7.setRealizationMetrics(Lists.newArrayList(new QueryMetrics.RealizationMetrics[]{
-                new QueryMetrics.RealizationMetrics(LAYOUT2, "Table Index", DATAFLOW, Lists.newArrayList())}));
+        queryHistoryInfo7.setRealizationMetrics(Lists.newArrayList(
+                new QueryMetrics.RealizationMetrics(LAYOUT2, "Table Index", DATAFLOW, Lists.newArrayList())));
         queryHistory7.setQueryHistoryInfo(queryHistoryInfo7);
         queryHistory7.setId(7);
 
@@ -369,8 +399,8 @@ public class QueryHistoryTaskSchedulerTest extends NLocalFileMetadataTestCase {
         queryHistory8.setQueryTime(QUERY_TIME);
         queryHistory8.setEngineType("NATIVE");
         QueryHistoryInfo queryHistoryInfo8 = new QueryHistoryInfo();
-        queryHistoryInfo8.setRealizationMetrics(Lists.newArrayList(new QueryMetrics.RealizationMetrics[]{
-                new QueryMetrics.RealizationMetrics(null, null, DATAFLOW, Lists.newArrayList())}));
+        queryHistoryInfo8.setRealizationMetrics(
+                Lists.newArrayList(new QueryMetrics.RealizationMetrics(null, null, DATAFLOW, Lists.newArrayList())));
         queryHistory8.setQueryHistoryInfo(queryHistoryInfo8);
         queryHistory8.setId(8);
 
