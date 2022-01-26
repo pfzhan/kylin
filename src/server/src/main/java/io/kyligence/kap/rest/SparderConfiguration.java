@@ -26,6 +26,8 @@ package io.kyligence.kap.rest;
 import java.util.concurrent.Executors;
 
 import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.spark.scheduler.SparkUIZombieJobCleaner;
 import org.apache.spark.sql.SparderEnv;
 import org.springframework.boot.autoconfigure.AutoConfigureOrder;
 import org.springframework.context.annotation.Configuration;
@@ -56,6 +58,9 @@ public class SparderConfiguration {
 
     public void init() {
         SparderEnv.init();
+        if (KylinConfig.getInstanceFromEnv().isCleanSparkUIZombieJob()) {
+            SparkUIZombieJobCleaner.regularClean();
+        }
         if (System.getProperty("spark.local", "false").equals("true")) {
             log.debug("spark.local=true");
             return;

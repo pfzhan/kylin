@@ -1356,6 +1356,14 @@ public abstract class KylinConfigBase implements Serializable {
         return getPropertiesByPrefix("kylin.query.async-query.spark-conf.");
     }
 
+    public boolean isCleanSparkUIZombieJob() {
+        return Boolean.parseBoolean(this.getOptional("kylin.query.engine.clean-spark-ui-zombie-job-enabled", "false"));
+    }
+
+    public int getSparkUIZombieJobCleanSeconds() {
+        return Integer.parseInt(this.getOptional("kylin.query.engine.spark-ui-zombie-job-clean-seconds", "180"));
+    }
+    
     public int getSparkEngineMaxRetryTime() {
         return Integer.parseInt(getOptional("kylin.engine.max-retry-time", "3"));
     }
