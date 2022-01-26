@@ -85,7 +85,8 @@ export default {
     closeSecStorageSetting: 'Turn Off Tiered Storage',
     closeSecStorageTip: 'With this switch OFF, the data stored in the tiered storage will be cleared. The query performance might be affected.',
     affectedModels: 'The affected model:',
-    secStorageInputTitle: 'Please enter "Turn Off Tiered Storage" to confirm.'
+    secStorageInputTitle: 'Please enter "Turn Off Tiered Storage" to confirm.',
+    emptyTips: 'Can\'t be empty'
   },
   'zh-cn': {
     acceThreshold: '加速提示',
@@ -171,6 +172,7 @@ export default {
     closeSecStorageSetting: '关闭分层存储',
     closeSecStorageTip: '关闭后，该项目中模型的分层存储数据将被清空，可能会影响查询效率。',
     affectedModels: '受影响的模型如下：',
-    secStorageInputTitle: '输入“关闭分层存储”以确认操作'
+    secStorageInputTitle: '输入“关闭分层存储”以确认操作',
+    emptyTips: '不为空'
   }
 }

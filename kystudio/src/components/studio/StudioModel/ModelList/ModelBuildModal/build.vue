@@ -223,6 +223,13 @@
               </div>
             </el-form-item>
           </el-form>
+          <el-alert
+            v-show="!isShowRangeDateError && modelBuildMeta.dataRangeVal[1]"
+            class="date-range-alert"
+            :title="$t('segmentDateRangeTips')"
+            type="warning"
+            :closable="false"
+          ></el-alert>
           <div class="error-msg" v-if="isShowRangeDateError">{{loadRangeDateError}}</div>
           <div v-if="isShowErrorSegments" class="error_segments">
             <el-alert type="error" :show-background="false" :closable="false" show-icon>
@@ -356,6 +363,7 @@
     locales
   })
   export default class ModelBuildModal extends Vue {
+    moment = moment
     btnLoading = false
     isLoadingNewRange = false
     modelBuildMeta = {
@@ -677,21 +685,31 @@
     get format () {
       return this.modelDesc.partition_desc && this.modelDesc.partition_desc.partition_date_format || 'yyyy-MM-dd'
     }
+    formatPartition () {
+      let format = ''
+      switch (this.partitionMeta.format) {
+        case 'yyyy-MM-dd':
+        case 'yyyyMMdd':
+        case 'yyyy/MM/dd':
+          format = 'YYYY/MM/DD'
+          break
+        case 'yyyy-MM':
+        case 'yyyyMM':
+          format = 'YYYY/MM'
+          break
+        case 'yyyy-MM-dd HH:mm:ss':
+          format = 'YYYY/MM/DD HH:mm:ss'
+          break
+        case 'yyyy-MM-dd HH:mm:ss.SSS':
+          format = 'YYYY/MM/DD HH:mm:ss.SSS'
+          break
+      }
+      return format
+    }
     validateRange (value) {
       return new Promise((resolve, reject) => {
         const [ startValue, endValue ] = value
-        let format = ''
-        switch (this.partitionMeta.format) {
-          case 'yyyy-MM-dd':
-          case 'yyyyMMdd':
-          case 'yyyy/MM/dd':
-            format = 'YYYY/MM/DD'
-            break
-          case 'yyyy-MM':
-          case 'yyyyMM':
-            format = 'YYYY/MM'
-            break
-        }
+        let format = this.formatPartition()
         const formatTimestampStart = !format ? startValue : (startValue && new Date(moment(new Date(startValue)).format(format)).getTime())
         const formatTimestampEnd = !format ? endValue : (endValue && new Date(moment(new Date(endValue)).format(format)).getTime())
         const isLoadExisted = this.modelBuildMeta.isLoadExisted
@@ -1195,6 +1213,10 @@
           margin-left: 3px;
         }
       }
+    }
+    .date-range-alert {
+      padding: 10px 0;
+      background-color: transparent;
     }
     .auto-detect-btn {
       line-height: 22px;

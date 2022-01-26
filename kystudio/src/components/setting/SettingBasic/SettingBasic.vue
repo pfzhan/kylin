@@ -139,7 +139,7 @@
               </el-option>
             </el-select>
             <span>{{$t('storageGarbageDesc2')}}</span>
-            <el-form-item class="setting-input" :show-message="false" prop="low_frequency_threshold">
+            <el-form-item class="setting-input" prop="low_frequency_threshold">
               <el-input-number size="small" style="width: 100px;" :max="9999" v-number="form.low_frequency_threshold" v-model="form.low_frequency_threshold" :controls="false"></el-input-number>
             </el-form-item>
             <span>{{$store.state.project.isSemiAutomatic ? $t('storageGarbageDesc3ForSemiAutomatic') : $t('storageGarbageDesc3')}}</span>
@@ -211,7 +211,7 @@
             <span class="setting-value">
               {{form.volatile_range.volatile_range_number}} {{$t(form.volatile_range.volatile_range_type.toLowerCase())}}
             </span>
-            <el-form-item class="setting-input" :show-message="false" prop="volatile_range.volatile_range_number">
+            <el-form-item class="setting-input" prop="volatile_range.volatile_range_number">
               <el-input size="small" style="width: 100px;" v-number="form.volatile_range.volatile_range_number" v-model="form.volatile_range.volatile_range_number" :disabled="!form.auto_merge_enabled"></el-input>
             </el-form-item><el-select
               class="setting-input"
@@ -244,7 +244,7 @@
             <span class="setting-value">
               {{form.retention_range.retention_range_number}} {{$t(form.retention_range.retention_range_type.toLowerCase())}}
             </span>
-            <el-form-item class="setting-input" :show-message="false" prop="retention_range.retention_range_number">
+            <el-form-item class="setting-input" prop="retention_range.retention_range_number">
               <el-input size="small" style="width: 100px;" v-number="form.retention_range.retention_range_number" v-model="form.retention_range.retention_range_number" :disabled="!form.retention_range.retention_range_enabled"></el-input>
             </el-form-item>
             <!-- <span class="setting-input">{{$t(retentionRangeScale)}}</span> -->
@@ -332,13 +332,13 @@
             <el-switch @change="changeDurationEnable" v-model="rulesObj.duration_enable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch></span>
           </div>
           <div class="conds-content clearfix">
-            <div class="ksd-mt-8 ksd-fs-12">
+            <div class="duration-rule ksd-mt-8 ksd-fs-12">
               {{$t('from')}}
-              <el-form-item prop="min_duration" :show-message="false" style="display: inline-block;">
+              <el-form-item prop="min_duration" style="display: inline-block;">
                 <el-input v-model.trim="rulesObj.min_duration" v-number="rulesObj.min_duration" size="small" :class="['rule-setting-input', rulesObj.duration_enable && durationError && 'is-error']" :disabled="!rulesObj.duration_enable" @blur="$refs.rulesForm.validateField('min_duration')"></el-input>
               </el-form-item>
               {{$t('to')}}
-              <el-form-item prop="max_duration" :show-message="false" style="display: inline-block;">
+              <el-form-item prop="max_duration" style="display: inline-block;">
                 <el-input v-model.trim="rulesObj.max_duration" v-number="rulesObj.max_duration" size="small" :class="['rule-setting-input', rulesObj.duration_enable && durationError && 'is-error']" :disabled="!rulesObj.duration_enable" @blur="$refs.rulesForm.validateField('max_duration')"></el-input>
               </el-form-item>
               {{$t('secondes')}}
@@ -562,18 +562,18 @@ export default class SettingBasic extends Vue {
   }
   get rules () {
     return {
-      'volatile_range.volatile_range_number': [{ validator: validate['positiveNumber'], trigger: 'change' }],
-      'retention_range.retention_range_number': [{ validator: validate['positiveNumber'], trigger: 'change' }]
+      'volatile_range.volatile_range_number': [{ validator: (rule, value, callback) => validate['positiveNumber'].call(this, rule, value, callback), trigger: 'change' }],
+      'retention_range.retention_range_number': [{ validator: (rule, value, callback) => validate['positiveNumber'].call(this, rule, value, callback), trigger: 'change' }]
     }
   }
   get storageQuota () {
     return {
-      'storage_quota_tb_size': [{ validator: validate['storageQuotaSize'], trigger: 'change' }]
+      'storage_quota_tb_size': [{ validator: (rule, value, callback) => validate['storageQuotaSize'].call(this, rule, value, callback), trigger: 'change' }]
     }
   }
   get indexOptimization () {
     return {
-      'low_frequency_threshold': [{ validator: validate['storageQuotaNum'], trigger: 'change' }]
+      'low_frequency_threshold': [{ validator: (rule, value, callback) => validate['storageQuotaNum'].call(this, rule, value, callback), trigger: 'change' }]
     }
   }
 
@@ -591,18 +591,20 @@ export default class SettingBasic extends Vue {
 
   validatePass (rule, value, callback) {
     if (rule.field.indexOf('duration') !== -1 && this.rulesObj.duration_enable) {
-      if (!value && value !== 0) {
-        callback(new Error(null))
-      } else if (+this.rulesObj.min_duration > +this.rulesObj.max_duration) {
-        this.durationError = true
-        this.durationErrorMsg = this.$t('prevGreaterThanNext')
-        callback(new Error(null))
-      } else if (+this.rulesObj.max_duration > 3600) {
-        this.durationError = true
-        this.durationErrorMsg = this.$t('overTimeLimitTip')
-        callback(new Error(null))
+      if (rule.field === 'min_duration') {
+        if (!value && value !== 0) {
+          callback(new Error(this.$t('emptyTips')))
+        }
+        this.$refs.rulesForm.validateField('max_duration')
+      } else if (rule.field === 'max_duration') {
+        if (!value && value !== 0) {
+          callback(new Error(this.$t('emptyTips')))
+        } else if (+this.rulesObj.min_duration > +this.rulesObj.max_duration) {
+          callback(new Error(this.$t('prevGreaterThanNext')))
+        } else if (+this.rulesObj.max_duration > 3600) {
+          callback(new Error(this.$t('overTimeLimitTip')))
+        }
       } else {
-        this.durationError = false
         callback()
       }
     } else if (rule.field === 'count_value' && this.rulesObj.count_enable) {
@@ -619,7 +621,7 @@ export default class SettingBasic extends Vue {
       }
     } else if (rule.field === 'min_hit_count') {
       if (!value && value !== 0) {
-        callback(new Error(this.$t('minHitCountEmptyTips')))
+        callback(new Error(this.$t('emptyTips')))
       } else {
         callback()
       }
@@ -807,7 +809,7 @@ export default class SettingBasic extends Vue {
           }
         }
         case 'accleration-rule-settings': {
-          if (await this.$refs['rulesForm'].validate()) {
+          if (await this.$refs['rulesForm'].validate() && !this.durationError) {
             await this.saveAcclerationRule()
           } else {
             return errorCallback()
@@ -1159,6 +1161,23 @@ export default class SettingBasic extends Vue {
       padding-top: 6px;
     }
   }
+  .el-form-item {
+    &.is-error {
+      vertical-align: top;
+      margin-top: -4px;
+    }
+    .el-form-item__error {
+      width: 100px;
+    }
+  }
+  .duration-rule {
+    .el-form-item {
+      &.is-error {
+        vertical-align: text-top;
+        margin-top: -8px;
+      }
+    }
+  }
   .ruleSetting {
     padding: 15px 20px;
     .conds-title {
@@ -1221,7 +1240,7 @@ export default class SettingBasic extends Vue {
   }
   .rule-setting-input {
     display: inline-block;
-    width: 70px;
+    width: 100px;
     &.count-input{
       width: 80px;
       &.el-input-number.is-without-controls .el-input__inner{

@@ -155,6 +155,7 @@
     </EditableBlock>
     <!-- YARN 资源队列 -->
     <EditableBlock
+      class="yarn-queue-config"
       :header-content="$t('yarnQueue')"
       :is-keep-editing="true"
       :is-edited="isFormEdited(form, 'yarn-name')"
@@ -162,7 +163,7 @@
       :is-reset="false"
       v-if="settingActions.includes('yarnQueue') && ifShowYarn"
       @submit="(scb, ecb) => handleSubmit('yarn-name', scb, ecb)">
-      <el-form ref="yarn-setting-form" :model="form" :rules="yarnQueueRules" :inline-message="true">
+      <el-form ref="yarn-setting-form" :model="form" :rules="yarnQueueRules">
         <div class="setting-item">
           <div class="setting-label font-medium">{{$t('yarnQueue')}}</div>
           <el-form-item prop="yarn_queue">
@@ -467,7 +468,7 @@ export default class SettingAdvanced extends Vue {
   }
   get yarnQueueRules () {
     return {
-      'yarn_queue': [{ validator: validate['validateYarnName'], message: [this.$t('yarnIsEmpty'), this.$t('yarnFormat')], trigger: 'blur' }]
+      'yarn_queue': [{ validator: validate['validateYarnName'], message: [this.$t('emptyTips'), this.$t('yarnFormat')], trigger: 'blur' }]
     }
   }
   get userType () {
@@ -1215,6 +1216,12 @@ export default class SettingAdvanced extends Vue {
   display: none;
 }
 .accelerate-setting {
+  .yarn-queue-config {
+    .el-form-item.is-error {
+      vertical-align: top;
+      margin-top: -6px;
+    }
+  }
   .secondary-storage-nodes {
     display: block;
     width: 100%;

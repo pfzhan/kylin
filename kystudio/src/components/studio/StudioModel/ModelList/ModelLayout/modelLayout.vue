@@ -32,7 +32,7 @@
         other-icon="el-ksd-icon-more_with_border_22"
       />
     </div>
-    <el-tabs class="el-tabs--default model-detail-tabs" tab-position="left" v-if="currentModelRow" v-model="currentModelRow.tabTypes">
+    <el-tabs class="el-tabs--default model-detail-tabs" tab-position="left" v-if="currentModelRow" v-model="currentModelRow.tabTypes" :key="$lang">
       <el-tab-pane class="tab-pane-item" :label="$t('overview')" name="overview">
         <ModelOverview
           v-if="currentModelRow.tabTypes === 'overview'"
