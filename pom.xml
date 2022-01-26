@@ -274,7 +274,7 @@
         <paranamer.version>2.8</paranamer.version>
 
         <!-- JVM Args for Testing -->
-        <argLine>-Xms2G -Xmx8G</argLine>
+        <argLine>-Xms2G -Xmx16G</argLine>
 
         <guava20.shade>io.kyligence.kap.guava20.shaded</guava20.shade>
 
@@ -2976,7 +2976,7 @@
                         <version>${maven.surefire.version}</version>
                         <configuration>
                             <reportsDirectory>${project.basedir}/../../target/surefire-reports</reportsDirectory>
-                            <argLine>-Xms2G -Xmx8G -XX:PermSize=128M -XX:MaxPermSize=512M -Dhdp.version=current</argLine>
+                            <argLine>-Dhdp.version=current</argLine>
                             <reportFormat>plain</reportFormat>
                             <excludes>
                                 <exclude>**/IT*.java</exclude>
