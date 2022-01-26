@@ -419,6 +419,14 @@ public class QueryLayoutChooserTest extends AutoTestBase {
         val pair5 = NQueryLayoutChooser.selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(),
                 context5.getSQLDigest());
         Assert.assertFalse(pair5.getLayoutEntity().getIndex().isTableIndex());
+
+        String sql6 = "select collect_set(ORDER_ID) from TEST_KYLIN_FACT";
+        OLAPContext context6 = prepareOlapContext(sql6).get(0);
+        Map<String, String> sqlAlias2ModelName6 = RealizationChooser.matchJoins(dataflow.getModel(), context6);
+        context6.fixModel(dataflow.getModel(), sqlAlias2ModelName6);
+        val pair6 = NQueryLayoutChooser.selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(),
+                context6.getSQLDigest());
+        Assert.assertNull(pair6);
     }
 
     @Test
