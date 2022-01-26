@@ -463,7 +463,7 @@ case class FloorDateTime(timestamp: Expression,
   }
 
   override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
-    val tz = ctx.addReferenceObj("timeZone", zoneId)
+    val tz = ctx.addReferenceObj("timeZone", zoneId, classOf[ZoneId].getName)
     codeGenHelper(ctx, ev, minLevel = DateTimeUtils.TRUNC_TO_SECOND, true) {
       (date: String, fmt: String) =>
         s"truncTimestamp($date, $fmt, $tz);"
