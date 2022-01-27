@@ -1,6 +1,6 @@
 {
   "uuid": "8c670664-8d05-466a-802f-83c023b56c79",
-  "alias": "file_pruning",
+  "alias": "file_pruning_79",
   "fact_table": "DEFAULT.TEST_ORDER_STRING_TS",
   "owner": "ADMIN",
   "join_tables": [

@@ -402,16 +402,6 @@
                         <excludes>
                             <exclude>**/*$*</exclude>
                         </excludes>
-                        <reuseForks>false</reuseForks>
-                        <systemProperties>
-                            <property>
-                                <name>log4j.configurationFile</name>
-                                <value>
-                                    file:${project.basedir}/../../build/conf/kylin-tools-log4j.xml
-                                </value>
-                            </property>
-                        </systemProperties>
-                        <argLine>-Xms1G -Xmx8G -XX:PermSize=128M -XX:MaxPermSize=512M -Dhdp.version=current</argLine>
                     </configuration>
                 </plugin>
 
