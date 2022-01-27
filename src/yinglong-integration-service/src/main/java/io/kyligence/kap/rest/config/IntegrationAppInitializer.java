@@ -23,17 +23,17 @@
  */
 package io.kyligence.kap.rest.config;
 
-import org.glassfish.jersey.server.BroadcasterListener;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import io.kyligence.kap.common.scheduler.EventBusFactory;
+import io.kyligence.kap.rest.config.initialize.BroadcastListener;
 
 @Component
 public class IntegrationAppInitializer implements InitializingBean {
     @Autowired
-    private BroadcasterListener broadcasterListener;
+    private BroadcastListener broadcasterListener;
 
     @Override
     public void afterPropertiesSet() throws Exception {

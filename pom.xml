@@ -2378,14 +2378,16 @@
 
     <distributionManagement>
         <repository>
-            <id>kyoffice</id>
-            <name>Custom Release Repository</name>
-            <url>http://mvn.ops.kylincorp.com/repository/maven-releases/</url>
+            <id>${repository.id}</id>
+            <url>${repository.url}</url>
+            <name>${repository.name}</name>
+            <layout>default</layout>
         </repository>
         <snapshotRepository>
-            <id>kyoffice</id>
-            <name>Custom Snapshot Repository</name>
-            <url>http://mvn.ops.kylincorp.com/repository/maven-snapshots/</url>
+            <id>${repository.id.snapshots}</id>
+            <url>${repository.url.snapshots}</url>
+            <name>${repository.name.snapshots}</name>
+            <layout>default</layout>
         </snapshotRepository>
     </distributionManagement>
 
