@@ -2811,6 +2811,7 @@ export default class ModelEdit extends Vue {
           width:24px;
           height:24px;
           float:left;
+          line-height: 30px\0;
         }
         .kind {
           cursor:move;

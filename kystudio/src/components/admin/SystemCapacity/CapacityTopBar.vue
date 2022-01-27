@@ -1,7 +1,7 @@
 <template>
   <div class="capacity-top-bar">
     <el-popover ref="activeNodes" width="290" popper-class="nodes-popover" v-model="showNodes">
-      <div class="contain">
+      <div class="contain" @mouseover="showNodeDetails = false">
         <div class="lastest-update-time">
           <el-tooltip :content="$t('lastUpdateTime')" effect="dark" placement="top"><i class="icon el-icon-ksd-type_time"></i></el-tooltip>{{latestUpdateTime | timeFormatHasTimeZone}}</div>
         <div class="data-valumns">
@@ -20,7 +20,7 @@
               <el-tag size="mini" type="danger" v-if="systemCapacityInfo.capacity_status === 'OVERCAPACITY'">{{$t('excess')}}</el-tag>
             </template>
           </p>
-          <p :class="['label', 'node-item', {'is-disabled': systemNodeInfo.isLoading || systemNodeInfo.fail}]" @mouseenter="showNodeDetails = true" @mouseleave="showNodeDetails = false">
+          <p :class="['label', 'node-item', {'is-disabled': systemNodeInfo.isLoading || systemNodeInfo.fail}]" @mouseover.stop @mouseenter.stop="showNodeDetails = true">
             <span>{{$t('usedNodes')}}：<i v-if="systemNodeInfo.isLoading" class="el-icon-loading"></i><span :class="['font-medium', {'is-danger': systemNodeInfo.current_node > systemNodeInfo.node && !systemNodeInfo.unlimited}]" v-else-if="!systemNodeInfo.fail">{{!systemNodeInfo.unlimited ? `${systemNodeInfo.current_node}/${systemNodeInfo.node}` : systemNodeInfo.current_node}}</span></span>
             <template v-if="!systemNodeInfo.isLoading && isNodeLoadingSuccess">
               <span class="font-disabled" v-if="systemNodeInfo.fail">{{$t('failApi')}}</span>
@@ -33,9 +33,13 @@
             <span class="icon el-icon-ksd-more_02 node-list-icon"></span></p>
         </div>
       </div>
-      <div class="nodes" v-if="showNodeDetails && isNodeLoadingSuccess && !isNodeLoading">
+      <div class="nodes" v-if="showNodeDetails && isNodeLoadingSuccess && !isNodeLoading" @mouseenter="showNodeDetails = true" @mouseleave="showNodeDetails = false">
         <!-- <p class="error-text" v-if="!nodeList.filter(it => it.mode === 'all').length">{{$t('noNodesTip1')}}</p> -->
-        <ul class="node-details" v-if="nodeList.length > 0"><li class="node-list" v-for="(node, index) in nodeList" :key="index">{{`${node.host}(${node.mode === 'All' ? 'All' : $t(`kylinLang.common.${node.mode.toLocaleLowerCase()}Node`)})`}}</li></ul>
+        <div class="node-details" v-if="nodeList.length > 0">
+          <div class="node-list" v-for="(node, index) in nodeList" :key="index">
+            <span v-custom-tooltip="{text: `${node.host}(${node.mode === 'All' ? 'All' : $t(`kylinLang.common.${node.mode.toLocaleLowerCase()}Node`)}`, w: 20}">{{`${node.host}(${node.mode === 'All' ? 'All' : $t(`kylinLang.common.${node.mode.toLocaleLowerCase()}Node`)})`}}</span>
+          </div>
+        </div>
         <div class="node-details nodata" v-else>{{$t('kylinLang.common.noData')}}</div>
       </div>
     </el-popover>
@@ -313,12 +317,13 @@
       background: #ffffff;
       left: calc(~'100% + 5px');
       margin-top: -35px;
-      width: 250px;
+      width: 208px;
       padding: 10px;
       box-sizing: border-box;
       box-shadow: 0 0px 6px 0px #E5E5E5;
       .node-details {
         text-align: left;
+        width: 100%;
         &.nodata {
           color: @text-disabled-color;
           text-align: center;
@@ -327,8 +332,15 @@
       .node-list {
         color: @text-normal-color;
         margin-top: 8px;
+        width: 100%;
+        display: inline-block;
         &:first-child {
           margin-top: 0;
+        }
+        .custom-tooltip-layout {
+          vertical-align: middle;
+          line-height: 1;
+          width: 100%;
         }
       }
     }
