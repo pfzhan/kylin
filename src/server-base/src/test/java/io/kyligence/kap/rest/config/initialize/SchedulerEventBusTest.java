@@ -252,8 +252,9 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
     public void testEpochChangedListener() throws Exception {
         val prj = "test_epoch";
         val listener = new EpochChangedListener();
+        RecommendationTopNUpdateScheduler scheduler = new RecommendationTopNUpdateScheduler();
         ReflectionTestUtils.setField(listener, "recommendationUpdateScheduler",
-                new RecommendationTopNUpdateScheduler());
+                scheduler);
         val prjMgr = NProjectManager.getInstance(getTestConfig());
         prjMgr.createProject("test_epoch", "ADMIN", "", null, MaintainModelType.MANUAL_MAINTAIN);
         int oriCount = NDefaultScheduler.listAllSchedulers().size();
@@ -261,6 +262,7 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(NDefaultScheduler.listAllSchedulers().size(), oriCount + 1);
         listener.onProjectEscaped(new ProjectEscapedNotifier(prj));
         Assert.assertEquals(NDefaultScheduler.listAllSchedulers().size(), oriCount);
+        scheduler.close();
     }
 
     @Test

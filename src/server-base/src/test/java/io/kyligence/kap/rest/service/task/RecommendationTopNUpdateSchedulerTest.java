@@ -43,22 +43,21 @@ public class RecommendationTopNUpdateSchedulerTest extends LogOutputTestCase {
 
     private RawRecService rawRecService = Mockito.mock(RawRecService.class);
     private static final String PROJECT = "default";
-    private RecommendationTopNUpdateScheduler recommendationTopNUpdateScheduler = Mockito
-            .spy(new RecommendationTopNUpdateScheduler());
 
     @Before
     public void setUp() throws Exception {
-        ReflectionTestUtils.setField(recommendationTopNUpdateScheduler, "rawRecService", rawRecService);
-        createTestMetadata();
+        super.createTestMetadata();
     }
 
     @After
     public void tearDown() throws Exception {
-        cleanupTestMetadata();
+        super.cleanupTestMetadata();
     }
 
     @Test
     public void testSaveTimeFail() {
+        RecommendationTopNUpdateScheduler recommendationTopNUpdateScheduler = new RecommendationTopNUpdateScheduler();
+        ReflectionTestUtils.setField(recommendationTopNUpdateScheduler, "rawRecService", rawRecService);
         overwriteSystemProp("kylin.smart.update-topn-time-gap", "0");
         overwriteSystemProp("kylin.smart.frequency-rule-enable", "false");
         Mockito.doNothing().when(rawRecService).updateCostsAndTopNCandidates(PROJECT);
@@ -67,15 +66,19 @@ public class RecommendationTopNUpdateSchedulerTest extends LogOutputTestCase {
         recommendationTopNUpdateScheduler.addProject(PROJECT);
         await().atMost(3, TimeUnit.SECONDS)
                 .until(() -> containsLog("Updating default cost and topN recommendations finished."));
+        recommendationTopNUpdateScheduler.close();
     }
 
     @Test
     public void testSchedulerTask() {
+        RecommendationTopNUpdateScheduler recommendationTopNUpdateScheduler = new RecommendationTopNUpdateScheduler();
+        ReflectionTestUtils.setField(recommendationTopNUpdateScheduler, "rawRecService", rawRecService);
         overwriteSystemProp("kylin.smart.update-topn-time-gap", "0");
         overwriteSystemProp("kylin.smart.frequency-rule-enable", "false");
         Mockito.doNothing().when(rawRecService).updateCostsAndTopNCandidates(PROJECT);
         recommendationTopNUpdateScheduler.addProject(PROJECT);
         await().atMost(3, TimeUnit.SECONDS)
                 .until(() -> containsLog("Updating default cost and topN recommendations finished."));
+        recommendationTopNUpdateScheduler.close();
     }
 }

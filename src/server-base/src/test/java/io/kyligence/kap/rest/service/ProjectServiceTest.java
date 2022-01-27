@@ -166,8 +166,6 @@ public class ProjectServiceTest extends ServiceTestBase {
         ReflectionTestUtils.setField(projectService, "projectModelSupporter", modelService);
         ReflectionTestUtils.setField(projectService, "projectSmartSupporter", rawRecService);
         ReflectionTestUtils.setField(projectService, "userService", userService);
-        ReflectionTestUtils.setField(projectService, "recommendationTopNUpdateScheduler",
-                new RecommendationTopNUpdateScheduler());
 
         ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
         projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
@@ -1025,6 +1023,9 @@ public class ProjectServiceTest extends ServiceTestBase {
 
     @Test
     public void testUpdateFavoriteRules() {
+        RecommendationTopNUpdateScheduler recommendationTopNUpdateScheduler = new RecommendationTopNUpdateScheduler();
+        ReflectionTestUtils.setField(projectService, "recommendationTopNUpdateScheduler",
+                recommendationTopNUpdateScheduler);
         // update with FavoriteRuleUpdateRequest and assert
         FavoriteRuleUpdateRequest request = new FavoriteRuleUpdateRequest();
         request.setProject(PROJECT);
@@ -1089,6 +1090,7 @@ public class ProjectServiceTest extends ServiceTestBase {
         Assert.assertNull(favoriteRuleResponse.get("freq_value"));
         Assert.assertNull(favoriteRuleResponse.get("min_duration"));
         Assert.assertNull(favoriteRuleResponse.get("max_duration"));
+        recommendationTopNUpdateScheduler.close();
     }
 
     @Test
@@ -1125,6 +1127,9 @@ public class ProjectServiceTest extends ServiceTestBase {
 
     @Test
     public void testGetProjectStatistics() {
+        RecommendationTopNUpdateScheduler recommendationTopNUpdateScheduler = new RecommendationTopNUpdateScheduler();
+        ReflectionTestUtils.setField(projectService, "recommendationTopNUpdateScheduler",
+                recommendationTopNUpdateScheduler);
         ProjectStatisticsResponse projectStatistics = projectService.getProjectStatistics("gc_test");
         Assert.assertEquals(1, projectStatistics.getDatabaseSize());
         Assert.assertEquals(1, projectStatistics.getTableSize());
@@ -1173,6 +1178,7 @@ public class ProjectServiceTest extends ServiceTestBase {
         Assert.assertEquals(-1, statisticsOfProjectDefault.getAcceptableRecSize());
         Assert.assertFalse(statisticsOfProjectDefault.isRefreshed());
         Assert.assertEquals(-1, statisticsOfProjectDefault.getMaxRecShowSize());
+        recommendationTopNUpdateScheduler.close();
     }
 
     @Test
