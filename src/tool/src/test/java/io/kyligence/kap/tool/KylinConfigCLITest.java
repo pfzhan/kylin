@@ -21,9 +21,6 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-
-
 package io.kyligence.kap.tool;
 
 import static org.junit.Assert.assertEquals;
@@ -36,7 +33,6 @@ import java.nio.charset.Charset;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.assertj.core.api.Assertions;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -96,21 +92,6 @@ public class KylinConfigCLITest extends NLocalFileMetadataTestCase {
         System.setOut(o);
     }
 
-    @Test
-    public void testGetPrefix() throws IOException {
-        PrintStream o = System.out;
-        File f = File.createTempFile("cfg", ".tmp");
-        PrintStream tmpOut = new PrintStream(new FileOutputStream(f), false, Charset.defaultCharset().name());
-        System.setOut(tmpOut);
-        KylinConfigCLI.execute(new String[] { "kylin.engine.mr.config-override." });
-
-        String val = FileUtils.readFileToString(f, Charset.defaultCharset()).trim();
-        Assertions.assertThat(val).contains("test1=test1").contains("test2=test2");
-
-        tmpOut.close();
-        FileUtils.forceDelete(f);
-        System.setOut(o);
-    }
 
     @Before
     public void setUp() throws Exception {

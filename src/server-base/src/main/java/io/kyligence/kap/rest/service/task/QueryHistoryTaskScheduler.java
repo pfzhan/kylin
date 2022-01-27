@@ -93,7 +93,6 @@ public class QueryHistoryTaskScheduler {
         queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance();
         accelerateRuleUtil = new AccelerateRuleUtil();
         rawRecService = new RawRecService();
-
         queryHistoryAccelerateRunner = new QueryHistoryAccelerateRunner(false);
         queryHistoryMetaUpdateRunner = new QueryHistoryMetaUpdateRunner();
 
