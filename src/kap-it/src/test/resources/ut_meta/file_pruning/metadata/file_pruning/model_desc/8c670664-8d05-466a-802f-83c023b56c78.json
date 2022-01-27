@@ -1,6 +1,6 @@
 {
   "uuid": "8c670664-8d05-466a-802f-83c023b56c78",
-  "alias": "file_pruning",
+  "alias": "file_pruning_78",
   "fact_table": "DEFAULT.TEST_KYLIN_FACT",
   "owner": "ADMIN",
   "join_tables": [

@@ -1156,7 +1156,7 @@ public class NDataModel extends RootPersistentEntity {
                     }
                 }
             } catch (Exception e) {
-                throw new KylinException(FAILED_UPDATE_MODEL, MsgPicker.getMsg().getINIT_MEASURE_FAILED());
+                throw new KylinException(FAILED_UPDATE_MODEL, MsgPicker.getMsg().getINIT_MEASURE_FAILED(), e);
             }
         }
 

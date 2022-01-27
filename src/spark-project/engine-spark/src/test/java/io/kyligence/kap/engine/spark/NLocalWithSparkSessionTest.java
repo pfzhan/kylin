@@ -103,7 +103,6 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
 
     protected static SparkConf sparkConf;
     protected static SparkSession ss;
-    private TestingServer zkTestServer;
 
     protected static void ensureSparkConf() {
         if (sparkConf == null) {
@@ -153,17 +152,11 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         overwriteSystemProp("calcite.keep-in-clause", "true");
         this.createTestMetadata();
         ExecutableUtils.initJobFactory();
-        Random r = new Random(10000);
-        zkTestServer = new TestingServer(r.nextInt(), true);
-        overwriteSystemProp("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());
     }
 
     @After
     public void tearDown() throws Exception {
         this.cleanupTestMetadata();
-        if (zkTestServer != null) {
-            zkTestServer.close();
-        }
     }
 
     public String getProject() {

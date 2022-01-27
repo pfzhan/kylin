@@ -676,7 +676,6 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
         Segments<T> news = all.getSegments(SegmentStatusEnum.NEW);
         validateReadySegs(ready);
         validateNewSegs(ready, news);
-        validateOthers(all, news);
     }
 
     private void validateReadySegs(Segments<T> ready) {
@@ -712,20 +711,6 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
                         && !seg.getSegRange().contains(aReady.getSegRange()))
                     throw new IllegalStateException("Segments overlap: " + aReady + " and " + seg);
             }
-        }
-    }
-
-    private void validateOthers(Segments<T> all, Segments<T> news) {
-        // for all other segments, sourceOffset SHOULD fit/connect other segments
-        for (ISegment seg : news) {
-            Pair<Boolean, Boolean> pair = all.fitInSegments(seg);
-            boolean startFit = pair.getFirst();
-            boolean endFit = pair.getSecond();
-
-            if (!startFit)
-                logger.info("NEW segment start does not fit/connect with other segments: {}", seg);
-            if (!endFit)
-                logger.info("NEW segment end does not fit/connect with other segments: {}", seg);
         }
     }
 

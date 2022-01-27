@@ -168,6 +168,9 @@ public abstract class SparkApplication implements Application {
      * @param json
      */
     public Boolean updateSparkJobInfo(String url, String json) {
+        if (config.isUTEnv()) {
+            return true;
+        }
         String serverAddress = System.getProperty("spark.driver.rest.server.address", "127.0.0.1:7070");
         String requestApi = String.format(Locale.ROOT, "http://%s%s", serverAddress, url);
 
