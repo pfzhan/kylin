@@ -36,7 +36,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-import io.kyligence.kap.rest.service.QuerySmartSupporter;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ExecutorServiceUtil;
@@ -44,6 +43,8 @@ import org.apache.kylin.common.util.NamedThreadFactory;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.rest.service.IUserGroupService;
+import org.apache.kylin.rest.util.SpringContext;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
@@ -67,12 +68,11 @@ import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryInfo;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
+import io.kyligence.kap.rest.service.QuerySmartSupporter;
 import lombok.Data;
 import lombok.Getter;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kylin.rest.service.IUserGroupService;
-import org.apache.kylin.rest.util.SpringContext;
 
 @Slf4j
 public class QueryHistoryTaskScheduler {
@@ -97,7 +97,9 @@ public class QueryHistoryTaskScheduler {
         this.project = project;
         queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance();
         accelerateRuleUtil = new AccelerateRuleUtil();
-        userGroupService = (IUserGroupService) SpringContext.getApplicationContext().getBean("userGroupService");
+        if (userGroupService == null && SpringContext.getApplicationContext() != null) {
+            userGroupService = (IUserGroupService) SpringContext.getApplicationContext().getBean("userGroupService");
+        }
         queryHistoryAccelerateRunner = new QueryHistoryAccelerateRunner(false);
         queryHistoryMetaUpdateRunner = new QueryHistoryMetaUpdateRunner();
         if (querySmartSupporter == null && SpringContext.getApplicationContext() != null) {

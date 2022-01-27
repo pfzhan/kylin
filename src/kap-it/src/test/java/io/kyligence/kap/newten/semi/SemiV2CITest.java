@@ -146,6 +146,7 @@ public class SemiV2CITest extends SemiAutoTestBase {
         prepareACL();
         QueryHistoryTaskScheduler queryHistoryTaskScheduler = QueryHistoryTaskScheduler.getInstance(getProject());
         ReflectionTestUtils.setField(queryHistoryTaskScheduler, "querySmartSupporter", rawRecService);
+        ReflectionTestUtils.setField(queryHistoryTaskScheduler, "userGroupService", userGroupService);
         queryHistoryTaskScheduler.init();
     }
 
