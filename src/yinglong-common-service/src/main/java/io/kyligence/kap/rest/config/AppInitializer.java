@@ -47,21 +47,17 @@ import io.kyligence.kap.common.util.HostInfoFetcher;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.metadata.epoch.EpochOrchestrator;
 import io.kyligence.kap.metadata.streaming.JdbcStreamingJobStatsStore;
-import io.kyligence.kap.rest.broadcaster.BroadcastListener;
 import io.kyligence.kap.rest.config.initialize.AclTCRListener;
 import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
 import io.kyligence.kap.rest.config.initialize.CacheCleanListener;
 import io.kyligence.kap.rest.config.initialize.EpochChangedListener;
 import io.kyligence.kap.rest.config.initialize.JobSchedulerListener;
 import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
-import io.kyligence.kap.rest.config.initialize.ModelDropAddListener;
-import io.kyligence.kap.rest.config.initialize.ModelUpdateListener;
 import io.kyligence.kap.rest.config.initialize.ProcessStatusListener;
 import io.kyligence.kap.rest.config.initialize.QueryMetricsListener;
 import io.kyligence.kap.rest.config.initialize.SparderStartEvent;
 import io.kyligence.kap.rest.config.initialize.TableSchemaChangeListener;
-import io.kyligence.kap.rest.service.QueryCacheManager;
-import io.kyligence.kap.rest.service.QueryHistoryScheduler;
+import io.kyligence.kap.rest.service.CommonQueryCacheSupporter;
 import io.kyligence.kap.rest.source.DataSourceState;
 import io.kyligence.kap.rest.util.JStackDumpTask;
 import io.kyligence.kap.streaming.jobs.StreamingJobListener;
@@ -82,9 +78,6 @@ public class AppInitializer {
 
     @Autowired
     EpochChangedListener epochChangedListener;
-
-    @Autowired
-    BroadcastListener broadcastListener;
 
     @Autowired
     HostInfoFetcher hostInfoFetcher;
@@ -113,7 +106,7 @@ public class AppInitializer {
             EventBusFactory.getInstance().register(new JobSchedulerListener(), false);
             EventBusFactory.getInstance().register(new ModelBrokenListener(), false);
             EventBusFactory.getInstance().register(epochChangedListener, false);
-            EventBusFactory.getInstance().registerBroadcast(broadcastListener);
+            //            EventBusFactory.getInstance().registerBroadcast(broadcastListener);
             EventBusFactory.getInstance().register(new ProcessStatusListener(), true);
             EventBusFactory.getInstance().register(new StreamingJobListener(), true);
 
@@ -151,7 +144,6 @@ public class AppInitializer {
         EventListenerRegistry.getInstance(kylinConfig).register(new CacheCleanListener(), "cacheInManager");
 
         EventBusFactory.getInstance().register(new QueryMetricsListener(), false);
-
 
         postInit();
     }

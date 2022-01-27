@@ -57,6 +57,7 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.persistence.transaction.BroadcastEventReadyNotifier;
 import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.rest.cluster.ClusterManager;
+import io.kyligence.kap.rest.config.initialize.BroadcastListener;
 import io.kyligence.kap.rest.response.ServerInfoResponse;
 import io.kyligence.kap.tool.restclient.RestClient;
 

@@ -166,6 +166,8 @@ public class ProjectServiceTest extends ServiceTestBase {
         ReflectionTestUtils.setField(projectService, "projectModelSupporter", modelService);
         ReflectionTestUtils.setField(projectService, "projectSmartSupporter", rawRecService);
         ReflectionTestUtils.setField(projectService, "userService", userService);
+        ReflectionTestUtils.setField(projectService, "recommendationTopNUpdateScheduler",
+                new RecommendationTopNUpdateScheduler());
 
         ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
         projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());

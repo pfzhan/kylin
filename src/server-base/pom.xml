@@ -128,6 +128,23 @@
             <artifactId>yinglong-enterprise-core-metadata</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>io.kyligence.yinglong</groupId>
+            <artifactId>yinglong-streaming-service</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.yinglong</groupId>
+            <artifactId>yinglong-enterprise-service</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.yinglong</groupId>
+            <artifactId>yinglong-job-service</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.yinglong</groupId>
+            <artifactId>yinglong-integration-service</artifactId>
+        </dependency>
+
         <!-- these plug-in modules, should not have API dependencies -->
 
         <dependency>
@@ -497,18 +514,6 @@
             <artifactId>second-storage-clickhouse</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-streaming-service</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-enterprise-service</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-job-service</artifactId>
         </dependency>
     </dependencies>
 

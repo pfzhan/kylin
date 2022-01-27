@@ -21,30 +21,22 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.rest.service;
+package io.kyligence.kap.rest.config;
 
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.schema.AffectedModelContext;
-import org.apache.kylin.metadata.model.TableDesc;
+import org.glassfish.jersey.server.BroadcasterListener;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
+import io.kyligence.kap.common.scheduler.EventBusFactory;
 
-public interface TableModelSupporter {
+@Component
+public class IntegrationAppInitializer implements InitializingBean {
+    @Autowired
+    private BroadcasterListener broadcasterListener;
 
-    void onUpdateBrokenModel(NDataModel model, AffectedModelContext removeAffectedModel,
-                             AffectedModelContext changeTypeAffectedModel, String projectName) throws Exception;
-
-    void onUpdateDataModel(NDataModel model, AffectedModelContext removeAffectedModel,
-                           AffectedModelContext changeTypeAffectedModel, String projectName,
-                           TableDesc tableDesc) throws Exception;
-
-    NDataModel onGetModelByAlias(String modelAlias, String project);
-
-    NDataModel onGetModelById(String modelId, String project);
-
-    void onSyncPartition(String model, String project);
-
-    void onPurgeModel(String modelId, String project);
-
-    void onCheckLoadingRange(String project, String tableName);
-
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        EventBusFactory.getInstance().registerBroadcast(broadcasterListener);
+    }
 }

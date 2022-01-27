@@ -1421,7 +1421,7 @@ public class TableService extends BasicService {
 
         try {
             modelService.onUpdateDataModel(model, removeAffected, changeTypeAffected,
-                    projectName, context.getTableDesc(), false);
+                    projectName, context.getTableDesc());
         } catch (TransactionException e) {
             Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);
             String tableName = context.getTableDesc().getName();

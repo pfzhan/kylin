@@ -24,76 +24,82 @@
 
 package io.kyligence.kap.rest.service;
 
-import com.clearspring.analytics.util.Lists;
-import lombok.val;
-import org.apache.commons.io.IOUtils;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.kylin.query.util.AsyncQueryUtil;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.spark.sql.SparderEnv;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.supercsv.io.CsvListWriter;
-import org.supercsv.prefs.CsvPreference;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
+import com.clearspring.analytics.util.Lists;
 
-public class CSVExcelWriter {
+import lombok.val;
+
+public class XLSXExcelWriter {
 
     private static final Logger logger = LoggerFactory.getLogger("query");
 
-    public void writeData(FileStatus[] fileStatuses, OutputStream outputStream) throws IOException {
-        CsvListWriter csvWriter = null;
-        Writer writer = new OutputStreamWriter(outputStream, StandardCharsets.UTF_8);
-        Boolean firstWrite = true;
-        csvWriter = new CsvListWriter(writer, CsvPreference.STANDARD_PREFERENCE);
+    public void writeData(FileStatus[] fileStatuses, Sheet sheet) {
         for (FileStatus fileStatus : fileStatuses) {
             if (!fileStatus.getPath().getName().startsWith("_")) {
                 if (fileStatus.getPath().getName().endsWith("parquet")) {
-                    if (Boolean.TRUE.equals(firstWrite)) {
-                        writer.write('\uFEFF');
-                        firstWrite = false;
-                    }
-                    writeDataByParquet(fileStatus, csvWriter);
+                    writeDataByParquet(fileStatus, sheet);
                 } else {
-                    writeDataByCsv(fileStatus, outputStream);
+                    writeDataByCsv(fileStatus, sheet);
                 }
             }
         }
-        csvWriter.close();
     }
 
-    private void writeDataByParquet(FileStatus fileStatus, CsvListWriter csvWriter) {
-        List<org.apache.spark.sql.Row> rowList = SparderEnv.getSparkSession().read().parquet(fileStatus.getPath().toString()).collectAsList();
+    private void writeDataByParquet(FileStatus fileStatus, Sheet sheet) {
+        final AtomicInteger offset = new AtomicInteger(sheet.getPhysicalNumberOfRows());
+        List<org.apache.spark.sql.Row> rowList = SparderEnv.getSparkSession().read()
+                .parquet(fileStatus.getPath().toString()).collectAsList();
         rowList.stream().forEach(row -> {
-            List<String> result = Lists.newArrayList();
+            org.apache.poi.ss.usermodel.Row excelRow = sheet.createRow(offset.get());
+            offset.incrementAndGet();
             val list = row.toSeq().toList();
             for (int i = 0; i < list.size(); i++) {
                 Object cell = list.apply(i);
                 String column = cell == null ? "" : cell.toString();
-                result.add(column);
-            }
-            try {
-                csvWriter.write(result);
-            } catch (IOException e) {
-                logger.error("Failed to download asyncQueryResult csvExcel by parquet", e);
+                excelRow.createCell(i).setCellValue(column);
             }
         });
     }
 
-    private void writeDataByCsv(FileStatus fileStatus, OutputStream outputStream) {
+    public void writeDataByCsv(FileStatus fileStatus, Sheet sheet) {
         FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
+        List<String> rowResults = Lists.newArrayList();
+        List<String[]> results = Lists.newArrayList();
+        final AtomicInteger offset = new AtomicInteger(sheet.getPhysicalNumberOfRows());
         try (FSDataInputStream inputStream = fileSystem.open(fileStatus.getPath())) {
-            IOUtils.copy(inputStream, outputStream);
-        } catch (Exception e) {
-            logger.error("Failed to download asyncQueryResult csvExcel by csv", e);
+            BufferedReader bufferedReader = new BufferedReader(
+                    new InputStreamReader(inputStream, StandardCharsets.UTF_8));
+            rowResults.addAll(Lists.newArrayList(bufferedReader.lines().collect(Collectors.toList())));
+            for (String row : rowResults) {
+                results.add(row.split(SparderEnv.getSeparator()));
+            }
+            for (int i = 0; i < results.size(); i++) {
+                Row row = sheet.createRow(offset.get());
+                offset.incrementAndGet();
+                String[] rowValues = results.get(i);
+                for (int j = 0; j < rowValues.length; j++) {
+                    row.createCell(j).setCellValue(rowValues[j]);
+                }
+            }
+        } catch (IOException e) {
+            logger.error("Failed to download asyncQueryResult xlsxExcel by csv", e);
         }
     }
-
 }

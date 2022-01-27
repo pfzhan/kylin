@@ -28,7 +28,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.rest.service.ModelBuildService;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
@@ -79,6 +78,7 @@ import io.kyligence.kap.newten.semi.SemiAutoTestBase;
 import io.kyligence.kap.rest.request.IndexesToSegmentsRequest;
 import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.service.IndexPlanService;
+import io.kyligence.kap.rest.service.ModelBuildService;
 import io.kyligence.kap.rest.service.ModelSemanticHelper;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.NUserGroupService;
@@ -452,8 +452,8 @@ public class PartialBuildJobTest extends SemiAutoTestBase {
         req.setSegmentIds(Lists.newArrayList(oneSeg.getId()));
         req.setPartialBuild(true);
         req.setIndexIds(Lists.newArrayList(layoutId));
-        val rs = modelBuildService.addIndexesToSegments(req.getProject(), modelId, req.getSegmentIds(), req.getIndexIds(),
-                req.isParallelBuildBySegment(), req.getPriority(), req.isPartialBuild(), null, null);
+        val rs = modelBuildService.addIndexesToSegments(req.getProject(), modelId, req.getSegmentIds(),
+                req.getIndexIds(), req.isParallelBuildBySegment(), req.getPriority(), req.isPartialBuild(), null, null);
         Assert.assertEquals(rs.getJobs().size(), 1);
         val execMgr = NExecutableManager.getInstance(getTestConfig(), getProject());
         NSparkCubingJob job = (NSparkCubingJob) execMgr.getJob(rs.getJobs().get(0).getJobId());

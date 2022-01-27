@@ -258,7 +258,8 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
                 AsyncQueryJob asyncQueryJob = new AsyncQueryJob();
                 asyncQueryJob.setProject(queryParams.getProject());
                 asyncQueryJob.submit(queryParams);
-                return buildSqlResponse(false, Collections.emptyList(), 0, Lists.newArrayList(), sqlRequest.getProject());
+                return buildSqlResponse(false, Collections.emptyList(), 0, Lists.newArrayList(),
+                        sqlRequest.getProject());
             }
 
             SQLResponse fakeResponse = TableauInterceptor.tableauIntercept(queryParams.getSql());
@@ -275,8 +276,8 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
             if (!QueryContext.current().getQueryTagInfo().isAsyncQuery()) {
                 QueryContext.current().getMetrics().setResultRowCount(result.getSize());
             }
-            return buildSqlResponse(QueryContext.current().getQueryTagInfo().isPushdown(),
-                    result.getRowsIterable(), result.getSize(), result.getColumnMetas(), sqlRequest.getProject());
+            return buildSqlResponse(QueryContext.current().getQueryTagInfo().isPushdown(), result.getRowsIterable(),
+                    result.getSize(), result.getColumnMetas(), sqlRequest.getProject());
         } finally {
             slowQueryDetector.queryEnd();
             Thread.interrupted(); //reset if interrupted
@@ -403,8 +404,7 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
                 .put(LogReport.PUSH_DOWN, response.isQueryPushDown()).put(LogReport.IS_PREPARE, response.isPrepare())
                 .put(LogReport.TIMEOUT, response.isTimeout())
                 .put(LogReport.TIMELINE_SCHEMA, QueryContext.current().getSchema())
-                .put(LogReport.TIMELINE, QueryContext.current().getTimeLine())
-                .put(LogReport.ERROR_MSG, errorMsg)
+                .put(LogReport.TIMELINE, QueryContext.current().getTimeLine()).put(LogReport.ERROR_MSG, errorMsg)
                 .put(LogReport.USER_TAG, request.getUser_defined_tag())
                 .put(LogReport.PUSH_DOWN_FORCED, request.isForcedToPushDown())
                 .put(LogReport.INDEX_FORCED, request.isForcedToIndex())
@@ -417,7 +417,8 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
             logger.info(log);
             logger.debug(report.jsonStyleLog());
             if (request.getExecuteAs() != null)
-                logger.info("[EXECUTE AS USER]: User [{}] executes the sql as user [{}].", user, request.getExecuteAs());
+                logger.info("[EXECUTE AS USER]: User [{}] executes the sql as user [{}].", user,
+                        request.getExecuteAs());
         }
         return log;
     }
@@ -518,7 +519,8 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
             queryContext.getMetrics().setServer(clusterManager.getLocalServer());
 
             KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-            ProjectInstance projectInstance = NProjectManager.getInstance(kylinConfig).getProject(sqlRequest.getProject());
+            ProjectInstance projectInstance = NProjectManager.getInstance(kylinConfig)
+                    .getProject(sqlRequest.getProject());
             kylinConfig = projectInstance.getConfig();
 
             // remove comment
@@ -657,7 +659,8 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
             for (NativeQueryRealization nqReal : sqlResponse.getNativeRealizations()) {
                 nativeQueryRealizationList.add(new QueryContext.NativeQueryRealization(nqReal.getModelId(),
                         nqReal.getModelAlias(), nqReal.getLayoutId(), nqReal.getIndexType(),
-                        nqReal.isPartialMatchModel(), nqReal.isValid(), nqReal.isLayoutExist(), nqReal.isStreamingLayout(), nqReal.getSnapshots()));
+                        nqReal.isPartialMatchModel(), nqReal.isValid(), nqReal.isLayoutExist(),
+                        nqReal.isStreamingLayout(), nqReal.getSnapshots()));
             }
         }
         queryContext.setNativeQueryRealizationList(nativeQueryRealizationList);
@@ -752,10 +755,8 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
             return true;
         }
         Throwable rootCause = ExceptionUtils.getRootCause(e);
-        return rootCause instanceof NoRealizationFoundException
-                || rootCause instanceof RoutingIndicatorException
-                || rootCause instanceof NotSupportedSQLException
-                || rootCause instanceof SqlValidatorException;
+        return rootCause instanceof NoRealizationFoundException || rootCause instanceof RoutingIndicatorException
+                || rootCause instanceof NotSupportedSQLException || rootCause instanceof SqlValidatorException;
     }
 
     private boolean isFailTimesExceedThreshold(SQLResponse sqlResponse, KylinConfig kylinConfig) {
@@ -803,12 +804,13 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
         }
         int concurrentLimit = sqlBlacklistItem.getConcurrentLimit();
         if (concurrentLimit == 0) {
-            throw new KylinException(BLACKLIST_QUERY_REJECTED,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getSQL_BLACKLIST_QUERY_REJECTED(), sqlBlacklistItem.getId()));
+            throw new KylinException(BLACKLIST_QUERY_REJECTED, String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getSQL_BLACKLIST_QUERY_REJECTED(), sqlBlacklistItem.getId()));
         }
         if (getSqlConcurrentCount(sqlBlacklistItem) >= concurrentLimit) {
             throw new KylinException(BLACKLIST_EXCEEDED_CONCURRENT_LIMIT,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getSQL_BLACKLIST_QUERY_CONCUTTENT_LIMIT_EXCEEDED(), sqlBlacklistItem.getId(), concurrentLimit));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getSQL_BLACKLIST_QUERY_CONCUTTENT_LIMIT_EXCEEDED(),
+                            sqlBlacklistItem.getId(), concurrentLimit));
         }
     }
 
@@ -983,7 +985,8 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
         String userName = AclPermissionUtil.getCurrentUsername();
         List<TableMetaWithType> cached = queryCacheManager.getSchemaV2Cache(project, modelAlias, userName);
         if (cached != null) {
-            logger.info("[schema cache log] Get meta data v2 from cache, project: {}, username: {}.", project, userName);
+            logger.info("[schema cache log] Get meta data v2 from cache, project: {}, username: {}.", project,
+                    userName);
             return cached;
         }
 
@@ -1046,14 +1049,16 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
 
     private List<String> getTargetModelColumns(String targetModelName, List<NDataModel> models) {
         return targetModelName == null ? null
-                : models.stream().flatMap(m -> m.getEffectiveCols().values().stream().map(TblColRef::getColumnWithTableAndSchema))
-                .collect(Collectors.toList());
+                : models.stream()
+                        .flatMap(
+                                m -> m.getEffectiveCols().values().stream().map(TblColRef::getColumnWithTableAndSchema))
+                        .collect(Collectors.toList());
     }
 
     private List<String> getTargetModelTables(String targetModelName, List<NDataModel> models) {
         return targetModelName == null ? null
                 : models.stream().flatMap(m -> m.getAllTableRefs().stream().map(TableRef::getTableIdentity))
-                .collect(Collectors.toList());
+                        .collect(Collectors.toList());
     }
 
     private List<NDataModel> getModels(String project, String targetModelName) {
@@ -1062,7 +1067,8 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
                 .collect(Collectors.toList());
     }
 
-    private LinkedHashMap<String, TableMetaWithType> constructTableMeta(SchemaMetaData schemaMetaData, List<String> targetModelTables) {
+    private LinkedHashMap<String, TableMetaWithType> constructTableMeta(SchemaMetaData schemaMetaData,
+            List<String> targetModelTables) {
         LinkedHashMap<String, TableMetaWithType> tableMap = Maps.newLinkedHashMap();
         for (TableSchema tableSchema : schemaMetaData.getTables()) {
             TableMetaWithType tblMeta = new TableMetaWithType(tableSchema.getCatalog(), tableSchema.getSchema(),
@@ -1078,8 +1084,8 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
         return tableMap;
     }
 
-    private LinkedHashMap<String, ColumnMetaWithType> constructTblColMeta(SchemaMetaData schemaMetaData,
-            String project, List<String> targetModelColumns) {
+    private LinkedHashMap<String, ColumnMetaWithType> constructTblColMeta(SchemaMetaData schemaMetaData, String project,
+            List<String> targetModelColumns) {
 
         LinkedHashMap<String, ColumnMetaWithType> columnMap = Maps.newLinkedHashMap();
         ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
@@ -1100,7 +1106,7 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
                 if (!JDBC_METADATA_SCHEMA.equalsIgnoreCase(columnMeta.getTABLE_SCHEM())
                         && !columnMeta.getCOLUMN_NAME().toUpperCase(Locale.ROOT).startsWith("_KY_")
                         && (targetModelColumns == null || targetModelColumns.contains(columnMeta.getTABLE_SCHEM() + "."
-                        + columnMeta.getTABLE_NAME() + "." + columnMeta.getCOLUMN_NAME()))) {
+                                + columnMeta.getTABLE_NAME() + "." + columnMeta.getCOLUMN_NAME()))) {
                     columnMap.put(columnMeta.getTABLE_SCHEM() + "#" + columnMeta.getTABLE_NAME() + "#"
                             + columnMeta.getCOLUMN_NAME(), columnMeta);
                 }
@@ -1373,12 +1379,12 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
                 .put(SHUFFLE_PARTITIONS, "Shuffle partitions: ").put(ACCEPT_PARTIAL, "Accept Partial: ")
                 .put(PARTIAL_RESULT, "Is Partial Result: ").put(HIT_EXCEPTION_CACHE, "Hit Exception Cache: ")
                 .put(STORAGE_CACHE_USED, "Storage Cache Used: ").put(STORAGE_CACHE_TYPE, "Storage Cache Type: ")
-                .put(PUSH_DOWN, "Is Query Push-Down: ")
-                .put(IS_PREPARE, "Is Prepare: ").put(TIMEOUT, "Is Timeout: ").put(TRACE_URL, "Trace URL: ")
-                .put(TIMELINE_SCHEMA, "Time Line Schema: ").put(TIMELINE, "Time Line: ").put(ERROR_MSG, "Message: ")
-                .put(USER_TAG, "User Defined Tag: ").put(PUSH_DOWN_FORCED, "Is forced to Push-Down: ")
-                .put(USER_AGENT, "User Agent: ").put(BACK_DOOR_TOGGLES, "Back door toggles: ")
-                .put(SCAN_SEGMENT_COUNT, "Scan Segment Count: ").put(SCAN_FILE_COUNT, "Scan File Count: ").build();
+                .put(PUSH_DOWN, "Is Query Push-Down: ").put(IS_PREPARE, "Is Prepare: ").put(TIMEOUT, "Is Timeout: ")
+                .put(TRACE_URL, "Trace URL: ").put(TIMELINE_SCHEMA, "Time Line Schema: ").put(TIMELINE, "Time Line: ")
+                .put(ERROR_MSG, "Message: ").put(USER_TAG, "User Defined Tag: ")
+                .put(PUSH_DOWN_FORCED, "Is forced to Push-Down: ").put(USER_AGENT, "User Agent: ")
+                .put(BACK_DOOR_TOGGLES, "Back door toggles: ").put(SCAN_SEGMENT_COUNT, "Scan Segment Count: ")
+                .put(SCAN_FILE_COUNT, "Scan File Count: ").build();
 
         private Map<String, Object> logs = new HashMap<>(100);
 
@@ -1447,10 +1453,12 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
             return "[QUERY SUMMARY]: ".concat(new Gson().toJson(logs));
         }
     }
+
     @Override
     public String onCreateAclSignature(String project) throws IOException {
         return createAclSignature(project);
     }
+
     public String createAclSignature(String project) throws IOException {
         List<Long> aclTimes = Lists.newLinkedList();
         List<String> aclNames = Lists.newLinkedList();

@@ -328,6 +328,7 @@
         <module>src/yinglong-job-server</module>
         <module>src/yinglong-scheduler-server</module>
         <module>src/yinglong-query-server</module>
+        <module>src/yinglong-integration-service</module>
 
     </modules>
 
@@ -484,6 +485,11 @@
             <dependency>
                 <groupId>io.kyligence.yinglong</groupId>
                 <artifactId>yinglong-systools</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.yinglong</groupId>
+                <artifactId>yinglong-integration-service</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

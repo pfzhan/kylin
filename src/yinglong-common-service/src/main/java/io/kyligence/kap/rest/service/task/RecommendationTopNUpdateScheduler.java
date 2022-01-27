@@ -34,8 +34,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import io.kyligence.kap.rest.service.ProjectSmartSupporter;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.apache.kylin.common.util.NamedThreadFactory;
 import org.apache.kylin.common.util.SetThreadName;
 import org.apache.kylin.common.util.TimeUtil;
@@ -52,6 +52,8 @@ import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.rest.service.ProjectSmartSupporter;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 @Component("recommendationUpdateScheduler")
@@ -179,5 +181,10 @@ public class RecommendationTopNUpdateScheduler {
 
     public int getTaskCount() {
         return needUpdateProjects.size();
+    }
+
+    @SneakyThrows
+    public void close() {
+        ExecutorServiceUtil.forceShutdown(taskScheduler);
     }
 }

@@ -131,10 +131,10 @@ import io.kyligence.kap.rest.response.SegmentCheckResponse;
 import io.kyligence.kap.rest.response.SegmentPartitionResponse;
 import io.kyligence.kap.rest.response.SuggestionResponse;
 import io.kyligence.kap.rest.service.FusionIndexService;
-import io.kyligence.kap.rest.service.ModelSmartService;
 import io.kyligence.kap.rest.service.FusionModelService;
 import io.kyligence.kap.rest.service.IndexPlanService;
 import io.kyligence.kap.rest.service.ModelService;
+import io.kyligence.kap.rest.service.ModelSmartService;
 import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
 import io.kyligence.kap.rest.service.params.MergeSegmentParams;
 import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
@@ -176,7 +176,6 @@ public class NModelController extends NBasicController {
     @Autowired
     @Qualifier("modelBuildService")
     private ModelBuildService modelBuildService;
-
 
     @ApiOperation(value = "getModels{Red}", tags = {
             "AI" }, notes = "Update Param: page_offset, page_size, sort_by; Update Response: total_size")

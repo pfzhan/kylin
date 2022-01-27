@@ -29,7 +29,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import java.util.ArrayList;
 import java.util.List;
 
-import io.kyligence.kap.rest.service.ModelBuildService;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.RandomUtil;
@@ -63,6 +62,7 @@ import io.kyligence.kap.rest.request.SegmentMgmtRequest;
 import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
+import io.kyligence.kap.rest.service.ModelBuildService;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.params.MergeSegmentParams;
 import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
@@ -158,8 +158,8 @@ public class NCubesControllerV2Test extends NLocalFileMetadataTestCase {
         Mockito.when(modelService.getCube("model1", null)).thenReturn(mockModels().get(0));
         String startTime = String.valueOf(0L);
         String endTime = String.valueOf(Long.MAX_VALUE - 1);
-        Mockito.doReturn(new JobInfoResponse()).when(modelBuildService).buildSegmentsManually("default", "model1", startTime,
-                endTime);
+        Mockito.doReturn(new JobInfoResponse()).when(modelBuildService).buildSegmentsManually("default", "model1",
+                startTime, endTime);
 
         CubeRebuildRequest rebuildRequest = new CubeRebuildRequest();
         rebuildRequest.setBuildType("BUILD");

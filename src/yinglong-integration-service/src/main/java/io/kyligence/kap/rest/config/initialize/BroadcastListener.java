@@ -21,7 +21,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.rest.broadcaster;
+package io.kyligence.kap.rest.config.initialize;
 
 import java.io.IOException;
 
@@ -45,6 +45,7 @@ import io.kyligence.kap.common.persistence.transaction.StopQueryBroadcastEventNo
 import io.kyligence.kap.common.persistence.transaction.UpdateJobStatusEventNotifier;
 import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
 import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.rest.broadcaster.Broadcaster;
 import io.kyligence.kap.rest.service.AclTCRService;
 import io.kyligence.kap.rest.service.AuditLogService;
 import io.kyligence.kap.rest.service.JobService;

@@ -77,9 +77,6 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.AclGrantEventNotifier;
 import io.kyligence.kap.common.persistence.transaction.AclRevokeEventNotifier;
-import io.kyligence.kap.common.persistence.transaction.AclTCRRevokeEventNotifier;
-import io.kyligence.kap.common.persistence.transaction.BroadcastEventReadyNotifier;
-import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
 import io.kyligence.kap.metadata.acl.AclTCR;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.acl.DependentColumn;
@@ -87,10 +84,10 @@ import io.kyligence.kap.metadata.acl.SensitiveDataMask;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
+import io.kyligence.kap.rest.aspect.Transaction;
 import io.kyligence.kap.rest.request.AccessRequest;
 import io.kyligence.kap.rest.request.AclTCRRequest;
 import io.kyligence.kap.rest.response.AclTCRResponse;
-import io.kyligence.kap.rest.aspect.Transaction;
 import lombok.val;
 
 @Component("aclTCRService")
@@ -177,7 +174,8 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
             val groupsOfUser = accessService.getGroupsOfExecuteUser(sid);
             MutableAclRecord acl = AclPermissionUtil.getProjectAcl(project);
             val groupsInProject = AclPermissionUtil.filterGroupsInProject(groupsOfUser, acl);
-            val hasAdminPermission = AclPermissionUtil.isSpecificPermissionInProject(sid, groupsInProject, BasePermission.ADMINISTRATION, acl);
+            val hasAdminPermission = AclPermissionUtil.isSpecificPermissionInProject(sid, groupsInProject,
+                    BasePermission.ADMINISTRATION, acl);
             if (hasAdminPermission) {
                 return true;
             }
@@ -195,7 +193,8 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
         return false;
     }
 
-    public void updateAclTCR(String project, String sid, boolean principal, List<AclTCRRequest> requests) throws IOException {
+    public void updateAclTCR(String project, String sid, boolean principal, List<AclTCRRequest> requests)
+            throws IOException {
         aclEvaluate.checkProjectAdminPermission(project);
         checkAclTCRRequest(project, requests, sid, principal, true);
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
@@ -204,7 +203,8 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
         }, project);
     }
 
-    public void mergeAclTCR(String project, String sid, boolean principal, List<AclTCRRequest> requests) throws IOException {
+    public void mergeAclTCR(String project, String sid, boolean principal, List<AclTCRRequest> requests)
+            throws IOException {
         aclEvaluate.checkProjectAdminPermission(project);
         checkAclTCRRequest(project, requests, sid, principal, false);
         NTableMetadataManager manager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
@@ -284,7 +284,7 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
                 checkAclTCRRequestTableValid(manager, db, table, requestTables, isIncludeAll);
                 String tableName = String.format(Locale.ROOT, IDENTIFIER_FORMAT, db.getDatabaseName(),
                         table.getTableName());
-                if(table.getColumns() == null) {
+                if (table.getColumns() == null) {
                     return;
                 }
                 table.getColumns().forEach(column -> {
@@ -303,24 +303,24 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
             });
         });
 
-        if(!isIncludeAll){
+        if (!isIncludeAll) {
             return;
         }
 
         val notIncludeDatabase = CollectionUtils.removeAll(databases, requestDatabases);
         if (!notIncludeDatabase.isEmpty()) {
-            throw new KylinException(ServerErrorCode.INVALID_PARAMETER, String.format(Locale.ROOT, msg.getDATABASE_PARAMETER_MISSING(),
-                    StringUtils.join(notIncludeDatabase, ",")));
+            throw new KylinException(ServerErrorCode.INVALID_PARAMETER, String.format(Locale.ROOT,
+                    msg.getDATABASE_PARAMETER_MISSING(), StringUtils.join(notIncludeDatabase, ",")));
         }
         val notIncludeTables = CollectionUtils.removeAll(tables, requestTables);
         if (!notIncludeTables.isEmpty()) {
-            throw new KylinException(ServerErrorCode.INVALID_PARAMETER, String.format(Locale.ROOT, msg.getTABLE_PARAMETER_MISSING(),
-                    StringUtils.join(notIncludeTables, ",")));
+            throw new KylinException(ServerErrorCode.INVALID_PARAMETER, String.format(Locale.ROOT,
+                    msg.getTABLE_PARAMETER_MISSING(), StringUtils.join(notIncludeTables, ",")));
         }
         val notIncludeColumns = CollectionUtils.removeAll(columns, requestColumns);
         if (!notIncludeColumns.isEmpty()) {
-            throw new KylinException(ServerErrorCode.INVALID_PARAMETER, String.format(Locale.ROOT, msg.getCOLUMN_PARAMETER_MISSING(),
-                    StringUtils.join(notIncludeColumns, ",")));
+            throw new KylinException(ServerErrorCode.INVALID_PARAMETER, String.format(Locale.ROOT,
+                    msg.getCOLUMN_PARAMETER_MISSING(), StringUtils.join(notIncludeColumns, ",")));
         }
     }
 
@@ -359,7 +359,8 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
 
     }
 
-    private void checkAclTCRRequest(String project, List<AclTCRRequest> requests, String sid, boolean principal, boolean isIncludeAll) throws IOException {
+    private void checkAclTCRRequest(String project, List<AclTCRRequest> requests, String sid, boolean principal,
+            boolean isIncludeAll) throws IOException {
         Set<String> databases = Sets.newHashSet();
         Set<String> tables = Sets.newHashSet();
         Set<String> columns = Sets.newHashSet();
@@ -375,8 +376,9 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
                 columns.add(String.format(Locale.ROOT, IDENTIFIER_FORMAT, dbName, col.getIdentity()));
             });
         });
-        if(hasAdminPermissionInProject(sid, principal, project)){
-            throw new KylinException(ServerErrorCode.INVALID_PARAMETER, MsgPicker.getMsg().getADMIN_PERMISSION_UPDATE_ABANDON());
+        if (hasAdminPermissionInProject(sid, principal, project)) {
+            throw new KylinException(ServerErrorCode.INVALID_PARAMETER,
+                    MsgPicker.getMsg().getADMIN_PERMISSION_UPDATE_ABANDON());
         }
         checkAClTCRRequestParameterValid(manager, databases, tables, columns, requests, isIncludeAll);
         AclTCRManager aclTCRManager = getAclTCRManager(project);
@@ -389,23 +391,25 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
         checkAClTCRExist(databases, tables, columns, requests);
     }
 
-    private void checkACLTCRRequestRowAuthValid(NTableMetadataManager manager,
-                                                List<AclTCRRequest> requests, AclTCR.Table aclTables) {
+    private void checkACLTCRRequestRowAuthValid(NTableMetadataManager manager, List<AclTCRRequest> requests,
+            AclTCR.Table aclTables) {
         for (AclTCRRequest request : requests) {
             String database = request.getDatabaseName();
             request.getTables().stream().forEach(table -> checkRowAuthHelper(manager, database, table, aclTables));
         }
     }
 
-    private void checkRowAuthHelper(NTableMetadataManager manager, String database,
-                                    AclTCRRequest.Table table, AclTCR.Table aclTables) {
+    private void checkRowAuthHelper(NTableMetadataManager manager, String database, AclTCRRequest.Table table,
+            AclTCR.Table aclTables) {
         boolean requestRlsV1 = table.getRows() != null || table.getLikeRows() != null;
-        boolean requestRlsV2 = (table.getRowFilter() != null) && CollectionUtils.isNotEmpty(table.getRowFilter().getFilterGroups());
+        boolean requestRlsV2 = (table.getRowFilter() != null)
+                && CollectionUtils.isNotEmpty(table.getRowFilter().getFilterGroups());
         val columnRow = aclTables.get(database + "." + table.getTableName());
         boolean isV2Used = columnRow != null ? columnRow.getRowFilter() != null : false;
 
         if (requestRlsV1 && (isV2Used || requestRlsV2)) {
-            throw new KylinException(ServerErrorCode.ACL_INVALID_ROW_FIELD, MsgPicker.getMsg().getInvalidRowACLUpdate());
+            throw new KylinException(ServerErrorCode.ACL_INVALID_ROW_FIELD,
+                    MsgPicker.getMsg().getInvalidRowACLUpdate());
         }
 
         String tableName = table.getTableName();
@@ -418,8 +422,8 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
             columnTypes.put(columnDesc.getName(), columnDesc.getTypeName());
         }
 
-        Optional.ofNullable(table.getLikeRows()).map(List::stream).orElseGet(Stream::empty).forEach(likeRow ->
-            validateLikeColumnType(likeRow.getColumnName(), columnTypes));
+        Optional.ofNullable(table.getLikeRows()).map(List::stream).orElseGet(Stream::empty)
+                .forEach(likeRow -> validateLikeColumnType(likeRow.getColumnName(), columnTypes));
 
         if (!requestRlsV2) {
             return;
@@ -430,27 +434,27 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
 
         final int ROWFILTERTHRESHOLD = KylinConfig.getInstanceFromEnv().getRowFilterLimit();
         if (filterCount > ROWFILTERTHRESHOLD) {
-            throw new KylinException(ServerErrorCode.ACL_INVALID_ROW_FIELD,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getRowFilterExceedLimit(), filterCount, ROWFILTERTHRESHOLD));
+            throw new KylinException(ServerErrorCode.ACL_INVALID_ROW_FIELD, String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getRowFilterExceedLimit(), filterCount, ROWFILTERTHRESHOLD));
         }
 
-        table.getRowFilter().getFilterGroups().stream().map(AclTCRRequest.FilterGroup::getFilters)
-                .forEach(filters -> {
-                    for (val filter : filters) {
-                        int itemCount = Optional.ofNullable(filter.getInItems()).orElse(Lists.newArrayList()).size()
-                                + Optional.ofNullable(filter.getLikeItems()).orElse(Lists.newArrayList()).size();
-                        if (itemCount > ROWFILTERTHRESHOLD) {
-                            throw new KylinException(ServerErrorCode.ACL_INVALID_ROW_FIELD,
-                                    String.format(Locale.ROOT, MsgPicker.getMsg().getRowFilterItemExceedLimit(),
-                                            filter.getColumnName(), itemCount, ROWFILTERTHRESHOLD));
-                        }
+        table.getRowFilter().getFilterGroups().stream().map(AclTCRRequest.FilterGroup::getFilters).forEach(filters -> {
+            for (val filter : filters) {
+                int itemCount = Optional.ofNullable(filter.getInItems()).orElse(Lists.newArrayList()).size()
+                        + Optional.ofNullable(filter.getLikeItems()).orElse(Lists.newArrayList()).size();
+                if (itemCount > ROWFILTERTHRESHOLD) {
+                    throw new KylinException(ServerErrorCode.ACL_INVALID_ROW_FIELD,
+                            String.format(Locale.ROOT, MsgPicker.getMsg().getRowFilterItemExceedLimit(),
+                                    filter.getColumnName(), itemCount, ROWFILTERTHRESHOLD));
+                }
 
-                        // like clause can only accept type `varchar`, `char` and `string`
-                        if (CollectionUtils.isEmpty(filter.getLikeItems())) {
-                            continue;
-                        }
-                        validateLikeColumnType(filter.getColumnName(), columnTypes);
-                    }});
+                // like clause can only accept type `varchar`, `char` and `string`
+                if (CollectionUtils.isEmpty(filter.getLikeItems())) {
+                    continue;
+                }
+                validateLikeColumnType(filter.getColumnName(), columnTypes);
+            }
+        });
     }
 
     private void validateLikeColumnType(String columnName, Map<String, String> columnTypes) {
@@ -545,19 +549,18 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
                 tbl.setRows(Lists.newArrayList());
                 tbl.setLikeRows(Lists.newArrayList());
             } else {
-                List<AclTCRResponse.Row> notNullRowList =
-                        authorizedColumnRow.getRow() == null
-                                ? Lists.newArrayList() : transformResponseRow(authorizedColumnRow.getRow());
+                List<AclTCRResponse.Row> notNullRowList = authorizedColumnRow.getRow() == null ? Lists.newArrayList()
+                        : transformResponseRow(authorizedColumnRow.getRow());
                 tbl.setRows(notNullRowList);
-                List<AclTCRResponse.Row> notNullLikeRowList =
-                        authorizedColumnRow.getLikeRow() == null
-                                ? Lists.newArrayList() : transformResponseRow(authorizedColumnRow.getLikeRow());
+                List<AclTCRResponse.Row> notNullLikeRowList = authorizedColumnRow.getLikeRow() == null
+                        ? Lists.newArrayList()
+                        : transformResponseRow(authorizedColumnRow.getLikeRow());
                 tbl.setLikeRows(notNullLikeRowList);
                 if (authorizedColumnRow.getRowFilter() == null) {
                     // AclTCR.rowFilter has not been set.
                     // Convert old `rows` and `like_rows` to `row_filter`.
-                    tbl.setRowFilter(transformResponseFromOld(
-                            authorizedColumnRow.getRow(), authorizedColumnRow.getLikeRow()));
+                    tbl.setRowFilter(
+                            transformResponseFromOld(authorizedColumnRow.getRow(), authorizedColumnRow.getLikeRow()));
                 } else {
                     tbl.setRowFilter(transformResponseRowFilter(authorizedColumnRow.getRowFilter()));
                 }
@@ -586,11 +589,11 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
             filterGroup.setGroup(false);
             val filter = new AclTCRResponse.Filter();
             filter.setColumnName(columnName);
-            List<String> inList = row.get(columnName) != null
-                    ? Lists.newArrayList(row.get(columnName)) : Lists.newArrayList();
+            List<String> inList = row.get(columnName) != null ? Lists.newArrayList(row.get(columnName))
+                    : Lists.newArrayList();
             filter.setInItems(inList);
-            List<String> likeList = likeRow.get(columnName) != null
-                    ? Lists.newArrayList(likeRow.get(columnName)) : Lists.newArrayList();
+            List<String> likeList = likeRow.get(columnName) != null ? Lists.newArrayList(likeRow.get(columnName))
+                    : Lists.newArrayList();
             filter.setLikeItems(likeList);
             filterGroup.setFilters(Lists.newArrayList(filter));
             filterGroups.add(filterGroup);
@@ -652,8 +655,7 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
                 if (te.getValue().getRowFilter() == null) {
                     // AclTCR.rowFilter has not been set.
                     // Convert old `rows` and `like_rows` to `row_filter`.
-                    tbl.setRowFilter(transformResponseFromOld(
-                            te.getValue().getRow(), te.getValue().getLikeRow()));
+                    tbl.setRowFilter(transformResponseFromOld(te.getValue().getRow(), te.getValue().getLikeRow()));
                 } else {
                     tbl.setRowFilter(transformResponseRowFilter(te.getValue().getRowFilter()));
                 }
@@ -878,7 +880,8 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
         columnRow.setDependentColumns(new ArrayList<>(dependentColumns));
     }
 
-    private void updateRowAcl(AclTCR.ColumnRow columnRow, List<AclTCRRequest.Row> rows, List<AclTCRRequest.Row> likeRows) {
+    private void updateRowAcl(AclTCR.ColumnRow columnRow, List<AclTCRRequest.Row> rows,
+            List<AclTCRRequest.Row> likeRows) {
         if (rows != null) {
             columnRow.setRow(rowConverter(rows));
         }
@@ -963,23 +966,18 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
                 // If this is a FILTER GROUP,
                 // merge filters with same column name in the same FILTER GROUP
                 reqFilterGroup.getFilters().stream()
-                       .map(reqFilter -> new AbstractMap.SimpleEntry<>(
-                               reqFilter.getColumnName(),
-                               new AclTCR.FilterItems(
-                                       Sets.newTreeSet(reqFilter.getInItems()),
-                                       Sets.newTreeSet(reqFilter.getLikeItems()),
-                                       reqFilterType)))
-                       .collect(Collectors.<Map.Entry<String, AclTCR.FilterItems>, String, AclTCR.FilterItems> toMap(
-                               Map.Entry::getKey, Map.Entry::getValue, (v1, v2) -> AclTCR.FilterItems.merge(v1, v2)))
-                       .forEach((columnName, FilterItems) -> filters.put(columnName, FilterItems));
+                        .map(reqFilter -> new AbstractMap.SimpleEntry<>(reqFilter.getColumnName(),
+                                new AclTCR.FilterItems(Sets.newTreeSet(reqFilter.getInItems()),
+                                        Sets.newTreeSet(reqFilter.getLikeItems()), reqFilterType)))
+                        .collect(Collectors.<Map.Entry<String, AclTCR.FilterItems>, String, AclTCR.FilterItems> toMap(
+                                Map.Entry::getKey, Map.Entry::getValue, (v1, v2) -> AclTCR.FilterItems.merge(v1, v2)))
+                        .forEach((columnName, FilterItems) -> filters.put(columnName, FilterItems));
             } else {
                 // If this is a FILTER,
                 // merge FILTERs with same column name
                 val reqFilter = reqFilterGroup.getFilters().get(0);
-                val newFilterItem = new AclTCR.FilterItems(
-                        Sets.newTreeSet(reqFilter.getInItems()),
-                        Sets.newTreeSet(reqFilter.getLikeItems()),
-                        reqFilterType);
+                val newFilterItem = new AclTCR.FilterItems(Sets.newTreeSet(reqFilter.getInItems()),
+                        Sets.newTreeSet(reqFilter.getLikeItems()), reqFilterType);
                 if (!uniqueFilter.containsKey(reqFilter.getColumnName())) {
                     // Only put the filter when the column name appears for the first time
                     filters.put(reqFilter.getColumnName(), newFilterItem);
@@ -1144,7 +1142,8 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
 
             if (column.getDataMaskType() != null && !SensitiveDataMask
                     .isValidDataType(tableDesc.findColumnByName(column.getColumnName()).getDatatype())) {
-                throw new KylinException(ServerErrorCode.INVALID_PARAMETER, MsgPicker.getMsg().getInvalidSensitiveDataMaskColumnType());
+                throw new KylinException(ServerErrorCode.INVALID_PARAMETER,
+                        MsgPicker.getMsg().getInvalidSensitiveDataMaskColumnType());
             }
         }
     }
@@ -1207,7 +1206,8 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
     }
 
     public boolean remoteGrantACL(String projectId, List<AccessRequest> accessRequests) throws JsonProcessingException {
-        AclGrantEventNotifier notifier = new AclGrantEventNotifier(projectId, JsonUtil.writeValueAsString(accessRequests));
+        AclGrantEventNotifier notifier = new AclGrantEventNotifier(projectId,
+                JsonUtil.writeValueAsString(accessRequests));
         return remoteRequest(notifier, projectId);
     }
 
@@ -1216,13 +1216,16 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
         return remoteRequest(notifier, projectId);
     }
 
-    public void updateAclFromRemote(AclGrantEventNotifier grantEventNotifier, AclRevokeEventNotifier revokeEventNotifier) throws IOException {
+    public void updateAclFromRemote(AclGrantEventNotifier grantEventNotifier,
+            AclRevokeEventNotifier revokeEventNotifier) throws IOException {
         if (grantEventNotifier != null) {
-            List<AccessRequest> accessRequest = JsonUtil.readValue(grantEventNotifier.getRawAclTCRRequests(), new TypeReference<List<AccessRequest>>() {
-            });
+            List<AccessRequest> accessRequest = JsonUtil.readValue(grantEventNotifier.getRawAclTCRRequests(),
+                    new TypeReference<List<AccessRequest>>() {
+                    });
             updateAclTCR(grantEventNotifier.getProjectId(), accessRequest);
         } else if (revokeEventNotifier != null) {
-            revokeAclTCR(revokeEventNotifier.getProjectId(), revokeEventNotifier.getSid(), revokeEventNotifier.isPrincipal());
+            revokeAclTCR(revokeEventNotifier.getProjectId(), revokeEventNotifier.getSid(),
+                    revokeEventNotifier.isPrincipal());
         }
     }
 }

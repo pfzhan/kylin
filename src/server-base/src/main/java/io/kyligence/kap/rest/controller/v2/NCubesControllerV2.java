@@ -40,7 +40,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.rest.service.ModelBuildService;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
@@ -69,6 +68,7 @@ import io.kyligence.kap.rest.response.JobInfoResponseV2;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse3X;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
+import io.kyligence.kap.rest.service.ModelBuildService;
 import io.kyligence.kap.rest.service.ModelSemanticHelper;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.params.MergeSegmentParams;
@@ -92,7 +92,6 @@ public class NCubesControllerV2 extends NBasicController {
     @Autowired
     @Qualifier("modelBuildService")
     private ModelBuildService modelBuildService;
-
 
     @ApiOperation(value = "getCubes", tags = { "AI" })
     @GetMapping(value = "")

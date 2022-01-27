@@ -316,7 +316,7 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
             request.setPartitionDesc(params.getPartitionDesc());
             request.setProject(params.getProject());
             request.setMultiPartitionDesc(params.getMultiPartitionDesc());
-            modelService.updateSecondStorageModel(params.getProject(), request.getId());
+            modelService.updateSecondStorageModel(params.getProject(), request.getId(), true);
             modelService.updateDataModelSemantic(params.getProject(), request);
             params.getSegmentHoles().clear();
         }
@@ -499,7 +499,7 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
     @Override
     @Transaction(project = 0)
     public void refreshSegments(String project, String table, String refreshStart, String refreshEnd,
-                                String affectedStart, String affectedEnd) throws IOException {
+            String affectedStart, String affectedEnd) throws IOException {
         aclEvaluate.checkProjectOperationPermission(project);
         RefreshAffectedSegmentsResponse response = modelService.getRefreshAffectedSegmentsResponse(project, table,
                 refreshStart, refreshEnd);
@@ -580,8 +580,8 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
     @Override
     @Transaction(project = 0)
     public JobInfoResponseWithFailure addIndexesToSegments(String project, String modelId, List<String> segmentIds,
-                                                           List<Long> indexIds, boolean parallelBuildBySegment, int priority, boolean partialBuild, String yarnQueue,
-                                                           Object tag) {
+            List<Long> indexIds, boolean parallelBuildBySegment, int priority, boolean partialBuild, String yarnQueue,
+            Object tag) {
         aclEvaluate.checkProjectOperationPermission(project);
         modelService.checkModelPermission(project, modelId);
         val dfManger = getDataflowManager(project);
