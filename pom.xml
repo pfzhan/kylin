@@ -65,7 +65,7 @@
         <kafka.version>2.1.1</kafka.version>
 
         <!-- Spark versions -->
-        <spark.version>3.1.1-kylin-4.x-r45</spark.version>
+        <spark.version>3.1.1-kylin-4.x-r48</spark.version>
 
         <roaring.version>0.9.2-kylin-r3</roaring.version>
 
