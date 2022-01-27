@@ -303,12 +303,10 @@ abstract class FlatTableAndDictBase(private val jobContext: SegmentJob,
 
   private def tryPersistFTDS(tableDS: Dataset[Row]): Dataset[Row] = {
     if (!shouldPersistFT) {
-      buildParam.setSkipGenerateFlatTable(true)
       return tableDS
     }
     if (tableDS.schema.isEmpty) {
       logInfo("No available flat table schema.")
-      buildParam.setSkipGenerateFlatTable(true)
       return tableDS
     }
     logInfo(s"Segment $segmentId persist flat table: $flatTablePath")
@@ -329,11 +327,9 @@ abstract class FlatTableAndDictBase(private val jobContext: SegmentJob,
   private def tryRecoverFTDS(): Option[Dataset[Row]] = {
     if (tableDesc.isPartialBuild) {
       logInfo(s"Segment $segmentId no need reuse flat table for partial build.")
-      buildParam.setSkipGenerateFlatTable(true)
       return None
     } else if (!isFTReady) {
       logInfo(s"Segment $segmentId  no available flat table.")
-      buildParam.setSkipGenerateFlatTable(true)
       return None
     }
     // +----------+---+---+---+---+-----------+-----------+
