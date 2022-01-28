@@ -42,43 +42,42 @@ import lombok.extern.slf4j.Slf4j;
 public class RecommendationTopNUpdateSchedulerTest extends LogOutputTestCase {
 
     private RawRecService rawRecService = Mockito.mock(RawRecService.class);
+    private RecommendationTopNUpdateScheduler scheduler = Mockito
+            .spy(new RecommendationTopNUpdateScheduler());
     private static final String PROJECT = "default";
 
     @Before
     public void setUp() throws Exception {
         super.createTestMetadata();
+        ReflectionTestUtils.setField(scheduler, "rawRecService", rawRecService);
     }
 
     @After
     public void tearDown() throws Exception {
         super.cleanupTestMetadata();
+        scheduler.close();
     }
 
     @Test
     public void testSaveTimeFail() {
-        RecommendationTopNUpdateScheduler recommendationTopNUpdateScheduler = new RecommendationTopNUpdateScheduler();
-        ReflectionTestUtils.setField(recommendationTopNUpdateScheduler, "rawRecService", rawRecService);
         overwriteSystemProp("kylin.smart.update-topn-time-gap", "0");
         overwriteSystemProp("kylin.smart.frequency-rule-enable", "false");
         Mockito.doNothing().when(rawRecService).updateCostsAndTopNCandidates(PROJECT);
-        Mockito.doThrow(Exception.class).doCallRealMethod().when(recommendationTopNUpdateScheduler)
+        Mockito.doThrow(Exception.class).doCallRealMethod().when(scheduler)
                 .saveTaskTime(PROJECT);
-        recommendationTopNUpdateScheduler.addProject(PROJECT);
+        scheduler.addProject(PROJECT);
         await().atMost(3, TimeUnit.SECONDS)
                 .until(() -> containsLog("Updating default cost and topN recommendations finished."));
-        recommendationTopNUpdateScheduler.close();
     }
 
     @Test
     public void testSchedulerTask() {
-        RecommendationTopNUpdateScheduler recommendationTopNUpdateScheduler = new RecommendationTopNUpdateScheduler();
-        ReflectionTestUtils.setField(recommendationTopNUpdateScheduler, "rawRecService", rawRecService);
+        ReflectionTestUtils.setField(scheduler, "rawRecService", rawRecService);
         overwriteSystemProp("kylin.smart.update-topn-time-gap", "0");
         overwriteSystemProp("kylin.smart.frequency-rule-enable", "false");
         Mockito.doNothing().when(rawRecService).updateCostsAndTopNCandidates(PROJECT);
-        recommendationTopNUpdateScheduler.addProject(PROJECT);
+        scheduler.addProject(PROJECT);
         await().atMost(3, TimeUnit.SECONDS)
                 .until(() -> containsLog("Updating default cost and topN recommendations finished."));
-        recommendationTopNUpdateScheduler.close();
     }
 }
