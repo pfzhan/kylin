@@ -1039,6 +1039,13 @@ public abstract class KylinConfigBase implements Serializable {
         return Lists.newArrayList(getOptional("kylin.engine-yarn.queue.in.task.available", "default").split(","));
     }
 
+    public boolean isConcurrencyFetchDataSourceSize() {
+        return Boolean.parseBoolean(getOptional("kylin.job.concurrency-fetch-datasource-size-enabled", FALSE));
+    }
+    public int getConcurrencyFetchDataSourceSizeThreadNumber() {
+        return Integer.parseInt(getOptional("kylin.job.concurrency-fetch-datasource-size-thread_number", "10"));
+    }
+
     // ============================================================================
     // SOURCE.HIVE
     // ============================================================================

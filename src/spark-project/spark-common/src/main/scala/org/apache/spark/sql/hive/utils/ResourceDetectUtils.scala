@@ -24,6 +24,8 @@ package org.apache.spark.sql.hive.utils
 
 import java.io.IOException
 import java.nio.charset.Charset
+import java.util.concurrent.ForkJoinPool
+import java.util.concurrent.atomic.AtomicLong
 import java.util.{Map => JMap}
 
 import com.google.common.collect.Maps
@@ -31,6 +33,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import io.kyligence.kap.metadata.cube.model.{DimensionRangeInfo, LayoutEntity}
 import org.apache.hadoop.fs._
+import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.common.util.HadoopUtil
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.execution.columnar.InMemoryTableScanExec
@@ -41,6 +44,7 @@ import org.apache.spark.sql.sources.NBaseRelation
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
+import scala.collection.parallel.ForkJoinTaskSupport
 
 object ResourceDetectUtils extends Logging {
   private val json = new Gson()
@@ -134,6 +138,29 @@ object ResourceDetectUtils extends Logging {
       }
     }
     false
+  }
+
+  def getResourceSizeConcurrency(paths: Path*): Long = {
+    val threadNumber = KylinConfig.getInstanceFromEnv.getConcurrencyFetchDataSourceSizeThreadNumber
+    logInfo(s"Get resource size concurrency, thread number is $threadNumber")
+    val forkJoinPool = new ForkJoinPool(threadNumber)
+    val parallel = paths.par
+    val sum = new AtomicLong()
+    try {
+      parallel.tasksupport = new ForkJoinTaskSupport(forkJoinPool)
+      parallel.foreach {
+        path => {
+          val fs = path.getFileSystem(HadoopUtil.getCurrentConfiguration)
+          if (fs.exists(path)) {
+            sum.addAndGet(HadoopUtil.getContentSummary(fs, path).getLength)
+          }
+        }
+      }
+    }
+    finally {
+      forkJoinPool.shutdownNow()
+    }
+    sum.get()
   }
 
   def getResourceSize(paths: Path*): Long = {

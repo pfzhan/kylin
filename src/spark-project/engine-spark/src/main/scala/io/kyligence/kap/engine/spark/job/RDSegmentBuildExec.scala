@@ -84,7 +84,18 @@ class RDSegmentBuildExec(private val jobContext: RDSegmentBuildJob, //
       logInfo(s"Leaf nodes: $leaves")
       val paths = ResourceDetectUtils.getPaths(execution.sparkPlan).map(_.toString).asJava
       logInfo(s"Detected source: $sourceName $leaves ${paths.asScala.mkString(",")}")
-      sourceSize.put(sourceName, ResourceDetectUtils.getResourceSize(paths.asScala.map(path => new Path(path)): _*))
+      val startTime = System.currentTimeMillis()
+      logInfo(s"Detect source size start time is $startTime")
+      val resourceSize = if (config.isConcurrencyFetchDataSourceSize) {
+        ResourceDetectUtils.getResourceSizeConcurrency(paths.asScala.map(path => new Path(path)): _*)
+      } else {
+        ResourceDetectUtils.getResourceSize(paths.asScala.map(path => new Path(path)): _*)
+      }
+      val endTime = System.currentTimeMillis()
+      logInfo(s"Detect source size end time is $endTime")
+
+      logInfo(s"Detect source size $resourceSize")
+      sourceSize.put(sourceName, resourceSize)
       sourceLeaves.put(sourceName, leaves)
     }
 

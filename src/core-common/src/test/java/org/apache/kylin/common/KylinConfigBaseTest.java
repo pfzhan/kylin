@@ -891,6 +891,8 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         map.put("getMetricsJobSlaMinutes",
                 new PropertiesEntity("kylin.metrics.job.sla.minutes", "1,30,60,300", new long[] { 1, 30, 60, 300 }));
         map.put("isMetadataKeyCaseInSensitiveEnabled", new PropertiesEntity("kylin.metadata.key-case-insensitive", "false", false));
+        map.put("isConcurrencyFetchDataSourceSize", new PropertiesEntity("kylin.job.concurrency-fetch-datasource-size-enabled", "false", false));
+        map.put("getConcurrencyFetchDataSourceSizeThreadNumber", new PropertiesEntity("kylin.job.concurrency-fetch-datasource-size-thread_number", "10", 10));
     }
 
     @Before
