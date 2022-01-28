@@ -41,9 +41,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class RecommendationTopNUpdateSchedulerTest extends LogOutputTestCase {
 
-    private RawRecService rawRecService = Mockito.mock(RawRecService.class);
-    private RecommendationTopNUpdateScheduler scheduler = Mockito
-            .spy(new RecommendationTopNUpdateScheduler());
+    private final RawRecService rawRecService = Mockito.mock(RawRecService.class);
+    private final RecommendationTopNUpdateScheduler scheduler = Mockito.spy(new RecommendationTopNUpdateScheduler());
     private static final String PROJECT = "default";
 
     @Before
@@ -60,11 +59,10 @@ public class RecommendationTopNUpdateSchedulerTest extends LogOutputTestCase {
 
     @Test
     public void testSaveTimeFail() {
-        overwriteSystemProp("kylin.smart.update-topn-time-gap", "0");
+        overwriteSystemProp("kylin.smart.update-topn-time-gap", "1000");
         overwriteSystemProp("kylin.smart.frequency-rule-enable", "false");
         Mockito.doNothing().when(rawRecService).updateCostsAndTopNCandidates(PROJECT);
-        Mockito.doThrow(Exception.class).doCallRealMethod().when(scheduler)
-                .saveTaskTime(PROJECT);
+        Mockito.doThrow(Exception.class).doCallRealMethod().when(scheduler).saveTaskTime(PROJECT);
         scheduler.addProject(PROJECT);
         await().atMost(3, TimeUnit.SECONDS)
                 .until(() -> containsLog("Updating default cost and topN recommendations finished."));
@@ -73,7 +71,7 @@ public class RecommendationTopNUpdateSchedulerTest extends LogOutputTestCase {
     @Test
     public void testSchedulerTask() {
         ReflectionTestUtils.setField(scheduler, "rawRecService", rawRecService);
-        overwriteSystemProp("kylin.smart.update-topn-time-gap", "0");
+        overwriteSystemProp("kylin.smart.update-topn-time-gap", "1000");
         overwriteSystemProp("kylin.smart.frequency-rule-enable", "false");
         Mockito.doNothing().when(rawRecService).updateCostsAndTopNCandidates(PROJECT);
         scheduler.addProject(PROJECT);
