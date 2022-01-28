@@ -174,6 +174,7 @@ public class RollbackToolTest extends NLocalFileMetadataTestCase {
         Assert.assertFalse(projectItems1.contains("/_global/project/project13.json"));
         Assert.assertFalse(projectItems1.contains("/_global/project/project14.json"));
 
+        Thread.sleep(1000);
         tool.execute(new String[] { "-skipCheckData", "true", "-time", t3.format(DATE_TIME_FORMATTER) });
 
         // Time travel successfully, include project13  does not include project14
