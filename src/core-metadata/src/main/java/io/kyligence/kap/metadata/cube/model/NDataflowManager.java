@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.metadata.cube.model;
 
+import static io.kyligence.kap.common.util.SegmentMergeStorageChecker.checkMergeSegmentThreshold;
 import static java.util.stream.Collectors.groupingBy;
 import static org.apache.kylin.common.exception.SystemErrorCode.FAILED_MERGE_SEGMENT;
 import static org.apache.kylin.metadata.realization.RealizationStatusEnum.ONLINE;
@@ -518,6 +519,9 @@ public class NDataflowManager implements IRealizationProvider {
         } else {
             validateNewSegments(dataflowCopy, newSegment);
         }
+        checkMergeSegmentThreshold(config, config.getHdfsWorkingDirectory(),
+                mergingSegments.stream().mapToLong(NDataSegment::getStorageBytesSize).sum());
+
         checkAndMergeMultiPartitions(dataflow, newSegment, mergingSegments);
 
         update.setToAddSegs(newSegment);
