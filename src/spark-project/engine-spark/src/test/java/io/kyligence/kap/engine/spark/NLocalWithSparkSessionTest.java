@@ -29,11 +29,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
+import org.apache.curator.test.TestingServer;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
@@ -101,6 +103,7 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
 
     protected static SparkConf sparkConf;
     protected static SparkSession ss;
+    private TestingServer zkTestServer;
 
     protected static void ensureSparkConf() {
         if (sparkConf == null) {
@@ -136,7 +139,6 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         sparkConf.set("spark.sql.broadcastTimeout", "900");
         ss = SparkSession.builder().config(sparkConf).getOrCreate();
         SparderEnv.setSparkSession(ss);
-
     }
 
     @AfterClass
@@ -150,11 +152,17 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         overwriteSystemProp("calcite.keep-in-clause", "true");
         this.createTestMetadata();
         ExecutableUtils.initJobFactory();
+        Random r = new Random(10000);
+        zkTestServer = new TestingServer(r.nextInt(), true);
+        overwriteSystemProp("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());
     }
 
     @After
     public void tearDown() throws Exception {
         this.cleanupTestMetadata();
+        if (zkTestServer != null) {
+            zkTestServer.close();
+        }
     }
 
     public String getProject() {
