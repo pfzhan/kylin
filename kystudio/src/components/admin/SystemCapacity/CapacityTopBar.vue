@@ -37,7 +37,7 @@
         <!-- <p class="error-text" v-if="!nodeList.filter(it => it.mode === 'all').length">{{$t('noNodesTip1')}}</p> -->
         <div class="node-details" v-if="nodeList.length > 0">
           <div class="node-list" v-for="(node, index) in nodeList" :key="index">
-            <span v-custom-tooltip="{text: `${node.host}(${node.mode === 'All' ? 'All' : $t(`kylinLang.common.${node.mode.toLocaleLowerCase()}Node`)}`, w: 20}">{{`${node.host}(${node.mode === 'All' ? 'All' : $t(`kylinLang.common.${node.mode.toLocaleLowerCase()}Node`)})`}}</span>
+            <span v-custom-tooltip="{text: `${node.host}(${node.mode === 'All' ? 'All' : $t(`kylinLang.common.${node.mode.toLocaleLowerCase()}Node`)})`, w: 20}">{{`${node.host}(${node.mode === 'All' ? 'All' : $t(`kylinLang.common.${node.mode.toLocaleLowerCase()}Node`)})`}}</span>
           </div>
         </div>
         <div class="node-details nodata" v-else>{{$t('kylinLang.common.noData')}}</div>

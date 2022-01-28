@@ -32,7 +32,7 @@
                   <div class="table-title"><span class="dimension-header-tip-layout">{{table.alias}}</span> <span> ({{countTableSelectColumns(table)}}/{{table.columns.length}})</span></div>
                 </div>
                 <el-table
-                  v-if="table.show || isGuideMode"
+                  v-show="table.show || isGuideMode"
                   :data="table.columns"
                   @row-click="(row) => {rowClick(row, table.guid)}"
                   :ref="table.guid"
@@ -114,7 +114,7 @@
                   </div>
                 </div>
                 <el-table
-                  v-if="table.show || isGuideMode"
+                  v-show="table.show || isGuideMode"
                   :class="[flattenLookupTables.includes(table.alias) && 'is-disabled']"
                   :row-class-name="(para) => tableRowClassName(para, table)"
                   :data="table.columns" :ref="table.guid"
@@ -193,7 +193,7 @@
                     </common-tip>
                   </div>
                   <el-table
-                    v-if="ccTable.show || isGuideMode"
+                    v-show="ccTable.show || isGuideMode"
                     :row-class-name="(para) => tableRowClassName(para, ccTable)"
                     :data="ccTable.columns" :ref="ccTable.guid"
                     @row-click="(row) => {rowClick(row, ccTable.guid)}"
