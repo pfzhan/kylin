@@ -202,6 +202,8 @@ public class SparderUIUtil {
                 line = line.replace("href='/", "href='" + proxyLocationBase + "/");
                 line = line.replace("src=\"/", "src=\"" + proxyLocationBase + "/");
                 line = line.replace("src='/", "src='" + proxyLocationBase + "/");
+                line = line.replace("<script>setUIRoot('')</script>",
+                        "<script>setUIRoot('" + proxyLocationBase + "')</script>");
                 line = line.replace(fWebUrl, proxyLocationBase);
                 writer.write(line);
                 writer.println();
