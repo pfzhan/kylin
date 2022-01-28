@@ -183,7 +183,7 @@ public class HadoopUtil {
         return getFileSystem(path, conf);
     }
 
-    private static FileSystem getFileSystem(Path path, Configuration conf) {
+    public static FileSystem getFileSystem(Path path, Configuration conf) {
         try {
             return path.getFileSystem(conf);
         } catch (IOException e) {

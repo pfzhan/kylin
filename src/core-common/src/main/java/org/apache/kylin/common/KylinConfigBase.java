@@ -796,6 +796,16 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(this.getOptional("kylin.index.base-index-auto-update", TRUE));
     }
 
+    public double getMergeSegmentStorageThreshold() {
+        double thresholdValue = Double.parseDouble(getOptional("kylin.cube.merge-segment-storage-threshold", "0"));
+        if(thresholdValue < 0 || thresholdValue > 1) {
+            logger.warn("The configuration file is incorrect. The value of[kylin.cube.merge-segment-storage-threshold] "
+                    + "cannot be less than 0 or greater than 1.");
+            thresholdValue = 0;
+        }
+        return thresholdValue;
+    }
+
     // ============================================================================
     // JOB
     // ============================================================================
