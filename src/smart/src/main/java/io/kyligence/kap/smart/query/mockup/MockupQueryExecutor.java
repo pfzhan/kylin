@@ -30,6 +30,7 @@ import java.util.Locale;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.debug.BackdoorToggles;
+import org.apache.kylin.common.util.ThreadUtil;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.util.QueryParams;
@@ -97,7 +98,8 @@ public class MockupQueryExecutor extends AbstractQueryExecutor {
                     ? String.format(Locale.ROOT, "%s, check kylin.log for details", e.getClass().toString())
                     : QueryUtil.makeErrorMsgUserFriendly(e);
             if (printException) {
-                log.debug("Failed to run in MockupQueryExecutor.", e);
+                log.debug("Failed to run in MockupQueryExecutor. Critical stackTrace:\n{}",
+                        ThreadUtil.getKylinStackTrace());
             }
 
             sqlResult.setStatus(SQLResult.Status.FAILED);

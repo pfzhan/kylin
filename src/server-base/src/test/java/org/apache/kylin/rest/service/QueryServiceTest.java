@@ -113,6 +113,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 import org.springframework.security.authentication.TestingAuthenticationToken;
@@ -153,24 +154,18 @@ import io.kyligence.kap.rest.service.AclTCRService;
 import io.kyligence.kap.rest.service.NUserGroupService;
 import io.kyligence.kap.rest.service.QueryCacheManager;
 import lombok.val;
-import net.sf.ehcache.CacheManager;
 
 /**
  * @author xduo
  */
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({ SpringContext.class, UserGroupInformation.class })
+@PowerMockIgnore({ "javax.management.*" })
 public class QueryServiceTest extends NLocalFileMetadataTestCase {
-
-    @Mock
-    private final CacheManager cacheManager = Mockito
-            .spy(CacheManager.create(ClassLoader.getSystemResourceAsStream("ehcache.xml")));
 
     private final QueryCacheManager queryCacheManager = new QueryCacheManager();
 
     private final ClusterManager clusterManager = new DefaultClusterManager(8080);
-
-    private QueryService origin;
 
     @Mock
     private QueryService queryService;
@@ -196,8 +191,6 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     @Mock
     protected AclTCRService aclTCRService = Mockito.spy(AclTCRService.class);
 
-    private int pushdownCount;
-
     @Before
     public void setup() throws Exception {
         PowerMockito.mockStatic(SpringContext.class);
@@ -211,11 +204,10 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         createTestMetadata();
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
-        origin = new QueryService();
-        queryService = Mockito.spy(origin);
+        queryService = Mockito.spy(new QueryService());
         queryService.queryRoutingEngine = Mockito.spy(QueryRoutingEngine.class);
-        //Mockito.when(SpringContext.getBean(QueryService.class)).thenReturn(queryService);
         Mockito.when(SpringContext.getBean(CacheSignatureQuerySupporter.class)).thenReturn(queryService);
+        Mockito.when(appConfig.getPort()).thenReturn(7070);
         ReflectionTestUtils.setField(queryService, "aclEvaluate", Mockito.mock(AclEvaluate.class));
         ReflectionTestUtils.setField(queryService, "queryCacheManager", queryCacheManager);
         ReflectionTestUtils.setField(queryService, "clusterManager", clusterManager);
@@ -226,13 +218,12 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(accessService, "aclService", aclService);
         ReflectionTestUtils.setField(aclTCRService, "accessService", accessService);
         ReflectionTestUtils.setField(aclTCRService, "userService", userService);
-        Mockito.when(appConfig.getPort()).thenReturn(7070);
         ReflectionTestUtils.setField(queryService, "appConfig", appConfig);
-        pushdownCount = 0;
 
         userService.createUser(
                 new ManagedUser("ADMIN", "KYLIN", false, Arrays.asList(new UserGrantedAuthority("ROLE_ADMIN"))));
         queryCacheManager.init();
+        QueryContext.reset();
     }
 
     @After
@@ -419,7 +410,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         // case of hitting cache
         expectedQueryID = QueryContext.current().getQueryId();
         final SQLResponse secondSuccess = queryService.queryWithCache(request);
-        Assert.assertEquals(true, secondSuccess.isStorageCacheUsed());
+        Assert.assertTrue(secondSuccess.isStorageCacheUsed());
         Assert.assertEquals(expectedQueryID, secondSuccess.getQueryId());
         Assert.assertEquals(2, secondSuccess.getNativeRealizations().size());
         Assert.assertEquals(QueryMetricsContext.AGG_INDEX, secondSuccess.getNativeRealizations().get(0).getIndexType());
@@ -1584,9 +1575,6 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
         Assert.assertEquals(0, sqlResponseEmpty.getTotalScanRows());
         Assert.assertEquals(0, sqlResponseEmpty.getTotalScanBytes());
-
-        QueryContext queryContext = QueryContext.current();
-
     }
 
     @Test
