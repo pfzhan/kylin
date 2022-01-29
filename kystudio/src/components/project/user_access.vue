@@ -1071,12 +1071,17 @@ export default class UserAccess extends Vue {
   }
   .row-values-edit,
   .row-values-add {
+    .el-select__input {
+      margin-left: 12px;
+    }
     .el-select__tags > span {
       max-width: 100%;
       .el-tag {
         max-width: 100%;
         position: relative;
         padding-right: 16px;
+        white-space: normal;
+        word-break: break-word;
         .el-select__tags-text {
           max-width: 100%;
           overflow: hidden;
