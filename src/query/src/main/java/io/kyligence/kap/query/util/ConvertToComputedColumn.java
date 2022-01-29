@@ -83,11 +83,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.ThreadUtil;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.query.util.QueryUtil;
 
 import com.google.common.base.Function;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
@@ -122,12 +122,7 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer {
         try {
             return transformImpl(originSql, project, defaultSchema);
         } catch (Exception e) {
-            if (e instanceof org.apache.calcite.sql.parser.SqlParseException) {
-                log.warn(CONVERT_TO_CC_ERROR_MSG, Throwables.getRootCause(e));
-            } else {
-                log.warn(CONVERT_TO_CC_ERROR_MSG, e);
-            }
-
+            log.warn("{}, critical stackTrace:\n{}", CONVERT_TO_CC_ERROR_MSG, ThreadUtil.getKylinStackTrace());
             return originSql;
         }
     }
@@ -248,7 +243,8 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer {
 
     static Pair<String, Integer> replaceComputedColumn(String inputSql, SqlCall selectOrOrderby,
             List<ComputedColumnDesc> computedColumns, QueryAliasMatchInfo queryAliasMatchInfo) {
-        return new ConvertToComputedColumn().replaceComputedColumn(inputSql, selectOrOrderby, computedColumns, queryAliasMatchInfo, false);
+        return new ConvertToComputedColumn().replaceComputedColumn(inputSql, selectOrOrderby, computedColumns,
+                queryAliasMatchInfo, false);
     }
 
     private Pair<String, Integer> replaceComputedColumn(String inputSql, SqlCall selectOrOrderby,
@@ -281,8 +277,7 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer {
             if (queryAliasMatchInfo.isModelView()) {
                 // get alias with model alias
                 // as table of cc in model view is model view table itself
-                alias = queryAliasMatchInfo.getAliasMapping().inverse()
-                        .get(queryAliasMatchInfo.getModel().getAlias());
+                alias = queryAliasMatchInfo.getAliasMapping().inverse().get(queryAliasMatchInfo.getModel().getAlias());
             } else {
                 alias = queryAliasMatchInfo.getAliasMapping().inverse().get(cc.getTableAlias());
             }

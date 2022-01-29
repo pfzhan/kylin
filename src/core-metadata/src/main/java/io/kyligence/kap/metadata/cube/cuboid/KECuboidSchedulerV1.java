@@ -41,8 +41,8 @@ import javax.annotation.Nullable;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.OutOfMaxCombinationException;
+import org.apache.kylin.common.util.ThreadUtil;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterators;
@@ -58,13 +58,13 @@ import lombok.extern.slf4j.Slf4j;
 public class KECuboidSchedulerV1 extends CuboidScheduler {
 
     public static final String INDEX_SCHEDULER_KEY = "kylin.index.rule-scheduler-data";
+    public static final String METADATA_INCONSISTENT_ERROR_MSG_PATTERN = "Index metadata might be inconsistent. Please try refreshing all segments in the following model({}/{}), Reason: {}, critical stackTrace:\n{}";
     private final BigInteger max;
     private final int measureSize;
     private final boolean isBaseCuboidValid;
     private transient final Set<CuboidBigInteger> allCuboidIds;
 
     private transient final SetCreator newHashSet = HashSet::new;
-    private transient final SetCreator newCuboidSet = OrderedSet::new;
 
     KECuboidSchedulerV1(IndexPlan indexPlan, RuleBasedIndex ruleBasedAggIndex, boolean skipAllCuboids) {
         super(indexPlan, ruleBasedAggIndex);
@@ -81,6 +81,7 @@ public class KECuboidSchedulerV1 extends CuboidScheduler {
         if (max.bitCount() == 0) {
             allCuboidIds = new OrderedSet<>();
         } else {
+            SetCreator newCuboidSet = OrderedSet::new;
             this.allCuboidIds = buildTreeBottomUp(newCuboidSet);
         }
     }
@@ -107,12 +108,11 @@ public class KECuboidSchedulerV1 extends CuboidScheduler {
             oldSortingResult = Stream.of(StringUtils.split(data, ",")).map(BigInteger::new)
                     .collect(Collectors.toList());
         }
-        if (!Objects.equals(newSortingResult.stream().map(CuboidBigInteger::getDimMeas).collect(Collectors.toList()),
-                oldSortingResult)) {
-            log.error(
-                    "Index metadata might be inconsistent. Please try refreshing all segments in the following model: Project [{}], Model [{}]",
-                    indexPlan.getProject(), indexPlan.getModelAlias(),
-                    new KylinException(RULE_BASED_INDEX_METADATA_INCONSISTENT, ""));
+        List<BigInteger> newSortingOrder = newSortingResult.stream().map(CuboidBigInteger::getDimMeas)
+                .collect(Collectors.toList());
+        if (!Objects.equals(newSortingOrder, oldSortingResult)) {
+            log.error(METADATA_INCONSISTENT_ERROR_MSG_PATTERN, indexPlan.getProject(), indexPlan.getModelAlias(),
+                    RULE_BASED_INDEX_METADATA_INCONSISTENT, ThreadUtil.getKylinStackTrace());
             log.debug("Set difference new:{}, old:{}", newSortingResult, oldSortingResult);
         }
 
@@ -275,14 +275,10 @@ public class KECuboidSchedulerV1 extends CuboidScheduler {
         for (CuboidBigInteger child : children) {
             parents.addAll(getOnTreeParents(child, agg, setCreatorFunc));
         }
-        val filteredParent = Iterators.filter(parents.iterator(), new Predicate<CuboidBigInteger>() {
-            @Override
-            public boolean apply(@Nullable CuboidBigInteger cuboidId) {
-                if (cuboidId == null)
-                    return false;
-
-                return agg.checkDimCap(cuboidId.getDimMeas());
-            }
+        val filteredParent = Iterators.filter(parents.iterator(), cuboidId -> {
+            if (cuboidId == null)
+                return false;
+            return agg.checkDimCap(cuboidId.getDimMeas());
         });
         parents = setCreatorFunc.create();
         while (filteredParent.hasNext()) {

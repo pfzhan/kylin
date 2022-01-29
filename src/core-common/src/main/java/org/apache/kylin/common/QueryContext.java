@@ -117,7 +117,7 @@ public class QueryContext implements Closeable {
     private String[] modelPriorities = new String[0];
 
     @Getter
-    private QueryTrace queryTrace = new QueryTrace();
+    private final QueryTrace queryTrace = new QueryTrace();
 
     @Getter
     @Setter
@@ -218,7 +218,7 @@ public class QueryContext implements Closeable {
 
     @Getter
     @Setter
-    public class Metrics {
+    public static class Metrics {
         private String correctedSql;
         private String sqlPattern;
         private Throwable finalCause;
@@ -305,7 +305,7 @@ public class QueryContext implements Closeable {
 
     @Getter
     @Setter
-    public class QueryTagInfo {
+    public static class QueryTagInfo {
 
         private boolean isTimeout;
         private boolean hasRuntimeAgg;
@@ -340,7 +340,7 @@ public class QueryContext implements Closeable {
         private boolean isPartialMatchModel;
         private boolean isValid = true;
         private boolean isLayoutExist = true;
-        private boolean isStreamingLayout = false;
+        private boolean isStreamingLayout;
         private List<String> snapshots;
     }
 
