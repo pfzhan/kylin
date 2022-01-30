@@ -2725,15 +2725,6 @@
                         <signaturesFile>${user.dir}/dev-support/forbidden-signatures.txt</signaturesFile>
                     </signaturesFiles>
                 </configuration>
-<!--                <executions>-->
-<!--                    <execution>-->
-<!--                        <phase>compile</phase>-->
-<!--                        <goals>-->
-<!--                            <goal>check</goal>-->
-<!--                            <goal>testCheck</goal>-->
-<!--                        </goals>-->
-<!--                    </execution>-->
-<!--                </executions>-->
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -2753,29 +2744,8 @@
                         <goals>
                             <goal>analyze-only</goal>
                         </goals>
-                        <!--<configuration>-->
-                        <!--<failOnWarning>true</failOnWarning>-->
-                        <!--</configuration>-->
                     </execution>
                 </executions>
-            </plugin>
-
-            <plugin>
-                <groupId>org.asciidoctor</groupId>
-                <artifactId>asciidoctor-maven-plugin</artifactId>
-                <version>1.5.6</version>
-                <configuration>
-                    <sourceDirectory>${basedir}/docs/asciidoc</sourceDirectory>
-                    <outputFile>${basedir}/docs/docs.html</outputFile>
-                    <backend>html5</backend>
-                    <sourceHighlighter>highlight.js</sourceHighlighter>
-                    <attributes>
-                        <icons>font</icons>
-                        <doctype>book</doctype>
-                        <toc>left</toc>
-                        <toclevels>3</toclevels>
-                    </attributes>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
@@ -2848,12 +2818,14 @@
         </profile>
         <profile>
             <id>sandbox</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
             <build>
                 <plugins>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-compiler-plugin</artifactId>
-                        <!--<version>2.5.1</version>-->
                         <configuration>
                             <fork>true</fork>
                             <meminitial>1024m</meminitial>
