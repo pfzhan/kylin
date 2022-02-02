@@ -436,25 +436,6 @@
                 <profile.id>sandbox</profile.id>
             </properties>
         </profile>
-
-        <profile>
-            <id>cdh5.7</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-failsafe-plugin</artifactId>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>exec-maven-plugin</artifactId>
-                    </plugin>
-                </plugins>
-            </build>
-            <properties>
-                <profile.id>cdh5.7</profile.id>
-            </properties>
-        </profile>
     </profiles>
 
 </project>
