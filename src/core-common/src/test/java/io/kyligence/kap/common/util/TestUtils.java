@@ -21,21 +21,13 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.query.engine
+package io.kyligence.kap.common.util;
 
-import io.kyligence.kap.query.engine.exec.sparder.QueryEngine
-import org.apache.calcite.DataContext
-import org.apache.calcite.rel.RelNode
+import org.apache.kylin.common.KylinConfig;
 
-import java.util
+public class TestUtils {
 
-/**
- * Workaround for throwing SparkException
- */
-class ThrownExceptionEngine(realAction: () => Boolean) extends QueryEngine {
-  override def
-  compute(dataContext: DataContext, relNode: RelNode): util.List[util.List[String]] = {
-    realAction()
-    null
-  }
+    public static KylinConfig getTestConfig() {
+        return KylinConfig.getInstanceFromEnv();
+    }
 }

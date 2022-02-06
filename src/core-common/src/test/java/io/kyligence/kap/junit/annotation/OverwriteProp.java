@@ -1,7 +1,5 @@
-<?xml version="1.0"?>
-<!--
-/**
- * Copyright (C) 2020 Kyligence Inc. All rights reserved.
+/*
+ * Copyright (C) 2016 Kyligence Inc. All rights reserved.
  *
  * http://kyligence.io
  *
@@ -23,18 +21,37 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
--->
+package io.kyligence.kap.junit.annotation;
 
-<!--
- for more kafka consumer configs, please refer to http://kafka.apache.org/documentation#consumerconfigs
--->
-<configuration>
-    <property>
-        <name>session.timeout.ms</name>
-        <value>10000</value>
-    </property>
-    <property>
-        <name>request.timeout.ms</name>
-        <value>20000</value>
-    </property>
-</configuration>
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Inherited;
+import java.lang.annotation.Repeatable;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+import org.junit.jupiter.api.extension.ExtendWith;
+
+import io.kyligence.kap.junit.OverwritePropExtension;
+
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ ElementType.METHOD, ElementType.TYPE })
+@Inherited
+@Repeatable(OverwriteProp.OverwriteProps.class)
+@ExtendWith(OverwritePropExtension.class)
+public @interface OverwriteProp {
+
+    String key();
+
+    String value();
+
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target({ ElementType.METHOD, ElementType.TYPE })
+    @Inherited
+    @ExtendWith(OverwritePropExtension.class)
+    @interface OverwriteProps {
+
+        OverwriteProp[] value();
+
+    }
+}

@@ -64,7 +64,7 @@ public class MetaStoreHealthIndicatorTest extends NLocalFileMetadataTestCase {
         indicator.healthCheck();
         Assert.assertTrue((boolean) ReflectionTestUtils.getField(indicator, "isHealth"));
 
-        Mockito.doThrow(Exception.class).when(indicator).allNodeCheck();
+        Mockito.doThrow(RuntimeException.class).when(indicator).allNodeCheck();
         indicator.healthCheck();
         Assert.assertFalse((boolean) ReflectionTestUtils.getField(indicator, "isHealth"));
 

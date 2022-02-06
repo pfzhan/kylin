@@ -30,18 +30,10 @@ import javax.crypto.spec.SecretKeySpec;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public class SecretKeyUtilTest extends NLocalFileMetadataTestCase {
-
-    @Rule
-    public TemporaryFolder temporaryFolder = new TemporaryFolder();
-
-    @Rule
-    public TestName testName = new TestName();
 
     @Test
     public void testEncryptAndDecryptToken() throws Exception {
@@ -75,8 +67,8 @@ public class SecretKeyUtilTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testInitKGSecretKey() throws Exception {
-        final String mainFolder = temporaryFolder.getRoot().getAbsolutePath() + "/" + testName.getMethodName();
+    public void testInitKGSecretKey(@TempDir File tempFolder) throws Exception {
+        final String mainFolder = tempFolder.getAbsolutePath();
         FileUtils.forceMkdir(new File(mainFolder));
 
         String sourceValue = System.getenv("KYLIN_HOME");

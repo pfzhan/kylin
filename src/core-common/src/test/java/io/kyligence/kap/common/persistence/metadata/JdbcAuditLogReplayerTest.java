@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.common.persistence.metadata;
 
+import static io.kyligence.kap.common.util.TestUtils.getTestConfig;
+
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,7 +36,7 @@ import org.apache.kylin.common.persistence.StringEntity;
 import org.apache.kylin.common.util.RandomUtil;
 import org.awaitility.Awaitility;
 import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.BadSqlGrammarException;
 
 import io.kyligence.kap.common.util.AbstractJdbcMetadataTestCase;
@@ -64,7 +66,7 @@ public class JdbcAuditLogReplayerTest extends AbstractJdbcMetadataTestCase {
         //replay fail
         try {
             auditLogStore.catchupWithTimeout();
-        }catch (BadSqlGrammarException e){
+        } catch (BadSqlGrammarException e) {
         }
 
         //restore audit log

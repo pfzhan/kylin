@@ -37,7 +37,7 @@ import java.util.List;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfig.SetAndUnsetThreadLocalConfig;
-import org.apache.kylin.common.util.AbstractTestCase;
+import org.apache.kylin.common.AbstractTestCase;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;

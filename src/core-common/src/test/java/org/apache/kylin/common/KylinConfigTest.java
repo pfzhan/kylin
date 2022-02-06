@@ -42,22 +42,41 @@
 
 package org.apache.kylin.common;
 
+import static io.kyligence.kap.common.util.TestUtils.getTestConfig;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig.SetAndUnsetThreadLocalConfig;
 import org.junit.Assert;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Maps;
 
-public class KylinConfigTest extends HotLoadKylinPropertiesTestCase {
+import io.kyligence.kap.junit.annotation.MetadataInfo;
+import lombok.val;
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
+@MetadataInfo(onlyProps = true)
+public class KylinConfigTest {
+
+    @BeforeEach
+    public void setup() {
+        val config = getTestConfig();
+        config.setProperty("kylin.test.bcc.new-key", "some-value");
+        config.setProperty("kylin.engine.mr.config-override.test1", "test1");
+        config.setProperty("kylin.engine.mr.config-override.test2", "test2");
+        config.setProperty("kylin.job.lock", "org.apache.kylin.job.lock.MockJobLock");
+        config.setProperty("kap.storage.columnar.spark-conf.spark.driver.memory", "1234m");
+        config.setProperty("kap.storage.columnar.spark-conf.spark.executor.memoryOverhead", "4321m");
+        config.setProperty("kap.storage.monitor-spark-period-seconds", "5678");
+
+    }
 
     @Test
     public void testDuplicateConfig() {
@@ -171,7 +190,7 @@ public class KylinConfigTest extends HotLoadKylinPropertiesTestCase {
         if (StringUtils.isBlank(oldSparkJobJarPath)) {
             // remove property, otherwise org.apache.kylin.common.KylinConfigBase.getOptional(java.lang.String, java.lang.String)
             // will return empty str
-            restoreSystemProp("kylin.engine.spark.job-jar");
+            System.clearProperty("kylin.engine.spark.job-jar");
         } else {
             conf.overrideSparkJobJarPath(oldSparkJobJarPath);
         }
@@ -232,9 +251,29 @@ public class KylinConfigTest extends HotLoadKylinPropertiesTestCase {
 
             kylinConfig.setProperty("prop_d", "${ph_5}");
             kylinConfig.setProperty("prop5", "${prop_d}");
-            expectedException.expect(IllegalStateException.class);
-            expectedException.expectMessage("${prop5}: prop5->prop_d->ph_5");
-            kylinConfig.getOptional("ph_5");
+            Assertions.assertThrows(IllegalStateException.class, () -> {
+                kylinConfig.getOptional("ph_5");
+            });
+        }
+    }
+
+    void updateProperty(String key, String value) {
+        File propFile = KylinConfig.getSitePropertiesFile();
+        Properties conf = new Properties();
+
+        //load
+        try (FileInputStream is = new FileInputStream(propFile)) {
+            conf.load(is);
+            conf.setProperty(key, value);
+        } catch (Exception e) {
+            System.err.println(e.getMessage());
+        }
+
+        //store
+        try (FileOutputStream out = new FileOutputStream(propFile)) {
+            conf.store(out, null);
+        } catch (Exception e) {
+            System.err.println(e.getMessage());
         }
     }
 }

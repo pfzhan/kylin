@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.metadata.epoch;
 
+import static io.kyligence.kap.common.util.TestUtils.getTestConfig;
+
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -34,16 +36,15 @@ import java.util.concurrent.TimeUnit;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.google.common.collect.Lists;
-
 import io.kyligence.kap.common.persistence.metadata.Epoch;
-import io.kyligence.kap.common.util.AbstractJdbcMetadataTestCase;
+import io.kyligence.kap.common.persistence.metadata.EpochStore;
+import io.kyligence.kap.guava20.shaded.common.collect.Lists;
+import io.kyligence.kap.junit.annotation.MetadataInfo;
+import io.kyligence.kap.junit.annotation.OverwriteProp;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.resourcegroup.ResourceGroupManager;
@@ -51,14 +52,8 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class EpochManagerTest extends AbstractJdbcMetadataTestCase {
-    @Before
-    public void setup() {
-        createTestMetadata();
-    }
-
-    @Rule
-    public ExpectedException thrown = ExpectedException.none();
+@MetadataInfo(onlyProps = true)
+public class EpochManagerTest {
 
     @Test
     public void testUpdateGlobalEpoch() throws Exception {
@@ -75,8 +70,8 @@ public class EpochManagerTest extends AbstractJdbcMetadataTestCase {
     }
 
     @Test
+    @OverwriteProp(key = "kylin.server.leader-race.enabled", value = "false")
     public void testKeepGlobalEpoch() {
-        overwriteSystemProp("kylin.server.leader-race.enabled", "false");
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         EpochManager epochManager = EpochManager.getInstance();
         Assert.assertNull(epochManager.getGlobalEpoch());
@@ -89,8 +84,8 @@ public class EpochManagerTest extends AbstractJdbcMetadataTestCase {
     }
 
     @Test
+    @OverwriteProp(key = "kylin.server.leader-race.enabled", value = "false")
     public void testKeepProjectEpochWhenOwnerChanged() {
-        overwriteSystemProp("kylin.server.leader-race.enabled", "false");
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         EpochManager epochManager = EpochManager.getInstance();
         val prjMgr = NProjectManager.getInstance(config);
@@ -128,9 +123,9 @@ public class EpochManagerTest extends AbstractJdbcMetadataTestCase {
     }
 
     @Test
+    @OverwriteProp(key = "kylin.server.leader-race.heart-beat-timeout", value = "1")
     public void testEpochExpired() throws InterruptedException {
         long timeout = 1;
-        overwriteSystemProp("kylin.server.leader-race.heart-beat-timeout", String.valueOf(timeout));
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         EpochManager epochManager = EpochManager.getInstance();
         val prjMgr = NProjectManager.getInstance(config);
@@ -241,6 +236,7 @@ public class EpochManagerTest extends AbstractJdbcMetadataTestCase {
     }
 
     @Test
+    @MetadataInfo(onlyProps = false)
     public void testUpdateProjectEpochWithResourceGroupEnabled() {
         val manager = ResourceGroupManager.getInstance(getTestConfig());
         manager.getResourceGroup();
@@ -261,9 +257,9 @@ public class EpochManagerTest extends AbstractJdbcMetadataTestCase {
     @Test
     public void testGetEpochOwnerWithException() {
         EpochManager epochManager = EpochManager.getInstance();
-        thrown.expect(IllegalStateException.class);
-        thrown.expectMessage("Project should not be empty");
-        epochManager.getEpochOwner(null);
+        Assertions.assertThrows(IllegalStateException.class, () -> {
+            epochManager.getEpochOwner(null);
+        });
     }
 
     @Test
@@ -406,4 +402,13 @@ public class EpochManagerTest extends AbstractJdbcMetadataTestCase {
         Assert.assertTrue(getEpochStore().list().stream().allMatch(epoch -> epoch.getLastEpochRenewTime() >= curTime));
 
     }
+
+    EpochStore getEpochStore() {
+        try {
+            return EpochStore.getEpochStore(getTestConfig());
+        } catch (Exception e) {
+            throw new RuntimeException("cannnot init epoch store!");
+        }
+    }
+
 }

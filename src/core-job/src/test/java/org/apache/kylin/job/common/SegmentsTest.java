@@ -29,23 +29,24 @@ import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.SegmentStatusEnumToDisplay;
 import org.apache.kylin.metadata.model.Segments;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
-import org.powermock.modules.junit4.PowerMockRunnerDelegate;
+import org.mockito.Mockito;
 
 import io.kyligence.kap.junit.TimeZoneTestRunner;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import lombok.val;
 
-@RunWith(PowerMockRunner.class)
-@PowerMockRunnerDelegate(TimeZoneTestRunner.class)
-@PrepareForTest({ SegmentUtil.class })
+@RunWith(TimeZoneTestRunner.class)
 public class SegmentsTest {
+
+    @After
+    public void teardown() {
+        Mockito.clearAllCaches();
+    }
 
     @Test
     public void testGetSegmentStatusToDisplay_Building() {
@@ -58,9 +59,9 @@ public class SegmentsTest {
         Assert.assertEquals(status, SegmentStatusEnumToDisplay.LOADING);
 
         seg.setStatus(SegmentStatusEnum.READY);
-        PowerMockito.mockStatic(SegmentUtil.class);
-        PowerMockito.when(SegmentUtil.getSegmentStatusToDisplay(segments, seg, null)).thenCallRealMethod();
-        PowerMockito.when(SegmentUtil.anyIndexJobRunning(seg)).thenReturn(true);
+        Mockito.mockStatic(SegmentUtil.class);
+        Mockito.when(SegmentUtil.getSegmentStatusToDisplay(segments, seg, null)).thenCallRealMethod();
+        Mockito.when(SegmentUtil.anyIndexJobRunning(seg)).thenReturn(true);
         Assert.assertEquals(status, SegmentStatusEnumToDisplay.LOADING);
     }
 
@@ -72,9 +73,9 @@ public class SegmentsTest {
         seg.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
         seg.setStatus(SegmentStatusEnum.READY);
         segments.add(seg);
-        PowerMockito.mockStatic(SegmentUtil.class);
-        PowerMockito.when(SegmentUtil.getSegmentStatusToDisplay(segments, seg, null)).thenCallRealMethod();
-        PowerMockito.when(SegmentUtil.anyIndexJobRunning(seg)).thenReturn(false);
+        Mockito.mockStatic(SegmentUtil.class);
+        Mockito.when(SegmentUtil.getSegmentStatusToDisplay(segments, seg, null)).thenCallRealMethod();
+        Mockito.when(SegmentUtil.anyIndexJobRunning(seg)).thenReturn(false);
         SegmentStatusEnumToDisplay status = SegmentUtil.getSegmentStatusToDisplay(segments, seg, null);
         Assert.assertEquals(status, SegmentStatusEnumToDisplay.ONLINE);
     }
@@ -130,13 +131,13 @@ public class SegmentsTest {
         seg.setStatus(SegmentStatusEnum.WARNING);
         segments.add(seg);
 
-        PowerMockito.mockStatic(SegmentUtil.class);
-        PowerMockito.when(SegmentUtil.getSegmentStatusToDisplay(segments, seg, null)).thenCallRealMethod();
-        PowerMockito.when(SegmentUtil.anyIndexJobRunning(seg)).thenReturn(false);
+        Mockito.mockStatic(SegmentUtil.class);
+        Mockito.when(SegmentUtil.getSegmentStatusToDisplay(segments, seg, null)).thenCallRealMethod();
+        Mockito.when(SegmentUtil.anyIndexJobRunning(seg)).thenReturn(false);
         SegmentStatusEnumToDisplay status = SegmentUtil.getSegmentStatusToDisplay(segments, seg, null);
         Assert.assertEquals(SegmentStatusEnumToDisplay.WARNING, status);
-        PowerMockito.when(SegmentUtil.getSegmentStatusToDisplay(segments, seg, null)).thenCallRealMethod();
-        PowerMockito.when(SegmentUtil.anyIndexJobRunning(seg)).thenReturn(true);
+        Mockito.when(SegmentUtil.getSegmentStatusToDisplay(segments, seg, null)).thenCallRealMethod();
+        Mockito.when(SegmentUtil.anyIndexJobRunning(seg)).thenReturn(true);
         SegmentStatusEnumToDisplay status2 = SegmentUtil.getSegmentStatusToDisplay(segments, seg, null);
         Assert.assertEquals(SegmentStatusEnumToDisplay.LOADING, status2);
     }

@@ -23,10 +23,11 @@
  */
 package io.kyligence.kap.common.util;
 
-import lombok.val;
 import org.apache.kylin.common.util.NetworkUtils;
 import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
+import lombok.val;
 
 public class NetworkUtilsTest {
 

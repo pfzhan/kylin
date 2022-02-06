@@ -32,7 +32,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfig.SetAndUnsetThreadLocalConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.util.AbstractTestCase;
+import org.apache.kylin.common.AbstractTestCase;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.junit.After;
 import org.junit.Before;

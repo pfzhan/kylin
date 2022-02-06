@@ -25,18 +25,18 @@
 package io.kyligence.kap.clickhouse.job;
 
 
+import java.util.Map;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.kylin.common.util.HadoopUtil;
-import org.powermock.api.mockito.PowerMockito;
-
-import java.util.Map;
+import org.mockito.Mockito;
 
 public class HadoopMockUtil {
 
     public static void mockGetConfiguration(Map<String, String> overrideHadoopConfig) {
-        PowerMockito.mockStatic(HadoopUtil.class);
-        PowerMockito.when(HadoopUtil.getCurrentConfiguration()).thenReturn(getCurrentConfiguration(overrideHadoopConfig));
+        Mockito.mockStatic(HadoopUtil.class);
+        Mockito.when(HadoopUtil.getCurrentConfiguration()).thenReturn(getCurrentConfiguration(overrideHadoopConfig));
     }
 
     public static Configuration getCurrentConfiguration(Map<String, String> overrideHadoopConfig) {

@@ -313,13 +313,6 @@
             <version>${bcprov-ext-jdk15on.version}</version>
         </dependency>
 
-        <!-- Hadoop -->
-        <dependency>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-common</artifactId>
-            <scope>provided</scope>
-        </dependency>
-
         <!-- Test & Env -->
         <dependency>
             <groupId>io.kyligence.ke</groupId>
@@ -491,7 +484,6 @@
         <dependency>
             <groupId>io.kyligence.ke</groupId>
             <artifactId>second-storage-clickhouse</artifactId>
-            <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

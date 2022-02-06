@@ -27,7 +27,8 @@ package io.kyligence.kap.common.util;
 import java.util.Map;
 
 import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Maps;
 
@@ -41,8 +42,10 @@ public class MapUtilTest {
         Assert.assertEquals("default", MapUtil.getOrElse(x, "b", "default"));
     }
 
-    @Test(expected = NullPointerException.class)
+    @Test
     public void testError() {
-        MapUtil.getOrElse(null, "a", "default");
+        Assertions.assertThrows(NullPointerException.class, () -> {
+            MapUtil.getOrElse(null, "a", "default");
+        });
     }
 }

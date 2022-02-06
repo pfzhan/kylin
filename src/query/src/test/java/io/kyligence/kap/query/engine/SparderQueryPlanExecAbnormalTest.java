@@ -23,12 +23,6 @@
  */
 package io.kyligence.kap.query.engine;
 
-
-import io.kyligence.kap.query.engine.exec.ExecuteResult;
-import io.kyligence.kap.query.engine.exec.sparder.QueryEngine;
-import io.kyligence.kap.query.engine.exec.sparder.SparderQueryPlanExec;
-import io.kyligence.kap.query.engine.meta.MutableDataContext;
-import lombok.SneakyThrows;
 import org.apache.calcite.rel.RelNode;
 import org.apache.kylin.common.QueryContext;
 import org.apache.spark.SparkException;
@@ -36,28 +30,33 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
-
 import org.junit.rules.ExpectedException;
-import scala.runtime.AbstractFunction0;
 
+import io.kyligence.kap.query.engine.exec.ExecuteResult;
+import io.kyligence.kap.query.engine.exec.sparder.QueryEngine;
+import io.kyligence.kap.query.engine.exec.sparder.SparderQueryPlanExec;
+import io.kyligence.kap.query.engine.meta.MutableDataContext;
+import lombok.SneakyThrows;
 
 public class SparderQueryPlanExecAbnormalTest {
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
-    static class ThrowExceptionAtFirstTime extends AbstractFunction0<Object> {
+    static class ThrowExceptionAtFirstTime implements ThrownExceptionEngine.EngineAction {
         public int callNumber = 0;
         private final boolean setSecondStorageUsageMap;
+
         ThrowExceptionAtFirstTime(boolean setSecondStorageUsageMap) {
             this.setSecondStorageUsageMap = setSecondStorageUsageMap;
         }
+
         @SneakyThrows
         @Override
-        public Boolean apply() {
+        public boolean apply() {
             callNumber++;
-            if(callNumber == 1) {
-                if(setSecondStorageUsageMap) {
+            if (callNumber == 1) {
+                if (setSecondStorageUsageMap) {
                     QueryContext.current().getSecondStorageUsageMap().put(1L, true);
                 }
                 throw new SparkException("");
@@ -72,6 +71,7 @@ public class SparderQueryPlanExecAbnormalTest {
         TestSparderQueryPlanExec(QueryEngine engine) {
             this.engine = engine;
         }
+
         public void updateEngine(QueryEngine engine) {
             this.engine = engine;
         }
@@ -83,7 +83,7 @@ public class SparderQueryPlanExecAbnormalTest {
     }
 
     @After
-    public void tearDown(){
+    public void tearDown() {
         QueryContext.reset();
     }
 

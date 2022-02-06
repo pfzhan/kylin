@@ -29,33 +29,22 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
-import com.google.common.base.Throwables;
-import com.google.common.collect.Lists;
-import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
+import org.junit.jupiter.api.Test;
 
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.common.util.Unsafe;
+import io.kyligence.kap.guava20.shaded.common.base.Throwables;
+import io.kyligence.kap.guava20.shaded.common.collect.Lists;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
+import io.kyligence.kap.junit.annotation.MetadataInfo;
+import io.kyligence.kap.junit.annotation.OverwriteProp;
 import lombok.val;
 
-public class UnitOfWorkTest extends NLocalFileMetadataTestCase {
-
-    @Before
-    public void setup() {
-        createTestMetadata();
-    }
-
-    @After
-    public void after() {
-        cleanupTestMetadata();
-    }
+@MetadataInfo(onlyProps = true)
+public class UnitOfWorkTest {
 
     @Test
     public void testTransaction() {
@@ -315,10 +304,10 @@ public class UnitOfWorkTest extends NLocalFileMetadataTestCase {
         stop.set(true);
     }
 
+    @OverwriteProp(key = "kylin.env", value = "PROD")
     @Test
     public void testUpdateInReadTransaction() {
         try {
-            overwriteSystemProp("kylin.env", "PROD");
             UnitOfWork.doInTransactionWithRetry(UnitOfWorkParams.builder().unitName(UnitOfWork.GLOBAL_UNIT)
                     .readonly(true).maxRetry(1).processor(() -> {
                         val resourceStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());

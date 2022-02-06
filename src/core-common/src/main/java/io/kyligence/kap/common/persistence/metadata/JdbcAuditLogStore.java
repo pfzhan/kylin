@@ -39,6 +39,7 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.guava20.shaded.common.base.Strings;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -344,6 +345,9 @@ public class JdbcAuditLogStore implements AuditLogStore {
             Properties properties = loadMedataProperties();
             var sql = properties.getProperty(META_KEY_META_MVCC_INDEX_KEY);
 
+            if (Strings.isNullOrEmpty(sql)) {
+                return;
+            }
             jdbcTemplate.execute(String.format(Locale.ROOT, sql, indexName, table));
             log.info("Succeed to create table {} index: {}", table, indexName);
         } catch (Exception e) {

@@ -28,7 +28,7 @@ import java.util.concurrent.TimeUnit;
 import org.assertj.core.util.Lists;
 import org.awaitility.Awaitility;
 import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Maps;
 

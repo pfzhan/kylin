@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.common.persistence.transaction;
 
+import static io.kyligence.kap.common.util.TestUtils.getTestConfig;
+
 import java.nio.charset.Charset;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -31,35 +33,24 @@ import java.util.stream.Collectors;
 
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
-import com.google.common.collect.Lists;
-import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
+import org.junit.jupiter.api.Test;
 
 import io.kyligence.kap.common.persistence.UnitMessages;
 import io.kyligence.kap.common.persistence.event.Event;
 import io.kyligence.kap.common.persistence.event.ResourceCreateOrUpdateEvent;
 import io.kyligence.kap.common.persistence.event.ResourceDeleteEvent;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.guava20.shaded.common.collect.Lists;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
+import io.kyligence.kap.junit.annotation.MetadataInfo;
+import io.kyligence.kap.junit.annotation.OverwriteProp;
 import lombok.SneakyThrows;
 import lombok.val;
 
-public class MessageSynchronizationTest extends NLocalFileMetadataTestCase {
+@MetadataInfo(onlyProps = true)
+public class MessageSynchronizationTest {
 
     private final Charset charset = Charset.defaultCharset();
-
-    @Before
-    public void setup() {
-        createTestMetadata();
-    }
-
-    @After
-    public void after() {
-        cleanupTestMetadata();
-    }
 
     @Test
     public void replayTest() {
@@ -73,12 +64,12 @@ public class MessageSynchronizationTest extends NLocalFileMetadataTestCase {
         Assert.assertNull(empty);
     }
 
+    @OverwriteProp(key = "kylin.server.mode", value = "query")
     @Test
     public void testKE19979() throws InterruptedException {
-        overwriteSystemProp("kylin.server.mode", "query");
         AtomicInteger mvcc = new AtomicInteger(0);
-        val initEvent = new ResourceCreateOrUpdateEvent(new RawResource("/default/abc.json",
-                ByteSource.wrap("version1".getBytes(charset)), 0L, mvcc.get()));
+        val initEvent = new ResourceCreateOrUpdateEvent(
+                new RawResource("/default/abc.json", ByteSource.wrap("version1".getBytes(charset)), 0L, mvcc.get()));
         val synchronize = MessageSynchronization.getInstance(getTestConfig());
         synchronize.replayInTransaction(new UnitMessages(Lists.newArrayList(initEvent)));
         val resourceStore = ResourceStore.getKylinMetaStore(getTestConfig());

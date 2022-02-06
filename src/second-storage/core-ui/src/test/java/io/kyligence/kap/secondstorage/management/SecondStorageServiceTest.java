@@ -24,16 +24,11 @@
 
 package io.kyligence.kap.secondstorage.management;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.common.util.Unsafe;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
-import io.kyligence.kap.secondstorage.SecondStorageUtil;
-import io.kyligence.kap.secondstorage.config.Cluster;
-import io.kyligence.kap.secondstorage.config.Node;
-import io.kyligence.kap.secondstorage.management.request.ProjectEnableRequest;
-import lombok.val;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -54,13 +49,21 @@ import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.common.util.Unsafe;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
+import io.kyligence.kap.secondstorage.config.Cluster;
+import io.kyligence.kap.secondstorage.config.Node;
+import io.kyligence.kap.secondstorage.management.request.ProjectEnableRequest;
+import lombok.val;
 
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({NProjectManager.class, SecondStorageUtil.class, NExecutableManager.class, UserGroupInformation.class})
+@PrepareForTest({ NProjectManager.class, SecondStorageUtil.class, NExecutableManager.class, UserGroupInformation.class,
+        AbstractExecutable.class })
 public class SecondStorageServiceTest extends NLocalFileMetadataTestCase {
     private final Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
     private NExecutableManager executableManager = Mockito.mock(NExecutableManager.class);
@@ -101,11 +104,14 @@ public class SecondStorageServiceTest extends NLocalFileMetadataTestCase {
     }
 
     private void prepareManger() {
-        PowerMockito.stub(PowerMockito.method(SecondStorageUtil.class, "getProjectLocks", String.class)).toReturn(new ArrayList<>());
+        PowerMockito.stub(PowerMockito.method(SecondStorageUtil.class, "getProjectLocks", String.class))
+                .toReturn(new ArrayList<>());
         PowerMockito.stub(PowerMockito.method(SecondStorageUtil.class, "isGlobalEnable")).toReturn(true);
         PowerMockito.stub(PowerMockito.method(SecondStorageUtil.class, "isProjectEnable", String.class)).toReturn(true);
-        PowerMockito.stub(PowerMockito.method(SecondStorageUtil.class, "isModelEnable", String.class, String.class)).toReturn(true);
-        PowerMockito.stub(PowerMockito.method(NExecutableManager.class, "getInstance", KylinConfig.class, String.class)).toReturn(executableManager);
+        PowerMockito.stub(PowerMockito.method(SecondStorageUtil.class, "isModelEnable", String.class, String.class))
+                .toReturn(true);
+        PowerMockito.stub(PowerMockito.method(NExecutableManager.class, "getInstance", KylinConfig.class, String.class))
+                .toReturn(executableManager);
     }
 
     @Test
@@ -115,12 +121,12 @@ public class SecondStorageServiceTest extends NLocalFileMetadataTestCase {
         projectEnableRequest.setEnabled(false);
         prepareManger();
         List<String> jobs = Arrays.asList("job1", "job2");
-        AbstractExecutable job1 = Mockito.mock(AbstractExecutable.class);
-        AbstractExecutable job2 = Mockito.mock(AbstractExecutable.class);
-        Mockito.when(job1.getStatus()).thenReturn(ExecutableState.RUNNING);
-        Mockito.when(job2.getStatus()).thenReturn(ExecutableState.SUCCEED);
-        Mockito.when(job1.getJobType()).thenReturn(JobTypeEnum.INDEX_BUILD);
-        Mockito.when(job2.getJobType()).thenReturn(JobTypeEnum.EXPORT_TO_SECOND_STORAGE);
+        AbstractExecutable job1 = PowerMockito.mock(AbstractExecutable.class);
+        AbstractExecutable job2 = PowerMockito.mock(AbstractExecutable.class);
+        PowerMockito.when(job1.getStatus()).thenReturn(ExecutableState.RUNNING);
+        PowerMockito.when(job2.getStatus()).thenReturn(ExecutableState.SUCCEED);
+        PowerMockito.when(job1.getJobType()).thenReturn(JobTypeEnum.INDEX_BUILD);
+        PowerMockito.when(job2.getJobType()).thenReturn(JobTypeEnum.EXPORT_TO_SECOND_STORAGE);
 
         Mockito.when(job1.getProject()).thenReturn("project");
         Mockito.when(job2.getProject()).thenReturn("project");

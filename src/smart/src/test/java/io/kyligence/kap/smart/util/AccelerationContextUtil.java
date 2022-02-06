@@ -24,7 +24,7 @@
 
 package io.kyligence.kap.smart.util;
 
-import static org.apache.kylin.common.util.AbstractKylinTestCase.getTestConfig;
+import static org.apache.kylin.common.AbstractKylinTestCase.getTestConfig;
 
 import java.util.Set;
 import java.util.stream.Collectors;

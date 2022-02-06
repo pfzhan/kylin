@@ -48,7 +48,6 @@ import java.io.FileOutputStream;
 import java.util.List;
 import java.util.Properties;
 
-import org.apache.kylin.common.util.AbstractTestCase;
 import org.apache.kylin.common.util.CleanMetadataHelper;
 import org.junit.After;
 import org.junit.Before;

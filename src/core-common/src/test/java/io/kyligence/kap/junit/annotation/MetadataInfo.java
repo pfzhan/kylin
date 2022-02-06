@@ -21,15 +21,29 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.common.persistence.metadata.epochstore;
+package io.kyligence.kap.junit.annotation;
 
-import org.junit.jupiter.api.BeforeEach;
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Inherited;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-public final class FileEpochStoreTest extends AbstractEpochStoreTest {
+import org.junit.jupiter.api.extension.ExtendWith;
 
-    @BeforeEach
-    public void setup() {
-        epochStore = getEpochStore();
-    }
+import io.kyligence.kap.junit.MetadataExtension;
 
+@Target({ ElementType.TYPE, ElementType.METHOD })
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+@Inherited
+@ExtendWith(MetadataExtension.class)
+public @interface MetadataInfo {
+
+    String[] overlay() default {};
+
+    String project() default "";
+
+    boolean onlyProps() default false;
 }

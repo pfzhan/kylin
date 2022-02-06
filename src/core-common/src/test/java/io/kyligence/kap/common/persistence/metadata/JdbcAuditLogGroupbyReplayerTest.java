@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.common.persistence.metadata;
 
+import static io.kyligence.kap.common.util.TestUtils.getTestConfig;
+
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,18 +36,14 @@ import org.apache.kylin.common.persistence.StringEntity;
 import org.apache.kylin.common.util.RandomUtil;
 import org.awaitility.Awaitility;
 import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.ExpectedException;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
+import org.junitpioneer.jupiter.RetryingTest;
 
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.AbstractJdbcMetadataTestCase;
-import io.kyligence.kap.junit.rule.Repeat;
-import io.kyligence.kap.junit.rule.RepeatRule;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -56,12 +54,8 @@ public class JdbcAuditLogGroupbyReplayerTest extends AbstractJdbcMetadataTestCas
     private final Charset charset = Charset.defaultCharset();
     public ExpectedException thrown = ExpectedException.none();
 
-    @Rule
-    public TestRule chain = RuleChain.outerRule(new RepeatRule()).around(thrown);
-
-    @Test
-    @Repeat(3)
-    @Ignore
+    @RetryingTest(3)
+    @Disabled
     public void testReplayGroupbyProject() throws Exception {
         val workerStore = initResourceStore();
         String project1 = "abc1";

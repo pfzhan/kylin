@@ -34,41 +34,20 @@ import java.util.NavigableSet;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.AbstractTestCase;
-import org.apache.kylin.common.util.CleanMetadataHelper;
 import org.apache.kylin.common.util.RandomUtil;
-import org.hamcrest.core.IsInstanceOf;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.Unsafe;
+import io.kyligence.kap.junit.annotation.MetadataInfo;
 import lombok.val;
 
-public class ThreadViewResourceStoreTest extends AbstractTestCase {
-
-    private CleanMetadataHelper cleanMetadataHelper = null;
-
-    @Rule
-    public ExpectedException thrown = ExpectedException.none();
-
-    @Before
-    public void setUp() throws Exception {
-        overwriteSystemProp("kylin.env", "UT");
-        cleanMetadataHelper = new CleanMetadataHelper();
-        cleanMetadataHelper.setUp();
-    }
-
-    @After
-    public void after() throws Exception {
-        cleanMetadataHelper.tearDown();
-    }
+@MetadataInfo(onlyProps = true)
+public class ThreadViewResourceStoreTest {
 
     private ResourceStore getStore() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
@@ -81,27 +60,21 @@ public class ThreadViewResourceStoreTest extends AbstractTestCase {
         String dir = "/default/table_desc/TEST_KYLIN_FACT.json";
         StringEntity table = new StringEntity("TEST_KYLIN_FACT");
 
-        thrown.expect(TransactionException.class);
-        thrown.expectCause(IsInstanceOf.instanceOf(IllegalStateException.class));
+        Assertions.assertThrows(TransactionException.class, () -> {
+            UnitOfWork.doInTransactionWithRetry(() -> {
+                KylinConfig config = KylinConfig.getInstanceFromEnv();
+                config.setProperty("kylin.env", "DEV");
+                ResourceStore underlying = ResourceStore.getKylinMetaStore(config);
 
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            overwriteSystemProp("kylin.env", "DEV");
-            KylinConfig config = KylinConfig.getInstanceFromEnv();
-            ResourceStore underlying = ResourceStore.getKylinMetaStore(config);
+                // first delete resource
+                underlying.deleteResource(dir);
 
-            // first delete resource
-            underlying.deleteResource(dir);
+                // then create a new one with the same res path
+                underlying.checkAndPutResource(dir, table, StringEntity.serializer);
 
-            // then create a new one with the same res path
-            underlying.checkAndPutResource(dir, table, StringEntity.serializer);
-
-            return 0;
-        }, "default");
-    }
-
-    @Test
-    public void testUnderlyingChangedDuringOverlay() {
-        //TODO
+                return 0;
+            }, "default");
+        });
     }
 
     @Test
@@ -109,8 +82,7 @@ public class ThreadViewResourceStoreTest extends AbstractTestCase {
     public void testOverlay() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         ResourceStore underlying = ResourceStore.getKylinMetaStore(config);
-        underlying.checkAndPutResource("/UUID", new StringEntity(RandomUtil.randomUUIDStr()),
-                StringEntity.serializer);
+        underlying.checkAndPutResource("/UUID", new StringEntity(RandomUtil.randomUUIDStr()), StringEntity.serializer);
 
         String dir1 = "/cube";
         String dir2 = "/table";

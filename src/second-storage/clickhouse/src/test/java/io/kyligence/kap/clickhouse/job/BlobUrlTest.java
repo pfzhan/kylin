@@ -24,18 +24,21 @@
 
 package io.kyligence.kap.clickhouse.job;
 
-import com.google.common.collect.Maps;
-import lombok.val;
-import org.apache.kylin.common.util.HadoopUtil;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
 
-@RunWith(PowerMockRunner.class)
-@PrepareForTest(HadoopUtil.class)
+import com.google.common.collect.Maps;
+
+import lombok.val;
+import org.mockito.Mockito;
+
 public class BlobUrlTest {
+
+    @After
+    public void teardown() {
+        Mockito.clearAllCaches();
+    }
 
     @Test
     public void fromHttpUrl() {

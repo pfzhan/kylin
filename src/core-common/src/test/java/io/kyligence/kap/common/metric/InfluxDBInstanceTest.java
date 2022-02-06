@@ -27,15 +27,14 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.Map;
 
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.metrics.service.InfluxDBInstance;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.junit.annotation.MetadataInfo;
 import io.kyligence.kap.shaded.influxdb.okhttp3.Interceptor;
 import io.kyligence.kap.shaded.influxdb.okhttp3.MediaType;
 import io.kyligence.kap.shaded.influxdb.okhttp3.OkHttpClient;
@@ -47,23 +46,18 @@ import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDB;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDBFactory;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.QueryResult;
 
-public class InfluxDBInstanceTest extends NLocalFileMetadataTestCase {
+@MetadataInfo(onlyProps = true)
+public class InfluxDBInstanceTest {
 
     private final String SHOW_DATABASES = "{\"results\":[{\"statement_id\":0,\"series\":[{\"name\":\"databases\",\"columns\":[\"name\"],\"values\":[[\"_internal\"],[\"KE_HISTORY\"]]}]}]}\n";
 
     private InfluxDBInstance influxDBInstance;
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
-        createTestMetadata();
         influxDBInstance = new InfluxDBInstance("KE_HISTORY", "KE_MONITOR_RP", "", "", 1, false);
         influxDBInstance.init();
         influxDBInstance.setInfluxDB(mockInfluxDB());
-    }
-
-    @After
-    public void cleanUp() {
-        cleanupTestMetadata();
     }
 
     @Test

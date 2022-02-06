@@ -30,7 +30,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;

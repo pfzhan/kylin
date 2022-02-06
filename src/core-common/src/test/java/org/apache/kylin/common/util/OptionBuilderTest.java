@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.cli.Option;
 import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.kyligence.kap.common.util.OptionBuilder;
 

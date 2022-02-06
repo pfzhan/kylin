@@ -23,44 +23,30 @@
  */
 package io.kyligence.kap.common.persistence.metadata;
 
+import static io.kyligence.kap.common.util.TestUtils.getTestConfig;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceTool;
 import org.assertj.core.api.Assertions;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import io.kyligence.kap.common.util.MetadataChecker;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.junit.annotation.MetadataInfo;
 import lombok.val;
 
-public class MetadataStoreTest extends NLocalFileMetadataTestCase {
-
-    @Rule
-    public TemporaryFolder temporaryFolder = new TemporaryFolder();
-
-    @Before
-    public void setUp() {
-        createTestMetadata();
-    }
-
-    @After
-    public void tearDown() {
-        cleanupTestMetadata();
-    }
+@MetadataInfo(onlyProps = true)
+public class MetadataStoreTest {
 
     @Test
-    public void testVerify() throws Exception {
+    public void testVerify(@TempDir File junitFolder) throws Exception {
         //copy an metadata image to junit folder
-        val junitFolder = temporaryFolder.getRoot();
         ResourceTool.copy(getTestConfig(), KylinConfig.createInstanceFromUri(junitFolder.getAbsolutePath()),
                 "/_global/project/default.json");
         ResourceTool.copy(getTestConfig(), KylinConfig.createInstanceFromUri(junitFolder.getAbsolutePath()),
@@ -91,6 +77,8 @@ public class MetadataStoreTest extends NLocalFileMetadataTestCase {
 
         //add legal project and file,the verify result is qualified
         Paths.get(junitFolder.getAbsolutePath(), "/legalProject").toFile().mkdir();
+        Paths.get(junitFolder.getAbsolutePath(), "/_global").toFile().mkdir();
+        Paths.get(junitFolder.getAbsolutePath(), "/_global/project").toFile().mkdir();
         Paths.get(junitFolder.getAbsolutePath(), "/_global/project/legalProject.json").toFile().createNewFile();
         val verifyResultWithLegalProject = metadataChecker.verify();
         Assertions.assertThat(verifyResultWithLegalProject.getIllegalFiles()).isEmpty();

@@ -44,18 +44,16 @@ package org.apache.kylin.common.util;
 import java.util.Arrays;
 import java.util.TimeZone;
 
-import org.apache.kylin.common.HotLoadKylinPropertiesTestCase;
 import org.apache.kylin.common.KylinConfig;
 import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
 
-import io.kyligence.kap.junit.TimeZoneTestRunner;
+import io.kyligence.kap.junit.annotation.MetadataInfo;
+import io.kyligence.kap.junit.annotation.MultiTimezoneTest;
 
-@RunWith(TimeZoneTestRunner.class)
-public class TimeZoneUtilsTest extends HotLoadKylinPropertiesTestCase {
+@MetadataInfo(onlyProps = true)
+public class TimeZoneUtilsTest {
 
-    @Test
+    @MultiTimezoneTest(timezones = { "UTC", "GMT+8", "GMT+15" })
     public void testSetDefaultTimeZone() {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         TimeZoneUtils.setDefaultTimeZone(kylinConfig);

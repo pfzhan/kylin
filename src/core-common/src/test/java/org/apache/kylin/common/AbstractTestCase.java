@@ -40,7 +40,7 @@
  * limitations under the License.
 */
 
-package org.apache.kylin.common.util;
+package org.apache.kylin.common;
 
 import static io.kyligence.kap.common.util.Unsafe.restoreAllSystemProp;
 

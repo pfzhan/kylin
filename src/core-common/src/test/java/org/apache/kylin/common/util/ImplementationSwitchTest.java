@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -46,7 +45,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 public class ImplementationSwitchTest {
 
@@ -75,8 +75,10 @@ public class ImplementationSwitchTest {
         Assert.assertTrue(sw.get(2) instanceof Impl2);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testException() {
-        sw.get(0);
+        Assertions.assertThrows(IllegalArgumentException.class, () -> {
+            sw.get(0);
+        });
     }
 }

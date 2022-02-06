@@ -21,15 +21,25 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.common.persistence.metadata.epochstore;
+package io.kyligence.kap.junit.annotation;
 
-import org.junit.jupiter.api.BeforeEach;
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-public final class FileEpochStoreTest extends AbstractEpochStoreTest {
+import org.junit.jupiter.api.TestTemplate;
+import org.junit.jupiter.api.extension.ExtendWith;
 
-    @BeforeEach
-    public void setup() {
-        epochStore = getEpochStore();
-    }
+import io.kyligence.kap.junit.MultiTimezoneProvider;
 
+@Target({ ElementType.ANNOTATION_TYPE, ElementType.METHOD })
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+@TestTemplate
+@ExtendWith({ MultiTimezoneProvider.class })
+public @interface MultiTimezoneTest {
+
+    String[] timezones() default {};
 }

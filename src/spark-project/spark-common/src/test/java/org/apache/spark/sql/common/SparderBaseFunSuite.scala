@@ -23,20 +23,16 @@ package org.apache.spark.sql.common
 
 // scalastyle:off
 
-import java.io.File
-import java.util.{Locale, TimeZone}
-
 import org.apache.commons.io.FileUtils
-import org.apache.log4j.spi.LoggingEvent
-import org.apache.log4j.{Appender, AppenderSkeleton, Level, Logger}
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.plans.SQLHelper
 import org.apache.spark.util.{AccumulatorContext, Utils}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, BeforeAndAfterEach, Outcome}
 
+import java.io.File
+import java.util.{Locale, TimeZone}
 import scala.annotation.tailrec
-import scala.collection.mutable.ArrayBuffer
 
 trait SparderBaseFunSuite
   extends AnyFunSuite
@@ -162,47 +158,6 @@ trait SparderBaseFunSuite
     try f(dir) finally {
       Utils.deleteRecursively(dir)
     }
-  }
-
-  /**
-   * Adds a log appender and optionally sets a log level to the root logger or the logger with
-   * the specified name, then executes the specified function, and in the end removes the log
-   * appender and restores the log level if necessary.
-   */
-  protected def withLogAppender(
-                                 appender: Appender,
-                                 loggerName: Option[String] = None,
-                                 level: Option[Level] = None)(
-                                 f: => Unit): Unit = {
-    val logger = loggerName.map(Logger.getLogger).getOrElse(Logger.getRootLogger)
-    val restoreLevel = logger.getLevel
-    logger.addAppender(appender)
-    if (level.isDefined) {
-      logger.setLevel(level.get)
-    }
-    try f finally {
-      logger.removeAppender(appender)
-      if (level.isDefined) {
-        logger.setLevel(restoreLevel)
-      }
-    }
-  }
-
-  class LogAppender(msg: String = "", maxEvents: Int = 1000) extends AppenderSkeleton {
-    val loggingEvents = new ArrayBuffer[LoggingEvent]()
-
-    override def append(loggingEvent: LoggingEvent): Unit = {
-      if (loggingEvents.size >= maxEvents) {
-        val loggingInfo = if (msg == "") "." else s" while logging $msg."
-        throw new IllegalStateException(
-          s"Number of events reached the limit of $maxEvents$loggingInfo")
-      }
-      loggingEvents.append(loggingEvent)
-    }
-
-    override def close(): Unit = {}
-
-    override def requiresLayout(): Boolean = false
   }
 
 }

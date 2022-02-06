@@ -25,28 +25,14 @@
 package org.apache.kylin.common.persistence;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.CleanMetadataHelper;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.junit.annotation.MetadataInfo;
+import io.kyligence.kap.junit.annotation.OverwriteProp;
 
-public class InMemResourceStoreTest extends NLocalFileMetadataTestCase {
-
-    private CleanMetadataHelper cleanMetadataHelper = null;
-
-    @Before
-    public void setUp() throws Exception {
-        overwriteSystemProp("kylin.env", "UT");
-        cleanMetadataHelper = new CleanMetadataHelper();
-        cleanMetadataHelper.setUp();
-    }
-
-    @After
-    public void after() throws Exception {
-        cleanMetadataHelper.tearDown();
-    }
+@MetadataInfo(onlyProps = true)
+@OverwriteProp(key = "kylin.env", value = "UT")
+public class InMemResourceStoreTest {
 
     @Test
     public void testFileStore() {

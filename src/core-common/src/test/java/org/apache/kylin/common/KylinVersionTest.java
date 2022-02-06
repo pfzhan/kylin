@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -44,7 +43,7 @@
 package org.apache.kylin.common;
 
 import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class KylinVersionTest {
     @Test
@@ -72,7 +71,7 @@ public class KylinVersionTest {
         Assert.assertEquals(321, ver1.internal);
         Assert.assertEquals("2.1.7.321", ver1.toString());
     }
-    
+
     @Test
     public void testCompare() {
         Assert.assertEquals(true, KylinVersion.isBefore200("1.9.9"));

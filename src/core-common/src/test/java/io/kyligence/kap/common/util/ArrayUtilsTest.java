@@ -29,9 +29,8 @@ import static org.junit.Assert.assertNull;
 
 import java.util.List;
 
-import org.junit.Test;
-
 import com.google.common.collect.Lists;
+import org.junit.jupiter.api.Test;
 
 public class ArrayUtilsTest {
     @Test

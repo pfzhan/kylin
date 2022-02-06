@@ -53,7 +53,6 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.Callable;
@@ -64,10 +63,10 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.util.TimeZoneUtils;
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.junitpioneer.jupiter.SetSystemProperty;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -77,11 +76,12 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import io.kyligence.kap.common.constant.NonCustomProjectLevelConfig;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.common.util.ProcessUtils;
+import io.kyligence.kap.junit.annotation.MetadataInfo;
 import lombok.val;
 
-public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
+@MetadataInfo(onlyProps = true)
+public class KylinConfigBaseTest {
 
     private static final Map<String, PropertiesEntity> map = new HashMap<>();
 
@@ -841,7 +841,8 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
                 new PropertiesEntity("kylin.engine.streaming-segment-clean-interval", "2h", 2L));
         map.put("getStreamingSegmentMergeRatio",
                 new PropertiesEntity("kylin.engine.streaming-segment-merge-ratio", "1.5", 1.5));
-        map.put("getStreamingJobExecutionIdCheckInterval", new PropertiesEntity("kylin.streaming.job-execution-id-check-interval", "1m", 1L));
+        map.put("getStreamingJobExecutionIdCheckInterval",
+                new PropertiesEntity("kylin.streaming.job-execution-id-check-interval", "1m", 1L));
         map.put("getStreamingJobStatsSurvivalThreshold",
                 new PropertiesEntity("kylin.streaming.jobstats.survival-time-threshold", "7d", 7L));
         map.put("getStreamingJobRetryEnabled",
@@ -871,7 +872,8 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
                 "default", Lists.newArrayList("default")));
         map.put("getSparkEngineBuildStepsToSkip", new PropertiesEntity("kylin.engine.steps.skip", "", ""));
         map.put("getAutoModelViewEnabled", new PropertiesEntity("kylin.query.auto-model-view-enabled", "false", false));
-        map.put("isBatchGetRowAclEnabled", new PropertiesEntity("kylin.query.batch-get-row-acl-enabled", "false", false));
+        map.put("isBatchGetRowAclEnabled",
+                new PropertiesEntity("kylin.query.batch-get-row-acl-enabled", "false", false));
         map.put("getCheckResourceEnabled", new PropertiesEntity("kylin.build.resource.check-enabled", "false", false));
         map.put("getCheckResourceTimeLimit",
                 new PropertiesEntity("kylin.build.resource.check-retry-limit-minutes", "10", 10L));
@@ -882,27 +884,24 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
                 new PropertiesEntity("kylin.query.async-profiler-result-timeout", "60s", 60000L));
         map.put("asyncProfilingProfileTimeout",
                 new PropertiesEntity("kylin.query.async-profiler-profile-timeout", "5m", 300000L));
-        map.put("isReadTransactionalTableEnabled", new PropertiesEntity("kylin.build.resource.read-transactional-table-enabled", "true", true));
-        map.put("getFlatTableStorageFormat", new PropertiesEntity("kylin.source.hive.flat-table-storage-format", "SEQUENCEFILE", "SEQUENCEFILE"));
-        map.put("getFlatTableFieldDelimiter", new PropertiesEntity("kylin.source.hive.flat-table-field-delimiter", "\u001F", "\u001F"));
-        map.put("isSkipBasicAuthorization", new PropertiesEntity("kap.authorization.skip-basic-authorization", "false", false));
+        map.put("isReadTransactionalTableEnabled",
+                new PropertiesEntity("kylin.build.resource.read-transactional-table-enabled", "true", true));
+        map.put("getFlatTableStorageFormat",
+                new PropertiesEntity("kylin.source.hive.flat-table-storage-format", "SEQUENCEFILE", "SEQUENCEFILE"));
+        map.put("getFlatTableFieldDelimiter",
+                new PropertiesEntity("kylin.source.hive.flat-table-field-delimiter", "\u001F", "\u001F"));
+        map.put("isSkipBasicAuthorization",
+                new PropertiesEntity("kap.authorization.skip-basic-authorization", "false", false));
         map.put("getMetricsQuerySlaSeconds",
                 new PropertiesEntity("kylin.metrics.query.sla.seconds", "1,3,a,15,60", new long[] { 3, 15, 60 }));
         map.put("getMetricsJobSlaMinutes",
                 new PropertiesEntity("kylin.metrics.job.sla.minutes", "1,30,60,300", new long[] { 1, 30, 60, 300 }));
-        map.put("isMetadataKeyCaseInSensitiveEnabled", new PropertiesEntity("kylin.metadata.key-case-insensitive", "false", false));
-        map.put("isConcurrencyFetchDataSourceSize", new PropertiesEntity("kylin.job.concurrency-fetch-datasource-size-enabled", "false", false));
-        map.put("getConcurrencyFetchDataSourceSizeThreadNumber", new PropertiesEntity("kylin.job.concurrency-fetch-datasource-size-thread_number", "10", 10));
-    }
-
-    @Before
-    public void setup() {
-        createTestMetadata();
-    }
-
-    @After
-    public void teardown() {
-        cleanupTestMetadata();
+        map.put("isMetadataKeyCaseInSensitiveEnabled",
+                new PropertiesEntity("kylin.metadata.key-case-insensitive", "false", false));
+        map.put("isConcurrencyFetchDataSourceSize",
+                new PropertiesEntity("kylin.job.concurrency-fetch-datasource-size-enabled", "false", false));
+        map.put("getConcurrencyFetchDataSourceSizeThreadNumber",
+                new PropertiesEntity("kylin.job.concurrency-fetch-datasource-size-thread_number", "10", 10));
     }
 
     @Test
@@ -925,6 +924,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    @MetadataInfo(onlyProps = false)
     public void testGetHdfsWorkingDirDefaultCase() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         config.setMetadataUrl("test");
@@ -952,8 +952,6 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
             Assert.assertNotNull(method);
             config.setProperty(propertiesEntity.getKey(), propertiesEntity.getValue());
             Object invoke = method.invoke(config);
-            System.out.printf(Locale.ROOT, "assert func %s expect %s actual %s%n", func,
-                    propertiesEntity.getExpectValue(), invoke);
             if (invoke != null && invoke.getClass().isArray()) {
                 Class<?> componentType = invoke.getClass().getComponentType();
                 if (componentType.isPrimitive()) {
@@ -987,7 +985,8 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(zoneId, zoneId1);
     }
 
-    @Test(timeout = 5000)
+    @Test
+    @Timeout(value = 5)
     public void testMultipleUpdateEnvironment() {
         EnvironmentUpdateUtils.put("test.environment1", "test.value1");
         EnvironmentUpdateUtils.put("test.environment2", "test.value2");
@@ -1073,17 +1072,26 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         boolean metadataKeyCaseInSensitiveEnabled = config.isMetadataKeyCaseInSensitiveEnabled();
         Assert.assertFalse(metadataKeyCaseInSensitiveEnabled);
+    }
 
-        overwriteSystemProp("kylin.metadata.key-case-insensitive", "true");
-
+    @SetSystemProperty.SetSystemProperties({
+            @SetSystemProperty(key = "kylin.metadata.key-case-insensitive", value = "true"), })
+    @Test
+    public void getIsMetadataKeyCaseInSensitiveEnabled2() {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
         config = KylinConfig.getInstanceFromEnv();
-        metadataKeyCaseInSensitiveEnabled = config.isMetadataKeyCaseInSensitiveEnabled();
+        val metadataKeyCaseInSensitiveEnabled = config.isMetadataKeyCaseInSensitiveEnabled();
         Assert.assertTrue(metadataKeyCaseInSensitiveEnabled);
+    }
 
-        overwriteSystemProp("kylin.metadata.key-case-insensitive", "true");
-        overwriteSystemProp("kylin.security.profile", "ldap");
+    @SetSystemProperty.SetSystemProperties({
+            @SetSystemProperty(key = "kylin.metadata.key-case-insensitive", value = "true"),
+            @SetSystemProperty(key = "kylin.security.profile", value = "ldap"), })
+    @Test
+    public void getIsMetadataKeyCaseInSensitiveEnabled3() {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
         config = KylinConfig.getInstanceFromEnv();
-        metadataKeyCaseInSensitiveEnabled = config.isMetadataKeyCaseInSensitiveEnabled();
+        val metadataKeyCaseInSensitiveEnabled = config.isMetadataKeyCaseInSensitiveEnabled();
         Assert.assertFalse(metadataKeyCaseInSensitiveEnabled);
     }
 

@@ -34,7 +34,6 @@
         <dependency>
             <groupId>io.kyligence.ke</groupId>
             <artifactId>second-storage-clickhouse</artifactId>
-            <version>${project.version}</version>
         </dependency>
 
         <dependency>
@@ -172,7 +171,6 @@
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
             <scope>test</scope>
-            <version>${mockito.version}</version>
         </dependency>
 
         <dependency>

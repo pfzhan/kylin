@@ -24,31 +24,18 @@
 
 package io.kyligence.kap.common.hystrix;
 
-import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.exception.KylinException;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.ExpectedException;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.junit.annotation.MetadataInfo;
 
-public class NCircuitBreakerTest extends NLocalFileMetadataTestCase {
+@MetadataInfo(onlyProps = true)
+public class NCircuitBreakerTest {
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
-
-    @Before
-    public void setup() {
-        createTestMetadata();
-        NCircuitBreaker.start(KapConfig.getInstanceFromEnv());
-    }
-
-    @After
-    public void after() {
-        cleanupTestMetadata();
-    }
 
     @Test
     public void testVerifyProjectCreation() {

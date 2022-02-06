@@ -44,23 +44,13 @@ package org.apache.kylin.common.persistence;
 import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.junit.annotation.MetadataInfo;
 
-public class ResourceStoreTest extends NLocalFileMetadataTestCase {
-    @Before
-    public void setupResource() {
-        createTestMetadata();
-    }
-
-    @After
-    public void tearDown() {
-        cleanupTestMetadata();
-    }
+@MetadataInfo
+public class ResourceStoreTest {
 
     @Test
     public void testCreateMetaStoreUuidIfNotExist() {

@@ -24,34 +24,33 @@
 package io.kyligence.kap.common.persistence.metadata.epochstore;
 
 import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasourceParameters;
+import static io.kyligence.kap.common.util.TestUtils.getTestConfig;
 
 import org.apache.commons.dbcp2.BasicDataSourceFactory;
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.google.common.base.Throwables;
 
 import io.kyligence.kap.common.persistence.metadata.Epoch;
+import io.kyligence.kap.junit.annotation.OverwriteProp;
 import lombok.val;
 
+@OverwriteProp(key = "kylin.metadata.url", value = "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=")
 public final class JdbcEpochStoreTest extends AbstractEpochStoreTest {
 
-    @Before
+    @BeforeEach
     public void setup() {
-        createTestMetadata();
-        getTestConfig().setMetadataUrl(
-                "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
         epochStore = getEpochStore();
     }
 
-    @After
+    @AfterEach
     public void destroy() throws Exception {
         val jdbcTemplate = getJdbcTemplate();
         jdbcTemplate.batchUpdate("DROP ALL OBJECTS");
-        cleanupTestMetadata();
     }
 
     JdbcTemplate getJdbcTemplate() throws Exception {

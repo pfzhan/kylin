@@ -23,10 +23,8 @@
  */
 package io.kyligence.kap.tool.routine;
 
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import io.kyligence.kap.common.util.AbstractJdbcMetadataTestCase;
@@ -35,16 +33,6 @@ import io.kyligence.kap.tool.MaintainModeTool;
 import lombok.val;
 
 public class MaintainModeToolTest extends AbstractJdbcMetadataTestCase {
-
-    @Before
-    public void setup() {
-        super.setup();
-    }
-
-    @After
-    public void destroy() throws Exception {
-        super.destroy();
-    }
 
     @Test
     public void testForceToExit() {

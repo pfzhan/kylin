@@ -24,30 +24,22 @@
 
 package io.kyligence.kap.common.util;
 
-import static org.mockito.Mockito.when;
-
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
-@RunWith(PowerMockRunner.class)
-@PrepareForTest(DefaultHostInfoFetcher.class)
 public class HostInfoFetcherTest {
 
     @Test
     public void testDefaultHostInfoGetHostname() throws UnknownHostException {
-        PowerMockito.mockStatic(InetAddress.class);
-        when(InetAddress.getLocalHost()).thenThrow(UnknownHostException.class);
+        Mockito.mockStatic(InetAddress.class).when(InetAddress::getLocalHost).thenThrow(UnknownHostException.class);
 
         DefaultHostInfoFetcher hostInfoFetcher = new DefaultHostInfoFetcher();
 
         String hostname = hostInfoFetcher.getHostname();
-        Assert.assertEquals("localhost", hostname);
+        Assertions.assertEquals("localhost", hostname);
     }
 }
