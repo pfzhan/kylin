@@ -25,6 +25,7 @@
 package io.kyligence.kap.secondstorage;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
@@ -48,6 +49,7 @@ import io.kyligence.kap.secondstorage.response.SecondStorageInfo;
 import io.kyligence.kap.secondstorage.response.SecondStorageNode;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.SecondStorageConfig;
 import org.apache.kylin.common.exception.JobErrorCode;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
@@ -74,7 +76,9 @@ import static org.apache.kylin.common.exception.ServerErrorCode.PARTITION_COLUMN
 import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_DATA_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_PROJECT_STATUS_ERROR;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
+import lombok.extern.log4j.Log4j;
 
+@Log4j
 public class SecondStorageUtil {
     public static final Set<ExecutableState> RUNNING_STATE = Sets.newHashSet(
             Arrays.asList(ExecutableState.RUNNING, ExecutableState.READY, ExecutableState.PAUSED));
@@ -239,15 +243,26 @@ public class SecondStorageUtil {
                 secondStorageInfo.setSecondStorageNodes(Collections.emptyList());
                 secondStorageInfo.setSecondStorageSize(0);
             } else {
-                TablePartition tablePartition = tableFlow.getTableDataList().get(0).getPartitions().get(0);
-                secondStorageInfo.setSecondStorageNodes(tablePartition.getShardNodes().stream()
-                        .map(SecondStorageUtil::transformNode).collect(Collectors.toList()));
-                List<TablePartition> partitions = tableFlow.getTableDataList().stream()
+                List<TablePartition> tablePartitions = tableFlow.getTableDataList().stream()
                         .flatMap(tableData -> tableData.getPartitions().stream())
                         .collect(Collectors.toList());
-                Long bytes = partitions.stream().map(partition -> partition.getSizeInNode().values()
-                        .stream().reduce(Long::sum).orElse(0L)).reduce(Long::sum).orElse(0L);
-                secondStorageInfo.setSecondStorageSize(bytes);
+                List<String> nodesStr = Lists.newArrayList();
+                Long sizes = 0L;
+                for (TablePartition partition : tablePartitions) {
+                    nodesStr.addAll(partition.getShardNodes());
+                    sizes += partition.getSizeInNode().values().stream()
+                            .reduce(Long::sum).orElse(0L);
+                }
+
+                List<SecondStorageNode> nodes = nodesStr.stream()
+                        .map(SecondStorageUtil::transformNode)
+                        .collect(Collectors.toList());
+                secondStorageInfo.setSecondStorageNodes(nodes);
+                try{
+                    secondStorageInfo.setSecondStorageSize(sizes / SecondStorageConfig.getInstanceFromEnv().getReplicaNum());
+                }catch (Exception e){
+                    log.error("secondStorageInfo.setSecondStorageSize failed", e);
+                }
             }
             return secondStorageInfo;
         }).collect(Collectors.toList());

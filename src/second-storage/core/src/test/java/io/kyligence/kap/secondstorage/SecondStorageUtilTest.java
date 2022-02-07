@@ -101,7 +101,6 @@ public class SecondStorageUtilTest extends NLocalFileMetadataTestCase {
     @Test
     public void setSecondStorageSizeInfo() throws Exception {
         prepareManger();
-        Mockito.when(tableFlowManager.get(Mockito.anyString())).thenReturn(Optional.empty());
         NDataModel model = new NDataModel();
         List<NDataModel> models = new ArrayList<>();
         models.add(model);
@@ -111,6 +110,23 @@ public class SecondStorageUtilTest extends NLocalFileMetadataTestCase {
 
         Mockito.when(tableFlowManager.get(Mockito.anyString())).thenReturn(Optional.of(prepareTableFlow()));
         List<SecondStorageInfo> secondStorageInfos = SecondStorageUtil.setSecondStorageSizeInfo(models, tableFlowManager);
+        Assert.assertEquals(0, (newModels.get(0)).getSecondStorageSize());
+        Assert.assertEquals(0, (newModels.get(0)).getSecondStorageNodes().size());
+    }
+
+    @Test
+    public void setSecondStorageSizeInfoWithHA() throws Exception {
+        prepareManger();
+        Mockito.when(tableFlowManager.get(Mockito.anyString())).thenReturn(Optional.of(prepareTableFlow()));
+        NDataModel model1 = new NDataModel();
+        model1.setProject("default");
+        List<NDataModel> models = new ArrayList<>();
+        models.add(model1);
+        NDataModel model2 = new NDataModel();
+        model2.setProject("default");
+        models.add(model2);
+        List<SecondStorageInfo> newModels = SecondStorageUtil.setSecondStorageSizeInfo(models, tableFlowManager);
+        Assert.assertEquals(2, newModels.size());
         Assert.assertEquals(0, (newModels.get(0)).getSecondStorageSize());
         Assert.assertEquals(0, (newModels.get(0)).getSecondStorageNodes().size());
     }
