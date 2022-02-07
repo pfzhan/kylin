@@ -25,13 +25,21 @@
 package io.kyligence.kap.secondstorage.config;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.google.common.collect.Maps;
 import io.kyligence.kap.common.util.EncryptUtil;
+import org.apache.kylin.common.util.JsonUtil;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 
-public class Cluster {
-    private List<Node> nodes;
+public class ClusterInfo {
+    private Map<String, List<Node>> cluster;
     private String socketTimeout;
     private String keepAliveTimeout;
     private String installPath;
@@ -41,20 +49,43 @@ public class Cluster {
     private String userName;
     private String password;
 
+    @JsonIgnore
     public List<Node> getNodes() {
-        return nodes;
+        return Collections.unmodifiableList(cluster.values().stream().flatMap(List::stream).collect(Collectors.toList()));
     }
 
-    public Cluster setNodes(List<Node> nodes) {
-        this.nodes = nodes;
+    public ClusterInfo setCluster(Map<String, List<Node>> cluster) {
+        this.cluster = cluster;
         return this;
+    }
+
+    public Map<String, List<Node>> getCluster() {
+        TreeMap<String, List<Node>> orderedMap = new TreeMap<>(cluster);
+        return Collections.unmodifiableMap(orderedMap);
+    }
+
+    public void transformNode() {
+        for (final Map.Entry<String, List<Node>> pair : cluster.entrySet()) {
+            List<Node> nodes = pair.getValue();
+            List<Node> transformedNodes = new ArrayList<>();
+            for (Object node : nodes) {
+                if (!(node instanceof Node)) {
+                    transformedNodes.add(JsonUtil.readValueQuietly(
+                            JsonUtil.writeValueAsStringQuietly(node).getBytes(StandardCharsets.UTF_8),
+                            Node.class));
+                } else {
+                    transformedNodes.add((Node) node);
+                }
+            }
+            cluster.put(pair.getKey(), transformedNodes);
+        }
     }
 
     public String getSocketTimeout() {
         return socketTimeout;
     }
 
-    public Cluster setSocketTimeout(String socketTimeout) {
+    public ClusterInfo setSocketTimeout(String socketTimeout) {
         this.socketTimeout = socketTimeout;
         return this;
     }
@@ -63,7 +94,7 @@ public class Cluster {
         return keepAliveTimeout;
     }
 
-    public Cluster setKeepAliveTimeout(String keepAliveTimeout) {
+    public ClusterInfo setKeepAliveTimeout(String keepAliveTimeout) {
         this.keepAliveTimeout = keepAliveTimeout;
         return this;
     }
@@ -72,7 +103,7 @@ public class Cluster {
         return installPath;
     }
 
-    public Cluster setInstallPath(String installPath) {
+    public ClusterInfo setInstallPath(String installPath) {
         this.installPath = installPath;
         return this;
     }
@@ -81,7 +112,7 @@ public class Cluster {
         return logPath;
     }
 
-    public Cluster setLogPath(String logPath) {
+    public ClusterInfo setLogPath(String logPath) {
         this.logPath = logPath;
         return this;
     }
@@ -102,21 +133,21 @@ public class Cluster {
         this.password = password;
     }
 
-    public Cluster(Cluster cluster) {
-        this.nodes = new ArrayList<>();
+    public ClusterInfo(ClusterInfo cluster) {
+        this.cluster = Maps.newHashMap(cluster.getCluster());
         this.keepAliveTimeout = cluster.getKeepAliveTimeout();
         this.socketTimeout = cluster.getKeepAliveTimeout();
         this.logPath = cluster.getLogPath();
         this.userName = cluster.getUserName();
         this.password = cluster.getPassword();
-        cluster.getNodes().forEach(node -> this.getNodes().add(new Node(node)));
+        this.installPath = cluster.getInstallPath();
     }
 
     public boolean emptyCluster() {
-        return nodes == null || nodes.size() == 0;
+        return cluster == null || cluster.isEmpty();
     }
 
-    public Cluster() {
+    public ClusterInfo() {
     }
 
 }

@@ -41,6 +41,8 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.newten.NExecAndComp;
+import static io.kyligence.kap.newten.clickhouse.ClickHouseUtils.columnMapping;
+import static io.kyligence.kap.newten.clickhouse.ClickHouseUtils.configClickhouseWith;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.service.JobService;
 import io.kyligence.kap.rest.service.ModelService;
@@ -72,6 +74,7 @@ import lombok.val;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.time.DateUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.SecondStorageJobParamUtil;
@@ -98,6 +101,7 @@ import org.apache.spark.sql.execution.datasources.jdbc.ClickHouseDialect$;
 import org.apache.spark.sql.execution.datasources.v2.V2ScanRelationPushDown2$;
 import org.apache.spark.sql.execution.datasources.v2.jdbc.ShardJDBCScan;
 import org.apache.spark.sql.jdbc.JdbcDialects$;
+import static org.awaitility.Awaitility.await;
 import org.eclipse.jetty.toolchain.test.SimpleRequest;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -127,12 +131,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
-import static io.kyligence.kap.newten.clickhouse.ClickHouseUtils.columnMapping;
-import static io.kyligence.kap.newten.clickhouse.ClickHouseUtils.configClickhouseWith;
-import static org.awaitility.Awaitility.await;
 
 @Slf4j
 public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
@@ -232,6 +233,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
             _httpServer.stopServer();
             _httpServer = null;
         }
+        QueryContext.reset();
         ClickHouseConfigLoader.clean();
         NDefaultScheduler.destroyInstance();
         ResourceStore.clearCache();
@@ -263,7 +265,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
     public void testSingleShardDoubleReplica() throws Exception {
         try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse();
              JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse()) {
-            build_load_query("testSingleShardDoubleReplica", false, 2, clickhouse1, clickhouse2);
+            build_load_query("testSingleShardDoubleReplica", false, 2, null, clickhouse1, clickhouse2);
         }
     }
 
@@ -273,7 +275,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
              JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse();
              JdbcDatabaseContainer<?> clickhouse3 = ClickHouseUtils.startClickHouse();
              JdbcDatabaseContainer<?> clickhouse4 = ClickHouseUtils.startClickHouse()) {
-            build_load_query("testTwoShardDoubleReplica", false, 2,
+            build_load_query("testTwoShardDoubleReplica", false, 2, null,
                     clickhouse1, clickhouse2, clickhouse3, clickhouse4);
         }
     }
@@ -283,7 +285,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
         secondStorageEndpoint.setModelService(modelService);
         try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse();
              JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse()) {
-            build_load_query("testOneShardDoubleReplica", false, 1,
+            build_load_query("testSingleShardDoubleReplica", false, 2, null,
                     clickhouse1, clickhouse2);
 
             KylinConfig config = KylinConfig.getInstanceFromEnv();
@@ -345,7 +347,6 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
     }
 
     @Test
-    @Ignore("fix it later")
     public void testIncrementalSingleShard() throws Exception {
         try (JdbcDatabaseContainer<?> clickhouse = ClickHouseUtils.startClickHouse();
              JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse()) {
@@ -369,7 +370,6 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
     }
 
     @Test
-    @Ignore("fix it later")
     public void testIncrementalTwoShard() throws Exception {
         try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse();
              JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse()) {
@@ -378,19 +378,33 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
     }
 
     @Test
-    @Ignore("fix it later")
     public void testIncrementalTwoShardDoubleReplica() throws Exception {
         try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse();
              JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse();
              JdbcDatabaseContainer<?> clickhouse3 = ClickHouseUtils.startClickHouse();
              JdbcDatabaseContainer<?> clickhouse4 = ClickHouseUtils.startClickHouse()) {
-            build_load_query("testIncrementalTwoShardDoubleReplica", true, 2,
+            build_load_query("testIncrementalTwoShardDoubleReplica", true, 2, null,
                     clickhouse1, clickhouse2, clickhouse3, clickhouse4);
         }
     }
 
     @Test
-    @Ignore("fix it later")
+    public void testIncrementalSingleShardTripleReplica() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse3 = ClickHouseUtils.startClickHouse();) {
+            build_load_query("testIncrementalSingleShardTripleReplica", true, 3,
+                    () -> {
+                        clickhouse3.stop();
+                        clickhouse1.stop();
+                        return null;
+                    },
+                    clickhouse1, clickhouse2, clickhouse3);
+        }
+    }
+
+
+    @Test
     public void testIncrementalCleanSegment() throws Exception {
         try (JdbcDatabaseContainer<?> clickhouse = ClickHouseUtils.startClickHouse()) {
             build_load_query("testIncrementalCleanSegment", true, clickhouse);
@@ -405,7 +419,6 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
     }
 
     @Test
-    @Ignore("fix it later")
     public void testIncrementalCleanModel() throws Exception {
         try (JdbcDatabaseContainer<?> clickhouse = ClickHouseUtils.startClickHouse()) {
             build_load_query("testIncrementalCleanModel", true, clickhouse);
@@ -470,21 +483,27 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testLockOperate() throws Exception {
-        try (JdbcDatabaseContainer<?> clickhouse = ClickHouseUtils.startClickHouse()) {
-            changeProjectSecondStorageState("testIncrementalCleanModel", true, 1, clickhouse);
+        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse3 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse4 = ClickHouseUtils.startClickHouse()) {
+            changeProjectSecondStorageState("testIncrementalCleanModel", true, 2,
+                    clickhouse1, clickhouse2, clickhouse3, clickhouse4);
 
             EnvelopeResponse<List<ProjectNode>> projectNodesResponse1 = secondStorageEndpoint.projectNodes(getProject());
             Assertions.assertEquals(projectNodesResponse1.getCode(), "000");
             projectNodesResponse1.getData().stream().forEach(projectNode -> {
                 Assertions.assertEquals(projectNode.getProject(), getProject());
-                Assertions.assertEquals(projectNode.getNodes().size(), 1);
+                Assertions.assertEquals(projectNode.getNodes().size(), 2);
+                Assertions.assertEquals(projectNode.getNodes().get("pair0").size(), 2);
             });
 
             EnvelopeResponse<List<ProjectNode>> projectNodesResponse2 = secondStorageEndpoint.projectNodes(null);
             Assertions.assertEquals(projectNodesResponse2.getCode(), "000");
             projectNodesResponse1.getData().stream().forEach(projectNode -> {
                 if (projectNode.getProject().equals(getProject())) {
-                    Assertions.assertEquals(projectNode.getNodes().size(), 1);
+                    Assertions.assertEquals(projectNode.getNodes().size(), 2);
+                    Assertions.assertEquals(projectNode.getNodes().get("pair0").size(), 2);
                 }
             });
 
@@ -534,7 +553,6 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
     }
 
     @Test
-    @Ignore("fix it later")
     public void testIncrementalCleanProject() throws Exception {
         try (JdbcDatabaseContainer<?> clickhouse = ClickHouseUtils.startClickHouse()) {
             build_load_query("testIncrementalCleanProject", true, clickhouse);
@@ -554,7 +572,6 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
     }
 
     @Test
-    @Ignore("fix it later")
     public void testRecoverProject() throws Exception {
         secondStorageEndpoint.setModelService(modelService);
 
@@ -665,7 +682,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
     }
 
     protected void build_load_query(String catalog, boolean incremental, JdbcDatabaseContainer<?>... clickhouse) throws Exception {
-        build_load_query(catalog, incremental, 1, clickhouse);
+        build_load_query(catalog, incremental, 1, null, clickhouse);
     }
 
     private JobParam triggerClickHouseJob(NDataflow df, KylinConfig config) {
@@ -678,30 +695,21 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
         return jobParam;
     }
 
-    private void configClickHouse(String catalog, int replica, JdbcDatabaseContainer<?>... clickhouse) throws Exception {
-        Unsafe.setProperty(ClickHouseLoad.SOURCE_URL, getSourceUrl());
-        Unsafe.setProperty(ClickHouseLoad.ROOT_PATH, getLocalWorkingDirectory());
-        configClickhouseWith(clickhouse, replica, catalog, () -> {
-            secondStorageService.changeProjectSecondStorageState(getProject(), SecondStorageNodeHelper.getAllNames(), true);
-            return true;
-        });
-    }
-
     private void changeProjectSecondStorageState(String catalog, boolean incremental, int replica, JdbcDatabaseContainer<?>... clickhouse) throws Exception {
         Unsafe.setProperty(ClickHouseLoad.SOURCE_URL, getSourceUrl());
         Unsafe.setProperty(ClickHouseLoad.ROOT_PATH, getLocalWorkingDirectory());
         configClickhouseWith(clickhouse, replica, catalog, () -> {
-            secondStorageService.changeProjectSecondStorageState(getProject(), SecondStorageNodeHelper.getAllNames(), true);
+            secondStorageService.changeProjectSecondStorageState(getProject(), SecondStorageNodeHelper.getAllPairs(), true);
             Assert.assertEquals(clickhouse.length, SecondStorageUtil.listProjectNodes(getProject()).size());
             return true;
         });
     }
 
-    protected void build_load_query(String catalog, boolean incremental, int replica, JdbcDatabaseContainer<?>... clickhouse) throws Exception {
+    protected void build_load_query(String catalog, boolean incremental, int replica, Callable<Void> beforeQuery, JdbcDatabaseContainer<?>... clickhouse) throws Exception {
         Unsafe.setProperty(ClickHouseLoad.SOURCE_URL, getSourceUrl());
         Unsafe.setProperty(ClickHouseLoad.ROOT_PATH, getLocalWorkingDirectory());
         configClickhouseWith(clickhouse, replica, catalog, () -> {
-            secondStorageService.changeProjectSecondStorageState(getProject(), SecondStorageNodeHelper.getAllNames(), true);
+            secondStorageService.changeProjectSecondStorageState(getProject(), SecondStorageNodeHelper.getAllPairs(), true);
             Assert.assertEquals(clickhouse.length, SecondStorageUtil.listProjectNodes(getProject()).size());
             secondStorageService.changeModelSecondStorageState(getProject(), cubeName, true);
             // build table index
@@ -776,6 +784,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
                     clickhouse[0].getDriverClassName());
 
             // check ClickHouse
+            if (beforeQuery != null) beforeQuery.call();
             checkQueryResult(incremental, clickhouse, replica);
             return true;
         });
@@ -785,7 +794,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
         Dataset<Row> dataset =
                 NExecAndComp.queryCubeAndSkipCompute(getProject(), "select PRICE from TEST_KYLIN_FACT group by PRICE");
         Assert.assertTrue(ClickHouseUtils.findShardJDBCTable(dataset.queryExecution().optimizedPlan()));
-
+        QueryContext.reset();
             // check Aggregate push-down
             Dataset<Row> groupPlan =
                     NExecAndComp.queryCubeAndSkipCompute(getProject(), "select sum(PRICE) from TEST_KYLIN_FACT group by PRICE");

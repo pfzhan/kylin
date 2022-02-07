@@ -23,7 +23,7 @@
  */
 package io.kyligence.kap.secondstorage;
 
-import io.kyligence.kap.secondstorage.config.Cluster;
+import io.kyligence.kap.secondstorage.config.ClusterInfo;
 
 public interface SecondStorageConfigLoader {
 
@@ -31,5 +31,5 @@ public interface SecondStorageConfigLoader {
 
     void refresh();
 
-    Cluster getCluster();
+    ClusterInfo getCluster();
 }

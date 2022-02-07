@@ -24,11 +24,22 @@
 
 package io.kyligence.kap.secondstorage.management;
 
+import com.google.common.collect.Lists;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.common.util.Unsafe;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
+import io.kyligence.kap.secondstorage.config.ClusterInfo;
+import io.kyligence.kap.secondstorage.config.Node;
+import io.kyligence.kap.secondstorage.management.request.ProjectEnableRequest;
+import lombok.val;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
-
+import java.util.Map;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -48,18 +59,6 @@ import org.powermock.modules.junit4.PowerMockRunner;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-
-import com.google.common.collect.Lists;
-
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.common.util.Unsafe;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
-import io.kyligence.kap.secondstorage.SecondStorageUtil;
-import io.kyligence.kap.secondstorage.config.Cluster;
-import io.kyligence.kap.secondstorage.config.Node;
-import io.kyligence.kap.secondstorage.management.request.ProjectEnableRequest;
-import lombok.val;
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({ NProjectManager.class, SecondStorageUtil.class, NExecutableManager.class, UserGroupInformation.class,
@@ -92,15 +91,16 @@ public class SecondStorageServiceTest extends NLocalFileMetadataTestCase {
         val projectManager = Mockito.mock(NProjectManager.class);
         PowerMockito.when(NProjectManager.getInstance(Mockito.any(KylinConfig.class))).thenReturn(projectManager);
         Mockito.when(projectManager.listAllProjects()).thenReturn(Collections.emptyList());
-        Cluster cluster = new Cluster();
-        List<Node> nodes = new ArrayList<>();
-        cluster.setNodes(nodes);
-        nodes.add(new Node().setName("node01").setIp("127.0.0.1").setPort(9000));
-        nodes.add(new Node().setName("node02").setIp("127.0.0.2").setPort(9000));
-        nodes.add(new Node().setName("node03").setIp("127.0.0.3").setPort(9000));
+        ClusterInfo cluster = new ClusterInfo();
+        Map<String, List<Node>> clusterNodes = new HashMap<>();
+        cluster.setCluster(clusterNodes);
+        clusterNodes.put("pair1", Collections.singletonList(new Node().setName("node01").setIp("127.0.0.1").setPort(9000)));
+        clusterNodes.put("pair2", Collections.singletonList(new Node().setName("node02").setIp("127.0.0.2").setPort(9000)));
+        clusterNodes.put("pair3", Collections.singletonList(new Node().setName("node03").setIp("127.0.0.3").setPort(9000)));
         SecondStorageNodeHelper.initFromCluster(cluster, null);
         val result = secondStorageService.listAvailableNodes();
         Assert.assertEquals(3, result.size());
+        Assert.assertEquals(3, result.values().stream().mapToLong(List::size).sum());
     }
 
     private void prepareManger() {
@@ -147,14 +147,12 @@ public class SecondStorageServiceTest extends NLocalFileMetadataTestCase {
         PowerMockito.when(NProjectManager.getInstance(Mockito.any(KylinConfig.class))).thenReturn(projectManager);
         Mockito.when(projectManager.listAllProjects()).thenReturn(Collections.emptyList());
 
-        Cluster cluster = new Cluster();
-        List<Node> nodes = new ArrayList<>();
-        List<String> nodeNames = new ArrayList<>();
-        cluster.setNodes(nodes);
-        nodes.add(new Node().setName("node01").setIp("127.0.0.1").setPort(9000));
-        SecondStorageNodeHelper.initFromCluster(cluster, null);
-        nodes.forEach(node -> nodeNames.add(node.getName()));
-
+        
+        ClusterInfo clusterInfo = new ClusterInfo();
+        Map<String, List<Node>> cluster = new HashMap<>();
+        clusterInfo.setCluster(cluster);
+        cluster.put("pair1", Collections.singletonList(new Node().setName("node01").setIp("127.0.0.1").setPort(9000)));
+        SecondStorageNodeHelper.initFromCluster(clusterInfo, null);
         prepareManger();
         Assert.assertEquals(1, secondStorageService.projectLoadData(Lists.newArrayList("project")).getLoads().size());
 

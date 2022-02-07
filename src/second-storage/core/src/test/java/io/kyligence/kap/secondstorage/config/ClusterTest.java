@@ -31,7 +31,7 @@ public class ClusterTest {
     @Test
     public void testPassword() {
         String password = "123456";
-        Cluster cluster = new Cluster();
+        ClusterInfo cluster = new ClusterInfo();
         cluster.setPassword(password);
         Assert.assertEquals(password, cluster.getPassword());
 

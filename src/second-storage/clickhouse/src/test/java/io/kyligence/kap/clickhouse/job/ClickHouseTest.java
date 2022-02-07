@@ -25,7 +25,7 @@
 package io.kyligence.kap.clickhouse.job;
 
 import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
-import io.kyligence.kap.secondstorage.config.Cluster;
+import io.kyligence.kap.secondstorage.config.ClusterInfo;
 import io.kyligence.kap.secondstorage.config.Node;
 import lombok.val;
 import org.apache.commons.lang.StringUtils;
@@ -34,8 +34,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.sql.SQLException;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class ClickHouseTest {
@@ -46,11 +47,12 @@ public class ClickHouseTest {
     }
 
     public void initNodeHelper() {
-        Cluster cluster = new Cluster();
-        cluster.setNodes(new ArrayList<>());
-        cluster.getNodes().add(new Node().setName("node01").setIp("127.0.0.1").setPort(9000).setUser("default").setPassword("123456"));
-        cluster.getNodes().add(new Node().setName("node02").setIp("127.0.0.1").setPort(9000).setUser("default"));
-        cluster.getNodes().add(new Node().setName("node03").setIp("127.0.0.1").setPort(9000));
+        ClusterInfo cluster = new ClusterInfo();
+        Map<String, List<Node>> clusterNodes = new HashMap<>();
+        cluster.setCluster(clusterNodes);
+        clusterNodes.put("pair1", Collections.singletonList(new Node().setName("node01").setIp("127.0.0.1").setPort(9000).setUser("default").setPassword("123456")));
+        clusterNodes.put("pair2", Collections.singletonList(new Node().setName("node02").setIp("127.0.0.1").setPort(9000).setUser("default")));
+        clusterNodes.put("pair3", Collections.singletonList(new Node().setName("node03").setIp("127.0.0.1").setPort(9000)));
         SecondStorageNodeHelper.initFromCluster(cluster, node -> {
             Map<String, String> param = new HashMap<>(4);
             if (StringUtils.isNotEmpty(cluster.getKeepAliveTimeout())) {

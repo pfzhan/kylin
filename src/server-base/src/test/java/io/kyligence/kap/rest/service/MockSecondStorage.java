@@ -30,6 +30,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.charset.Charset;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -44,17 +46,22 @@ import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.secondstorage.SecondStorage;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
-import io.kyligence.kap.secondstorage.config.Cluster;
+import io.kyligence.kap.secondstorage.config.ClusterInfo;
 import io.kyligence.kap.secondstorage.config.Node;
 import lombok.val;
 
 public class MockSecondStorage {
     public static void mock(String project, List<Node> nodes, NLocalFileMetadataTestCase testCase) throws IOException {
         testCase.overwriteSystemProp("kylin.second-storage.class", ClickHouseStorage.class.getCanonicalName());
-        Cluster cluster = new Cluster();
+        ClusterInfo cluster = new ClusterInfo();
         cluster.setKeepAliveTimeout("600000");
         cluster.setSocketTimeout("600000");
-        cluster.setNodes(nodes);
+        Map<String, List<Node>> clusterNodes = new HashMap<>();
+        cluster.setCluster(clusterNodes);
+        val it = nodes.listIterator();
+        while (it.hasNext()) {
+            clusterNodes.put("pair" + it.nextIndex(), Collections.singletonList(it.next()));
+        }
         File file = File.createTempFile("clickhouse", ".yaml");
         ClickHouseConfigLoader.getConfigYaml().dump(JsonUtil.readValue(JsonUtil.writeValueAsString(cluster),
                 Map.class), new PrintWriter(file, Charset.defaultCharset().name()));

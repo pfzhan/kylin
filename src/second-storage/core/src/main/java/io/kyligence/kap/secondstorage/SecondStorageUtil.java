@@ -158,6 +158,8 @@ public class SecondStorageUtil {
         }
         List<NodeGroup> nodeGroups = nodeGroupManager.get().listAll();
         if(CollectionUtils.isNotEmpty(nodeGroups)) {
+            Preconditions.checkState(nodeGroups.stream().map(NodeGroup::getLockTypes).distinct().count() == 1,
+                    "Logical Error, this is a bug! Cluster has different lock type.");
             return nodeGroups.get(0).getLockTypes();
         }
         return new ArrayList<>();

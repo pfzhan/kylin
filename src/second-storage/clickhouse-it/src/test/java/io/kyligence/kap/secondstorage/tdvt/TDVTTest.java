@@ -199,6 +199,7 @@ public class TDVTTest {
         Dataset<Row> plan = NExecAndComp.queryCubeAndSkipCompute(project, sqlStatement);
         ShardJDBCScan shardJDBCScan = ClickHouseUtils.findShardScan(plan.queryExecution().optimizedPlan());
         Assert.assertNotNull(shardJDBCScan);
+        QueryContext.reset();
         return computeResult(plan);
     }
 

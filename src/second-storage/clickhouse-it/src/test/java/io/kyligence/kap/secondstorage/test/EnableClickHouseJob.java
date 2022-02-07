@@ -74,7 +74,7 @@ public class EnableClickHouseJob extends EnableScheduler implements JobWaiter {
         Unsafe.setProperty(ClickHouseLoad.ROOT_PATH, getLocalWorkingDirectory());
         overwriteSystemProp("kylin.second-storage.class", ClickHouseStorage.class.getCanonicalName());
         ClickHouseUtils.internalConfigClickHouse(clickhouse, replica);
-        secondStorageService.changeProjectSecondStorageState(project, SecondStorageNodeHelper.getAllNames(), true);
+        secondStorageService.changeProjectSecondStorageState(project, SecondStorageNodeHelper.getAllPairs(), true);
         Assert.assertEquals(clickhouse.length, SecondStorageUtil.listProjectNodes(project).size());
         modelNames.forEach(modelName ->
                 secondStorageService.changeModelSecondStorageState(project, modelName, true));

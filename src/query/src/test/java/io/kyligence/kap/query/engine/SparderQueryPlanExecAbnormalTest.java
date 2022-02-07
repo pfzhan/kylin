@@ -92,7 +92,7 @@ public class SparderQueryPlanExecAbnormalTest {
         ThrowExceptionAtFirstTime throwExceptionAtFirstTime = new ThrowExceptionAtFirstTime(true);
         ThrownExceptionEngine engine = new ThrownExceptionEngine(throwExceptionAtFirstTime);
         TestSparderQueryPlanExec exec = new TestSparderQueryPlanExec(engine);
-
+        QueryContext.current().setRetrySecondStorage(false);
         Assert.assertNull(exec.executeToIterable(null, null).getRows());
         Assert.assertEquals(2, throwExceptionAtFirstTime.callNumber);
         Assert.assertTrue(QueryContext.current().isForceTableIndex());

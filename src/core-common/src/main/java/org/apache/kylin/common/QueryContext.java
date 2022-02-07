@@ -43,6 +43,7 @@
 package org.apache.kylin.common;
 
 import java.io.Closeable;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -133,6 +134,19 @@ public class QueryContext implements Closeable {
     @Getter
     @Setter
     private boolean forceTableIndex = false;
+
+    // record second storage partition which used
+    @Getter
+    private List<Integer> usedPartitionIndexes = new ArrayList<>();
+
+    // record last partition status
+    @Getter
+    @Setter
+    private boolean lastFailed = false;
+
+    @Getter
+    @Setter
+    private boolean retrySecondStorage = true;
 
     private QueryContext() {
         // use QueryContext.current() instead

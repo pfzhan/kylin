@@ -26,6 +26,7 @@ package io.kyligence.kap.secondstorage.management;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -46,6 +47,7 @@ import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.secondstorage.SecondStorage;
 import io.kyligence.kap.secondstorage.SecondStorageConstants;
 import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
+import io.kyligence.kap.secondstorage.SecondStorageQueryRouteUtil;
 import io.kyligence.kap.secondstorage.SecondStorageUpdater;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import io.kyligence.kap.secondstorage.config.DefaultSecondStorageProperties;
@@ -227,19 +229,18 @@ public class SecondStorageService extends BasicService implements SecondStorageU
     }
 
     @Transaction(project = 0)
-    public Optional<JobInfoResponse.JobInfo> changeProjectSecondStorageState(String project, List<String> nodes, boolean enable) {
+    public Optional<JobInfoResponse.JobInfo> changeProjectSecondStorageState(String project, List<String> pairs, boolean enable) {
         if (!KylinConfig.getInstanceFromEnv().isUTEnv())
             aclEvaluate.checkProjectAdminPermission(project);
         JobInfoResponse.JobInfo jobInfo = null;
         if (enable) {
-            if (!listAvailableNodes().stream()
-                    .map(NodeData::getName).collect(Collectors.toSet()).containsAll(nodes)) {
+            if (!new HashSet<>(listAvailablePairs()).containsAll(pairs)) {
                 throw new KylinException(SECOND_STORAGE_NODE_NOT_AVAILABLE, MsgPicker.getMsg().getSECOND_STORAGE_NODE_NOT_AVAILABLE());
             }
             if (!SecondStorageUtil.isProjectEnable(project)) {
-                enableProjectSecondStorage(project, nodes);
+                enableProjectSecondStorage(project, pairs);
             }
-            addNodeToProject(project, nodes);
+            addNodeToProject(project, pairs);
         } else {
             String jobId = disableProjectSecondStorage(project);
             jobInfo = new JobInfoResponse.JobInfo(JobTypeEnum.SECOND_STORAGE_NODE_CLEAN.name(), jobId);
@@ -247,9 +248,8 @@ public class SecondStorageService extends BasicService implements SecondStorageU
         return Optional.ofNullable(jobInfo);
     }
 
-    public void enableProjectSecondStorage(String project, List<String> nodes) {
-        Preconditions.checkArgument(listAvailableNodes().stream()
-                .map(NodeData::getName).collect(Collectors.toSet()).containsAll(nodes));
+    public void enableProjectSecondStorage(String project, List<String> pairs) {
+        Preconditions.checkArgument(new HashSet<>(listAvailablePairs()).containsAll(pairs));
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             val nodeGroupManager = SecondStorageUtil.nodeGroupManager(KylinConfig.getInstanceFromEnv(), project);
             Preconditions.checkState(nodeGroupManager.isPresent());
@@ -261,14 +261,14 @@ public class SecondStorageService extends BasicService implements SecondStorageU
         }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID);
     }
 
-    public void addNodeToProject(String project, List<String> nodes) {
-        if (CollectionUtils.isEmpty(nodes)) {
+    public void addNodeToProject(String project, List<String> pairs) {
+        if (CollectionUtils.isEmpty(pairs)) {
             return;
         }
         SecondStorageUtil.validateProjectLock(project, Arrays.asList(LockTypeEnum.LOAD.name()));
         int replicaNum = SecondStorageConfig.getInstanceFromEnv().getReplicaNum();
         Map<Integer, List<String>> replicaNodes = SecondStorageNodeHelper
-                .separateReplicaGroup(replicaNum, nodes.toArray(new String[0]));
+                .separateReplicaGroup(replicaNum, pairs.toArray(new String[0]));
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             val internalManager = SecondStorageUtil.nodeGroupManager(KylinConfig.getInstanceFromEnv(), project);
             Preconditions.checkState(internalManager.isPresent());
@@ -479,6 +479,20 @@ public class SecondStorageService extends BasicService implements SecondStorageU
         metadataOperator.sizeInNode();
     }
 
+    private Map<String, List<NodeData>> convertNodeGroupToPairs(List<NodeGroup> nodeGroups) {
+        return convertNodesToPairs(nodeGroups.stream()
+                .flatMap(group -> group.getNodeNames().stream())
+                .collect(Collectors.toList()));
+    }
+
+    private Map<String, List<NodeData>> convertNodesToPairs(List<String> nodes) {
+        Map<String, List<NodeData>> result = Maps.newHashMap();
+        nodes.stream().sorted().forEach(node ->
+                result.computeIfAbsent(SecondStorageNodeHelper.getPairByNode(node), k -> new ArrayList<>())
+                        .add(new NodeData(SecondStorageNodeHelper.getNode(node))));
+        return result;
+    }
+
     public List<ProjectNode> projectNodes(String project) {
         List<String> allNodes = SecondStorageNodeHelper.getAllNames();
         List<ProjectNode> projectNodes;
@@ -490,9 +504,7 @@ public class SecondStorageService extends BasicService implements SecondStorageU
             if (CollectionUtils.isEmpty(nodeGroups)) {
                 return projectNodes;
             }
-            List<String> nodeNames = nodeGroups.get(0).getNodeNames();
-            projectNodes.add(new ProjectNode(project, true, nodeNames.stream()
-                    .map(node -> new NodeData(SecondStorageNodeHelper.getNode(node))).collect(Collectors.toList())));
+            projectNodes.add(new ProjectNode(project, true, convertNodeGroupToPairs(nodeGroups)));
         } else {
             Set<String> projectNodeSet = new HashSet<>();
             List<ProjectInstance> projectInstances = NProjectManager.getInstance(config).listAllProjects().stream()
@@ -501,34 +513,41 @@ public class SecondStorageService extends BasicService implements SecondStorageU
                 Manager<NodeGroup> nodeGroupManager = SecondStorage.nodeGroupManager(config, projectInstance.getName());
                 List<NodeGroup> nodeGroups = nodeGroupManager.listAll();
                 if (CollectionUtils.isEmpty(nodeGroups)) {
-                    return new ProjectNode(projectInstance.getName(), false, new ArrayList<>());
+                    return new ProjectNode(projectInstance.getName(), false, Collections.emptyMap());
                 }
-                List<String> nodeNames = nodeGroups.get(0).getNodeNames();
-                projectNodeSet.addAll(nodeNames);
-                return new ProjectNode(projectInstance.getName(), true, nodeNames.stream()
-                        .map(node -> new NodeData(SecondStorageNodeHelper.getNode(node))).collect(Collectors.toList()));
+                nodeGroups.stream().map(NodeGroup::getNodeNames).forEach(projectNodeSet::addAll);
+                return new ProjectNode(projectInstance.getName(), true, convertNodeGroupToPairs(nodeGroups));
             }).collect(Collectors.toList());
 
-            List<NodeData> dataList = allNodes.stream()
+            List<String> dataList = allNodes.stream()
                     .filter(node -> !projectNodeSet.contains(node))
-                    .map(node -> new NodeData(SecondStorageNodeHelper.getNode(node)))
                     .collect(Collectors.toList());
 
-            projectNodes.add(new ProjectNode(null, false, dataList));
+            projectNodes.add(new ProjectNode(null, false, convertNodesToPairs(dataList)));
         }
         return projectNodes;
     }
 
-    public List<NodeData> listAvailableNodes() {
+    public Map<String, List<NodeData>> listAvailableNodes() {
         val config = KylinConfig.getInstanceFromEnv();
         val usedNodes = NProjectManager.getInstance(config).listAllProjects().stream().flatMap(projectInstance -> {
             Manager<NodeGroup> nodeGroupManager = SecondStorage.nodeGroupManager(config, projectInstance.getName());
             return nodeGroupManager.listAll().stream().flatMap(nodeGroup -> nodeGroup.getNodeNames().stream());
         }).collect(Collectors.toSet());
-        List<String> allNodes = SecondStorageNodeHelper.getAllNames();
-        return allNodes.stream()
-                .filter(node -> !usedNodes.contains(node))
-                .map(name -> new NodeData(SecondStorageNodeHelper.getNode(name)))
+        List<String> allNodes = SecondStorageNodeHelper.getAllNames().stream()
+                .filter(node -> !usedNodes.contains(node)).collect(Collectors.toList());
+        return convertNodesToPairs(allNodes);
+    }
+
+    public List<String> listAvailablePairs() {
+        val config = KylinConfig.getInstanceFromEnv();
+        val usedNodes = NProjectManager.getInstance(config).listAllProjects().stream().flatMap(projectInstance -> {
+            Manager<NodeGroup> nodeGroupManager = SecondStorage.nodeGroupManager(config, projectInstance.getName());
+            return nodeGroupManager.listAll().stream().flatMap(nodeGroup -> nodeGroup.getNodeNames().stream());
+        }).collect(Collectors.toSet());
+        List<String> allPairs = SecondStorageNodeHelper.getAllPairs();
+        return allPairs.stream()
+                .filter(pair -> SecondStorageNodeHelper.getPair(pair).stream().noneMatch(node -> usedNodes.contains(node)))
                 .collect(Collectors.toList());
     }
 
@@ -644,5 +663,11 @@ public class SecondStorageService extends BasicService implements SecondStorageU
     public void refreshConf() {
         aclEvaluate.checkIsGlobalAdmin();
         SecondStorage.init(true);
+    }
+
+    public void updateNodeStatus(Map<String, Map<String, Boolean>> nodeStatusMap) {
+        nodeStatusMap.forEach((pair, nodeStatus) -> {
+            nodeStatus.forEach(SecondStorageQueryRouteUtil::setNodeStatus);
+        });
     }
 }

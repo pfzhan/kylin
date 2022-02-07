@@ -28,7 +28,6 @@ import io.kyligence.kap.engine.spark.utils.LogEx
 import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataflow}
 import io.kyligence.kap.secondstorage.enums.LockTypeEnum
 import io.kyligence.kap.secondstorage.metadata._
-import net.sf.ehcache.concurrent.LockType
 import org.apache.kylin.common.{KylinConfig, QueryContext}
 import org.apache.spark.sql.execution.datasources.jdbc.ShardOptions
 import org.apache.spark.sql.{DataFrame, SparkSession}
@@ -105,20 +104,24 @@ object SecondStorage extends LogEx {
     }
 
     // Only support table index
-    val enableSSForThisQuery = enabled  &&  layout.getIndex.isTableIndex && !QueryContext.current().isForceTableIndex
-    val result = Option.apply(enableSSForThisQuery)
-      .filter(_ == true)
-      .flatMap(_ =>
-        tableFlowManager(dataflow)
-        .get(dataflow.getUuid)
-        .flatMap(f => f.getEntity(layout))
-        .toOption)
-      .filter { tableData =>
-        val allSegIds = pruningInfo.split(",").map(s => s.split(":")(0)).toSet.asJava
-        tableData.containSegments(allSegIds)}
-      .flatMap (tableData => tryCreateDataFrame(Some(tableData), sparkSession) )
-
+    val enableSSForThisQuery = enabled && layout.getIndex.isTableIndex && !QueryContext.current().isForceTableIndex
+    var result = Option.empty[DataFrame]
+    while (enableSSForThisQuery && result.isEmpty && QueryContext.current().isRetrySecondStorage) {
+      result = Option.apply(enableSSForThisQuery)
+        .filter(_ == true)
+        .flatMap(_ =>
+          tableFlowManager(dataflow)
+            .get(dataflow.getUuid)
+            .flatMap(f => f.getEntity(layout))
+            .toOption)
+        .filter { tableData =>
+          val allSegIds = pruningInfo.split(",").map(s => s.split(":")(0)).toSet.asJava
+          tableData.containSegments(allSegIds)
+        }
+        .flatMap(tableData => tryCreateDataFrame(Some(tableData), sparkSession))
+    }
     if (result.isDefined) {
+      QueryContext.current().setLastFailed(false)
       QueryContext.current().getSecondStorageUsageMap.put(layout.getId, true)
     }
 
@@ -140,6 +143,7 @@ object SecondStorage extends LogEx {
     } catch {
       case NonFatal(e) =>
         logDebug("Failed to use second storage table-index", e)
+        QueryContext.current().setLastFailed(true);
         None
     }
   }
