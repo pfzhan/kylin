@@ -32,6 +32,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import io.kyligence.kap.common.util.ClusterConstant;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
@@ -41,6 +42,8 @@ import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.BasicService;
+import org.apache.spark.metrics.SparkPrometheusMetrics;
+import org.apache.spark.sql.SparderEnv;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -223,6 +226,27 @@ public class MonitorService extends BasicService {
                 .collect(Collectors.toMap(s -> s, s -> queryStatus.getOrDefault(s, NodeState.CRASH)));
 
         return clusterStatus(jobServerResponse, queryServerResponse);
+    }
+
+    public String fetchAndMergeSparkMetrics() {
+        String executorMetricsInfo = "";
+        if (KylinConfig.getInstanceFromEnv().isSpark3ExecutorPrometheusEnabled()) {
+            executorMetricsInfo = SparkPrometheusMetrics.fetchExecutorMetricsInfo(SparderEnv.getSparkSession().sparkContext().applicationId());
+        }
+        String driverMetricsInfo = "";
+        if ("org.apache.spark.metrics.sink.PrometheusServlet".equals(KylinConfig.getInstanceFromEnv().getSpark3DriverPrometheusServletClass())
+                && "/metrics/prometheus".equals(KylinConfig.getInstanceFromEnv().getSpark3DriverPrometheusServletPath())) {
+            driverMetricsInfo = SparkPrometheusMetrics.fetchDriverMetricsInfo(SparderEnv.getSparkSession().sparkContext().applicationId());
+        }
+
+        StringBuilder stringBuilder = new StringBuilder();
+        if (StringUtils.isNotBlank(driverMetricsInfo)) {
+            stringBuilder.append(driverMetricsInfo).append("\n");
+        }
+        if (StringUtils.isNotBlank(executorMetricsInfo)) {
+            stringBuilder.append(executorMetricsInfo).append("\n");
+        }
+        return stringBuilder.toString();
     }
 
     private ClusterStatusResponse clusterStatus(Map<String, NodeState> jobStatus, Map<String, NodeState> queryStatus) {

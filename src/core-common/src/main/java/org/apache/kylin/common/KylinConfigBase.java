@@ -3112,6 +3112,18 @@ public abstract class KylinConfigBase implements Serializable {
         return getOptionalLongArray("kylin.metrics.job.sla.minutes", new String[]{"30", "60", "300"});
     }
 
+    public boolean isSpark3ExecutorPrometheusEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.storage.columnar.spark-conf.spark.ui.prometheus.enabled", FALSE));
+    }
+
+    public String getSpark3DriverPrometheusServletClass() {
+        return this.getOptional("kylin.storage.columnar.spark-conf.spark.metrics.conf.*.sink.prometheusServlet.class", "");
+    }
+
+    public String getSpark3DriverPrometheusServletPath() {
+        return this.getOptional("kylin.storage.columnar.spark-conf.spark.metrics.conf.*.sink.prometheusServlet.path", "");
+    }
+
     protected final long[] getOptionalLongArray(String prop, String[] dft) {
         String[] strArray = getOptionalStringArray(prop, dft);
         long[] longArray;
