@@ -95,6 +95,7 @@ case class ShardJDBCScanBuilder(
       groupBy = if (groupBy.isEmpty) None else Some(groupBy.map(SQLBuilder.expressionToSql(_))),
       orders = orders.map {order => OrderDesc(SQLBuilder.expressionToSql(order.child),
         order.direction.sql, order.nullOrdering.sql)},
+      limitOpt = catalystStatement.limitOpt,
       url = Some(jdbcOptions.url)
     )
   }

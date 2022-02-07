@@ -44,6 +44,7 @@ case class SingleSQLStatement(
     filters: Option[Seq[sources.Filter]],
     groupBy: Option[Seq[String]],
     orders: Seq[OrderDesc] = Seq.empty,
+    limitOpt: Option[Int] = None,
     url: Option[String] = None) extends SQLStatement {
 
   /**
@@ -70,6 +71,10 @@ case class SingleSQLStatement(
     ""
   }
 
+  lazy val limitClause = limitOpt.map { limit =>
+    if (limit > 0 ) s"LIMIT $limit" else ""
+  }.getOrElse("")
+
   lazy val groupByStr: String = groupBy.map(g => s" GROUP BY ${g.mkString(", ")}").getOrElse("")
 
   /**
@@ -89,7 +94,7 @@ case class SingleSQLStatement(
 
   def toSQL(extraFilter: String = null): String = {
     val myWhereClause = getWhereClause(extraFilter)
-    s"SELECT $columnList FROM $relation $myWhereClause $orderByClause $groupByStr"
+    s"SELECT $columnList FROM $relation $myWhereClause $orderByClause $groupByStr $limitClause"
   }
 }
 
@@ -124,7 +129,8 @@ case class SingleCatalystStatement(
   projects: Seq[NamedExpression],
   filters: Seq[sources.Filter],
   groupBy: Seq[NamedExpression],
-  orders: Seq[SortOrder]) extends SQLStatement {
+  orders: Seq[SortOrder],
+  limitOpt: Option[Int] = None) extends SQLStatement {
 }
 
 object SingleCatalystStatement {
@@ -157,13 +163,14 @@ object SingleCatalystStatement {
       projects: Seq[NamedExpression],
       filters: Seq[sources.Filter],
       groupBy: Seq[NamedExpression],
-      orders: Seq[SortOrder] = Seq.empty
+      orders: Seq[SortOrder] = Seq.empty,
+      limitOpt: Option[Int] = None
   ): SingleCatalystStatement = {
     val schemaSet = relation.schema
       .map(s => getColumnName(s.name, isCaseSensitive))
       .toSet
     projects.foreach(verifyPushedColumn(_, schemaSet))
     groupBy.foreach(verifyPushedColumn(_, schemaSet))
-    SingleCatalystStatement(relation, projects, filters, groupBy, orders)
+    SingleCatalystStatement(relation, projects, filters, groupBy, orders, limitOpt)
   }
 }
