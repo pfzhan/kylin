@@ -76,9 +76,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.PARTITION_COLUMN
 import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_DATA_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_PROJECT_STATUS_ERROR;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import lombok.extern.log4j.Log4j;
 
-@Log4j
 public class SecondStorageUtil {
     public static final Set<ExecutableState> RUNNING_STATE = Sets.newHashSet(
             Arrays.asList(ExecutableState.RUNNING, ExecutableState.READY, ExecutableState.PAUSED));
@@ -260,11 +258,7 @@ public class SecondStorageUtil {
                         .map(SecondStorageUtil::transformNode)
                         .collect(Collectors.toList());
                 secondStorageInfo.setSecondStorageNodes(nodes);
-                try{
-                    secondStorageInfo.setSecondStorageSize(sizes / SecondStorageConfig.getInstanceFromEnv().getReplicaNum());
-                }catch (Exception e){
-                    log.error("secondStorageInfo.setSecondStorageSize failed", e);
-                }
+                secondStorageInfo.setSecondStorageSize(sizes / SecondStorageConfig.getInstanceFromEnv().getReplicaNum());
             }
             return secondStorageInfo;
         }).collect(Collectors.toList());
