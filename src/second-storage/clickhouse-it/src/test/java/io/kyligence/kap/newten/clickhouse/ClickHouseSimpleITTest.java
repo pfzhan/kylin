@@ -23,8 +23,9 @@
  */
 package io.kyligence.kap.newten.clickhouse;
 
-import com.google.common.collect.ImmutableList;
 import com.clearspring.analytics.util.Preconditions;
+import io.kyligence.kap.guava20.shaded.common.collect.ImmutableList;
+import io.kyligence.kap.guava20.shaded.common.collect.Lists;
 import io.kyligence.kap.clickhouse.ClickHouseStorage;
 import io.kyligence.kap.clickhouse.job.ClickHouse;
 import io.kyligence.kap.clickhouse.job.ClickHouseLoad;
@@ -40,6 +41,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.newten.NExecAndComp;
+import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.service.JobService;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.secondstorage.SecondStorage;
@@ -68,6 +70,7 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.time.DateUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.Pair;
@@ -118,6 +121,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -271,6 +275,55 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
              JdbcDatabaseContainer<?> clickhouse4 = ClickHouseUtils.startClickHouse()) {
             build_load_query("testTwoShardDoubleReplica", false, 2,
                     clickhouse1, clickhouse2, clickhouse3, clickhouse4);
+        }
+    }
+
+    @Test
+    public void testAddSecondStorageResponseWithHA() throws Exception {
+        secondStorageEndpoint.setModelService(modelService);
+        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse()) {
+            build_load_query("testOneShardDoubleReplica", false, 1,
+                    clickhouse1, clickhouse2);
+
+            KylinConfig config = KylinConfig.getInstanceFromEnv();
+            NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
+            NDataflow df = dsMgr.getDataflow(cubeName);
+
+            Date now = new Date();
+            List<NDataSegmentResponse> mockSegments = Lists.newArrayList();
+            NDataSegmentResponse segmentResponse1 = new NDataSegmentResponse();
+            segmentResponse1.setId("1");
+            segmentResponse1.setRowCount(1);
+            segmentResponse1.setCreateTime(DateUtils.addHours(now, -1).getTime());
+
+            NDataSegmentResponse segmentResponse2 = new NDataSegmentResponse();
+            segmentResponse2.setId("2");
+            segmentResponse2.setRowCount(2);
+            segmentResponse2.setCreateTime(now.getTime());
+
+            NDataSegmentResponse segmentResponse3 = new NDataSegmentResponse();
+            segmentResponse3.setId("3");
+            segmentResponse3.setRowCount(3);
+            segmentResponse3.setCreateTime(DateUtils.addHours(now, 1).getTime());
+
+            val tableFlowManager = SecondStorage.tableFlowManager(config, getProject());
+            val tableFlow = tableFlowManager.get(df.getId()).orElse(null);
+            String id = tableFlow.getTableDataList().get(0).getPartitions().get(0).getSegmentId();
+            segmentResponse1.setId(id);
+            segmentResponse2.setId(id);
+            segmentResponse3.setId(id);
+
+            mockSegments.add(segmentResponse1);
+            mockSegments.add(segmentResponse3);
+            mockSegments.add(segmentResponse2);
+
+            //mockito.when(SecondStorageUtil)
+            ModelService ms = new ModelService();
+
+            ms.addSecondStorageResponse(cubeName, getProject(), mockSegments, df);
+            Assert.assertEquals(2, (mockSegments.get(0)).getSecondStorageNodes().size());
+
         }
     }
 

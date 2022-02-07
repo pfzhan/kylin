@@ -66,6 +66,7 @@ import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
+import org.apache.kylin.common.SecondStorageConfig;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
@@ -219,6 +220,7 @@ import io.kyligence.kap.rest.service.params.MergeSegmentParams;
 import io.kyligence.kap.rest.service.params.ModelQueryParams;
 import io.kyligence.kap.rest.util.ModelTriple;
 import io.kyligence.kap.rest.util.ModelUtils;
+import io.kyligence.kap.secondstorage.response.SecondStorageNode;
 import io.kyligence.kap.secondstorage.SecondStorage;
 import io.kyligence.kap.secondstorage.SecondStorageUpdater;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
@@ -235,7 +237,9 @@ import io.kyligence.kap.tool.bisync.SyncContext;
 import lombok.Setter;
 import lombok.val;
 import lombok.var;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Component("modelService")
 public class ModelService extends BasicService implements TableModelSupporter, ProjectModelSupporter {
 
@@ -981,16 +985,34 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         val tableFlowManager = SecondStorage.tableFlowManager(getConfig(), project);
         val tableFlow = tableFlowManager.get(dataflow.getId()).orElse(null);
         if (tableFlow != null) {
-            Map<String, TablePartition> tablePartitions = tableFlow.getTableDataList().stream()
+            Map<String, List<TablePartition>> tablePartitions = tableFlow.getTableDataList().stream()
                     .flatMap(tableData -> tableData.getPartitions().stream())
-                    .collect(Collectors.toMap(TablePartition::getSegmentId, partition -> partition));
+                    .collect(Collectors.toMap(TablePartition::getSegmentId,
+                            partition -> Lists.newArrayList(partition),
+                            (List<TablePartition> a, List<TablePartition> b) -> {
+                                a.addAll(b);
+                                return a;
+                            }));
             segmentResponseList.forEach(segment -> {
                 if (tablePartitions.containsKey(segment.getId())) {
-                    val nodes = tablePartitions.get(segment.getId()).getShardNodes().stream()
-                            .map(SecondStorageUtil::transformNode).collect(Collectors.toList());
+                    val nodes = new ArrayList<SecondStorageNode>();
+                    Long sizes = 0L;
+                    var partitions = tablePartitions.get(segment.getId());
+                    for (TablePartition partition : partitions) {
+                        var ns = partition.getShardNodes().stream()
+                                .map(SecondStorageUtil::transformNode)
+                                .collect(Collectors.toList());
+                        nodes.addAll(ns);
+                        var size = partition.getSizeInNode().values().stream()
+                                .reduce(Long::sum).orElse(0L);
+                        sizes += size;
+                    }
+                    try{
+                        segment.setSecondStorageSize(sizes / SecondStorageConfig.getInstanceFromEnv().getReplicaNum());
+                    }catch (Exception e){
+                        log.error("setSecondStorageSize failed", e);
+                    }
                     segment.setSecondStorageNodes(nodes);
-                    segment.setSecondStorageSize(tablePartitions.get(segment.getId()).getSizeInNode().values().stream()
-                            .reduce(Long::sum).orElse(0L));
                 } else {
                     segment.setSecondStorageNodes(Collections.emptyList());
                     segment.setSecondStorageSize(0L);
