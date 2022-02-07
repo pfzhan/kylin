@@ -1424,7 +1424,7 @@ public class ProjectService extends BasicService {
         return kFile;
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     @Transaction(project = 0)
     public void updateProjectConfig(String project, Map<String, String> overrides) {
         if (MapUtils.isEmpty(overrides)) {
