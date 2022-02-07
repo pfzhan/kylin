@@ -133,6 +133,14 @@ public class ClickHouseV2QueryTest extends NLocalWithSparkSessionTest {
             String sql4 = String.format(Locale.ROOT,
                     "select s2, i1, i2, n3 from %s.%s where n4 != 0 and i1 > 1 order by i1", catalogName, table);
             executeAndCheck(sql4, expectedRow3);
+
+            String sql5 = String.format(Locale.ROOT,
+                    "select s2, i1, i2, n3 from %s.%s where (n4 != 0 and n3 != 0) and i1 > 1 order by i1", catalogName, table);
+            executeAndCheck(sql5, expectedRow3);
+
+            String sql6 = String.format(Locale.ROOT,
+                    "select s2, i1, i2, n3 from %s.%s where (n4 != 0 or n3 != 0) and i1 > 1 order by i1", catalogName, table);
+            executeAndCheck(sql6, expectedRow3);
             return true;
         });
         Assert.assertTrue(result);

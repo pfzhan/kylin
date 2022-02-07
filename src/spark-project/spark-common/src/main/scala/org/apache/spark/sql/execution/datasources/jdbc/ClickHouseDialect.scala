@@ -23,14 +23,14 @@
  */
 package org.apache.spark.sql.execution.datasources.jdbc
 
-import org.apache.spark.sql.jdbc.{JdbcDialect, JdbcType}
 import java.sql.{Timestamp, Types}
 import java.util.Locale
+import java.math.BigDecimal
+import scala.util.matching.Regex
+import java.text.SimpleDateFormat
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.types._
-
-import java.text.SimpleDateFormat
-import scala.util.matching.Regex
+import org.apache.spark.sql.jdbc.{JdbcDialect, JdbcType}
 
 // TODO: move to clickhouse module
 /**
@@ -137,6 +137,7 @@ object ClickHouseDialect extends JdbcDialect with Logging {
   override def compileValue(value: Any): Any = value match {
     case ts: Timestamp =>
       "'" + new SimpleDateFormat("yyyy-MM-dd hh:mm:ss", Locale.getDefault(Locale.Category.FORMAT)).format(ts) + "'"
+    case d: BigDecimal if d.scale != 0 && d.scale != d.precision => s"toFloat64($value)"
     case arrayValue: Array[Any] => arrayValue.map(compileValue).mkString("[", ",", "]")
     case _ => super.compileValue(value)
   }

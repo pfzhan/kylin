@@ -60,10 +60,11 @@ case class SingleSQLStatement(
   /**
    * `filters`, but as a WHERE clause suitable for injection into a SQL query.
    */
-  lazy val filterWhereClause: String =
-    filters.getOrElse(Seq.empty)
-      .flatMap(JDBCRDD.compileFilter(_, JdbcDialects.get(url.getOrElse("Unknown URL"))))
-      .map(p => s"($p)").mkString(" AND ")
+  lazy val filterWhereClause: String = filters.getOrElse(Seq.empty)
+    .flatMap(JDBCRDD.compileFilter(_, JdbcDialects.get(url.getOrElse("Unknown URL")))).map { p =>
+      val replacement = p.replaceAll("`castFloat(\\w+)castFloat`", "toFloat64(`$1`)")
+      s"($replacement)"
+    }.mkString(" AND ")
 
   lazy val orderByClause = if (orders.nonEmpty) {
     s" ORDER BY ${orders.map(_.sql).mkString(", ")}"
