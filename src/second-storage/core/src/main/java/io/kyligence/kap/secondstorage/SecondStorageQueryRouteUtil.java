@@ -60,6 +60,7 @@ public class SecondStorageQueryRouteUtil {
             QueryContext.current().getUsedPartitionIndexes().add(candidates[0]);
             return partitions.get(candidates[0]);
         } else if (candidates.length == 0){
+            QueryContext.current().setRetrySecondStorage(false);
             throw new IllegalStateException("All cluster failed, no candidate found.");
         } else {
             int nextPartition = candidates[replicaRandom.nextInt(candidates.length)];

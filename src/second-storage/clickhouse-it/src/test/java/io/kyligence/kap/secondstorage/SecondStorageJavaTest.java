@@ -36,6 +36,7 @@ import io.kyligence.kap.clickhouse.job.ClickHouse;
 import io.kyligence.kap.clickhouse.job.ClickHouseModelCleanJob;
 import io.kyligence.kap.clickhouse.job.ClickHouseSegmentCleanJob;
 import io.kyligence.kap.clickhouse.job.Engine;
+import io.kyligence.kap.clickhouse.management.ClickHouseConfigLoader;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
@@ -46,8 +47,11 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.newten.NExecAndComp;
+import io.kyligence.kap.newten.clickhouse.ClickHouseUtils;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import static io.kyligence.kap.secondstorage.SecondStorageConcurrentTestUtil.registerWaitPoint;
+
+import io.kyligence.kap.secondstorage.config.Node;
 import io.kyligence.kap.secondstorage.ddl.exp.ColumnWithType;
 import io.kyligence.kap.secondstorage.management.SecondStorageEndpoint;
 import io.kyligence.kap.secondstorage.management.SecondStorageScheduleService;
@@ -90,6 +94,7 @@ import org.junit.rules.TestRule;
 import org.mockito.Mockito;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -515,4 +520,60 @@ public class SecondStorageJavaTest implements JobWaiter {
         }
         Assert.fail();
     }
+
+    @Test
+    public void testQueryWithClickHouseHADown() throws Exception {
+        final String queryCatalog = "testQueryWithClickHouseHASuccess";
+        Unsafe.setProperty(CONFIG_CLICKHOUSE_QUERY_CATALOG, queryCatalog);
+
+        JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse();
+        JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse();
+        JdbcDatabaseContainer<?> clickhouse3 = ClickHouseUtils.startClickHouse();
+        JdbcDatabaseContainer<?> clickhouse4 = ClickHouseUtils.startClickHouse();
+
+        internalConfigClickHouse(2, clickhouse1, clickhouse2, clickhouse3, clickhouse4);
+
+        //build
+        NLocalWithSparkSessionTest.fullBuildAllCube(modelId, project);
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        Assert.assertEquals(3, SecondStorageUtil.setSecondStorageSizeInfo(modelManager.listAllModels()).size());
+
+        // check
+        test.checkHttpServer();
+        test.overwriteSystemProp("kylin.query.use-tableindex-answer-non-raw-query", "true");
+
+        sparkSession.sessionState().conf().setConfString(
+                "spark.sql.catalog." + queryCatalog,
+                "org.apache.spark.sql.execution.datasources.jdbc.v2.SecondStorageCatalog");
+        sparkSession.sessionState().conf().setConfString(
+                "spark.sql.catalog." + queryCatalog + ".url",
+                clickhouse1.getJdbcUrl());
+        sparkSession.sessionState().conf().setConfString(
+                "spark.sql.catalog." + queryCatalog + ".driver",
+                clickhouse1.getDriverClassName());
+
+        String sql = "select sum(PRICE) from TEST_KYLIN_FACT group by PRICE";
+
+        Map<String, List<Node>> cluster = ClickHouseConfigLoader.getInstance().getCluster().getCluster();
+
+        for (String pair : cluster.keySet()) {
+            Map<String, Map<String, Boolean>> nodeStatusMap = new HashMap<>();
+            Map<String, Boolean> nodeStatus = Maps.newHashMap();
+            cluster.get(pair).forEach(n -> nodeStatus.put(n.getName(), false));
+            nodeStatusMap.put(pair, nodeStatus);
+            secondStorageEndpoint.updateNodeStatus(nodeStatusMap);
+
+            NExecAndComp.queryWithKapWithMeta(project, "left", Pair.newPair("query_table_index", sql), null);
+            Assert.assertTrue(OLAPContext.getNativeRealizations().stream().noneMatch(NativeQueryRealization::isSecondStorage));
+
+            nodeStatus.replaceAll((n, v) -> true);
+            secondStorageEndpoint.updateNodeStatus(nodeStatusMap);
+            return;
+        }
+    }
+
+    public static void internalConfigClickHouse(int replica, JdbcDatabaseContainer<?>... clickhouse) throws IOException {
+        ClickHouseUtils.internalConfigClickHouse(clickhouse, replica);
+    }
+
 }
