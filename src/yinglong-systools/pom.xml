@@ -49,6 +49,12 @@
             <artifactId>kap-tool</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-external-swagger</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- spring aop -->
         <dependency>
             <groupId>org.aspectj</groupId>
@@ -93,12 +99,6 @@
         <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-web</artifactId>
-        </dependency>
-
-        <!-- Swagger -->
-        <dependency>
-            <groupId>io.springfox</groupId>
-            <artifactId>springfox-boot-starter</artifactId>
         </dependency>
 
         <!-- util -->
