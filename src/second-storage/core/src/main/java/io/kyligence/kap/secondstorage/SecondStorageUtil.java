@@ -255,6 +255,7 @@ public class SecondStorageUtil {
                 }
 
                 List<SecondStorageNode> nodes = nodesStr.stream()
+                        .distinct()
                         .map(SecondStorageUtil::transformNode)
                         .collect(Collectors.toList());
                 secondStorageInfo.setSecondStorageNodes(nodes);

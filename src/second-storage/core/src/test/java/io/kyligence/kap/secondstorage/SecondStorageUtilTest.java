@@ -25,7 +25,9 @@
 package io.kyligence.kap.secondstorage;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.guava20.shaded.common.collect.ImmutableList;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.secondstorage.config.ClusterInfo;
 import io.kyligence.kap.secondstorage.config.Node;
 import io.kyligence.kap.secondstorage.metadata.Manager;
 import io.kyligence.kap.secondstorage.metadata.TableData;
@@ -57,7 +59,9 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RunWith(PowerMockRunner.class)
@@ -98,6 +102,34 @@ public class SecondStorageUtilTest extends NLocalFileMetadataTestCase {
         return tableFlow;
     }
 
+    private TableFlow prepareTableFlow2Partition() throws NoSuchFieldException {
+        TableFlow tableFlow = new TableFlow();
+        TableData tableData = new TableData();
+        tableData.addPartition(TablePartition.builder().setNodeFileMap(Collections.emptyMap())
+                .setSizeInNode(Collections.emptyMap())
+                .setShardNodes(ImmutableList.of("node01", "node02"))
+                .setSegmentId("test1")
+                .build());
+        tableData.addPartition(TablePartition.builder().setNodeFileMap(Collections.emptyMap())
+                .setSizeInNode(Collections.emptyMap())
+                .setShardNodes(ImmutableList.of("node01", "node02"))
+                .setSegmentId("test2")
+                .build());
+        Field tableDataField = tableFlow.getClass().getDeclaredField("tableDataList");
+        ReflectionUtils.makeAccessible(tableDataField);
+        List<TableData> tableDataList = (List<TableData>) ReflectionUtils.getField(tableDataField, tableFlow);
+        tableDataList.add(tableData);
+
+        ClusterInfo cluster = new ClusterInfo();
+        Map<String, List<Node>> clusterNodes = new HashMap<>();
+        cluster.setCluster(clusterNodes);
+        clusterNodes.put("pair1",
+                ImmutableList.of(new Node().setName("node01").setIp("127.0.0.1").setPort(9000),
+                new Node().setName("node02").setIp("127.0.0.1").setPort(9000)));
+        SecondStorageNodeHelper.initFromCluster(cluster, null);
+        return tableFlow;
+    }
+
     @Test
     public void setSecondStorageSizeInfo() throws Exception {
         prepareManger();
@@ -117,7 +149,7 @@ public class SecondStorageUtilTest extends NLocalFileMetadataTestCase {
     @Test
     public void setSecondStorageSizeInfoWithHA() throws Exception {
         prepareManger();
-        Mockito.when(tableFlowManager.get(Mockito.anyString())).thenReturn(Optional.of(prepareTableFlow()));
+        Mockito.when(tableFlowManager.get(Mockito.anyString())).thenReturn(Optional.of(prepareTableFlow2Partition()));
         NDataModel model1 = new NDataModel();
         model1.setProject("default");
         List<NDataModel> models = new ArrayList<>();
@@ -128,7 +160,7 @@ public class SecondStorageUtilTest extends NLocalFileMetadataTestCase {
         List<SecondStorageInfo> newModels = SecondStorageUtil.setSecondStorageSizeInfo(models, tableFlowManager);
         Assert.assertEquals(2, newModels.size());
         Assert.assertEquals(0, (newModels.get(0)).getSecondStorageSize());
-        Assert.assertEquals(0, (newModels.get(0)).getSecondStorageNodes().size());
+        Assert.assertEquals(2, (newModels.get(0)).getSecondStorageNodes().size());
     }
 
     @Test
