@@ -59,20 +59,26 @@ public class RoutineTool extends ExecutableApplication {
     private boolean storageCleanup;
     private boolean metadataCleanup;
     private String[] projects = new String[0];
+    private int retryTimes;
+    private double requestFSRate;
 
     private static final Option OPTION_CLEANUP_METADATA = new Option("m", "metadata", false,
             "cleanup metadata garbage after check.");
     private static final Option OPTION_CLEANUP = new Option("c", "cleanup", false, "cleanup hdfs garbage after check.");
     private static final Option OPTION_PROJECTS = new Option("p", "projects", true, "specify projects to cleanup.");
+    private static final Option OPTION_REQUEST_FS_RATE = new Option("r", "rate", true, "specify request fs rate.");
+    private static final Option OPTION_RETRY_TIMES = new Option("t", "retryTimes", true, "specify retry times.");
     private static final Option OPTION_HELP = new Option("h", "help", false, "print help message.");
 
     @Override
     protected Options getOptions() {
         Options options = new Options();
+        options.addOption(OPTION_CLEANUP_METADATA);
         options.addOption(OPTION_CLEANUP);
         options.addOption(OPTION_PROJECTS);
+        options.addOption(OPTION_REQUEST_FS_RATE);
+        options.addOption(OPTION_RETRY_TIMES);
         options.addOption(OPTION_HELP);
-        options.addOption(OPTION_CLEANUP_METADATA);
         return options;
     }
 
@@ -154,7 +160,8 @@ public class RoutineTool extends ExecutableApplication {
 
     public void cleanStorage() {
         try {
-            StorageCleaner storageCleaner = new StorageCleaner(storageCleanup, Arrays.asList(projects));
+            StorageCleaner storageCleaner = new StorageCleaner(storageCleanup, Arrays.asList(projects), requestFSRate,
+                    retryTimes);
             System.out.println("Start to cleanup HDFS");
             storageCleaner.execute();
             System.out.println("cleanup HDFS finished");
@@ -181,11 +188,20 @@ public class RoutineTool extends ExecutableApplication {
         if (optionsHelper.hasOption(OPTION_PROJECTS)) {
             this.projects = optionsHelper.getOptionValue(OPTION_PROJECTS).split(",");
         }
+        if (optionsHelper.hasOption(OPTION_REQUEST_FS_RATE)) {
+            this.requestFSRate = Double.parseDouble(optionsHelper.getOptionValue(OPTION_REQUEST_FS_RATE));
+        }
+        if (optionsHelper.hasOption(OPTION_RETRY_TIMES)) {
+            this.retryTimes = Integer.parseInt(optionsHelper.getOptionValue(OPTION_RETRY_TIMES));
+        }
+
         log.info("RoutineTool has option metadata cleanup: " + metadataCleanup + " storage cleanup: " + storageCleanup
-                + (projects.length > 0 ? " projects: " + optionsHelper.getOptionValue(OPTION_PROJECTS) : ""));
+                + (projects.length > 0 ? " projects: " + optionsHelper.getOptionValue(OPTION_PROJECTS) : "")
+                + " Request FileSystem rate: " + requestFSRate + " Retry Times: " + retryTimes);
         System.out.println(
                 "RoutineTool has option metadata cleanup: " + metadataCleanup + " storage cleanup: " + storageCleanup
-                        + (projects.length > 0 ? " projects: " + optionsHelper.getOptionValue(OPTION_PROJECTS) : ""));
+                        + (projects.length > 0 ? " projects: " + optionsHelper.getOptionValue(OPTION_PROJECTS) : "")
+                        + " Request FileSystem rate: " + requestFSRate + " Retry Times: " + retryTimes);
     }
 
     public static void main(String[] args) {

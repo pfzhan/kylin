@@ -46,10 +46,12 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.guava20.shaded.common.util.concurrent.RateLimiter;
 import io.kyligence.kap.tool.util.ProjectTemporaryTableCleanerHelper;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.PathFilter;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RawResource;
@@ -107,6 +109,9 @@ public class StorageCleaner {
     private long duration;
     private KylinConfig kylinConfig;
 
+    // for s3 https://olapio.atlassian.net/browse/AL-3154
+    private static RateLimiter rateLimiter = RateLimiter.create(Integer.MAX_VALUE);
+
     @Getter
     private Map<String, String> trashRecord;
     private ResourceStore resourceStore;
@@ -130,6 +135,17 @@ public class StorageCleaner {
                 : JsonUtil.readValue(trashRecordResource.getByteSource().read(), TrashRecord.class).getTrashRecord();
     }
 
+    public StorageCleaner(boolean cleanup, Collection<String> projects, double requestFSRate, int tRetryTimes)
+            throws Exception {
+        this(cleanup, projects);
+        if (requestFSRate > 0.0) {
+            rateLimiter.setRate(requestFSRate);
+        }
+        if (tRetryTimes > 0) {
+            FileSystemDecorator.retryTimes = tRetryTimes;
+        }
+    }
+
     @Getter
     private Set<StorageItem> outdatedItems = Sets.newHashSet();
 
@@ -150,22 +166,24 @@ public class StorageCleaner {
                 KapConfig kapConfig = KapConfig.wrap(dataflow.getConfig());
                 String hdfsWorkingDir = kapConfig.getMetadataWorkingDirectory();
                 val fs = HadoopUtil.getWorkingFileSystem();
-                allFileSystems.add(new StorageItem(fs, hdfsWorkingDir));
+                allFileSystems.add(new StorageItem(FileSystemDecorator.getInstance(fs), hdfsWorkingDir));
             }
         }
-        allFileSystems.add(new StorageItem(HadoopUtil.getWorkingFileSystem(), config.getHdfsWorkingDirectory()));
+        allFileSystems.add(new StorageItem(FileSystemDecorator.getInstance(HadoopUtil.getWorkingFileSystem()),
+                config.getHdfsWorkingDirectory()));
         log.info("all file systems are {}", allFileSystems);
         for (StorageItem allFileSystem : allFileSystems) {
+            log.debug("start to collect HDFS from {}", allFileSystem.getPath());
             collectFromHDFS(allFileSystem);
+            log.debug("folder {} is collected，detailed -> {}", allFileSystem.getPath(), allFileSystems);
         }
-        UnitOfWork.doInTransactionWithRetry(()->{
+        UnitOfWork.doInTransactionWithRetry(() -> {
             collectDeletedProject();
             for (ProjectInstance project : projects) {
                 collect(project.getName());
             }
             return null;
         }, UnitOfWork.GLOBAL_UNIT);
-
 
         long configSurvivalTimeThreshold = timeMachineEnabled ? kylinConfig.getStorageResourceSurvivalTimeThreshold()
                 : config.getCuboidLayoutSurvivalTimeThreshold();
@@ -178,6 +196,7 @@ public class StorageCleaner {
                     continue;
                 }
                 try {
+                    log.debug("start to add item {}", path);
                     addItem(item.getFs(), path, protectionTime);
                 } catch (FileNotFoundException e) {
                     log.warn("{} not found", path);
@@ -339,9 +358,11 @@ public class StorageCleaner {
             val activeSegmentFlatTableDataPath = Sets.<String> newHashSet();
             val dataflows = NDataflowManager.getInstance(config, project).listAllDataflows().stream()
                     .map(RootPersistentEntity::getId).collect(Collectors.toSet());
+            // set activeSegmentFlatTableDataPath, by iterating segments
             dataflowManager.listAllDataflows().forEach(df -> df.getSegments().stream() //
                     .map(segment -> getSegmentFlatTableDir(project, segment))
                     .forEach(activeSegmentFlatTableDataPath::add));
+            //set activeIndexDataPath
             dataflowManager.listAllDataflows().forEach(dataflow -> dataflow.getSegments().stream() //
                     .flatMap(segment -> segment.getLayoutsMap().values().stream()) //
                     .forEach(layout -> {
@@ -461,7 +482,7 @@ public class StorageCleaner {
         }
     }
 
-    private void addItem(FileSystem fs, Path itemPath, long protectionTime) throws Exception {
+    private void addItem(FileSystemDecorator fs, Path itemPath, long protectionTime) throws IOException {
         val status = fs.getFileStatus(itemPath);
         if (status.getPath().getName().startsWith(".")) {
             return;
@@ -509,6 +530,7 @@ public class StorageCleaner {
                     Pair.newPair(FLAT_TABLE_STORAGE_ROOT.substring(1), projectNode.getDfFlatTables()))) {
                 val treeNode = new FileTreeNode(pair.getFirst(), projectNode);
                 try {
+                    log.debug("collect files from {}", pair.getFirst());
                     Stream.of(item.getFs().listStatus(new Path(item.getPath(), treeNode.getRelativePath())))
                             .forEach(x -> pair.getSecond().add(new FileTreeNode(x.getPath().getName(), treeNode)));
                 } catch (FileNotFoundException e) {
@@ -525,6 +547,7 @@ public class StorageCleaner {
                     Pair.newPair(projectNode.getDfFlatTables(), projectNode.getSegmentFlatTables()))) {
                 val slot = pair.getSecond();
                 for (FileTreeNode node : pair.getFirst()) {
+                    log.debug("collect from {} -> {}", node.getName(), node);
                     Stream.of(item.getFs().listStatus(new Path(item.getPath(), node.getRelativePath())))
                             .forEach(x -> slot.add(new FileTreeNode(x.getPath().getName(), node)));
                 }
@@ -563,13 +586,69 @@ public class StorageCleaner {
         }
     }
 
+    @AllArgsConstructor
+    public static class FileSystemDecorator {
+        @NonNull
+        private FileSystem fs;
+
+        private static int retryTimes = 3;
+
+        interface Action<T> {
+            T run() throws IOException;
+        }
+
+        private <E> E sleepAndRetry(Action<E> action) throws IOException {
+            rateLimiter.acquire();
+
+            for (int i = 0; i < retryTimes - 1; i++) {
+                try {
+                    return action.run();
+                } catch (FileNotFoundException e) {
+                    throw e;
+                } catch (Exception e) {
+                    log.error("Failed to use fs api!", e);
+                }
+
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException ie) {
+                    log.error("Failed to sleep!", ie);
+                    ie.printStackTrace();
+                    Thread.currentThread().interrupt();
+                }
+            }
+
+            return action.run();
+        }
+
+        public static FileSystemDecorator getInstance(FileSystem fs) {
+            return new FileSystemDecorator(fs);
+        }
+
+        public FileStatus[] listStatus(Path f) throws IOException {
+            return sleepAndRetry(() -> fs.listStatus(f));
+        }
+
+        public FileStatus[] listStatus(Path f, PathFilter filter) throws IOException {
+            return sleepAndRetry(() -> fs.listStatus(f, filter));
+        }
+
+        public FileStatus getFileStatus(Path f) throws IOException {
+            return sleepAndRetry(() -> fs.getFileStatus(f));
+        }
+
+        public boolean delete(Path f, boolean recursive) throws IOException {
+            return sleepAndRetry(() -> fs.delete(f, recursive));
+        }
+    }
+
     @Data
     @RequiredArgsConstructor
     @AllArgsConstructor
     public static class StorageItem {
 
         @NonNull
-        private FileSystem fs;
+        private FileSystemDecorator fs;
 
         @NonNull
         private String path;
