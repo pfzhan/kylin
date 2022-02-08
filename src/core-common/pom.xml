@@ -35,7 +35,7 @@
     <parent>
         <groupId>io.kyligence.ke</groupId>
         <artifactId>ke</artifactId>
-        <version>4.0.0-SNAPSHOT</version>
+        <version>4.5.9-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -111,17 +111,14 @@
         <dependency>
             <groupId>io.dropwizard.metrics</groupId>
             <artifactId>metrics-jvm</artifactId>
-            <version>${dropwizard.version}</version>
         </dependency>
         <dependency>
             <groupId>io.dropwizard.metrics</groupId>
             <artifactId>metrics-json</artifactId>
-            <version>${dropwizard.version}</version>
         </dependency>
         <dependency>
             <groupId>io.dropwizard.metrics</groupId>
             <artifactId>metrics-jmx</artifactId>
-            <version>${dropwizard.version}</version>
         </dependency>
 
         <!-- micrometer -->
@@ -142,14 +139,11 @@
         <dependency>
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-external-influxdb</artifactId>
-            <version>${project.version}</version>
         </dependency>
 
         <dependency>
             <groupId>joda-time</groupId>
             <artifactId>joda-time</artifactId>
-            <scope>test</scope>
-            <version>2.10.2</version>
         </dependency>
 
         <dependency>

@@ -31,7 +31,7 @@
     <groupId>io.kyligence.ke</groupId>
     <artifactId>ke</artifactId>
     <packaging>pom</packaging>
-    <version>4.0.0-SNAPSHOT</version>
+    <version>4.5.9-SNAPSHOT</version>
 
     <name>Kyligence Enterprise</name>
     <url>https://kyligence.io</url>
@@ -290,10 +290,12 @@
         <clickhouse-jdbc.version>0.2.4</clickhouse-jdbc.version>
         <clickhouse.group>ru.yandex.clickhouse</clickhouse.group>
         <clickhouse.artifact>clickhouse-jdbc</clickhouse.artifact>
+
+        <external.version>4.5.8</external.version>
     </properties>
 
     <modules>
-        <module>src/external</module>
+        <!--<module>src/external</module>-->
         <module>src/core-job</module>
         <module>src/core-storage</module>
         <module>src/query</module>
@@ -322,24 +324,24 @@
         <module>src/second-storage/clickhouse</module>
         <module>src/second-storage/clickhouse-it</module>
         <!-- yinglong modules -->
-        <module>src/yinglong-enterprise-core-metadata</module>
-        <module>src/yinglong-systools</module>
+        <module>src/ke-enterprise-core-metadata</module>
+        <module>src/ke-systools</module>
         <!-- yinglong service -->
-        <module>src/yinglong-modeling-service</module>
-        <module>src/yinglong-smart-service</module>
-        <module>src/yinglong-query-service</module>
-        <module>src/yinglong-datasource-service</module>
-        <module>src/yinglong-build-service</module>
-        <module>src/yinglong-common-service</module>
-        <module>src/yinglong-job-service</module>
-        <module>src/yinglong-streaming-service</module>
-        <module>src/yinglong-enterprise-service</module>
-        <module>src/yinglong-integration-service</module>
+        <module>src/ke-modeling-service</module>
+        <module>src/ke-smart-service</module>
+        <module>src/ke-query-service</module>
+        <module>src/ke-datasource-service</module>
+        <module>src/ke-build-service</module>
+        <module>src/ke-common-service</module>
+        <module>src/ke-job-service</module>
+        <module>src/ke-streaming-service</module>
+        <module>src/ke-enterprise-service</module>
+        <module>src/ke-integration-service</module>
         <!-- yinglong server (starter) -->
-        <module>src/yinglong-metadata-server</module>
-        <module>src/yinglong-data-loading-server</module>
-        <module>src/yinglong-smart-server</module>
-        <module>src/yinglong-query-server</module>
+        <module>src/ke-metadata-server</module>
+        <module>src/ke-data-loading-server</module>
+        <module>src/ke-smart-server</module>
+        <module>src/ke-query-server</module>
     </modules>
 
     <dependencyManagement>
@@ -348,7 +350,7 @@
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-external</artifactId>
-                <version>${project.version}</version>
+                <version>${external.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
@@ -403,18 +405,28 @@
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-external-curator</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-external-guava20</artifactId>
-                <version>${project.version}</version>
+                <version>${external.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-external-curator-test</artifactId>
-                <version>${project.version}</version>
+                <version>${external.version}</version>
                 <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.ke</groupId>
+                <artifactId>kap-external-guava20</artifactId>
+                <version>${external.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.ke</groupId>
+                <artifactId>kap-external-influxdb</artifactId>
+                <version>${external.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.ke</groupId>
+                <artifactId>kap-external-swagger</artifactId>
+                <version>${external.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
@@ -443,58 +455,58 @@
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.yinglong</groupId>
-                <artifactId>yinglong-common-service</artifactId>
+                <groupId>io.kyligence.ke</groupId>
+                <artifactId>ke-common-service</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.yinglong</groupId>
-                <artifactId>yinglong-build-service</artifactId>
+                <groupId>io.kyligence.ke</groupId>
+                <artifactId>ke-build-service</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.yinglong</groupId>
-                <artifactId>yinglong-datasource-service</artifactId>
+                <groupId>io.kyligence.ke</groupId>
+                <artifactId>ke-datasource-service</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.yinglong</groupId>
-                <artifactId>yinglong-enterprise-service</artifactId>
+                <groupId>io.kyligence.ke</groupId>
+                <artifactId>ke-enterprise-service</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.yinglong</groupId>
-                <artifactId>yinglong-job-service</artifactId>
+                <groupId>io.kyligence.ke</groupId>
+                <artifactId>ke-job-service</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.yinglong</groupId>
-                <artifactId>yinglong-modeling-service</artifactId>
+                <groupId>io.kyligence.ke</groupId>
+                <artifactId>ke-modeling-service</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.yinglong</groupId>
-                <artifactId>yinglong-query-service</artifactId>
+                <groupId>io.kyligence.ke</groupId>
+                <artifactId>ke-query-service</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.yinglong</groupId>
-                <artifactId>yinglong-smart-service</artifactId>
+                <groupId>io.kyligence.ke</groupId>
+                <artifactId>ke-smart-service</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.yinglong</groupId>
-                <artifactId>yinglong-streaming-service</artifactId>
+                <groupId>io.kyligence.ke</groupId>
+                <artifactId>ke-streaming-service</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.yinglong</groupId>
-                <artifactId>yinglong-systools</artifactId>
+                <groupId>io.kyligence.ke</groupId>
+                <artifactId>ke-systools</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.yinglong</groupId>
-                <artifactId>yinglong-integration-service</artifactId>
+                <groupId>io.kyligence.ke</groupId>
+                <artifactId>ke-integration-service</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -553,7 +565,7 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
-                <artifactId>yinglong-enterprise-core-metadata</artifactId>
+                <artifactId>ke-enterprise-core-metadata</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -597,6 +609,21 @@
                 <artifactId>metrics-core</artifactId>
                 <version>${dropwizard.version}</version>
             </dependency>
+            <dependency>
+                <groupId>io.dropwizard.metrics</groupId>
+                <artifactId>metrics-jvm</artifactId>
+                <version>${dropwizard.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.dropwizard.metrics</groupId>
+                <artifactId>metrics-json</artifactId>
+                <version>${dropwizard.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.dropwizard.metrics</groupId>
+                <artifactId>metrics-jmx</artifactId>
+                <version>${dropwizard.version}</version>
+            </dependency>
 
             <!-- Redis -->
             <dependency>
@@ -613,8 +640,8 @@
                 <type>test-jar</type>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.yinglong</groupId>
-                <artifactId>yinglong-datasource-service</artifactId>
+                <groupId>io.kyligence.ke</groupId>
+                <artifactId>ke-datasource-service</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
             </dependency>
@@ -626,7 +653,7 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
-                <artifactId>yinglong-enterprise-core-metadata</artifactId>
+                <artifactId>ke-enterprise-core-metadata</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
             </dependency>
@@ -661,8 +688,8 @@
                 <type>test-jar</type>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.yinglong</groupId>
-                <artifactId>yinglong-common-service</artifactId>
+                <groupId>io.kyligence.ke</groupId>
+                <artifactId>ke-common-service</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
             </dependency>
@@ -1729,7 +1756,12 @@
                 <artifactId>opencsv</artifactId>
                 <version>${opencsv.version}</version>
             </dependency>
-
+            <dependency>
+                <groupId>joda-time</groupId>
+                <artifactId>joda-time</artifactId>
+                <scope>test</scope>
+                <version>2.10.2</version>
+            </dependency>
 
             <!-- Spring Core -->
             <dependency>
@@ -2568,6 +2600,36 @@
                     <configuration>
                         <includePom>true</includePom>
                     </configuration>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-source-plugin</artifactId>
+                    <executions>
+                        <execution>
+                            <id>attach-sources</id>
+                            <phase>deploy</phase>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-javadoc-plugin</artifactId>
+                    <executions>
+                        <execution>
+                            <id>attach-javadocs</id>
+                            <phase>deploy</phase>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-deploy-plugin</artifactId>
+                    <executions>
+                        <execution>
+                            <id>deploy</id>
+                            <phase>deploy</phase>
+                            <goals>
+                                <goal>deploy</goal>
+                            </goals>
+                        </execution>
+                    </executions>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
