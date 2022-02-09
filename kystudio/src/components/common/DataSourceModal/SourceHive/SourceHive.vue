@@ -33,7 +33,7 @@
         <div class="empty" v-if="!loadingTreeData && treeData.length===0">
           <p class="empty-text" v-html="emptyText"></p>
         </div>
-        <p class="ksd-right refreshNow" :class="{'isRefresh': reloadHiveTablesStatus.isRunning || hasClickRefreshBtn}" v-if="loadHiveTableNameEnabled === 'true'">{{$t('refreshText')}} <a href="javascript:;" @click="refreshHive(true)">{{refreshBtnText}}</a></p>
+        <p class="ksd-right refreshNow" :class="{'isRefresh': reloadHiveTablesStatus.isRunning || hasClickRefreshBtn}" v-if="loadHiveTableNameEnabled === 'true'">{{$t('refreshText')}} <a href="javascript:;" @click="refreshHive(true)" v-if="!(reloadHiveTablesStatus.isRunning || hasClickRefreshBtn)">{{$t('refreshNow')}}</a><span v-else class="el-ksd-icon-loading_22"></span></p>
       </div>
     </div>
     <div class="content" :style="contentStyle">
@@ -249,9 +249,9 @@ export default class SourceHive extends Vue {
   get emptyText () {
     return this.filterText ? this.$t('kylinLang.common.noResults') : this.$t('noSourceData')
   }
-  get refreshBtnText () {
-    return this.reloadHiveTablesStatus.isRunning || this.hasClickRefreshBtn ? this.$t('refreshIng') : this.$t('refreshNow')
-  }
+  // get refreshBtnText () {
+  //   return this.reloadHiveTablesStatus.isRunning || this.hasClickRefreshBtn ? this.$t('refreshIng') : this.$t('refreshNow')
+  // }
 
   get databaseOptions () {
     return this.treeData.map(database => ({
