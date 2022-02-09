@@ -37,7 +37,7 @@
     <parent>
         <groupId>io.kyligence.ke</groupId>
         <artifactId>ke</artifactId>
-        <version>4.5.9-SNAPSHOT</version>
+        <version>4.0.0-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
