@@ -66,12 +66,11 @@ public class UserRequest implements UserInsensitiveRequest {
         }
         if (!StringUtils.isEmpty(password))
             managedUser.setPassword(password);
-
-        if (authorities.stream().anyMatch(authority -> DISABLED_ROLE.equals(authority))) {
-            managedUser.setDisabled(true);
-            authorities.remove(DISABLED_ROLE);
-        }
         if (authorities != null && !authorities.isEmpty()) {
+            if (authorities.stream().anyMatch(authority -> DISABLED_ROLE.equals(authority))) {
+                managedUser.setDisabled(true);
+                authorities.remove(DISABLED_ROLE);
+            }
             List<SimpleGrantedAuthority> authorities = this.authorities.stream().map(SimpleGrantedAuthority::new)
                     .collect(Collectors.toList());
             if (!authorities.contains(DEFAULT_GROUP)) {
