@@ -380,7 +380,7 @@ public class AclTCRManager {
 
             final Map<String, String> columnType = Optional.ofNullable(tableDesc.getColumns()).map(Arrays::stream)
                     .orElseGet(Stream::empty)
-                    .map(columnDesc -> new AbstractMap.SimpleEntry<>(columnDesc.getName(), columnDesc.getTypeName()))
+                    .map(columnDesc -> new AbstractMap.SimpleEntry<>(columnDesc.getName().toUpperCase(), columnDesc.getTypeName()))
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
             List<String> conditions = principals.stream().map(p -> {
@@ -454,7 +454,7 @@ public class AclTCRManager {
                 }
 
                 result.append("(");
-                String type = Preconditions.checkNotNull(columnType.get(columnName),
+                String type = Preconditions.checkNotNull(columnType.get(StringUtils.upperCase(columnName)),
                         "Column:" + columnName + " type not found");
                 if (CollectionUtils.isNotEmpty(filterItems.getInItems())) {
                     result.append(columnName).append(" in (")
