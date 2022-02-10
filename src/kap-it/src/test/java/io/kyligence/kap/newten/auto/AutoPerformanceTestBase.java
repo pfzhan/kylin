@@ -45,9 +45,9 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
 
-public class NAutoPerformanceTestBase extends NAutoTestBase {
+public class AutoPerformanceTestBase extends AutoTestBase {
 
-    protected static final Logger logger = LoggerFactory.getLogger(NAutoPerformanceTestBase.class);
+    protected static final Logger logger = LoggerFactory.getLogger(AutoPerformanceTestBase.class);
     private static final String SOAK_SQL_DIR = "../kap-it/src/test/resources/query_for_soak_test";
 
     @Override
@@ -63,20 +63,20 @@ public class NAutoPerformanceTestBase extends NAutoTestBase {
     }
 
     public ProposeStats testWithBadQueries(int round, int factor) throws Exception {
-        List<String> sqlList = collectQueries(//
+        List<String> sqlList = collectQueries(Lists.newArrayList(//
                 new TestScenario("s_common"), //
                 new TestScenario("m_tpch"), //
                 new TestScenario("l_sinai"), //
-                new TestScenario("invalid"));
+                new TestScenario("invalid")));
         return batchPropose(sqlList, factor, round);
     }
 
     public void testWithBadQueriesOneByOne(int round) throws Exception {
-        List<String> sqlList = collectQueries(//
+        List<String> sqlList = collectQueries(Lists.newArrayList(//
                 new TestScenario("s_common"), //
                 new TestScenario("m_tpch"), //
                 new TestScenario("l_sinai"), //
-                new TestScenario("invalid"));
+                new TestScenario("invalid")));
         for (int i = 0; i < round; i++) {
             proposeOneByOne(sqlList);
         }

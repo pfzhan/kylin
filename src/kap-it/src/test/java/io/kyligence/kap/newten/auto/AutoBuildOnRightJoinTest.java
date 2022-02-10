@@ -39,7 +39,7 @@ import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.utils.AccelerationContextUtil;
 
-public class NAutoBuildOnRightJoinTest extends NAutoTestBase {
+public class AutoBuildOnRightJoinTest extends AutoTestBase {
 
     @Test
     public void testRightJoin() throws Exception {
@@ -80,7 +80,7 @@ public class NAutoBuildOnRightJoinTest extends NAutoTestBase {
         smartMaster.runUtWithContext(null);
         context.saveMetadata();
         AccelerationContextUtil.onlineModel(context);
-        buildAllCubes(kylinConfig, getProject());
+        buildAllModels(kylinConfig, getProject());
 
         // query
         QueryResult queryResult = new QueryExec(getProject(), KylinConfig.getInstanceFromEnv())

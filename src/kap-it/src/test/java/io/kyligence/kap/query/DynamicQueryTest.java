@@ -32,13 +32,13 @@ import org.apache.kylin.common.KylinConfig;
 import org.junit.Assert;
 import org.junit.Test;
 
-import io.kyligence.kap.newten.auto.NAutoTestBase;
+import io.kyligence.kap.newten.auto.AutoTestBase;
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.utils.AccelerationContextUtil;
 import lombok.val;
 
-public class DynamicQueryTest extends NAutoTestBase {
+public class DynamicQueryTest extends AutoTestBase {
     private static final String PROJECT = "newten";
 
     @Test
@@ -79,7 +79,7 @@ public class DynamicQueryTest extends NAutoTestBase {
         smartMaster.runUtWithContext(null);
         smartContext.saveMetadata();
         AccelerationContextUtil.onlineModel(smartContext);
-        buildAllCubes(KylinConfig.getInstanceFromEnv(), PROJECT);
+        buildAllModels(KylinConfig.getInstanceFromEnv(), PROJECT);
     }
 
     @Test

@@ -41,7 +41,7 @@ import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.utils.AccelerationContextUtil;
 import lombok.val;
 
-public class NCorruptMetadataTest extends NAutoTestBase {
+public class CorruptMetadataTest extends AutoTestBase {
 
     @Test
     public void testIndexMissingDimension() {

@@ -41,6 +41,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.math.RandomUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -495,9 +496,9 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
 
         // build 2 segment
         List<LayoutEntity> layouts = df.getIndexPlan().getAllLayouts();
-        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2010-01-01"),
+        indexDataConstructor.buildIndex(dfName, new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2010-01-01"),
                 SegmentRange.dateToLong("2012-06-01")), Sets.newLinkedHashSet(layouts), true);
-        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2012-06-01"),
+        indexDataConstructor.buildIndex(dfName, new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2012-06-01"),
                 SegmentRange.dateToLong("2013-01-01")), Sets.newLinkedHashSet(layouts), true);
 
         // merge segment
@@ -507,7 +508,7 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
         NSparkMergingJob mergeJob = NSparkMergingJob.merge(mergeSeg, Sets.newLinkedHashSet(layouts), "ADMIN",
                 RandomUtil.randomUUIDStr());
         execMgr.addJob(mergeJob);
-        Assert.assertEquals(ExecutableState.SUCCEED, wait(mergeJob));
+        Assert.assertEquals(ExecutableState.SUCCEED, IndexDataConstructor.wait(mergeJob));
         val merger = new AfterMergeOrRefreshResourceMerger(config, getProject());
         merger.merge(mergeJob.getSparkMergingStep());
 
@@ -792,7 +793,7 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
         // launch the job
         execMgr.addJob(job);
 
-        Assert.assertEquals(ExecutableState.SUCCEED, wait(job));
+        Assert.assertEquals(ExecutableState.SUCCEED, IndexDataConstructor.wait(job));
 
         val buildStore = ExecutableUtils.getRemoteStore(config, job.getSparkCubingStep());
         AfterBuildResourceMerger merger = new AfterBuildResourceMerger(config, getProject());

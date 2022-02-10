@@ -207,7 +207,7 @@ public class ToManyTest extends SemiAutoTestBase {
         Assert.assertEquals(2, allLayouts.size());
 
         // build indexes
-        buildAllCubes(getTestConfig(), getProject());
+        buildAllModels(getTestConfig(), getProject());
 
         dumpMetadata();
 
@@ -272,7 +272,7 @@ public class ToManyTest extends SemiAutoTestBase {
         });
 
         // build indexes
-        buildAllCubes(getTestConfig(), getProject());
+        buildAllModels(getTestConfig(), getProject());
 
         // query and assert
         List<Pair<String, String>> queryList = Lists.newArrayList();
@@ -340,7 +340,7 @@ public class ToManyTest extends SemiAutoTestBase {
         });
 
         // build indexes
-        buildAllCubes(getTestConfig(), getProject());
+        buildAllModels(getTestConfig(), getProject());
 
         // query and assert
         List<Pair<String, String>> queryList = Lists.newArrayList();
@@ -393,7 +393,7 @@ public class ToManyTest extends SemiAutoTestBase {
         });
 
         // build indexes
-        buildAllCubes(getTestConfig(), getProject());
+        buildAllModels(getTestConfig(), getProject());
 
         // query and assert
         List<Pair<String, String>> queryList = Lists.newArrayList();

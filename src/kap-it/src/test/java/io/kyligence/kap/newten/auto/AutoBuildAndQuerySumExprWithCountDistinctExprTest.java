@@ -43,9 +43,9 @@ import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class NAutoBuildAndQuerySumExprWithCountDistinctExprTest extends NAutoTestBase {
+public class AutoBuildAndQuerySumExprWithCountDistinctExprTest extends AutoTestBase {
 
-    public static void fullBuildAllCube(String dfName, String prj) throws Exception {
+    private void fullBuildAllCube(String dfName, String prj) throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, prj);
         Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));
@@ -58,8 +58,7 @@ public class NAutoBuildAndQuerySumExprWithCountDistinctExprTest extends NAutoTes
         df = dsMgr.getDataflow(dfName);
         List<LayoutEntity> layouts = df.getIndexPlan().getAllLayouts();
         List<LayoutEntity> round1 = Lists.newArrayList(layouts);
-        buildCuboid(dfName, SegmentRange.TimePartitionedSegmentRange.createInfinite(), Sets.newLinkedHashSet(round1),
-                prj, true);
+        indexDataConstructor.buildIndex(dfName, SegmentRange.TimePartitionedSegmentRange.createInfinite(), Sets.newLinkedHashSet(round1), true);
     }
 
     @Test
@@ -68,7 +67,10 @@ public class NAutoBuildAndQuerySumExprWithCountDistinctExprTest extends NAutoTes
         fullBuildAllCube(modelId, getProject());
         excludedSqlPatterns.addAll(loadWhiteListPatterns());
         overwriteSystemProp("kylin.query.convert-sum-expression-enabled", "TRUE");
-        executeTestScenario(new TestScenario(CompareLevel.SAME, "query/sql_sum_expr_with_count_distinct_expr"));
+        executeTestScenario(BuildAndCompareContext.builder() //
+                .testScenario(new TestScenario(CompareLevel.SAME, "query/sql_sum_expr_with_count_distinct_expr")) //
+                .isCompareLayout(false) //
+                .build());
     }
 
     @Override

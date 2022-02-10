@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.util.Set;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -101,7 +102,7 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
         execMgr.addJob(job);
 
         // wait job done
-        ExecutableState status = wait(job);
+        ExecutableState status = IndexDataConstructor.wait(job);
         Assert.assertEquals(ExecutableState.SUCCEED, status);
 
         String sql = "select * from EDW.TEST_SELLER_TYPE_DIM";
@@ -136,7 +137,7 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
         Assert.assertTrue(distMetaUrl.getParameter("path").startsWith(config.getHdfsWorkingDirectory()));
 
         // wait job done
-        ExecutableState status = wait(job);
+        ExecutableState status = IndexDataConstructor.wait(job);
         Assert.assertEquals(ExecutableState.SUCCEED, status);
 
         ResourceStore remoteResource = ExecutableUtils.getRemoteStore(config, job.getSnapshotBuildingStep());
@@ -182,7 +183,7 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
         Assert.assertTrue(distMetaUrl.getParameter("path").startsWith(config.getHdfsWorkingDirectory()));
 
         // wait job done
-        ExecutableState status = wait(job);
+        ExecutableState status = IndexDataConstructor.wait(job);
         Assert.assertEquals(ExecutableState.SUCCEED, status);
 
         String snapshotPath = tableManager.getTableDesc(tableName).getLastSnapshotPath();
@@ -226,7 +227,7 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
         Assert.assertTrue(distMetaUrl.getParameter("path").startsWith(config.getHdfsWorkingDirectory()));
 
         // wait job done
-        ExecutableState status = wait(job);
+        ExecutableState status = IndexDataConstructor.wait(job);
         Assert.assertEquals(ExecutableState.SUCCEED, status);
 
         String snapshotPath = tableManager.getTableDesc(tableName).getLastSnapshotPath();
@@ -268,7 +269,7 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
         Assert.assertTrue(distMetaUrl.getParameter("path").startsWith(config.getHdfsWorkingDirectory()));
 
         // wait job done
-        ExecutableState status = wait(job);
+        ExecutableState status = IndexDataConstructor.wait(job);
         Assert.assertEquals(ExecutableState.SUCCEED, status);
 
         ResourceStore remoteResource = ExecutableUtils.getRemoteStore(config, job.getSnapshotBuildingStep());

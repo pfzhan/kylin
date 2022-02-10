@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import static io.kyligence.kap.clickhouse.ClickHouseConstants.CONFIG_CLICKHOUSE_QUERY_CATALOG;
 import io.kyligence.kap.common.util.Unsafe;
+import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.newten.NExecAndComp;
@@ -106,7 +107,7 @@ public class QueryRouteTest {
             Unsafe.setProperty(CONFIG_CLICKHOUSE_QUERY_CATALOG, queryCatalog);
 
             //build
-            NLocalWithSparkSessionTest.fullBuildAllCube(cubeName, project);
+            new IndexDataConstructor(project).buildDataflow(cubeName);
             NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             Assert.assertEquals(1, SecondStorageUtil.setSecondStorageSizeInfo(modelManager.listAllModels()).size());
 
@@ -192,7 +193,7 @@ public class QueryRouteTest {
             Unsafe.setProperty(CONFIG_CLICKHOUSE_QUERY_CATALOG, queryCatalog);
 
             //build
-            NLocalWithSparkSessionTest.fullBuildAllCube(cubeName, project);
+            new IndexDataConstructor(project).buildDataflow(cubeName);
             NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             Assert.assertEquals(3, SecondStorageUtil.setSecondStorageSizeInfo(modelManager.listAllModels()).size());
 

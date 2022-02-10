@@ -24,13 +24,17 @@
 
 package io.kyligence.kap.newten.auto;
 
-import org.apache.kylin.common.KylinConfig;
 import org.junit.Ignore;
 import org.junit.Test;
 
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
 
-public class NAutoTdvtTest extends NAutoTestBase {
+/**
+ * copied from NAutoTdvtTest
+ * this test case is used to debug a customer's project
+ */
+@Ignore("this test case is for debug purpose")
+public class AutoDebugTest extends AutoTestBase {
 
     @Override
     public String getProject() {
@@ -39,33 +43,7 @@ public class NAutoTdvtTest extends NAutoTestBase {
 
     @Test
     public void testTdvt() throws Exception {
-        if ("true".equals(System.getProperty("runDailyUT"))) { // -DrunNonCompareTdvt=true
-            new TestScenario(CompareLevel.NONE, "sql_tdvt").execute();
-        }
+        new TestScenario(CompareLevel.NONE, "sql_tdvt").execute();
     }
 
-    @Test
-    public void testSameLevelOfTdvt() throws Exception {
-        new TestScenario(CompareLevel.SAME, "sql_tdvt/same_level").execute();
-    }
-
-    @Ignore("blocked by KE-30323")
-    @Test
-    public void testDateFamily() throws Exception {
-        KylinConfig.getInstanceFromEnv().setProperty("kylin.query.calcite.extras-props.conformance", "LENIENT");
-        new TestScenario(CompareLevel.SAME_WITH_DEVIATION_ALLOWED, "sql_tdvt/sql_datefamily").execute();
-    }
-
-    @Test
-    public void testNestedSelectStar() throws Exception {
-        new TestScenario(CompareLevel.SAME, "sql_tdvt/nested_select_star").execute();
-    }
-
-    @Ignore("for testing")
-    @Test
-    public void test() throws Exception {
-        KylinConfig.getInstanceFromEnv().setProperty("kylin.query.calcite.extras-props.conformance", "DEFAULT");
-        overwriteSystemProp("calcite.debug", "true");
-        new TestScenario(CompareLevel.SAME, "query/temp").execute();
-    }
 }

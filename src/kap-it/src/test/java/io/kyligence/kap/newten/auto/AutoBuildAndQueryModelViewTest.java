@@ -33,7 +33,7 @@ import lombok.val;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class NAutoBuildAndQueryModelViewTest extends NAutoTestBase {
+public class AutoBuildAndQueryModelViewTest extends AutoTestBase {
 
     @Test
     public void test() {

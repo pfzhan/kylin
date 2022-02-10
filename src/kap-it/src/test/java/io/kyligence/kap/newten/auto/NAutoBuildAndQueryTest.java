@@ -26,7 +26,6 @@ package io.kyligence.kap.newten.auto;
 
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
@@ -36,13 +35,14 @@ import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import com.google.common.base.Throwables;
-import com.google.common.collect.Sets;
-
+import io.kyligence.kap.guava20.shaded.common.base.Throwables;
+import io.kyligence.kap.guava20.shaded.common.collect.Lists;
+import io.kyligence.kap.guava20.shaded.common.collect.Sets;
+import io.kyligence.kap.metadata.favorite.FavoriteRule;
+import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.newten.NExecAndComp;
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
-import io.kyligence.kap.utils.RecAndQueryCompareUtil;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -53,7 +53,7 @@ import lombok.extern.slf4j.Slf4j;
  *
  */
 @Slf4j
-public class NAutoBuildAndQueryTest extends NAutoTestBase {
+public class NAutoBuildAndQueryTest extends AutoTestBase {
 
     @Test
     public void testSumExpr() throws Exception {
@@ -63,7 +63,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
         overwriteSystemProp("kylin.query.convert-sum-expression-enabled", "TRUE");
 
-        executeTestScenario(new TestScenario(CompareLevel.SAME, "query/sql_sum_expr"));
+        new TestScenario(CompareLevel.SAME, "query/sql_sum_expr").execute();
     }
 
     @Test
@@ -71,22 +71,22 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         overwriteSystemProp("kylin.query.convert-sum-expression-enabled", "TRUE");
         overwriteSystemProp("kylin.query.convert-count-distinct-expression-enabled", "TRUE");
 
-        executeTestScenario(new TestScenario(CompareLevel.SAME, "query/sql_count_distinct_expr"));
+        new TestScenario(CompareLevel.SAME, "query/sql_count_distinct_expr").execute();
     }
 
     @Test
     public void testDimensionAsMeasure() throws Exception {
         updateProjectConfig("kylin.query.implicit-computed-column-convert", "FALSE");
-        executeTestScenario(new TestScenario(CompareLevel.SAME, "query/sql_dimension_as_measure"));
+        new TestScenario(CompareLevel.SAME, "query/sql_dimension_as_measure").execute();
 
         updateProjectConfig("kylin.query.implicit-computed-column-convert", "FALSE");
         updateProjectConfig("kylin.query.convert-sum-expression-enabled", "TRUE");
-        executeTestScenario(new TestScenario(CompareLevel.SAME, "query/sql_dimension_as_measure"));
+        new TestScenario(CompareLevel.SAME, "query/sql_dimension_as_measure").execute();
 
         updateProjectConfig("kylin.query.implicit-computed-column-convert", "FALSE");
         updateProjectConfig("kylin.query.convert-sum-expression-enabled", "FALSE");
         updateProjectConfig("kylin.query.convert-count-distinct-expression-enabled", "TRUE");
-        executeTestScenario(new TestScenario(CompareLevel.SAME, "query/sql_dimension_as_measure"));
+        new TestScenario(CompareLevel.SAME, "query/sql_dimension_as_measure").execute();
     }
 
     @Test
@@ -186,7 +186,13 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         overwriteSystemProp("kylin.query.non-equi-join-model-enabled", "TRUE");
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
 
-        executeTestScenarioWithExcludeTable(2, new TestScenario(CompareLevel.SAME, "query/h2"));
+        executeTestScenario(BuildAndCompareContext.builder().expectModelNum(2)
+                .testScenarios(Lists.newArrayList(new TestScenario(CompareLevel.SAME, "query/h2"))).extension(df -> {
+                    FavoriteRuleManager ruleManager = FavoriteRuleManager.getInstance(kylinConfig, getProject());
+                    List<FavoriteRule.AbstractCondition> conds = Lists.newArrayList();
+                    conds.add(new FavoriteRule.Condition(null, df.getModel().getRootFactTableName()));
+                    ruleManager.updateRule(conds, true, FavoriteRule.EXCLUDED_TABLES_RULE);
+                }).build());
     }
 
     @Test
@@ -291,7 +297,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
     @Test
     public void testQueryForPreparedMetadata() throws Exception {
         TestScenario scenario = new TestScenario(CompareLevel.SAME_ROWCOUNT, "query/temp");
-        collectQueries(scenario);
+        collectQueries(Lists.newArrayList(scenario));
         List<Pair<String, String>> queries = scenario.getQueries();
         populateSSWithCSVData(kylinConfig, getProject(), SparderEnv.getSparkSession());
         NExecAndComp.execAndCompareNew(queries, getProject(), scenario.getCompareLevel(),
@@ -401,15 +407,6 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
     public void testConformance() throws Exception {
         overwriteSystemProp("kylin.query.calcite.extras-props.conformance", "LENIENT");
         new TestScenario(CompareLevel.SAME, "query/sql_conformance").execute();
-    }
-
-    @Override
-    protected Map<String, RecAndQueryCompareUtil.CompareEntity> executeTestScenario(TestScenario... tests)
-            throws Exception {
-        if ("true".equals(System.getProperty("skipAutoModelingCI"))) { // -DskipAutoModelingCI=true
-            return null;
-        }
-        return super.executeTestScenario(tests);
     }
 
     @Test

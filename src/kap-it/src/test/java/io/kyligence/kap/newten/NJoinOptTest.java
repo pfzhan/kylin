@@ -101,7 +101,7 @@ public class NJoinOptTest extends NLocalWithSparkSessionTest {
     @Test
     public void testShardJoinInOneSeg() throws Exception {
         overwriteSystemProp("kylin.storage.columnar.shard-rowcount", "100");
-        fullBuildCube("8c670664-8d05-466a-802f-83c023b56c77", getProject());
+        fullBuild("8c670664-8d05-466a-802f-83c023b56c77");
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
         // calcite will transform this "in" to join
         val sql1 = "select count(*) from TEST_KYLIN_FACT where SELLER_ID in (select SELLER_ID from TEST_KYLIN_FACT group by SELLER_ID)";

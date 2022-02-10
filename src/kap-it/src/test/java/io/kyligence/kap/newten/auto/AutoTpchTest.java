@@ -43,7 +43,7 @@ import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
 import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 
-public class NAutoTpchTest extends NAutoTestBase {
+public class AutoTpchTest extends AutoTestBase {
 
     //KAP#7892 fix this
     @Test
@@ -70,8 +70,8 @@ public class NAutoTpchTest extends NAutoTestBase {
         // 1st round, recommend model with a single fact table
         NDataModelManager dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(),
                 getProject());
-        SmartMaster smartMaster1 = proposeWithSmartMaster(getProject(),
-                new TestScenario(CompareLevel.SAME, JoinType.LEFT, false, "sql_tpch/sql_tpch_reprosal/", 0, 1, null));
+        SmartMaster smartMaster1 = proposeWithSmartMaster(getProject(), Lists.newArrayList(
+                new TestScenario(CompareLevel.SAME, JoinType.LEFT, false, "sql_tpch/sql_tpch_reprosal/", 0, 1, null)));
         Assert.assertEquals(1, smartMaster1.getContext().getAccelerateInfoMap().size());
         Set<NDataModel> selectedDataModels1 = Sets.newHashSet();
         smartMaster1.getContext().getAccelerateInfoMap().forEach((s, accelerateInfo) -> {
@@ -84,8 +84,8 @@ public class NAutoTpchTest extends NAutoTestBase {
         JoinsGraph graph1 = proposedModel1.getJoinsGraph();
 
         // 2nd round, reuse the model and increase more Joins which is through accelerating 2 different olapCtx
-        SmartMaster smartMaster2 = proposeWithSmartMaster(getProject(),
-                new TestScenario(CompareLevel.SAME, JoinType.LEFT, false, "sql_tpch/sql_tpch_reprosal/", 1, 3, null));
+        SmartMaster smartMaster2 = proposeWithSmartMaster(getProject(), Lists.newArrayList(
+                new TestScenario(CompareLevel.SAME, JoinType.LEFT, false, "sql_tpch/sql_tpch_reprosal/", 1, 3, null)));
         Set<NDataModel> selectedDataModels2 = Sets.newHashSet();
         smartMaster2.getContext().getAccelerateInfoMap().forEach((s, accelerateInfo) -> {
             Assert.assertFalse(accelerateInfo.isFailed());
@@ -99,8 +99,8 @@ public class NAutoTpchTest extends NAutoTestBase {
         Assert.assertTrue(graph1.match(graph2, new HashMap<String, String>()));
 
         // 3rd round, accelerate a sql that its join info equaled with current model, so it won't change previous model
-        SmartMaster smartMaster3 = proposeWithSmartMaster(getProject(),
-                new TestScenario(CompareLevel.SAME, JoinType.LEFT, false, "sql_tpch/sql_tpch_reprosal/", 3, 4, null));
+        SmartMaster smartMaster3 = proposeWithSmartMaster(getProject(), Lists.newArrayList(
+                new TestScenario(CompareLevel.SAME, JoinType.LEFT, false, "sql_tpch/sql_tpch_reprosal/", 3, 4, null)));
         Set<NDataModel> selectedDataModels3 = Sets.newHashSet();
         smartMaster3.getContext().getAccelerateInfoMap().forEach((s, accelerateInfo) -> {
             Assert.assertFalse(accelerateInfo.isFailed());
@@ -118,14 +118,15 @@ public class NAutoTpchTest extends NAutoTestBase {
     @Test
     public void testBatchProposeSQLAndReuseInnerJoinModel() throws Exception {
         //1st round, propose initial model
-        SmartMaster smartMaster = proposeWithSmartMaster(getProject(), new TestScenario(CompareLevel.SAME, "sql_tpch"));
+        SmartMaster smartMaster = proposeWithSmartMaster(getProject(),
+                Lists.newArrayList(new TestScenario(CompareLevel.SAME, "sql_tpch")));
         NDataModel originModel = smartMaster.getContext().getModelContexts().stream()
                 .filter(ctx -> ctx.getTargetModel().getJoinTables().size() == 6).collect(Collectors.toList()).get(0)
                 .getTargetModel();
         JoinsGraph originJoinGragh = originModel.getJoinsGraph();
 
         SmartMaster smartMaster1 = proposeWithSmartMaster(getProject(),
-                new TestScenario(CompareLevel.SAME, "sql_tpch/sql_tpch_reprosal/", 3, 4));
+                Lists.newArrayList(new TestScenario(CompareLevel.SAME, "sql_tpch/sql_tpch_reprosal/", 3, 4)));
         AccelerateInfo accelerateInfo = smartMaster1.getContext().getAccelerateInfoMap().values()
                 .toArray(new AccelerateInfo[] {})[0];
         Assert.assertFalse(accelerateInfo.isFailed());

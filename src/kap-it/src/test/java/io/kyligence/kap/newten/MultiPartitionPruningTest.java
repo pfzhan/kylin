@@ -115,11 +115,11 @@ public class MultiPartitionPruningTest extends NLocalWithSparkSessionTest implem
         // segment1 [2009-01-01, 2011-01-01] partition value Others, ABIN, FP-non GTC
         // segment2 [2011-01-01, 2013-01-01] partition value Others, ABIN
         // segment3 [2013-01-01, 2015-01-01] partition value Others, ABIN, FP-GTC
-        buildMultiSegmentPartitions(dfName, "2009-01-01 00:00:00", "2011-01-01 00:00:00", Lists.newArrayList(10001L),
+        indexDataConstructor.buildMultiSegmentPartitions(dfName, "2009-01-01 00:00:00", "2011-01-01 00:00:00", Lists.newArrayList(10001L),
                 Lists.newArrayList(0L, 1L, 2L));
-        buildMultiSegmentPartitions(dfName, "2011-01-01 00:00:00", "2013-01-01 00:00:00", Lists.newArrayList(10001L),
+        indexDataConstructor.buildMultiSegmentPartitions(dfName, "2011-01-01 00:00:00", "2013-01-01 00:00:00", Lists.newArrayList(10001L),
                 Lists.newArrayList(0L, 1L));
-        buildMultiSegmentPartitions(dfName, "2013-01-01 00:00:00", "2015-01-01 00:00:00", Lists.newArrayList(10001L),
+        indexDataConstructor.buildMultiSegmentPartitions(dfName, "2013-01-01 00:00:00", "2015-01-01 00:00:00", Lists.newArrayList(10001L),
                 Lists.newArrayList(0L, 1L, 3L));
 
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
@@ -186,11 +186,11 @@ public class MultiPartitionPruningTest extends NLocalWithSparkSessionTest implem
         // segment1 [2009-01-01, 2011-01-01] partition value 0, 2, 3
         // segment2 [2011-01-01, 2013-01-01] partition value 0, 2
         // segment3 [2013-01-01, 2015-01-01] partition value 0, 2, 15
-        buildMultiSegmentPartitions(dfName, "2009-01-01 00:00:00", "2011-01-01 00:00:00", Lists.newArrayList(10001L),
+        indexDataConstructor.buildMultiSegmentPartitions(dfName, "2009-01-01 00:00:00", "2011-01-01 00:00:00", Lists.newArrayList(10001L),
                 Lists.newArrayList(0L, 1L, 2L));
-        buildMultiSegmentPartitions(dfName, "2011-01-01 00:00:00", "2013-01-01 00:00:00", Lists.newArrayList(10001L),
+        indexDataConstructor.buildMultiSegmentPartitions(dfName, "2011-01-01 00:00:00", "2013-01-01 00:00:00", Lists.newArrayList(10001L),
                 Lists.newArrayList(0L, 1L));
-        buildMultiSegmentPartitions(dfName, "2013-01-01 00:00:00", "2015-01-01 00:00:00", Lists.newArrayList(10001L),
+        indexDataConstructor.buildMultiSegmentPartitions(dfName, "2013-01-01 00:00:00", "2015-01-01 00:00:00", Lists.newArrayList(10001L),
                 Lists.newArrayList(0L, 1L, 3L));
 
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
@@ -255,11 +255,11 @@ public class MultiPartitionPruningTest extends NLocalWithSparkSessionTest implem
         // segment1 [2009-01-01, 2011-01-01] partition value 2010-01-01, 2011-01-01
         // segment2 [2011-01-01, 2013-01-01] partition value 2011-01-01, 2012-01-01, 2013-01-01
         // segment3 [2013-01-01, 2015-01-01] partition value 2012-01-01, 2013-01-01, 2014-01-01
-        buildMultiSegmentPartitions(dfName, "2009-01-01 00:00:00", "2011-01-01 00:00:00", Lists.newArrayList(10001L),
+        indexDataConstructor.buildMultiSegmentPartitions(dfName, "2009-01-01 00:00:00", "2011-01-01 00:00:00", Lists.newArrayList(10001L),
                 Lists.newArrayList(0L, 1L));
-        buildMultiSegmentPartitions(dfName, "2011-01-01 00:00:00", "2013-01-01 00:00:00", Lists.newArrayList(10001L),
+        indexDataConstructor.buildMultiSegmentPartitions(dfName, "2011-01-01 00:00:00", "2013-01-01 00:00:00", Lists.newArrayList(10001L),
                 Lists.newArrayList(1L, 2L, 3L));
-        buildMultiSegmentPartitions(dfName, "2013-01-01 00:00:00", "2015-01-01 00:00:00", Lists.newArrayList(10001L),
+        indexDataConstructor.buildMultiSegmentPartitions(dfName, "2013-01-01 00:00:00", "2015-01-01 00:00:00", Lists.newArrayList(10001L),
                 Lists.newArrayList(2L, 3L, 4L));
 
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
@@ -342,11 +342,11 @@ public class MultiPartitionPruningTest extends NLocalWithSparkSessionTest implem
         // segment1 [2009-01-01, 2011-01-01] partition value 2010-01-01 00:56:38, 2010-01-01 04:03:59
         // segment2 [2011-01-01, 2013-01-01] partition value 2010-01-01 04:03:59, 2010-01-01 08:16:36, 2010-01-02 14:24:50
         // segment3 [2013-01-01, 2015-01-01] partition value 2010-01-01 08:16:36, 2010-01-02 14:24:50, 2010-01-03 05:15:09
-        buildMultiSegmentPartitions(dfName, "2009-01-01 00:00:00", "2011-01-01 00:00:00", Lists.newArrayList(10001L),
+        indexDataConstructor.buildMultiSegmentPartitions(dfName, "2009-01-01 00:00:00", "2011-01-01 00:00:00", Lists.newArrayList(10001L),
                 Lists.newArrayList(0L, 1L));
-        buildMultiSegmentPartitions(dfName, "2011-01-01 00:00:00", "2013-01-01 00:00:00", Lists.newArrayList(10001L),
+        indexDataConstructor.buildMultiSegmentPartitions(dfName, "2011-01-01 00:00:00", "2013-01-01 00:00:00", Lists.newArrayList(10001L),
                 Lists.newArrayList(1L, 2L, 3L));
-        buildMultiSegmentPartitions(dfName, "2013-01-01 00:00:00", "2015-01-01 00:00:00", Lists.newArrayList(10001L),
+        indexDataConstructor.buildMultiSegmentPartitions(dfName, "2013-01-01 00:00:00", "2015-01-01 00:00:00", Lists.newArrayList(10001L),
                 Lists.newArrayList(2L, 3L, 4L));
 
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
@@ -427,9 +427,9 @@ public class MultiPartitionPruningTest extends NLocalWithSparkSessionTest implem
 
         // segment1 [2012-01-01, 2013-01-01] partition value FT, 中国
         // segment2 [2013-01-01, 2014-01-01] partition value 中国
-        buildMultiSegmentPartitions(dfName, "2012-01-01 00:00:00", "2013-01-01 00:00:00", Lists.newArrayList(100001L),
+        indexDataConstructor.buildMultiSegmentPartitions(dfName, "2012-01-01 00:00:00", "2013-01-01 00:00:00", Lists.newArrayList(100001L),
                 Lists.newArrayList(0L, 1L));
-        buildMultiSegmentPartitions(dfName, "2013-01-01 00:00:00", "2014-01-01 00:00:00", Lists.newArrayList(100001L),
+        indexDataConstructor.buildMultiSegmentPartitions(dfName, "2013-01-01 00:00:00", "2014-01-01 00:00:00", Lists.newArrayList(100001L),
                 Lists.newArrayList(0L, 1L));
 
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
@@ -456,9 +456,9 @@ public class MultiPartitionPruningTest extends NLocalWithSparkSessionTest implem
 
         // segment1 [2009-01-01, 2011-01-01] build all partitions
         // segment2 [2011-01-01, 2013-01-01] build all partitions
-        buildMultiSegmentPartitions(dfName, "2009-01-01 00:00:00", "2011-01-01 00:00:00",
+        indexDataConstructor.buildMultiSegmentPartitions(dfName, "2009-01-01 00:00:00", "2011-01-01 00:00:00",
                 Lists.newArrayList(10001L, 11001L), Lists.newArrayList(0L, 1L, 2L, 3L, 4L));
-        buildMultiSegmentPartitions(dfName, "2011-01-01 00:00:00", "2013-01-01 00:00:00",
+        indexDataConstructor.buildMultiSegmentPartitions(dfName, "2011-01-01 00:00:00", "2013-01-01 00:00:00",
                 Lists.newArrayList(10001L, 11001L), Lists.newArrayList(0L, 1L, 2L, 3L, 4L));
 
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());

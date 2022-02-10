@@ -58,7 +58,7 @@ public class CalciteDynamicTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testCalciteGroupByDynamicParam() throws Exception {
-        fullBuildCube("89af4ee2-2cdb-4b07-b39e-4c29856309aa", getProject());
+        fullBuild("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         populateSSWithCSVData(KylinConfig.getInstanceFromEnv(), getProject(), SparderEnv.getSparkSession());
         String sqlOrigin = "SELECT (case when 1=1 then SELLER_ID else TRANS_ID end) as id,  SUM(price) as PRICE\n"
                 + "FROM TEST_KYLIN_FACT\n" + "GROUP BY (case when 1=1 then SELLER_ID else TRANS_ID end) limit 5";

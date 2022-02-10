@@ -37,6 +37,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
+import lombok.val;
 
 @RequiredArgsConstructor
 @AllArgsConstructor
@@ -80,7 +81,18 @@ public class TempMetadataBuilder {
                     FileUtils.copyFile(new File(metaSrc, "kylin.properties"),
                             new File(tempTestMetadataDir, "kylin.properties"));
                 } else {
-                    FileUtils.copyDirectory(new File(metaSrc), new File(tempTestMetadataDir));
+                    FileUtils.copyDirectory(new File(metaSrc), new File(tempTestMetadataDir), pathname -> {
+                        if (pathname.isDirectory()) {
+                            return true;
+                        }
+                        try {
+                            val name = pathname.getCanonicalPath();
+                            return project == null || name.contains(project) || name.endsWith(".properties");
+                        } catch (IOException ignore) {
+                            // ignore it
+                        }
+                        return false;
+                    }, true);
                 }
             }
 

@@ -72,7 +72,7 @@ public class ReuseFlatTableTest extends NLocalWithSparkSessionTest {
     @Test
     public void testReuseFlatTable() throws Exception {
         String dfID = "75080248-367e-4bac-9fd7-322517ee0227";
-        fullBuildCube(dfID, getProject());
+        fullBuild(dfID);
         NDataflowManager dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
         NDataflow dataflow = dfManager.getDataflow(dfID);
         NDataSegment firstSegment = dataflow.getFirstSegment();
@@ -92,9 +92,8 @@ public class ReuseFlatTableTest extends NLocalWithSparkSessionTest {
             indexEntity.setLayouts(Lists.newArrayList(layout));
             copyForWrite.setIndexes(Lists.newArrayList(indexEntity));
         });
-        buildSegment(dfID, firstSegment,
-                Sets.newLinkedHashSet(dfManager.getDataflow(dfID).getIndexPlan().getAllLayouts()), getProject(), true,
-                null);
+        indexDataConstructor.buildSegment(dfID, firstSegment,
+                Sets.newLinkedHashSet(dfManager.getDataflow(dfID).getIndexPlan().getAllLayouts()), true, null);
         String query = "select count(distinct trans_id) from TEST_KYLIN_FACT";
         long result = NExecAndComp.queryCube(getProject(), query).collectAsList().get(0).getLong(0);
         long expect = ss.sql("select count(distinct trans_id) from TEST_KYLIN_FACT").collectAsList().get(0).getLong(0);

@@ -46,7 +46,7 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class NEscapedTest extends NAutoTestBase {
+public class EscapedTest extends AutoTestBase {
     @Test
     public void testSimilarTo() throws Exception {
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");
@@ -60,7 +60,7 @@ public class NEscapedTest extends NAutoTestBase {
         try {
             // 2. execute cube building
             long startTime = System.currentTimeMillis();
-            buildAllCubes(kylinConfig, getProject());
+            buildAllModels(kylinConfig, getProject());
             log.debug("build cube cost {} ms", System.currentTimeMillis() - startTime);
 
             // dump metadata for debugging

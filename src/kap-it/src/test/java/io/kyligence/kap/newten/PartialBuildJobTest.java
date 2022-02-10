@@ -28,6 +28,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
@@ -430,7 +431,7 @@ public class PartialBuildJobTest extends SemiAutoTestBase {
         NSparkCubingJob job = (NSparkCubingJob) execMgr.getJob(jobInfo.getJobs().get(0).getJobId());
         ExecutableState status = null;
         try {
-            status = wait(job);
+            status = IndexDataConstructor.wait(job);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -459,7 +460,7 @@ public class PartialBuildJobTest extends SemiAutoTestBase {
         NSparkCubingJob job = (NSparkCubingJob) execMgr.getJob(rs.getJobs().get(0).getJobId());
         ExecutableState status = null;
         try {
-            status = wait(job);
+            status = IndexDataConstructor.wait(job);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -481,7 +482,7 @@ public class PartialBuildJobTest extends SemiAutoTestBase {
         NSparkCubingJob job = (NSparkCubingJob) execMgr.getJob(rs.get(0).getJobId());
         ExecutableState status = null;
         try {
-            status = wait(job);
+            status = IndexDataConstructor.wait(job);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

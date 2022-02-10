@@ -21,28 +21,25 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.tool.util;
+package io.kyligence.kap.common.util;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.zip.ZipFile;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.kylin.common.util.ZipFileUtils;
 import org.junit.Assert;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import lombok.val;
 
 public class ZipFileUtilTest {
 
-    @Rule
-    public TemporaryFolder temporaryFolder = new TemporaryFolder();
-
     @Test
-    public void testCompressAndDecompressZipFile() throws IOException {
-        String mainDir = temporaryFolder.getRoot() + "/testCompressZipFile";
+    public void testCompressAndDecompressZipFile(@TempDir File tempDir) throws IOException {
+        String mainDir = tempDir.getAbsolutePath() + "/testCompressZipFile";
 
         File compressDir = new File(mainDir, "compress_dir");
         FileUtils.forceMkdir(compressDir);
@@ -53,13 +50,13 @@ public class ZipFileUtilTest {
         FileUtils.writeStringToFile(new File(compressDir, "c/c1.txt"), "333333333333");
 
         String zipFilename = compressDir.getAbsolutePath() + ".zip";
-        ZipFileUtil.compressZipFile(compressDir.getAbsolutePath(), zipFilename);
+        ZipFileUtils.compressZipFile(compressDir.getAbsolutePath(), zipFilename);
 
         Assert.assertTrue(new File(zipFilename).exists() && new File(zipFilename).length() > 200);
 
         File decompressDir = new File(mainDir, "decompress_dir");
         FileUtils.forceMkdir(decompressDir);
-        ZipFileUtil.decompressZipFile(zipFilename, decompressDir.getAbsolutePath());
+        ZipFileUtils.decompressZipFile(zipFilename, decompressDir.getAbsolutePath());
 
         val aFile = new File(decompressDir.getAbsolutePath(), "compress_dir/a.txt");
         val c1File = new File(decompressDir.getAbsolutePath(), "compress_dir/c/c1.txt");
@@ -69,8 +66,8 @@ public class ZipFileUtilTest {
     }
 
     @Test
-    public void testCompressEmptyDirZipFile() throws IOException {
-        String mainDir = temporaryFolder.getRoot() + "/testCompressZipFile";
+    public void testCompressEmptyDirZipFile(@TempDir File tempDir) throws IOException {
+        String mainDir = tempDir.getAbsolutePath() + "/testCompressZipFile";
 
         File compressDir = new File(mainDir, "compress_dir");
         FileUtils.forceMkdir(compressDir);
@@ -80,7 +77,7 @@ public class ZipFileUtilTest {
         File emptyDirectory = new File(compressDir, "empty_directory");
         emptyDirectory.mkdir();
         String zipFilename = compressDir.getAbsolutePath() + ".zip";
-        ZipFileUtil.compressZipFile(compressDir.getAbsolutePath(), zipFilename);
+        ZipFileUtils.compressZipFile(compressDir.getAbsolutePath(), zipFilename);
 
         long fileCount = new ZipFile(zipFilename).stream().count();
         Assert.assertEquals(3, fileCount);

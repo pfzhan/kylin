@@ -47,7 +47,7 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class NAutoSqlFunctionsValidationTest extends NAutoTestBase {
+public class AutoSqlFunctionsValidationTest extends AutoTestBase {
 
     private static final String PARAM_TAG = "<p>";
     private static final String EMPTY = "";
@@ -92,7 +92,7 @@ public class NAutoSqlFunctionsValidationTest extends NAutoTestBase {
         smartMaster.runUtWithContext(null);
         context.saveMetadata();
         AccelerationContextUtil.onlineModel(context);
-        buildAllCubes(getTestConfig(), getProject());
+        buildAllModels(getTestConfig(), getProject());
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
         List<Pair<String, String>> queries = Lists.newArrayList();
         queries.add(new Pair<>("random generated sql", sql));
@@ -249,7 +249,7 @@ public class NAutoSqlFunctionsValidationTest extends NAutoTestBase {
             int idx = random.nextInt(candidateColumns.length);
             eleList.add(candidateColumns[idx]);
             if (needStringConnector) {
-                eleList.add(NAutoSqlFunctionsValidationTest.STR_CONNECTOR);
+                eleList.add(AutoSqlFunctionsValidationTest.STR_CONNECTOR);
             } else {
                 eleList.add(operators[random.nextInt(operators.length)]);
             }
@@ -259,7 +259,7 @@ public class NAutoSqlFunctionsValidationTest extends NAutoTestBase {
         } else {
             eleList.add(random.nextInt(20) + EMPTY);
         }
-        return String.join(NAutoSqlFunctionsValidationTest.SPACE, eleList);
+        return String.join(AutoSqlFunctionsValidationTest.SPACE, eleList);
     }
 
     // use candidate columns create a simple expression used for param of measure,

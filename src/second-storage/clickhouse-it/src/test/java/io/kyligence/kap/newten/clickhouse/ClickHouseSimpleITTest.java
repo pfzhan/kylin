@@ -34,6 +34,7 @@ import io.kyligence.kap.clickhouse.parser.ShowDatabasesParser;
 import io.kyligence.kap.clickhouse.tool.ClickHouseSanityCheckTool;
 import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
+import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -225,6 +226,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
         }
         SecurityContextHolder.getContext().setAuthentication(authentication);
         populateSSWithCSVData(getTestConfig(), getProject(), ss);
+        indexDataConstructor = new IndexDataConstructor(getProject());
     }
 
     @After
@@ -616,13 +618,13 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
 
         val timeRange1 = new SegmentRange.TimePartitionedSegmentRange("2012-01-01", "2012-01-02");
         val indexes = new HashSet<>(df.getIndexPlan().getAllLayouts());
-        buildCuboid(dfName, timeRange1, indexes, true);
+        indexDataConstructor.buildIndex(dfName, timeRange1, indexes, true);
         val timeRange2 = new SegmentRange.TimePartitionedSegmentRange("2012-01-02", "2012-01-03");
-        buildCuboid(dfName, timeRange2, indexes, true);
+        indexDataConstructor.buildIndex(dfName, timeRange2, indexes, true);
     }
 
     protected void buildFullLoadQuery() throws Exception {
-        fullBuildCube(cubeName, getProject());
+        fullBuild(cubeName);
     }
 
     protected void mergeSegments(List<String> segIds) {
@@ -654,7 +656,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
         DefaultChainedExecutable job = (DefaultChainedExecutable) executableManager.getJob(jobId);
         await().atMost(300, TimeUnit.SECONDS).until(() -> !job.getStatus().isProgressing());
         Assert.assertFalse(job.getStatus().isProgressing());
-        val firstErrorMsg = firstFailedJobErrorMessage(executableManager, job);
+        val firstErrorMsg = IndexDataConstructor.firstFailedJobErrorMessage(executableManager, job);
         Assert.assertEquals(firstErrorMsg,
                 ExecutableState.SUCCEED, executableManager.getJob(jobId).getStatus());
     }

@@ -180,7 +180,7 @@ public class ExcludedTableDerivedTest extends SemiAutoTestBase {
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
 
         // build indexes
-        buildAllCubes(getTestConfig(), getProject());
+        buildAllModels(getTestConfig(), getProject());
 
         sql = "SELECT A.C_ADDRESS FROM\n" //
                 + "  (SELECT LINEORDER.LO_TAX, CUSTOMER_1.C_ADDRESS\n" //

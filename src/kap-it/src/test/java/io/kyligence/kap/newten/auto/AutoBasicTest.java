@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.util.TestUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
@@ -57,7 +58,7 @@ import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.utils.AccelerationContextUtil;
 import lombok.val;
 
-public class NAutoBasicTest extends NAutoTestBase {
+public class AutoBasicTest extends AutoTestBase {
 
     @Test
     public void testAutoSingleModel() throws Exception {
@@ -67,7 +68,7 @@ public class NAutoBasicTest extends NAutoTestBase {
         {
             List<Pair<String, String>> queries = fetchQueries("sql_for_automodeling/sql", 0, 1);
             SmartMaster master = proposeWithSmartMaster(queries);
-            buildAllCubes(kylinConfig, getProject());
+            buildAllModels(kylinConfig, getProject());
 
             List<AbstractContext.ModelContext> modelContexts = master.getContext().getModelContexts();
             Assert.assertEquals(1, modelContexts.size());
@@ -84,14 +85,16 @@ public class NAutoBasicTest extends NAutoTestBase {
         {
             List<Pair<String, String>> queries = fetchQueries("sql_for_automodeling/sql", 1, 2);
             SmartMaster master = proposeWithSmartMaster(queries);
-            buildAllCubes(kylinConfig, getProject());
+            buildAllModels(kylinConfig, getProject());
 
             List<AbstractContext.ModelContext> modelContexts = master.getContext().getModelContexts();
             Assert.assertEquals(1, modelContexts.size());
             AbstractContext.ModelContext modelContext = modelContexts.get(0);
             NDataModel dataModel = modelContext.getTargetModel();
             Assert.assertNotNull(dataModel);
-            Assert.assertEquals(targetModelId, dataModel.getUuid());
+            if (!TestUtils.isSkipBuild()) {
+                Assert.assertEquals(targetModelId, dataModel.getUuid());
+            }
             Assert.assertEquals(2, dataModel.getAllTables().size());
             IndexPlan indexPlan = modelContext.getTargetIndexPlan();
             Assert.assertNotNull(indexPlan);
@@ -110,7 +113,7 @@ public class NAutoBasicTest extends NAutoTestBase {
         {
             List<Pair<String, String>> queries = fetchQueries("sql_for_automodeling/sql_bad", 0, 0);
             SmartMaster master = proposeWithSmartMaster(queries);
-            buildAllCubes(kylinConfig, getProject());
+            buildAllModels(kylinConfig, getProject());
 
             List<AbstractContext.ModelContext> modelContexts = master.getContext().getModelContexts();
             Assert.assertEquals(0, modelContexts.size());
@@ -120,14 +123,16 @@ public class NAutoBasicTest extends NAutoTestBase {
         {
             List<Pair<String, String>> queries = fetchQueries("sql_for_automodeling/sql", 3, 4);
             SmartMaster master = proposeWithSmartMaster(queries);
-            buildAllCubes(kylinConfig, getProject());
+            buildAllModels(kylinConfig, getProject());
 
             List<AbstractContext.ModelContext> modelContexts = master.getContext().getModelContexts();
             Assert.assertEquals(1, modelContexts.size());
             AbstractContext.ModelContext modelContext = modelContexts.get(0);
             NDataModel dataModel = modelContext.getTargetModel();
             Assert.assertNotNull(dataModel);
-            Assert.assertNotEquals(targetModelId, dataModel.getUuid());
+            if (!TestUtils.isSkipBuild()) {
+                Assert.assertNotEquals(targetModelId, dataModel.getUuid());
+            }
             Assert.assertEquals(2, dataModel.getAllTables().size());
             IndexPlan indexPlan = modelContext.getTargetIndexPlan();
             Assert.assertNotNull(indexPlan);

@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -137,7 +138,7 @@ public class BuildAndQueryEmptySegmentsTest extends NLocalWithSparkSessionTest {
     private void buildCube(String dfName, long start, long end) throws Exception {
         NDataflow df = dsMgr.getDataflow(dfName);
         List<LayoutEntity> layouts = df.getIndexPlan().getAllLayouts();
-        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end),
+        indexDataConstructor.buildIndex(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end),
                 Sets.<LayoutEntity> newLinkedHashSet(layouts), true);
     }
 
@@ -149,7 +150,7 @@ public class BuildAndQueryEmptySegmentsTest extends NLocalWithSparkSessionTest {
         NSparkMergingJob emptyMergeJob = NSparkMergingJob.merge(emptyMergeSeg, Sets.newLinkedHashSet(layouts), "ADMIN",
                 RandomUtil.randomUUIDStr());
         execMgr.addJob(emptyMergeJob);
-        Assert.assertEquals(ExecutableState.SUCCEED, wait(emptyMergeJob));
+        Assert.assertEquals(ExecutableState.SUCCEED, IndexDataConstructor.wait(emptyMergeJob));
         AfterMergeOrRefreshResourceMerger merger = new AfterMergeOrRefreshResourceMerger(config, getProject());
         merger.merge(emptyMergeJob.getSparkMergingStep());
     }

@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.metadata.cube;
 
+import static io.kyligence.kap.common.util.TestUtils.getTestConfig;
+
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Arrays;
@@ -41,21 +43,17 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.junit.annotation.MetadataInfo;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -67,30 +65,9 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 import lombok.var;
 
-public class IndexPlanTest extends NLocalFileMetadataTestCase {
-    private String projectDefault = "default";
-    @Rule
-    public ExpectedException thrown = ExpectedException.none();
-
-    @Before
-    public void setUp() throws Exception {
-        this.createTestMetadata();
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        this.cleanupTestMetadata();
-    }
-
-    @Test
-    public void foo() throws JsonProcessingException {
-
-        Map<Long, String> defaultEncodings = Maps.newHashMap();
-        defaultEncodings.put(1L, "xxxxx");
-        defaultEncodings.put(2L, "rrrr");
-        String s = JsonUtil.writeValueAsString(defaultEncodings);
-        System.out.println(s);
-    }
+@MetadataInfo(project = "default")
+public class IndexPlanTest {
+    private final String projectDefault = "default";
 
     @Test
     public void testBasics() {
@@ -479,26 +456,28 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(4, newPlan.getIndexEntity(100000).getNextLayoutOffset());
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testAddLayoutWithNonSelectedColumns() throws Exception {
-        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
-        var newPlan = JsonUtil.readValue(getClass().getResourceAsStream("/ncude_rule_based.json"), IndexPlan.class);
+        Assertions.assertThrows(IllegalStateException.class, () -> {
+            val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
+            var newPlan = JsonUtil.readValue(getClass().getResourceAsStream("/ncude_rule_based.json"), IndexPlan.class);
 
-        CubeTestUtils.createTmpModel(getTestConfig(), newPlan);
-        newPlan = indexPlanManager.createIndexPlan(newPlan);
+            CubeTestUtils.createTmpModel(getTestConfig(), newPlan);
+            newPlan = indexPlanManager.createIndexPlan(newPlan);
 
-        indexPlanManager.updateIndexPlan(newPlan.getId(), copyForWrite -> {
-            val newTableIndex = new IndexEntity();
-            newTableIndex.setDimensions(Lists.newArrayList(0, 1, 44));
-            newTableIndex.setId(20_000_000_000L);
+            indexPlanManager.updateIndexPlan(newPlan.getId(), copyForWrite -> {
+                val newTableIndex = new IndexEntity();
+                newTableIndex.setDimensions(Lists.newArrayList(0, 1, 44));
+                newTableIndex.setId(20_000_000_000L);
 
-            val layout = new LayoutEntity();
-            layout.setId(20_000_000_001L);
-            layout.setColOrder(Lists.newArrayList(0, 1, 44));
+                val layout = new LayoutEntity();
+                layout.setId(20_000_000_001L);
+                layout.setColOrder(Lists.newArrayList(0, 1, 44));
 
-            List<IndexEntity> indexes = copyForWrite.getAllIndexes();
-            indexes.add(newTableIndex);
-            copyForWrite.setIndexes(indexes);
+                List<IndexEntity> indexes = copyForWrite.getAllIndexes();
+                indexes.add(newTableIndex);
+                copyForWrite.setIndexes(indexes);
+            });
         });
     }
 
@@ -714,32 +693,35 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
         val identifierIdMap = newPlan.getAllIndexes().stream()
                 .collect(Collectors.toMap(IndexEntity::createIndexIdentifier, Function.identity()));
 
-        thrown.expectMessage("there are different layout that have same id");
+        IndexPlan finalNewPlan = newPlan;
+        val thrown = Assertions.assertThrows(IllegalStateException.class, () -> {
+            indexPlanManager.updateIndexPlan(finalNewPlan.getId(), copyForWrite -> {
 
-        newPlan = indexPlanManager.updateIndexPlan(newPlan.getId(), copyForWrite -> {
+                val newAggIndex = new IndexEntity();
+                newAggIndex.setDimensions(Lists.newArrayList(0, 1, 2, 3, 4));
+                newAggIndex.setMeasures(measures);
+                newAggIndex.setId(identifierIdMap.get(newAggIndex.createIndexIdentifier()).getId());
 
-            val newAggIndex = new IndexEntity();
-            newAggIndex.setDimensions(Lists.newArrayList(0, 1, 2, 3, 4));
-            newAggIndex.setMeasures(measures);
-            newAggIndex.setId(identifierIdMap.get(newAggIndex.createIndexIdentifier()).getId());
+                //make two layout has same id
+                long layoutId = identifierIdMap.get(newAggIndex.createIndexIdentifier()).getNextLayoutOffset()
+                        + newAggIndex.getId();
 
-            //make two layout has same id
-            long layoutId = identifierIdMap.get(newAggIndex.createIndexIdentifier()).getNextLayoutOffset()
-                    + newAggIndex.getId();
-
-            val newLayout1 = new LayoutEntity();
-            newLayout1.setId(layoutId);
-            newLayout1.setAuto(true);
-            newLayout1.setColOrder(ListUtils.union(Lists.newArrayList(4, 1, 3, 2, 0), measures));
-            val newLayout2 = new LayoutEntity();
-            newLayout2.setId(layoutId);
-            newLayout2.setAuto(true);
-            newLayout2.setColOrder(ListUtils.union(Lists.newArrayList(1, 4, 3, 2, 0), measures));
-            newAggIndex.setLayouts(Lists.newArrayList(newLayout1, newLayout2));
-            newAggIndex.setNextLayoutOffset(
-                    Math.max(newLayout2.getId() % IndexEntity.INDEX_ID_STEP + 1, newAggIndex.getNextLayoutOffset()));
-            copyForWrite.setIndexes(Lists.newArrayList(newAggIndex));
+                val newLayout1 = new LayoutEntity();
+                newLayout1.setId(layoutId);
+                newLayout1.setAuto(true);
+                newLayout1.setColOrder(ListUtils.union(Lists.newArrayList(4, 1, 3, 2, 0), measures));
+                val newLayout2 = new LayoutEntity();
+                newLayout2.setId(layoutId);
+                newLayout2.setAuto(true);
+                newLayout2.setColOrder(ListUtils.union(Lists.newArrayList(1, 4, 3, 2, 0), measures));
+                newAggIndex.setLayouts(Lists.newArrayList(newLayout1, newLayout2));
+                newAggIndex.setNextLayoutOffset(Math.max(newLayout2.getId() % IndexEntity.INDEX_ID_STEP + 1,
+                        newAggIndex.getNextLayoutOffset()));
+                copyForWrite.setIndexes(Lists.newArrayList(newAggIndex));
+            });
         });
+        Assertions.assertSame("there are different layout that have same id", thrown.getMessage());
+
     }
 
     @Test
@@ -754,33 +736,35 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
         val identifierIdMap = newPlan.getAllIndexes().stream()
                 .collect(Collectors.toMap(IndexEntity::createIndexIdentifier, Function.identity()));
 
-        thrown.expectMessage("there are same layout that have different id");
+        IndexPlan finalNewPlan = newPlan;
+        val thrown = Assertions.assertThrows(IllegalStateException.class, () -> {
+            indexPlanManager.updateIndexPlan(finalNewPlan.getId(), copyForWrite -> {
 
-        newPlan = indexPlanManager.updateIndexPlan(newPlan.getId(), copyForWrite -> {
+                val newAggIndex = new IndexEntity();
+                newAggIndex.setDimensions(Lists.newArrayList(0, 1, 2, 3, 4));
+                newAggIndex.setMeasures(measures);
+                newAggIndex.setId(identifierIdMap.get(newAggIndex.createIndexIdentifier()).getId());
 
-            val newAggIndex = new IndexEntity();
-            newAggIndex.setDimensions(Lists.newArrayList(0, 1, 2, 3, 4));
-            newAggIndex.setMeasures(measures);
-            newAggIndex.setId(identifierIdMap.get(newAggIndex.createIndexIdentifier()).getId());
+                val newLayout1 = new LayoutEntity();
+                newLayout1.setId(identifierIdMap.get(newAggIndex.createIndexIdentifier()).getNextLayoutOffset()
+                        + newAggIndex.getId());
+                newLayout1.setAuto(true);
+                newLayout1.setColOrder(ListUtils.union(Lists.newArrayList(4, 1, 3, 2, 0), measures));
+                identifierIdMap.get(newAggIndex.createIndexIdentifier()).setNextLayoutOffset(Math
+                        .max(newLayout1.getId() % IndexEntity.INDEX_ID_STEP + 1, newAggIndex.getNextLayoutOffset()));
 
-            val newLayout1 = new LayoutEntity();
-            newLayout1.setId(identifierIdMap.get(newAggIndex.createIndexIdentifier()).getNextLayoutOffset()
-                    + newAggIndex.getId());
-            newLayout1.setAuto(true);
-            newLayout1.setColOrder(ListUtils.union(Lists.newArrayList(4, 1, 3, 2, 0), measures));
-            identifierIdMap.get(newAggIndex.createIndexIdentifier()).setNextLayoutOffset(
-                    Math.max(newLayout1.getId() % IndexEntity.INDEX_ID_STEP + 1, newAggIndex.getNextLayoutOffset()));
-
-            val newLayout2 = new LayoutEntity();
-            newLayout2.setId(identifierIdMap.get(newAggIndex.createIndexIdentifier()).getNextLayoutOffset()
-                    + newAggIndex.getId());
-            newLayout2.setAuto(true);
-            newLayout2.setColOrder(ListUtils.union(Lists.newArrayList(4, 1, 3, 2, 0), measures));
-            newAggIndex.setLayouts(Lists.newArrayList(newLayout1, newLayout2));
-            newAggIndex.setNextLayoutOffset(
-                    Math.max(newLayout2.getId() % IndexEntity.INDEX_ID_STEP + 1, newAggIndex.getNextLayoutOffset()));
-            copyForWrite.setIndexes(Lists.newArrayList(newAggIndex));
+                val newLayout2 = new LayoutEntity();
+                newLayout2.setId(identifierIdMap.get(newAggIndex.createIndexIdentifier()).getNextLayoutOffset()
+                        + newAggIndex.getId());
+                newLayout2.setAuto(true);
+                newLayout2.setColOrder(ListUtils.union(Lists.newArrayList(4, 1, 3, 2, 0), measures));
+                newAggIndex.setLayouts(Lists.newArrayList(newLayout1, newLayout2));
+                newAggIndex.setNextLayoutOffset(Math.max(newLayout2.getId() % IndexEntity.INDEX_ID_STEP + 1,
+                        newAggIndex.getNextLayoutOffset()));
+                copyForWrite.setIndexes(Lists.newArrayList(newAggIndex));
+            });
         });
+        Assertions.assertSame("there are same layout that have different id", thrown.getMessage());
     }
 
 }

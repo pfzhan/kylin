@@ -34,7 +34,7 @@ import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.utils.AccelerationContextUtil;
 import lombok.val;
 
-public class NDefaultDataBaseNotSetTest extends NAutoTestBase {
+public class DefaultDataBaseNotSetTest extends AutoTestBase {
 
     @Before
     public void setupDefaultDatabase() {

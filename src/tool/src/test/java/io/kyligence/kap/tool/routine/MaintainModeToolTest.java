@@ -23,16 +23,22 @@
  */
 package io.kyligence.kap.tool.routine;
 
+import io.kyligence.kap.common.persistence.metadata.EpochStore;
+import io.kyligence.kap.junit.annotation.JdbcMetadataInfo;
+import io.kyligence.kap.junit.annotation.MetadataInfo;
 import org.junit.Assert;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import io.kyligence.kap.common.util.AbstractJdbcMetadataTestCase;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.tool.MaintainModeTool;
 import lombok.val;
 
-public class MaintainModeToolTest extends AbstractJdbcMetadataTestCase {
+import static io.kyligence.kap.common.util.TestUtils.getTestConfig;
+
+@MetadataInfo(onlyProps = true)
+@JdbcMetadataInfo
+public class MaintainModeToolTest {
 
     @Test
     public void testForceToExit() {
@@ -75,4 +81,11 @@ public class MaintainModeToolTest extends AbstractJdbcMetadataTestCase {
         Assert.assertEquals(getEpochStore().list().size(), 2);
     }
 
+    EpochStore getEpochStore() {
+        try {
+            return EpochStore.getEpochStore(getTestConfig());
+        } catch (Exception e) {
+            throw new RuntimeException("cannot init epoch store!");
+        }
+    }
 }

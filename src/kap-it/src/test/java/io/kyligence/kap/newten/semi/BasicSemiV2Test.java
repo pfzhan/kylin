@@ -81,7 +81,7 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class NBasicSemiV2Test extends SemiAutoTestBase {
+public class BasicSemiV2Test extends SemiAutoTestBase {
     private static final String PRICE_COLUMN = "\"TEST_KYLIN_FACT\".\"PRICE\"";
     private static final String CC_ITEM_COUNT_MULTIPLY_PRICE = "\"TEST_KYLIN_FACT\".\"ITEM_COUNT\" * \"TEST_KYLIN_FACT\".\"PRICE\"";
     private static final String CC_PRICE_MULTIPLY_ITEM_COUNT = "\"TEST_KYLIN_FACT\".\"PRICE\" * \"TEST_KYLIN_FACT\".\"ITEM_COUNT\"";

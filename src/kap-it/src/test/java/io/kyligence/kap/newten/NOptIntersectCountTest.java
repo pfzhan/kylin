@@ -77,7 +77,7 @@ public class NOptIntersectCountTest extends NLocalWithSparkSessionTest {
     @Test
     public void testOptIntersectCountBuild() throws Exception {
         String dfName = "c9ddd37e-c870-4ccf-a131-5eef8fe6cb7e";
-        fullBuildCube(dfName, getProject());
+        fullBuild(dfName);
         NDataSegment seg = NDataflowManager.getInstance(getTestConfig(), getProject()).getDataflow(dfName)
                 .getLatestReadySegment();
         NDataLayout dataCuboid = NDataLayout.newDataLayout(seg.getDataflow(), seg.getId(), 100001);
@@ -143,7 +143,7 @@ public class NOptIntersectCountTest extends NLocalWithSparkSessionTest {
         tall, 1
         handsome, 1
         * */
-        fullBuildCube("c9ddd37e-c870-4ccf-a131-5eef8fe6cb7e", getProject());
+        fullBuild("c9ddd37e-c870-4ccf-a131-5eef8fe6cb7e");
 
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         populateSSWithCSVData(config, getProject(), SparderEnv.getSparkSession());

@@ -39,6 +39,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -254,7 +255,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         execMgr.addJob(job);
 
         // wait job done
-        ExecutableState status = wait(job);
+        ExecutableState status = IndexDataConstructor.wait(job);
         Assert.assertEquals(ExecutableState.SUCCEED, status);
 
         long buildEndTime = sparkStep.getEndTime();
@@ -302,7 +303,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         execMgr.addJob(job);
 
         // wait job done
-        status = wait(job);
+        status = IndexDataConstructor.wait(job);
         Assert.assertEquals(ExecutableState.SUCCEED, status);
         merger.mergeAfterCatchup(df2.getUuid(), Sets.newHashSet(oneSeg.getId()),
                 ExecutableUtils.getLayoutIds(job.getSparkCubingStep()),
@@ -362,7 +363,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         execMgr.addJob(job);
 
         // wait job done
-        ExecutableState status = wait(job);
+        ExecutableState status = IndexDataConstructor.wait(job);
         Assert.assertEquals(ExecutableState.SUCCEED, status);
 
         long buildEndTime = sparkStep.getEndTime();
@@ -406,7 +407,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         List<LayoutEntity> layouts = new ArrayList<>();
         layouts.add(ie.getLayouts().get(0));
         layouts.add(ie2.getLayouts().get(0));
-        buildCuboid(dfName, SegmentRange.TimePartitionedSegmentRange.createInfinite(), Sets.newLinkedHashSet(layouts),
+        indexDataConstructor.buildIndex(dfName, SegmentRange.TimePartitionedSegmentRange.createInfinite(), Sets.newLinkedHashSet(layouts),
                 true);
     }
 
@@ -431,7 +432,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
                 null);
         NSparkCubingStep sparkStep = job.getSparkCubingStep();
         execMgr.addJob(job);
-        ExecutableState status = wait(job);
+        ExecutableState status = IndexDataConstructor.wait(job);
         Assert.assertEquals(ExecutableState.SUCCEED, status);
 
         val merger = new AfterBuildResourceMerger(config, getProject());
@@ -470,7 +471,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
                 "ADMIN", null);
         NSparkCubingStep sparkStep = job.getSparkCubingStep();
         execMgr.addJob(job);
-        ExecutableState status = wait(job);
+        ExecutableState status = IndexDataConstructor.wait(job);
         Assert.assertEquals(ExecutableState.SUCCEED, status);
 
         val merger = new AfterBuildResourceMerger(config, getProject());
@@ -528,11 +529,11 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         List<LayoutEntity> layouts = df.getIndexPlan().getAllLayouts();
         long start = SegmentRange.dateToLong("2011-01-01");
         long end = SegmentRange.dateToLong("2012-06-01");
-        buildCuboid("89af4ee2-2cdb-4b07-b39e-4c29856309aa", new SegmentRange.TimePartitionedSegmentRange(start, end),
+        indexDataConstructor.buildIndex("89af4ee2-2cdb-4b07-b39e-4c29856309aa", new SegmentRange.TimePartitionedSegmentRange(start, end),
                 Sets.<LayoutEntity> newLinkedHashSet(layouts), true);
         start = SegmentRange.dateToLong("2012-06-01");
         end = SegmentRange.dateToLong("2013-01-01");
-        buildCuboid("89af4ee2-2cdb-4b07-b39e-4c29856309aa", new SegmentRange.TimePartitionedSegmentRange(start, end),
+        indexDataConstructor.buildIndex("89af4ee2-2cdb-4b07-b39e-4c29856309aa", new SegmentRange.TimePartitionedSegmentRange(start, end),
                 Sets.<LayoutEntity> newLinkedHashSet(layouts), true);
         df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         NDataSegment firstMergeSeg = dsMgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(
@@ -570,7 +571,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         execMgr.addJob(job);
 
         // wait job done
-        wait(job);
+        IndexDataConstructor.wait(job);
 
         Assert.assertEquals(config.getServerAddress(), job.getOutput().getExtra().get("node_info"));
     }
@@ -713,7 +714,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         List<LayoutEntity> layouts = new ArrayList<>();
         layouts.addAll(ie.getLayouts());
         layouts.addAll(ie2.getLayouts());
-        buildCuboid(dfName, SegmentRange.TimePartitionedSegmentRange.createInfinite(), Sets.newLinkedHashSet(layouts),
+        indexDataConstructor.buildIndex(dfName, SegmentRange.TimePartitionedSegmentRange.createInfinite(), Sets.newLinkedHashSet(layouts),
                 true);
     }
 
@@ -887,7 +888,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         }, project);
 
         // till job finished
-        wait(job);
+        IndexDataConstructor.wait(job);
 
         // btw, we should also check the "skip xxx" log,
         // but the /path/to/job_tmp/job_id/01/meta/execute_output.json.xxx.log not exists in ut env.
@@ -910,7 +911,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         // job wouldn't be resumable after restart
         Assert.assertFalse(execMgr.getJobOutput(cubeStep.getId()).isResumable());
 
-        wait(job);
+        IndexDataConstructor.wait(job);
 
         // checkpoints should not cross building jobs
         NDataflow remoteOutDf = NDataflowManager.getInstance(metaOutConf, project).getDataflow(dfId);

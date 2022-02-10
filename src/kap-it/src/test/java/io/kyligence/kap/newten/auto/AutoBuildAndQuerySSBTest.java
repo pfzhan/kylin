@@ -21,22 +21,26 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.common.util;
+package io.kyligence.kap.newten.auto;
 
-import org.apache.kylin.common.KylinConfig;
+import com.google.common.collect.Lists;
+import org.junit.Test;
 
-public class TestUtils {
+import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
 
-    public static KylinConfig getTestConfig() {
-        return KylinConfig.getInstanceFromEnv();
+public class AutoBuildAndQuerySSBTest extends AutoTestBase {
+    @Test
+    public void testDifferentJoinOrder() throws Exception {
+        final String TEST_FOLDER = "query/sql_joinorder";
+        proposeWithSmartMaster(getProject(), Lists.newArrayList(new TestScenario(CompareLevel.NONE, TEST_FOLDER, 0, 1)));
+        TestScenario testQueries = new TestScenario(CompareLevel.SAME, TEST_FOLDER, 1, 5);
+        collectQueries(Lists.newArrayList(testQueries));
+        buildAndCompare(null, testQueries);
     }
 
-    public static boolean isSkipBuild() {
-        return Boolean.parseBoolean(System.getProperty("skipBuild", "false"));
-    }
-
-    public static boolean isPersistBuild() {
-        return Boolean.parseBoolean(System.getProperty("persistBuild", "false"));
+    @Override
+    public String getProject() {
+        return "ssb";
     }
 
 }

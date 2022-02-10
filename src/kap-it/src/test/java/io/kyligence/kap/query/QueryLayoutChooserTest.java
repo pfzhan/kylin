@@ -62,14 +62,14 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.newten.NExecAndComp;
-import io.kyligence.kap.newten.auto.NAutoTestBase;
+import io.kyligence.kap.newten.auto.AutoTestBase;
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.utils.AccelerationContextUtil;
 import lombok.val;
 import lombok.var;
 
-public class NQueryLayoutChooserTest extends NAutoTestBase {
+public class QueryLayoutChooserTest extends AutoTestBase {
 
     private static final String PROJECT = "default";
 
@@ -481,7 +481,7 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
         joinTables.get(0).setKind(NDataModel.TableKind.LOOKUP);
         modelManager.updateDataModelDesc(model);
 
-        buildAllCubes(getTestConfig(), "newten");
+        buildAllModels(getTestConfig(), "newten");
 
         val sql2 = "select cal_dt, count(distinct account_id) " + "from test_kylin_fact left join test_account "
                 + "on test_kylin_fact.seller_id = test_account.account_id " + "group by cal_dt";
@@ -512,7 +512,7 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
         joinTables.get(0).setKind(NDataModel.TableKind.LOOKUP);
         modelManager.updateDataModelDesc(model);
 
-        buildAllCubes(getTestConfig(), "newten");
+        buildAllModels(getTestConfig(), "newten");
 
         val sql2 = "select cal_dt, count(distinct seller_id) " + "from test_kylin_fact inner join test_account "
                 + "on test_kylin_fact.seller_id = test_account.account_id " + "group by cal_dt";
@@ -541,7 +541,7 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
         joinTables.get(0).setKind(NDataModel.TableKind.LOOKUP);
         modelManager.updateDataModelDesc(model);
 
-        buildAllCubes(getTestConfig(), "newten");
+        buildAllModels(getTestConfig(), "newten");
 
         val sql2 = "select cal_dt, count(distinct ACCOUNT_COUNTRY) " + "from test_kylin_fact left join test_account "
                 + "on test_kylin_fact.seller_id = test_account.account_id " + "group by cal_dt";
@@ -567,7 +567,7 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
                 .getDataModelDesc(smartMaster.getContext().getModelContexts().get(0).getTargetModel().getId());
         modelManager.updateDataModelDesc(model);
 
-        buildAllCubes(getTestConfig(), "newten");
+        buildAllModels(getTestConfig(), "newten");
 
         val sql2 = "select count(distinct (case when cal_dt > date'2013-01-01' then price else item_count end)) from test_kylin_fact";
 
@@ -592,7 +592,7 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
                 .getDataModelDesc(smartMaster.getContext().getModelContexts().get(0).getTargetModel().getId());
         modelManager.updateDataModelDesc(model);
 
-        buildAllCubes(getTestConfig(), "newten");
+        buildAllModels(getTestConfig(), "newten");
 
         val sql2 = "select count(distinct (case when cal_dt > date'2013-01-01' then price else null end)) from test_kylin_fact";
 
@@ -709,7 +709,7 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
         smartMaster.runUtWithContext(null);
         context.saveMetadata();
         AccelerationContextUtil.onlineModel(context);
-        buildAllCubes(getTestConfig(), "newten");
+        buildAllModels(getTestConfig(), "newten");
 
         val sql2 = "select sum(price)\n" + "from test_kylin_fact inner join test_account\n"
                 + "on seller_id = account_id\n" + "where cal_dt <> date'2012-01-01'\n"
@@ -730,7 +730,7 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
         smartMaster.runUtWithContext(null);
         context.saveMetadata();
         AccelerationContextUtil.onlineModel(context);
-        buildAllCubes(getTestConfig(), "newten");
+        buildAllModels(getTestConfig(), "newten");
 
         val sql2 = "select d.ACCOUNT_CONTACT from\n" + "TEST_KYLIN_FACT c\n" + "inner join (\n"
                 + "select a.ACCOUNT_ID, a.ACCOUNT_COUNTRY, e.COUNTRY, a.ACCOUNT_CONTACT\n" + "from TEST_ACCOUNT a\n"
@@ -762,7 +762,7 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
         val model = modelManager
                 .getDataModelDesc(smartMaster.getContext().getModelContexts().get(0).getTargetModel().getId());
         modelManager.updateDataModelDesc(model);
-        buildAllCubes(getTestConfig(), "newten");
+        buildAllModels(getTestConfig(), "newten");
 
         val sql2 = "select TEST_KYLIN_FACT.ORDER_ID from TEST_KYLIN_FACT inner join TEST_ORDER on TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID";
         QueryExec queryExec = new QueryExec("newten",

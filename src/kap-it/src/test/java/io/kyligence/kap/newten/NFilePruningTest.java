@@ -123,7 +123,7 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest implements Adap
         NDataflowManager dsMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
         NDataflow df = dsMgr.getDataflow(dfName);
         val layouts = df.getIndexPlan().getAllLayouts();
-        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts),
+        indexDataConstructor.buildIndex(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts),
                 true);
         assertResultsAndScanFiles(dfName, base, 1, false, Lists.newArrayList());
     }
@@ -233,7 +233,7 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest implements Adap
     public void testPruningWithChineseCharacter() throws Exception {
         overwriteSystemProp("kylin.storage.columnar.shard-rowcount", "1");
         val dfId = "9cde9d25-9334-4b92-b229-a00f49453757";
-        fullBuildCube(dfId, getProject());
+        fullBuild(dfId);
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
 
         val chinese0 = "select count(*) from TEST_MEASURE where name1 = '中国'";

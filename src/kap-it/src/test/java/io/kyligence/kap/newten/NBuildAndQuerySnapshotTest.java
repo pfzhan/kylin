@@ -24,6 +24,7 @@
 package io.kyligence.kap.newten;
 
 import com.google.common.collect.Sets;
+import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
@@ -55,6 +56,7 @@ public class NBuildAndQuerySnapshotTest extends NLocalWithSparkSessionTest {
         super.init();
         config = KylinConfig.getInstanceFromEnv();
         dsMgr = NDataflowManager.getInstance(config, getProject());
+        indexDataConstructor = new IndexDataConstructor(getProject());
     }
 
     @Test
@@ -99,7 +101,7 @@ public class NBuildAndQuerySnapshotTest extends NLocalWithSparkSessionTest {
     private void buildCube(String dfName, long start, long end) throws Exception {
         NDataflow df = dsMgr.getDataflow(dfName);
         List<LayoutEntity> layouts = df.getIndexPlan().getAllLayouts();
-        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.<LayoutEntity>newLinkedHashSet(layouts), true);
+        indexDataConstructor.buildIndex(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts), true);
     }
 
 }

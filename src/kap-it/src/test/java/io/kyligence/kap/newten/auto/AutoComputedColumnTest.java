@@ -55,7 +55,7 @@ import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
 import io.kyligence.kap.utils.AccelerationContextUtil;
 import lombok.val;
 
-public class NAutoComputedColumnTest extends NAutoTestBase {
+public class AutoComputedColumnTest extends AutoTestBase {
     private static final String PRICE_COLUMN = "\"TEST_KYLIN_FACT\".\"PRICE\"";
     private static final String ITEM_COUNT_COLUMN = "\"TEST_KYLIN_FACT\".\"ITEM_COUNT\"";
     private static final String FORMAT_COLUMN_NAME_COLUMN = "\"TEST_KYLIN_FACT\".\"LSTG_FORMAT_NAME\"";

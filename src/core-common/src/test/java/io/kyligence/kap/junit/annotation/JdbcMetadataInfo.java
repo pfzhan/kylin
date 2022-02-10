@@ -21,25 +21,22 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.newten.auto;
+package io.kyligence.kap.junit.annotation;
 
-import org.junit.Test;
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Inherited;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
+import io.kyligence.kap.junit.JdbcMetadataExtension;
+import org.junit.jupiter.api.extension.ExtendWith;
 
-public class NAutoBuildAndQuerySSBTest extends NAutoTestBase {
-    @Test
-    public void testDifferentJoinOrder() throws Exception {
-        final String TEST_FOLDER = "query/sql_joinorder";
-        proposeWithSmartMaster(getProject(), new TestScenario(CompareLevel.NONE, TEST_FOLDER, 0, 1));
-        TestScenario testQueries = new TestScenario(CompareLevel.SAME, TEST_FOLDER, 1, 5);
-        collectQueries(testQueries);
-        buildAndCompare(null, testQueries);
-    }
-
-    @Override
-    public String getProject() {
-        return "ssb";
-    }
-
+@Target({ ElementType.TYPE, ElementType.METHOD })
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+@Inherited
+@ExtendWith(JdbcMetadataExtension.class)
+public @interface JdbcMetadataInfo {
 }

@@ -34,19 +34,20 @@ import org.apache.kylin.metadata.model.MeasureDesc;
 import org.junit.Assert;
 import org.junit.Test;
 
+import io.kyligence.kap.guava20.shaded.common.collect.Lists;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
 import lombok.val;
 
-public class NAutoReproposeValidationTest extends NAutoTestBase {
+public class AutoReproposeValidationTest extends AutoTestBase {
 
     @Test
     public void testReproposeSQLWontChangeOriginMetadata() throws Exception {
         val folder = "sql_for_automodeling/repropose";
         try {
             // 1. create metadata
-            proposeWithSmartMaster(getProject(), new TestScenario(CompareLevel.SAME, folder));
-            buildAllCubes(KylinConfig.getInstanceFromEnv(), getProject());
+            proposeWithSmartMaster(getProject(), Lists.newArrayList(new TestScenario(CompareLevel.SAME, folder)));
+            buildAllModels(KylinConfig.getInstanceFromEnv(), getProject());
 
             // 2. ensure metadata
             List<MeasureDesc> measureDescs = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())

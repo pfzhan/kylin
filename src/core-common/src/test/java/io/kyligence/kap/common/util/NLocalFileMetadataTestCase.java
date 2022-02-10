@@ -34,23 +34,29 @@ import java.util.function.Function;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.common.AbstractKylinTestCase;
+import org.apache.kylin.common.AbstractTestCase;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.Singletons;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.junit.Assert;
+import org.junit.Before;
 import org.mockito.Mockito;
 
 import io.kyligence.kap.guava20.shaded.common.collect.Lists;
 import io.kyligence.kap.guava20.shaded.common.collect.Maps;
 import lombok.val;
 
-public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
+public class NLocalFileMetadataTestCase extends AbstractTestCase {
 
     protected static File tempMetadataDirectory = null;
     Map<Object, Object> originManager = Maps.newHashMap();
+
+    @Before
+    public void setNeedCheckCC() {
+        overwriteSystemProp("needCheckCC", "true");
+    }
 
     public static File getTempMetadataDirectory() {
         return tempMetadataDirectory;
@@ -141,7 +147,6 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
         }).when(m));
     }
 
-    @Override
     public void createTestMetadata(String... overlay) {
         staticCreateTestMetadata(overlay);
         val kylinHomePath = new File(getTestConfig().getMetadataUrl().toString()).getParentFile().getAbsolutePath();
@@ -152,7 +157,6 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
         getTestConfig().setProperty("kylin.query.security.acl-tcr-enabled", "false");
     }
 
-    @Override
     public void cleanupTestMetadata() {
         staticCleanupTestMetadata();
     }
@@ -200,6 +204,14 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
         } catch (Exception e) {
             //ignore in it
         }
+    }
+
+    private static void clearTestConfig() {
+        try {
+            ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).close();
+        } catch (Exception ignore) {
+        }
+        KylinConfig.destroyInstance();
     }
 
     public static KylinConfig getTestConfig() {

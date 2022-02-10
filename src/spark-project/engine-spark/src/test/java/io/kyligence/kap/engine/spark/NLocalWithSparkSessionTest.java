@@ -31,27 +31,18 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.curator.test.TestingServer;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.engine.JobEngineConfig;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.job.manager.JobManager;
-import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.spark.SparkConf;
@@ -71,24 +62,17 @@ import org.junit.BeforeClass;
 import org.sparkproject.guava.collect.Sets;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.common.util.TempMetadataBuilder;
-import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
-import io.kyligence.kap.engine.spark.job.NSparkCubingStep;
 import io.kyligence.kap.engine.spark.job.NSparkMergingJob;
 import io.kyligence.kap.engine.spark.job.NSparkMergingStep;
-import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
 import io.kyligence.kap.engine.spark.merger.AfterMergeOrRefreshResourceMerger;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import io.kyligence.kap.metadata.job.JobBucket;
-import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
@@ -147,6 +131,8 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         FileUtils.deleteQuietly(new File("../kap-it/metastore_db"));
     }
 
+    protected IndexDataConstructor indexDataConstructor;
+
     @Before
     public void setUp() throws Exception {
         overwriteSystemProp("calcite.keep-in-clause", "true");
@@ -155,6 +141,7 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         Random r = new Random(10000);
         zkTestServer = new TestingServer(r.nextInt(), true);
         overwriteSystemProp("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());
+        indexDataConstructor = new IndexDataConstructor(getProject());
     }
 
     @After
@@ -251,107 +238,8 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         throw new IllegalArgumentException("KAP data type: " + type + " can not be converted to spark's type.");
     }
 
-    protected static ExecutableState wait(AbstractExecutable job) throws InterruptedException {
-        while (true) {
-            Thread.sleep(500);
-            ExecutableState status = job.getStatus();
-            if (!status.isProgressing()) {
-                return status;
-            }
-        }
-    }
-
-    protected void fullBuildCube(String dfName, String prj) throws Exception {
-        fullBuildAllCube(dfName, prj);
-    }
-
-    public static void fullBuildAllCube(String dfName, String prj) throws Exception {
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
-        NDataflowManager dsMgr = NDataflowManager.getInstance(config, prj);
-        Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));
-        // ready dataflow, segment, cuboid layout
-        NDataflow df = dsMgr.getDataflow(dfName);
-        // cleanup all segments first
-        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
-        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
-        dsMgr.updateDataflow(update);
-        df = dsMgr.getDataflow(dfName);
-        List<LayoutEntity> layouts = df.getIndexPlan().getAllLayouts();
-        List<LayoutEntity> round1 = Lists.newArrayList(layouts);
-        buildCuboid(dfName, SegmentRange.TimePartitionedSegmentRange.createInfinite(), Sets.newLinkedHashSet(round1),
-                prj, true);
-    }
-
-    protected void buildCuboid(String cubeName, SegmentRange segmentRange, Set<LayoutEntity> toBuildLayouts,
-            boolean isAppend) throws Exception {
-        buildCuboid(cubeName, segmentRange, toBuildLayouts, getProject(), isAppend);
-    }
-
-    public static void buildCuboid(String cubeName, SegmentRange segmentRange, Set<LayoutEntity> toBuildLayouts,
-            String prj, boolean isAppend) throws Exception {
-        buildCuboid(cubeName, segmentRange, toBuildLayouts, prj, isAppend, null);
-    }
-
-    protected static void buildCuboid(String cubeName, SegmentRange segmentRange, Set<LayoutEntity> toBuildLayouts,
-            String prj, boolean isAppend, List<String[]> partitionValues) throws Exception {
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
-        NDataflowManager dsMgr = NDataflowManager.getInstance(config, prj);
-        NDataflow df = dsMgr.getDataflow(cubeName);
-        // ready dataflow, segment, cuboid layout
-        NDataSegment oneSeg = dsMgr.appendSegment(df, segmentRange, SegmentStatusEnum.NEW, partitionValues);
-        buildSegment(cubeName, oneSeg, toBuildLayouts, prj, isAppend, partitionValues);
-    }
-
-    protected static void buildSegment(String cubeName, NDataSegment segment, Set<LayoutEntity> toBuildLayouts,
-            String prj, boolean isAppend, List<String[]> partitionValues) throws InterruptedException {
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
-        NDataflowManager dsMgr = NDataflowManager.getInstance(config, prj);
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, prj);
-        NDataflow df = dsMgr.getDataflow(cubeName);
-        Set<JobBucket> buckets = Sets.newHashSet();
-        if (CollectionUtils.isNotEmpty(partitionValues)) {
-            NDataModelManager modelManager = NDataModelManager.getInstance(config, prj);
-            Set<Long> targetPartitions = modelManager.getDataModelDesc(cubeName).getMultiPartitionDesc()
-                    .getPartitionIdsByValues(partitionValues);
-            val bucketStart = new AtomicLong(segment.getMaxBucketId());
-            toBuildLayouts.forEach(layout -> {
-                targetPartitions.forEach(partition -> {
-                    buckets.add(
-                            new JobBucket(segment.getId(), layout.getId(), bucketStart.incrementAndGet(), partition));
-                });
-            });
-            dsMgr.updateDataflow(df.getId(),
-                    copyForWrite -> copyForWrite.getSegment(segment.getId()).setMaxBucketId(bucketStart.get()));
-        }
-        NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(segment), toBuildLayouts, "ADMIN", buckets);
-        NSparkCubingStep sparkStep = job.getSparkCubingStep();
-        StorageURL distMetaUrl = StorageURL.valueOf(sparkStep.getDistMetaUrl());
-        Assert.assertEquals("hdfs", distMetaUrl.getScheme());
-        Assert.assertTrue(distMetaUrl.getParameter("path").startsWith(config.getHdfsWorkingDirectory()));
-
-        // launch the job
-        execMgr.addJob(job);
-
-        if (!Objects.equals(wait(job), ExecutableState.SUCCEED)) {
-            throw new IllegalStateException(firstFailedJobErrorMessage(execMgr, job));
-        }
-
-        val merger = new AfterBuildResourceMerger(config, prj);
-        if (isAppend) {
-            merger.mergeAfterIncrement(df.getUuid(), segment.getId(), ExecutableUtils.getLayoutIds(sparkStep),
-                    ExecutableUtils.getRemoteStore(config, sparkStep));
-        } else {
-            merger.mergeAfterCatchup(df.getUuid(), Sets.newHashSet(segment.getId()),
-                    ExecutableUtils.getLayoutIds(sparkStep), ExecutableUtils.getRemoteStore(config, sparkStep), null);
-        }
-    }
-
-    public static String firstFailedJobErrorMessage(NExecutableManager execMgr, ChainedExecutable job) {
-        return job.getTasks().stream()
-                .filter(abstractExecutable -> abstractExecutable.getStatus() == ExecutableState.ERROR).findFirst()
-                .map(task -> execMgr.getOutputFromHDFSByJobId(job.getId(), task.getId(), Integer.MAX_VALUE)
-                        .getVerboseMsg())
-                .orElse("Unknown Error");
+    protected void fullBuild(String dfName) throws Exception {
+        indexDataConstructor.buildDataflow(dfName);
     }
 
     public void buildMultiSegs(String dfName, long... layoutID) throws Exception {
@@ -368,18 +256,18 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         }
         long start = SegmentRange.dateToLong("2009-01-01 00:00:00");
         long end = SegmentRange.dateToLong("2011-01-01 00:00:00");
-        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts),
-                true);
+        indexDataConstructor.buildIndex(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end),
+                Sets.newLinkedHashSet(layouts), true);
 
         start = SegmentRange.dateToLong("2011-01-01 00:00:00");
         end = SegmentRange.dateToLong("2013-01-01 00:00:00");
-        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts),
-                true);
+        indexDataConstructor.buildIndex(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end),
+                Sets.newLinkedHashSet(layouts), true);
 
         start = SegmentRange.dateToLong("2013-01-01 00:00:00");
         end = SegmentRange.dateToLong("2015-01-01 00:00:00");
-        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts),
-                true);
+        indexDataConstructor.buildIndex(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end),
+                Sets.newLinkedHashSet(layouts), true);
     }
 
     public void buildMultiSegAndMerge(String dfName, long... layoutID) throws Exception {
@@ -410,8 +298,8 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         // launch the job
         execMgr.addJob(job);
 
-        if (!Objects.equals(wait(job), ExecutableState.SUCCEED)) {
-            throw new IllegalStateException(firstFailedJobErrorMessage(execMgr, job));
+        if (!Objects.equals(IndexDataConstructor.wait(job), ExecutableState.SUCCEED)) {
+            throw new IllegalStateException(IndexDataConstructor.firstFailedJobErrorMessage(execMgr, job));
         }
 
         Assert.assertTrue(job instanceof NSparkMergingJob);
@@ -420,42 +308,4 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
 
     }
 
-    public void buildMultiSegmentPartitions(String dfName, String segStart, String segEnd, List<Long> layouts,
-            List<Long> partitionIds) throws Exception {
-        val config = getTestConfig();
-        val project = getProject();
-        val dfManager = NDataflowManager.getInstance(config, project);
-        val df = dfManager.getDataflow(dfName);
-        val partitionValues = df.getModel().getMultiPartitionDesc().getPartitionValuesById(partitionIds);
-
-        // append segment
-        long start = SegmentRange.dateToLong(segStart);
-        long end = SegmentRange.dateToLong(segEnd);
-        val segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-        val dataSegment = dfManager.appendSegment(df, segmentRange, SegmentStatusEnum.NEW, partitionValues);
-
-        // build segment with partitions
-        val jobParam = new JobParam(Sets.newHashSet(dataSegment.getId()), Sets.newHashSet(layouts), dfName, "ADMIN",
-                Sets.newHashSet(partitionIds), null);
-        jobParam.setJobTypeEnum(JobTypeEnum.INC_BUILD);
-        val jobManager = JobManager.getInstance(config, project);
-
-        val jobId = jobManager.addJob(jobParam);
-
-        val job = NExecutableManager.getInstance(config, project).getJob(jobId);
-        if (!Objects.equals(wait(job), ExecutableState.SUCCEED)) {
-            throw new IllegalStateException();
-        }
-
-        Assert.assertTrue(job instanceof NSparkCubingJob);
-        val sparkJob = (NSparkCubingJob) job;
-        NSparkCubingStep sparkStep = sparkJob.getSparkCubingStep();
-        StorageURL distMetaUrl = StorageURL.valueOf(sparkStep.getDistMetaUrl());
-        Assert.assertEquals("hdfs", distMetaUrl.getScheme());
-        Assert.assertTrue(distMetaUrl.getParameter("path").startsWith(getTestConfig().getHdfsWorkingDirectory()));
-
-        val merger = new AfterBuildResourceMerger(config, getProject());
-        merger.mergeAfterIncrement(df.getUuid(), dataSegment.getId(), ExecutableUtils.getLayoutIds(sparkStep),
-                ExecutableUtils.getRemoteStore(config, sparkStep));
-    }
 }

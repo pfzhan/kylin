@@ -21,23 +21,18 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package io.kyligence.kap.junit;
 
-package io.kyligence.kap.newten.auto;
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.jdbc.core.JdbcTemplate;
 
-import org.junit.Test;
+@Setter
+@Getter
+public class JdbcInfo {
 
-import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
-import lombok.extern.slf4j.Slf4j;
+    private JdbcTemplate jdbcTemplate;
 
-/**
- * test type related queries
- */
-@Slf4j
-public class NAutoRelDataTypeTest extends NAutoTestBase {
+    private String tableName;
 
-    @Test
-    public void testDecimalDefaultScale() throws Exception {
-        overwriteSystemProp("kylin.query.engine.default-decimal-scale", "4");
-        new TestScenario(CompareLevel.SAME, "query/sql_type", 0, 1).execute();
-    }
 }

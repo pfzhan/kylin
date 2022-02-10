@@ -72,7 +72,7 @@ public class NTopNWithChineseTest extends NLocalWithSparkSessionTest {
         NDataflowManager dsMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
         NDataflow df = dsMgr.getDataflow(dfID);
         val layouts = df.getIndexPlan().getAllLayouts();
-        buildCuboid(dfID, SegmentRange.TimePartitionedSegmentRange.createInfinite(), Sets.newLinkedHashSet(layouts),
+        indexDataConstructor.buildIndex(dfID, SegmentRange.TimePartitionedSegmentRange.createInfinite(), Sets.newLinkedHashSet(layouts),
                 true);
         String sqlHitCube = "select city, sum(int_id) as a from topn_with_chinese group by city order by a desc limit 10";
         List<String> hitCubeResult = NExecAndComp.queryFromCube(getProject(), sqlHitCube) //

@@ -40,6 +40,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.common.util.ZipFileUtils;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.junit.After;
@@ -54,7 +55,6 @@ import org.junit.rules.TestName;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.streaming.metadata.StreamingJobMeta;
 import io.kyligence.kap.tool.constant.SensitiveConfigKeysConstant;
-import io.kyligence.kap.tool.util.ZipFileUtil;
 import lombok.val;
 
 public class StreamingJobDiagInfoToolTest extends NLocalFileMetadataTestCase {
@@ -326,7 +326,7 @@ public class StreamingJobDiagInfoToolTest extends NLocalFileMetadataTestCase {
         File zipFile = mainDir.listFiles()[0].listFiles()[0];
         File exportFile = new File(mainDir, "output");
         FileUtils.forceMkdir(exportFile);
-        ZipFileUtil.decompressZipFile(zipFile.getAbsolutePath(), exportFile.getAbsolutePath());
+        ZipFileUtils.decompressZipFile(zipFile.getAbsolutePath(), exportFile.getAbsolutePath());
         File baseDiagFile = exportFile.listFiles()[0];
         val properties = io.kyligence.kap.common.util.FileUtils
                 .readFromPropertiesFile(new File(baseDiagFile, "conf/kylin.properties"));

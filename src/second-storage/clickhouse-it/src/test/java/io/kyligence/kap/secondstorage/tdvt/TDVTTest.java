@@ -27,7 +27,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.kyligence.kap.common.util.Unsafe;
-import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.newten.NExecAndComp;
 import io.kyligence.kap.newten.clickhouse.ClickHouseUtils;
@@ -38,6 +38,7 @@ import io.kyligence.kap.secondstorage.test.EnableTestUser;
 import io.kyligence.kap.secondstorage.test.SetTimeZone;
 import io.kyligence.kap.secondstorage.test.SharedSparkSession;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
@@ -144,8 +145,9 @@ public class TDVTTest {
 
         Unsafe.setProperty(CONFIG_CLICKHOUSE_QUERY_CATALOG, queryCatalog);
         //build
-        NLocalWithSparkSessionTest.fullBuildAllCube(AUTO_MODEL_CALCS_1, project);
-        NLocalWithSparkSessionTest.fullBuildAllCube(AUTO_MODEL_STAPLES_1, project);
+        val constructor = new IndexDataConstructor(project);
+        constructor.buildDataflow(AUTO_MODEL_CALCS_1);
+        constructor.buildDataflow(AUTO_MODEL_STAPLES_1);
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         Assert.assertEquals(2, SecondStorageUtil.setSecondStorageSizeInfo(modelManager.listAllModels()).size());
 

@@ -43,6 +43,7 @@ import javax.xml.bind.DatatypeConverter;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.util.ZipFileUtils;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -66,7 +67,6 @@ import io.kyligence.kap.rest.request.StorageCleanupRequest;
 import io.kyligence.kap.rest.response.ModelPreviewResponse;
 import io.kyligence.kap.rest.service.MetaStoreService;
 import io.kyligence.kap.tool.util.HashFunction;
-import io.kyligence.kap.tool.util.ZipFileUtil;
 import io.swagger.annotations.ApiOperation;
 
 @Controller
@@ -174,7 +174,7 @@ public class NMetaStoreController extends NBasicController {
         if (Objects.isNull(uploadFile) || uploadFile.isEmpty()) {
             throw new KylinException(FILE_NOT_EXIST, "please select a file");
         }
-        if (!ZipFileUtil.validateZipFilename(uploadFile.getOriginalFilename())) {
+        if (!ZipFileUtils.validateZipFilename(uploadFile.getOriginalFilename())) {
             throw new KylinException(FILE_FORMAT_ERROR, "upload file must end with .zip");
         }
     }

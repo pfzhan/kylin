@@ -192,7 +192,7 @@ public class ExcludedTableTest extends SemiAutoTestBase {
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
 
         // build indexes
-        buildAllCubes(getTestConfig(), getProject());
+        buildAllModels(getTestConfig(), getProject());
 
         // query and assert
         List<Pair<String, String>> queryList = Lists.newArrayList();
@@ -250,7 +250,7 @@ public class ExcludedTableTest extends SemiAutoTestBase {
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
 
         // build indexes
-        buildAllCubes(getTestConfig(), getProject());
+        buildAllModels(getTestConfig(), getProject());
 
         // query and assert
         List<Pair<String, String>> queryList = Lists.newArrayList();
@@ -307,7 +307,7 @@ public class ExcludedTableTest extends SemiAutoTestBase {
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
 
         // build indexes
-        buildAllCubes(getTestConfig(), getProject());
+        buildAllModels(getTestConfig(), getProject());
 
         // query and assert
         List<Pair<String, String>> queryList = Lists.newArrayList();
@@ -367,7 +367,7 @@ public class ExcludedTableTest extends SemiAutoTestBase {
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
 
         // build indexes
-        buildAllCubes(getTestConfig(), getProject());
+        buildAllModels(getTestConfig(), getProject());
 
         // query and assert
         List<Pair<String, String>> queryList = Lists.newArrayList();

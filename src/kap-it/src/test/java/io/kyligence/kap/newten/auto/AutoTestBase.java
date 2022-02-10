@@ -21,17 +21,35 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 package io.kyligence.kap.newten.auto;
 
-import org.junit.Test;
+import java.io.IOException;
+import java.util.List;
 
-import io.kyligence.kap.newten.NExecAndComp;
+import org.apache.commons.collections.CollectionUtils;
 
-public class NAutoSinaiPocTest extends NAutoTestBase {
+import io.kyligence.kap.guava20.shaded.common.base.Preconditions;
+import io.kyligence.kap.newten.SuggestTestBase;
+import io.kyligence.kap.smart.AbstractContext;
+import io.kyligence.kap.smart.SmartMaster;
+import io.kyligence.kap.utils.AccelerationContextUtil;
+import lombok.extern.slf4j.Slf4j;
 
-    @Test
-    public void testSinai() throws Exception {
-        new TestScenario(NExecAndComp.CompareLevel.SAME, "sql_sinai_poc").execute();
+@Slf4j
+public class AutoTestBase extends SuggestTestBase {
+
+    @Override
+    protected SmartMaster proposeWithSmartMaster(String project, List<TestScenario> testScenarios) throws IOException {
+        List<String> sqlList = collectQueries(testScenarios);
+        Preconditions.checkArgument(CollectionUtils.isNotEmpty(sqlList));
+        String[] sqls = sqlList.toArray(new String[0]);
+        AbstractContext context = AccelerationContextUtil.newSmartContext(getTestConfig(), project, sqls);
+        SmartMaster smartMaster = new SmartMaster(context);
+        smartMaster.runUtWithContext(null);
+        context.saveMetadata();
+        AccelerationContextUtil.onlineModel(context);
+        return smartMaster;
     }
 
 }

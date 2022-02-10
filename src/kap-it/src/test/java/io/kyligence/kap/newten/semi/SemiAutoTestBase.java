@@ -27,18 +27,13 @@ package io.kyligence.kap.newten.semi;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
-import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.spark.sql.SparderEnv;
 import org.junit.After;
 import org.junit.Before;
@@ -46,30 +41,22 @@ import org.junit.Before;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.model.ComputedColumnDesc;
-import io.kyligence.kap.metadata.model.MaintainModelType;
-import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.newten.NExecAndComp;
-import io.kyligence.kap.newten.NSuggestTestBase;
+import io.kyligence.kap.newten.SuggestTestBase;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.utils.AccelerationContextUtil;
 import io.kyligence.kap.utils.RecAndQueryCompareUtil;
 import lombok.val;
-import lombok.var;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class SemiAutoTestBase extends NSuggestTestBase {
+public class SemiAutoTestBase extends SuggestTestBase {
 
     @Before
     public void setup() throws Exception {
@@ -89,168 +76,8 @@ public class SemiAutoTestBase extends NSuggestTestBase {
         super.tearDown();
     }
 
-    protected void prepareModels(String project, NSuggestTestBase.TestScenario... testScenarios) throws IOException {
-        val prjManager = NProjectManager.getInstance(getTestConfig());
-        prjManager.updateProject(getProject(), copyForWrite -> {
-            copyForWrite.setMaintainModelType(MaintainModelType.AUTO_MAINTAIN);
-            var properties = copyForWrite.getOverrideKylinProps();
-            if (properties == null) {
-                properties = Maps.newLinkedHashMap();
-            }
-            properties.put("kylin.metadata.semi-automatic-mode", "false");
-            copyForWrite.setOverrideKylinProps(properties);
-        });
-        val modelManager = NDataModelManager.getInstance(getTestConfig(), project);
-        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), project);
-        val originModelIds = modelManager.listAllModelIds();
-        val originModels = modelManager.listAllModels().stream()
-                .map(model -> JsonUtil.deepCopyQuietly(model, NDataModel.class))
-                .collect(Collectors.toMap(NDataModel::getId, m -> m));
-        val originIndexPlans = indexPlanManager.listAllIndexPlans().stream()
-                .filter(indexPlan -> originModelIds.contains(indexPlan.getId()))
-                .map(indexPlan -> JsonUtil.deepCopyQuietly(indexPlan, IndexPlan.class))
-                .collect(Collectors.toMap(IndexPlan::getId, i -> i));
-        runWithSmartContext(project, testScenarios);
-        AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
-        emptyModelAndIndexPlan(project, originModelIds, originModels, originIndexPlans);
-    }
-
-    protected SmartMaster runWithSmartContext(String project, TestScenario... testScenarios) throws IOException {
-        List<String> sqlList = collectQueries(testScenarios);
-        Preconditions.checkArgument(CollectionUtils.isNotEmpty(sqlList));
-        String[] sqls = sqlList.toArray(new String[0]);
-        AbstractContext context = AccelerationContextUtil.newSmartContext(getTestConfig(), project, sqls);
-        SmartMaster smartMaster = new SmartMaster(context);
-        smartMaster.runUtWithContext(null);
-        context.saveMetadata();
-        AccelerationContextUtil.onlineModel(context);
-        return smartMaster;
-    }
-
-    private void emptyModelAndIndexPlan(String project, Set<String> originModelIds,
-            Map<String, NDataModel> originModels, Map<String, IndexPlan> originIndexPlans) {
-        val modelManager = NDataModelManager.getInstance(getTestConfig(), project);
-        val newModelIds = Sets.difference(modelManager.listAllModelIds(), originModelIds);
-        val dataflowManager = NDataflowManager.getInstance(getTestConfig(), project);
-        dataflowManager.listAllDataflows().stream().map(RootPersistentEntity::getId).filter(newModelIds::contains)
-                .forEach(dataflowManager::dropDataflow);
-        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), project);
-        indexPlanManager.listAllIndexPlans().stream().filter(indexPlan -> newModelIds.contains(indexPlan.getId()))
-                .forEach(indexPlanManager::dropIndexPlan);
-        modelManager.listAllModelIds().forEach(modelId -> modelManager.updateDataModel(modelId, copyForWrite -> {
-            if (newModelIds.contains(modelId)) {
-                val removeCCs = copyForWrite.getComputedColumnDescs().stream().map(ComputedColumnDesc::getFullName)
-                        .collect(Collectors.toSet());
-                copyForWrite.setComputedColumnDescs(Lists.newArrayList());
-                copyForWrite.setAllNamedColumns(copyForWrite.getAllNamedColumns().stream()
-                        .filter(n -> !removeCCs.contains(n.getAliasDotColumn()))
-                        .peek(n -> n.setStatus(NDataModel.ColumnStatus.EXIST))
-                        .sorted(Comparator.comparing(NDataModel.NamedColumn::getId)).collect(Collectors.toList()));
-                for (int i = 0; i < copyForWrite.getAllNamedColumns().size(); i++) {
-                    copyForWrite.getAllNamedColumns().get(i).setId(i);
-                }
-                copyForWrite
-                        .setAllMeasures(copyForWrite.getAllMeasures().stream().limit(1).collect(Collectors.toList()));
-                val indexPlan = new IndexPlan();
-                indexPlan.setUuid(modelId);
-                indexPlan.setProject(project);
-                indexPlanManager.createIndexPlan(indexPlan);
-                dataflowManager.createDataflow(indexPlan, "ADMIN");
-            } else {
-                if (originIndexPlans.get(modelId).getMvcc() < indexPlanManager.getIndexPlan(modelId).getMvcc()) {
-                    originIndexPlans.get(modelId).setMvcc(indexPlanManager.getIndexPlan(modelId).getMvcc());
-                    indexPlanManager.updateIndexPlan(originIndexPlans.get(modelId));
-                }
-
-                if (originModels.get(modelId).getMvcc() < modelManager.getDataModelDesc(modelId).getMvcc()) {
-                    originModels.get(modelId).setMvcc(modelManager.getDataModelDesc(modelId).getMvcc());
-                    modelManager.updateDataModelDesc(originModels.get(modelId));
-                }
-            }
-
-        }));
-    }
-
     @Override
-    protected Map<String, RecAndQueryCompareUtil.CompareEntity> executeTestScenario(TestScenario... testScenarios)
-            throws Exception {
-
-        long startTime = System.currentTimeMillis();
-        final SmartMaster smartMaster = proposeWithSmartMaster(getProject(), testScenarios);
-        updateAccelerateInfoMap(smartMaster);
-        final Map<String, RecAndQueryCompareUtil.CompareEntity> compareMap = collectCompareEntity(smartMaster);
-        log.debug("smart proposal cost {} ms", System.currentTimeMillis() - startTime);
-
-        buildAndCompare(compareMap, testScenarios);
-
-        startTime = System.currentTimeMillis();
-        // 4. compare layout propose result and query cube result
-        RecAndQueryCompareUtil.computeCompareRank(kylinConfig, getProject(), compareMap);
-        // 5. check layout
-        assertOrPrintCmpResult(compareMap.entrySet().stream().filter(
-                entry -> RecAndQueryCompareUtil.AccelerationMatchedLevel.FAILED_QUERY != entry.getValue().getLevel())
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
-        log.debug("compare realization cost {} s", System.currentTimeMillis() - startTime);
-
-        // 6. summary info
-        val rankInfoMap = RecAndQueryCompareUtil.summarizeRankInfo(compareMap);
-        StringBuilder sb = new StringBuilder();
-        sb.append("All used queries: ").append(compareMap.size()).append('\n');
-        rankInfoMap.forEach((key, value) -> sb.append(key).append(": ").append(value).append("\n"));
-        System.out.println(sb);
-        return compareMap;
-    }
-
-    private void updateAccelerateInfoMap(SmartMaster smartMaster) {
-        val indexManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
-        val targetIndexPlanMap = smartMaster.getContext().getModelContexts().stream()
-                .map(AbstractContext.ModelContext::getTargetIndexPlan)
-                .collect(Collectors.toMap(RootPersistentEntity::getId, i -> i));
-        val targetModelMap = smartMaster.getContext().getModelContexts().stream()
-                .map(AbstractContext.ModelContext::getTargetModel)
-                .collect(Collectors.toMap(RootPersistentEntity::getId, i -> i));
-        smartMaster.getContext().getAccelerateInfoMap().forEach((sql, info) -> {
-            info.getRelatedLayouts().forEach(r -> {
-                val modelId = r.getModelId();
-                val indexPlan = indexManager.getIndexPlan(modelId);
-                val indexInSmart = targetIndexPlanMap.get(modelId);
-                val modelInSmart = targetModelMap.get(modelId);
-                r.setLayoutId(indexPlan
-                        .getAllLayouts().stream().filter(l -> isMatch(l, indexInSmart.getLayoutEntity(r.getLayoutId()),
-                                indexPlan.getModel(), modelInSmart))
-                        .map(LayoutEntity::getId).findFirst().orElse(r.getLayoutId()));
-            });
-        });
-    }
-
-    private boolean isMatch(LayoutEntity real, LayoutEntity virtual, NDataModel realModel, NDataModel virtualModel) {
-        val copy = JsonUtil.deepCopyQuietly(virtual, LayoutEntity.class);
-        copy.setColOrder(translate(copy.getColOrder(), realModel, virtualModel));
-        copy.setShardByColumns(translate(copy.getShardByColumns(), realModel, virtualModel));
-        copy.setSortByColumns(translate(copy.getSortByColumns(), realModel, virtualModel));
-        return real.equals(copy);
-    }
-
-    private List<Integer> translate(List<Integer> cols, NDataModel realModel, NDataModel virtualModel) {
-        val realColsMap = realModel.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isExist)
-                .collect(Collectors.toMap(NDataModel.NamedColumn::getAliasDotColumn, NDataModel.NamedColumn::getId));
-        val realMeasureMap = realModel.getAllMeasures().stream().filter(m -> !m.isTomb())
-                .collect(Collectors.toMap(MeasureDesc::getName, NDataModel.Measure::getId));
-        val virtualColsMap = virtualModel.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isExist)
-                .collect(Collectors.toMap(NDataModel.NamedColumn::getId, NDataModel.NamedColumn::getAliasDotColumn));
-        val virtualMeasureMap = virtualModel.getAllMeasures().stream().filter(m -> !m.isTomb())
-                .collect(Collectors.toMap(NDataModel.Measure::getId, MeasureDesc::getName));
-        return cols.stream().map(i -> {
-            if (i < NDataModel.MEASURE_ID_BASE) {
-                return realColsMap.get(virtualColsMap.get(i));
-            } else {
-                return realMeasureMap.get(virtualMeasureMap.get(i));
-            }
-        }).collect(Collectors.toList());
-    }
-
-    @Override
-    protected SmartMaster proposeWithSmartMaster(String project, TestScenario... testScenarios) throws IOException {
+    protected SmartMaster proposeWithSmartMaster(String project, List<TestScenario> testScenarios) throws IOException {
         List<String> sqlList = collectQueries(testScenarios);
         Preconditions.checkArgument(CollectionUtils.isNotEmpty(sqlList));
         String[] sqls = sqlList.toArray(new String[0]);
@@ -281,7 +108,7 @@ public class SemiAutoTestBase extends NSuggestTestBase {
     protected void buildAndCompare(Map<String, RecAndQueryCompareUtil.CompareEntity> compareMap,
             TestScenario... testScenarios) throws Exception {
         try {
-            buildAllCubes(kylinConfig, getProject());
+            buildAllModels(kylinConfig, getProject());
             compare(compareMap, testScenarios);
         } finally {
             FileUtils.deleteQuietly(new File("../kap-it/metastore_db"));

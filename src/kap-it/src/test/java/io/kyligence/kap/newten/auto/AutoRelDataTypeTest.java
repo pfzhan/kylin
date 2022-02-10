@@ -21,22 +21,23 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.common.util;
 
-import org.apache.kylin.common.KylinConfig;
+package io.kyligence.kap.newten.auto;
 
-public class TestUtils {
+import org.junit.Test;
 
-    public static KylinConfig getTestConfig() {
-        return KylinConfig.getInstanceFromEnv();
+import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
+import lombok.extern.slf4j.Slf4j;
+
+/**
+ * test type related queries
+ */
+@Slf4j
+public class AutoRelDataTypeTest extends AutoTestBase {
+
+    @Test
+    public void testDecimalDefaultScale() throws Exception {
+        overwriteSystemProp("kylin.query.engine.default-decimal-scale", "4");
+        new TestScenario(CompareLevel.SAME, "query/sql_type", 0, 1).execute();
     }
-
-    public static boolean isSkipBuild() {
-        return Boolean.parseBoolean(System.getProperty("skipBuild", "false"));
-    }
-
-    public static boolean isPersistBuild() {
-        return Boolean.parseBoolean(System.getProperty("persistBuild", "false"));
-    }
-
 }

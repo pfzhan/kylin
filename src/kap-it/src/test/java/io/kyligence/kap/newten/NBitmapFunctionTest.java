@@ -70,8 +70,8 @@ public class NBitmapFunctionTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testBitmapFunction() throws Exception {
-        fullBuildCube("741ca86a-1f13-46da-a59f-95fb68615e3b", getProject());
-        fullBuildCube("741ca86a-1f13-46da-a59f-95fb68615e3z", getProject());
+        fullBuild("741ca86a-1f13-46da-a59f-95fb68615e3b");
+        fullBuild("741ca86a-1f13-46da-a59f-95fb68615e3z");
 
         testDateType();
 

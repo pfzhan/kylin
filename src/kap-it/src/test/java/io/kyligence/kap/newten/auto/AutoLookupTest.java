@@ -37,7 +37,7 @@ import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.utils.AccelerationContextUtil;
 import lombok.val;
 
-public class NAutoLookupTest extends NAutoTestBase {
+public class AutoLookupTest extends AutoTestBase {
 
     @Test
     @Ignore
@@ -78,7 +78,7 @@ public class NAutoLookupTest extends NAutoTestBase {
             NDataModel model = models.get(0);
             Assert.assertTrue(model.isLookupTable("DEFAULT.TEST_CATEGORY_GROUPINGS"));
 
-            buildAllCubes(kylinConfig, getProject());
+            buildAllModels(kylinConfig, getProject());
             Assert.assertEquals(1, NExecAndComp.queryFromCube(getProject(), modelQuery).toDF().count());
         }
 
@@ -197,7 +197,7 @@ public class NAutoLookupTest extends NAutoTestBase {
         List<NDataModel> models = NDataflowManager.getInstance(kylinConfig, getProject()).listUnderliningDataModels();
         Assert.assertEquals(2, models.size());
 
-        buildAllCubes(kylinConfig, getProject());
+        buildAllModels(kylinConfig, getProject());
         Assert.assertEquals(1, NExecAndComp.queryFromCube(getProject(), modelQuery).toDF().count());
         Assert.assertEquals(1, NExecAndComp.queryFromCube(getProject(), lookupQuery).toDF().count());
     }

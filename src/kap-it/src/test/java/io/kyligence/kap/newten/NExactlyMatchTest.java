@@ -76,7 +76,7 @@ public class NExactlyMatchTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testInClause() throws Exception {
-        fullBuildCube("c9ddd37e-c870-4ccf-a131-5eef8fe6cb7e", getProject());
+        fullBuild("c9ddd37e-c870-4ccf-a131-5eef8fe6cb7e");
 
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         populateSSWithCSVData(config, getProject(), SparderEnv.getSparkSession());
@@ -122,7 +122,7 @@ public class NExactlyMatchTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testSkipAgg() throws Exception {
-        fullBuildCube("c9ddd37e-c870-4ccf-a131-5eef8fe6cb7e", getProject());
+        fullBuild("c9ddd37e-c870-4ccf-a131-5eef8fe6cb7e");
 
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         populateSSWithCSVData(config, getProject(), SparderEnv.getSparkSession());

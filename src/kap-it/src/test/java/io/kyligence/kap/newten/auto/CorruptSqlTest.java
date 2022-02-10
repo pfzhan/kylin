@@ -32,17 +32,20 @@ import org.apache.kylin.common.KylinConfig;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.google.common.collect.Lists;
+
 import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 
-public class NCorruptSqlTest extends NAutoTestBase {
+public class CorruptSqlTest extends AutoTestBase {
 
     /**
      * DDL: not supported sql.
      */
     @Test
     public void testDDL() throws IOException {
-        final SmartMaster smartMaster = proposeWithSmartMaster("newten", new TestScenario("ddl-sql"));
+        final SmartMaster smartMaster = proposeWithSmartMaster("newten",
+                Lists.newArrayList(new TestScenario("ddl-sql")));
         final Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         accelerateInfoMap.forEach((key, value) -> {
             final String blockMessage = value.getFailedCause().getMessage();
@@ -55,7 +58,8 @@ public class NCorruptSqlTest extends NAutoTestBase {
      */
     @Test
     public void testSimpleQuery() throws IOException {
-        final SmartMaster smartMaster = proposeWithSmartMaster("newten", new TestScenario("simple-sql"));
+        final SmartMaster smartMaster = proposeWithSmartMaster("newten",
+                Lists.newArrayList(new TestScenario("simple-sql")));
         final Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         accelerateInfoMap.forEach((key, value) -> {
             Assert.assertNull(value.getFailedCause());
@@ -68,7 +72,8 @@ public class NCorruptSqlTest extends NAutoTestBase {
      */
     @Test
     public void testInvalidQuery() throws IOException {
-        final SmartMaster smartMaster = proposeWithSmartMaster("newten", new TestScenario("parse-error"));
+        final SmartMaster smartMaster = proposeWithSmartMaster("newten",
+                Lists.newArrayList(new TestScenario("parse-error")));
         final Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         accelerateInfoMap.forEach((key, value) -> Assert.assertTrue(value.isFailed() || value.isPending()));
     }
@@ -78,7 +83,8 @@ public class NCorruptSqlTest extends NAutoTestBase {
      */
     @Test
     public void testOtherCases() throws IOException {
-        final SmartMaster smartMaster = proposeWithSmartMaster("newten", new TestScenario("other_cases"));
+        final SmartMaster smartMaster = proposeWithSmartMaster("newten",
+                Lists.newArrayList(new TestScenario("other_cases")));
         final Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         accelerateInfoMap.forEach((key, value) -> {
             Assert.assertTrue(value.isPending() || value.isFailed());
@@ -90,7 +96,8 @@ public class NCorruptSqlTest extends NAutoTestBase {
 
         KylinConfig.getInstanceFromEnv().setProperty("kylin.query.calcite.extras-props.conformance", "LENIENT");
         try {
-            final SmartMaster smartMaster = proposeWithSmartMaster("newten", new TestScenario("issues-related-sql"));
+            final SmartMaster smartMaster = proposeWithSmartMaster("newten",
+                    Lists.newArrayList(new TestScenario("issues-related-sql")));
             final Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
             accelerateInfoMap.forEach((key, value) -> Assert.assertFalse(value.isFailed()));
         } catch (Exception e) {

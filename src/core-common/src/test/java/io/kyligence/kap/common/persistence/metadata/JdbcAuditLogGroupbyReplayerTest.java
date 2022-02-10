@@ -43,12 +43,16 @@ import org.junitpioneer.jupiter.RetryingTest;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.util.AbstractJdbcMetadataTestCase;
+import io.kyligence.kap.junit.JdbcInfo;
+import io.kyligence.kap.junit.annotation.JdbcMetadataInfo;
+import io.kyligence.kap.junit.annotation.MetadataInfo;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class JdbcAuditLogGroupbyReplayerTest extends AbstractJdbcMetadataTestCase {
+@MetadataInfo(onlyProps = true)
+@JdbcMetadataInfo
+public class JdbcAuditLogGroupbyReplayerTest {
 
     private static final String LOCAL_INSTANCE = "127.0.0.1";
     private final Charset charset = Charset.defaultCharset();
@@ -56,17 +60,17 @@ public class JdbcAuditLogGroupbyReplayerTest extends AbstractJdbcMetadataTestCas
 
     @RetryingTest(3)
     @Disabled
-    public void testReplayGroupbyProject() throws Exception {
+    public void testReplayGroupbyProject(JdbcInfo info) throws Exception {
         val workerStore = initResourceStore();
         String project1 = "abc1";
         String project2 = "abc2";
-        changeProject(project1, false);
-        changeProject(project2, false);
+        changeProject(project1, info, false);
+        changeProject(project2, info, false);
         workerStore.catchup();
         Assert.assertEquals(3, workerStore.listResourcesRecursively("/").size());
 
-        addProjectLog(project2, 6000);
-        addProjectLog(project1, 6000);
+        addProjectLog(project2, info, 6000);
+        addProjectLog(project1, info, 6000);
         Awaitility.await().atMost(6, TimeUnit.SECONDS)
                 .until(() -> 12003 == workerStore.listResourcesRecursively("/").size());
         Awaitility.await().atMost(6, TimeUnit.SECONDS)
@@ -84,21 +88,21 @@ public class JdbcAuditLogGroupbyReplayerTest extends AbstractJdbcMetadataTestCas
     }
 
     @Test
-    public void testHandleProjectChange() throws Exception {
+    public void testHandleProjectChange(JdbcInfo info) throws Exception {
         val workerStore = initResourceStore();
         String project = "abc1";
-        changeProject(project, false);
+        changeProject(project, info, false);
         workerStore.catchup();
         Assert.assertEquals(2, workerStore.listResourcesRecursively("/").size());
-        changeProject(project, true);
+        changeProject(project, info, true);
         Awaitility.await().atMost(6, TimeUnit.SECONDS)
                 .until(() -> 1 == workerStore.listResourcesRecursively("/").size());
         ((JdbcAuditLogStore) workerStore.getAuditLogStore()).forceClose();
     }
 
-    private void addProjectLog(String project, int logNum) throws Exception {
+    private void addProjectLog(String project, JdbcInfo info, int logNum) throws Exception {
         val url = getTestConfig().getMetadataUrl();
-        val jdbcTemplate = getJdbcTemplate();
+        val jdbcTemplate = info.getJdbcTemplate();
         String unitId = RandomUtil.randomUUIDStr();
         List<Object[]> logs = Lists.newArrayList();
         for (int i = 0; i < logNum; i++) {
@@ -109,8 +113,8 @@ public class JdbcAuditLogGroupbyReplayerTest extends AbstractJdbcMetadataTestCas
                 String.format(Locale.ROOT, JdbcAuditLogStore.INSERT_SQL, url.getIdentifier() + "_audit_log"), logs);
     }
 
-    public void changeProject(String project, boolean isDel) throws Exception {
-        val jdbcTemplate = getJdbcTemplate();
+    void changeProject(String project, JdbcInfo info, boolean isDel) throws Exception {
+        val jdbcTemplate = info.getJdbcTemplate();
         val url = getTestConfig().getMetadataUrl();
         String unitId = RandomUtil.randomUUIDStr();
 

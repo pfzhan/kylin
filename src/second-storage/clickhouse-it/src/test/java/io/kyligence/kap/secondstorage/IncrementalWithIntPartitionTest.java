@@ -24,19 +24,52 @@
 
 package io.kyligence.kap.secondstorage;
 
+import static io.kyligence.kap.secondstorage.SecondStorageConcurrentTestUtil.WAIT_BEFORE_COMMIT;
+import static io.kyligence.kap.secondstorage.SecondStorageConcurrentTestUtil.registerWaitPoint;
+import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_PROJECT_LOCKING;
+import static org.apache.kylin.common.exception.ServerErrorCode.SEGMENT_DROP_FAILED;
+import static org.awaitility.Awaitility.await;
+
+import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.ServerErrorCode;
+import org.apache.kylin.job.dao.ExecutablePO;
+import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
+import org.apache.kylin.job.manager.JobManager;
+import org.apache.kylin.job.model.JobParam;
+import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.spark.sql.SparkSession;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Ignore;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
+
 import io.kyligence.kap.clickhouse.job.ClickHouse;
 import io.kyligence.kap.clickhouse.job.ClickHouseSegmentCleanJob;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
-
-import static io.kyligence.kap.secondstorage.SecondStorageConcurrentTestUtil.WAIT_BEFORE_COMMIT;
-import static io.kyligence.kap.secondstorage.SecondStorageConcurrentTestUtil.registerWaitPoint;
 import io.kyligence.kap.secondstorage.enums.LockTypeEnum;
 import io.kyligence.kap.secondstorage.management.SecondStorageEndpoint;
 import io.kyligence.kap.secondstorage.management.SecondStorageService;
@@ -47,38 +80,6 @@ import io.kyligence.kap.secondstorage.test.EnableTestUser;
 import io.kyligence.kap.secondstorage.test.SharedSparkSession;
 import io.kyligence.kap.secondstorage.test.utils.JobWaiter;
 import lombok.val;
-import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.exception.ServerErrorCode;
-import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_PROJECT_LOCKING;
-import org.apache.kylin.job.dao.ExecutablePO;
-import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.job.manager.JobManager;
-import org.apache.kylin.job.model.JobParam;
-import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.spark.sql.SparkSession;
-
-import static org.apache.kylin.common.exception.ServerErrorCode.SEGMENT_DROP_FAILED;
-import static org.awaitility.Awaitility.await;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
-
-import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 public class IncrementalWithIntPartitionTest implements JobWaiter {
     static private final String modelId = "acfde546-2cc9-4eec-bc92-e3bd46d4e2ee";
@@ -103,10 +104,12 @@ public class IncrementalWithIntPartitionTest implements JobWaiter {
     public TestRule rule = RuleChain.outerRule(enableTestUser).around(test);
     private SecondStorageService secondStorageService = new SecondStorageService();
     private SecondStorageEndpoint secondStorageEndpoint = new SecondStorageEndpoint();
+    private IndexDataConstructor indexDataConstructor;
 
     @Before
     public void setUp() {
         secondStorageEndpoint.setSecondStorageService(secondStorageService);
+        indexDataConstructor = new IndexDataConstructor(project);
     }
 
     private void buildIncrementalLoadQuery(String start, String end) throws Exception {
@@ -116,7 +119,7 @@ public class IncrementalWithIntPartitionTest implements JobWaiter {
         NDataflow df = dsMgr.getDataflow(dfName);
         val timeRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
         val indexes = new HashSet<>(df.getIndexPlan().getAllLayouts());
-        NLocalWithSparkSessionTest.buildCuboid(dfName, timeRange, indexes, project, true);
+        indexDataConstructor.buildIndex(dfName, timeRange, indexes, true);
     }
 
 

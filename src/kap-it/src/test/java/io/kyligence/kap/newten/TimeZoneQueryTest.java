@@ -270,7 +270,7 @@ public class TimeZoneQueryTest extends NLocalWithSparkSessionTest {
         }
         long start = SegmentRange.dateToLong("2009-01-01 00:00:00");
         long end = SegmentRange.dateToLong("2015-01-01 00:00:00");
-        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts),
+        indexDataConstructor.buildIndex(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts),
                 true);
     }
 }

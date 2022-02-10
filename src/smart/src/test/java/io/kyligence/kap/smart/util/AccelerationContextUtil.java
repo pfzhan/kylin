@@ -24,8 +24,6 @@
 
 package io.kyligence.kap.smart.util;
 
-import static org.apache.kylin.common.AbstractKylinTestCase.getTestConfig;
-
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -69,7 +67,7 @@ public class AccelerationContextUtil {
     }
 
     private static Set<String> getOnlineModelIds(String project) {
-        return NDataflowManager.getInstance(getTestConfig(), project).listOnlineDataModels().stream()
+        return NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project).listOnlineDataModels().stream()
                 .map(RootPersistentEntity::getUuid).collect(Collectors.toSet());
     }
 

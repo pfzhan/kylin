@@ -24,20 +24,11 @@
 
 package io.kyligence.kap.secondstorage;
 
-import com.google.common.collect.ImmutableMap;
-import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.secondstorage.management.SecondStorageEndpoint;
-import io.kyligence.kap.secondstorage.management.SecondStorageService;
-import io.kyligence.kap.secondstorage.management.request.StorageRequest;
-import io.kyligence.kap.secondstorage.test.ClickHouseClassRule;
-import io.kyligence.kap.secondstorage.test.EnableClickHouseJob;
-import io.kyligence.kap.secondstorage.test.EnableTestUser;
-import io.kyligence.kap.secondstorage.test.SharedSparkSession;
-import io.kyligence.kap.secondstorage.test.utils.JobWaiter;
-import lombok.val;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
@@ -53,10 +44,21 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.stream.Collectors;
+import com.google.common.collect.ImmutableMap;
+
+import io.kyligence.kap.engine.spark.IndexDataConstructor;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.secondstorage.management.SecondStorageEndpoint;
+import io.kyligence.kap.secondstorage.management.SecondStorageService;
+import io.kyligence.kap.secondstorage.management.request.StorageRequest;
+import io.kyligence.kap.secondstorage.test.ClickHouseClassRule;
+import io.kyligence.kap.secondstorage.test.EnableClickHouseJob;
+import io.kyligence.kap.secondstorage.test.EnableTestUser;
+import io.kyligence.kap.secondstorage.test.SharedSparkSession;
+import io.kyligence.kap.secondstorage.test.utils.JobWaiter;
+import lombok.val;
 
 public class IncrementalTest implements JobWaiter {
     private static final String modelName = "test_table_index";
@@ -82,10 +84,12 @@ public class IncrementalTest implements JobWaiter {
     public TestRule rule = RuleChain.outerRule(enableTestUser).around(test);
     private SecondStorageService secondStorageService = new SecondStorageService();
     private SecondStorageEndpoint secondStorageEndpoint = new SecondStorageEndpoint();
+    private IndexDataConstructor indexDataConstructor;
 
     @Before
     public void setUp() {
         secondStorageEndpoint.setSecondStorageService(secondStorageService);
+        indexDataConstructor = new IndexDataConstructor(project);
     }
 
     private void buildIncrementalLoadQuery(String start, String end) throws Exception {
@@ -95,7 +99,7 @@ public class IncrementalTest implements JobWaiter {
         NDataflow df = dsMgr.getDataflow(dfName);
         val timeRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
         val indexes = new HashSet<>(df.getIndexPlan().getAllLayouts());
-        NLocalWithSparkSessionTest.buildCuboid(dfName, timeRange, indexes, project, true);
+        indexDataConstructor.buildIndex(dfName, timeRange, indexes, true);
     }
 
 

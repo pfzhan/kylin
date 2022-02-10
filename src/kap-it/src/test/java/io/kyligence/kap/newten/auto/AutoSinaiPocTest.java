@@ -21,29 +21,17 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package io.kyligence.kap.newten.auto;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
-import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
+import io.kyligence.kap.newten.NExecAndComp;
 
-/**
- * copied from NAutoTdvtTest
- * this test case is used to debug a customer's project
- */
-@Ignore("this test case is for debug purpose")
-public class NAutoDebugTest extends NAutoTestBase {
-
-    @Override
-    public String getProject() {
-        return "tdvt";
-    }
+public class AutoSinaiPocTest extends AutoTestBase {
 
     @Test
-    public void testTdvt() throws Exception {
-        new TestScenario(CompareLevel.NONE, "sql_tdvt").execute();
+    public void testSinai() throws Exception {
+        new TestScenario(NExecAndComp.CompareLevel.SAME, "sql_sinai_poc").execute();
     }
 
 }
