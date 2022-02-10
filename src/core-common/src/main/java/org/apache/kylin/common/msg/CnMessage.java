@@ -1409,6 +1409,11 @@ public class CnMessage extends Message {
     }
 
     @Override
+    public String getSegmentMergeStorageCheckError() {
+        return "合并 Segment 过程中 HDFS 存储空间可能超过阈值限制，系统主动终止合并任务。如需解除上述限制，请参照用户手册对参数 kylin.cube.merge-segment-storage-threshold 进行调整。";
+    }
+
+    @Override
     public String getDIMENSION_TABLE_USED_IN_THIS_MODEL() {
         return "无法设置此模型的维度表，因为其已被用作当前模型的事实表。请修改后重试。";
     }
