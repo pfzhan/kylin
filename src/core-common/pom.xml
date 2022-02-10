@@ -166,6 +166,13 @@
             <artifactId>postgresql</artifactId>
         </dependency>
 
+        <!--  postgresql 42.2.25 not dependency jcl-over-slf4j,  ut testFindContainingJar will fail -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jcl-over-slf4j</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>org.apache.curator</groupId>
             <artifactId>curator-test</artifactId>

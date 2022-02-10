@@ -50,6 +50,8 @@ public class AzureBlobClientTest {
         val blob = Mockito.mock(CloudBlockBlob.class);
         val client = new AzureBlobClient(null, null);
         Mockito.when(container.getBlockBlobReference(Mockito.anyString())).thenReturn(blob);
+        // support hadoop-azure 2.10.1
+        Mockito.when(container.getBlobReferenceFromServer(Mockito.anyString())).thenReturn(blob);
         val result = client.getBlob(container, "/test/a.txt");
         Assert.assertEquals(blob, result);
     }
