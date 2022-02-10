@@ -31,9 +31,13 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FsStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.kylin.common.exception.SystemErrorCode.FAILED_MERGE_SEGMENT;
 
 public class SegmentMergeStorageChecker {
     private static final Logger logger = LoggerFactory.getLogger(SegmentMergeStorageChecker.class);
@@ -54,7 +58,7 @@ public class SegmentMergeStorageChecker {
     }
 
     public static void checkMergeSegmentThreshold(KylinConfig kylinConfig, String workingDir, long expectedSpaceByByte)
-            throws RuntimeException {
+            throws KylinException {
         Double thresholdValue = kylinConfig.getMergeSegmentStorageThreshold();
         if(thresholdValue.equals(Double.parseDouble("0"))) {
             return;
@@ -67,10 +71,10 @@ public class SegmentMergeStorageChecker {
             checkClusterStorageThresholdValue(workingDir, hadoopConf, expectedSpaceByByte, thresholdValue, dfsReplication);
         } catch (Exception ex) {
             logger.error("Failed to check cluster storage threshold value.", ex);
-            if(!(ex instanceof RuntimeException)) {
-                throw (RuntimeException) ex;
+            if(!(ex instanceof KylinException)) {
+                throw (KylinException) ex;
             }
-            throw new RuntimeException(ex);
+            throw new KylinException(FAILED_MERGE_SEGMENT, MsgPicker.getMsg().getSegmentMergeStorageCheckError(), ex);
         }
     }
 
@@ -102,13 +106,13 @@ public class SegmentMergeStorageChecker {
                 spaceInfoStatus.getTotalSpace(), spaceInfoStatus.getUsedSpace(), spaceInfoStatus.getRemainingSpace());
         if(spaceInfoStatus.getTotalSpace() <= 0) {
             logger.error("The HDFS cluster storage space is insufficient.");
-            throw new RuntimeException("Merge failed, please check the usage of HDFS.");
+            throw new KylinException(FAILED_MERGE_SEGMENT, MsgPicker.getMsg().getSegmentMergeStorageCheckError());
         }
 
         expectedSpaceByByte = recountExpectedSpaceByte(expectedSpaceByByte, replication);
         if(isThresholdAlarms(expectedSpaceByByte, spaceInfoStatus.getRemainingSpace(), spaceInfoStatus.getTotalSpace(), thresholdValue)) {
             logger.error("Failed to merge segment because the HDFS cluster usage exceeds the threshold after the merge.");
-            throw new RuntimeException("Merge failed, please check the usage of HDFS.");
+            throw new KylinException(FAILED_MERGE_SEGMENT, MsgPicker.getMsg().getSegmentMergeStorageCheckError());
         }
     }
 

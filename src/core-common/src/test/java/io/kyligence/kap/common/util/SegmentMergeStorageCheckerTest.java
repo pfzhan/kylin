@@ -44,6 +44,8 @@ import org.apache.hadoop.fs.FileSystemTestHelper;
 import org.apache.hadoop.fs.FsStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.junit.After;
 import org.junit.Assert;
@@ -156,8 +158,8 @@ public class SegmentMergeStorageCheckerTest extends NLocalFileMetadataTestCase {
             checkClusterStorageThresholdValue(quotaPathName, conf, 1024 * 3072L, 0.75, 3);
             Assert.fail();
         } catch(Exception ex) {
-            Assert.assertTrue(ex instanceof RuntimeException);
-            Assert.assertEquals("Merge failed, please check the usage of HDFS.", ex.getMessage());
+            Assert.assertTrue(ex instanceof KylinException);
+            Assert.assertEquals(MsgPicker.getMsg().getSegmentMergeStorageCheckError(), ex.getMessage());
         }
     }
 
@@ -235,9 +237,8 @@ public class SegmentMergeStorageCheckerTest extends NLocalFileMetadataTestCase {
             checkMergeSegmentThreshold(testConfig, quotaPathName, expectedSpaceByKB);
             Assert.fail();
         } catch (Exception ex) {
-            Assert.assertTrue(ex instanceof RuntimeException);
-            Assert.assertEquals("java.lang.RuntimeException: Merge failed, please check the usage of HDFS.", ex.getMessage());
+            Assert.assertTrue(ex instanceof KylinException);
+            Assert.assertEquals(MsgPicker.getMsg().getSegmentMergeStorageCheckError(), ex.getMessage());
         }
     }
-
 }

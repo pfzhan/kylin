@@ -1208,6 +1208,10 @@ public class Message {
         return "The subpartitions included in the selected segments are not fully aligned. Please build the subpartitions first and try merging again.";
     }
 
+    public String getSegmentMergeStorageCheckError() {
+        return "During segment merging, the HDFS storage space may exceed the threshold limit, and the system actively terminates the merging job. If you need to remove the above restrictions, please refer to the user manual to adjust the parameter kylin.cube.merge-segment-storage-threshold.";
+    }
+
     public String getDIMENSION_TABLE_USED_IN_THIS_MODEL() {
         return "Can’t set the dimension table of this model, as it has been used as fact table in this model. Please modify and try again.";
     }
