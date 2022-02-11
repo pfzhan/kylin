@@ -134,5 +134,15 @@ public class NSparkExecutableTest extends NLocalFileMetadataTestCase {
             Assert.assertNotNull(cmd);
             Assert.assertTrue(cmd.contains("/this_new_path.jar"));
         }
+
+        overwriteSystemProp("kylin.engine.spark-conf.spark.driver.extraJavaOptions",
+                "'`touch /tmp/foo.bar` $(touch /tmp/foo.bar)'");
+        {
+            try {
+                sparkExecutable.generateSparkCmd(hadoopConf, kylinJobJar, appArgs);
+            } catch (IllegalArgumentException iae) {
+                Assert.assertTrue(iae.getMessage().contains("Not allowed to specify injected command"));
+            }
+        }
     }
 }
