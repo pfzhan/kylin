@@ -70,7 +70,6 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 import org.springframework.context.ApplicationContext;
@@ -104,7 +103,6 @@ import lombok.val;
 import lombok.var;
 
 @RunWith(PowerMockRunner.class)
-@PowerMockIgnore("javax.management.*")
 @PrepareForTest({ SpringContext.class, UserGroupInformation.class })
 public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
 

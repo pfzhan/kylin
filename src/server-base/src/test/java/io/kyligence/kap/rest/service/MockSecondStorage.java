@@ -24,18 +24,6 @@
 
 package io.kyligence.kap.rest.service;
 
-import static io.kyligence.kap.secondstorage.SecondStorageConstants.CONFIG_SECOND_STORAGE_CLUSTER;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.nio.charset.Charset;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.kylin.common.util.JsonUtil;
-import org.junit.Assert;
-
 import io.kyligence.kap.clickhouse.ClickHouseStorage;
 import io.kyligence.kap.clickhouse.management.ClickHouseConfigLoader;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
@@ -47,6 +35,17 @@ import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import io.kyligence.kap.secondstorage.config.Cluster;
 import io.kyligence.kap.secondstorage.config.Node;
 import lombok.val;
+import org.apache.kylin.common.util.JsonUtil;
+import org.junit.Assert;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.nio.charset.Charset;
+import java.util.List;
+import java.util.Map;
+
+import static io.kyligence.kap.secondstorage.SecondStorageConstants.CONFIG_SECOND_STORAGE_CLUSTER;
 
 public class MockSecondStorage {
     public static void mock(String project, List<Node> nodes, NLocalFileMetadataTestCase testCase) throws IOException {

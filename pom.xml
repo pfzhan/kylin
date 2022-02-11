@@ -270,7 +270,7 @@
         <paranamer.version>2.8</paranamer.version>
 
         <!-- JVM Args for Testing -->
-        <argLine>-Xms2G -Xmx8G</argLine>
+        <argLine>-Xms2G -Xmx8G -XX:MaxPermSize=512M -Duser.timezone=UTC</argLine>
 
         <guava20.shade>io.kyligence.kap.guava20.shaded</guava20.shade>
 
