@@ -47,6 +47,9 @@ import java.util.LinkedList;
 import java.util.Locale;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.JobErrorCode;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.metadata.datatype.DataType;
@@ -66,6 +69,8 @@ import lombok.EqualsAndHashCode;
 @JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class PartitionDesc implements Serializable {
+
+    private static String and = " AND ";
 
     public static enum PartitionType implements Serializable {
         APPEND, //
@@ -114,6 +119,14 @@ public class PartitionDesc implements Serializable {
 
     public boolean isEmpty() {
         return StringUtils.isEmpty(partitionDateColumn);
+    }
+
+    public boolean checkIntTypeDateFormat() {
+        DataType type = partitionDateColumnRef.getType();
+        if ((type.isInt() || type.isBigInt())) {
+            return DateFormat.isMonthPatten(partitionDateFormat) || DateFormat.isDatePattern(partitionDateFormat);
+        }
+        return true;
     }
 
     public enum TimestampType implements Serializable {
@@ -243,7 +256,7 @@ public class PartitionDesc implements Serializable {
 
     // ============================================================================
 
-    public static interface IPartitionConditionBuilder {
+    public interface IPartitionConditionBuilder {
         String buildDateRangeCondition(PartitionDesc partDesc, ISegment seg, SegmentRange segRange);
 
         String buildMultiPartitionCondition(final PartitionDesc partDesc, final MultiPartitionDesc multiPartDesc,
@@ -251,6 +264,16 @@ public class PartitionDesc implements Serializable {
     }
 
     public static class DefaultPartitionConditionBuilder implements IPartitionConditionBuilder, Serializable {
+
+        public DefaultPartitionConditionBuilder() {
+            this.useBigintAsTimestamp = KylinConfig.getInstanceFromEnv().isUseBigIntAsTimestampForPartitionColumn();
+        }
+
+        public void setUseBigintAsTimestamp(boolean useBigintAsTimestamp) {
+            this.useBigintAsTimestamp = useBigintAsTimestamp;
+        }
+
+        boolean useBigintAsTimestamp;
 
         @Override
         public String buildDateRangeCondition(PartitionDesc partDesc, ISegment seg, SegmentRange segRange) {
@@ -264,6 +287,12 @@ public class PartitionDesc implements Serializable {
             TblColRef partitionDateColumn = partDesc.getPartitionDateColumnRef();
             StringBuilder builder = new StringBuilder();
 
+            boolean dataTypeIsIntOrBigInt = false;
+            if (partDesc.partitionDateColumnRef != null) {
+                DataType type = partDesc.partitionDateColumnRef.getType();
+                dataTypeIsIntOrBigInt = (type.isInt() || type.isBigInt());
+            }
+
             if (partDesc.partitionColumnIsTimestamp()) {
                 TimestampType timestampType = partDesc.getTimestampType();
                 startInclusive = startInclusive / timestampType.millisecondRatio;
@@ -272,10 +301,24 @@ public class PartitionDesc implements Serializable {
             } else if (partDesc.partitionColumnIsDate()) {
                 buildSingleColumnRangeCondAsDate(builder, partitionDateColumn, startInclusive, endExclusive,
                         partDesc.getPartitionDateFormat());
-            } else if (partDesc.partitionColumnIsYmdInt()) {
-                buildSingleColumnRangeCondAsYmdInt(builder, partitionDateColumn, startInclusive, endExclusive);
-            } else if (partDesc.partitionColumnIsTimeMillis()) {
-                buildSingleColumnRangeCondAsTimestamp(builder, partitionDateColumn, startInclusive, endExclusive);
+            } else if (dataTypeIsIntOrBigInt) {
+                if (!useBigintAsTimestamp) {
+                    if (DateFormat.isMonthPatten(partDesc.partitionDateFormat)) {
+                        buildSingleColumnRangeCondAsYmInt(builder, partitionDateColumn, startInclusive, endExclusive);
+                    } else if (DateFormat.isDatePattern(partDesc.partitionDateFormat)) {
+                        buildSingleColumnRangeCondAsYmdInt(builder, partitionDateColumn, startInclusive, endExclusive);
+                    } else {
+                        throw new KylinException(JobErrorCode.JOB_INT_DATE_FORMAT_NOT_MATCH_ERROR,
+                                "int/bigint data type only support yyyymm/yyyymmdd format");
+                    }
+                } else {
+                    if (partDesc.partitionColumnIsYmdInt()) {
+                        buildSingleColumnRangeCondAsYmdInt(builder, partitionDateColumn, startInclusive, endExclusive);
+                    } else if (partDesc.partitionColumnIsTimeMillis()) {
+                        buildSingleColumnRangeCondAsTimestamp(builder, partitionDateColumn, startInclusive,
+                                endExclusive);
+                    }
+                }
             } else if (partitionDateColumn != null) {
                 buildSingleColumnRangeCondition(builder, partitionDateColumn, startInclusive, endExclusive,
                         partDesc.getPartitionDateFormat());
@@ -294,7 +337,7 @@ public class PartitionDesc implements Serializable {
             String partitionColumnName = partitionColumn.getExpressionInSourceDB();
             builder.append(partitionColumnName).append(" >= ").append(String.format(Locale.ROOT, "to_date('%s', '%s')",
                     DateFormat.formatToDateStr(startInclusive, partitionColumnDateFormat), partitionColumnDateFormat));
-            builder.append(" AND ");
+            builder.append(and);
             builder.append(partitionColumnName).append(" < ").append(String.format(Locale.ROOT, "to_date('%s', '%s')",
                     DateFormat.formatToDateStr(endExclusive, partitionColumnDateFormat), partitionColumnDateFormat));
         }
@@ -303,8 +346,18 @@ public class PartitionDesc implements Serializable {
                 long startInclusive, long endExclusive) {
             String partitionColumnName = partitionColumn.getExpressionInSourceDB();
             builder.append(partitionColumnName).append(" >= ").append(startInclusive);
-            builder.append(" AND ");
+            builder.append(and);
             builder.append(partitionColumnName).append(" < ").append(endExclusive);
+        }
+
+        private static void buildSingleColumnRangeCondAsYmInt(StringBuilder builder, TblColRef partitionColumn,
+                long startInclusive, long endExclusive) {
+            String partitionColumnName = partitionColumn.getExpressionInSourceDB();
+            builder.append(partitionColumnName).append(" >= ")
+                    .append(DateFormat.formatToDateStr(startInclusive, DateFormat.COMPACT_MONTH_PATTERN));
+            builder.append(and);
+            builder.append(partitionColumnName).append(" < ")
+                    .append(DateFormat.formatToDateStr(endExclusive, DateFormat.COMPACT_MONTH_PATTERN));
         }
 
         private static void buildSingleColumnRangeCondAsYmdInt(StringBuilder builder, TblColRef partitionColumn,
@@ -312,7 +365,7 @@ public class PartitionDesc implements Serializable {
             String partitionColumnName = partitionColumn.getExpressionInSourceDB();
             builder.append(partitionColumnName).append(" >= ")
                     .append(DateFormat.formatToDateStr(startInclusive, DateFormat.COMPACT_DATE_PATTERN));
-            builder.append(" AND ");
+            builder.append(and);
             builder.append(partitionColumnName).append(" < ")
                     .append(DateFormat.formatToDateStr(endExclusive, DateFormat.COMPACT_DATE_PATTERN));
         }

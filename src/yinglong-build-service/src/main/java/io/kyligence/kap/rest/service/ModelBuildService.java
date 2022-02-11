@@ -43,6 +43,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.JobErrorCode;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.DateFormat;
@@ -278,6 +279,16 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
 
         NDataModel copyModel = modelManager.copyForWrite(modelManager.getDataModelDesc(params.getModelId()));
         copyModel.setPartitionDesc(params.getPartitionDesc());
+
+        if (!KylinConfig.getInstanceFromEnv().isUseBigIntAsTimestampForPartitionColumn()) {
+            PartitionDesc partitionDesc = params.getPartitionDesc();
+            partitionDesc.init(copyModel);
+            if (!partitionDesc.checkIntTypeDateFormat()) {
+                throw new KylinException(JobErrorCode.JOB_INT_DATE_FORMAT_NOT_MATCH_ERROR,
+                        "int/bigint data type only support yyyymm/yyyymmdd format");
+            }
+        }
+
         val allTables = NTableMetadataManager.getInstance(modelManager.getConfig(), project).getAllTablesMap();
         copyModel.init(modelManager.getConfig(), allTables, getDataflowManager(project).listUnderliningDataModels(),
                 project);

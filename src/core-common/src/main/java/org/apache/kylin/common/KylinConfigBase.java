@@ -1046,6 +1046,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kylin.job.concurrency-fetch-datasource-size-thread_number", "10"));
     }
 
+    public boolean isUseBigIntAsTimestampForPartitionColumn() {
+        return Boolean.parseBoolean(getOptional("kylin.job.use-bigint-as-timestamp-for-partition-column", FALSE));
+    }
+
     // ============================================================================
     // SOURCE.HIVE
     // ============================================================================
