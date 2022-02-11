@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.NavigableSet;
 import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.function.Consumer;
 
 import org.apache.commons.io.FileUtils;
@@ -37,16 +38,17 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.persistence.VersionedRawResource;
 import org.apache.kylin.common.util.ClassUtil;
 
 import com.google.common.collect.Sets;
-import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.persistence.UnitMessages;
 import io.kyligence.kap.common.persistence.event.Event;
 import io.kyligence.kap.common.persistence.event.ResourceCreateOrUpdateEvent;
 import io.kyligence.kap.common.persistence.event.ResourceDeleteEvent;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
@@ -105,14 +107,6 @@ public abstract class MetadataStore {
             auditLogStore.save(unitMessages);
         }
         UnitOfWork.get().onUnitUpdated();
-    }
-
-    public void restore(ResourceStore store) throws IOException {
-        val all = list("/");
-        for (String resPath : all) {
-            val raw = load(resPath);
-            store.putResourceWithoutCheck(resPath, raw.getByteSource(), raw.getTimestamp(), raw.getMvcc());
-        }
     }
 
     public void putResource(RawResource res, String unitPath, long epochId) throws Exception {
@@ -179,5 +173,43 @@ public abstract class MetadataStore {
                 throw new IllegalArgumentException("cannot not read file " + f, e);
             }
         });
+    }
+
+    public MemoryMetaData reloadAll() throws IOException {
+        MemoryMetaData data = MemoryMetaData.createEmpty();
+        val all = list("/");
+        for (String resPath : all) {
+            val raw = load(resPath);
+            data.put(resPath, new VersionedRawResource(raw));
+        }
+        return data;
+    }
+
+    public static class MemoryMetaData {
+        @Getter
+        private ConcurrentSkipListMap<String, VersionedRawResource> data;
+
+        @Getter
+        @Setter
+        private Long offset;
+
+        private MemoryMetaData(ConcurrentSkipListMap<String, VersionedRawResource> data) {
+            this.data = data;
+        }
+
+        public static MemoryMetaData createEmpty() {
+            ConcurrentSkipListMap<String, VersionedRawResource> data = KylinConfig.getInstanceFromEnv()
+                    .isMetadataKeyCaseInSensitiveEnabled() ? new ConcurrentSkipListMap<>(String.CASE_INSENSITIVE_ORDER)
+                            : new ConcurrentSkipListMap<>();
+            return new MemoryMetaData(data);
+        }
+
+        public boolean containOffset() {
+            return offset != null;
+        }
+
+        public void put(String resPath, VersionedRawResource versionedRawResource) {
+            data.put(resPath, versionedRawResource);
+        }
     }
 }

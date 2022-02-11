@@ -25,6 +25,7 @@ package io.kyligence.kap.common.persistence;
 
 import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasourceParameters;
 
+import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -70,7 +71,7 @@ public class JdbcMetadataStoreTest {
     }
 
     @Test
-    public void testBasic() {
+    public void testBasic() throws IOException {
         UnitOfWork.doInTransactionWithRetry(() -> {
             val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
             store.checkAndPutResource("/p1/abc", ByteSource.wrap("abc".getBytes(DEFAULT_CHARSET)), -1);
@@ -101,6 +102,28 @@ public class JdbcMetadataStoreTest {
                 Assert.assertEquals(1000L, resource.getTimestamp());
             }
         }
+    }
+
+    @Test
+    public void testReload() throws Exception {
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
+            store.checkAndPutResource("/_global/abc", ByteSource.wrap("abc".getBytes(DEFAULT_CHARSET)), -1);
+            return 0;
+        }, "_global");
+
+        val dataSource = new DriverManagerDataSource();
+        val url = getTestConfig().getMetadataUrl();
+        dataSource.setUrl(url.getParameter("url"));
+        dataSource.setDriverClassName(url.getParameter("driverClassName"));
+        dataSource.setUsername(url.getParameter("username"));
+        dataSource.setPassword(url.getParameter("password"));
+        val jdbcTemplate = new JdbcTemplate(dataSource);
+        val all = jdbcTemplate.query("select * from " + url.getIdentifier(), new RawResourceRowMapper());
+        Assert.assertEquals(1, all.size());
+        ResourceStore systemStore = ResourceStore.getKylinMetaStore(getTestConfig());
+        systemStore.reload();
+        Assert.assertEquals(1, systemStore.listResourcesRecursively("/").size());
     }
 
     @Test

@@ -25,8 +25,6 @@ package io.kyligence.kap.common.persistence.transaction;
 
 import static org.apache.kylin.common.exception.CommonErrorCode.FAILED_CONNECT_META_DATABASE;
 
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -37,18 +35,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.apache.kylin.common.util.NamedThreadFactory;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.persistence.AuditLog;
 import io.kyligence.kap.common.persistence.UnitMessages;
 import io.kyligence.kap.common.persistence.event.Event;
 import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
-import io.kyligence.kap.common.scheduler.EventBusFactory;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -60,7 +55,7 @@ public abstract class AbstractAuditLogReplayWorker {
     protected final KylinConfig config;
 
     // only a thread is necessary
-    protected final ScheduledExecutorService consumeExecutor = Executors.newScheduledThreadPool(1,
+    protected volatile ScheduledExecutorService consumeExecutor = Executors.newScheduledThreadPool(1,
             new NamedThreadFactory("ReplayWorker"));
 
     protected final AtomicBoolean isStopped = new AtomicBoolean(false);
@@ -73,6 +68,9 @@ public abstract class AbstractAuditLogReplayWorker {
     public abstract void startSchedule(long currentId, boolean syncImmediately);
 
     public void catchup() {
+        if (isStopped.get()) {
+            return;
+        }
         consumeExecutor.submit(() -> catchupInternal(1));
     }
 
@@ -131,30 +129,12 @@ public abstract class AbstractAuditLogReplayWorker {
 
     protected void handleReloadAll(Exception e) {
         log.error("Critical exception happened, try to reload metadata ", e);
-        val lockKeys = Lists.newArrayList(TransactionLock.projectLocks.keySet());
-        lockKeys.sort(Comparator.naturalOrder());
         try {
-            EventBusFactory.getInstance().postSync(new StartReloadEvent());
-            for (String lockKey : lockKeys) {
-                TransactionLock.getLock(lockKey, false).lock();
-            }
-            log.info("Acquired all locks, start to copy");
-            val fixerKylinConfig = KylinConfig.createKylinConfig(config);
-            val fixerResourceStore = ResourceStore.getKylinMetaStore(fixerKylinConfig);
-            log.info("Finish read all metadata from store, start to reload");
-            val resourceStore = ResourceStore.getKylinMetaStore(config);
-            resourceStore.deleteResourceRecursively("/");
-            fixerResourceStore.copy("/", resourceStore);
-            resourceStore.setOffset(fixerResourceStore.getOffset());
-            updateOffset(fixerResourceStore.getOffset());
+            MessageSynchronization messageSynchronization = MessageSynchronization
+                    .getInstance(KylinConfig.getInstanceFromEnv());
+            messageSynchronization.replayAllMetadata(false);
         } catch (Throwable th) {
             log.error("reload all failed", th);
-        } finally {
-            Collections.reverse(lockKeys);
-            for (String lockKey : lockKeys) {
-                TransactionLock.getLock(lockKey, false).unlock();
-            }
-            EventBusFactory.getInstance().postSync(new EndReloadEvent());
         }
         log.info("Reload finished");
     }
@@ -174,6 +154,16 @@ public abstract class AbstractAuditLogReplayWorker {
         }
         throw new TimeoutException(String.format(Locale.ROOT, "Cannot reach %s before %s, current is %s", targetId,
                 endTime, getLogOffset()));
+    }
+
+    public void reStartSchedule(long currentId) {
+        if (!isStopped.get()) {
+            log.info("replayer is running , don't need restart");
+            return;
+        }
+        isStopped.set(false);
+        consumeExecutor = Executors.newScheduledThreadPool(1, new NamedThreadFactory("ReplayWorker"));
+        startSchedule(currentId, false);
     }
 
     public static class StartReloadEvent {

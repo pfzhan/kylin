@@ -35,8 +35,8 @@ import java.nio.charset.Charset;
 import java.sql.SQLException;
 import java.util.Locale;
 import java.util.NavigableSet;
-import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 
@@ -47,6 +47,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.persistence.VersionedRawResource;
 import org.apache.kylin.common.util.CompressionUtils;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -56,11 +57,11 @@ import org.springframework.transaction.TransactionDefinition;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
-import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.persistence.UnitMessages;
 import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
 import io.kyligence.kap.common.persistence.metadata.jdbc.RawResourceRowMapper;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 import lombok.Getter;
 import lombok.val;
 import lombok.var;
@@ -259,41 +260,6 @@ public class JdbcMetadataStore extends MetadataStore {
     }
 
     @Override
-    public void restore(ResourceStore store) throws IOException {
-        withTransaction(transactionManager, () -> {
-            log.debug("start restore");
-            restoreProject(store, "_global");
-            //for lock meta store table
-            jdbcTemplate.queryForObject(String.format(Locale.ROOT, "select max(%s) from %s", META_TABLE_KEY, table),
-                    String.class);
-            val projects = store.listResources("/_global/project");
-            Optional.ofNullable(projects).orElse(Sets.newTreeSet()).parallelStream().forEach(projectRes -> {
-                val words = projectRes.split("/");
-                val project = words[words.length - 1].replace(".json", "");
-                restoreProject(store, project);
-            });
-            try {
-                val uuidRaw = jdbcTemplate.queryForObject(
-                        String.format(Locale.ROOT, SELECT_BY_KEY_SQL, table, ResourceStore.METASTORE_UUID_TAG),
-                        RAW_RESOURCE_ROW_MAPPER);
-                store.putResourceWithoutCheck(uuidRaw.getResPath(), uuidRaw.getByteSource(), uuidRaw.getTimestamp(),
-                        uuidRaw.getMvcc());
-            } catch (PersistException | EmptyResultDataAccessException e) {
-                if (e instanceof EmptyResultDataAccessException
-                        || e.getCause() instanceof EmptyResultDataAccessException) {
-                    log.info("Cannot find /UUID in metastore");
-                } else {
-                    throw e;
-                }
-            }
-            store.setOffset(getAuditLogStore().getMaxId());
-            log.debug("end restore offset is {}", store.getOffset());
-            return null;
-        }, TransactionDefinition.ISOLATION_SERIALIZABLE);
-
-    }
-
-    @Override
     public void dump(ResourceStore store) throws Exception {
         withTransaction(transactionManager, () -> {
             super.dump(store);
@@ -309,15 +275,15 @@ public class JdbcMetadataStore extends MetadataStore {
         });
     }
 
-    private void restoreProject(ResourceStore store, String project) {
+    private void restoreProject(MemoryMetaData data, String project) {
         val rowMapper = new RawResourceRowMapper();
         var prevKey = "/" + project + "/";
         val endKey = "/" + project + "/~";
         val resources = jdbcTemplate.query(String.format(Locale.ROOT, SELECT_BY_RANGE_SQL, table, prevKey, endKey),
                 rowMapper);
+
         for (RawResource resource : resources) {
-            store.putResourceWithoutCheck(resource.getResPath(), resource.getByteSource(), resource.getTimestamp(),
-                    resource.getMvcc());
+            data.put(resource.getResPath(), new VersionedRawResource(resource));
         }
     }
 
@@ -341,4 +307,56 @@ public class JdbcMetadataStore extends MetadataStore {
         log.info("Succeed to create table: {}", table);
     }
 
+    @Override
+    public MemoryMetaData reloadAll() {
+        MemoryMetaData data = MemoryMetaData.createEmpty();
+        return withTransaction(transactionManager, () -> {
+            log.debug("start reloadAll");
+            //for lock meta store table
+            jdbcTemplate.queryForObject(String.format(Locale.ROOT, "select max(%s) from %s", META_TABLE_KEY, table),
+                    String.class);
+
+            restoreProject(data, "_global");
+            val projects = listProjects(data);
+            projects.parallelStream().forEach(project -> restoreProject(data, project));
+
+            loadUUIDQuietly(data);
+            long offset = getAuditLogStore().getMaxId();
+
+            log.debug("end reloadAll offset is {}", offset);
+            data.setOffset(offset);
+            return data;
+        }, TransactionDefinition.ISOLATION_SERIALIZABLE);
+
+    }
+
+    private void loadUUIDQuietly(MemoryMetaData data) {
+        try {
+            val uuidRaw = jdbcTemplate.queryForObject(
+                    String.format(Locale.ROOT, SELECT_BY_KEY_SQL, table, ResourceStore.METASTORE_UUID_TAG),
+                    RAW_RESOURCE_ROW_MAPPER);
+            data.put(uuidRaw.getResPath(), new VersionedRawResource(uuidRaw));
+        } catch (PersistException | EmptyResultDataAccessException e) {
+            if (e instanceof EmptyResultDataAccessException || e.getCause() instanceof EmptyResultDataAccessException) {
+                log.info("Cannot find /UUID in metastore");
+            } else {
+                throw e;
+            }
+        }
+
+    }
+
+    private Set<String> listProjects(MemoryMetaData data) {
+        Set<String> projects = Sets.newTreeSet();
+
+        data.getData().keySet().forEach(path -> {
+            if (path.startsWith("/_global/project/")) {
+                val words = path.split("/");
+                val project = words[words.length - 1].replace(".json", "");
+                projects.add(project);
+            }
+        });
+
+        return projects;
+    }
 }

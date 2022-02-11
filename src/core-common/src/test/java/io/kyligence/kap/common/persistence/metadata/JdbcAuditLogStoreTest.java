@@ -36,7 +36,6 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import io.kyligence.kap.junit.JdbcInfo;
 import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RawResource;
@@ -57,6 +56,7 @@ import io.kyligence.kap.common.persistence.AuditLog;
 import io.kyligence.kap.common.persistence.metadata.jdbc.AuditLogRowMapper;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
+import io.kyligence.kap.junit.JdbcInfo;
 import io.kyligence.kap.junit.annotation.JdbcMetadataInfo;
 import io.kyligence.kap.junit.annotation.MetadataInfo;
 import io.kyligence.kap.junit.annotation.OverwriteProp;
@@ -385,8 +385,47 @@ public class JdbcAuditLogStoreTest {
         });
     }
 
+    @Test
+    public void testRestartReplay(JdbcInfo jdbcInfo) throws Exception {
+        val workerStore = ResourceStore.getKylinMetaStore(getTestConfig());
+        workerStore.checkAndPutResource("/UUID", new StringEntity(RandomUtil.randomUUIDStr()), StringEntity.serializer);
+
+        Assert.assertEquals(1, workerStore.listResourcesRecursively("/").size());
+        val url = getTestConfig().getMetadataUrl();
+        val jdbcTemplate = jdbcInfo.getJdbcTemplate();
+        String unitId = RandomUtil.randomUUIDStr();
+        jdbcTemplate.batchUpdate(
+                String.format(Locale.ROOT, JdbcAuditLogStore.INSERT_SQL, url.getIdentifier() + "_audit_log"),
+                Arrays.asList(
+                        new Object[] { "/_global/p1/abc", "abc".getBytes(charset), System.currentTimeMillis(), 0,
+                                unitId, null, LOCAL_INSTANCE },
+                        new Object[] { "/_global/p1/abc2", "abc".getBytes(charset), System.currentTimeMillis(), 0,
+                                unitId, null, LOCAL_INSTANCE },
+                        new Object[] { "/_global/p1/abc3", "abc".getBytes(charset), System.currentTimeMillis(), 0,
+                                unitId, null, LOCAL_INSTANCE },
+                        new Object[] { "/_global/p1/abc3", "abc".getBytes(charset), System.currentTimeMillis(), 1,
+                                unitId, null, LOCAL_INSTANCE },
+                        new Object[] { "/_global/p1/abc", null, null, null, unitId, null, LOCAL_INSTANCE }));
+        workerStore.catchup();
+        Assert.assertEquals(3, workerStore.listResourcesRecursively("/").size());
+
+        workerStore.getAuditLogStore().pause();
+        jdbcTemplate.batchUpdate(
+                String.format(Locale.ROOT, JdbcAuditLogStore.INSERT_SQL, url.getIdentifier() + "_audit_log"),
+                Arrays.asList(
+                        new Object[] { "/_global/p1/abcd", "abc".getBytes(charset), System.currentTimeMillis(), 0,
+                                unitId, null, LOCAL_INSTANCE },
+                        new Object[] { "/_global/p1/abce", "abc".getBytes(charset), System.currentTimeMillis(), 0,
+                                unitId, null, LOCAL_INSTANCE }));
+
+        workerStore.getAuditLogStore().reInit();
+        Awaitility.await().atMost(6, TimeUnit.SECONDS)
+                .until(() -> 5 == workerStore.listResourcesRecursively("/").size());
+    }
+
     void changeProject(String project, boolean isDel, JdbcInfo info) throws Exception {
         val jdbcTemplate = info.getJdbcTemplate();
+
         val url = getTestConfig().getMetadataUrl();
         String unitId = RandomUtil.randomUUIDStr();
 

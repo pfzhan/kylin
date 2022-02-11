@@ -145,6 +145,7 @@ public class EpochOrchestrator {
         @Subscribe
         public void onEnd(AuditLogReplayWorker.EndReloadEvent end) {
             updateCheckerStatus(true);
+            epochMgr.updateAllEpochs();
         }
     }
 

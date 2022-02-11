@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.common.persistence.transaction;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.Comparator;
 
@@ -34,6 +35,7 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.common.persistence.UnitMessages;
 import io.kyligence.kap.common.persistence.event.ResourceCreateOrUpdateEvent;
 import io.kyligence.kap.common.persistence.event.ResourceDeleteEvent;
+import io.kyligence.kap.common.scheduler.EventBusFactory;
 import lombok.Setter;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -113,31 +115,31 @@ public class MessageSynchronization {
         }
     }
 
-    public void replayAllMetadata() {
+    public void replayAllMetadata(boolean needCloseReplay) throws IOException {
         val lockKeys = Lists.newArrayList(TransactionLock.getProjectLocksForRead().keySet());
         lockKeys.sort(Comparator.naturalOrder());
+        val resourceStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
         try {
+            EventBusFactory.getInstance().postSync(new AuditLogReplayWorker.StartReloadEvent());
             for (String lockKey : lockKeys) {
                 TransactionLock.getLock(lockKey, false).lock();
             }
-            log.info("Acquired all locks, start to copy");
-            UnitOfWork.replaying.set(true);
-            val kylinConfig = KylinConfig.getInstanceFromEnv();
-            val fixerKylinConfig = KylinConfig.createKylinConfig(kylinConfig);
-            val fixerResourceStore = ResourceStore.getKylinMetaStore(fixerKylinConfig);
-            log.info("Finish read all metadata from store, start to reload");
-            val resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
-            resourceStore.deleteResourceRecursively("/");
-            fixerResourceStore.copy("/", resourceStore);
-            resourceStore.setOffset(fixerResourceStore.getOffset());
-            resourceStore.forceCatchup();
-            UnitOfWork.replaying.remove();
+            log.info("Acquired all locks, start to reload");
+            if (needCloseReplay) {
+                resourceStore.getAuditLogStore().pause();
+            }
+            resourceStore.reload();
             log.info("Reload finished");
         } finally {
             Collections.reverse(lockKeys);
             for (String lockKey : lockKeys) {
                 TransactionLock.getLock(lockKey, false).unlock();
             }
+            if (needCloseReplay) {
+                // if not stop, reinit return directly
+                resourceStore.getAuditLogStore().reInit();
+            }
+            EventBusFactory.getInstance().postSync(new AuditLogReplayWorker.EndReloadEvent());
         }
     }
 

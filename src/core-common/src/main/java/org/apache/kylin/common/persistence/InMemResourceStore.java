@@ -24,6 +24,7 @@
 
 package org.apache.kylin.common.persistence;
 
+import java.io.IOException;
 import java.util.NavigableSet;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -34,12 +35,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
+import io.kyligence.kap.common.persistence.metadata.MetadataStore.MemoryMetaData;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class InMemResourceStore extends ResourceStore {
@@ -47,7 +49,7 @@ public class InMemResourceStore extends ResourceStore {
     private static final Logger logger = LoggerFactory.getLogger(InMemResourceStore.class);
 
     @Getter
-    private final ConcurrentSkipListMap<String, VersionedRawResource> data;
+    private volatile ConcurrentSkipListMap<String, VersionedRawResource> data;
 
     public InMemResourceStore(KylinConfig kylinConfig) {
         super(kylinConfig);
@@ -178,6 +180,15 @@ public class InMemResourceStore extends ResourceStore {
         }
     }
 
+    @Override
+    public void reload() throws IOException {
+        MemoryMetaData metaData = metadataStore.reloadAll();
+        data = metaData.getData();
+        if (metaData.containOffset()) {
+            offset = metaData.getOffset();
+        }
+    }
+
     private void checkEnv() {
         // UT env or replay thread can ignore transactional lock
         if (!kylinConfig.isSystemConfig() || kylinConfig.isUTEnv() || UnitOfWork.isReplaying()
@@ -188,4 +199,5 @@ public class InMemResourceStore extends ResourceStore {
                 "cannot update or delete resource in a readonly transaction");
         throw new IllegalStateException("cannot update or delete resource");
     }
+
 }

@@ -39,7 +39,6 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.guava20.shaded.common.base.Strings;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -60,6 +59,7 @@ import io.kyligence.kap.common.persistence.transaction.AuditLogGroupedReplayWork
 import io.kyligence.kap.common.persistence.transaction.AuditLogReplayWorker;
 import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.guava20.shaded.common.annotations.VisibleForTesting;
+import io.kyligence.kap.guava20.shaded.common.base.Strings;
 import lombok.Getter;
 import lombok.val;
 import lombok.var;
@@ -297,6 +297,17 @@ public class JdbcAuditLogStore implements AuditLogStore {
             }
             return null;
         });
+    }
+
+    @Override
+    public void pause() {
+        replayWorker.close(true);
+    }
+
+    @Override
+    public void reInit() {
+        val store = ResourceStore.getKylinMetaStore(config);
+        replayWorker.reStartSchedule(store.getOffset());
     }
 
     @Override

@@ -67,7 +67,6 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.persistence.transaction.AuditLogReplayWorker;
 import io.kyligence.kap.common.persistence.transaction.MessageSynchronization;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.rest.request.BackupRequest;
@@ -320,13 +319,8 @@ public class SystemService extends BasicService {
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public void reloadMetadata() {
-        try {
-            EventBusFactory.getInstance().postSync(new AuditLogReplayWorker.StartReloadEvent());
+    public void reloadMetadata() throws IOException {
             MessageSynchronization messageSynchronization = MessageSynchronization.getInstance(KylinConfig.getInstanceFromEnv());
-            messageSynchronization.replayAllMetadata();
-        } finally {
-            EventBusFactory.getInstance().postSync(new AuditLogReplayWorker.EndReloadEvent());
-        }
+            messageSynchronization.replayAllMetadata(true);
     }
 }
