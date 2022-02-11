@@ -49,6 +49,7 @@ import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.v2.OptRecV2TestBase;
@@ -86,6 +87,35 @@ public class OptRecServiceGeneralTest extends OptRecV2TestBase {
         List<List<Integer>> layoutColOrder = ImmutableList.<List<Integer>> builder() //
                 .add(ImmutableList.of(1, 100000)) //
                 .add(ImmutableList.of(0, 100000, 100001)).build();
+        checkIndexPlan(layoutColOrder, getIndexPlan());
+    }
+
+    @Test
+    public void testApproveModelWithDiscontinuousColumnId() throws IOException {
+        List<Integer> addLayoutId = Lists.newArrayList(6);
+        prepare(addLayoutId);
+        OptRecRequest recRequest = buildOptRecRequest(addLayoutId);
+
+        // mock model with discontinuous column id
+        final String modelId = getModel().getId();
+        final NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
+        modelManager.updateDataModel(modelId, copyForWrite -> {
+            final List<NDataModel.NamedColumn> allNamedColumns = copyForWrite.getAllNamedColumns();
+            allNamedColumns.removeIf(namedColumn -> namedColumn.getId() == 4);
+        });
+        List<NDataModel.NamedColumn> columnList = modelManager.getDataModelDesc(modelId).getAllNamedColumns();
+        Assert.assertEquals(17, columnList.size());
+
+        optRecService.approve(getProject(), recRequest);
+
+        NDataModel dataModel = getModel();
+        Assert.assertEquals(ImmutableSet.of(1, 11), dataModel.getEffectiveDimensions().keySet());
+        Assert.assertEquals(ImmutableMap.of(100000, "COUNT_ALL", 100001, "MEASURE_AUTO_1"),
+                extractIdToName(dataModel.getEffectiveMeasures()));
+
+        List<List<Integer>> layoutColOrder = ImmutableList.<List<Integer>> builder() //
+                .add(ImmutableList.of(1, 100000)) //
+                .add(ImmutableList.of(11, 100000, 100001)).build();
         checkIndexPlan(layoutColOrder, getIndexPlan());
     }
 
@@ -187,7 +217,7 @@ public class OptRecServiceGeneralTest extends OptRecV2TestBase {
     }
 
     @Test
-    public void testApproveConcurrenBatch() throws Exception {
+    public void testApproveConcurrentBatch() throws Exception {
         List<Integer> addLayoutId = Lists.newArrayList(3, 6);
         prepare(addLayoutId);
         OptRecRequest recRequest = buildOptRecRequest(addLayoutId);

@@ -338,6 +338,8 @@ public class OptRecService extends BasicService {
         }
 
         private void writeDimensionToModel(NDataModel model, RawRecItem rawRecItem) {
+            Map<Integer, NDataModel.NamedColumn> mapIdToColumn = model.getAllNamedColumns().stream()
+                    .collect(Collectors.toMap(NDataModel.NamedColumn::getId, Function.identity()));
             Map<Integer, RecommendationRef> dimensionRefs = recommendation.getDimensionRefs();
             int negRecItemId = -rawRecItem.getId();
             RecommendationRef dimensionRef = dimensionRefs.get(negRecItemId);
@@ -359,7 +361,7 @@ public class OptRecService extends BasicService {
                 column.setName(userDefinedRecNameMap.get(negRecItemId));
             }
             column.setStatus(NDataModel.ColumnStatus.DIMENSION);
-            model.getAllNamedColumns().get(column.getId()).setName(column.getName());
+            mapIdToColumn.get(column.getId()).setName(column.getName());
             dimensions.putIfAbsent(negRecItemId, column);
             columns.get(column.getId()).setStatus(column.getStatus());
             columns.get(column.getId()).setName(column.getName());
