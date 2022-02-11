@@ -25,7 +25,6 @@
 package io.kyligence.kap.rest.service;
 
 import static java.util.stream.Collectors.groupingBy;
-import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PARTITION_COLUMN;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -2254,93 +2253,6 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                     IndexPlan::removeTobeDeleteIndexIfNecessary);
             return null;
         }, project);
-    }
-
-    public JobInfoResponse incrementBuildSegmentsManually(IncrementBuildSegmentParams params) throws Exception {
-        String project = params.getProject();
-        aclEvaluate.checkProjectOperationPermission(project);
-        checkModelPermission(project, params.getModelId());
-        val modelManager = getDataModelManager(project);
-        if (PartitionDesc.isEmptyPartitionDesc(params.getPartitionDesc())) {
-            throw new KylinException(EMPTY_PARTITION_COLUMN, "Partition column is null.'");
-        }
-
-        String startFormat = DateFormat
-                .getFormatTimeStamp(params.getStart(), params.getPartitionDesc().getPartitionDateFormat()).toString();
-        String endFormat = DateFormat
-                .getFormatTimeStamp(params.getEnd(), params.getPartitionDesc().getPartitionDateFormat()).toString();
-
-        NDataModel copyModel = modelManager.copyForWrite(modelManager.getDataModelDesc(params.getModelId()));
-        copyModel.setPartitionDesc(params.getPartitionDesc());
-        val allTables = NTableMetadataManager.getInstance(modelManager.getConfig(), project).getAllTablesMap();
-        copyModel.init(modelManager.getConfig(), allTables, getDataflowManager(project).listUnderliningDataModels(),
-                project);
-        String format = probeDateFormatIfNotExist(project, copyModel);
-
-        List<JobInfoResponse.JobInfo> jobIds = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            IncrementBuildSegmentParams buildSegmentParams = new IncrementBuildSegmentParams(project,
-                    params.getModelId(), startFormat, endFormat, params.getPartitionDesc(),
-                    params.getMultiPartitionDesc(), format, params.getSegmentHoles(), params.isNeedBuild(),
-                    params.getMultiPartitionValues()) //
-                            .withIgnoredSnapshotTables(params.getIgnoredSnapshotTables())
-                            .withPriority(params.getPriority())
-                            .withBuildAllSubPartitions(params.isBuildAllSubPartitions()) //
-                            .withPartialBuild(params.isPartialBuild()) //
-                            .withBatchIndexIds(params.getBatchIndexIds()).withYarnQueue(params.getYarnQueue())
-                            .withTag(params.getTag());
-            return innerIncrementBuild(buildSegmentParams);
-        }, project);
-        JobInfoResponse jobInfoResponse = new JobInfoResponse();
-        jobInfoResponse.setJobs(jobIds);
-        return jobInfoResponse;
-    }
-
-    private List<JobInfoResponse.JobInfo> innerIncrementBuild(IncrementBuildSegmentParams params) throws IOException {
-
-        checkModelAndIndexManually(params);
-        if (CollectionUtils.isEmpty(params.getSegmentHoles())) {
-            params.setSegmentHoles(Lists.newArrayList());
-        }
-        NDataModel modelDesc = getDataModelManager(params.getProject()).getDataModelDesc(params.getModelId());
-        if (PartitionDesc.isEmptyPartitionDesc(modelDesc.getPartitionDesc())
-                || !modelDesc.getPartitionDesc().equals(params.getPartitionDesc()) || !ModelSemanticHelper
-                        .isMultiPartitionDescSame(modelDesc.getMultiPartitionDesc(), params.getMultiPartitionDesc())) {
-            aclEvaluate.checkProjectWritePermission(params.getProject());
-            val request = convertToRequest(modelDesc);
-            request.setPartitionDesc(params.getPartitionDesc());
-            request.setProject(params.getProject());
-            request.setMultiPartitionDesc(params.getMultiPartitionDesc());
-            boolean isClean = updateSecondStorageModel(params.getProject(), request.getId(), true);
-            updateDataModelSemantic(params.getProject(), request, !isClean);
-            params.getSegmentHoles().clear();
-        }
-        List<JobInfoResponse.JobInfo> res = Lists.newArrayListWithCapacity(params.getSegmentHoles().size() + 2);
-        List<String[]> allPartitions = null;
-        if (modelDesc.isMultiPartitionModel()) {
-            allPartitions = modelDesc.getMultiPartitionDesc().getPartitions().stream()
-                    .map(MultiPartitionDesc.PartitionInfo::getValues).collect(Collectors.toList());
-        }
-        for (SegmentTimeRequest hole : params.getSegmentHoles()) {
-            res.add(modelBuildService
-                    .constructIncrementBuild(new IncrementBuildSegmentParams(params.getProject(), params.getModelId(),
-                            hole.getStart(), hole.getEnd(), params.getPartitionColFormat(), true, allPartitions)
-                                    .withIgnoredSnapshotTables(params.getIgnoredSnapshotTables())
-                                    .withPriority(params.getPriority())
-                                    .withBuildAllSubPartitions(params.isBuildAllSubPartitions()) //
-                                    .withPartialBuild(params.isPartialBuild()) //
-                                    .withBatchIndexIds(params.getBatchIndexIds()).withYarnQueue(params.getYarnQueue())
-                                    .withTag(params.getTag())));
-        }
-        res.add(modelBuildService.constructIncrementBuild(new IncrementBuildSegmentParams(params.getProject(),
-                params.getModelId(), params.getStart(), params.getEnd(), params.getPartitionColFormat(),
-                params.isNeedBuild(), params.getMultiPartitionValues()) //
-                        .withIgnoredSnapshotTables(params.getIgnoredSnapshotTables()) //
-                        .withPriority(params.getPriority()) //
-                        .withBuildAllSubPartitions(params.isBuildAllSubPartitions()) //
-                        .withPartialBuild(params.isPartialBuild()) //
-                        .withBatchIndexIds(params.getBatchIndexIds()).withYarnQueue(params.getYarnQueue())
-                        .withTag(params.getTag())));
-        return res;
     }
 
     ModelRequest convertToRequest(NDataModel modelDesc) throws IOException {

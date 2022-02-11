@@ -267,8 +267,7 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
         aclEvaluate.checkProjectOperationPermission(project);
         modelService.checkModelPermission(project, params.getModelId());
         val modelManager = getDataModelManager(project);
-        if (params.getPartitionDesc() == null
-                || StringUtils.isEmpty(params.getPartitionDesc().getPartitionDateColumn())) {
+        if (PartitionDesc.isEmptyPartitionDesc(params.getPartitionDesc())) {
             throw new KylinException(EMPTY_PARTITION_COLUMN, "Partition column is null.'");
         }
 
@@ -313,7 +312,6 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
     }
 
     private List<JobInfoResponse.JobInfo> innerIncrementBuild(IncrementBuildSegmentParams params) throws IOException {
-
         modelService.checkModelAndIndexManually(params);
         if (CollectionUtils.isEmpty(params.getSegmentHoles())) {
             params.setSegmentHoles(Lists.newArrayList());
@@ -327,8 +325,8 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
             request.setPartitionDesc(params.getPartitionDesc());
             request.setProject(params.getProject());
             request.setMultiPartitionDesc(params.getMultiPartitionDesc());
-            modelService.updateSecondStorageModel(params.getProject(), request.getId(), true);
-            modelService.updateDataModelSemantic(params.getProject(), request);
+            boolean isClean = modelService.updateSecondStorageModel(params.getProject(), request.getId(), true);
+            modelService.updateDataModelSemantic(params.getProject(), request, !isClean);
             params.getSegmentHoles().clear();
         }
         List<JobInfoResponse.JobInfo> res = Lists.newArrayListWithCapacity(params.getSegmentHoles().size() + 2);
