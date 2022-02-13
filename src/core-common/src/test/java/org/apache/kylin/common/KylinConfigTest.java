@@ -124,17 +124,6 @@ public class KylinConfigTest {
     }
 
     @Test
-    public void testPropertiesHotLoad() {
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
-        Assert.assertEquals(3, config.getSlowQueryDefaultDetectIntervalSeconds());
-
-        updateProperty("kylin.query.slowquery-detect-interval", "4");
-        KylinConfig.getInstanceFromEnv().reloadFromSiteProperties();
-
-        Assert.assertEquals(4, config.getSlowQueryDefaultDetectIntervalSeconds());
-    }
-
-    @Test
     public void testGetMetadataUrlPrefix() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
 

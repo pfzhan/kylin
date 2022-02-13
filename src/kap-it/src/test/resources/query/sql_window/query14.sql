@@ -21,11 +21,11 @@
 -- (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 -- OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --
-select lm_active, ly_active, lm_active2, ly_active2
+select cal_dt1, cal_dt2, lm_active, ly_active, lm_active2, ly_active2
 from
 (
 select
-cal_dt
+cal_dt cal_dt1
 ,coalesce(lag(sum(price),1) OVER (order by cal_dt))  lm_active
 ,coalesce(lag(sum(price),12) OVER (order by cal_dt))  ly_active
 from test_kylin_fact
@@ -34,11 +34,12 @@ group by cal_dt
 full join
 (
 select
-cal_dt
+cal_dt cal_dt2
 ,coalesce(lag(sum(ITEM_COUNT),1) OVER (order by cal_dt))  lm_active2
 ,coalesce(lag(sum(ITEM_COUNT),12) OVER (order by cal_dt))  ly_active2
 from test_kylin_fact
 group by cal_dt
 ) as tb2
 on 1=1
+order by cal_dt1, cal_dt2
 limit 50

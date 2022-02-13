@@ -68,22 +68,12 @@
         <module name="SimplifyBooleanExpression"/>
         <module name="SimplifyBooleanReturn"/>
         <module name="StringLiteralEquality"/>
-        <!--        <module name="UnnecessaryParentheses"/>-->
-        <!--        <module name="UnnecessarySemicolonAfterTypeMemberDeclaration"/>-->
-        <!--        <module name="UnnecessarySemicolonInEnumeration"/>-->
 
-        <!--<module name="InnerAssignment"/>-->
         <module name="MissingSwitchDefault"/>
-        <!--<module name="FinalClass"/>-->
-        <!--<module name="HideUtilityClassConstructor"/>-->
-        <!--<module name="InterfaceIsType"/>-->
-        <!--<module name="VisibilityModifier"/>-->
         <module name="ArrayTypeStyle"/>
         <module name="LeftCurly"/>
         <module name="RightCurly"/>
         <module name="UpperEll"/>
-        <!--<module name="NoFinalizer"/>-->
-        <!--<module name="MissingDeprecated"/>-->
         <module name="WhitespaceAfter">
             <property name="tokens" value="COMMA"/>
         </module>

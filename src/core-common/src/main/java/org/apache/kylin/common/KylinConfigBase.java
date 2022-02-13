@@ -197,7 +197,6 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     protected String getOptional(String prop, String dft) {
-
         final String property = System.getProperty(prop);
         return property != null ? getSubstitutor().replace(property)
                 : getSubstitutor().replace(properties.getProperty(prop, dft));

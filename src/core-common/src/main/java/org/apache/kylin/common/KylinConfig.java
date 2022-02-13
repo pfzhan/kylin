@@ -335,14 +335,6 @@ public class KylinConfig extends KylinConfigBase {
         return THREAD_ENV_INSTANCE.get() != null;
     }
 
-    /**
-     * @deprecated use SetAndUnsetThreadLocalConfig.close() instead.  
-     */
-    @Deprecated
-    public static void removeKylinConfigThreadLocal() {
-        THREAD_ENV_INSTANCE.remove();
-    }
-
     public static KylinConfig createKylinConfig(String propsInStr) throws IOException {
         Properties props = new Properties();
         props.load(new StringReader(propsInStr));
@@ -629,11 +621,6 @@ public class KylinConfig extends KylinConfigBase {
 
     public boolean isSystemConfig() {
         return SYS_ENV_INSTANCE == this;
-    }
-
-    /** sometimes in Multithreading will happen ConcurrentModificationException */
-    public synchronized void reloadFromSiteProperties() {
-        reloadKylinConfig(buildSiteProperties());
     }
 
     public void reloadKylinConfigPropertiesFromSiteProperties() {

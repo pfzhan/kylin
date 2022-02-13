@@ -48,6 +48,7 @@ import io.kyligence.kap.guava20.shaded.common.collect.Lists;
 import io.kyligence.kap.guava20.shaded.common.collect.Maps;
 import lombok.val;
 
+@Deprecated
 public class NLocalFileMetadataTestCase extends AbstractTestCase {
 
     protected static File tempMetadataDirectory = null;
