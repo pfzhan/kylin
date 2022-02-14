@@ -382,7 +382,7 @@ public class TableService extends BasicService {
             if (StringUtils.isEmpty(table)) {
                 return true;
             } else {
-                return s.toLowerCase(Locale.ROOT).startsWith(table.toLowerCase(Locale.ROOT));
+                return s.toLowerCase(Locale.ROOT).contains(table.toLowerCase(Locale.ROOT));
             }
         }).map(str -> str.toUpperCase(Locale.ROOT)).collect(Collectors.toList());
 
@@ -1878,7 +1878,7 @@ public class TableService extends BasicService {
         List<String> tables = DataSourceState.getInstance().getTables(project, database);
         for (String tableName : tables) {
             if (StringUtils.isEmpty(table)
-                    || tableName.toUpperCase(Locale.ROOT).startsWith(table.toUpperCase(Locale.ROOT))) {
+                    || tableName.toUpperCase(Locale.ROOT).contains(table.toUpperCase(Locale.ROOT))) {
                 TableNameResponse response = new TableNameResponse();
                 String tableNameWithDB = String.format(Locale.ROOT, "%s.%s", database, tableName);
                 checkTableExistOrLoad(response, tableManager.getTableDesc(tableNameWithDB));
