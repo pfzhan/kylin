@@ -501,6 +501,42 @@ public class ModelSelectProposerTest extends NLocalWithSparkSessionTest {
     }
 
     @Test
+    public void testModelOptRuleWorksOnSqlHint() {
+        String sql1 = "SELECT LSTG_FORMAT_NAME\n" //
+                + "FROM test_kylin_fact\n" //
+                + "LEFT JOIN edw.test_cal_dt ON (test_kylin_fact.cal_dt = edw.test_cal_dt.cal_dt)";
+        String sql2 = "SELECT LSTG_FORMAT_NAME\n" //
+                + "FROM test_kylin_fact\n" //
+                + "LEFT JOIN test_account ON (seller_id = account_id)";
+
+        String project = "newten";
+        AbstractContext context1 = AccelerationContextUtil.newSmartContext(getTestConfig(), project,
+                new String[] { sql1 });
+        runSuggestModelAndSave(context1);
+        AbstractContext context2 = AccelerationContextUtil.newSmartContext(getTestConfig(), project,
+                new String[] { sql2 });
+        runSuggestModelAndSave(context2);
+
+        String alias1 = context1.getModelContexts().get(0).getTargetModel().getAlias();
+        String alias2 = context2.getModelContexts().get(0).getTargetModel().getAlias();
+
+        String sql3 = "SELECT /*+ MODEL_PRIORITY(" + alias1 + ")*/ TRANS_ID,sum(TRANS_ID)" //
+                + "FROM test_kylin_fact group by  TRANS_ID";
+        String sql4 = "SELECT /*+ MODEL_PRIORITY(" + alias2 + ")*/ TRANS_ID,sum(TRANS_ID)" //
+                + "FROM test_kylin_fact group by  TRANS_ID";
+        String sql5 = "SELECT /*+ MODEL_PRIORITY(" + alias1 + "," + alias2 + ")*/ ORDER_ID,sum(ORDER_ID)" //
+                + "FROM test_kylin_fact group by  ORDER_ID";
+        AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), project);
+        AbstractContext context3 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), project,
+                new String[] { sql3, sql4, sql5 });
+        context3.setCanCreateNewModel(true);
+        runSuggestModelAndSave(context3);
+        Assert.assertEquals(2, context3.getModelContexts().size());
+        Assert.assertEquals(alias1, context3.getModelContexts().get(0).getTargetModel().getAlias());
+        Assert.assertEquals(alias2, context3.getModelContexts().get(1).getTargetModel().getAlias());
+    }
+
+    @Test
     public void testModelOptRuleWorksOnLargeModel() {
         String sql1 = "SELECT LSTG_FORMAT_NAME\n" //
                 + "FROM TEST_KYLIN_FACT\n" //

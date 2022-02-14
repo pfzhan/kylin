@@ -30,6 +30,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -51,6 +52,7 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.query.util.QueryModelPriorities;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.model.AbstractJoinRule;
 import io.kyligence.kap.smart.model.GreedyModelTreesBuilder;
@@ -115,23 +117,16 @@ public class ModelSelectProposer extends AbstractProposer {
             }
 
             if (selectedModel.containsKey(model.getUuid()) && !modelContext.isSnapshotSelected()) {
-                if (proposeContext.getSmartConfig().getKylinConfig().isQueryMatchPartialInnerJoinModel()) {
-                    AbstractContext.ModelContext anotherModelContext = selectedModel.get(model.getUuid());
-                    AbstractContext.ModelContext newModelContext = new GreedyModelTreesBuilder.TreeBuilder(
-                            model.getRootFactTable().getTableDesc(),
-                            NTableMetadataManager.getInstance(dataModelManager.getConfig(), project).getAllTablesMap(),
-                            proposeContext).mergeModelContext(proposeContext, modelContext, anotherModelContext);
-                    setModelContextModel(newModelContext, model);
-                    mergedModelContexts.add(modelContext);
-                    mergedModelContexts.add(anotherModelContext);
-                    modelContextIterator.add(newModelContext);
-                    selectedModel.put(model.getUuid(), newModelContext);
-                } else {
-                    // original model is allowed to be selected one context in batch
-                    // to avoid modification conflict
-                    log.info("An existing model({}) compatible to more than one modelTree, "
-                            + "in order to avoid modification conflict, ignore this match.", model.getId());
-                }
+                AbstractContext.ModelContext anotherModelContext = selectedModel.get(model.getUuid());
+                AbstractContext.ModelContext newModelContext = new GreedyModelTreesBuilder.TreeBuilder(
+                        model.getRootFactTable().getTableDesc(),
+                        NTableMetadataManager.getInstance(dataModelManager.getConfig(), project).getAllTablesMap(),
+                        proposeContext).mergeModelContext(proposeContext, modelContext, anotherModelContext);
+                setModelContextModel(newModelContext, model);
+                mergedModelContexts.add(modelContext);
+                mergedModelContexts.add(anotherModelContext);
+                modelContextIterator.add(newModelContext);
+                selectedModel.put(model.getUuid(), newModelContext);
                 continue;
             }
             // found matched, then use it
@@ -215,7 +210,18 @@ public class ModelSelectProposer extends AbstractProposer {
         modelDesc.init(KylinConfig.getInstanceFromEnv(), manager.getAllTablesMap(), Lists.newArrayList(), project);
     }
 
-    private Comparator<NDataModel> modelSorter() {
+    private Comparator<NDataModel> modelSorter(ModelTree modelTree) {
+        Map<String, Integer> modelPriorities = Maps.newHashMap();
+        if (modelTree != null && modelTree.getOlapContexts() != null && !modelTree.getOlapContexts().isEmpty()) {
+            String[] priorities = QueryModelPriorities
+                    .getModelPrioritiesFromComment(modelTree.getOlapContexts().iterator().next().sql);
+            for (int i = 0; i < priorities.length; i++) {
+                modelPriorities.put(priorities[i], i);
+            }
+        }
+        Comparator<NDataModel> sqlHintSorter = Comparator.comparingInt(
+                m -> modelPriorities.getOrDefault(m.getAlias().toUpperCase(Locale.ROOT), Integer.MAX_VALUE));
+
         Comparator<NDataModel> joinSorter = (m1, m2) -> {
             List<JoinTableDesc> joinTables2 = m2.getJoinTables() == null ? Lists.newArrayList() : m2.getJoinTables();
             List<JoinTableDesc> joinTables1 = m1.getJoinTables() == null ? Lists.newArrayList() : m1.getJoinTables();
@@ -228,12 +234,13 @@ public class ModelSelectProposer extends AbstractProposer {
             return Integer.compare(filteredJoinTables2.size(), filteredJoinTables1.size());
         };
         Comparator<NDataModel> modifiedSorter = Comparator.comparing(NDataModel::getCreateTime).reversed();
-        return Ordering.from(joinSorter).compound(modifiedSorter);
+        Comparator<NDataModel> aliasSorter = Comparator.comparing(NDataModel::getAlias).reversed();
+        return Ordering.from(sqlHintSorter).compound(joinSorter).compound(modifiedSorter).compound(aliasSorter);
     }
 
     private NDataModel selectExistedModel(ModelTree modelTree, AbstractContext.ModelContext modelContext) {
         List<NDataModel> originModels = proposeContext.getOriginModels();
-        originModels.sort(modelSorter());
+        originModels.sort(modelSorter(modelTree));
         for (NDataModel model : originModels) {
             List<OLAPContext> retainedOLAPContexts = retainCapableOLAPContexts(model,
                     Lists.newArrayList(modelTree.getOlapContexts()));
@@ -243,7 +250,8 @@ public class ModelSelectProposer extends AbstractProposer {
 
             boolean match = proposeContext instanceof SmartContext //
                     ? modelTree.hasSameSubGraph(model)
-                    : modelTree.isExactlyMatch(model, proposeContext.isPartialMatch(), proposeContext.isPartialMatchNonEqui());
+                    : modelTree.isExactlyMatch(model, proposeContext.isPartialMatch(),
+                            proposeContext.isPartialMatchNonEqui());
 
             if (match) {
                 List<OLAPContext> disabledList = modelTree.getOlapContexts().stream()
