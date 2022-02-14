@@ -33,7 +33,7 @@ rm -rf build/spark
 
 spark_pkg_name="spark-newten-3.1.1-sp-4.x-r51"
 spark_pkg_file_name="${spark_pkg_name}.tgz"
-spark_pkg_md5="e2a889f306ce2bf84009b51d49c14ca7"
+spark_pkg_md5="862d161fb1c7097d5f15cb15703502e7"
 
 checkDownloadSparkVersion ${spark_pkg_name}
 
