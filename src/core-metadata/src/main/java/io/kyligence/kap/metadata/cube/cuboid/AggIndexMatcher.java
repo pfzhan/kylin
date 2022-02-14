@@ -172,11 +172,12 @@ public class AggIndexMatcher extends IndexMatcher {
             if (CollectionUtils.isEmpty(functionDesc.getParameters()))
                 continue;
 
-            Set<Integer> leftUnmatchedCols = Sets.newHashSet(functionCols.get(functionDesc));
-            indexEntity.getDimensions().forEach(leftUnmatchedCols::remove);
+            Set<Integer> dimensionCols = Sets.newHashSet(indexEntity.getDimensions());
             if (isBatchFusionModel) {
-                leftUnmatchedCols.addAll(layoutEntity.getStreamingColumns().keySet());
+                dimensionCols.addAll(layoutEntity.getStreamingColumns().keySet());
             }
+            Set<Integer> leftUnmatchedCols = Sets.newHashSet(functionCols.get(functionDesc));
+            dimensionCols.forEach(leftUnmatchedCols::remove);
             if (CollectionUtils.isNotEmpty(leftUnmatchedCols)) {
                 goThruDerivedDims(indexEntity, needDeriveCollector, leftUnmatchedCols);
             }
