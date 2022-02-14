@@ -163,9 +163,9 @@
       </el-form-item>
       <CCEditForm class="ksd-mb-24" :class="{'error-tips': corrColumnError}" key="corrEditForm" style="margin-top: -16px;" ref="corrEditForm" v-if="corrCCVisible" @checkSuccess="saveCorrCC" @delSuccess="delCorrCC" :hideCancel="isEditMeasure" :isEditMeasureCC="!isCorrCCEdit" source="createMeasure" :ccDesc="corrCCObject" :modelInstance="modelInstance" @resetSubmitLoading="resetSubmitType" @saveError="resetSubmitType"></CCEditForm>
       <div class="error-tips" v-if="corrColumnError">{{$t('corrColDatatypeError')}}</div>
-      <el-form-item :label="$t('name')" prop="name">
+      <el-form-item :label="$t('name')" :prop="enableCheckName === 'true' ? 'name' : null">
         <div>
-          <el-input v-guide.measureNameInput class="measures-width measure-name-input" size="medium" v-model.trim="measure.name" :placeholder="$t('kylinLang.common.nameFormatValidTip2')"></el-input>
+          <el-input v-guide.measureNameInput class="measures-width measure-name-input" size="medium" v-model.trim="measure.name" :placeholder="enableCheckName === 'true' ? $t('nameValid') : ''"></el-input>
         </div>
       </el-form-item>
     </el-form>
@@ -182,9 +182,9 @@ import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
 import { measuresDataType, measureSumAndTopNDataType, measurePercenDataType } from '../../../../config'
 import { objectClone, sampleGuid, indexOfObjWithSomeKey, handleSuccessAsync } from '../../../../util/index'
-import { NamedRegex1 } from 'config'
+import { measureNameRegex } from 'config'
 import CCEditForm from '../ComputedColumnForm/ccform.vue'
-import { mapGetters, mapActions } from 'vuex'
+import { mapGetters, mapActions, mapState } from 'vuex'
 import $ from 'jquery'
 @Component({
   props: {
@@ -208,7 +208,10 @@ import $ from 'jquery'
   computed: {
     ...mapGetters([
       'dimMeasNameMaxLength'
-    ])
+    ]),
+    ...mapState({
+      enableCheckName: state => state.system.enableCheckName
+    })
   },
   methods: {
     // 后台接口请求
@@ -244,7 +247,8 @@ import $ from 'jquery'
       syncCommentTip1: 'This column’s comment is "{comment}", ',
       syncContent: 'sync to the name',
       corrTips: '* The supported column data types are: bigint, integer, tinyint, smallint, decimal, double and float.<br/>* If the data type of one of the columns is decimal, the other one\'s also needs to be decimal.',
-      corrColDatatypeError: 'The data type of one of the columns is decimal, the other one\'s also needs to be decimal.'
+      corrColDatatypeError: 'The data type of one of the columns is decimal, the other one\'s also needs to be decimal.',
+      nameValid: 'Only supports Chinese or English characters, numbers, spaces and symbol（_ -()%?.）'
     },
     'zh-cn': {
       requiredName: '请输入度量名称',
@@ -270,7 +274,8 @@ import $ from 'jquery'
       syncCommentTip1: '检测当前列注释名称为“{comment}”，您可以',
       syncContent: '同步至名称',
       corrTips: '* 所支持列的数据类型为：bigint，integer，tinyint，smallint，decimal，double 和  float。日期类型暂不支持计算。<br/>* 如果其中一个列的数据类型为 decimal 时，则另外一个列的的数据类型也需要为 decimal。其他数据类型组合则不受影响。',
-      corrColDatatypeError: '一个列的数据类型为 decimal 时，另一个列的数据类型也需要为 decimal。'
+      corrColDatatypeError: '一个列的数据类型为 decimal 时，另一个列的数据类型也需要为 decimal。',
+      nameValid: '支持中文、英文、数字、空格、特殊字符（_ -()%?.）'
     }
   }
 })
@@ -424,8 +429,8 @@ export default class AddMeasure extends Vue {
     } else if (value.length > this.dimMeasNameMaxLength) {
       callback(new Error(this.$t('kylinLang.common.nameMaxLen', {len: this.dimMeasNameMaxLength})))
     } else {
-      if (!NamedRegex1.test(value)) {
-        callback(new Error(this.$t('kylinLang.common.nameFormatValidTip2')))
+      if (!measureNameRegex.test(value)) {
+        callback(new Error(this.$t('nameValid')))
       }
       if (this.modelInstance.all_measures.length) {
         let isResuse = false
