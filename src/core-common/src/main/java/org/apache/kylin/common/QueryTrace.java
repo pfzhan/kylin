@@ -46,17 +46,29 @@ public class QueryTrace {
     public static final String WAIT_FOR_EXECUTION = "WAIT_FOR_EXECUTION";
     public static final String EXECUTION = "EXECUTION";
     public static final String FETCH_RESULT = "FETCH_RESULT";
+    /**
+     * SPARK_JOB_EXECUTION: PREPARE_AND_SUBMIT_JOB + WAIT_FOR_EXECUTION + EXECUTION + FETCH_RESULT
+     */
+    public static final String SPARK_JOB_EXECUTION = "SPARK_JOB_EXECUTION";
+
     public static final String SQL_PUSHDOWN_TRANSFORMATION = "SQL_PUSHDOWN_TRANSFORMATION";
     public static final String HIT_CACHE = "HIT_CACHE";
 
     // group name
     static final String PREPARATION = "PREPARATION";
+    static final String JOB_EXECUTION = "JOB_EXECUTION";
+
     public static final Map<String, String> SPAN_GROUPS = new HashMap<>();
     static {
         SPAN_GROUPS.put(GET_ACL_INFO, PREPARATION);
         SPAN_GROUPS.put(SQL_TRANSFORMATION, PREPARATION);
         SPAN_GROUPS.put(SQL_PARSE_AND_OPTIMIZE, PREPARATION);
         SPAN_GROUPS.put(MODEL_MATCHING, PREPARATION);
+
+        SPAN_GROUPS.put(PREPARE_AND_SUBMIT_JOB, JOB_EXECUTION);
+        SPAN_GROUPS.put(WAIT_FOR_EXECUTION, JOB_EXECUTION);
+        SPAN_GROUPS.put(EXECUTION, JOB_EXECUTION);
+        SPAN_GROUPS.put(FETCH_RESULT, JOB_EXECUTION);
     }
 
     @Getter

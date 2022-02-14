@@ -36,8 +36,10 @@ import java.util.stream.Collectors;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.QueryTrace;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.metadata.realization.RoutingIndicatorException;
@@ -171,9 +173,16 @@ public class QueryMetricsContext extends QueryMetrics {
     }
 
     public static List<QueryHistoryInfo.QueryTraceSpan> createTraces(final QueryContext context) {
-        return context.getQueryTrace().spans().stream()
-                .map(span -> new QueryHistoryInfo.QueryTraceSpan(span.getName(), span.getGroup(), span.getDuration()))
-                .collect(Collectors.toList());
+        return context.getQueryTrace().spans().stream().map(span -> {
+            if (!KapConfig.getInstanceFromEnv().isQuerySparkJobTraceEnabled()
+                    && QueryTrace.PREPARE_AND_SUBMIT_JOB.equals(span.getName())) {
+                return new QueryHistoryInfo.QueryTraceSpan(QueryTrace.SPARK_JOB_EXECUTION,
+                        QueryTrace.SPAN_GROUPS.get(QueryTrace.SPARK_JOB_EXECUTION),
+                        span.getDuration());
+            } else {
+                return new QueryHistoryInfo.QueryTraceSpan(span.getName(), span.getGroup(), span.getDuration());
+            }
+        }).collect(Collectors.toList());
     }
 
     public static void updateSecondStorageStatus(final QueryContext context,

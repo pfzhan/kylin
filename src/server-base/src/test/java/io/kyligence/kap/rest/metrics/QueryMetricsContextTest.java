@@ -29,10 +29,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import io.kyligence.kap.metadata.query.QueryHistoryInfo;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.QueryTrace;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.query.exception.UserStopQueryException;
 import org.apache.kylin.query.relnode.OLAPContext;
@@ -535,5 +537,45 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
                 .put(QueryHistory.QUERY_TIME, queryMetrics.getQueryTime())
                 .put(QueryHistory.SQL_PATTERN, queryMetrics.getSqlPattern());
         return builder.build();
+    }
+
+    @Test
+    public void testCreateTraces() {
+        getTestConfig().setProperty("kylin.query.spark-job-trace-enabled", "false");
+        final QueryContext queryContext = QueryContext.current();
+        queryContext.getQueryTrace().startSpan(QueryTrace.SQL_TRANSFORMATION);
+        queryContext.getQueryTrace().startSpan(QueryTrace.SQL_PARSE_AND_OPTIMIZE);
+        queryContext.getQueryTrace().startSpan(QueryTrace.PREPARE_AND_SUBMIT_JOB);
+        queryContext.getQueryTrace().endLastSpan();
+        val list = QueryMetricsContext.createTraces(queryContext);
+        Assert.assertEquals(1,
+                list.stream().filter(span -> span.getName().equals(QueryTrace.SPARK_JOB_EXECUTION)).count());
+        Assert.assertEquals(0,
+                list.stream().filter(span -> span.getName().equals(QueryTrace.PREPARE_AND_SUBMIT_JOB)).count());
+        final String sql = "select * from test_with_otherError";
+        QueryMetricsContext.start(queryContext.getQueryId(), "localhost:7070");
+
+        queryContext.setProject("default");
+        queryContext.setAclInfo(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("g1"), true));
+        queryContext.getQueryTagInfo().setHitExceptionCache(true);
+        queryContext.getMetrics().setServer("localhost:7070");
+        queryContext.setPushdownEngine("HIVE");
+        queryContext.setUserSQL(sql);
+        queryContext.getMetrics().setCorrectedSql(massageSql(queryContext));
+
+        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(queryContext);
+        List<QueryHistoryInfo.QueryTraceSpan> traces = metricsContext.getQueryHistoryInfo().getTraces();
+        Assert.assertEquals(0,
+                traces.stream().filter(span -> span.getName().equals(QueryTrace.PREPARE_AND_SUBMIT_JOB)).count());
+        Assert.assertEquals(1,
+                traces.stream().filter(span -> span.getName().equals(QueryTrace.SPARK_JOB_EXECUTION)).count());
+
+        getTestConfig().setProperty("kylin.query.spark-job-trace-enabled", "true");
+        List<QueryHistoryInfo.QueryTraceSpan> list1 = QueryMetricsContext.createTraces(queryContext);
+        Assert.assertEquals(1,
+                list1.stream().filter(span -> span.getName().equals(QueryTrace.PREPARE_AND_SUBMIT_JOB)).count());
+        Assert.assertEquals(0,
+                list1.stream().filter(span -> span.getName().equals(QueryTrace.SPARK_JOB_EXECUTION)).count());
+
     }
 }
