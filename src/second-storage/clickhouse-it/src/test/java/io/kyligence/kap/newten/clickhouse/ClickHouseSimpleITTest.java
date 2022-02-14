@@ -24,6 +24,8 @@
 package io.kyligence.kap.newten.clickhouse;
 
 import com.clearspring.analytics.util.Preconditions;
+import io.kyligence.kap.clickhouse.job.LoadContext;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.guava20.shaded.common.collect.ImmutableList;
 import io.kyligence.kap.guava20.shaded.common.collect.Lists;
 import io.kyligence.kap.clickhouse.ClickHouseStorage;
@@ -41,12 +43,15 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.newten.NExecAndComp;
+
 import static io.kyligence.kap.newten.clickhouse.ClickHouseUtils.columnMapping;
 import static io.kyligence.kap.newten.clickhouse.ClickHouseUtils.configClickhouseWith;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.service.JobService;
 import io.kyligence.kap.rest.service.ModelService;
+import io.kyligence.kap.secondstorage.NameUtil;
 import io.kyligence.kap.secondstorage.SecondStorage;
 import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
@@ -69,10 +74,12 @@ import io.kyligence.kap.secondstorage.metadata.TableEntity;
 import io.kyligence.kap.secondstorage.metadata.TableFlow;
 import io.kyligence.kap.secondstorage.metadata.TablePartition;
 import io.kyligence.kap.secondstorage.metadata.TablePlan;
+import io.kyligence.kap.secondstorage.test.utils.JobWaiter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.time.DateUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
@@ -102,7 +109,9 @@ import org.apache.spark.sql.execution.datasources.jdbc.ClickHouseDialect$;
 import org.apache.spark.sql.execution.datasources.v2.V2ScanRelationPushDown2$;
 import org.apache.spark.sql.execution.datasources.v2.jdbc.ShardJDBCScan;
 import org.apache.spark.sql.jdbc.JdbcDialects$;
+
 import static org.awaitility.Awaitility.await;
+
 import org.eclipse.jetty.toolchain.test.SimpleRequest;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -124,6 +133,7 @@ import org.testcontainers.containers.JdbcDatabaseContainer;
 
 import java.io.File;
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -137,7 +147,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
-public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
+public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implements JobWaiter {
     public final String cubeName = "acfde546-2cc9-4eec-bc92-e3bd46d4e2ee";
     public final String userName = "ADMIN";
     private final Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
@@ -597,6 +607,77 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
         }
     }
 
+    @Test
+    public void testHAJobPaused() throws Exception {
+        final String modelId = cubeName;
+        final String project = getProject(); //"table_index";
+
+        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse()) {
+            Unsafe.setProperty(ClickHouseLoad.SOURCE_URL, getSourceUrl());
+            Unsafe.setProperty(ClickHouseLoad.ROOT_PATH, getLocalWorkingDirectory());
+
+            configClickhouseWith(
+                    new JdbcDatabaseContainer[]{clickhouse1, clickhouse2},
+                    2,
+                    "testHAJobPaused", () -> {
+                        new IndexDataConstructor(project).buildDataflow(modelId);
+                        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+                        val dataflow = dataflowManager.getDataflow(modelId);
+                        val segs = dataflow.getQueryableSegments().stream().map(NDataSegment::getId).collect(Collectors.toList());
+
+                        secondStorageService.changeProjectSecondStorageState(getProject(), SecondStorageNodeHelper.getAllPairs(), true);
+                        Assert.assertEquals(2, SecondStorageUtil.listProjectNodes(getProject()).size());
+                        secondStorageService.changeModelSecondStorageState(getProject(), modelId, true);
+
+                        val jobId = triggerClickHouseLoadJob(project, modelId, userName, segs);
+
+                        await().atMost(30, TimeUnit.SECONDS).until(() -> {
+                            val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+                            return executableManager.getJob(jobId).getStatus() == ExecutableState.RUNNING;
+                        });
+
+                        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+                            val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+                            executableManager.pauseJob(jobId);
+                            return null;
+                        }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID);
+
+                        waitJobEnd(project, jobId);
+
+                        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
+                        await().atMost(30, TimeUnit.SECONDS).until(() -> scheduler.getContext().getRunningJobs().values().size() == 0);
+
+                        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+                            val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+                            executableManager.resumeJob(jobId);
+                            return null;
+                        }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID);
+                        await().atMost(30, TimeUnit.SECONDS).until(() -> {
+                            val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+                            return executableManager.getJob(jobId).getStatus() == ExecutableState.RUNNING;
+                        });
+                        waitJobFinish(project, jobId);
+
+                        List<Integer> rowsList = getHAModelRowCount(project, modelId);
+
+                        for (Integer rows : rowsList) {
+                            Assert.assertEquals(10000, rows.intValue());
+                        }
+                        return null;
+                    });
+        }
+    }
+
+    @Test
+    public void testLoadContext() throws Exception {
+        LoadContext context = new LoadContext(null);
+
+        context.deserializeToString("{}");
+        context.deserializeToString(LoadContext.emptyState());
+        context.deserializeToString(context.serializeToString());
+    }
+
     private JobParam triggerSegmentClean() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         val dfManager = NDataflowManager.getInstance(config, getProject());
@@ -608,7 +689,6 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
         waitJobFinish(jobParam.getJobId());
         return jobParam;
     }
-
 
     protected void buildIncrementalLoadQuery() throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
@@ -863,5 +943,27 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
                         + "  LSTG_FORMAT_NAME\n"));
 
         NExecAndComp.execAndCompareNew(query, getProject(), NExecAndComp.CompareLevel.SAME, "left", null);
+    }
+
+    public List<Integer> getHAModelRowCount(String project, String modelId) throws SQLException {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        val database = NameUtil.getDatabase(config, project);
+        val table = NameUtil.getTable(modelId, 20000000001L);
+        return SecondStorageNodeHelper.getAllNames().stream().map(SecondStorageNodeHelper::resolve)
+                .map(url -> {
+                    try (ClickHouse clickHouse = new ClickHouse(url)) {
+                        List<Integer> count = clickHouse.query("select count(*) from `" + database + "`.`" + table + "`", rs -> {
+                            try {
+                                return rs.getInt(1);
+                            } catch (SQLException e) {
+                                return ExceptionUtils.rethrow(e);
+                            }
+                        });
+                        Assert.assertFalse(count.isEmpty());
+                        return count.get(0);
+                    } catch (Exception e) {
+                        return ExceptionUtils.rethrow(e);
+                    }
+                }).collect(Collectors.toList());
     }
 }
