@@ -3081,10 +3081,6 @@ public abstract class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kylin.engine.flattable-coalesce-partition-num", "-1"));
     }
 
-    public boolean auditLogGroupByProjectReload() {
-        return Boolean.parseBoolean(getOptional("kylin.auditlog.replay-groupby-project-reload-enable", FALSE));
-    }
-
     public boolean isNeedReplayConsecutiveLog() {
         return Boolean.parseBoolean(getOptional("kylin.auditlog.replay-need-consecutive-log", TRUE));
     }

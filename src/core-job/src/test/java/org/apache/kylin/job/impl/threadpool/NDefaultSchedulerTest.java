@@ -1632,6 +1632,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     }
 
     @Test
+    @Repeat(3)
     public void testJobErrorAndResume() {
         val currMem = NDefaultScheduler.currentAvailableMem();
         val df = NDataflowManager.getInstance(getTestConfig(), project)

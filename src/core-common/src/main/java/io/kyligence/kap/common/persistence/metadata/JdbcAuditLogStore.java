@@ -55,7 +55,6 @@ import io.kyligence.kap.common.persistence.event.ResourceCreateOrUpdateEvent;
 import io.kyligence.kap.common.persistence.event.ResourceDeleteEvent;
 import io.kyligence.kap.common.persistence.metadata.jdbc.AuditLogRowMapper;
 import io.kyligence.kap.common.persistence.transaction.AbstractAuditLogReplayWorker;
-import io.kyligence.kap.common.persistence.transaction.AuditLogGroupedReplayWorker;
 import io.kyligence.kap.common.persistence.transaction.AuditLogReplayWorker;
 import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.guava20.shaded.common.annotations.VisibleForTesting;
@@ -139,8 +138,7 @@ public class JdbcAuditLogStore implements AuditLogStore {
 
         instance = AddressUtil.getLocalInstance();
         createIfNotExist();
-        replayWorker = config.auditLogGroupByProjectReload() ? new AuditLogGroupedReplayWorker(config, this)
-                : new AuditLogReplayWorker(config, this);
+        replayWorker = new AuditLogReplayWorker(config, this);
     }
 
     public JdbcAuditLogStore(KylinConfig config, JdbcTemplate jdbcTemplate,
@@ -152,8 +150,7 @@ public class JdbcAuditLogStore implements AuditLogStore {
         instance = AddressUtil.getLocalInstance();
 
         createIfNotExist();
-        replayWorker = config.auditLogGroupByProjectReload() ? new AuditLogGroupedReplayWorker(config, this)
-                : new AuditLogReplayWorker(config, this);
+        replayWorker = new AuditLogReplayWorker(config, this);
 
     }
 

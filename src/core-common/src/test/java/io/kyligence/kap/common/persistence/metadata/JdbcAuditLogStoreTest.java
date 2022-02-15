@@ -46,8 +46,6 @@ import org.awaitility.Awaitility;
 import org.junit.Assert;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -71,11 +69,8 @@ public class JdbcAuditLogStoreTest {
     private static final String LOCAL_INSTANCE = "127.0.0.1";
     private final Charset charset = Charset.defaultCharset();
 
-    @ParameterizedTest
-    @ValueSource(strings = { "true", "false" })
-    public void testUpdateResourceWithLog(String groupReplayEnable, JdbcInfo info)
-            throws Exception {
-        getTestConfig().setProperty("kylin.auditlog.replay-groupby-project-reload-enable", groupReplayEnable);
+    @Test
+    public void testUpdateResourceWithLog(JdbcInfo info) throws Exception {
         UnitOfWork.doInTransactionWithRetry(() -> {
             val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
             store.checkAndPutResource("/p1/abc", ByteSource.wrap("abc".getBytes(charset)), -1);
@@ -123,10 +118,8 @@ public class JdbcAuditLogStoreTest {
         Assert.assertEquals(2, allStep2.stream().map(AuditLog::getUnitId).distinct().count());
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = { "true", "false" })
-    public void testRestore(String groupReplayEnable, JdbcInfo info) throws Exception {
-        getTestConfig().setProperty("kylin.auditlog.replay-groupby-project-reload-enable", groupReplayEnable);
+    @Test
+    public void testRestore(JdbcInfo info) throws Exception {
         val workerStore = ResourceStore.getKylinMetaStore(getTestConfig());
         workerStore.checkAndPutResource("/UUID", new StringEntity(RandomUtil.randomUUIDStr()), StringEntity.serializer);
         Assert.assertEquals(1, workerStore.listResourcesRecursively("/").size());
@@ -222,11 +215,8 @@ public class JdbcAuditLogStoreTest {
         ((JdbcAuditLogStore) workerStore.getAuditLogStore()).forceClose();
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = { "true", "false" })
-    public void testRestoreWithoutOrder(String groupReplayEnable, JdbcInfo info)
-            throws Exception {
-        getTestConfig().setProperty("kylin.auditlog.replay-groupby-project-reload-enable", groupReplayEnable);
+    @Test
+    public void testRestoreWithoutOrder(JdbcInfo info) throws Exception {
         val workerStore = ResourceStore.getKylinMetaStore(getTestConfig());
         workerStore.checkAndPutResource("/UUID", new StringEntity(RandomUtil.randomUUIDStr()), StringEntity.serializer);
         Assert.assertEquals(1, workerStore.listResourcesRecursively("/").size());
@@ -251,11 +241,8 @@ public class JdbcAuditLogStoreTest {
         ((JdbcAuditLogStore) workerStore.getAuditLogStore()).forceClose();
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = { "true", "false" })
-    public void testRestore_WhenOtherAppend(String groupReplayEnable, JdbcInfo info)
-            throws Exception {
-        getTestConfig().setProperty("kylin.auditlog.replay-groupby-project-reload-enable", groupReplayEnable);
+    @Test
+    public void testRestore_WhenOtherAppend(JdbcInfo info) throws Exception {
         val workerStore = ResourceStore.getKylinMetaStore(getTestConfig());
         workerStore.checkAndPutResource("/UUID", new StringEntity(RandomUtil.randomUUIDStr()), StringEntity.serializer);
         Assert.assertEquals(1, workerStore.listResourcesRecursively("/").size());
@@ -269,8 +256,7 @@ public class JdbcAuditLogStoreTest {
             while (!stopped.get()) {
                 val projectName = "p0";
                 val unitId = RandomUtil.randomUUIDStr();
-                jdbcTemplate.batchUpdate(
-                        String.format(Locale.ROOT, JdbcAuditLogStore.INSERT_SQL, auditLogTableName),
+                jdbcTemplate.batchUpdate(String.format(Locale.ROOT, JdbcAuditLogStore.INSERT_SQL, auditLogTableName),
                         Arrays.asList(
                                 new Object[] { "/_global/" + projectName + "/abc", "abc".getBytes(charset),
                                         System.currentTimeMillis(), i, unitId, null, LOCAL_INSTANCE },
@@ -281,12 +267,12 @@ public class JdbcAuditLogStoreTest {
                 i++;
             }
         }).start();
-        Awaitility.await().atMost(10, TimeUnit.SECONDS)
-                .until(() -> jdbcTemplate.queryForObject("select count(1) from " + auditLogTableName, Long.class) > 1000);
+        Awaitility.await().atMost(10, TimeUnit.SECONDS).until(
+                () -> jdbcTemplate.queryForObject("select count(1) from " + auditLogTableName, Long.class) > 1000);
         workerStore.catchup();
 
-        Awaitility.await().atMost(10, TimeUnit.SECONDS)
-                .until(() -> jdbcTemplate.queryForObject("select count(1) from " + auditLogTableName, Long.class) > 2000);
+        Awaitility.await().atMost(10, TimeUnit.SECONDS).until(
+                () -> jdbcTemplate.queryForObject("select count(1) from " + auditLogTableName, Long.class) > 2000);
 
         Assert.assertEquals(4, workerStore.listResourcesRecursively("/").size());
         stopped.compareAndSet(false, true);
@@ -310,8 +296,7 @@ public class JdbcAuditLogStoreTest {
         for (int i = 0; i < 1000; i++) {
             val projectName = "p" + (i + 1000);
             String unitId = RandomUtil.randomUUIDStr();
-            jdbcTemplate.batchUpdate(
-                    String.format(Locale.ROOT, JdbcAuditLogStore.INSERT_SQL, auditLogTableName),
+            jdbcTemplate.batchUpdate(String.format(Locale.ROOT, JdbcAuditLogStore.INSERT_SQL, auditLogTableName),
                     Arrays.asList(
                             new Object[] { "/" + projectName + "/abc", "abc".getBytes(charset),
                                     System.currentTimeMillis(), 0, unitId, null, LOCAL_INSTANCE },
@@ -357,11 +342,8 @@ public class JdbcAuditLogStoreTest {
         Assert.assertNull(auditLog);
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = { "true", "false" })
-    public void testMannualHandleReplay(String groupReplayEnable, JdbcInfo info)
-            throws Exception {
-        getTestConfig().setProperty("kylin.auditlog.replay-groupby-project-reload-enable", groupReplayEnable);
+    @Test
+    public void testMannualHandleReplay(JdbcInfo info) throws Exception {
         val workerStore = ResourceStore.getKylinMetaStore(getTestConfig());
         changeProject("abc", false, info);
         AuditLogStore auditLogStore = new JdbcAuditLogStore(getTestConfig());
@@ -371,10 +353,8 @@ public class JdbcAuditLogStoreTest {
         ((JdbcAuditLogStore) workerStore.getAuditLogStore()).forceClose();
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = { "true", "false" })
-    public void testStopReplay(String groupReplayEnable) throws IOException {
-        getTestConfig().setProperty("kylin.auditlog.replay-groupby-project-reload-enable", groupReplayEnable);
+    @Test
+    public void testStopReplay() throws IOException {
         val workerStore = ResourceStore.getKylinMetaStore(getTestConfig());
         workerStore.checkAndPutResource("/UUID", new StringEntity(RandomUtil.randomUUIDStr()), StringEntity.serializer);
         Assert.assertEquals(1, workerStore.listResourcesRecursively("/").size());
