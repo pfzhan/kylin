@@ -104,7 +104,7 @@ public class Message {
     }
 
     public String getINVALID_MEASURE_NAME() {
-        return "The measure name \"%s\" is invalid. Please use Chinese or English characters, numbers, spaces or symbol(_ -()%%?). %s characters at maximum are supported.";
+        return "The measure name \"%s\" is invalid. Please use Chinese or English characters, numbers, spaces or symbol(_ -()%%?.). %s characters at maximum are supported.";
     }
 
     public String getDUPLICATE_DIMENSION_NAME() {

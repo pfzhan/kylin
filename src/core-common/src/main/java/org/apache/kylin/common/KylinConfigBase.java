@@ -3142,4 +3142,8 @@ public abstract class KylinConfigBase implements Serializable {
     public long getMetadataCheckDuration() {
         return Long.parseLong(getOptional("kylin.env.health-check-interval", "3000"));
     }
+
+    public boolean isMeasureNameCheckEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.model.measure-name-check-enabled", "true"));
+    }
 }

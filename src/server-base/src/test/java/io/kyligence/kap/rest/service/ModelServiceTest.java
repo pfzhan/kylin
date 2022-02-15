@@ -4370,7 +4370,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         } catch (Exception e) {
             Assert.assertEquals(KylinException.class, e.getClass());
             Assert.assertTrue(StringUtils.contains(e.getMessage(),
-                    "The measure name \"illegal_measure_name@!\" is invalid. Please use Chinese or English characters, numbers, spaces or symbol(_ -()%?). "
+                    "The measure name \"illegal_measure_name@!\" is invalid. Please use Chinese or English characters, numbers, spaces or symbol(_ -()%?.). "
                             + getTestConfig().getMaxModelDimensionMeasureNameLength()
                             + " characters at maximum are supported."));
         }
@@ -5719,7 +5719,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         List<SimplifiedMeasure> measures = Lists.newArrayList();
         SimplifiedMeasure measure1 = new SimplifiedMeasure();
-        measure1.setName("ssa中文 () kkk?（） % ? dirz AHRZ 2 5 9 _ -- end");
+        measure1.setName("ssa中文 () kkk?（） % ? dirz AHRZ 2 5 9 _ -- end.");
         measure1.setExpression("COUNT_DISTINCT");
         measure1.setReturnType("hllc(10)");
         ParameterResponse parameterResponse = new ParameterResponse("column", "TEST_KYLIN_FACT");
@@ -5730,6 +5730,12 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         modelRequest.setProject(getProject());
         modelService.checkModelDimensions(modelRequest);
+        modelService.checkModelMeasures(modelRequest);
+
+        measure1.setName("SKL $^&");
+        thrown.expect(KylinException.class);
+        modelService.checkModelMeasures(modelRequest);
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.model.measure-name-check-enabled", "false");
         modelService.checkModelMeasures(modelRequest);
     }
 

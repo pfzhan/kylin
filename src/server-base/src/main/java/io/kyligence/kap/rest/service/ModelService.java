@@ -316,7 +316,9 @@ public class ModelService extends BasicService {
 
     public static final String VALID_NAME_FOR_MODEL = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_";
 
-    public static final String VALID_NAME_FOR_DIMENSION_MEASURE = "^[\\u4E00-\\u9FA5a-zA-Z0-9 _\\-()%?（）]+$";
+    public static final String VALID_NAME_FOR_DIMENSION = "^[\\u4E00-\\u9FA5a-zA-Z0-9 _\\-()%?（）]+$";
+
+    public static final String VALID_NAME_FOR_MEASURE = "^[\\u4E00-\\u9FA5a-zA-Z0-9 _\\-()%?（）.]+$";
 
     private static final List<String> MODEL_CONFIG_BLOCK_LIST = Lists.newArrayList("kylin.index.rule-scheduler-data");
 
@@ -2529,7 +2531,7 @@ public class ModelService extends BasicService {
             dimension.setName(StringUtils.trim(dimension.getName()));
             // check if the dimension name is valid
             if (StringUtils.length(dimension.getName()) > maxModelDimensionMeasureNameLength
-                    || !Pattern.compile(VALID_NAME_FOR_DIMENSION_MEASURE).matcher(dimension.getName()).matches())
+                    || !Pattern.compile(VALID_NAME_FOR_DIMENSION).matcher(dimension.getName()).matches())
                 throw new KylinException(INVALID_NAME,
                         String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_DIMENSION_NAME(), dimension.getName(),
                                 maxModelDimensionMeasureNameLength));
@@ -2554,7 +2556,7 @@ public class ModelService extends BasicService {
             measure.setName(StringUtils.trim(measure.getName()));
             // check if the measure name is valid
             if (StringUtils.length(measure.getName()) > maxModelDimensionMeasureNameLength
-                    || !Pattern.compile(VALID_NAME_FOR_DIMENSION_MEASURE).matcher(measure.getName()).matches())
+                    || !checkIsValidMeasureName(measure.getName()))
                 throw new KylinException(INVALID_NAME,
                         String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_MEASURE_NAME(), measure.getName(),
                                 maxModelDimensionMeasureNameLength));
@@ -2590,6 +2592,13 @@ public class ModelService extends BasicService {
             measureNames.add(measure.getName());
             measures.add(measure);
         }
+    }
+
+    private boolean checkIsValidMeasureName(String measureName) {
+        if(!KylinConfig.getInstanceFromEnv().isMeasureNameCheckEnabled()) {
+            return true;
+        }
+        return Pattern.compile(VALID_NAME_FOR_MEASURE).matcher(measureName).matches();
     }
 
     private boolean isDupMeasure(SimplifiedMeasure measure, SimplifiedMeasure measure1) {
