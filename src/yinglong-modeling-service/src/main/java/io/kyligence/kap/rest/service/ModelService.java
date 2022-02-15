@@ -48,6 +48,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
@@ -58,6 +59,7 @@ import org.apache.calcite.util.Util;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.JobErrorCode;
 import org.apache.kylin.common.exception.KylinException;
@@ -2809,76 +2811,92 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                 getJobManager(project).addJob(param, jobHandler)));
     }
 
-    @Transaction(project = 0)
     public BuildBaseIndexResponse updateDataModelSemantic(String project, ModelRequest request) {
-        return updateDataModelSemantic(project, request, true);
+        return updateDataModelSemantic(project, request, true, true);
     }
 
-    @Transaction(project = 0)
     public BuildBaseIndexResponse updateDataModelSemantic(String project, ModelRequest request, boolean needClean) {
-        aclEvaluate.checkProjectWritePermission(project);
-        semanticUpdater.expandModelRequest(request);
-        checkModelRequest(request);
-        checkModelPermission(project, request.getUuid());
-        validatePartitionDateColumn(request);
+        return updateDataModelSemantic(project, request, needClean, true);
+    }
 
-        val modelId = request.getUuid();
-        val modelManager = getDataModelManager(project);
-        val originModel = modelManager.getDataModelDesc(modelId);
+    public BuildBaseIndexResponse updateDataModelSemantic(String project, ModelRequest request, boolean needClean,
+                                                          boolean isCheckFlat) {
+        final boolean[] isClean = {needClean};
+        try {
+            return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+                aclEvaluate.checkProjectWritePermission(project);
+                semanticUpdater.expandModelRequest(request);
+                checkModelRequest(request);
+                checkModelPermission(project, request.getUuid());
+                validatePartitionDateColumn(request);
 
-        val copyModel = modelManager.copyForWrite(originModel);
-        UpdateImpact updateImpact = semanticUpdater.updateModelColumns(copyModel, request, true);
-        val allTables = getTableManager(request.getProject()).getAllTablesMap();
-        copyModel.init(modelManager.getConfig(), allTables, getDataflowManager(project).listUnderliningDataModels(),
-                project);
+                val modelId = request.getUuid();
+                val modelManager = getDataModelManager(project);
+                val originModel = modelManager.getDataModelDesc(modelId);
 
-        BaseIndexUpdateHelper baseIndexUpdater = new BaseIndexUpdateHelper(originModel, request.isWithBaseIndex());
+                val copyModel = modelManager.copyForWrite(originModel);
+                UpdateImpact updateImpact = semanticUpdater.updateModelColumns(copyModel, request, true);
+                val allTables = getTableManager(request.getProject()).getAllTablesMap();
+                copyModel.init(modelManager.getConfig(), allTables, getDataflowManager(project).listUnderliningDataModels(),
+                        project);
 
-        preProcessBeforeModelSave(copyModel, project);
-        val updated = modelManager.updateDataModelDesc(copyModel);
+                BaseIndexUpdateHelper baseIndexUpdater = new BaseIndexUpdateHelper(originModel, request.isWithBaseIndex());
 
-        // 1. delete old internal measure
-        // 2. expand new measuers
-        // the ordering of the two steps is important as tomb internal measure
-        // should not be used to construct new expandable measures
-        semanticUpdater.deleteExpandableMeasureInternalMeasures(updated);
-        semanticUpdater.expandExpandableMeasure(updated);
-        preProcessBeforeModelSave(updated, project);
-        getDataModelManager(project).updateDataModelDesc(updated);
+                preProcessBeforeModelSave(copyModel, project);
+                val updated = modelManager.updateDataModelDesc(copyModel);
 
-        indexPlanService.updateForMeasureChange(project, modelId, updateImpact.getInvalidMeasures(),
-                updateImpact.getReplacedMeasures());
-        Set<Integer> affectedSet = updateImpact.getAffectedIds();
-        val affectedLayoutSet = getAffectedLayouts(project, modelId, affectedSet);
-        if (affectedLayoutSet.size() > 0)
-            indexPlanService.reloadLayouts(project, modelId, affectedLayoutSet);
-        indexPlanService.clearShardColIfNotDim(project, modelId);
+                // 1. delete old internal measure
+                // 2. expand new measuers
+                // the ordering of the two steps is important as tomb internal measure
+                // should not be used to construct new expandable measures
+                semanticUpdater.deleteExpandableMeasureInternalMeasures(updated);
+                semanticUpdater.expandExpandableMeasure(updated);
+                preProcessBeforeModelSave(updated, project);
+                getDataModelManager(project).updateDataModelDesc(updated);
 
-        var newModel = modelManager.getDataModelDesc(modelId);
+                indexPlanService.updateForMeasureChange(project, modelId, updateImpact.getInvalidMeasures(),
+                        updateImpact.getReplacedMeasures());
+                Set<Integer> affectedSet = updateImpact.getAffectedIds();
+                val affectedLayoutSet = getAffectedLayouts(project, modelId, affectedSet);
+                if (affectedLayoutSet.size() > 0)
+                    indexPlanService.reloadLayouts(project, modelId, affectedLayoutSet);
+                indexPlanService.clearShardColIfNotDim(project, modelId);
 
-        checkIndexColumnExist(project, modelId, originModel);
+                var newModel = modelManager.getDataModelDesc(modelId);
 
-        checkFlatTableSql(newModel);
+                checkIndexColumnExist(project, modelId, originModel);
 
-        val result = semanticUpdater.doHandleSemanticUpdate(project, modelId, originModel, request.getStart(),
-                request.getEnd(), needClean);
-        var needBuild = result.getFirst();
-        if (result.getSecond()) {
-            needClean = false;
+                if (isCheckFlat) {
+                    checkFlatTableSql(newModel);
+                }
+
+                val result = semanticUpdater.doHandleSemanticUpdate(project, modelId, originModel, request.getStart(),
+                        request.getEnd(), isClean[0]);
+                var needBuild = result.getFirst();
+                if (result.getSecond()) {
+                    isClean[0] = false;
+                }
+                updateExcludedCheckerResult(project, request);
+                baseIndexUpdater.setSecondStorageEnabled(request.isWithSecondStorage());
+                baseIndexUpdater.setNeedCleanSecondStorage(isClean[0]);
+                BuildBaseIndexResponse baseIndexResponse = baseIndexUpdater.update(indexPlanService);
+                if (!request.isSaveOnly() && (needBuild || baseIndexResponse.hasIndexChange())) {
+                    semanticUpdater.buildForModel(project, modelId);
+                }
+                modelChangeSupporters.forEach(listener -> listener.onUpdate(project, modelId));
+                if (baseIndexResponse.isCleanSecondStorage()) {
+                    isClean[0] = false;
+                }
+                changeSecondStorageIfNeeded(project, request, isClean[0]);
+                return baseIndexResponse;
+            }, project);
+        } catch (TransactionException te) {
+            Throwable root = ExceptionUtils.getCause(te);
+            if (root instanceof RuntimeException) {
+                throw (RuntimeException) root;
+            }
+            throw te;
         }
-        updateExcludedCheckerResult(project, request);
-        baseIndexUpdater.setSecondStorageEnabled(request.isWithSecondStorage());
-        baseIndexUpdater.setNeedCleanSecondStorage(needClean);
-        BuildBaseIndexResponse baseIndexResponse = baseIndexUpdater.update(indexPlanService);
-        if (!request.isSaveOnly() && (needBuild || baseIndexResponse.hasIndexChange())) {
-            semanticUpdater.buildForModel(project, modelId);
-        }
-        modelChangeSupporters.forEach(listener -> listener.onUpdate(project, modelId));
-        if (baseIndexResponse.isCleanSecondStorage()) {
-            needClean = false;
-        }
-        changeSecondStorageIfNeeded(project, request, needClean);
-        return baseIndexResponse;
     }
 
     public boolean updateSecondStorageModel(String project, String modelId, boolean needCleanSecondStorage) {
@@ -4078,7 +4096,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         setRequest(request, model, removeAffectedModel, changeTypeAffectedModel, projectName);
         request.setColumnsFetcher((tableRef, isFilterCC) -> TableRef.filterColumns(
                 tableRef.getIdentity().equals(tableDesc.getIdentity()) ? tableDesc : tableRef, isFilterCC));
-        updateDataModelSemantic(projectName, request, true);
+        updateDataModelSemantic(projectName, request, true, false);
     }
 
     @Override
