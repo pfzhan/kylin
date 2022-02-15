@@ -31,6 +31,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
@@ -40,7 +41,6 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 
-import com.google.common.base.Preconditions;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.lang.StringUtils;
@@ -65,6 +65,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
+
+import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -340,7 +342,9 @@ public class StreamingJobService extends BasicService {
         if (!StringUtils.isEmpty(jobFilter.getProject())) {
             aclEvaluate.checkProjectOperationPermission(jobFilter.getProject());
         }
-        List<StreamingJobMeta> list = getAllStreamingJobs(jobFilter.getProject());
+        List<StreamingJobMeta> list = CollectionUtils.isNotEmpty(jobFilter.getJobIds())
+                ? getAllStreamingJobsById(jobFilter.getProject(), jobFilter.getJobIds())
+                : getAllStreamingJobs(jobFilter.getProject());
 
         List<String> jobIdList = list.stream().filter(item -> JobTypeEnum.STREAMING_BUILD == item.getJobType())
                 .map(item -> StreamingUtils.getJobId(item.getModelId(), item.getJobType().name()))
@@ -434,6 +438,20 @@ public class StreamingJobService extends BasicService {
             }
         });
         return modelMap;
+    }
+
+    List<StreamingJobMeta> getAllStreamingJobsById(String project, List<String> jobIds) {
+        if (CollectionUtils.isEmpty(jobIds)) {
+            return Collections.emptyList();
+        }
+
+        if (StringUtils.isEmpty(project)) {
+            throw new KylinException(INVALID_PARAMETER, "project is required when filter by jobid.");
+        }
+
+        val config = KylinConfig.getInstanceFromEnv();
+        return jobIds.stream().map(StreamingJobManager.getInstance(config, project)::getStreamingJobByUuid)
+                .collect(Collectors.toList());
     }
 
     private List<StreamingJobMeta> getAllStreamingJobs(String project) {
