@@ -3067,7 +3067,19 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public String getInferiorFlatTableStorageLevel() {
-        return getOptional("kylin.engine.inferior-flattable-storage-level", "DISK_ONLY");
+        return getOptional("kylin.engine.inferior-flattable-storage-level", "MEMORY_AND_DISK");
+    }
+
+    public int getInferiorFlatTableGroupFactor() {
+        return Integer.parseInt(getOptional("kylin.engine.inferior-flattable-group-factor", "20"));
+    }
+
+    public int getInferiorFlatTableDimensionFactor() {
+        return Integer.parseInt(getOptional("kylin.engine.inferior-flattable-dimension-factor", "10"));
+    }
+
+    public int getFlatTableCoalescePartitionNum() {
+        return Integer.parseInt(getOptional("kylin.engine.flattable-coalesce-partition-num", "-1"));
     }
 
     public boolean auditLogGroupByProjectReload() {

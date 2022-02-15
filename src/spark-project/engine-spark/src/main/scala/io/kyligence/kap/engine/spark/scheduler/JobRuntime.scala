@@ -30,7 +30,7 @@ import io.kyligence.kap.engine.spark.utils.ThreadUtils
 
 class JobRuntime(val maxThreadCount: Int) {
 
-  private lazy val minThreads = 8
+  private lazy val minThreads = 1
   private lazy val maxThreads = Math.max(minThreads, maxThreadCount)
   // Maybe we should parameterize nThreads.
   private lazy val threadPool = //
@@ -48,7 +48,7 @@ class JobRuntime(val maxThreadCount: Int) {
   }
 
   def scheduleCheckpoint(fun: () => Unit): Unit = {
-    scheduler.scheduleWithFixedDelay(() => fun.apply(), 10L, 10L, TimeUnit.SECONDS)
+    scheduler.scheduleWithFixedDelay(() => fun.apply(), 30L, 30L, TimeUnit.SECONDS)
   }
 
   def schedule(func: () => Unit, delay: Long, unit: TimeUnit): Unit = {

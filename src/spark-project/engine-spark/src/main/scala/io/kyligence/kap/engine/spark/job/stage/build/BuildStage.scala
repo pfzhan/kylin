@@ -25,6 +25,8 @@
 package io.kyligence.kap.engine.spark.job.stage.build
 
 import java.util.Objects
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.locks.ReentrantLock
 import java.util.concurrent.{BlockingQueue, CountDownLatch, ForkJoinPool, TimeUnit}
 
 import com.google.common.collect.{Queues, Sets}
@@ -42,7 +44,7 @@ import org.apache.commons.math3.ml.clustering.{Clusterable, KMeansPlusPlusCluste
 import org.apache.commons.math3.ml.distance.EarthMoversDistance
 import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.sql.datasource.storage.StorageStoreUtils
-import org.apache.spark.sql.functions.expr
+import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.{Dataset, Row}
 import org.apache.spark.storage.StorageLevel
 
@@ -92,7 +94,9 @@ abstract class BuildStage(private val jobContext: SegmentJob,
   private val cachedLayoutDS = mutable.HashMap[Long, Dataset[Row]]()
 
   // thread unsafe
-  private var cachedIndexInferior: Map[Long, InferiorCountDownLatch] = _
+  private var cachedIndexInferior: Map[Long, InferiorGroup] = _
+
+  private lazy val datasetCacheStorageLevel = getStorageLevel
 
   protected val sparkSchedulerPool = "build"
 
@@ -130,7 +134,8 @@ abstract class BuildStage(private val jobContext: SegmentJob,
             case t: Throwable => failQueue.offer(Some(t))
           })
         }
-        if (0 != tasks.size) {
+        logInfo(s"Segment $segment add layout tasks: ${tasks.size}")
+        if (tasks.nonEmpty) {
           KylinBuildEnv.get().buildJobInfos.recordCuboidsNumPerLayer(segmentId, tasks.size)
 
           val layoutCount = KylinBuildEnv.get().buildJobInfos.getSeg2cuboidsNumPerLayer.get(segmentId).asScala.sum
@@ -150,11 +155,12 @@ abstract class BuildStage(private val jobContext: SegmentJob,
 
   protected final def failFastPoll(failQueue: BlockingQueue[Option[Throwable]], //
                                    timeout: Long = 1, unit: TimeUnit = TimeUnit.SECONDS): Int = {
+    checkBackgroundFailure()
     assert(unit.toSeconds(timeout) > 0, s"Timeout should be positive seconds to avoid a busy loop.")
     var count = 0
     var failure = failQueue.poll(timeout, unit)
     while (Objects.nonNull(failure)) {
-      if (failure.nonEmpty) {
+      if (failure.isDefined) {
         logError(s"Fail fast.", failure.get)
         drain()
         throw failure.get
@@ -165,28 +171,12 @@ abstract class BuildStage(private val jobContext: SegmentJob,
     count
   }
 
-  private def beforeBuildLayouts(): Unit = {
-    // Build flat table?
-    if (spanningTree.fromFlatTable()) {
-      // Very very heavy step
-      // Potentially global dictionary building & encoding within.
-      // Materialize flat table.
-      //      flatTableDS = flatTable.getFlatTableDS
-
-      // Collect statistics for flat table.
-      buildStatistics()
-
-      // Build inferior flat table.
-      if (config.isInferiorFlatTableEnabled) {
-        buildInferior()
-      }
+  private def checkBackgroundFailure(): Unit = {
+    // Maybe other errors occur
+    if (backgroundFailure.isDefined) {
+      logError(s"Fail fast.", backgroundFailure.get)
+      throw backgroundFailure.get
     }
-
-    // Build root node's layout sanity cache.
-    buildSanityCache()
-
-    // Cleanup previous potentially left temp layout data.
-    cleanupLayoutTempData(dataSegment, readOnlyLayouts.asScala.toSeq)
   }
 
   protected def buildStatistics(): Statistics = {
@@ -231,19 +221,29 @@ abstract class BuildStage(private val jobContext: SegmentJob,
     if (layouts.isEmpty) {
       return Seq.empty
     }
+    val columns = if (node.parentIsNull) {
+      columnsFromFlatTable(node.getIndex)
+    } else {
+      columnsFromParentLayout(node.getIndex)
+    }
+    logInfo(s"Segment $segmentId index select columns " + //
+      s"${node.getIndex.getId} ${columns.mkString("[", ",", "]")}")
     val sanityCount = getCachedLayoutSanity(node)
     if (node.parentIsNull) {
       // Build from flat table
+      val inferior = getCachedIndexInferior(node.getIndex)
+      // Parquet is a columnar storage format.
+      // Non measured columns of flat table.
+      val tableDS = if (inferior.isDefined) inferior.get.tableDS else flatTableDS
+      val parentDS = if (columns.isEmpty) tableDS else tableDS.select(columns.map(col): _*)
       layouts.map { layout =>
-        val ic = getCachedIndexInferior(layout.getIndex)
-        val parentDS = if (ic.isDefined) ic.get.inferior else flatTableDS
-        LayoutBuildTask(layout, None, parentDS, sanityCount, segment, ic)
+        LayoutBuildTask(layout, None, parentDS, sanityCount, segment, inferior)
       }
     } else {
       // Build from data layout
       val parentLayout = node.getParent.getLayout
-      val parentDS = getCachedLayoutDS(segment, parentLayout)
-
+      val tableDS = getCachedLayoutDS(segment, parentLayout)
+      val parentDS = if (columns.isEmpty) tableDS else tableDS.select(columns.map(col): _*)
       layouts.map { layout =>
         LayoutBuildTask(layout, Some(parentLayout), parentDS, sanityCount, segment)
       }
@@ -276,7 +276,12 @@ abstract class BuildStage(private val jobContext: SegmentJob,
   private def getCachedLayoutDS(segment: NDataSegment, layout: LayoutEntity): Dataset[Row] = synchronized {
     cachedLayoutDS.getOrElseUpdate(layout.getId,
       // Or update, lightweight invocation.
-      StorageStoreUtils.toDF(segment, layout, sparkSession))
+      {
+        sparkSession.sparkContext.setJobDescription(s"Segment $segmentId prepare layout dataset ${layout.getId}")
+        val layoutDS = StorageStoreUtils.toDF(segment, layout, sparkSession)
+        sparkSession.sparkContext.setJobDescription(null)
+        layoutDS
+      })
   }
 
   // scala version < 2.13
@@ -289,25 +294,61 @@ abstract class BuildStage(private val jobContext: SegmentJob,
                                     , parentDS: Dataset[Row] //
                                     , sanityCount: Long //
                                     , segment: NDataSegment = dataSegment //
-                                    , ic: Option[InferiorCountDownLatch] = None)
+                                    , inferior: Option[InferiorGroup] = None)
 
 
   private def buildLayout(task: LayoutBuildTask): Unit = {
+    // Cache if essential.
+    tryCacheInferior(task.inferior)
+
     val layoutDS = wrapLayoutDS(task.layout, task.parentDS)
     val parentDesc = if (task.parentLayout.isEmpty) {
-      if (task.ic.isDefined) "inferior flat table" else "flat table"
+      if (task.inferior.isDefined) "inferior flat table" else "flat table"
     } else task.parentLayout.get.getId
-    // set layout mess in build job infos
-    val layout: NDataLayout = if (task.parentLayout.isEmpty) null else task.segment.getLayout(task.parentLayout.get.getId)
-    val layoutIdsFromFlatTable = KylinBuildEnv.get().buildJobInfos.getParent2Children.getOrDefault(layout, Sets.newHashSet())
-    layoutIdsFromFlatTable.add(task.layout.getId)
-    KylinBuildEnv.get().buildJobInfos.recordParent2Children(layout, layoutIdsFromFlatTable)
-
     val readableDesc = s"Segment $segmentId build layout ${task.layout.getId} from $parentDesc"
     newDataLayout(task.segment, task.layout, layoutDS, readableDesc, Some(new SanityChecker(task.sanityCount)))
 
-    if (task.ic.isDefined) {
-      task.ic.get.cdl.countDown()
+    // Mark sweep if essential.
+    tryReapInferior(task.inferior)
+  }
+
+  private def tryCacheInferior(optInferior: Option[InferiorGroup]): Unit = {
+    if (optInferior.isDefined && optInferior.get.notCached.get()) {
+      val inferior = optInferior.get
+      inferior.cacheLock.lockInterruptibly()
+      try {
+        if (inferior.notCached.get()) {
+          logInfo(s"Segment $segmentId inferior persist ${inferior.tableDS.columns.mkString("[", ",", "]")}")
+          sparkSession.sparkContext.setJobDescription(s"Segment $segmentId inferior persist ${inferior.tableDS.columns.length}")
+          inferior.tableDS.persist(datasetCacheStorageLevel).count()
+          inferior.notCached.set(false)
+          sparkSession.sparkContext.setJobDescription(null)
+        }
+      } finally {
+        inferior.cacheLock.unlock()
+      }
+    }
+  }
+
+  private def tryReapInferior(optInferior: Option[InferiorGroup]): Unit = {
+    if (optInferior.isDefined) {
+      val inferior = optInferior.get
+      inferior.reapCount.countDown()
+      if (inferior.reapCount.getCount > 0) {
+        return
+      }
+      inferior.cacheLock.lockInterruptibly()
+      try {
+        if (!inferior.notCached.get()) {
+          logInfo(s"Segment $segmentId inferior unpersist ${inferior.tableDS.columns.mkString("[", ",", "]")}")
+          sparkSession.sparkContext.setJobDescription(s"Segment $segmentId inferior unpersist ${inferior.tableDS.columns.length}")
+          inferior.tableDS.unpersist(blocking = true)
+          inferior.notCached.set(true)
+          sparkSession.sparkContext.setJobDescription(null)
+        }
+      } finally {
+        inferior.cacheLock.unlock()
+      }
     }
   }
 
@@ -372,7 +413,67 @@ abstract class BuildStage(private val jobContext: SegmentJob,
 
   // ----------------------------- Beta feature: Inferior Flat Table. ----------------------------- //
 
-  case class InferiorCountDownLatch(inferior: Dataset[Row], cdl: CountDownLatch)
+  private val cachedMeasureMap = dataModel.getEffectiveMeasures.asScala.map { case (id, measure) =>
+    val bitmapCol = DictionaryBuilderHelper.needGlobalDict(measure)
+    val columns = if (Objects.nonNull(bitmapCol)) {
+      val id = dataModel.getColumnIdByColumnName(bitmapCol.getIdentity)
+      Seq(s"${id}_KE_ENCODE")
+    } else {
+      Seq.empty[String]
+    } ++
+      measure.getFunction.getParameters.asScala.filter(_.isColumnType) //
+        .map(p => s"${dataModel.getColumnIdByColumnName(p.getValue)}")
+    (id, columns)
+  }.toMap
+
+  private def columnsFromFlatTable(index: IndexEntity): Seq[String] = {
+    val columns = mutable.Set[String]()
+
+    // Dimension columns
+    index.getEffectiveDimCols.keySet().asScala.foreach(id => columns.add(s"$id"))
+
+    // Measure referenced columns
+    index.getEffectiveMeasures.keySet().asScala //
+      .foreach { measureId =>
+        cachedMeasureMap.getOrElse(measureId, Seq.empty[String]).foreach(columns.add)
+      }
+
+    columns.toSeq
+  }
+
+  private def columnsFromParentLayout(index: IndexEntity): Seq[String] = {
+    val columns = mutable.Set[String]()
+
+    // Dimension columns
+    index.getEffectiveDimCols.keySet().asScala.foreach(id => columns.add(s"$id"))
+
+    // Measures
+    index.getEffectiveMeasures.keySet().asScala.foreach(id => columns.add(s"$id"))
+
+    columns.toSeq
+  }
+
+  def getStorageLevel: StorageLevel = {
+    config.getInferiorFlatTableStorageLevel match {
+      case "DISK_ONLY" => StorageLevel.DISK_ONLY
+      case "DISK_ONLY_2" => StorageLevel.DISK_ONLY_2
+      case "DISK_ONLY_3" => StorageLevel.DISK_ONLY_3
+      case "MEMORY_ONLY" => StorageLevel.MEMORY_ONLY
+      case "MEMORY_ONLY_2" => StorageLevel.MEMORY_ONLY_2
+      case "MEMORY_ONLY_SER" => StorageLevel.MEMORY_ONLY_SER
+      case "MEMORY_ONLY_SER_2" => StorageLevel.MEMORY_ONLY_SER_2
+      case "MEMORY_AND_DISK" => StorageLevel.MEMORY_AND_DISK
+      case "MEMORY_AND_DISK_2" => StorageLevel.MEMORY_AND_DISK_2
+      case "MEMORY_AND_DISK_SER" => StorageLevel.MEMORY_AND_DISK_SER
+      case "MEMORY_AND_DISK_SER_2" => StorageLevel.MEMORY_AND_DISK_SER_2
+      case "OFF_HEAP" => StorageLevel.OFF_HEAP
+      case _ => StorageLevel.MEMORY_AND_DISK
+    }
+  }
+
+  case class InferiorGroup(tableDS: Dataset[Row], reapCount: CountDownLatch //
+                           , notCached: AtomicBoolean = new AtomicBoolean(true) //
+                           , cacheLock: ReentrantLock = new ReentrantLock())
 
   // Suitable for models generated from multi index recommendations.
   // TODO Make more fantastic abstractions.
@@ -381,39 +482,26 @@ abstract class BuildStage(private val jobContext: SegmentJob,
     val schema = flatTableDS.schema
     val arraySize = schema.size
 
-    val measureMap = dataModel.getEffectiveMeasures.asScala.map { case (id, measure) =>
-      val bitmapCol = DictionaryBuilderHelper.needGlobalDict(measure)
-      val columns = if (Objects.nonNull(bitmapCol)) {
-        val id = dataModel.getColumnIdByColumnName(bitmapCol.getIdentity)
-        Seq(s"${id}_KE_ENCODE")
-      } else {
-        Seq.empty[String]
-      } ++
-        measure.getFunction.getParameters.asScala.filter(_.isColumnType) //
-          .map(p => s"${dataModel.getColumnIdByColumnName(p.getValue)}")
-      (id, columns)
-    }.toMap
-
-    def getColumns(index: IndexEntity): Seq[String] = {
-      val columns = mutable.Set[String]()
-
-      index.getEffectiveDimCols.keySet().asScala.foreach(id => columns.add(s"$id"))
-
-      index.getEffectiveMeasures.keySet().asScala //
-        .foreach { measureId =>
-          measureMap.getOrElse(measureId, Seq.empty[String]) //
-            .foreach(id => columns.add(id))
-        }
-
-      columns.toSeq
-    }
-
     def getArray(index: IndexEntity): Array[Double] = {
       val arr = new Array[Double](arraySize)
-      getColumns(index).foreach { col =>
-        arr(schema.fieldIndex(col)) = 1.0d
+      columnsFromFlatTable(index).foreach { column =>
+        arr(schema.fieldIndex(column)) = 1.0d
       }
       arr
+    }
+
+    def getK(nodes: Seq[TreeNode]): Int = {
+      val groupFactor = Math.max(1, config.getInferiorFlatTableGroupFactor)
+      val k = Math.max(1, //
+        Math.max(nodes.size / groupFactor //
+          , nodes.map(_.getIndex) //
+            .flatMap(_.getEffectiveDimCols.keySet().asScala) //
+            .distinct.size / groupFactor))
+      if (nodes.size < k) {
+        1
+      } else {
+        k
+      }
     }
 
     class ClusterNode(private val node: TreeNode) extends Clusterable {
@@ -424,98 +512,63 @@ abstract class BuildStage(private val jobContext: SegmentJob,
 
     case class GroupedNodeColumn(nodes: Seq[TreeNode], columns: Seq[String])
 
-    def cluster(k: Int, nodes: Seq[TreeNode]): Seq[GroupedNodeColumn] = {
+    def cluster(nodes: Seq[TreeNode]): Seq[GroupedNodeColumn] = {
+      if (nodes.isEmpty) {
+        return Seq.empty[GroupedNodeColumn]
+      }
+
+      val k = getK(nodes)
+
       val kcluster = new KMeansPlusPlusClusterer[ClusterNode](k, -1, new EarthMoversDistance())
       kcluster.cluster( //
         scala.collection.JavaConverters.seqAsJavaList(nodes.map(n => new ClusterNode(n)))).asScala //
         .map { cluster =>
           val grouped = cluster.getPoints.asScala.map(_.getNode)
-          val columns = grouped.map(_.getIndex).flatMap(index => getColumns(index)).distinct.sorted
+          val columns = grouped.map(_.getIndex).flatMap(columnsFromFlatTable).distinct.sorted
           GroupedNodeColumn(grouped, columns)
         }
     }
 
-    val (tinyNodes, normalNodes) = spanningTree.getFromFlatTableNodes.asScala.filter(_.nonSpanned())
-      // Index comprised of half dimensions should better be built from flat table.
-      .filter(node => node.getDimensionSize < arraySize / 2) //
-      .partition(node => node.getDimensionSize < 6)
-
-    def getK(nodes: Seq[TreeNode]): Int = {
-      val groupFactor = 30
-      Math.max(nodes.size / groupFactor //
-        , nodes.map(_.getIndex) //
-          .flatMap(_.getEffectiveDimCols.keySet().asScala) //
-          .distinct.size / groupFactor)
-    }
-
-    val tinyClustered = cluster(getK(tinyNodes), tinyNodes)
-    val normalClustered = cluster(getK(normalNodes), normalNodes)
-    val indexInferiorMap = mutable.HashMap[Long, InferiorCountDownLatch]()
-    val inferiors = (tinyClustered ++ normalClustered).map { grouped =>
-      val selectColumns = grouped.columns.map(col => expr(col))
-
-      logInfo(s"Segment $segmentId inferior index ${grouped.nodes.map(_.getIndex).map(_.getId).sorted.mkString("[", ",", "]")} " +
-        s" columns ${grouped.columns.mkString("[", ",", "]")}")
-
-      val cdl = new CountDownLatch(grouped.nodes.map(node => node.getNonSpannedCount).sum)
-      val inferior = flatTableDS.select(selectColumns: _*)
-      val ic = InferiorCountDownLatch(inferior, cdl)
-      grouped.nodes.foreach(node => indexInferiorMap.put(node.getIndex.getId, ic))
-      ic
-    }
-    cachedIndexInferior = indexInferiorMap.toMap
-
-    def getStorageLevel: StorageLevel = {
-      config.getInferiorFlatTableStorageLevel match {
-        case "DISK_ONLY_2" => StorageLevel.DISK_ONLY_2
-        case "DISK_ONLY_3" => StorageLevel.DISK_ONLY_3
-        case "MEMORY_ONLY" => StorageLevel.MEMORY_ONLY
-        case "MEMORY_ONLY_2" => StorageLevel.MEMORY_ONLY_2
-        case "MEMORY_ONLY_SER" => StorageLevel.MEMORY_ONLY_SER
-        case "MEMORY_ONLY_SER_2" => StorageLevel.MEMORY_ONLY_SER_2
-        case "MEMORY_AND_DISK" => StorageLevel.MEMORY_AND_DISK
-        case "MEMORY_AND_DISK_2" => StorageLevel.MEMORY_AND_DISK_2
-        case "MEMORY_AND_DISK_SER" => StorageLevel.MEMORY_AND_DISK_SER
-        case "MEMORY_AND_DISK_SER_2" => StorageLevel.MEMORY_AND_DISK_SER_2
-        case "OFF_HEAP" => StorageLevel.OFF_HEAP
-        case _ => StorageLevel.DISK_ONLY
-      }
-    }
-
-    val storageLevel = getStorageLevel
-    val parallel = inferiors.par
-    val forkJoinPool = new ForkJoinPool(inferiors.size)
-    try {
-      parallel.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(inferiors.size))
-      parallel.foreach { ic =>
-
-        logInfo(s"Segment $segmentId inferior persist  ${ic.inferior.columns.mkString("[", ",", "]")}")
-        sparkSession.sparkContext.setJobDescription(s"Segment $segmentId inferior persist ${ic.inferior.columns.length}")
-        ic.inferior.persist(storageLevel).count()
-        sparkSession.sparkContext.setJobDescription(null)
-      }
-    } finally {
-      forkJoinPool.shutdownNow()
-    }
-
-    // ---------- un persist -----------
-    val delay = 3L
-    val unit = TimeUnit.SECONDS
-
-    def unpersist(ic: InferiorCountDownLatch): Unit = {
-      if (ic.cdl.getCount > 0) {
-        runtime.schedule(() => unpersist(ic), delay, unit)
+    val indexInferiorMap = mutable.HashMap[Long, InferiorGroup]()
+    val dimensionFactor = Math.max(1, config.getInferiorFlatTableDimensionFactor)
+    val nonSpanned = spanningTree.getFromFlatTableNodes.asScala.filter(_.nonSpanned())
+    val clustered = nonSpanned.groupBy(node => node.getDimensionSize / dimensionFactor) //
+      .values.filter { grouped =>
+      val groupDesc = grouped.map(_.getIndex.getId).sorted.mkString("[", ",", "]")
+      if (grouped.size > 1) {
+        logInfo(s"Segment $segmentId coarse index group $groupDesc")
+        true
       } else {
-        ic.inferior.unpersist()
-        logInfo(s"Segment $segmentId inferior unpersist ${ic.inferior.columns.mkString("[", ",", "]")}")
+        logInfo(s"Segment $segmentId skip coarse index group $groupDesc")
+        false
       }
+    }.flatMap(cluster)
+
+    val inferiors = clustered.zipWithIndex.map { case (grouped, i) =>
+      logInfo(s"Segment $segmentId inferior indices columns " +
+        s"${grouped.nodes.size} ${grouped.nodes.map(_.getIndex.getId).sorted.mkString("[", ",", "]")} " +
+        s"${grouped.columns.size} ${grouped.columns.mkString("[", ",", "]")}")
+
+      val reapCount = new CountDownLatch(grouped.nodes.map(node => node.getNonSpannedCount).sum)
+      val tableDS = flatTableDS.select(grouped.columns.map(col): _*)
+
+      val inferior = InferiorGroup(tableDS, reapCount)
+      grouped.nodes.foreach { node =>
+        indexInferiorMap.put(node.getIndex.getId, inferior)
+        // Locality of reference principle.
+        node.setLocalPriority(i)
+      }
+      inferior
     }
 
-    inferiors.foreach(inferior => runtime.schedule(() => unpersist(inferior), delay, unit))
-    // ---------- un persist -----------
+    if (inferiors.isEmpty) {
+      return
+    }
+
+    cachedIndexInferior = indexInferiorMap.toMap
   }
 
-  private def getCachedIndexInferior(index: IndexEntity): Option[InferiorCountDownLatch] = synchronized {
+  private def getCachedIndexInferior(index: IndexEntity): Option[InferiorGroup] = synchronized {
     if (Objects.isNull(cachedIndexInferior)) {
       return None
     }

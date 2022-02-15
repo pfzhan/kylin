@@ -292,7 +292,14 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
     }
     logInfo(s"Segment $segmentId persist flat table: $flatTablePath")
     sparkSession.sparkContext.setJobDescription(s"Segment $segmentId persist flat table.")
-    tableDS.write.mode(SaveMode.Overwrite).parquet(flatTablePath.toString)
+    val coalescePartitionNum = tableDesc.getFlatTableCoalescePartitionNum
+    if (coalescePartitionNum > 0) {
+      logInfo(s"Segment $segmentId flat table coalesce partition num $coalescePartitionNum")
+      tableDS.coalesce(coalescePartitionNum) //
+        .write.mode(SaveMode.Overwrite).parquet(flatTablePath.toString)
+    } else {
+      tableDS.write.mode(SaveMode.Overwrite).parquet(flatTablePath.toString)
+    }
     DFBuilderHelper.checkPointSegment(dataSegment, (copied: NDataSegment) => {
       copied.setFlatTableReady(true)
       if (dataSegment.isFlatTableReady) {
