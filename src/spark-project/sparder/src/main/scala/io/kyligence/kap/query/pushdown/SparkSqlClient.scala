@@ -78,7 +78,7 @@ object SparkSqlClient {
         null
       }
       ss.sessionState.conf.setLocalProperty(DEFAULT_DB, db)
-      val df = QueryResultMasks.maskResult(ss.sql(sql));
+      val df = QueryResultMasks.maskResult(ss.sql(sql))
 
       autoSetShufflePartitions(ss, df)
 
