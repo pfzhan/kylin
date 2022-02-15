@@ -24,7 +24,7 @@
 package io.kyligence.kap.newten.clickhouse;
 
 import com.clearspring.analytics.util.Preconditions;
-import io.kyligence.kap.clickhouse.job.LoadContext;
+import io.kyligence.kap.clickhouse.job.ClickHouseSegmentCleanJob;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.guava20.shaded.common.collect.ImmutableList;
 import io.kyligence.kap.guava20.shaded.common.collect.Lists;
@@ -68,6 +68,7 @@ import io.kyligence.kap.secondstorage.management.request.ProjectEnableRequest;
 import io.kyligence.kap.secondstorage.management.request.ProjectLockOperateRequest;
 import io.kyligence.kap.secondstorage.management.request.RecoverRequest;
 import io.kyligence.kap.secondstorage.management.request.SecondStorageMetadataRequest;
+import io.kyligence.kap.secondstorage.management.request.StorageRequest;
 import io.kyligence.kap.secondstorage.metadata.PartitionType;
 import io.kyligence.kap.secondstorage.metadata.TableData;
 import io.kyligence.kap.secondstorage.metadata.TableEntity;
@@ -350,6 +351,27 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
         }
     }
 
+    @Test
+    public void testIncrementalTwoShardDoubleReplicaHA() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse3 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse4 = ClickHouseUtils.startClickHouse()) {
+             build_load_query("testIncrementalTwoShardDoubleReplica", true, false, 2, () -> {
+                        clickhouse1.stop();
+                        String sql1 = "select sum(PRICE) from TEST_KYLIN_FACT where CAL_DT >= '2012-01-01' and CAL_DT < '2012-01-02' group by PRICE";
+
+                        val result = SparderEnv.getSparkSession().sql(sql1);
+                        val a = result.collect();
+                        result.createOrReplaceTempView("TEST_KYLIN_FACT");
+
+                        // 命中
+                        NExecAndComp.queryWithKapWithMeta(getProject(), "left", Pair.newPair("query_table_index0", sql1), null);
+                        return null;
+                    },
+                    clickhouse1, clickhouse2, clickhouse3, clickhouse4);
+        }
+    }
 
     @SneakyThrows
     protected void checkHttpServer() throws IOException {
@@ -669,15 +691,6 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
         }
     }
 
-    @Test
-    public void testLoadContext() throws Exception {
-        LoadContext context = new LoadContext(null);
-
-        context.deserializeToString("{}");
-        context.deserializeToString(LoadContext.emptyState());
-        context.deserializeToString(context.serializeToString());
-    }
-
     private JobParam triggerSegmentClean() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         val dfManager = NDataflowManager.getInstance(config, getProject());
@@ -688,6 +701,18 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
         segmentCleanJobHandler.handle(jobParam);
         waitJobFinish(jobParam.getJobId());
         return jobParam;
+    }
+
+    private void triggerSegmentClean(List<String> segments, String modelId, boolean isAllowFailed) {
+        val request = new StorageRequest();
+        request.setProject(getProject());
+        request.setModel(modelId);
+        request.setSegmentIds(segments);
+        secondStorageEndpoint.cleanStorage(request, segments);
+        val manager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
+        val job = manager.getAllExecutables().stream().filter(ClickHouseSegmentCleanJob.class::isInstance).findFirst();
+        Assert.assertTrue(job.isPresent());
+        waitJobFinish(job.get().getId(), isAllowFailed);
     }
 
     protected void buildIncrementalLoadQuery() throws Exception {
@@ -730,15 +755,21 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
         waitJobFinish(jobId);
     }
 
-    private void waitJobFinish(String jobId) {
+    private void waitJobFinish(String jobId, boolean isAllowFailed) {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NExecutableManager executableManager = NExecutableManager.getInstance(config, getProject());
         DefaultChainedExecutable job = (DefaultChainedExecutable) executableManager.getJob(jobId);
         await().atMost(300, TimeUnit.SECONDS).until(() -> !job.getStatus().isProgressing());
         Assert.assertFalse(job.getStatus().isProgressing());
-        val firstErrorMsg = IndexDataConstructor.firstFailedJobErrorMessage(executableManager, job);
-        Assert.assertEquals(firstErrorMsg,
-                ExecutableState.SUCCEED, executableManager.getJob(jobId).getStatus());
+        if (!isAllowFailed) {
+            val firstErrorMsg = IndexDataConstructor.firstFailedJobErrorMessage(executableManager, job);
+            Assert.assertEquals(firstErrorMsg,
+                    ExecutableState.SUCCEED, executableManager.getJob(jobId).getStatus());
+        }
+    }
+
+    private void waitJobFinish(String jobId) {
+        waitJobFinish(jobId, false);
     }
 
     protected void refreshSegment(String segId) {
@@ -788,6 +819,10 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
     }
 
     protected void build_load_query(String catalog, boolean incremental, int replica, Callable<Void> beforeQuery, JdbcDatabaseContainer<?>... clickhouse) throws Exception {
+        build_load_query(catalog, incremental, true, replica, beforeQuery, clickhouse);
+    }
+
+    protected void build_load_query(String catalog, boolean incremental, boolean isMergeSegment, int replica, Callable<Void> beforeQuery, JdbcDatabaseContainer<?>... clickhouse) throws Exception {
         Unsafe.setProperty(ClickHouseLoad.SOURCE_URL, getSourceUrl());
         Unsafe.setProperty(ClickHouseLoad.ROOT_PATH, getLocalWorkingDirectory());
         configClickhouseWith(clickhouse, replica, catalog, () -> {
@@ -823,7 +858,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
             refreshSegment(needRefresh.getId());
 
             // test merge segment
-            if (incremental) {
+            if (incremental && isMergeSegment) {
                 mergeSegments(dsMgr.getDataflow(cubeName).getQueryableSegments().stream()
                         .map(NDataSegment::getId).collect(Collectors.toList()));
             }

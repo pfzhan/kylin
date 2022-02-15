@@ -107,7 +107,7 @@ object SecondStorage extends LogEx {
     val enableSSForThisQuery = enabled && layout.getIndex.isTableIndex && !QueryContext.current().isForceTableIndex
     var result = Option.empty[DataFrame]
     while (enableSSForThisQuery && result.isEmpty && QueryContext.current().isRetrySecondStorage) {
-      result = Option.apply(enableSSForThisQuery)
+      val segments = Option.apply(enableSSForThisQuery)
         .filter(_ == true)
         .flatMap(_ =>
           tableFlowManager(dataflow)
@@ -118,7 +118,10 @@ object SecondStorage extends LogEx {
           val allSegIds = pruningInfo.split(",").map(s => s.split(":")(0)).toSet.asJava
           tableData.containSegments(allSegIds)
         }
-        .flatMap(tableData => tryCreateDataFrame(Some(tableData), sparkSession))
+      if (segments.isEmpty) {
+        QueryContext.current().setRetrySecondStorage(false)
+      }
+      result = segments.flatMap(tableData => tryCreateDataFrame(Some(tableData), sparkSession))
     }
     if (result.isDefined) {
       QueryContext.current().setLastFailed(false)
