@@ -31,9 +31,9 @@ source build/script_newten/functions.sh
 
 rm -rf build/spark
 
-spark_pkg_name="spark-newten-3.1.1-4.x-r51"
+spark_pkg_name="spark-newten-3.1.1-4.x-r52"
 spark_pkg_file_name="${spark_pkg_name}.tgz"
-spark_pkg_md5="9ca124a721b8a991279c599b796308a8"
+spark_pkg_md5="cd56a85cb141c4dadff9fa0772391e4a"
 
 checkDownloadSparkVersion ${spark_pkg_name}
 
