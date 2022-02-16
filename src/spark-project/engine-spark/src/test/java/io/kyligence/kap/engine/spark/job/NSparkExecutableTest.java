@@ -68,7 +68,7 @@ public class NSparkExecutableTest extends NLocalFileMetadataTestCase {
         MockSparkTestExecutable executable = new MockSparkTestExecutable();
         executable.setMetaUrl(path);
         executable.setProject("default");
-        Assert.assertEquals(7, executable.getMetadataDumpList(config).size());
+        Assert.assertEquals(8, executable.getMetadataDumpList(config).size());
         NDataModel model = modelManager.getDataModelDesc("82fa7671-a935-45f5-8779-85703601f49a");
         for (int i = 0; i < 10; i++) {
             new Thread(new AddModelRunner(model)).start();

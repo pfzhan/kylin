@@ -518,11 +518,11 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
             SecurityContextHolder.getContext().setAuthentication(authentication);
             tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true);
             val modelManager = NDataModelManager.getInstance(getTestConfig(), PROJECT);
-            Assert.assertEquals(3, modelManager.listAllModels().size());
+            Assert.assertEquals(4, modelManager.listAllModels().size());
             val indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
-            Assert.assertEquals(3, indexManager.listAllIndexPlans().size());
+            Assert.assertEquals(4, indexManager.listAllIndexPlans().size());
             val dfManager = NDataflowManager.getInstance(getTestConfig(), PROJECT);
-            Assert.assertEquals(3, dfManager.listAllDataflows().size());
+            Assert.assertEquals(4, dfManager.listAllDataflows().size());
         });
     }
 
@@ -831,7 +831,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         val tableManager = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
         tableManager.removeSourceTable("DEFAULT.TEST_MEASURE");
         val dfManager = NDataflowManager.getInstance(getTestConfig(), PROJECT);
-        Assert.assertEquals(6, dfManager.listUnderliningDataModels().size());
+        Assert.assertEquals(7, dfManager.listUnderliningDataModels().size());
 
         testPreProcess_AffectTwoTables();
     }

@@ -1176,7 +1176,7 @@ public class ProjectServiceTest extends ServiceTestBase {
         Assert.assertEquals(-1, statisticsOfProjectDefault.getApprovedRecCount());
         Assert.assertEquals(-1, statisticsOfProjectDefault.getApprovedAdditionalRecCount());
         Assert.assertEquals(-1, statisticsOfProjectDefault.getApprovedRemovalRecCount());
-        Assert.assertEquals(7, statisticsOfProjectDefault.getModelSize());
+        Assert.assertEquals(8, statisticsOfProjectDefault.getModelSize());
         Assert.assertEquals(-1, statisticsOfProjectDefault.getAcceptableRecSize());
         Assert.assertFalse(statisticsOfProjectDefault.isRefreshed());
         Assert.assertEquals(-1, statisticsOfProjectDefault.getMaxRecShowSize());

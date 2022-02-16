@@ -150,7 +150,7 @@ public class MetaStoreServiceTest extends ServiceTestBase {
     public void testGetSimplifiedModel() {
         List<ModelPreviewResponse> modelPreviewResponseList = metaStoreService.getPreviewModels("default",
                 Collections.emptyList());
-        Assert.assertEquals(10, modelPreviewResponseList.size());
+        Assert.assertEquals(11, modelPreviewResponseList.size());
 
         modelPreviewResponseList = metaStoreService.getPreviewModels("default",
                 Lists.newArrayList("8b5a2d39-304f-4a20-a9da-942f461534d8", "7212bf0c-0716-4cef-b623-69c161981262"));
@@ -202,7 +202,7 @@ public class MetaStoreServiceTest extends ServiceTestBase {
         Assert.assertTrue(ArrayUtils.isNotEmpty(byteArrayOutputStream.toByteArray()));
         Map<String, RawResource> rawResourceMap = getRawResourceFromZipFile(
                 new ByteArrayInputStream(byteArrayOutputStream.toByteArray()));
-        Assert.assertEquals(35, rawResourceMap.size());
+        Assert.assertEquals(38, rawResourceMap.size());
 
         // export over props
         byteArrayOutputStream = metaStoreService.getCompressedModelMetadata(getProject(), modelIdList, false, true,
@@ -354,7 +354,7 @@ public class MetaStoreServiceTest extends ServiceTestBase {
         Assert.assertTrue(ArrayUtils.isNotEmpty(byteArrayOutputStream.toByteArray()));
         Map<String, RawResource> rawResourceMap = getRawResourceFromZipFile(
                 new ByteArrayInputStream(byteArrayOutputStream.toByteArray()));
-        Assert.assertEquals(35, rawResourceMap.size());
+        Assert.assertEquals(38, rawResourceMap.size());
 
         RawResource rw = rawResourceMap.get(ResourceStore.VERSION_FILE);
         try (InputStream inputStream = rw.getByteSource().openStream()) {
@@ -367,7 +367,7 @@ public class MetaStoreServiceTest extends ServiceTestBase {
                 false);
         Assert.assertTrue(ArrayUtils.isNotEmpty(byteArrayOutputStream.toByteArray()));
         rawResourceMap = getRawResourceFromZipFile(new ByteArrayInputStream(byteArrayOutputStream.toByteArray()));
-        Assert.assertEquals(35, rawResourceMap.size());
+        Assert.assertEquals(38, rawResourceMap.size());
 
         rw = rawResourceMap.get(ResourceStore.VERSION_FILE);
         try (InputStream inputStream = rw.getByteSource().openStream()) {

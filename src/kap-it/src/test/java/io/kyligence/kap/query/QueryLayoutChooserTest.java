@@ -23,27 +23,8 @@
  */
 package io.kyligence.kap.query;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.metadata.model.ColumnDesc;
-import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.model.TableExtDesc;
-import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.metadata.realization.CapabilityResult;
-import org.apache.kylin.query.relnode.OLAPContext;
-import org.apache.kylin.query.routing.RealizationChooser;
-import org.apache.spark.sql.SparderEnv;
-import org.junit.Assert;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
 import io.kyligence.kap.metadata.cube.cuboid.NLookupCandidate;
@@ -68,6 +49,23 @@ import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.utils.AccelerationContextUtil;
 import lombok.val;
 import lombok.var;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.TableExtDesc;
+import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.metadata.realization.CapabilityResult;
+import org.apache.kylin.query.relnode.OLAPContext;
+import org.apache.kylin.query.routing.RealizationChooser;
+import org.apache.spark.sql.SparderEnv;
+import org.junit.Assert;
+import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public class QueryLayoutChooserTest extends AutoTestBase {
 
@@ -255,6 +253,80 @@ public class QueryLayoutChooserTest extends AutoTestBase {
                 .selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(), context.getSQLDigest())
                 .getLayoutEntity().getId();
         Assert.assertEquals(20000000001L, layoutId);
+    }
+
+    @Test
+    public void testSumExprWithAggPushDown() {
+        try {
+            getTestConfig().setProperty("kylin.query.convert-sum-expression-enabled", "true");
+            getTestConfig().setProperty("kylin.query.calcite.aggregate-pushdown-enabled", "true");
+            NDataflow dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
+                    .getDataflow("d67bf0e4-30f4-9248-2528-52daa80be91a");
+
+            String SQL = "SELECT\n"
+                    + " SUM(\n"
+                    + " (\n"
+                    + " CASE\n"
+                    + " WHEN (\n"
+                    + " CASE\n"
+                    + " WHEN (\"LINEORDER\".\"LO_ORDERDATE\" = \"t0\".\"X_measure__0\") THEN true\n"
+                    + " WHEN NOT (\"LINEORDER\".\"LO_ORDERDATE\" = \"t0\".\"X_measure__0\") THEN false\n"
+                    + " ELSE NULL\n"
+                    + " END\n"
+                    + " ) THEN \"LINEORDER\".\"LO_QUANTITY\"\n"
+                    + " ELSE CAST(NULL AS INTEGER)\n"
+                    + " END\n"
+                    + " )\n"
+                    + " ) AS \"sum_LO_QUANTITY_SUM______88\"\n"
+                    + "FROM\n"
+                    + " \"SSB\".\"LINEORDER\" \"LINEORDER\"\n"
+                    + " CROSS JOIN (\n"
+                    + " SELECT\n"
+                    + " MAX(\"LINEORDER\".\"LO_ORDERDATE\") AS \"X_measure__0\"\n"
+                    + " FROM\n"
+                    + " \"SSB\".\"LINEORDER\" \"LINEORDER\"\n"
+                    + " GROUP BY\n"
+                    + " 1.1000000000000001\n"
+                    + " ) \"t0\"\n"
+                    + "GROUP BY\n"
+                    + " 1.1000000000000001\n"
+                    + "LIMIT 500";
+            OLAPContext context = prepareOlapContext(SQL).get(0);
+            Map<String, String> sqlAlias2ModelName = RealizationChooser.matchJoins(dataflow.getModel(), context);
+            context.fixModel(dataflow.getModel(), sqlAlias2ModelName);
+            var layoutIdFirst = NQueryLayoutChooser
+                    .selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(), context.getSQLDigest())
+                    .getLayoutEntity().getId();
+            Assert.assertEquals(1L, layoutIdFirst);
+
+            context = prepareOlapContext(SQL).get(1);
+            sqlAlias2ModelName = RealizationChooser.matchJoins(dataflow.getModel(), context);
+            context.fixModel(dataflow.getModel(), sqlAlias2ModelName);
+            var layoutIdSecond = NQueryLayoutChooser
+                    .selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(), context.getSQLDigest())
+                    .getLayoutEntity().getId();
+            Assert.assertEquals(1L, layoutIdSecond);
+
+            getTestConfig().setProperty("kylin.query.calcite.aggregate-pushdown-enabled", "false");
+            context = prepareOlapContext(SQL).get(0);
+            sqlAlias2ModelName = RealizationChooser.matchJoins(dataflow.getModel(), context);
+            context.fixModel(dataflow.getModel(), sqlAlias2ModelName);
+            layoutIdFirst = NQueryLayoutChooser
+                    .selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(), context.getSQLDigest())
+                    .getLayoutEntity().getId();
+            Assert.assertEquals(1L, layoutIdFirst);
+
+            context = prepareOlapContext(SQL).get(1);
+            sqlAlias2ModelName = RealizationChooser.matchJoins(dataflow.getModel(), context);
+            context.fixModel(dataflow.getModel(), sqlAlias2ModelName);
+            layoutIdSecond = NQueryLayoutChooser
+                    .selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(), context.getSQLDigest())
+                    .getLayoutEntity().getId();
+            Assert.assertEquals(20000000001L, layoutIdSecond);
+        } finally {
+            getTestConfig().setProperty("kylin.query.convert-sum-expression-enabled", "false");
+            getTestConfig().setProperty("kylin.query.calcite.aggregate-pushdown-enabled", "false");
+        }
     }
 
     @Test

@@ -409,7 +409,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         List<NDataModelResponse> models7 = modelService.getModels("", "default", false, "", null, "expansionrate", true,
                 "admin", null, null);
-        Assert.assertEquals(7, models7.size());
+        Assert.assertEquals(8, models7.size());
 
         List<NDataModelResponse> models8 = modelService.getModels("nmodel_full_measure_test", "default", false, "",
                 null, "last_modify", true, "admin", 0L, 1L);
@@ -475,10 +475,10 @@ public class ModelServiceTest extends CSVSourceTestCase {
     public void testSortModels() {
 
         List<NDataModelResponse> models = modelService.getModels("", "default", false, "", null, "usage", true);
-        Assert.assertEquals(7, models.size());
-        Assert.assertEquals("nmodel_basic_inner", models.get(0).getAlias());
+        Assert.assertEquals(8, models.size());
+        Assert.assertEquals("test_sum_expr_with_cross_join", models.get(0).getAlias());
         models = modelService.getModels("", "default", false, "", null, "usage", false);
-        Assert.assertEquals("nmodel_basic_inner", models.get(models.size() - 1).getAlias());
+        Assert.assertEquals("test_sum_expr_with_cross_join", models.get(models.size() - 1).getAlias());
         models = modelService.getModels("", "default", false, "", null, "storage", true);
         Assert.assertEquals("nmodel_basic", models.get(0).getAlias());
         models = modelService.getModels("", "default", false, "", null, "storage", false);
@@ -5357,7 +5357,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     public void testGetCubes0ExistBrokenModel() {
         tableService.unloadTable(getProject(), "DEFAULT.TEST_KYLIN_FACT", false);
         val result = modelService.getCubes0(null, getProject());
-        Assert.assertEquals(7, result.size());
+        Assert.assertEquals(8, result.size());
 
         boolean notBrokenModel = result.stream()
                 .filter(model -> "a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94".equals(model.getUuid()))
