@@ -9,4 +9,4 @@ groups:
       severity: signification
     annotations:
       summary: "{{$labels.job}} Instance {{$labels.instance}} cube build failed too many times"
-      description: "{{$labels.job}} Instance {{$labels.instance}} cube build failed times has been > 3 in last 10 minutes, current failed times: {{ $value }}"
+      description: "{{$labels.job}} Instance {{$labels.instance}} cube build failed times has been > 3 in last 10 minutes, current failed times: {{ humanize $value }}"

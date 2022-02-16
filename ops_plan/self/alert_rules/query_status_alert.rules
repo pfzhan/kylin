@@ -27,5 +27,5 @@ groups:
       severity: signification
     annotations:
       summary: "{{$labels.job}} Instance {{$labels.instance}} slow query ratio is too high"
-      description: "{{$labels.job}} Instance {{$labels.instance}} slow query(>15s) ratio has been > 5% in last 5 minutes, current ratio: {{ $value }}"
+      description: "{{$labels.job}} Instance {{$labels.instance}} slow query(>15s) ratio has been > 5% in last 5 minutes, current ratio: {{ humanize $value }}"
 
