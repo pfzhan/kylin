@@ -65,6 +65,9 @@ cp -rf deploy/grafana/dashboards ${package_name}/grafana/
 cp -rf deploy/grafana/provisioning ${package_name}/grafana/conf/
 cp -rf deploy/grafana/custom.ini ${package_name}/grafana/conf/
 
+# Add ops_plan files
+cp -rf ../ops_plan ${package_name}/
+
 # Add conf profiles
 mkdir -p ${package_name}/conf
 mkdir -p ${package_name}/tool/conf
