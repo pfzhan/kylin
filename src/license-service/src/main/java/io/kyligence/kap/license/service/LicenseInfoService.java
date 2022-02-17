@@ -478,6 +478,13 @@ public class LicenseInfoService extends BasicService {
     }
 
     public void updateLicense(byte[] bytes) throws IOException {
+        File licenseFile = new File(KapConfig.getKylinHomeAtBestEffort(), LICENSE_FILENAME);
+        String oldLicenseInfo = licenseFile.exists() ? FileUtils.readFileToString(licenseFile, StandardCharsets.UTF_8) : "";
+        String newLicenseInfo = new String(bytes, StandardCharsets.UTF_8);
+        if (StringUtils.equals(oldLicenseInfo, newLicenseInfo)) {
+            log.info("skip license update due to new license is equals to old license");
+            return;
+        }
         clearSystemLicense();
         FileUtils.writeByteArrayToFile(backupAndDeleteLicense("temporary"), bytes);
         gatherLicenseInfo(getDefaultLicenseFile(), getDefaultCommitFile(), getDefaultVersionFile(), null);

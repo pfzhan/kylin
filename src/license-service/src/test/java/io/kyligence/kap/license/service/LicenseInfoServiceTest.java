@@ -194,6 +194,7 @@ public class LicenseInfoServiceTest extends NLocalFileMetadataTestCase {
         licenseInfoService.updateLicense(license);
         realLicense = new File(kylinHome, "LICENSE");
         fileLicense = FileUtils.readFileToString(realLicense);
+        licenseInfoService.updateLicense(license); //new license is equal to old license will skip update
 
         assert fileLicense.equals(license);
 
