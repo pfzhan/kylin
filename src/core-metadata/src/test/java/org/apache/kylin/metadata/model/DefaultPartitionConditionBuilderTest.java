@@ -73,6 +73,20 @@ public class DefaultPartitionConditionBuilderTest {
     }
 
     @Test
+    public void testDatePartitionCheckFormat() {
+        PartitionDesc partitionDesc = new PartitionDesc();
+        TblColRef col = TblColRef.mockup(TableDesc.mockup("DEFAULT.TABLE_NAME"), 1, "DATE_COLUMN", "string");
+        partitionDesc.setPartitionDateColumnRef(col);
+        Assert.assertTrue(partitionDesc.checkIntTypeDateFormat());
+        col = TblColRef.mockup(TableDesc.mockup("DEFAULT.TABLE_NAME"), 1, "DATE_COLUMN", "bigint");
+        partitionDesc.setPartitionDateColumnRef(col);
+        partitionDesc.setPartitionDateColumn(col.getCanonicalName());
+        partitionDesc.setPartitionDateFormat("yyyyMMdd");
+        partitionDesc.setPartitionDateColumnRef(col);
+        Assert.assertTrue(partitionDesc.checkIntTypeDateFormat());
+    }
+
+    @Test
     public void testDatePartition() {
         PartitionDesc partitionDesc = new PartitionDesc();
         TblColRef col = TblColRef.mockup(TableDesc.mockup("DEFAULT.TABLE_NAME"), 1, "DATE_COLUMN", "string");
@@ -118,8 +132,8 @@ public class DefaultPartitionConditionBuilderTest {
 
     @Test
     public void testDatePartition_BigInt_yyyy_MM_timestamp_disable() {
-        testDatePartitionHelper("bigint", "yyyy-MM", "2016-02-22", "2016-03-23",
-                "UNKNOWN_ALIAS.DATE_COLUMN >= 201602 AND UNKNOWN_ALIAS.DATE_COLUMN < 201603");
+        assertThrows(RuntimeException.class, () -> testDatePartitionHelper("bigint", "yyyy-MM", "2016-02-22", "2016-03-23",
+                "UNKNOWN_ALIAS.DATE_COLUMN >= 201602 AND UNKNOWN_ALIAS.DATE_COLUMN < 201603"));
     }
 
     @Test
@@ -146,8 +160,8 @@ public class DefaultPartitionConditionBuilderTest {
 
     @Test
     public void testDatePartition_BigInt() {
-        testDatePartitionHelper("bigint", "yyyy-MM-dd", "2016-02-22", "2016-02-23",
-                "UNKNOWN_ALIAS.DATE_COLUMN >= 20160222 AND UNKNOWN_ALIAS.DATE_COLUMN < 20160223");
+        assertThrows(RuntimeException.class, () -> testDatePartitionHelper("bigint", "yyyy-MM-dd", "2016-02-22",
+                "2016-02-23", "UNKNOWN_ALIAS.DATE_COLUMN >= 20160222 AND UNKNOWN_ALIAS.DATE_COLUMN < 20160223"));
     }
 
     @Test
@@ -165,9 +179,15 @@ public class DefaultPartitionConditionBuilderTest {
     }
 
     @Test
+    public void testDatePartition_yyyymm_Long() {
+        testDatePartitionHelper("long", "yyyyMM", "2016-02-22", "2016-04-23",
+                "UNKNOWN_ALIAS.DATE_COLUMN >= 201602 AND UNKNOWN_ALIAS.DATE_COLUMN < 201604");
+    }
+
+    @Test
     public void testDatePartition_Int() {
-        testDatePartitionHelper("int", "yyyy-MM-dd", "2016-02-22", "2016-02-23",
-                "UNKNOWN_ALIAS.DATE_COLUMN >= 20160222 AND UNKNOWN_ALIAS.DATE_COLUMN < 20160223");
+        assertThrows(RuntimeException.class, () -> testDatePartitionHelper("int", "yyyy-MM-dd", "2016-02-22",
+                "2016-02-23", "UNKNOWN_ALIAS.DATE_COLUMN >= 20160222 AND UNKNOWN_ALIAS.DATE_COLUMN < 20160223"));
     }
 
     @Test

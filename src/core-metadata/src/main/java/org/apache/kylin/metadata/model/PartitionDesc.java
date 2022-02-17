@@ -42,6 +42,9 @@
 
 package org.apache.kylin.metadata.model;
 
+import static org.apache.kylin.common.util.DateFormat.COMPACT_DATE_PATTERN;
+import static org.apache.kylin.common.util.DateFormat.COMPACT_MONTH_PATTERN;
+
 import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.Locale;
@@ -124,7 +127,7 @@ public class PartitionDesc implements Serializable {
     public boolean checkIntTypeDateFormat() {
         DataType type = partitionDateColumnRef.getType();
         if ((type.isInt() || type.isBigInt())) {
-            return DateFormat.isMonthPatten(partitionDateFormat) || DateFormat.isDatePattern(partitionDateFormat);
+            return COMPACT_MONTH_PATTERN.equals(partitionDateFormat) || COMPACT_DATE_PATTERN.equals(partitionDateFormat);
         }
         return true;
     }
@@ -303,9 +306,9 @@ public class PartitionDesc implements Serializable {
                         partDesc.getPartitionDateFormat());
             } else if (dataTypeIsIntOrBigInt) {
                 if (!useBigintAsTimestamp) {
-                    if (DateFormat.isMonthPatten(partDesc.partitionDateFormat)) {
+                    if (COMPACT_MONTH_PATTERN.equals(partDesc.partitionDateFormat)) {
                         buildSingleColumnRangeCondAsYmInt(builder, partitionDateColumn, startInclusive, endExclusive);
-                    } else if (DateFormat.isDatePattern(partDesc.partitionDateFormat)) {
+                    } else if (COMPACT_DATE_PATTERN.equals(partDesc.partitionDateFormat)) {
                         buildSingleColumnRangeCondAsYmdInt(builder, partitionDateColumn, startInclusive, endExclusive);
                     } else {
                         throw new KylinException(JobErrorCode.JOB_INT_DATE_FORMAT_NOT_MATCH_ERROR,

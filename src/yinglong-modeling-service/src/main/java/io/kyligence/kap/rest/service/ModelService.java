@@ -3380,6 +3380,16 @@ public class ModelService extends BasicService implements TableModelSupporter, P
 
         validateFusionModelDimension(modelRequest);
         NDataModel model = semanticUpdater.convertToDataModel(modelRequest);
+
+        if (!KylinConfig.getInstanceFromEnv().isUseBigIntAsTimestampForPartitionColumn()) {
+            PartitionDesc partitionDesc = modelRequest.getPartitionDesc();
+            partitionDesc.init(model);
+            if (!partitionDesc.checkIntTypeDateFormat()) {
+                throw new KylinException(JobErrorCode.JOB_INT_DATE_FORMAT_NOT_MATCH_ERROR,
+                        "int/bigint data type only support yyyymm/yyyymmdd format");
+            }
+        }
+
         NDataModel oldDataModel = getDataModelManager(model.getProject()).getDataModelDesc(model.getUuid());
         Set<Long> affectedLayouts = Sets.newHashSet();
         if (oldDataModel != null && !oldDataModel.isBroken()) {
