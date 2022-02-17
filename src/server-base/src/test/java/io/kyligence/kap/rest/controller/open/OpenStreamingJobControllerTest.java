@@ -26,15 +26,14 @@ package io.kyligence.kap.rest.controller.open;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
-import java.util.Arrays;
 import java.util.Collections;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.util.AclEvaluate;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -68,9 +67,6 @@ public class OpenStreamingJobControllerTest extends NLocalFileMetadataTestCase {
     public ExpectedException thrown = ExpectedException.none();
 
     @Mock
-    private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
-
-    @Mock
     private StreamingJobService streamingJobService = Mockito.spy(StreamingJobService.class);
 
     @InjectMocks
@@ -80,7 +76,6 @@ public class OpenStreamingJobControllerTest extends NLocalFileMetadataTestCase {
 
     private static String PROJECT = "streaming_test";
     private static String MODEL_ID = "e78a89dd-847f-4574-8afa-8768b4228b72";
-    private static String DATAFLOW_ID = MODEL_ID;
 
     @Before
     public void setup() {
@@ -115,7 +110,8 @@ public class OpenStreamingJobControllerTest extends NLocalFileMetadataTestCase {
         MvcResult mvcResult = mockMvc.perform(mockRequestBuilder).andExpect(MockMvcResultMatchers.status().isOk())
                 .andReturn();
         Mockito.verify(streamingJobController).getStreamingJobList(StringUtils.EMPTY, Collections.EMPTY_LIST,
-                Collections.EMPTY_LIST, Collections.EMPTY_LIST, PROJECT, 0, 10, "last_modified", true, Collections.EMPTY_LIST);
+                Collections.EMPTY_LIST, Collections.EMPTY_LIST, PROJECT, 0, 10, "last_modified", true,
+                Collections.EMPTY_LIST);
     }
 
     @Test
@@ -123,32 +119,60 @@ public class OpenStreamingJobControllerTest extends NLocalFileMetadataTestCase {
         val request = new StreamingJobExecuteRequest();
         request.setProject(PROJECT);
         request.setAction("START");
-        request.setJobIds(Arrays.asList(StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_BUILD.name())));
+        request.setJobIds(
+                Collections.singletonList(StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_BUILD.name())));
         val mockRequestBuilder = MockMvcRequestBuilders.put("/api/streaming_jobs/status")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                 .accept(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON);
         mockMvc.perform(mockRequestBuilder).andExpect(MockMvcResultMatchers.status().isOk());
-
         Mockito.verify(streamingJobController).updateStreamingJobStatus(Mockito.any(StreamingJobExecuteRequest.class));
+    }
+
+    /**
+     * test for empty job_ids parameters
+     * @throws Exception
+     */
+    @Test
+    public void testUpdateStreamingJobStatus_EmptyJobIds() throws Exception {
+        val request = new StreamingJobExecuteRequest();
+        request.setProject(PROJECT);
+        request.setAction("START");
+        request.setJobIds(Collections.emptyList());
+        val mockRequestBuilder = MockMvcRequestBuilders.put("/api/streaming_jobs/status")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON);
+        val errMsg = mockMvc.perform(mockRequestBuilder).andExpect(MockMvcResultMatchers.status().is5xxServerError())
+                .andReturn().getResolvedException().getMessage();
+        Assert.assertEquals("'job_ids' is required.", errMsg);
     }
 
     @Test
     public void testGetStreamingJobDataStats() throws Exception {
         val jobId = StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_BUILD.name());
         val mockRequestBuilder = MockMvcRequestBuilders.get("/api/streaming_jobs/stats/" + jobId)
-                .contentType(MediaType.APPLICATION_JSON).param("project", PROJECT).param("time_filter", "1")
-                .accept(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON);
+                .contentType(MediaType.APPLICATION_JSON).accept(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON);
         mockMvc.perform(mockRequestBuilder).andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(streamingJobController).getStreamingJobDataStats(jobId, PROJECT, 1);
+        Mockito.verify(streamingJobController).getStreamingJobDataStats(jobId, 30);
     }
 
     @Test
     public void testGetStreamingJobRecordList() throws Exception {
         val jobId = StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_BUILD.name());
         val mockRequestBuilder = MockMvcRequestBuilders.get("/api/streaming_jobs/records")
-                .contentType(MediaType.APPLICATION_JSON).param("project", PROJECT).param("job_id", jobId)
+                .contentType(MediaType.APPLICATION_JSON).param("job_id", jobId)
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON));
         mockMvc.perform(mockRequestBuilder).andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(streamingJobController).getStreamingJobRecordList(PROJECT, jobId);
+        Mockito.verify(streamingJobController).getStreamingJobRecordList(jobId);
+    }
+
+    @Test
+    public void testGetStreamingJobRecordList_EmptyJobId() throws Exception {
+        val jobId = "";
+        val mockRequestBuilder = MockMvcRequestBuilders.get("/api/streaming_jobs/records")
+                .contentType(MediaType.APPLICATION_JSON).param("job_id", jobId)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON));
+        val errMsg = mockMvc.perform(mockRequestBuilder).andExpect(MockMvcResultMatchers.status().is5xxServerError())
+                .andReturn().getResolvedException().getMessage();
+        Assert.assertEquals("'job_id' is required.", errMsg);
     }
 }

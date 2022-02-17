@@ -24,9 +24,13 @@
 package io.kyligence.kap.rest.controller.open;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_JOB_ID;
 
 import java.util.List;
+import java.util.Locale;
 
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -70,8 +74,8 @@ public class OpenStreamingJobController extends NBasicController {
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer pageOffset,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize,
             @RequestParam(value = "sort_by", required = false, defaultValue = "last_modified") String sortBy,
-            @RequestParam(value = "reverse", required = false, defaultValue = "") boolean reverse,
-            @RequestParam(value = "jobIds", required = false, defaultValue = "") List<String> jobIds) {
+            @RequestParam(value = "reverse", required = false, defaultValue = "true") boolean reverse,
+            @RequestParam(value = "job_ids", required = false, defaultValue = "") List<String> jobIds) {
         StreamingJobFilter jobFilter = new StreamingJobFilter(modelName, modelNames, jobTypes, statuses, project,
                 sortBy, reverse, jobIds);
         val data = streamingJobService.getStreamingJobList(jobFilter, pageOffset, pageSize);
@@ -84,6 +88,9 @@ public class OpenStreamingJobController extends NBasicController {
     public EnvelopeResponse<String> updateStreamingJobStatus(
             @RequestBody StreamingJobExecuteRequest streamingJobExecuteRequest) {
         checkRequiredArg("action", streamingJobExecuteRequest.getAction());
+        if (CollectionUtils.isEmpty(streamingJobExecuteRequest.getJobIds())) {
+            throw new KylinException(EMPTY_JOB_ID, String.format(Locale.ROOT, "'%s' is required.", "job_ids"));
+        }
         streamingJobService.updateStreamingJobStatus(streamingJobExecuteRequest.getProject(),
                 streamingJobExecuteRequest.getJobIds(), streamingJobExecuteRequest.getAction());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
@@ -92,8 +99,8 @@ public class OpenStreamingJobController extends NBasicController {
     @GetMapping(value = "/stats/{jobId:.+}")
     @ResponseBody
     public EnvelopeResponse<StreamingJobDataStatsResponse> getStreamingJobDataStats(
-            @PathVariable(value = "jobId") String jobId, @RequestParam(value = "project") String project,
-            @RequestParam(value = "time_filter", required = false, defaultValue = "-1") Integer timeFilter) {
+            @PathVariable(value = "jobId") String jobId,
+            @RequestParam(value = "time_filter", required = false, defaultValue = "30") Integer timeFilter) {
         val response = streamingJobService.getStreamingJobDataStats(jobId, timeFilter);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
@@ -101,8 +108,10 @@ public class OpenStreamingJobController extends NBasicController {
     @GetMapping(value = "/records")
     @ResponseBody
     public EnvelopeResponse<List<StreamingJobRecord>> getStreamingJobRecordList(
-            @RequestParam(value = "project") String project, @RequestParam(value = "job_id") String jobId) {
-        checkProjectName(project);
+            @RequestParam(value = "job_id") String jobId) {
+        if (StringUtils.isEmpty(jobId)) {
+            throw new KylinException(EMPTY_JOB_ID, String.format(Locale.ROOT, "'%s' is required.", "job_id"));
+        }
         val data = streamingJobService.getStreamingJobRecordList(jobId);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, data, "");
     }
