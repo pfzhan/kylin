@@ -4886,7 +4886,18 @@ public class ModelServiceTest extends CSVSourceTestCase {
         okModel.setFilterCondition("TEST_KYLIN_FACT.SELLER_ID > 0");
         ModelRequest okModelRequest = new ModelRequest(okModel);
         okModelRequest.setProject(project);
+    }
+
+    @Test
+    public void testCheckBeforeModelSaveWithoutPartitionDesc() {
+        String project = "default";
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        NDataModel okModel = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        okModel.setFilterCondition("TEST_KYLIN_FACT.SELLER_ID > 0");
+        ModelRequest okModelRequest = new ModelRequest(okModel);
+        okModelRequest.setProject(project);
         Mockito.when(semanticService.convertToDataModel(okModelRequest)).thenReturn(okModel);
+        okModelRequest.setPartitionDesc(null);
         modelService.checkBeforeModelSave(okModelRequest);
     }
 

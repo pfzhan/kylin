@@ -279,7 +279,8 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
         NDataModel copyModel = modelManager.copyForWrite(modelManager.getDataModelDesc(params.getModelId()));
         copyModel.setPartitionDesc(params.getPartitionDesc());
 
-        if (!KylinConfig.getInstanceFromEnv().isUseBigIntAsTimestampForPartitionColumn()) {
+        if (params.getPartitionDesc() != null
+                && !KylinConfig.getInstanceFromEnv().isUseBigIntAsTimestampForPartitionColumn()) {
             PartitionDesc partitionDesc = params.getPartitionDesc();
             partitionDesc.init(copyModel);
             if (!partitionDesc.checkIntTypeDateFormat()) {

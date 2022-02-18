@@ -3381,7 +3381,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         validateFusionModelDimension(modelRequest);
         NDataModel model = semanticUpdater.convertToDataModel(modelRequest);
 
-        if (!KylinConfig.getInstanceFromEnv().isUseBigIntAsTimestampForPartitionColumn()) {
+        if (modelRequest.getPartitionDesc() != null
+                && !KylinConfig.getInstanceFromEnv().isUseBigIntAsTimestampForPartitionColumn()) {
             PartitionDesc partitionDesc = modelRequest.getPartitionDesc();
             partitionDesc.init(model);
             if (!partitionDesc.checkIntTypeDateFormat()) {
