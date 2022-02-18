@@ -92,6 +92,8 @@ public class AuditLogReplayWorker extends AbstractAuditLogReplayWorker {
             val rootCause = Throwables.getRootCause(e);
             if (rootCause instanceof VersionConflictException && countDown > 0) {
                 handleConflictOnce((VersionConflictException) rootCause, countDown);
+            } else if (rootCause instanceof InterruptedException) {
+                log.info("may be canceled due to reload meta, skip this replay");
             } else {
                 handleReloadAll(e);
             }
@@ -117,7 +119,7 @@ public class AuditLogReplayWorker extends AbstractAuditLogReplayWorker {
             return;
         }
         withTransaction(auditLogStore.getTransactionManager(), () -> {
-            log.debug("start restore, current max_id is {}", maxId);
+            log.debug("start restore from {}, current max_id is {}", currentId, maxId);
             var start = currentId;
             while (start < maxId) {
                 val logs = auditLogStore.fetch(start, Math.min(STEP, maxId - start));

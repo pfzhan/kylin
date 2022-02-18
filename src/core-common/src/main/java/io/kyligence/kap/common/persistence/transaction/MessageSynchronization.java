@@ -65,9 +65,13 @@ public class MessageSynchronization {
         if (messages.isEmpty()) {
             return;
         }
+
         UnitOfWork.doInTransactionWithRetry(UnitOfWorkParams.builder().processor(() -> {
             if (checker != null && checker.check(messages)) {
                 return null;
+            }
+            if (Thread.interrupted()) {
+                throw new InterruptedException("skip this replay");
             }
             replayInTransaction(messages);
             return null;
@@ -121,13 +125,14 @@ public class MessageSynchronization {
         val resourceStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
         try {
             EventBusFactory.getInstance().postSync(new AuditLogReplayWorker.StartReloadEvent());
+            if (needCloseReplay) {
+                resourceStore.getAuditLogStore().pause();
+            }
             for (String lockKey : lockKeys) {
                 TransactionLock.getLock(lockKey, false).lock();
             }
             log.info("Acquired all locks, start to reload");
-            if (needCloseReplay) {
-                resourceStore.getAuditLogStore().pause();
-            }
+
             resourceStore.reload();
             log.info("Reload finished");
         } finally {
@@ -138,6 +143,9 @@ public class MessageSynchronization {
             if (needCloseReplay) {
                 // if not stop, reinit return directly
                 resourceStore.getAuditLogStore().reInit();
+            } else {
+                // for update offset of auditlog
+                resourceStore.getAuditLogStore().catchup();
             }
             EventBusFactory.getInstance().postSync(new AuditLogReplayWorker.EndReloadEvent());
         }

@@ -318,7 +318,7 @@ public class JdbcMetadataStore extends MetadataStore {
 
             restoreProject(data, "_global");
             val projects = listProjects(data);
-            projects.parallelStream().forEach(project -> restoreProject(data, project));
+            projects.forEach(project -> restoreProject(data, project));
 
             loadUUIDQuietly(data);
             long offset = getAuditLogStore().getMaxId();
