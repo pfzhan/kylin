@@ -107,7 +107,7 @@ object SecondStorage extends LogEx {
     val enableSSForThisQuery = enabled && layout.getIndex.isTableIndex && !QueryContext.current().isForceTableIndex
     var result = Option.empty[DataFrame]
     while (enableSSForThisQuery && result.isEmpty && QueryContext.current().isRetrySecondStorage) {
-      val segments = Option.apply(enableSSForThisQuery)
+      val tableData = Option.apply(enableSSForThisQuery)
         .filter(_ == true)
         .flatMap(_ =>
           tableFlowManager(dataflow)
@@ -118,10 +118,11 @@ object SecondStorage extends LogEx {
           val allSegIds = pruningInfo.split(",").map(s => s.split(":")(0)).toSet.asJava
           tableData.containSegments(allSegIds)
         }
-      if (segments.isEmpty) {
+      if (tableData.isEmpty) {
         QueryContext.current().setRetrySecondStorage(false)
+        throw new IllegalStateException("All cluster failed, no table data found.")
       }
-      result = segments.flatMap(tableData => tryCreateDataFrame(Some(tableData), sparkSession))
+      result = tableData.flatMap(tableData => tryCreateDataFrame(Some(tableData), sparkSession))
     }
     if (result.isDefined) {
       QueryContext.current().setLastFailed(false)
