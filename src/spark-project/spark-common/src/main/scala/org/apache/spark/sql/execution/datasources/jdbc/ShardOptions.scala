@@ -28,8 +28,7 @@ import org.apache.spark.sql.execution.datasources.jdbc.ShardOptions.{REPLICA_SPL
 case class ShardOptions(sharding: String) {
   val replicaShards: Array[Array[String]] = sharding
     .split(REPLICA_SPLIT_CHAR)
-    .map(_.split("\\" + SPLIT_CHAR)
-      .sorted)
+    .map(_.split("\\" + SPLIT_CHAR))
 
   //  val shards: Array[String] = sharding.split(ShardOptions.SPLIT_CHAR)
   val shards: Array[String] = replicaShards(0)

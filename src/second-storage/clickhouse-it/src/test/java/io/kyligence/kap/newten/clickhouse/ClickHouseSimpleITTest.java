@@ -45,16 +45,16 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.newten.NExecAndComp;
-
-import static io.kyligence.kap.newten.clickhouse.ClickHouseUtils.columnMapping;
-import static io.kyligence.kap.newten.clickhouse.ClickHouseUtils.configClickhouseWith;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.service.JobService;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.secondstorage.NameUtil;
 import io.kyligence.kap.secondstorage.SecondStorage;
+import io.kyligence.kap.secondstorage.SecondStorageConstants;
 import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
+import io.kyligence.kap.secondstorage.config.ClusterInfo;
+import io.kyligence.kap.secondstorage.config.Node;
 import io.kyligence.kap.secondstorage.ddl.ShowDatabases;
 import io.kyligence.kap.secondstorage.ddl.ShowTables;
 import io.kyligence.kap.secondstorage.enums.LockOperateTypeEnum;
@@ -85,6 +85,7 @@ import org.apache.commons.lang3.time.DateUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.SecondStorageJobParamUtil;
 import org.apache.kylin.job.common.ExecutableUtil;
@@ -110,9 +111,6 @@ import org.apache.spark.sql.execution.datasources.jdbc.ClickHouseDialect$;
 import org.apache.spark.sql.execution.datasources.v2.V2ScanRelationPushDown2$;
 import org.apache.spark.sql.execution.datasources.v2.jdbc.ShardJDBCScan;
 import org.apache.spark.sql.jdbc.JdbcDialects$;
-
-import static org.awaitility.Awaitility.await;
-
 import org.eclipse.jetty.toolchain.test.SimpleRequest;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -134,18 +132,30 @@ import org.testcontainers.containers.JdbcDatabaseContainer;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.net.URI;
+import java.nio.charset.Charset;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
+import static io.kyligence.kap.clickhouse.ClickHouseConstants.CONFIG_CLICKHOUSE_QUERY_CATALOG;
+import static io.kyligence.kap.newten.clickhouse.ClickHouseUtils.columnMapping;
+import static io.kyligence.kap.newten.clickhouse.ClickHouseUtils.configClickhouseWith;
+import static io.kyligence.kap.secondstorage.SecondStorageConstants.CONFIG_SECOND_STORAGE_CLUSTER;
+import static org.awaitility.Awaitility.await;
 
 @Slf4j
 public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implements JobWaiter {
@@ -370,6 +380,77 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
                         return null;
                     },
                     clickhouse1, clickhouse2, clickhouse3, clickhouse4);
+        }
+    }
+
+    @Test
+    public void testIncrementalTwoShardDoubleReplicaRows() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse3 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse4 = ClickHouseUtils.startClickHouse()) {
+            Unsafe.setProperty(ClickHouseLoad.SOURCE_URL, getSourceUrl());
+            Unsafe.setProperty(ClickHouseLoad.ROOT_PATH, getLocalWorkingDirectory());
+
+            final String queryCatalog = "testIncrementalTwoShardDoubleReplicaRows";
+            Unsafe.setProperty(CONFIG_CLICKHOUSE_QUERY_CATALOG, queryCatalog);
+
+            JdbcDatabaseContainer<?>[] clickhouse = new JdbcDatabaseContainer[]{clickhouse1, clickhouse2, clickhouse3, clickhouse4};
+
+            Map<String, List<Node>> clusterNode = new HashMap<>();
+            int pairNum = clickhouse.length / 2;
+            IntStream.range(0, pairNum).forEach(idx -> clusterNode.put("pair" + idx, new ArrayList<>()));
+            ClusterInfo cluster = new ClusterInfo()
+                    .setKeepAliveTimeout("600000")
+                    .setSocketTimeout("600000")
+                    .setCluster(clusterNode);
+            int i = 0;
+            for (JdbcDatabaseContainer<?> jdbcDatabaseContainer : clickhouse) {
+                Node node = new Node();
+                node.setName(String.format(Locale.ROOT, "node%02d", i == 2 ? 5 : i));
+                URI uri = URI.create(jdbcDatabaseContainer.getJdbcUrl().replace("jdbc:", ""));
+                node.setIp(uri.getHost());
+                node.setPort(uri.getPort());
+                node.setUser("default");
+                clusterNode.get("pair" + i % pairNum).add(node);
+                i += 1;
+            }
+            File file = File.createTempFile("clickhouse", ".yaml");
+            ClickHouseConfigLoader.getConfigYaml().dump(JsonUtil.readValue(JsonUtil.writeValueAsString(cluster),
+                    Map.class), new PrintWriter(file, Charset.defaultCharset().name()));
+            Unsafe.setProperty(CONFIG_SECOND_STORAGE_CLUSTER, file.getAbsolutePath());
+            Unsafe.setProperty(SecondStorageConstants.NODE_REPLICA, String.valueOf(2));
+            SecondStorage.init(true);
+
+            secondStorageService.changeProjectSecondStorageState(getProject(), SecondStorageNodeHelper.getAllPairs(), true);
+            Assert.assertEquals(4, SecondStorageUtil.listProjectNodes(getProject()).size());
+            secondStorageService.changeModelSecondStorageState(getProject(), cubeName, true);
+            /// build table index
+            buildIncrementalLoadQuery();
+
+            NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
+            if ("table_index_incremental".equals(getProject())) {
+                Assert.assertEquals(1, SecondStorageUtil.setSecondStorageSizeInfo(modelManager.listAllModels()).size());
+            } else if ("table_index".equals(getProject())) {
+                Assert.assertEquals(3, SecondStorageUtil.setSecondStorageSizeInfo(modelManager.listAllModels()).size());
+            }
+
+            // check http server
+            checkHttpServer();
+
+            //load into clickhouse
+            KylinConfig config = KylinConfig.getInstanceFromEnv();
+            NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
+            NDataflow df = dsMgr.getDataflow(cubeName);
+            triggerClickHouseJob(df, config);
+
+            List<Integer> rowsList = getHAModelRowCount(getProject(), cubeName, df.getIndexPlan().getBaseTableLayoutId(), new JdbcDatabaseContainer[]{clickhouse1, clickhouse3});
+
+            Assert.assertEquals(1, rowsList.stream().distinct().count());
+
+            rowsList = getHAModelRowCount(getProject(), cubeName, df.getIndexPlan().getBaseTableLayoutId(), new JdbcDatabaseContainer[]{clickhouse2, clickhouse4});
+
+            Assert.assertEquals(1, rowsList.stream().distinct().count());
         }
     }
 
@@ -1000,5 +1081,27 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
                         return ExceptionUtils.rethrow(e);
                     }
                 }).collect(Collectors.toList());
+    }
+
+    public List<Integer> getHAModelRowCount(String project, String modelId, long layoutId, JdbcDatabaseContainer<?>[] clickhouse) throws SQLException {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        val database = NameUtil.getDatabase(config, project);
+        val table = NameUtil.getTable(modelId, layoutId);
+
+        return Arrays.stream(clickhouse).map(JdbcDatabaseContainer::getJdbcUrl).map(url -> {
+            try (ClickHouse clickHouse = new ClickHouse(url)) {
+                List<Integer> count = clickHouse.query("select count(*) from `" + database + "`.`" + table + "`", rs -> {
+                    try {
+                        return rs.getInt(1);
+                    } catch (SQLException e) {
+                        return ExceptionUtils.rethrow(e);
+                    }
+                });
+                Assert.assertFalse(count.isEmpty());
+                return count.get(0);
+            } catch (Exception e) {
+                return ExceptionUtils.rethrow(e);
+            }
+        }).collect(Collectors.toList());
     }
 }

@@ -45,6 +45,7 @@ import io.kyligence.kap.secondstorage.SecondStorageLockUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.exception.JobStoppedException;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -269,6 +270,7 @@ public class ClickHouseLoad extends AbstractExecutable {
                     }
                 }
                 String[][] nodeGroups = new String[allGroup.size()][];
+                log.info("project={} replica, nodeGroup {}", project, nodeGroups);
                 ListIterator<NodeGroup> it = allGroup.listIterator();
                 while (it.hasNext()) {
                     nodeGroups[it.nextIndex()] = it.next().getNodeNames().toArray(new String[0]);
@@ -276,7 +278,8 @@ public class ClickHouseLoad extends AbstractExecutable {
                 ShardOptions options = new ShardOptions(ShardOptions.buildReplicaSharding(nodeGroups));
                 boolean isIncremental = mc.isIncremental(getSegmentIds());
                 DataLoader dataLoader = new DataLoader(getId(), mc.getDatabase(), mc.getPrefixTableName(), createTableEngine(), isIncremental);
-                val replicaNum = options.replicaShards().length;
+                val replicaShards = options.replicaShards();
+                val replicaNum = replicaShards.length;
                 List<List<LoadInfo>> tempLoadInfos = new ArrayList<>();
                 val tableFlowManager = SecondStorage.tableFlowManager(mc.config, mc.project);
                 val partitions = tableFlowManager.listAll().stream()
@@ -288,12 +291,13 @@ public class ClickHouseLoad extends AbstractExecutable {
                     size = size + files.stream().map(SegmentFileStatus::getLen).reduce(Long::sum).orElse(0L);
                     nodeSizeMap.put(node, size);
                 }));
-                for (val shards : options.replicaShards()) {
-                    val sortedShards = Arrays.stream(shards)
-                            .sorted(Comparator.comparingLong(node -> nodeSizeMap.getOrDefault(node, 0L)))
-                            .collect(Collectors.toList());
+
+                int[] indexInGroup = getIndexInGroup(replicaShards[0], nodeSizeMap);
+                log.info("project={} indexInGroup={}", project, indexInGroup);
+
+                for (val shards : replicaShards) {
                     List<LoadInfo> infoList = distributeLoad(mc.df, mc.indexPlan(), mc.tablePlan(),
-                            sortedShards.toArray(new String[]{}));
+                            orderGroupByIndex(shards, indexInGroup));
                     infoList = preprocessLoadInfo(infoList);
                     tempLoadInfos.add(infoList);
                 }
@@ -371,4 +375,28 @@ public class ClickHouseLoad extends AbstractExecutable {
         saveState(true);
     }
 
+    /**
+     * index of group order by size
+     * @param group group
+     * @param nodeSizeMap node size
+     * @return index of group order by size
+     */
+    private int[] getIndexInGroup(String[] group, Map<String, Long> nodeSizeMap){
+        return IntStream.range(0, group.length)
+                .mapToObj(i -> new Pair<>(group[i], i))
+                .sorted(Comparator.comparing(c -> nodeSizeMap.getOrDefault(c.getFirst(), 0L)))
+                .map(Pair::getSecond).mapToInt(i -> i).toArray();
+    }
+
+    /**
+     * order group by index
+     * @param group group
+     * @param index index
+     * @return ordered group by index
+     */
+    private String[] orderGroupByIndex(String[] group, int[] index){
+        return IntStream.range(0, group.length)
+                .mapToObj(i -> group[index[i]])
+                .collect(Collectors.toList()).toArray(new String[]{});
+    }
 }
