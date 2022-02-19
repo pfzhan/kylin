@@ -664,6 +664,20 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
             lockOperateRequest5.setOperateType(LockOperateTypeEnum.UNLOCK.name());
             envelopeResponse = secondStorageEndpoint.lockOperate(lockOperateRequest5);
             ClickHouseSimpleITTestUtils.checkLockOperateResult(envelopeResponse, Arrays.asList(), getProject());
+
+            val lockOperateRequest6 = new ProjectLockOperateRequest();
+            lockOperateRequest6.setProject(getProject());
+            lockOperateRequest6.setLockTypes(Arrays.asList(LockTypeEnum.LOAD.name(), LockTypeEnum.QUERY.name()));
+            lockOperateRequest6.setOperateType(LockOperateTypeEnum.LOCK.name());
+            envelopeResponse = secondStorageEndpoint.lockOperate(lockOperateRequest6);
+            ClickHouseSimpleITTestUtils.checkLockOperateResult(envelopeResponse, Arrays.asList(LockTypeEnum.LOAD.name(), LockTypeEnum.QUERY.name()), getProject());
+
+            val lockOperateRequest7 = new ProjectLockOperateRequest();
+            lockOperateRequest7.setProject(getProject());
+            lockOperateRequest7.setLockTypes(Arrays.asList(LockTypeEnum.LOAD.name()));
+            lockOperateRequest7.setOperateType(LockOperateTypeEnum.UNLOCK.name());
+            envelopeResponse = secondStorageEndpoint.lockOperate(lockOperateRequest7);
+            ClickHouseSimpleITTestUtils.checkLockOperateResult(envelopeResponse, Arrays.asList(LockTypeEnum.QUERY.name()), getProject());
         }
     }
 
