@@ -120,7 +120,7 @@ object SecondStorage extends LogEx {
         }
       if (tableData.isEmpty) {
         QueryContext.current().setRetrySecondStorage(false)
-        throw new IllegalStateException("All cluster failed, no table data found.")
+        logInfo("No table data found.")
       }
       result = tableData.flatMap(tableData => tryCreateDataFrame(Some(tableData), sparkSession))
     }
