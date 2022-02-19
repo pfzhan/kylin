@@ -106,6 +106,7 @@ object SecondStorage extends LogEx {
     // Only support table index
     val enableSSForThisQuery = enabled && layout.getIndex.isTableIndex && !QueryContext.current().isForceTableIndex
     var result = Option.empty[DataFrame]
+    val allSegIds = pruningInfo.split(",").map(s => s.split(":")(0)).toSet.asJava
     while (enableSSForThisQuery && result.isEmpty && QueryContext.current().isRetrySecondStorage) {
       val tableData = Option.apply(enableSSForThisQuery)
         .filter(_ == true)
@@ -115,14 +116,15 @@ object SecondStorage extends LogEx {
             .flatMap(f => f.getEntity(layout))
             .toOption)
         .filter { tableData =>
-          val allSegIds = pruningInfo.split(",").map(s => s.split(":")(0)).toSet.asJava
           tableData.containSegments(allSegIds)
         }
       if (tableData.isEmpty) {
         QueryContext.current().setRetrySecondStorage(false)
         logInfo("No table data found.")
       }
-      result = tableData.flatMap(tableData => tryCreateDataFrame(Some(tableData), sparkSession))
+      result = tableData.flatMap(tableData =>
+        tryCreateDataFrame(Some(tableData), sparkSession, dataflow.getProject, allSegIds)
+      )
     }
     if (result.isDefined) {
       QueryContext.current().setLastFailed(false)
@@ -132,10 +134,11 @@ object SecondStorage extends LogEx {
     result
   }
 
-  private def tryCreateDataFrame(tableData: Option[TableData], sparkSession: SparkSession) = {
+  private def tryCreateDataFrame(tableData: Option[TableData], sparkSession: SparkSession,
+                                 project: String, allSegIds: java.util.Set[String]) = {
     try {
       for {
-        shardJDBCURLs <- tableData.map(_.getShardJDBCURLs)
+        shardJDBCURLs <- tableData.map(_.getShardJDBCURLs(project, allSegIds))
         database <- tableData.map(_.getDatabase)
         table <- tableData.map(_.getTable)
         catalog <- queryCatalog()

@@ -38,12 +38,14 @@ import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.guava20.shaded.common.collect.Maps;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.newten.NExecAndComp;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.service.JobService;
@@ -100,6 +102,7 @@ import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -367,18 +370,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
              JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse();
              JdbcDatabaseContainer<?> clickhouse3 = ClickHouseUtils.startClickHouse();
              JdbcDatabaseContainer<?> clickhouse4 = ClickHouseUtils.startClickHouse()) {
-             build_load_query("testIncrementalTwoShardDoubleReplica", true, false, 2, () -> {
-                        clickhouse1.stop();
-                        String sql1 = "select sum(PRICE) from TEST_KYLIN_FACT where CAL_DT >= '2012-01-01' and CAL_DT < '2012-01-02' group by PRICE";
-
-                        val result = SparderEnv.getSparkSession().sql(sql1);
-                        val a = result.collect();
-                        result.createOrReplaceTempView("TEST_KYLIN_FACT");
-
-                        // 命中
-                        NExecAndComp.queryWithKapWithMeta(getProject(), "left", Pair.newPair("query_table_index0", sql1), null);
-                        return null;
-                    },
+             build_load_query("testIncrementalTwoShardDoubleReplica", true, false, 2, null,
                     clickhouse1, clickhouse2, clickhouse3, clickhouse4);
         }
     }
@@ -451,6 +443,76 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
             rowsList = getHAModelRowCount(getProject(), cubeName, df.getIndexPlan().getBaseTableLayoutId(), new JdbcDatabaseContainer[]{clickhouse2, clickhouse4});
 
             Assert.assertEquals(1, rowsList.stream().distinct().count());
+        }
+    }
+
+    @Test
+    public void testTwoShardDoubleReplicaRows2() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse()
+        ) {
+            Unsafe.setProperty(ClickHouseLoad.SOURCE_URL, getSourceUrl());
+            Unsafe.setProperty(ClickHouseLoad.ROOT_PATH, getLocalWorkingDirectory());
+
+            final String catalog = "testTwoShardDoubleReplicaRows2";
+            Unsafe.setProperty(CONFIG_CLICKHOUSE_QUERY_CATALOG, catalog);
+
+            ClickHouseUtils.internalConfigClickHouse(new JdbcDatabaseContainer[]{clickhouse1, clickhouse2}, 2);
+
+            secondStorageService.changeProjectSecondStorageState(getProject(), SecondStorageNodeHelper.getAllPairs(), true);
+            Assert.assertEquals(2, SecondStorageUtil.listProjectNodes(getProject()).size());
+            secondStorageService.changeModelSecondStorageState(getProject(), cubeName, true);
+            /// build table index
+            buildFullLoadQuery();
+
+            NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
+            if ("table_index_incremental".equals(getProject())) {
+                Assert.assertEquals(1, SecondStorageUtil.setSecondStorageSizeInfo(modelManager.listAllModels()).size());
+            } else if ("table_index".equals(getProject())) {
+                Assert.assertEquals(3, SecondStorageUtil.setSecondStorageSizeInfo(modelManager.listAllModels()).size());
+            }
+
+            // check http server
+            checkHttpServer();
+
+            //load into clickhouse
+            KylinConfig config = KylinConfig.getInstanceFromEnv();
+            NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
+            NDataflow df = dsMgr.getDataflow(cubeName);
+            triggerClickHouseJob(df, config);
+
+            Map<String, List<Node>> cluster = ClickHouseConfigLoader.getInstance().getCluster().getCluster();
+
+            for (String pair : cluster.keySet()) {
+                Map<String, Map<String, Boolean>> nodeStatusMap = new HashMap<>();
+                Map<String, Boolean> nodeStatus = Maps.newHashMap();
+                cluster.get(pair).forEach(n -> nodeStatus.put(n.getName(), true));
+                nodeStatusMap.put(pair, nodeStatus);
+                secondStorageEndpoint.updateNodeStatus(nodeStatusMap);
+            }
+
+            // check
+            overwriteSystemProp("kylin.query.use-tableindex-answer-non-raw-query", "true");
+
+            ss.sessionState().conf().setConfString(
+                    "spark.sql.catalog." + catalog,
+                    "org.apache.spark.sql.execution.datasources.jdbc.v2.SecondStorageCatalog");
+            ss.sessionState().conf().setConfString(
+                    "spark.sql.catalog." + catalog + ".url",
+                    clickhouse1.getJdbcUrl());
+            ss.sessionState().conf().setConfString(
+                    "spark.sql.catalog." + catalog + ".driver",
+                    clickhouse2.getDriverClassName());
+
+            String sql1 = "select order_id from TEST_KYLIN_FACT ";
+            NExecAndComp.queryWithKapWithMeta(getProject(), "left", Pair.newPair("query_table_index0", sql1), null);
+            Assert.assertTrue(OLAPContext.getNativeRealizations().stream().allMatch(NativeQueryRealization::isSecondStorage));
+
+            clickhouse1.stop();
+            clickhouse2.stop();
+
+            NExecAndComp.queryWithKapWithMeta(getProject(), "left", Pair.newPair("query_table_index0", sql1), null);
+            Assert.assertTrue(OLAPContext.getNativeRealizations().stream().noneMatch(NativeQueryRealization::isSecondStorage));
         }
     }
 
@@ -994,7 +1056,6 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
             ss.sessionState().conf().setConfString(
                     "spark.sql.catalog." + catalog + ".driver",
                     clickhouse[0].getDriverClassName());
-
             // check ClickHouse
             if (beforeQuery != null) beforeQuery.call();
             checkQueryResult(incremental, clickhouse, replica);

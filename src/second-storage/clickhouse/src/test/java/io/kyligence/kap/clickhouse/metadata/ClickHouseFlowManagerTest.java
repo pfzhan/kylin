@@ -148,7 +148,7 @@ public class ClickHouseFlowManagerTest {
         TableData data = flow1.getTableDataList().get(0);
         Assert.assertEquals(0, data.getPartitions().size());
         Assert.assertNull(data.getSchemaURL());
-        Assert.assertNull(data.getShardJDBCURLs());
+        Assert.assertNull(data.getShardJDBCURLs(DEFAULT_PROJECT, null));
 
         TableFlow flow2 = flow1.update(copied ->
                 copied.upsertTableData(

@@ -206,12 +206,12 @@ public class TableData implements Serializable, WithLayout {
         return aSet.containsAll(bSet) || bSet.containsAll(aSet);
     }
 
-    public String getShardJDBCURLs() {
+    public String getShardJDBCURLs(String project, Set<String> allSegIds) {
         if (partitions.isEmpty()) {
             return null;
         }
-        TablePartition nextPartition = SecondStorageQueryRouteUtil.getNextPartition(partitions);
-        List<String> nodes = SecondStorageNodeHelper.resolveToJDBC(nextPartition.getShardNodes());
+        List<String> aliveShardReplica = SecondStorageQueryRouteUtil.getAliveShardReplica(partitions, project, allSegIds);
+        List<String> nodes = SecondStorageNodeHelper.resolveToJDBC(aliveShardReplica);
         return ShardOptions$.MODULE$.buildSharding(JavaConverters.asScalaBuffer(nodes));
     }
 
@@ -219,7 +219,7 @@ public class TableData implements Serializable, WithLayout {
         if (partitions.isEmpty()) {
             return null;
         }
-        List<String> nodes = SecondStorageNodeHelper.resolveToJDBC(SecondStorageQueryRouteUtil.getCurrentPartition(partitions).getShardNodes());
+        List<String> nodes = SecondStorageNodeHelper.resolveToJDBC(SecondStorageQueryRouteUtil.getCurrentAliveShardReplica());
         return nodes.get(0);
     }
 
