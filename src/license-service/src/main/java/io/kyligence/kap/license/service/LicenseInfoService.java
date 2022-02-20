@@ -50,6 +50,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -133,6 +134,7 @@ public class LicenseInfoService extends BasicService {
     private static final String CAPACITY = "capacity";
 
     private static final Logger logger = LoggerFactory.getLogger(LicenseInfoService.class);
+    public static final ReentrantReadWriteLock licenseReadWriteLock = new ReentrantReadWriteLock();
 
     public static File getDefaultLicenseFile() {
         File kylinHome = KapConfig.getKylinHomeAtBestEffort();
@@ -175,6 +177,7 @@ public class LicenseInfoService extends BasicService {
 
     void init(Consumer<Integer> onError) {
         try {
+            licenseReadWriteLock.readLock().lock();
             gatherLicenseInfo(getDefaultLicenseFile(), getDefaultCommitFile(), getDefaultVersionFile(), null);
             val info = extractLicenseInfo();
             verifyLicense(info);
@@ -182,6 +185,8 @@ public class LicenseInfoService extends BasicService {
         } catch (Exception e) {
             log.error("license is invalid", e);
             onError.accept(1);
+        } finally {
+            licenseReadWriteLock.readLock().unlock();
         }
     }
 

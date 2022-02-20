@@ -68,6 +68,7 @@ public class LicenseFilter implements Filter {
                         .anyMatch(api -> servletRequest.getRequestURI().startsWith(api));
                 if (!noNeedLicenseCheck) {
                     try {
+                        LicenseInfoService.licenseReadWriteLock.readLock().lock();
                         val info = licenseInfoService.extractLicenseInfo();
                         licenseInfoService.verifyLicense(info);
                     } catch (Exception e) {
@@ -78,6 +79,8 @@ public class LicenseFilter implements Filter {
                         }
                         servletRequest.getRequestDispatcher("/api/error").forward(servletRequest, response);
                         return;
+                    } finally {
+                        LicenseInfoService.licenseReadWriteLock.readLock().unlock();
                     }
                 }
             }

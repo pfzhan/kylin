@@ -34,6 +34,8 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.model.LicenseInfo;
+import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.junit.After;
 import org.junit.Assert;
@@ -77,6 +79,9 @@ public class LicenseControllerTest extends NLocalFileMetadataTestCase {
     @InjectMocks
     private LicenseController licenseController= Mockito.spy(new LicenseController());
 
+    @InjectMocks
+    private LicenseControllerV2 licenseControllerV2= Mockito.spy(new LicenseControllerV2());
+
     @Rule
     public TransactionExceptedException thrown = TransactionExceptedException.none();
 
@@ -85,6 +90,7 @@ public class LicenseControllerTest extends NLocalFileMetadataTestCase {
         createTestMetadata();
         MockitoAnnotations.initMocks(this);
         ReflectionTestUtils.setField(licenseController, "licenseInfoService", licenseInfoService);
+        ReflectionTestUtils.setField(licenseControllerV2, "licenseInfoService", licenseInfoService);
         mockMvc = MockMvcBuilders.standaloneSetup(licenseController).defaultRequest(MockMvcRequestBuilders.get("/"))
                 .build();
         SecurityContextHolder.getContext()
@@ -210,6 +216,24 @@ public class LicenseControllerTest extends NLocalFileMetadataTestCase {
         } finally {
             licenseController.setAclEvaluate(sourceValue);
         }
+    }
+
+    @Test
+    public void testListLicense() {
+        LicenseInfo licenseInfo = new LicenseInfo();
+        Mockito.doReturn(licenseInfo).when(licenseInfoService).extractLicenseInfo();
+        Mockito.doReturn(null).when(licenseInfoService).verifyLicense(licenseInfo);
+        EnvelopeResponse<LicenseInfo> licenseInfoEnvelopeResponse = licenseController.listLicense();
+        Assert.assertNotNull(licenseInfoEnvelopeResponse.getData());
+    }
+
+    @Test
+    public void testListLicenseV2() {
+        LicenseInfo licenseInfo = new LicenseInfo();
+        Mockito.doReturn(licenseInfo).when(licenseInfoService).extractLicenseInfo();
+        Mockito.doReturn(null).when(licenseInfoService).verifyLicense(licenseInfo);
+        EnvelopeResponse<LicenseInfo> licenseInfoEnvelopeResponse = licenseControllerV2.listLicense();
+        Assert.assertNotNull(licenseInfoEnvelopeResponse.getData());
     }
 
 
