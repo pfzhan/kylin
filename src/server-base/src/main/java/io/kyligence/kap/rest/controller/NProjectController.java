@@ -26,19 +26,9 @@ package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
-import static io.kyligence.kap.metadata.favorite.FavoriteRule.EFFECTIVE_DAYS_MAX;
-import static io.kyligence.kap.metadata.favorite.FavoriteRule.EFFECTIVE_DAYS_MIN;
-import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_COUNT_RULE_VALUE;
-import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_DURATION_RULE_VALUE;
-import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_EFFECTIVE_DAYS;
-import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_FREQUENCY_RULE_VALUE;
-import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_MIN_HIT_COUNT;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PARAMETER;
-import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_REC_RULE_VALUE;
-import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_UPDATE_FREQUENCY;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PROJECT_NAME;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_RANGE;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NAME_ILLEGAL;
 import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
@@ -60,7 +50,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.rest.request.FavoriteRuleUpdateRequest;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.UserProjectPermissionResponse;
@@ -86,9 +75,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import io.kyligence.kap.common.constant.NonCustomProjectLevelConfig;
 import io.kyligence.kap.common.util.FileUtils;
-import io.kyligence.kap.metadata.favorite.AbstractAsyncTask;
-import io.kyligence.kap.metadata.favorite.AsyncAccelerationTask;
-import io.kyligence.kap.metadata.favorite.AsyncTaskManager;
 import io.kyligence.kap.rest.request.ComputedColumnConfigRequest;
 import io.kyligence.kap.rest.request.DataSourceTypeRequest;
 import io.kyligence.kap.rest.request.DefaultDatabaseRequest;
@@ -114,12 +100,10 @@ import io.kyligence.kap.rest.request.StorageQuotaRequest;
 import io.kyligence.kap.rest.request.YarnQueueRequest;
 import io.kyligence.kap.rest.response.FavoriteQueryThresholdResponse;
 import io.kyligence.kap.rest.response.ProjectConfigResponse;
-import io.kyligence.kap.rest.response.ProjectStatisticsResponse;
 import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
 import io.kyligence.kap.rest.service.EpochService;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.ProjectService;
-import io.kyligence.kap.rest.service.QueryHistoryService;
 import io.swagger.annotations.ApiOperation;
 
 @Controller
@@ -143,10 +127,6 @@ public class NProjectController extends NBasicController {
     private ModelService modelService;
 
     @Autowired
-    @Qualifier("queryHistoryService")
-    private QueryHistoryService qhService;
-
-    @Autowired
     @Qualifier("epochService")
     private EpochService epochService;
 
@@ -159,7 +139,8 @@ public class NProjectController extends NBasicController {
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer size,
             @RequestParam(value = "exact", required = false, defaultValue = "false") boolean exactMatch,
-            @RequestParam(value = "permission", required = false, defaultValue = "READ") String permission) throws IOException {
+            @RequestParam(value = "permission", required = false, defaultValue = "READ") String permission)
+            throws IOException {
         if (Objects.isNull(AclPermissionFactory.getPermission(permission))) {
             throw new KylinException(PERMISSION_DENIED, "Operation failed, unknown permission:" + permission);
         }
@@ -284,123 +265,7 @@ public class NProjectController extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, true, "");
     }
 
-    @ApiOperation(value = "updateFavoriteRules", tags = {
-            "SM" }, notes = "Update Param: freq_enable, freq_value, count_enable, count_value, duration_enable, min_duration, max_duration, submitter_enable, user_groups")
-    @PutMapping(value = "/{project:.+}/favorite_rules")
-    @ResponseBody
-    public EnvelopeResponse<String> updateFavoriteRules(@RequestBody FavoriteRuleUpdateRequest request) {
-        checkProjectName(request.getProject());
-        checkProjectUnmodifiable(request.getProject());
-        checkUpdateFavoriteRuleArgs(request);
-        projectService.updateRegularRule(request.getProject(), request);
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
-    }
 
-    protected static void checkUpdateFavoriteRuleArgs(FavoriteRuleUpdateRequest request) {
-        // either disabled or arguments not empty
-        if (request.isFreqEnable() && StringUtils.isEmpty(request.getFreqValue())) {
-            throw new KylinException(EMPTY_FREQUENCY_RULE_VALUE,
-                    MsgPicker.getMsg().getFREQUENCY_THRESHOLD_CAN_NOT_EMPTY());
-        }
-
-        if (request.isDurationEnable()
-                && (StringUtils.isEmpty(request.getMinDuration()) || StringUtils.isEmpty(request.getMaxDuration()))) {
-            throw new KylinException(EMPTY_DURATION_RULE_VALUE, MsgPicker.getMsg().getDELAY_THRESHOLD_CAN_NOT_EMPTY());
-        }
-
-        if (request.isCountEnable() && StringUtils.isEmpty(request.getCountValue())) {
-            throw new KylinException(EMPTY_COUNT_RULE_VALUE, MsgPicker.getMsg().getFREQUENCY_THRESHOLD_CAN_NOT_EMPTY());
-        }
-
-        if (request.isRecommendationEnable() && StringUtils.isEmpty(request.getRecommendationsValue().trim())) {
-            throw new KylinException(EMPTY_REC_RULE_VALUE, MsgPicker.getMsg().getRECOMMENDATION_LIMIT_NOT_EMPTY());
-        }
-
-        if(StringUtils.isEmpty(request.getMinHitCount())){
-            throw new KylinException(EMPTY_MIN_HIT_COUNT, MsgPicker.getMsg().getMIN_HIT_COUNT_NOT_EMPTY());
-        }
-
-        if(StringUtils.isEmpty(request.getEffectiveDays())){
-            throw new KylinException(EMPTY_EFFECTIVE_DAYS, MsgPicker.getMsg().getEFFECTIVE_DAYS_NOT_EMPTY());
-        }
-
-        if(StringUtils.isEmpty(request.getUpdateFrequency())){
-            throw new KylinException(EMPTY_UPDATE_FREQUENCY, MsgPicker.getMsg().getUPDATE_FREQUENCY_NOT_EMPTY());
-        }
-        checkRange(request.getRecommendationsValue(), 0, Integer.MAX_VALUE);
-        checkRange(request.getMinHitCount(), 1, Integer.MAX_VALUE);
-        checkRange(request.getEffectiveDays(), EFFECTIVE_DAYS_MIN, EFFECTIVE_DAYS_MAX);
-        checkRange(request.getUpdateFrequency(), 1, Integer.MAX_VALUE);
-    }
-
-    private static void checkRange(String value, int start, int end) {
-        boolean inRightRange;
-        try {
-            int i = Integer.parseInt(value);
-            inRightRange = (i >= start && i <= end);
-        } catch (Exception e) {
-            inRightRange = false;
-        }
-
-        if (!inRightRange) {
-            throw new KylinException(INVALID_RANGE,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_RANGE(), value, start, end));
-        }
-    }
-
-    @ApiOperation(value = "getFavoriteRules", tags = {
-            "SM" }, notes = "Update Param: freq_enable, freq_value, count_enable, count_value, duration_enable, min_duration, max_duration, submitter_enable, user_groups")
-    @GetMapping(value = "/{project:.+}/favorite_rules")
-    @ResponseBody
-    public EnvelopeResponse<Map<String, Object>> getFavoriteRules(@PathVariable(value = "project") String project) {
-        checkProjectName(project);
-        aclEvaluate.checkProjectWritePermission(project);
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, projectService.getFavoriteRules(project), "");
-    }
-
-    @ApiOperation(value = "statistics", tags = { "SM" })
-    @GetMapping(value = "/statistics")
-    @ResponseBody
-    public EnvelopeResponse<ProjectStatisticsResponse> getDashboardStatistics(@RequestParam("project") String project) {
-        checkProjectName(project);
-        ProjectStatisticsResponse projectStatistics = projectService.getProjectStatistics(project);
-        projectStatistics.setLastWeekQueryCount(qhService.getLastWeekQueryCount(project));
-        projectStatistics.setUnhandledQueryCount(qhService.getQueryCountToAccelerate(project));
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, projectStatistics, "");
-    }
-
-    @ApiOperation(value = "getAcceleration", tags = { "AI" })
-    @GetMapping(value = "/acceleration")
-    @ResponseBody
-    public EnvelopeResponse<Boolean> isAccelerating(@RequestParam("project") String project) {
-        checkProjectName(project);
-        checkProjectNotSemiAuto(project);
-        AbstractAsyncTask asyncTask = AsyncTaskManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                .get(AsyncTaskManager.ASYNC_ACCELERATION_TASK);
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
-                ((AsyncAccelerationTask) asyncTask).isAlreadyRunning(), "");
-    }
-
-    @ApiOperation(value = "updateAcceleration", tags = { "AI" })
-    @PutMapping(value = "/acceleration")
-    @ResponseBody
-    public EnvelopeResponse<Object> accelerate(@RequestParam("project") String project) {
-        checkProjectName(project);
-        checkProjectNotSemiAuto(project);
-        Set<Integer> deltaRecs = projectService.accelerateManually(project);
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, deltaRecs.size(), "");
-    }
-
-    @ApiOperation(value = "statistics", tags = { "AI" })
-    @PostMapping(value = "/acceleration_tag")
-    @ResponseBody
-    public EnvelopeResponse<Object> cleanAsyncAccelerateTag(@RequestParam("project") String project,
-            @RequestParam("user") String user) {
-        checkProjectName(project);
-        checkRequiredArg("user", user);
-        AsyncTaskManager.cleanAccelerationTagByUser(project, user);
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, null, "");
-    }
 
     @ApiOperation(value = "updateShardNumConfig", tags = { "SM" }, notes = "Add URL: {project}; ")
     @PutMapping(value = "/{project:.+}/shard_num_config")

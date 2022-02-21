@@ -43,7 +43,6 @@ import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.request.FavoriteRequest;
-import org.apache.kylin.rest.request.OpenSqlAccelerateRequest;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -66,15 +65,12 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.MultiPartitionDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.controller.NModelController;
 import io.kyligence.kap.rest.request.BuildIndexRequest;
 import io.kyligence.kap.rest.request.BuildSegmentsRequest;
@@ -92,21 +88,12 @@ import io.kyligence.kap.rest.response.IndexResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.OpenGetIndexResponse;
-import io.kyligence.kap.rest.response.OpenValidationResponse;
 import io.kyligence.kap.rest.response.SegmentPartitionResponse;
-import io.kyligence.kap.rest.response.SuggestionResponse;
 import io.kyligence.kap.rest.service.FusionIndexService;
-import io.kyligence.kap.rest.service.ModelSmartService;
 import io.kyligence.kap.rest.service.FusionModelService;
-import io.kyligence.kap.rest.service.IndexPlanService;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.RawRecService;
-import io.kyligence.kap.smart.AbstractContext;
-import io.kyligence.kap.smart.ModelCreateContextOfSemiV2;
-import io.kyligence.kap.smart.ModelReuseContextOfSemiV2;
-import io.kyligence.kap.smart.ModelSelectContextOfSemiV2;
 import lombok.val;
-import lombok.var;
 
 public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
 
@@ -116,16 +103,10 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
     private NModelController nModelController;
 
     @Mock
-    private IndexPlanService indexPlanService;
-
-    @Mock
     private FusionIndexService fusionIndexService;
 
     @Mock
     private ModelService modelService;
-
-    @Mock
-    private ModelSmartService modelSmartService;
 
     @Mock
     private FusionModelService fusionModelService;
@@ -522,21 +503,6 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testCouldAnsweredByExistedModel() throws Exception {
-        List<String> sqls = Lists.newArrayList("select price, count(*) from test_kylin_fact limit 1");
-        FavoriteRequest favoriteRequest = new FavoriteRequest("default", sqls);
-        AbstractContext proposeContext = new ModelSelectContextOfSemiV2(getTestConfig(), favoriteRequest.getProject(),
-                sqls.toArray(new String[0]));
-        Mockito.doReturn(proposeContext).when(modelSmartService).probeRecommendation(favoriteRequest.getProject(),
-                favoriteRequest.getSqls());
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/validation").contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(favoriteRequest))
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(openModelController).couldAnsweredByExistedModel(Mockito.any());
-    }
-
-    @Test
     public void testCouldAnsweredByExistedModelWithNullSqls() throws Exception {
         List<String> sqls = new ArrayList<>();
         try {
@@ -582,18 +548,6 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testAnsweredByExistedModel() throws Exception {
-        List<String> sqls = Lists.newArrayList("select price, count(*) from test_kylin_fact limit 1");
-        FavoriteRequest favoriteRequest = new FavoriteRequest("default", sqls);
-        Mockito.doReturn(new OpenValidationResponse()).when(openModelController).batchSqlValidate("default", sqls);
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/model_validation")
-                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(favoriteRequest))
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(openModelController).answeredByExistedModel(Mockito.any());
-    }
-
-    @Test
     public void testBuildIndicesManually() throws Exception {
         BuildIndexRequest request = new BuildIndexRequest();
         request.setProject("default");
@@ -606,63 +560,6 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(openModelController).buildIndicesManually(eq(modelName), Mockito.any(BuildIndexRequest.class));
-    }
-
-    @Test
-    public void testSuggestModels() throws Exception {
-        changeProjectToSemiAutoMode("default");
-        List<String> sqls = Lists.newArrayList("select price, count(*) from test_kylin_fact limit 1");
-        OpenSqlAccelerateRequest favoriteRequest = new OpenSqlAccelerateRequest("default", sqls, null);
-
-        // reuse existed model
-        AbstractContext context = new ModelCreateContextOfSemiV2(getTestConfig(), favoriteRequest.getProject(),
-                sqls.toArray(new String[0]));
-        val result = new SuggestionResponse(Lists.newArrayList(), Lists.newArrayList());
-        Mockito.doReturn(context).when(modelSmartService).suggestModel(favoriteRequest.getProject(), sqls, false, false);
-        Mockito.doReturn(result).when(modelSmartService).buildModelSuggestionResponse(context);
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/model_suggestion")
-                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(favoriteRequest))
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(openModelController).suggestModels(Mockito.any());
-    }
-
-    @Test
-    public void testOptimizeModels() throws Exception {
-        changeProjectToSemiAutoMode("default");
-        List<String> sqls = Lists.newArrayList("select price, count(*) from test_kylin_fact limit 1");
-        OpenSqlAccelerateRequest favoriteRequest = new OpenSqlAccelerateRequest("default", sqls, null);
-
-        // reuse existed model
-        AbstractContext context = new ModelReuseContextOfSemiV2(getTestConfig(), favoriteRequest.getProject(),
-                sqls.toArray(new String[0]));
-        val result = new SuggestionResponse(Lists.newArrayList(), Lists.newArrayList());
-        Mockito.doReturn(context).when(modelSmartService).suggestModel(favoriteRequest.getProject(), sqls, true, false);
-        Mockito.doReturn(result).when(modelSmartService).buildModelSuggestionResponse(context);
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/model_optimization")
-                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(favoriteRequest))
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(openModelController).optimizeModels(Mockito.any());
-    }
-
-    @Test
-    public void testAccSqls() throws Exception {
-        changeProjectToSemiAutoMode("default");
-        List<String> sqls = Lists.newArrayList("select price, count(*) from test_kylin_fact limit 1");
-        OpenSqlAccelerateRequest favoriteRequest = new OpenSqlAccelerateRequest("default", sqls, null);
-
-        // reuse existed model
-        AbstractContext context = new ModelReuseContextOfSemiV2(getTestConfig(), favoriteRequest.getProject(),
-                sqls.toArray(new String[0]));
-        val result = new SuggestionResponse(Lists.newArrayList(), Lists.newArrayList());
-        Mockito.doReturn(context).when(modelSmartService).suggestModel(favoriteRequest.getProject(), sqls, true, false);
-        Mockito.doReturn(result).when(modelSmartService).buildModelSuggestionResponse(context);
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/accelerate_sqls")
-                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(favoriteRequest))
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(openModelController).accelerateSqls(Mockito.any());
     }
 
     @Test
@@ -789,17 +686,6 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testCheckSqlListNotEmpty() {
-        List<String> sqls = null;
-        try {
-            OpenModelController.checkNotEmpty(sqls);
-        } catch (KylinException e) {
-            Assert.assertEquals("999", e.getCode());
-            Assert.assertEquals(MsgPicker.getMsg().getNULL_EMPTY_SQL(), e.getMessage());
-        }
-    }
-
-    @Test
     public void testCheckMLPNotEmpty() {
         String fieldName = "sub_partition_values";
         List<String[]> subPartitionValues = new ArrayList<>();
@@ -895,16 +781,4 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         Mockito.verify(openModelController).updateModelName(model, modelUpdateRequest);
     }
 
-    private void changeProjectToSemiAutoMode(String project) {
-        NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
-        projectManager.updateProject(project, copyForWrite -> {
-            copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-            var properties = copyForWrite.getOverrideKylinProps();
-            if (properties == null) {
-                properties = Maps.newLinkedHashMap();
-            }
-            properties.put("kylin.metadata.semi-automatic-mode", "true");
-            copyForWrite.setOverrideKylinProps(properties);
-        });
-    }
 }

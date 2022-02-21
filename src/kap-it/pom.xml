@@ -69,6 +69,11 @@
             <artifactId>commons-lang</artifactId>
             <scope>compile</scope>
         </dependency>
+        <!--yinglong-->
+        <dependency>
+            <groupId>io.kyligence.yinglong</groupId>
+            <artifactId>yinglong-smart-server</artifactId>
+        </dependency>
         <!--KAP-->
         <dependency>
             <groupId>io.kyligence.ke</groupId>

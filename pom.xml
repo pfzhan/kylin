@@ -336,6 +336,7 @@
         <module>src/yinglong-enterprise-service</module>
         <module>src/yinglong-integration-service</module>
         <!-- yinglong server (starter) -->
+        <module>src/yinglong-common-server</module>
         <module>src/yinglong-metadata-server</module>
         <module>src/yinglong-data-loading-server</module>
         <module>src/yinglong-smart-server</module>
@@ -434,6 +435,11 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.yinglong</groupId>
+                <artifactId>yinglong-common-server</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.yinglong</groupId>
                 <artifactId>yinglong-common-service</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -465,6 +471,11 @@
             <dependency>
                 <groupId>io.kyligence.yinglong</groupId>
                 <artifactId>yinglong-query-service</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.yinglong</groupId>
+                <artifactId>yinglong-smart-server</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

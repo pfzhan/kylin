@@ -1,0 +1,78 @@
+##
+## Copyright (C) 2020 Kyligence Inc. All rights reserved.
+##
+## http://kyligence.io
+##
+## This software is the confidential and proprietary information of
+## Kyligence Inc. ("Confidential Information"). You shall not disclose
+## such Confidential Information and shall use it only in accordance
+## with the terms of the license agreement you entered into with
+## Kyligence Inc.
+##
+## THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+## "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+## LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+## A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+## OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+## SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+## LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+## DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+## THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+## (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+## OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+##
+server:
+  port: 7070
+  context-path: "/kylin"
+  tomcat:
+    max-http-header-size: 5242880
+    max-http-post-size: 10485760
+    access-log-enabled: true
+    access-log-pattern: '%h %l %u %{User-Agent}i %t "%r" %s %b %D'
+    basedir: "${KYLIN_HOME}"
+  compression:
+    enabled: true
+    min-response-size: 51200
+    mime-types: "text/html,text/xml,text/javascript,application/javascript,application/json,text/css,text/plain,application/vnd.apache.kylin-v2+json;charset=UTF-8,application/vnd.apache.kylin-v4+json;charset=UTF-8"
+
+management:
+  context-path: "/api"
+  security:
+    enabled: false
+
+endpoints:
+  enabled: true
+  prometheus:
+    enabled: true
+  health:
+    enabled: true
+
+spring:
+  http:
+    multipart:
+      max-file-size: "5MB"
+      max-request-size: "5MB"
+  application:
+    name: ${kylin.server.mode}
+  resources:
+    chain:
+      gzipped: true
+    cache-period: 86400
+  cloud:
+    zookeeper:
+      connect-string: ${kylin.env.zookeeper-connect-string}
+      discovery:
+        root: /kylin/${kylin.metadata.url.unique-id}/services
+  session:
+    store-type: HASH_MAP
+    jdbc:
+      table-name: ${kylin.metadata.url.identifier}_session
+
+---
+spring:
+  profiles: dev
+  session:
+    store-type: HASH_MAP
+  cloud:
+    zookeeper:
+      enabled: false

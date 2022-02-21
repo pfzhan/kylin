@@ -117,6 +117,12 @@
             <groupId>io.kyligence.yinglong</groupId>
             <artifactId>yinglong-smart-service</artifactId>
         </dependency>
+        <!--for ut-->
+        <dependency>
+            <groupId>io.kyligence.yinglong</groupId>
+            <artifactId>yinglong-smart-server</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>io.kyligence.yinglong</groupId>
             <artifactId>yinglong-systools</artifactId>

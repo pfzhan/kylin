@@ -115,7 +115,6 @@ public class SemiV2ExcludedTableTest extends SemiAutoTestBase {
         ReflectionTestUtils.setField(modelSmartService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(projectService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(projectService, "userGroupService", userGroupService);
-        ReflectionTestUtils.setField(projectService, "projectSmartSupporter", rawRecService);
         ReflectionTestUtils.setField(rawRecService, "optRecService", optRecService);
         TestingAuthenticationToken auth = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
         SecurityContextHolder.getContext().setAuthentication(auth);

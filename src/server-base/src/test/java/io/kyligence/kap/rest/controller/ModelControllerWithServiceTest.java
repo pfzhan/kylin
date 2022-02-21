@@ -64,6 +64,7 @@ import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.controller.open.OpenModelController;
+import io.kyligence.kap.rest.controller.open.OpenModelSmartController;
 import io.kyligence.kap.rest.request.ModelSuggestionRequest;
 import io.kyligence.kap.rest.response.OpenSuggestionResponse;
 import io.kyligence.kap.rest.service.ProjectService;
@@ -85,13 +86,20 @@ public class ModelControllerWithServiceTest extends ServiceTestBase {
     @Autowired
     NModelController modelController;
 
+    @Autowired
+    OpenModelSmartController openModelSmartController;
+
+    @Autowired
+    NModelSmartController modelSmartController;
+
     private final Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
 
     @Before
     public void setup() {
         MockitoAnnotations.initMocks(this);
 
-        mockMvc = MockMvcBuilders.standaloneSetup(openModelController, modelController)
+        mockMvc = MockMvcBuilders
+                .standaloneSetup(openModelController, modelController, openModelSmartController, modelSmartController)
                 .defaultRequest(MockMvcRequestBuilders.get("/")).build();
 
         SecurityContextHolder.getContext().setAuthentication(authentication);

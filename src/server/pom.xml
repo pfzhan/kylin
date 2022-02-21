@@ -43,6 +43,15 @@
     </parent>
 
     <dependencies>
+        <dependency>
+            <groupId>io.kyligence.yinglong</groupId>
+            <artifactId>yinglong-common-server</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.yinglong</groupId>
+            <artifactId>yinglong-smart-server</artifactId>
+        </dependency>
+
         <!-- https://mvnrepository.com/artifact/org.scala-lang.modules/scala-xml -->
         <dependency>
             <groupId>org.scala-lang.modules</groupId>

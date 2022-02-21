@@ -40,8 +40,6 @@ import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.request.FavoriteRequest;
-import org.apache.kylin.rest.request.SqlAccelerateRequest;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -97,7 +95,6 @@ import io.kyligence.kap.rest.response.SegmentPartitionResponse;
 import io.kyligence.kap.rest.service.FusionModelService;
 import io.kyligence.kap.rest.service.ModelBuildService;
 import io.kyligence.kap.rest.service.ModelService;
-import io.kyligence.kap.rest.service.ModelSmartService;
 import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
 import io.kyligence.kap.rest.service.params.MergeSegmentParams;
 import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
@@ -112,9 +109,6 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Mock
     private ModelBuildService modelBuildService;
-
-    @Mock
-    private ModelSmartService modelSmartService;
 
     @Mock
     private FusionModelService fusionModelService;
@@ -749,48 +743,6 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nModelController).batchSaveModels(eq("gc_test"), Mockito.anyList());
-    }
-
-    @Test
-    public void testSuggestModelWithReuseExistedModel() throws Exception {
-        List<String> sqls = Lists.newArrayList("select price, count(*) from test_kylin_fact limit 1");
-        SqlAccelerateRequest favoriteRequest = new SqlAccelerateRequest("gc_test", sqls, true);
-        // reuse existed model
-        Mockito.doReturn(null).when(modelSmartService).suggestModel(favoriteRequest.getProject(), Mockito.spy(sqls),
-                true, true);
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/suggest_model").contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(favoriteRequest))
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nModelController).suggestModel(Mockito.any());
-    }
-
-    @Test
-    public void testSuggestModelWithoutReuseExistedModel() throws Exception {
-        // don't reuse existed model
-        String sql = "SELECT lstg_format_name, test_cal_dt.week_beg_dt, sum(price)\n" + "FROM test_kylin_fact\n"
-                + "INNER JOIN edw.test_cal_dt AS test_cal_dt ON test_kylin_fact.cal_dt = test_cal_dt.cal_dt\n"
-                + "GROUP BY lstg_format_name, test_cal_dt.week_beg_dt";
-        List<String> sqls = Lists.newArrayList(sql);
-        SqlAccelerateRequest accerelateRequest = new SqlAccelerateRequest("gc_test", sqls, false);
-        Mockito.doReturn(null).when(modelSmartService).suggestModel(accerelateRequest.getProject(), Mockito.spy(sqls),
-                false, true);
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/suggest_model").contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(accerelateRequest))
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nModelController).suggestModel(Mockito.any());
-    }
-
-    @Test
-    public void test_api_can_answered_by_existed_model() throws Exception {
-        List<String> sqls = Lists.newArrayList("select price, count(*) from test_kylin_fact limit 1");
-        FavoriteRequest favoriteRequest = new FavoriteRequest("gc_test", sqls);
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/can_answered_by_existed_model")
-                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(favoriteRequest))
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nModelController).couldAnsweredByExistedModel(Mockito.any());
     }
 
     @Test

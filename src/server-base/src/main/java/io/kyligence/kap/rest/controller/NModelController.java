@@ -52,7 +52,6 @@ import java.util.regex.Pattern;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import io.kyligence.kap.rest.service.ModelBuildService;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -63,8 +62,6 @@ import org.apache.kylin.common.exception.KylinTimeoutException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.PartitionDesc;
-import org.apache.kylin.rest.request.FavoriteRequest;
-import org.apache.kylin.rest.request.SqlAccelerateRequest;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -99,7 +96,6 @@ import io.kyligence.kap.rest.request.ModelCheckRequest;
 import io.kyligence.kap.rest.request.ModelCloneRequest;
 import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
-import io.kyligence.kap.rest.request.ModelSuggestionRequest;
 import io.kyligence.kap.rest.request.ModelUpdateRequest;
 import io.kyligence.kap.rest.request.MultiPartitionMappingRequest;
 import io.kyligence.kap.rest.request.OwnerChangeRequest;
@@ -129,16 +125,14 @@ import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.PurgeModelAffectedResponse;
 import io.kyligence.kap.rest.response.SegmentCheckResponse;
 import io.kyligence.kap.rest.response.SegmentPartitionResponse;
-import io.kyligence.kap.rest.response.SuggestionResponse;
 import io.kyligence.kap.rest.service.FusionIndexService;
 import io.kyligence.kap.rest.service.FusionModelService;
 import io.kyligence.kap.rest.service.IndexPlanService;
+import io.kyligence.kap.rest.service.ModelBuildService;
 import io.kyligence.kap.rest.service.ModelService;
-import io.kyligence.kap.rest.service.ModelSmartService;
 import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
 import io.kyligence.kap.rest.service.params.MergeSegmentParams;
 import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
-import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.tool.bisync.BISyncModel;
 import io.kyligence.kap.tool.bisync.SyncContext;
 import io.swagger.annotations.ApiOperation;
@@ -160,9 +154,6 @@ public class NModelController extends NBasicController {
     @Autowired
     @Qualifier("modelService")
     private ModelService modelService;
-
-    @Autowired
-    private ModelSmartService modelSmartService;
 
     @Autowired
     private FusionModelService fusionModelService;
@@ -263,36 +254,6 @@ public class NModelController extends NBasicController {
         }
     }
 
-    @ApiOperation(value = "suggestModel", tags = { "AI" }, notes = "")
-    @PostMapping(value = "/suggest_model")
-    @ResponseBody
-    public EnvelopeResponse<SuggestionResponse> suggestModel(@RequestBody SqlAccelerateRequest request) {
-        checkProjectName(request.getProject());
-        checkProjectNotSemiAuto(request.getProject());
-        AbstractContext proposeContext = modelSmartService.suggestModel(request.getProject(), request.getSqls(),
-                request.getReuseExistedModel(), true);
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
-                modelSmartService.buildModelSuggestionResponse(proposeContext), "");
-    }
-
-    @ApiOperation(value = "suggestModel", tags = { "AI" }, notes = "")
-    @PostMapping(value = "/model_recommendation")
-    @ResponseBody
-    public EnvelopeResponse<String> approveSuggestModel(@RequestBody ModelSuggestionRequest request) {
-        checkProjectName(request.getProject());
-        checkProjectNotSemiAuto(request.getProject());
-        try {
-            request.getNewModels().forEach(req -> {
-                req.setWithModelOnline(request.isWithModelOnline());
-                req.setWithEmptySegment(request.isWithEmptySegment());
-            });
-            modelService.batchCreateModel(request.getProject(), request.getNewModels(), request.getReusedModels());
-            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
-        } catch (LookupTableException e) {
-            throw new KylinException(FAILED_CREATE_MODEL, e.getMessage(), e);
-        }
-    }
-
     /**
      * if exist same name model, then return true.
      */
@@ -305,16 +266,6 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, !modelService
                 .checkModelAliasUniqueness(modelRequest.getUuid(), modelRequest.getAlias(), modelRequest.getProject()),
                 "");
-    }
-
-    @ApiOperation(value = "checkIfCanAnsweredByExistedModel", tags = { "AI" }, notes = "")
-    @PostMapping(value = "/can_answered_by_existed_model")
-    @ResponseBody
-    public EnvelopeResponse<Boolean> couldAnsweredByExistedModel(@RequestBody FavoriteRequest request) {
-        checkProjectName(request.getProject());
-        checkProjectNotSemiAuto(request.getProject());
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
-                modelSmartService.couldAnsweredByExistedModel(request.getProject(), request.getSqls()), "");
     }
 
     /**
