@@ -659,6 +659,28 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
     }
 
     @Test
+    public void testLockOperateWithHA() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse()) {
+            build_load_query("testSingleShardDoubleReplica", false, 2, null, clickhouse1, clickhouse2);
+
+            val lockOperateRequest6 = new ProjectLockOperateRequest();
+            lockOperateRequest6.setProject(getProject());
+            lockOperateRequest6.setLockTypes(Arrays.asList(LockTypeEnum.LOAD.name(), LockTypeEnum.QUERY.name()));
+            lockOperateRequest6.setOperateType(LockOperateTypeEnum.LOCK.name());
+            EnvelopeResponse envelopeResponse = secondStorageEndpoint.lockOperate(lockOperateRequest6);
+            ClickHouseSimpleITTestUtils.checkLockOperateResult(envelopeResponse, Arrays.asList(LockTypeEnum.LOAD.name(), LockTypeEnum.QUERY.name()), getProject());
+
+            val lockOperateRequest7 = new ProjectLockOperateRequest();
+            lockOperateRequest7.setProject(getProject());
+            lockOperateRequest7.setLockTypes(Arrays.asList(LockTypeEnum.LOAD.name()));
+            lockOperateRequest7.setOperateType(LockOperateTypeEnum.UNLOCK.name());
+            envelopeResponse = secondStorageEndpoint.lockOperate(lockOperateRequest7);
+            ClickHouseSimpleITTestUtils.checkLockOperateResult(envelopeResponse, Arrays.asList(LockTypeEnum.QUERY.name()), getProject());
+        }
+    }
+
+    @Test
     public void testLockOperate() throws Exception {
         try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse();
              JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse();

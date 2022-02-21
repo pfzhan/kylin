@@ -60,7 +60,6 @@ import org.slf4j.LoggerFactory;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -154,7 +153,6 @@ public class ClickHouseMetadataOperator implements MetadataOperator {
         SecondStorageUtil.checkSecondStorageData(project);
         List<TableFlow> tableFlows = SecondStorageUtil.listTableFlow(config, project);
 
-        val pairs = SecondStorageNodeHelper.getAllPairs();
         ClickHouseTableStorageMetric storageMetric = new ClickHouseTableStorageMetric(new ArrayList<>(SecondStorageNodeHelper.getAllNames()));
         storageMetric.collect();
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
@@ -168,31 +166,12 @@ public class ClickHouseMetadataOperator implements MetadataOperator {
                             SecondStorageModelSegment modelSegment = modelSegmentMap.get(tableFlow.getUuid());
                             SecondStorageSegment secondStorageSegment = modelSegment.getSegmentMap().get(tablePartition.getSegmentId());
                             Map<String, Long> sizeInNodeMap = storageMetric.getByPartitions(tableData.getDatabase(), tableData.getTable(), secondStorageSegment.getSegmentRange(), modelSegment.getDateFormat());
-                            Set<String> existShardNodes = new HashSet<>(tablePartition.getShardNodes());
-                            List<String> addShardNodes = SecondStorageNodeHelper.getPair(pairs.get(i)).stream()
-                                    .filter(node -> !existShardNodes.contains(node))
-                                    .collect(Collectors.toList());
-
-                            tablePartition.getSizeInNode().entrySet().forEach(
-                                    e -> e.setValue(sizeInNodeMap.getOrDefault(e.getKey(), 0L))
-                            );
-
                             List<String> shardNodes = new ArrayList<>(tablePartition.getShardNodes());
-                            shardNodes.addAll(addShardNodes);
-
                             Map<String, Long> sizeInNode = new HashMap<>(tablePartition.getSizeInNode());
-
                             sizeInNode.entrySet().forEach(
                                     e -> e.setValue(sizeInNodeMap.getOrDefault(e.getKey(), 0L))
                             );
-
                             Map<String, List<SegmentFileStatus>> nodeFileMap = new HashMap<>(tablePartition.getNodeFileMap());
-
-                            for (String node : addShardNodes) {
-                                sizeInNode.put(node, sizeInNodeMap.getOrDefault(node, 0L));
-                                nodeFileMap.put(node, new ArrayList<>());
-                            }
-
                             TablePartition.Builder builder = new TablePartition.Builder();
                             builder.setId(tablePartition.getId())
                                     .setSegmentId(tablePartition.getSegmentId())
