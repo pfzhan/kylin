@@ -102,4 +102,12 @@ public class AdminUserInitCLITest extends NLocalFileMetadataTestCase {
         String password = AdminUserInitCLI.generateRandomPassword();
         Assert.assertTrue(AdminUserInitCLI.PASSWORD_PATTERN.matcher(password).matches());
     }
+
+    @Test
+    public void testSkipCreateAdminUserInLdapProfile() throws Exception {
+        overwriteSystemProp("kylin.security.profile", "ldap");
+        AdminUserInitCLI.initAdminUser(true);
+        NKylinUserManager userManager = NKylinUserManager.getInstance(KylinConfig.getInstanceFromEnv());
+        Assert.assertTrue(userManager.list().isEmpty());
+    }
 }
