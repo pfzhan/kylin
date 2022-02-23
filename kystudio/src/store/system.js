@@ -175,6 +175,7 @@ export default {
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.web.sso-redirect-url', key: 'ssoRedirectUrl'})
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.sso.cookie-name', key: 'cookieNames'})
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.sso.sso-login-enabled', key: 'ssoLoginEnabled'})
+          commit(types.GET_CONF_BY_NAME, {name: 'kylin.model.measure-name-check-enabled', key: 'enableCheckName', defaultValue: 'true'})
           resolve(response)
         }, () => {
           reject()

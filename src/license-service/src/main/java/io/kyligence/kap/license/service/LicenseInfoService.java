@@ -50,6 +50,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -134,6 +135,7 @@ public class LicenseInfoService extends BasicService {
     private static final String CAPACITY = "capacity";
 
     private static final Logger logger = LoggerFactory.getLogger(LicenseInfoService.class);
+    public static final ReentrantReadWriteLock licenseReadWriteLock = new ReentrantReadWriteLock();
 
     public static File getDefaultLicenseFile() {
         File kylinHome = KapConfig.getKylinHomeAtBestEffort();
@@ -176,6 +178,7 @@ public class LicenseInfoService extends BasicService {
 
     void init(Consumer<Integer> onError) {
         try {
+            licenseReadWriteLock.readLock().lock();
             gatherLicenseInfo(getDefaultLicenseFile(), getDefaultCommitFile(), getDefaultVersionFile(), null);
             val info = extractLicenseInfo();
             verifyLicense(info);
@@ -183,6 +186,8 @@ public class LicenseInfoService extends BasicService {
         } catch (Exception e) {
             log.error("license is invalid", e);
             onError.accept(1);
+        } finally {
+            licenseReadWriteLock.readLock().unlock();
         }
     }
 
@@ -479,6 +484,13 @@ public class LicenseInfoService extends BasicService {
     }
 
     public void updateLicense(byte[] bytes) throws IOException {
+        File licenseFile = new File(KapConfig.getKylinHomeAtBestEffort(), LICENSE_FILENAME);
+        String oldLicenseInfo = licenseFile.exists() ? FileUtils.readFileToString(licenseFile, StandardCharsets.UTF_8) : "";
+        String newLicenseInfo = new String(bytes, StandardCharsets.UTF_8);
+        if (StringUtils.equals(oldLicenseInfo, newLicenseInfo)) {
+            log.info("skip license update due to new license is equals to old license");
+            return;
+        }
         clearSystemLicense();
         FileUtils.writeByteArrayToFile(backupAndDeleteLicense("temporary"), bytes);
         gatherLicenseInfo(getDefaultLicenseFile(), getDefaultCommitFile(), getDefaultVersionFile(), null);

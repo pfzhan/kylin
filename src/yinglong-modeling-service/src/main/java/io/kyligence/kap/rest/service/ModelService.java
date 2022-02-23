@@ -48,7 +48,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
@@ -61,13 +60,13 @@ import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.SecondStorageConfig;
 import org.apache.kylin.common.exception.JobErrorCode;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
-import org.apache.kylin.common.SecondStorageConfig;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
@@ -137,6 +136,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.event.ModelAddEvent;
 import io.kyligence.kap.common.event.ModelDropEvent;
+import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkContext;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
@@ -221,12 +221,12 @@ import io.kyligence.kap.rest.service.params.MergeSegmentParams;
 import io.kyligence.kap.rest.service.params.ModelQueryParams;
 import io.kyligence.kap.rest.util.ModelTriple;
 import io.kyligence.kap.rest.util.ModelUtils;
-import io.kyligence.kap.secondstorage.response.SecondStorageNode;
 import io.kyligence.kap.secondstorage.SecondStorage;
 import io.kyligence.kap.secondstorage.SecondStorageUpdater;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import io.kyligence.kap.secondstorage.enums.LockTypeEnum;
 import io.kyligence.kap.secondstorage.metadata.TablePartition;
+import io.kyligence.kap.secondstorage.response.SecondStorageNode;
 import io.kyligence.kap.secondstorage.util.SecondStorageJobUtil;
 import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
 import io.kyligence.kap.streaming.event.StreamingJobDropEvent;
@@ -251,7 +251,9 @@ public class ModelService extends BasicService implements TableModelSupporter, P
 
     public static final String VALID_NAME_FOR_MODEL = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_";
 
-    public static final String VALID_NAME_FOR_DIMENSION_MEASURE = "^[\\u4E00-\\u9FA5a-zA-Z0-9 _\\-()%?（）]+$";
+    public static final String VALID_NAME_FOR_DIMENSION = "^[\\u4E00-\\u9FA5a-zA-Z0-9 _\\-()%?（）]+$";
+
+    public static final String VALID_NAME_FOR_MEASURE = "^[\\u4E00-\\u9FA5a-zA-Z0-9 _\\-()%?（）.]+$";
 
     private static final List<String> MODEL_CONFIG_BLOCK_LIST = Lists.newArrayList("kylin.index.rule-scheduler-data");
 
@@ -988,8 +990,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         if (tableFlow != null) {
             Map<String, List<TablePartition>> tablePartitions = tableFlow.getTableDataList().stream()
                     .flatMap(tableData -> tableData.getPartitions().stream())
-                    .collect(Collectors.toMap(TablePartition::getSegmentId,
-                            partition -> Lists.newArrayList(partition),
+                    .collect(Collectors.toMap(TablePartition::getSegmentId, partition -> Lists.newArrayList(partition),
                             (List<TablePartition> a, List<TablePartition> b) -> {
                                 a.addAll(b);
                                 return a;
@@ -1000,17 +1001,15 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                     Long sizes = 0L;
                     var partitions = tablePartitions.get(segment.getId());
                     for (TablePartition partition : partitions) {
-                        var ns = partition.getShardNodes().stream()
-                                .map(SecondStorageUtil::transformNode)
+                        var ns = partition.getShardNodes().stream().map(SecondStorageUtil::transformNode)
                                 .collect(Collectors.toList());
                         nodes.addAll(ns);
-                        var size = partition.getSizeInNode().values().stream()
-                                .reduce(Long::sum).orElse(0L);
+                        var size = partition.getSizeInNode().values().stream().reduce(Long::sum).orElse(0L);
                         sizes += size;
                     }
-                    try{
+                    try {
                         segment.setSecondStorageSize(sizes / SecondStorageConfig.getInstanceFromEnv().getReplicaNum());
-                    }catch (Exception e){
+                    } catch (Exception e) {
                         log.error("setSecondStorageSize failed", e);
                     }
                     segment.setSecondStorageNodes(nodes);
@@ -2020,7 +2019,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
             dimension.setName(StringUtils.trim(dimension.getName()));
             // check if the dimension name is valid
             if (StringUtils.length(dimension.getName()) > maxModelDimensionMeasureNameLength
-                    || !Pattern.compile(VALID_NAME_FOR_DIMENSION_MEASURE).matcher(dimension.getName()).matches())
+                    || !Pattern.compile(VALID_NAME_FOR_DIMENSION).matcher(dimension.getName()).matches())
                 throw new KylinException(ServerErrorCode.INVALID_NAME,
                         String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_DIMENSION_NAME(), dimension.getName(),
                                 maxModelDimensionMeasureNameLength));
@@ -2045,7 +2044,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
             measure.setName(StringUtils.trim(measure.getName()));
             // check if the measure name is valid
             if (StringUtils.length(measure.getName()) > maxModelDimensionMeasureNameLength
-                    || !Pattern.compile(VALID_NAME_FOR_DIMENSION_MEASURE).matcher(measure.getName()).matches())
+                    || !checkIsValidMeasureName(measure.getName()))
                 throw new KylinException(ServerErrorCode.INVALID_NAME,
                         String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_MEASURE_NAME(), measure.getName(),
                                 maxModelDimensionMeasureNameLength));
@@ -2083,6 +2082,13 @@ public class ModelService extends BasicService implements TableModelSupporter, P
             measureNames.add(measure.getName());
             measures.add(measure);
         }
+    }
+
+    private boolean checkIsValidMeasureName(String measureName) {
+        if (!KylinConfig.getInstanceFromEnv().isMeasureNameCheckEnabled()) {
+            return true;
+        }
+        return Pattern.compile(VALID_NAME_FOR_MEASURE).matcher(measureName).matches();
     }
 
     private boolean isDupMeasure(SimplifiedMeasure measure, SimplifiedMeasure measure1) {
@@ -2820,8 +2826,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
     }
 
     public BuildBaseIndexResponse updateDataModelSemantic(String project, ModelRequest request, boolean needClean,
-                                                          boolean isCheckFlat) {
-        final boolean[] isClean = {needClean};
+            boolean isCheckFlat) {
+        final boolean[] isClean = { needClean };
         try {
             return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 aclEvaluate.checkProjectWritePermission(project);
@@ -2837,10 +2843,11 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                 val copyModel = modelManager.copyForWrite(originModel);
                 UpdateImpact updateImpact = semanticUpdater.updateModelColumns(copyModel, request, true);
                 val allTables = getTableManager(request.getProject()).getAllTablesMap();
-                copyModel.init(modelManager.getConfig(), allTables, getDataflowManager(project).listUnderliningDataModels(),
-                        project);
+                copyModel.init(modelManager.getConfig(), allTables,
+                        getDataflowManager(project).listUnderliningDataModels(), project);
 
-                BaseIndexUpdateHelper baseIndexUpdater = new BaseIndexUpdateHelper(originModel, request.isWithBaseIndex());
+                BaseIndexUpdateHelper baseIndexUpdater = new BaseIndexUpdateHelper(originModel,
+                        request.isWithBaseIndex());
 
                 preProcessBeforeModelSave(copyModel, project);
                 val updated = modelManager.updateDataModelDesc(copyModel);

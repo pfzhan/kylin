@@ -68,7 +68,6 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.rest.response.OpenModelRecResponse;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
@@ -226,6 +225,7 @@ import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.NModelDescResponse;
 import io.kyligence.kap.rest.response.OpenAccSqlResponse;
+import io.kyligence.kap.rest.response.OpenModelRecResponse;
 import io.kyligence.kap.rest.response.OpenSuggestionResponse;
 import io.kyligence.kap.rest.response.ParameterResponse;
 import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
@@ -2536,7 +2536,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         String normSql = "select test_order.order_id,buyer_id from test_order "
                 + " join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
                 + "group by test_order.order_id,buyer_id";
-        OpenSuggestionResponse normalResponse = modelSmartService.suggestOrOptimizeModels(smartRequest(project, normSql));
+        OpenSuggestionResponse normalResponse = modelSmartService
+                .suggestOrOptimizeModels(smartRequest(project, normSql));
         Assert.assertEquals(1, normalResponse.getModels().size());
 
         normSql = "select test_order.order_id,sum(price) from test_order "
@@ -2602,7 +2603,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
     public void testErrorAndConstantOptimalModelResponse() {
         String project = "newten";
         val projectMgr = NProjectManager.getInstance(getTestConfig());
-        projectMgr.updateProject(project, copyForWrite -> copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN));
+        projectMgr.updateProject(project,
+                copyForWrite -> copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN));
         String sql1 = "select test_order.order_id,buyer_id from test_order "
                 + " join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
                 + "group by test_order.order_id,buyer_id";
@@ -2635,7 +2637,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         String normSql = "select test_order.order_id,buyer_id from test_order "
                 + "left join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
                 + "group by test_order.order_id,buyer_id";
-        OpenSuggestionResponse normalResponse = modelSmartService.suggestOrOptimizeModels(smartRequest(project, normSql));
+        OpenSuggestionResponse normalResponse = modelSmartService
+                .suggestOrOptimizeModels(smartRequest(project, normSql));
         Assert.assertEquals(1, normalResponse.getModels().size());
         String modelId = normalResponse.getModels().get(0).getUuid();
         final NDataModel model1 = modelManager.getDataModelDesc(modelId);
@@ -4388,7 +4391,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         } catch (Exception e) {
             Assert.assertEquals(KylinException.class, e.getClass());
             Assert.assertTrue(StringUtils.contains(e.getMessage(),
-                    "The measure name \"illegal_measure_name@!\" is invalid. Please use Chinese or English characters, numbers, spaces or symbol(_ -()%?). "
+                    "The measure name \"illegal_measure_name@!\" is invalid. Please use Chinese or English characters, numbers, spaces or symbol(_ -()%?.). "
                             + getTestConfig().getMaxModelDimensionMeasureNameLength()
                             + " characters at maximum are supported."));
         }
@@ -5637,8 +5640,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         request.setWithSecondStorage(true);
         request.setUuid(model);
         BuildBaseIndexResponse changedResponse = Mockito.mock(BuildBaseIndexResponse.class);
-        Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded(eq("default"), eq(request),
-                eq(true));
+        Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded(eq("default"), eq(request), eq(true));
 
         Mockito.when(changedResponse.hasTableIndexChange()).thenReturn(true);
         modelService.changeSecondStorageIfNeeded(project, request, true);
@@ -5688,8 +5690,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         request.setWithSecondStorage(true);
         request.setUuid(model);
         BuildBaseIndexResponse changedResponse = Mockito.mock(BuildBaseIndexResponse.class);
-        Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded(eq("default"), eq(request),
-                eq(true));
+        Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded(eq("default"), eq(request), eq(true));
         Mockito.when(changedResponse.hasTableIndexChange()).thenReturn(true);
 
         modelService.dropModel(model, project, false);
@@ -5717,8 +5718,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         request.setWithSecondStorage(true);
         request.setUuid(model);
         BuildBaseIndexResponse changedResponse = Mockito.mock(BuildBaseIndexResponse.class);
-        Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded(eq("default"), eq(request),
-                eq(true));
+        Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded(eq("default"), eq(request), eq(true));
         Mockito.when(changedResponse.hasTableIndexChange()).thenReturn(true);
 
         modelService.purgeModel(model, project);
@@ -5749,7 +5749,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         List<SimplifiedMeasure> measures = Lists.newArrayList();
         SimplifiedMeasure measure1 = new SimplifiedMeasure();
-        measure1.setName("ssa中文 () kkk?（） % ? dirz AHRZ 2 5 9 _ -- end");
+        measure1.setName("ssa中文 () kkk?（） % ? dirz AHRZ 2 5 9 _ -- end.");
         measure1.setExpression("COUNT_DISTINCT");
         measure1.setReturnType("hllc(10)");
         ParameterResponse parameterResponse = new ParameterResponse("column", "TEST_KYLIN_FACT");
@@ -5760,6 +5760,12 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         modelRequest.setProject(getProject());
         modelService.checkModelDimensions(modelRequest);
+        modelService.checkModelMeasures(modelRequest);
+
+        measure1.setName("SKL $^&");
+        thrown.expect(KylinException.class);
+        modelService.checkModelMeasures(modelRequest);
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.model.measure-name-check-enabled", "false");
         modelService.checkModelMeasures(modelRequest);
     }
 
@@ -6556,8 +6562,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         request.setUuid(model);
         BuildBaseIndexResponse emptyResponse = new BuildBaseIndexResponse();
         BuildBaseIndexResponse changedResponse = Mockito.mock(BuildBaseIndexResponse.class);
-        Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded(eq("default"), eq(request),
-                eq(true));
+        Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded(eq("default"), eq(request), eq(true));
 
         Mockito.when(changedResponse.hasTableIndexChange()).thenReturn(true);
         modelService.changeSecondStorageIfNeeded("default", request, true);

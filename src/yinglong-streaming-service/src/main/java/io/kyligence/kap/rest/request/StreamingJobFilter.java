@@ -48,4 +48,16 @@ public class StreamingJobFilter {
 
     private boolean reverse;
 
+    private List<String> jobIds;
+
+    public StreamingJobFilter(String modelName, List<String> modelNames, List<String> jobTypes, List<String> statuses,
+            String project, String sortBy, boolean reverse) {
+        this.modelName = modelName;
+        this.modelNames = modelNames;
+        this.jobTypes = jobTypes;
+        this.statuses = statuses;
+        this.project = project;
+        this.sortBy = sortBy;
+        this.reverse = reverse;
+    }
 }

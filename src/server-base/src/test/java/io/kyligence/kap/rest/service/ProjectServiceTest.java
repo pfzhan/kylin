@@ -166,8 +166,6 @@ public class ProjectServiceTest extends ServiceTestBase {
         ReflectionTestUtils.setField(projectService, "projectModelSupporter", modelService);
         ReflectionTestUtils.setField(projectService, "projectSmartSupporter", rawRecService);
         ReflectionTestUtils.setField(projectService, "userService", userService);
-        ReflectionTestUtils.setField(projectService, "recommendationTopNUpdateScheduler",
-                new RecommendationTopNUpdateScheduler());
 
         ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
         projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
@@ -1057,7 +1055,6 @@ public class ProjectServiceTest extends ServiceTestBase {
         Assert.assertEquals(11, favoriteRuleResponse.get("min_hit_count"));
         Assert.assertEquals(11, favoriteRuleResponse.get("effective_days"));
         Assert.assertEquals(3, favoriteRuleResponse.get("update_frequency"));
-
 
         // check excluded_tables
         request.setExcludeTablesEnable(true);
