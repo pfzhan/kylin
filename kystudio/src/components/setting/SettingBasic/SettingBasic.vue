@@ -596,6 +596,7 @@ export default class SettingBasic extends Vue {
           callback(new Error(this.$t('emptyTips')))
         }
         this.$refs.rulesForm.validateField('max_duration')
+        callback()
       } else if (rule.field === 'max_duration') {
         if (!value && value !== 0) {
           callback(new Error(this.$t('emptyTips')))
@@ -603,6 +604,8 @@ export default class SettingBasic extends Vue {
           callback(new Error(this.$t('prevGreaterThanNext')))
         } else if (+this.rulesObj.max_duration > 3600) {
           callback(new Error(this.$t('overTimeLimitTip')))
+        } else {
+          callback()
         }
       } else {
         callback()
