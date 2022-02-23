@@ -26,14 +26,15 @@ package io.kyligence.kap.license.controller;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static org.mockito.Mockito.mock;
 
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.rest.request.LicenseRequest;
-import io.kyligence.kap.rest.response.RemoteLicenseResponse;
-import io.kyligence.kap.rest.service.SystemService;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.model.LicenseInfo;
+import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.junit.After;
 import org.junit.Assert;
@@ -57,9 +58,10 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.junit.rule.TransactionExceptedException;
 import io.kyligence.kap.license.service.LicenseInfoService;
-
-import java.nio.charset.StandardCharsets;
-import java.util.List;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.rest.request.LicenseRequest;
+import io.kyligence.kap.rest.response.RemoteLicenseResponse;
+import io.kyligence.kap.rest.service.SystemService;
 
 public class LicenseControllerTest extends NLocalFileMetadataTestCase {
 
@@ -73,9 +75,11 @@ public class LicenseControllerTest extends NLocalFileMetadataTestCase {
     @Mock
     private SystemService systemService;
 
+    @InjectMocks
+    private LicenseController licenseController = Mockito.spy(new LicenseController());
 
     @InjectMocks
-    private LicenseController licenseController= Mockito.spy(new LicenseController());
+    private LicenseControllerV2 licenseControllerV2 = Mockito.spy(new LicenseControllerV2());
 
     @Rule
     public TransactionExceptedException thrown = TransactionExceptedException.none();
@@ -85,6 +89,7 @@ public class LicenseControllerTest extends NLocalFileMetadataTestCase {
         createTestMetadata();
         MockitoAnnotations.initMocks(this);
         ReflectionTestUtils.setField(licenseController, "licenseInfoService", licenseInfoService);
+        ReflectionTestUtils.setField(licenseControllerV2, "licenseInfoService", licenseInfoService);
         mockMvc = MockMvcBuilders.standaloneSetup(licenseController).defaultRequest(MockMvcRequestBuilders.get("/"))
                 .build();
         SecurityContextHolder.getContext()
@@ -175,7 +180,6 @@ public class LicenseControllerTest extends NLocalFileMetadataTestCase {
         licenseController.setAclEvaluate(sourceValue);
     }
 
-
     @Test
     public void testRefreshAll() throws Exception {
         AclEvaluate sourceValue = licenseController.getAclEvaluate();
@@ -183,13 +187,11 @@ public class LicenseControllerTest extends NLocalFileMetadataTestCase {
             AclEvaluate mockAclEvaluate = mock(AclEvaluate.class);
             licenseController.setAclEvaluate(mockAclEvaluate);
             mockMvc.perform(MockMvcRequestBuilders.put("/api/system/capacity/refresh_all")
-                            .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(APPLICATION_JSON)))
+                    .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(APPLICATION_JSON)))
                     .andExpect(MockMvcResultMatchers.status().isOk());
 
             Mockito.verify(mockAclEvaluate, Mockito.times(1)).checkIsGlobalAdmin();
             Mockito.verify(licenseController, Mockito.times(1)).refreshAll(Mockito.any());
-
-
 
         } finally {
             licenseController.setAclEvaluate(sourceValue);
@@ -202,9 +204,8 @@ public class LicenseControllerTest extends NLocalFileMetadataTestCase {
         try {
             AclEvaluate mockAclEvaluate = mock(AclEvaluate.class);
             licenseController.setAclEvaluate(mockAclEvaluate);
-            mockMvc.perform(MockMvcRequestBuilders.put("/api/system/capacity/refresh")
-                            .param("project", "default")
-                            .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(APPLICATION_JSON)))
+            mockMvc.perform(MockMvcRequestBuilders.put("/api/system/capacity/refresh").param("project", "default")
+                    .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(APPLICATION_JSON)))
                     .andExpect(MockMvcResultMatchers.status().isOk());
             Mockito.verify(licenseController, Mockito.times(1)).refresh(Mockito.any());
         } finally {
@@ -212,5 +213,22 @@ public class LicenseControllerTest extends NLocalFileMetadataTestCase {
         }
     }
 
+    @Test
+    public void testListLicense() {
+        LicenseInfo licenseInfo = new LicenseInfo();
+        Mockito.doReturn(licenseInfo).when(licenseInfoService).extractLicenseInfo();
+        Mockito.doReturn(null).when(licenseInfoService).verifyLicense(licenseInfo);
+        EnvelopeResponse<LicenseInfo> licenseInfoEnvelopeResponse = licenseController.listLicense();
+        Assert.assertNotNull(licenseInfoEnvelopeResponse.getData());
+    }
+
+    @Test
+    public void testListLicenseV2() {
+        LicenseInfo licenseInfo = new LicenseInfo();
+        Mockito.doReturn(licenseInfo).when(licenseInfoService).extractLicenseInfo();
+        Mockito.doReturn(null).when(licenseInfoService).verifyLicense(licenseInfo);
+        EnvelopeResponse<LicenseInfo> licenseInfoEnvelopeResponse = licenseControllerV2.listLicense();
+        Assert.assertNotNull(licenseInfoEnvelopeResponse.getData());
+    }
 
 }

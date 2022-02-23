@@ -84,7 +84,6 @@ import lombok.val;
 public class KylinConfigBaseTest {
 
     private static final Map<String, PropertiesEntity> map = new HashMap<>();
-
     {
         map.put("getDeployEnv", new PropertiesEntity("kylin.env", "DEV", "DEV"));
 
@@ -898,16 +897,22 @@ public class KylinConfigBaseTest {
                 new PropertiesEntity("kylin.metrics.job.sla.minutes", "1,30,60,300", new long[] { 1, 30, 60, 300 }));
         map.put("isMetadataKeyCaseInSensitiveEnabled",
                 new PropertiesEntity("kylin.metadata.key-case-insensitive", "false", false));
+        map.put("isMeasureNameCheckEnabled",
+                new PropertiesEntity("kylin.model.measure-name-check-enabled", "true", true));
         map.put("isConcurrencyFetchDataSourceSize",
                 new PropertiesEntity("kylin.job.concurrency-fetch-datasource-size-enabled", "false", false));
         map.put("getConcurrencyFetchDataSourceSizeThreadNumber",
                 new PropertiesEntity("kylin.job.concurrency-fetch-datasource-size-thread_number", "10", 10));
         map.put("isSpark3ExecutorPrometheusEnabled",
                 new PropertiesEntity("kylin.storage.columnar.spark-conf.spark.ui.prometheus.enabled", "false", false));
-        map.put("getSpark3DriverPrometheusServletClass",
-                new PropertiesEntity("kylin.storage.columnar.spark-conf.spark.metrics.conf.*.sink.prometheusServlet.class", "org.apache.spark.metrics.sink.PrometheusServlet", "org.apache.spark.metrics.sink.PrometheusServlet"));
+        map.put("getSpark3DriverPrometheusServletClass", new PropertiesEntity(
+                "kylin.storage.columnar.spark-conf.spark.metrics.conf.*.sink.prometheusServlet.class",
+                "org.apache.spark.metrics.sink.PrometheusServlet", "org.apache.spark.metrics.sink.PrometheusServlet"));
         map.put("getSpark3DriverPrometheusServletPath",
-                new PropertiesEntity("kylin.storage.columnar.spark-conf.spark.metrics.conf.*.sink.prometheusServlet.path", "/metrics/prometheus", "/metrics/prometheus"));
+                new PropertiesEntity(
+                        "kylin.storage.columnar.spark-conf.spark.metrics.conf.*.sink.prometheusServlet.path",
+                        "/metrics/prometheus", "/metrics/prometheus"));
+
     }
 
     @Test

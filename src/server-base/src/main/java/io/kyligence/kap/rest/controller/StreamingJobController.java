@@ -149,6 +149,11 @@ public class StreamingJobController extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
+    /**
+     * called by build job
+     * @param streamingJobStatsRequest
+     * @return
+     */
     @PutMapping(value = "/stats")
     @ResponseBody
     public EnvelopeResponse<String> collectStreamingJobStats(
@@ -161,6 +166,11 @@ public class StreamingJobController extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
+    /**
+     * called by build and merge job
+     * @param streamingJobUpdateRequest
+     * @return
+     */
     @PutMapping(value = "/spark")
     @ResponseBody
     public EnvelopeResponse<String> updateStreamingJobInfo(
@@ -180,6 +190,11 @@ public class StreamingJobController extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, data, "");
     }
 
+    /**
+     * called by merge job
+     * @param request
+     * @return
+     */
     @PostMapping(value = "/dataflow/segment")
     @ResponseBody
     public RestResponse addSegment(@RequestBody StreamingSegmentRequest request) {
@@ -193,6 +208,11 @@ public class StreamingJobController extends NBasicController {
         return new RestResponse(newSegId);
     }
 
+    /**
+     * called by merge job
+     * @param request
+     * @return
+     */
     @PutMapping(value = "/dataflow/segment")
     @ResponseBody
     public RestResponse updateSegment(@RequestBody StreamingSegmentRequest request) {
@@ -208,6 +228,11 @@ public class StreamingJobController extends NBasicController {
         return RestResponse.ok();
     }
 
+    /**
+     * called by merge job
+     * @param request
+     * @return
+     */
     @PostMapping(value = "/dataflow/segment/deletion")
     @ResponseBody
     public RestResponse deleteSegment(@RequestBody StreamingSegmentRequest request) {
@@ -220,6 +245,11 @@ public class StreamingJobController extends NBasicController {
         return RestResponse.ok();
     }
 
+    /**
+     * called by build and merge job
+     * @param request
+     * @return
+     */
     @PutMapping(value = "/dataflow/layout")
     @ResponseBody
     public RestResponse updateLayout(@RequestBody LayoutUpdateRequest request) {

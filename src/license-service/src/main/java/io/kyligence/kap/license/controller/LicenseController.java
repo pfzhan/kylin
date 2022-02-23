@@ -116,15 +116,19 @@ public class LicenseController extends NBasicController {
     @GetMapping(value = "/license")
     @ResponseBody
     public EnvelopeResponse<LicenseInfo> listLicense() {
-        val info = licenseInfoService.extractLicenseInfo();
-        val response = new EnvelopeResponse<>(KylinException.CODE_SUCCESS, info, "");
+        EnvelopeResponse<LicenseInfo> response = new EnvelopeResponse<>(KylinException.CODE_SUCCESS, new LicenseInfo(), "");
         try {
+            LicenseInfoService.licenseReadWriteLock.readLock().lock();
+            val info = licenseInfoService.extractLicenseInfo();
+            response = new EnvelopeResponse<>(KylinException.CODE_SUCCESS, info, "");
             val warning = licenseInfoService.verifyLicense(info);
             if (warning != null) {
                 setResponse(response, LicenseInfoService.CODE_WARNING, warning);
             }
         } catch (KylinException e) {
             setResponse(response, e.getCode(), e.getMessage());
+        } finally {
+            LicenseInfoService.licenseReadWriteLock.readLock().unlock();
         }
         return response;
     }
