@@ -51,6 +51,8 @@ import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.rest.request.OpenSqlAccelerateRequest;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -85,6 +87,7 @@ import lombok.val;
 
 @Component("modelSmartService")
 public class ModelSmartService extends BasicService {
+    private static final Logger logger = LoggerFactory.getLogger(ModelSmartService.class);
     @Autowired
     private RawRecService rawRecService;
 
@@ -222,8 +225,12 @@ public class ModelSmartService extends BasicService {
                 continue;
             }
 
-            collectResponseOfOptimalModels(modelContext, errorOrOptimalAccelerateInfoMap, responseOfOptimalModels);
-            finishedModelSets.add(modelContext.getOriginModel().getUuid());
+            try {
+                collectResponseOfOptimalModels(modelContext, errorOrOptimalAccelerateInfoMap, responseOfOptimalModels);
+                finishedModelSets.add(modelContext.getOriginModel().getUuid());
+            } catch (Exception e) {
+                logger.error(e.getMessage(), e);
+            }
         }
     }
 
@@ -246,7 +253,7 @@ public class ModelSmartService extends BasicService {
             return;
         }
 
-        IndexPlan originIndexPlan = modelContext.getOriginIndexPlan();
+        IndexPlan targetIndexPlan = modelContext.getTargetIndexPlan();
         NDataModel originModel = modelContext.getOriginModel();
         Map<String, ComputedColumnDesc> oriComputedColumnMap = originModel.getComputedColumnDescs()
                 .stream().collect(Collectors.toMap(ComputedColumnDesc::getFullName, v -> v));
@@ -256,7 +263,7 @@ public class ModelSmartService extends BasicService {
         for (Map.Entry<Long, Set<String>> layoutId2SqlSetsEntry : layoutId2SqlSetsMap.entrySet()) {
             Long layoutId = layoutId2SqlSetsEntry.getKey();
             Set<String> optimalSqlSets = layoutId2SqlSetsEntry.getValue();
-            LayoutEntity layout = originIndexPlan.getLayoutEntity(layoutId);
+            LayoutEntity layout = targetIndexPlan.getLayoutEntity(layoutId);
             LayoutRecDetailResponse response = new LayoutRecDetailResponse();
             ImmutableList<Integer> colOrder = layout.getColOrder();
             Map<String, ComputedColumnDesc> computedColumnsMap = Maps.newHashMap();
