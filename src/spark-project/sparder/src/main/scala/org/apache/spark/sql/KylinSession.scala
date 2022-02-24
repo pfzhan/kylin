@@ -232,7 +232,9 @@ object KylinSession extends Logging {
         sparkConf.set("hive.metastore.sasl.enabled", "true")
       }
 
-      kapConfig.getSparkConf.asScala.foreach {
+      // job node init with spark local mode, ignore the spark.master
+      val isLocalMode = sparkConf.get("spark.master").startsWith("local")
+      kapConfig.getSparkConf.asScala.filterKeys(isLocalMode && !"spark.master".equals(_)).foreach {
         case (k, v) =>
           sparkConf.set(k, v)
       }
