@@ -52,7 +52,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -119,7 +118,6 @@ import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 import io.kyligence.kap.rest.aspect.Transaction;
-import io.kyligence.kap.rest.config.initialize.ModelUpdateListener;
 import io.kyligence.kap.rest.config.initialize.ProjectDropListener;
 import io.kyligence.kap.rest.request.ComputedColumnConfigRequest;
 import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
@@ -140,10 +138,8 @@ import io.kyligence.kap.rest.response.FavoriteQueryThresholdResponse;
 import io.kyligence.kap.rest.response.ProjectConfigResponse;
 import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
 import io.kyligence.kap.rest.security.KerberosLoginManager;
-import io.kyligence.kap.rest.service.task.QueryHistoryTaskScheduler;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import io.kyligence.kap.tool.garbage.GarbageCleaner;
-import lombok.Setter;
 import lombok.val;
 
 @Component("projectService")
@@ -172,16 +168,8 @@ public class ProjectService extends BasicService {
     @Autowired
     private ProjectSmartServiceSupporter projectSmartService;
 
-    //    @Setter
-    //    @Autowired
-    //    private List<ModelChangeSupporter> modelChangeSupporters = Lists.newArrayList();
-
     @Autowired
     UserService userService;
-
-    @Setter
-    @Autowired
-    private List<ModelUpdateListener> updateListeners = Lists.newArrayList();
 
     private static final String DEFAULT_VAL = "default";
 
@@ -364,8 +352,7 @@ public class ProjectService extends BasicService {
                     continue;
                 logger.info("Start to cleanup garbage  for project<{}>", project.getName());
                 try {
-                    accelerateImmediately(project.getName());
-                    updateStatMetaImmediately(project.getName());
+                    projectSmartService.cleanupGarbage(project.getName());
                     GarbageCleaner.cleanMetadata(project.getName());
                     EventBusFactory.getInstance().callService(new ProjectCleanOldQueryResultEvent(project.getName()));
                     //                    asyncQueryService.cleanOldQueryResult(project.getName(),
@@ -406,35 +393,9 @@ public class ProjectService extends BasicService {
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     public void cleanupGarbage(String project) throws Exception {
-        accelerateImmediately(project);
-        updateStatMetaImmediately(project);
+        projectSmartService.cleanupGarbage(project);
         GarbageCleaner.cleanMetadata(project);
         asyncTaskService.cleanupStorage();
-    }
-
-    public void accelerateImmediately(String project) {
-        QueryHistoryTaskScheduler scheduler = QueryHistoryTaskScheduler.getInstance(project);
-        if (scheduler.hasStarted()) {
-            logger.info("Schedule QueryHistoryAccelerateRunner job, project [{}].", project);
-            Future future = scheduler.scheduleImmediately(scheduler.new QueryHistoryAccelerateRunner(false));
-            try {
-                future.get();
-            } catch (Exception e) {
-                logger.error("Accelerate failed", e);
-            }
-        }
-    }
-
-    public void updateStatMetaImmediately(String project) {
-        QueryHistoryTaskScheduler scheduler = QueryHistoryTaskScheduler.getInstance(project);
-        if (scheduler.hasStarted()) {
-            Future future = scheduler.scheduleImmediately(scheduler.new QueryHistoryMetaUpdateRunner());
-            try {
-                future.get();
-            } catch (Exception e) {
-                logger.error("updateStatMeta failed", e);
-            }
-        }
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")

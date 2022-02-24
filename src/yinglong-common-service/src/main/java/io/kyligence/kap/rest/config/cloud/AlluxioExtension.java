@@ -32,6 +32,7 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.kyligence.kap.guava20.shaded.common.collect.Lists;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.http.HttpHeaders;
@@ -44,8 +45,6 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.model.SnapshotBuildFinishedEvent;
-
-import com.clearspring.analytics.util.Lists;
 
 import io.kyligence.kap.guava20.shaded.common.eventbus.KylinEventException;
 import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;

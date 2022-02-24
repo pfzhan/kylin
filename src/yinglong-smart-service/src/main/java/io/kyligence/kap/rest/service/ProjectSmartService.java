@@ -73,9 +73,9 @@ import io.kyligence.kap.rest.response.ProjectStatisticsResponse;
 import io.kyligence.kap.rest.service.task.QueryHistoryTaskScheduler;
 import io.kyligence.kap.rest.service.task.RecommendationTopNUpdateScheduler;
 import lombok.val;
-import lombok.extern.log4j.Log4j;
+import lombok.extern.slf4j.Slf4j;
 
-@Log4j
+@Slf4j
 @Component("projectSmartService")
 public class ProjectSmartService extends BasicService implements ProjectSmartServiceSupporter {
 
@@ -256,6 +256,37 @@ public class ProjectSmartService extends BasicService implements ProjectSmartSer
             return null;
         }, project);
         return deltaRecSet;
+    }
+
+    @Override
+    public void cleanupGarbage(String project) throws Exception {
+        accelerateImmediately(project);
+        updateStatMetaImmediately(project);
+    }
+
+    public void accelerateImmediately(String project) {
+        QueryHistoryTaskScheduler scheduler = QueryHistoryTaskScheduler.getInstance(project);
+        if (scheduler.hasStarted()) {
+            log.info("Schedule QueryHistoryAccelerateRunner job, project [{}].", project);
+            Future future = scheduler.scheduleImmediately(scheduler.new QueryHistoryAccelerateRunner(false));
+            try {
+                future.get();
+            } catch (Exception e) {
+                log.error("Accelerate failed", e);
+            }
+        }
+    }
+
+    public void updateStatMetaImmediately(String project) {
+        QueryHistoryTaskScheduler scheduler = QueryHistoryTaskScheduler.getInstance(project);
+        if (scheduler.hasStarted()) {
+            Future future = scheduler.scheduleImmediately(scheduler.new QueryHistoryMetaUpdateRunner());
+            try {
+                future.get();
+            } catch (Exception e) {
+                log.error("updateStatMeta failed", e);
+            }
+        }
     }
 
     private int getFavoriteRuleSize(String project) {

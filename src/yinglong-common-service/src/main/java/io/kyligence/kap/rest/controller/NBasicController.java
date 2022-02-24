@@ -116,7 +116,6 @@ import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
-import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.Validation;
 import io.kyligence.kap.rest.service.ProjectService;
 import lombok.SneakyThrows;
@@ -524,21 +523,6 @@ public class NBasicController {
         if (kafkaConf != null) {
             throw new KylinException(UNSUPPORTED_STREAMING_OPERATION,
                     MsgPicker.getMsg().getSTREAMING_OPERATION_NOT_SUPPORT());
-        }
-    }
-
-    public void checkArgsAndValidateRangeForBatchLoad(List<DateRangeRequest> requests) {
-        NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
-        for (DateRangeRequest request : requests) {
-            if (projectManager != null) {
-                ProjectInstance projectInstance = projectManager.getProject(request.getProject());
-                if (projectInstance != null) {
-                    request.setProject(projectInstance.getName());
-                }
-            }
-            checkProjectName(request.getProject());
-            checkRequiredArg("table", request.getTable());
-            validateRange(request.getStart(), request.getEnd());
         }
     }
 

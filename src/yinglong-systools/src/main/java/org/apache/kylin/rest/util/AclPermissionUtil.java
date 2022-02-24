@@ -43,7 +43,6 @@
 package org.apache.kylin.rest.util;
 
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
-import static org.springframework.security.acls.domain.BasePermission.ADMINISTRATION;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -64,6 +63,7 @@ import org.apache.kylin.rest.security.AclEntityType;
 import org.apache.kylin.rest.security.AclManager;
 import org.apache.kylin.rest.security.MutableAclRecord;
 import org.apache.kylin.rest.security.ObjectIdentityImpl;
+import org.springframework.security.acls.domain.BasePermission;
 import org.springframework.security.acls.domain.GrantedAuthoritySid;
 import org.springframework.security.acls.domain.PrincipalSid;
 import org.springframework.security.acls.model.AccessControlEntry;
@@ -159,7 +159,7 @@ public class AclPermissionUtil {
 
         MutableAclRecord acl = getProjectAcl(project);
         Set<String> groups = filterGroupsInProject(usergroups, acl);
-        return isSpecificPermissionInProject(auth.getName(), groups, ADMINISTRATION, acl);
+        return isSpecificPermissionInProject(auth.getName(), groups, BasePermission.ADMINISTRATION, acl);
     }
 
     public static boolean isSpecificPermissionInProject(String username, Set<String> userGroupsInProject,

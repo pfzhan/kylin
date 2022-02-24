@@ -39,7 +39,6 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
-import org.glassfish.jersey.uri.UriTemplate;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.rest.constant.ProjectInfoParserConstant;
@@ -47,6 +46,7 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.util.UriTemplate;
 
 @Slf4j
 public class ProjectInfoParser {
@@ -152,7 +152,7 @@ public class ProjectInfoParser {
             val uriTemplate = new UriTemplate(needParserURI);
             val kvMap = new HashMap<String, String>();
 
-            if (uriTemplate.match(url, kvMap)) {
+            if (uriTemplate.matches(url)) {
                 return kvMap.get(PROJECT_PARAM);
             }
         }

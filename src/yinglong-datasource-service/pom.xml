@@ -45,12 +45,12 @@
 
     <dependencies>
         <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-common-service</artifactId>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-common</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-common</artifactId>
+            <artifactId>hadoop-hdfs</artifactId>
         </dependency>
         <dependency>
             <groupId>io.kyligence.ke</groupId>

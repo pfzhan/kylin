@@ -58,6 +58,7 @@ import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.request.SamplingRequest;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -361,6 +362,21 @@ public class NTableController extends NBasicController {
         checkArgsAndValidateRangeForBatchLoad(requests);
         tableService.batchLoadDataRange(requests.get(0).getProject(), requests);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
+    }
+
+    private void checkArgsAndValidateRangeForBatchLoad(List<DateRangeRequest> requests) {
+        NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+        for (DateRangeRequest request : requests) {
+            if (projectManager != null) {
+                ProjectInstance projectInstance = projectManager.getProject(request.getProject());
+                if (projectInstance != null) {
+                    request.setProject(projectInstance.getName());
+                }
+            }
+            checkProjectName(request.getProject());
+            checkRequiredArg("table", request.getTable());
+            validateRange(request.getStart(), request.getEnd());
+        }
     }
 
     @ApiOperation(value = "databases", tags = { "AI" })

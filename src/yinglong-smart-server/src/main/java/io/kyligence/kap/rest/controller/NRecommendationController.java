@@ -51,7 +51,7 @@ import io.kyligence.kap.rest.response.OptRecDetailResponse;
 import io.kyligence.kap.rest.response.OptRecLayoutsResponse;
 import io.kyligence.kap.rest.response.OptRecResponse;
 import io.kyligence.kap.rest.service.OptRecService;
-import io.kyligence.kap.rest.service.ProjectService;
+import io.kyligence.kap.rest.service.ProjectSmartService;
 import io.kyligence.kap.rest.service.RawRecService;
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
@@ -71,7 +71,7 @@ public class NRecommendationController extends NBasicController {
     private RawRecService rawRecService;
 
     @Autowired
-    private ProjectService projectService;
+    private ProjectSmartService projectService;
 
     @Override
     protected Logger getLogger() {

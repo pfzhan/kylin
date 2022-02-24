@@ -217,7 +217,7 @@ public class SemiV2CITest extends SemiAutoTestBase {
         Assert.assertTrue(rawRecItemBeforeAccelerate.isEmpty());
 
         // accelerate
-        projectService.accelerateImmediately(getProject());
+        projectSmartService.accelerateImmediately(getProject());
 
         // after accelerate
         List<RawRecItem> rawRecItems = jdbcRawRecStore.queryAll();
