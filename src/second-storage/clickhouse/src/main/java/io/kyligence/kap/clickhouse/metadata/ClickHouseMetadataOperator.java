@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.clickhouse.metadata;
 
+import com.google.common.base.Preconditions;
 import io.kyligence.kap.clickhouse.job.ClickHouse;
 import io.kyligence.kap.clickhouse.job.ClickHouseTableStorageMetric;
 import io.kyligence.kap.clickhouse.parser.ExistsQueryParser;
@@ -60,6 +61,7 @@ import org.slf4j.LoggerFactory;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -144,6 +146,23 @@ public class ClickHouseMetadataOperator implements MetadataOperator {
         return new TableSyncResponse(project, new ArrayList<>(nodes), database, new ArrayList<>(tables));
     }
 
+    private NodeGroup getNodeGroup(List<NodeGroup> nodeGroups, Set<String> existShardNodes){
+        Preconditions.checkArgument(!nodeGroups.isEmpty());
+        val existShardNodesList = new ArrayList<>(existShardNodes);
+        NodeGroup addGroup = nodeGroups.get(0);
+        if (existShardNodesList.size() > 0) {
+            for (NodeGroup nodeGroup : nodeGroups){
+                val nodeNames = nodeGroup.getNodeNames();
+                val item = existShardNodesList.get(0);
+                if (nodeNames.contains(item)){
+                    addGroup = nodeGroup;
+                    break;
+                }
+            }
+        }
+        return addGroup;
+    }
+
     @Override
     public SizeInNodeResponse sizeInNode() {
         SecondStorageProjectModelSegment projectModelSegment = properties.get(new ConfigOption<>(SecondStorageConstants.PROJECT_MODEL_SEGMENT_PARAM, SecondStorageProjectModelSegment.class));
@@ -153,7 +172,12 @@ public class ClickHouseMetadataOperator implements MetadataOperator {
         SecondStorageUtil.checkSecondStorageData(project);
         List<TableFlow> tableFlows = SecondStorageUtil.listTableFlow(config, project);
 
-        ClickHouseTableStorageMetric storageMetric = new ClickHouseTableStorageMetric(new ArrayList<>(SecondStorageNodeHelper.getAllNames()));
+        List<NodeGroup> nodeGroups = SecondStorageUtil.listNodeGroup(config, project);
+        Set<String> nodes = nodeGroups.stream()
+                .flatMap(x -> x.getNodeNames().stream())
+                .collect(Collectors.toSet());
+
+        ClickHouseTableStorageMetric storageMetric = new ClickHouseTableStorageMetric(new ArrayList<>(nodes));
         storageMetric.collect();
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             tableFlows.forEach(tableFlow -> {
@@ -161,17 +185,36 @@ public class ClickHouseMetadataOperator implements MetadataOperator {
                     copied.getTableDataList().forEach(tableData -> {
                         List<TablePartition> tablePartitions = tableData.getPartitions();
                         val newTablePartitions = new ArrayList<TablePartition>();
-                        for (int i = 0; i < tablePartitions.size(); i++) {
-                            TablePartition tablePartition = tablePartitions.get(i);
+                        for (TablePartition tablePartition : tablePartitions) {
                             SecondStorageModelSegment modelSegment = modelSegmentMap.get(tableFlow.getUuid());
                             SecondStorageSegment secondStorageSegment = modelSegment.getSegmentMap().get(tablePartition.getSegmentId());
                             Map<String, Long> sizeInNodeMap = storageMetric.getByPartitions(tableData.getDatabase(), tableData.getTable(), secondStorageSegment.getSegmentRange(), modelSegment.getDateFormat());
+                            Set<String> existShardNodes = new HashSet<>(tablePartition.getShardNodes());
+                            NodeGroup addGroup = getNodeGroup(nodeGroups, existShardNodes);
+                            List<String> addShardNodes = addGroup.getNodeNames().stream()
+                                    .filter(node -> !existShardNodes.contains(node))
+                                    .collect(Collectors.toList());
+
+                            tablePartition.getSizeInNode().entrySet().forEach(
+                                    e -> e.setValue(sizeInNodeMap.getOrDefault(e.getKey(), 0L))
+                            );
+
                             List<String> shardNodes = new ArrayList<>(tablePartition.getShardNodes());
+                            shardNodes.addAll(addShardNodes);
+
                             Map<String, Long> sizeInNode = new HashMap<>(tablePartition.getSizeInNode());
+
                             sizeInNode.entrySet().forEach(
                                     e -> e.setValue(sizeInNodeMap.getOrDefault(e.getKey(), 0L))
                             );
+
                             Map<String, List<SegmentFileStatus>> nodeFileMap = new HashMap<>(tablePartition.getNodeFileMap());
+
+                            for (String node : addShardNodes) {
+                                sizeInNode.put(node, sizeInNodeMap.getOrDefault(node, 0L));
+                                nodeFileMap.put(node, new ArrayList<>());
+                            }
+
                             TablePartition.Builder builder = new TablePartition.Builder();
                             builder.setId(tablePartition.getId())
                                     .setSegmentId(tablePartition.getSegmentId())

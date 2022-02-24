@@ -24,20 +24,20 @@
 package io.kyligence.kap.newten.clickhouse;
 
 import com.clearspring.analytics.util.Preconditions;
-import io.kyligence.kap.clickhouse.job.ClickHouseSegmentCleanJob;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.guava20.shaded.common.collect.ImmutableList;
-import io.kyligence.kap.guava20.shaded.common.collect.Lists;
 import io.kyligence.kap.clickhouse.ClickHouseStorage;
 import io.kyligence.kap.clickhouse.job.ClickHouse;
 import io.kyligence.kap.clickhouse.job.ClickHouseLoad;
+import io.kyligence.kap.clickhouse.job.ClickHouseSegmentCleanJob;
 import io.kyligence.kap.clickhouse.management.ClickHouseConfigLoader;
 import io.kyligence.kap.clickhouse.parser.ShowDatabasesParser;
 import io.kyligence.kap.clickhouse.tool.ClickHouseSanityCheckTool;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.guava20.shaded.common.collect.ImmutableList;
+import io.kyligence.kap.guava20.shaded.common.collect.Lists;
 import io.kyligence.kap.guava20.shaded.common.collect.Maps;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -677,6 +677,31 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
             lockOperateRequest7.setOperateType(LockOperateTypeEnum.UNLOCK.name());
             envelopeResponse = secondStorageEndpoint.lockOperate(lockOperateRequest7);
             ClickHouseSimpleITTestUtils.checkLockOperateResult(envelopeResponse, Arrays.asList(LockTypeEnum.QUERY.name()), getProject());
+        }
+    }
+
+    @Test
+    public void testReblanceWithHA() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse()) {
+            build_load_query("testSingleShardDoubleReplica", false, 2, null, clickhouse1, clickhouse2);
+
+            val lockOperateRequest6 = new ProjectLockOperateRequest();
+            lockOperateRequest6.setProject(getProject());
+            lockOperateRequest6.setLockTypes(Arrays.asList(LockTypeEnum.LOAD.name(), LockTypeEnum.QUERY.name()));
+            lockOperateRequest6.setOperateType(LockOperateTypeEnum.LOCK.name());
+            EnvelopeResponse envelopeResponse = secondStorageEndpoint.lockOperate(lockOperateRequest6);
+            ClickHouseSimpleITTestUtils.checkLockOperateResult(envelopeResponse, Arrays.asList(LockTypeEnum.LOAD.name(), LockTypeEnum.QUERY.name()), getProject());
+
+            val lockOperateRequest7 = new ProjectLockOperateRequest();
+            lockOperateRequest7.setProject(getProject());
+            lockOperateRequest7.setLockTypes(Arrays.asList(LockTypeEnum.LOAD.name()));
+            lockOperateRequest7.setOperateType(LockOperateTypeEnum.UNLOCK.name());
+            envelopeResponse = secondStorageEndpoint.lockOperate(lockOperateRequest7);
+            ClickHouseSimpleITTestUtils.checkLockOperateResult(envelopeResponse, Arrays.asList(LockTypeEnum.QUERY.name()), getProject());
+
+            secondStorageService.sizeInNode(getProject());
+
         }
     }
 
