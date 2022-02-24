@@ -63,6 +63,7 @@ case class SingleSQLStatement(
   lazy val filterWhereClause: String = filters.getOrElse(Seq.empty)
     .flatMap(JDBCRDD.compileFilter(_, JdbcDialects.get(url.getOrElse("Unknown URL")))).map { p =>
       val replacement = p.replaceAll("`castFloat(\\w+)castFloat`", "toFloat64(`$1`)")
+        .replaceAll("\"castFloat(\\w+)castFloat\"", "toFloat64(`$1`)")
       s"($replacement)"
     }.mkString(" AND ")
 
