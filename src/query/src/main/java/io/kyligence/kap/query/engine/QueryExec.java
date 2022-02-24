@@ -36,8 +36,11 @@ import io.kyligence.kap.query.engine.meta.SimpleDataContext;
 import io.kyligence.kap.query.relnode.KapAggregateRel;
 import io.kyligence.kap.query.util.CalcitePlanRouterVisitor;
 import io.kyligence.kap.query.util.HepUtils;
+import io.kyligence.kap.query.engine.view.ViewAnalyzer;
+
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteConnectionConfig;
+import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -88,12 +91,13 @@ public class QueryExec {
     private final QueryOptimizer queryOptimizer;
     private final SimpleDataContext dataContext;
     private final boolean allowAlternativeQueryPlan;
+    private final CalciteSchema rootSchema;
 
     public QueryExec(String project, KylinConfig kylinConfig, boolean allowAlternativeQueryPlan) {
         this.kylinConfig = kylinConfig;
         config = KECalciteConfig.fromKapConfig(kylinConfig);
         schemaFactory = new ProjectSchemaFactory(project, kylinConfig);
-        CalciteSchema rootSchema = schemaFactory.createProjectRootSchema();
+        rootSchema = schemaFactory.createProjectRootSchema();
         String defaultSchemaName = schemaFactory.getDefaultSchema();
         catalogReader = createCatalogReader(config, rootSchema, defaultSchemaName);
         planner = new PlannerFactory(kylinConfig).createVolcanoPlanner(config);
@@ -102,6 +106,31 @@ public class QueryExec {
         planner.setExecutor(new RexExecutorImpl(dataContext));
         queryOptimizer = new QueryOptimizer(planner);
         this.allowAlternativeQueryPlan = allowAlternativeQueryPlan;
+
+        if (kylinConfig.getAutoModelViewEnabled()) {
+            schemaFactory.addModelViewSchemas(rootSchema, new SimpleViewAnalyzer(rootSchema, defaultSchemaName));
+        }
+    }
+
+    public class SimpleViewAnalyzer implements ViewAnalyzer {
+
+        private final CalciteSchema rootSchema;
+        private final String defaultSchemaName;
+
+        public SimpleViewAnalyzer(CalciteSchema rootSchema, String defaultSchemaName) {
+            this.rootSchema = rootSchema;
+            this.defaultSchemaName = defaultSchemaName;
+        }
+
+        @Override
+        public CalcitePrepare.AnalyzeViewResult analyzeView(String sql) throws SqlParseException {
+            Prepare.CatalogReader viewCatalogReader = createCatalogReader(config, rootSchema, defaultSchemaName);
+            RelOptPlanner viewPlanner = new PlannerFactory(kylinConfig).createVolcanoPlanner(config);
+            SQLConverter viewSqlConverter = SQLConverter.createConverter(config, viewPlanner, viewCatalogReader);
+            SimpleDataContext viewDataContext = createDataContext(rootSchema);
+            viewPlanner.setExecutor(new RexExecutorImpl(viewDataContext));
+            return viewSqlConverter.analyzeSQl(sql);
+        }
     }
 
     public QueryExec(String project, KylinConfig kylinConfig) {
@@ -283,8 +312,12 @@ public class QueryExec {
      * get default schema used in this query
      * @return
      */
-    public String getSchema() {
+    public String getDefaultSchemaName() {
         return schemaFactory.getDefaultSchema();
+    }
+
+    public CalciteSchema getRootSchema() {
+        return rootSchema;
     }
 
     /**

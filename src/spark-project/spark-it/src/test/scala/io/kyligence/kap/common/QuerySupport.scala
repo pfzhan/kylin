@@ -65,7 +65,7 @@ trait QuerySupport
     try {
       val queryExec = new QueryExec(project, KylinConfig.getInstanceFromEnv)
       val queryParams = new QueryParams(QueryUtil.getKylinConfig(project), sql, project,
-        0, 0, queryExec.getSchema, true)
+        0, 0, queryExec.getDefaultSchemaName, true)
       val convertedSql = QueryUtil.massageSql(queryParams)
       queryExec.executeQuery(convertedSql)
     } finally {

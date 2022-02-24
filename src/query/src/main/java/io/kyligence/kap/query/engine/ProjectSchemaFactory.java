@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import io.kyligence.kap.query.engine.view.ViewAnalyzer;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.schema.Function;
@@ -54,7 +55,7 @@ import io.kyligence.kap.query.schema.KapOLAPSchema;
  * factory that create and construct schemas within a project
  */
 @Slf4j
-public class ProjectSchemaFactory {
+class ProjectSchemaFactory {
 
     private final String projectName;
     private final KylinConfig kylinConfig;
@@ -62,7 +63,7 @@ public class ProjectSchemaFactory {
     private Map<String, List<NDataModel>> modelsMap;
     private String defaultSchemaName;
 
-    public ProjectSchemaFactory(String projectName, KylinConfig kylinConfig) {
+    ProjectSchemaFactory(String projectName, KylinConfig kylinConfig) {
         this.projectName = projectName;
         this.kylinConfig = kylinConfig;
 
@@ -96,9 +97,7 @@ public class ProjectSchemaFactory {
     public CalciteSchema createProjectRootSchema() {
         CalciteSchema rootSchema = CalciteSchema.createRootSchema(true);
         addProjectSchemas(rootSchema);
-        if (kylinConfig.getAutoModelViewEnabled()) {
-            addModelViewSchemas(rootSchema);
-        }
+
         return rootSchema;
     }
 
@@ -118,10 +117,10 @@ public class ProjectSchemaFactory {
         }
     }
 
-    private void addModelViewSchemas(CalciteSchema parentSchema) {
+    public void addModelViewSchemas(CalciteSchema parentSchema, ViewAnalyzer viewAnalyzer) {
         final String viewSchemaName = projectName;
 
-        ViewSchema viewSchema = new ViewSchema(viewSchemaName);
+        ViewSchema viewSchema = new ViewSchema(viewSchemaName, viewAnalyzer);
         CalciteSchema schema = getOrCreateViewSchema(parentSchema, viewSchema);
         SchemaPlus plus = schema.plus();
 

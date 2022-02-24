@@ -106,7 +106,7 @@ class KylinSession(
       val projectKylinConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv).getProject(project).getConfig
       val queryExec = new QueryExec(project, projectKylinConfig)
       val queryParams = new QueryParams(QueryUtil.getKylinConfig(project),
-        sql, project, 0, 0, queryExec.getSchema, true)
+        sql, project, 0, 0, queryExec.getDefaultSchemaName, true)
       val convertedSql = QueryUtil.massageSql(queryParams)
       queryExec.executeQuery(convertedSql)
     } finally {

@@ -267,7 +267,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
         QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(sqlRequest.getProject()),
                 sqlRequest.getSql(), sqlRequest.getProject(), sqlRequest.getLimit(), sqlRequest.getOffset(),
-                queryExec.getSchema(), true);
+                queryExec.getDefaultSchemaName(), true);
         String correctedSql = QueryUtil.massageSql(queryParams);
 
         Mockito.when(queryExec.executeQuery(correctedSql))
@@ -297,7 +297,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
         QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(sqlRequest.getProject()),
                 sqlRequest.getSql(), sqlRequest.getProject(), sqlRequest.getLimit(), sqlRequest.getOffset(),
-                queryExec.getSchema(), true);
+                queryExec.getDefaultSchemaName(), true);
         String correctedSql = QueryUtil.massageSql(queryParams);
 
         Mockito.when(queryExec.executeQuery(correctedSql))

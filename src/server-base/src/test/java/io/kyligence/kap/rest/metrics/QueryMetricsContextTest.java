@@ -68,7 +68,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
 
     private String massageSql(QueryContext queryContext) {
 
-        String defaultSchema = new QueryExec(queryContext.getProject(), KylinConfig.getInstanceFromEnv()).getSchema();
+        String defaultSchema = new QueryExec(queryContext.getProject(), KylinConfig.getInstanceFromEnv()).getDefaultSchemaName();
         QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(queryContext.getProject()),
                 queryContext.getUserSQL(), queryContext.getProject(), queryContext.getLimit(), queryContext.getOffset(),
                 defaultSchema, false);

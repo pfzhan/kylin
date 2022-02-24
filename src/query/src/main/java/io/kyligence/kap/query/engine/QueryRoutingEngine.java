@@ -79,7 +79,7 @@ public class QueryRoutingEngine {
         KylinConfig projectKylinConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(queryParams.getProject()).getConfig();
         QueryExec queryExec = new QueryExec(queryParams.getProject(), projectKylinConfig, true);
-        queryParams.setDefaultSchema(queryExec.getSchema());
+        queryParams.setDefaultSchema(queryExec.getDefaultSchemaName());
 
         if (queryParams.isForcedToPushDown()) {
             return pushDownQuery(null, queryParams);

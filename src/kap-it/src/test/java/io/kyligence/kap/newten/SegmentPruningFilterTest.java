@@ -30,7 +30,7 @@ import io.kyligence.kap.junit.TimeZoneTestRunner;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.query.engine.ProjectSchemaFactory;
+import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.query.engine.TypeSystem;
 import io.kyligence.kap.query.engine.meta.SimpleDataContext;
 import io.kyligence.kap.smart.query.AbstractQueryRunner;
@@ -100,8 +100,7 @@ public class SegmentPruningFilterTest extends NLocalWithSparkSessionTest impleme
         OLAPContext context = olapContexts.get(0).iterator().next();
         TblColRef filterColumn = (TblColRef) context.filterColumns.iterator().next();
         dataflow.getModel().getPartitionDesc().setPartitionDateColumnRef(filterColumn);
-        ProjectSchemaFactory schemaFactory = new ProjectSchemaFactory(project, kylinConfig);
-        CalciteSchema rootSchema = schemaFactory.createProjectRootSchema();
+        CalciteSchema rootSchema = new QueryExec(project, kylinConfig).getRootSchema();
         SimpleDataContext dataContext = new SimpleDataContext(rootSchema.plus(), TypeSystem.javaTypeFactory(), kylinConfig);
         context.firstTableScan.getCluster().getPlanner().setExecutor(new RexExecutorImpl(dataContext));
         return RealizationPruner.pruneSegments(dataflow, context);

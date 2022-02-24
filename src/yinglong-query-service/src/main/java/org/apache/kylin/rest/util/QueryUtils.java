@@ -82,7 +82,7 @@ public class QueryUtils {
             String defaultSchema = "DEFAULT";
             try {
                 defaultSchema = new QueryExec(queryContext.getProject(), KylinConfig.getInstanceFromEnv())
-                        .getSchema();
+                        .getDefaultSchemaName();
             } catch (Exception e) {
                 logger.warn("Failed to get connection, project: {}", queryContext.getProject(), e);
             }
