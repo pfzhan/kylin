@@ -336,6 +336,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                     ccDesc.setInnerExpression(ccExpression);
                     ComputedColumnEvalUtil.evaluateExprAndType(model, ccDesc);
                 }));
+        ReflectionTestUtils.setField(semanticService, "modelSmartSupporter", modelSmartService);
         ReflectionTestUtils.setField(modelService, "projectService", projectService);
         ReflectionTestUtils.setField(modelService, "modelQuerySupporter", modelQueryService);
         ReflectionTestUtils.setField(tableService, "jobService", jobService);

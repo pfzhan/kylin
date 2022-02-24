@@ -75,13 +75,13 @@ public class RawRecService extends BasicService implements ModelChangeSupporter,
     private static final String ACCELERATION_INTERRUPT_BY_USER = "Acceleration triggered by user terminate the process of generate recommendation automatically at present.";
 
     @Autowired
-    ProjectSmartService projectService;
+    ProjectSmartService projectSmartService;
 
     @Autowired
     OptRecService optRecService;
 
     public void accelerate(String project) {
-        projectService.accelerateImmediately(project);
+        projectSmartService.accelerateImmediately(project);
         updateCostsAndTopNCandidates(project);
     }
 

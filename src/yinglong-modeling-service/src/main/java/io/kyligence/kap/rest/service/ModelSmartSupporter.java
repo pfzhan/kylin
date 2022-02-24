@@ -1,7 +1,5 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!--
-/**
- * Copyright (C) 2020 Kyligence Inc. All rights reserved.
+/*
+ * Copyright (C) 2016 Kyligence Inc. All rights reserved.
  *
  * http://kyligence.io
  *
@@ -23,32 +21,13 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
--->
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <parent>
-        <artifactId>ke</artifactId>
-        <groupId>io.kyligence.ke</groupId>
-        <version>4.0.0-SNAPSHOT</version>
-        <relativePath>../../pom.xml</relativePath>
-    </parent>
-    <modelVersion>4.0.0</modelVersion>
-    <name>YingLong - Smart Service</name>
-    <groupId>io.kyligence.yinglong</groupId>
-    <artifactId>yinglong-smart-service</artifactId>
+package io.kyligence.kap.rest.service;
 
-    <properties>
-        <maven.compiler.source>8</maven.compiler.source>
-        <maven.compiler.target>8</maven.compiler.target>
-    </properties>
+import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinDesc;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.model.JoinDesc;
 
-    <dependencies>
-        <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-smart</artifactId>
-        </dependency>
-    </dependencies>
-
-
-</project>
+public interface ModelSmartSupporter {
+    JoinDesc suggNonEquiJoinModel(final KylinConfig kylinConfig, final String project,
+                                          final JoinDesc modelJoinDesc, final SimplifiedJoinDesc requestJoinDesc);
+}

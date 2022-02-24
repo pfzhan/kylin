@@ -293,6 +293,7 @@
         <netty.version>3.10.6.Final</netty.version>
         <servo-core.version>0.13.2</servo-core.version>
         <apache-api.version>1.0.3</apache-api.version>
+        <jersey.version>2.35</jersey.version>
     </properties>
 
     <modules>

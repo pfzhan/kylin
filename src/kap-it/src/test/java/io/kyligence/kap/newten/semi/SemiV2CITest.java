@@ -176,7 +176,7 @@ public class SemiV2CITest extends SemiAutoTestBase {
         ReflectionTestUtils.setField(projectService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(projectService, "userGroupService", userGroupService);
         ReflectionTestUtils.setField(rawRecService, "optRecService", optRecService);
-        ReflectionTestUtils.setField(rawRecService, "projectService", projectService);
+        ReflectionTestUtils.setField(rawRecService, "projectSmartService", projectSmartService);
 
         ReflectionTestUtils.setField(projectSmartService, "projectSmartSupporter", rawRecService);
         ReflectionTestUtils.setField(projectSmartService, "aclEvaluate", aclEvaluate);
