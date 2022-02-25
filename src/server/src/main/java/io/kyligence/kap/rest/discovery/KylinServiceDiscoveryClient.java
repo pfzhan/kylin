@@ -34,6 +34,7 @@ import javax.annotation.Nullable;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ArrayUtils;
+import org.springframework.cloud.client.serviceregistry.Registration;
 import org.springframework.cloud.zookeeper.ConditionalOnZookeeperEnabled;
 import org.springframework.cloud.zookeeper.discovery.ZookeeperDiscoveryClient;
 import org.springframework.stereotype.Component;
@@ -50,15 +51,16 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class KylinServiceDiscoveryClient implements KylinServiceDiscovery {
 
+    private final Registration registration;
     private final ZookeeperDiscoveryClient discoveryClient;
 
-    public KylinServiceDiscoveryClient(ZookeeperDiscoveryClient discoveryClient) {
+    public KylinServiceDiscoveryClient(Registration registration, ZookeeperDiscoveryClient discoveryClient) {
+        this.registration = registration;
         this.discoveryClient = discoveryClient;
     }
 
     public String getLocalServiceServer() {
-        val instance = discoveryClient.getLocalServiceInstance();
-        return instance.getHost() + ":" + instance.getPort();
+        return registration.getHost() + ":" + registration.getPort();
     }
 
     @Override

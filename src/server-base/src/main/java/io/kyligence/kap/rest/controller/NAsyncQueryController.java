@@ -321,7 +321,7 @@ public class NAsyncQueryController extends NBasicController {
     @ApiOperation(value = "downloadQueryResult", tags = { "QE" }, notes = "Update URL: result")
     @GetMapping(value = "/async_query/{query_id:.+}/result_download")
     @ResponseBody
-    public EnvelopeResponse<String> downloadQueryResult(@PathVariable("query_id") String queryId,
+    public void downloadQueryResult(@PathVariable("query_id") String queryId,
             @RequestParam(value = "include_header", required = false, defaultValue = "false") boolean include_header,
             @RequestParam(value = "includeHeader", required = false, defaultValue = "false") boolean includeHeader,
             @Valid @RequestBody(required = false) final AsyncQuerySQLRequest sqlRequest, HttpServletResponse response,
@@ -337,8 +337,7 @@ public class NAsyncQueryController extends NBasicController {
         KylinConfig config = queryService.getConfig();
         Message msg = MsgPicker.getMsg();
         if (!asyncQueryService.hasPermission(queryId, project)) {
-            return new EnvelopeResponse<>(KylinException.CODE_UNAUTHORIZED, "",
-                    "Access denied. Only task submitters or admin users can download the query results");
+            throw new KylinException(ACCESS_DENIED, msg.getFORBIDDEN_EXPORT_ASYNC_QUERY_RESULT());
         }
         asyncQueryService.checkStatus(queryId, AsyncQueryService.QueryStatus.SUCCESS, project,
                 MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
@@ -358,7 +357,6 @@ public class NAsyncQueryController extends NBasicController {
         response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "." + format + "\"");
         asyncQueryService.retrieveSavedQueryResult(project, queryId, includeHeader || include_header, response, format,
                 encode);
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "async query result path", tags = { "QE" })

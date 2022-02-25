@@ -487,7 +487,14 @@ public class NQueryController extends NBasicController {
             writer.write('\uFEFF');
 
             csvWriter = new CsvListWriter(writer, CsvPreference.STANDARD_PREFERENCE);
-            List<String> headerList = new ArrayList<String>();
+            List<String> headerList = new ArrayList<>();
+
+            // avoid handle npe in io.kyligence.kap.rest.controller.NBasicController.handleError
+            // when result.getColumnMetas is null
+            if (result.isException()) {
+                logger.warn("Download query result failed, exception is {}", result.getExceptionMessage());
+                return;
+            }
 
             for (SelectedColumnMeta column : result.getColumnMetas()) {
                 headerList.add(column.getLabel());

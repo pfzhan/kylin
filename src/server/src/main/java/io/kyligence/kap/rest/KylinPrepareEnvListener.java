@@ -36,9 +36,11 @@ import org.apache.kylin.source.jdbc.H2Database;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.context.config.ConfigDataEnvironmentPostProcessor;
 import org.springframework.boot.env.EnvironmentPostProcessor;
 import org.springframework.core.Ordered;
 import org.springframework.core.env.ConfigurableEnvironment;
+import org.springframework.core.env.Profiles;
 
 import io.kyligence.kap.common.util.TempMetadataBuilder;
 import io.kyligence.kap.common.util.Unsafe;
@@ -52,7 +54,7 @@ public class KylinPrepareEnvListener implements EnvironmentPostProcessor, Ordere
 
     @Override
     public int getOrder() {
-        return Ordered.HIGHEST_PRECEDENCE;
+        return ConfigDataEnvironmentPostProcessor.ORDER + 1010;
     }
 
     @Override
@@ -66,13 +68,13 @@ public class KylinPrepareEnvListener implements EnvironmentPostProcessor, Ordere
             env.addActiveProfile("dev");
         }
 
-        if (env.acceptsProfiles("sandbox")) {
-            if (env.acceptsProfiles("docker")) {
+        if (env.acceptsProfiles(Profiles.of("sandbox"))) {
+            if (env.acceptsProfiles(Profiles.of("docker"))) {
                 setSandboxEnvs("../../dev-support/sandbox/conf");
             } else {
                 setSandboxEnvs("../examples/test_case_data/sandbox");
             }
-        } else if (env.acceptsProfiles("dev")) {
+        } else if (env.acceptsProfiles(Profiles.of("dev"))) {
             setLocalEnvs();
         }
         // enable CC check

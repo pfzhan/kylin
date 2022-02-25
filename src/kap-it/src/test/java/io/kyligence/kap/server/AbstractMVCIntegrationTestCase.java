@@ -55,7 +55,7 @@ import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 @EnableWebMvc
 @WithMockUser(username = "ADMIN", roles = "ADMIN")
 @AutoConfigureMockMvc
-@ActiveProfiles("testing")
+@ActiveProfiles({ "testing", "test" })
 public abstract class AbstractMVCIntegrationTestCase extends NLocalFileMetadataTestCase {
 
     protected Logger logger = LoggerFactory.getLogger(getClass());

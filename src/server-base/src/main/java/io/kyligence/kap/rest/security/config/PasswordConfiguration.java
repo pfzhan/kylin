@@ -21,19 +21,28 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.rest;
 
-import org.springframework.cloud.client.ServiceInstance;
-import org.springframework.cloud.loadbalancer.core.ReactorLoadBalancer;
+package io.kyligence.kap.rest.security.config;
+
+import java.lang.reflect.InvocationTargetException;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
+@Profile("testing")
 @Configuration
-public class LoadBalanced {
+public class PasswordConfiguration {
+
+    @Value("${kylin.security.user-password-encoder}")
+    private String passwordEncoderClassName;
 
     @Bean
-    public ReactorLoadBalancer<ServiceInstance> reactorServiceInstanceLoadBalancer() {
-        return new ProjectBasedLoadBalancer();
+    public PasswordEncoder passwordEncoder() throws ClassNotFoundException, InstantiationException,
+            IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+        Class<?> serviceClass = Class.forName(passwordEncoderClassName);
+        return (PasswordEncoder) serviceClass.getDeclaredConstructor().newInstance();
     }
-
 }

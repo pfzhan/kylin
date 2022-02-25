@@ -61,10 +61,16 @@ public class ProjectInfoParser {
         HttpServletRequest requestWrapper = request;
         String project = null;
         try {
+            String contentType = request.getContentType();
+            if (contentType != null && contentType.contains("application/x-www-form-urlencoded")) {
+                // parse parameter and load form from body
+                project = requestWrapper.getParameter(PROJECT_PARAM);
+            }
+
             requestWrapper = new RepeatableBodyRequestWrapper(request);
             project = requestWrapper.getParameter(PROJECT_PARAM);
-            if (StringUtils.isEmpty(project) && request.getContentType() != null
-                    && request.getContentType().contains("json")) {
+            if (StringUtils.isEmpty(project) && contentType != null
+                    && contentType.contains("json")) {
                 val projectRequest = JsonUtil.readValue(((RepeatableBodyRequestWrapper) requestWrapper).getBody(),
                         ProjectRequest.class);
                 if (projectRequest != null) {

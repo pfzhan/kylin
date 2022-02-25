@@ -59,7 +59,7 @@ import io.kyligence.kap.metadata.user.ManagedUser;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = ServiceTestBase.SpringConfig.class)
 @WebAppConfiguration(value = "src/main/resources")
-@ActiveProfiles({ "custom" })
+@ActiveProfiles({ "custom", "test" })
 public class OpenUserServiceTest extends NLocalFileMetadataTestCase {
 
     @Autowired

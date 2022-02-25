@@ -43,10 +43,9 @@ import org.junit.rules.ExpectedException;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
-
-import com.netflix.loadbalancer.Server;
 
 import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
@@ -54,8 +53,9 @@ import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
+import reactor.core.publisher.Mono;
 
-public class ProjectBasedRoundRobinRuleTest extends NLocalFileMetadataTestCase {
+public class ProjectBasedLoadBalancerTest extends NLocalFileMetadataTestCase {
 
     @Rule
     public MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -78,7 +78,7 @@ public class ProjectBasedRoundRobinRuleTest extends NLocalFileMetadataTestCase {
         createHttpServletRequestMock("default2");
         exceptionRule.expect(KylinException.class);
         exceptionRule.expectMessage("System is trying to recover service. Please try again later.");
-        new ProjectBasedRoundRobinRule().choose("");
+        Mono.from(new ProjectBasedLoadBalancer().choose()).block();
     }
 
     private void createHttpServletRequestMock(String project) throws IOException {
@@ -128,7 +128,8 @@ public class ProjectBasedRoundRobinRuleTest extends NLocalFileMetadataTestCase {
 
         String instance = AddressUtil.getLocalInstance();
         String[] split = instance.split(":");
-        Server server = new ProjectBasedRoundRobinRule().choose("");
+
+        ServiceInstance server = Mono.from(new ProjectBasedLoadBalancer().choose()).block().getServer();
         Assert.assertEquals(split[0], server.getHost());
         Assert.assertEquals(Integer.parseInt(split[1]), server.getPort());
     }

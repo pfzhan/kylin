@@ -121,6 +121,7 @@ import org.apache.kylin.util.BrokenEntityProxy;
 import org.apache.kylin.util.PasswordEncodeFactory;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
+import org.hamcrest.core.IsInstanceOf;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -1314,7 +1315,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testCloneModelExceptionName() {
-        thrown.expectCause(is(KylinException.class));
+        thrown.expectCause(IsInstanceOf.instanceOf(KylinException.class));
         thrown.expectMessageInTransaction("Can’t find model named \"nmodel_basic2222\". Please check and try again.");
         modelService.cloneModel("nmodel_basic2222", "nmodel_basic_inner222", "default");
     }

@@ -33,6 +33,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.apache.kylin.common.util.Pair;
 import org.junit.Assert;
 import org.junit.Test;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletRequest;
 
 import lombok.val;
@@ -89,7 +90,7 @@ public class ProjectInfoParserTest {
         request.setParameter("project", "AAA");
 
         Pair<String, HttpServletRequest> pair = ProjectInfoParser.parseProjectInfo(request);
-        Assert.assertEquals(pair.getFirst(), "AAA");
+        Assert.assertEquals("AAA", pair.getFirst());
 
         // project in body
         request = new MockHttpServletRequest();
@@ -101,7 +102,7 @@ public class ProjectInfoParserTest {
 
         request.setContentType("application/json");
         pair = ProjectInfoParser.parseProjectInfo(request);
-        Assert.assertEquals(pair.getFirst(), "BBB");
+        Assert.assertEquals("BBB", pair.getFirst());
 
         // delete request
         request = new MockHttpServletRequest();
@@ -111,7 +112,7 @@ public class ProjectInfoParserTest {
 
         request.setContentType("application/json");
         pair = ProjectInfoParser.parseProjectInfo(request);
-        Assert.assertEquals(pair.getFirst(), "CCC");
+        Assert.assertEquals("CCC", pair.getFirst());
 
         // project is empty
         request = new MockHttpServletRequest();
@@ -120,7 +121,7 @@ public class ProjectInfoParserTest {
 
         request.setContentType("application/json");
         pair = ProjectInfoParser.parseProjectInfo(request);
-        Assert.assertEquals(pair.getFirst(), "_global");
+        Assert.assertEquals("_global", pair.getFirst());
     }
 
     private void checkProjectInfoParser(String uriString, String project) {
@@ -149,5 +150,18 @@ public class ProjectInfoParserTest {
         checkProjectInfoParser(String.format(Locale.ROOT, "/kylin/api/models/%s/m1/model_desc", project), project);
         checkProjectInfoParser(String.format(Locale.ROOT, "/kylin/api/models/%s/m1/partition_desc", project), project);
         checkProjectInfoParser(String.format(Locale.ROOT, "/api/access/t1/%s", project), project);
+    }
+
+    @Test
+    public void testApplicationUrlEncodedContentTypeRequest() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setContentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE);
+        request.setServerName("localhost");
+        request.setMethod("POST");
+        request.setRequestURI("/kylin/api/query/format/csv");
+        request.setParameter("project", "AAA");
+
+        Pair<String, HttpServletRequest> pair = ProjectInfoParser.parseProjectInfo(request);
+        Assert.assertEquals("AAA", pair.getFirst());
     }
 }

@@ -69,7 +69,7 @@ import static org.springframework.security.test.web.servlet.setup.SecurityMockMv
 @ContextHierarchy({ @ContextConfiguration(locations = { "classpath:applicationContext.xml" }),
         @ContextConfiguration(locations = { "classpath:kylinSecurity.xml" }) })
 @WebAppConfiguration(value = "src/main/resources")
-@ActiveProfiles({ "ldap", "ldap-test" })
+@ActiveProfiles({ "ldap", "ldap-test", "test" })
 public class QueryServiceWithLdapTest extends NLocalFileMetadataTestCase {
 
     private static final String LDAP_CONFIG = "ut_ldap/ldap-config.properties";

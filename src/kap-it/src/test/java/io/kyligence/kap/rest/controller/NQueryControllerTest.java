@@ -25,6 +25,8 @@
 package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static org.hamcrest.core.StringContains.containsString;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 
 import java.io.File;
 import java.sql.Connection;
@@ -205,5 +207,24 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
 
         int allProjectsSize = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).listAllProjects().size();
         Assert.assertEquals(allProjectsSize, actualProjects.size());
+    }
+
+
+    @Test
+    public void testDownloadQueryResultWithQueryException() throws Exception {
+        MvcResult result = mockMvc
+                .perform(MockMvcRequestBuilders.post("/api/query/format/{format}", "csv")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE).param("project", "Default")
+                        .param("sql", "SELECT error").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+
+        String content = result.getResponse().getContentAsString();
+        Assert.assertEquals(1, content.length());
+        Assert.assertEquals('\uFEFF', content.charAt(0));
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/query/format/{format}", "csv")
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE).param("project", "Default")
+                .param("sql", "SELECT 1").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andExpect(content().string(containsString("1")));
     }
 }

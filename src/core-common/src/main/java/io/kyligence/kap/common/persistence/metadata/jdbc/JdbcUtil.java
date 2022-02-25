@@ -35,6 +35,7 @@ import java.util.Properties;
 
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.dbcp2.BasicDataSourceFactory;
+import org.apache.hadoop.util.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.exception.KylinException;
@@ -121,6 +122,30 @@ public class JdbcUtil {
             }
         } catch (Exception e) {
             logger.error("Fail to know if table {} index {} exists", tables, index, e);
+        } finally {
+            if (!conn.isClosed())
+                conn.close();
+        }
+        return false;
+    }
+
+    public static boolean isColumnExists(Connection conn, String table, String column) throws SQLException {
+        return isColumnExists(conn, column, table, table.toUpperCase(Locale.ROOT), table.toLowerCase(Locale.ROOT));
+    }
+
+    private static boolean isColumnExists(Connection conn, String column, String... tables) throws SQLException {
+        try {
+            for (String table : tables) {
+                val resultSet = conn.getMetaData().getColumns(null, null, table, null);
+                while (resultSet.next()) {
+                    String columnName = resultSet.getString("COLUMN_NAME");
+                    if (StringUtils.equalsIgnoreCase(columnName, column)) {
+                        return true;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Fail to know if table {} column {} exists", tables, column, e);
         } finally {
             if (!conn.isClosed())
                 conn.close();

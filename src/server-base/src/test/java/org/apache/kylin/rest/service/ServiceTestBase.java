@@ -76,7 +76,7 @@ import java.util.Arrays;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = ServiceTestBase.SpringConfig.class)
 @WebAppConfiguration(value = "src/main/resources")
-@ActiveProfiles("testing")
+@ActiveProfiles({ "testing", "test" })
 public class ServiceTestBase extends NLocalFileMetadataTestCase {
 
     @Autowired

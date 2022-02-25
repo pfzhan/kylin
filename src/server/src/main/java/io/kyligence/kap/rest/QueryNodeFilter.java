@@ -33,6 +33,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.TRANSFER_FAILED;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 
 import javax.servlet.Filter;
@@ -237,7 +238,7 @@ public class QueryNodeFilter implements Filter {
                         HttpMethod.valueOf(servletRequest.getMethod()), new HttpEntity<>(body, headers), byte[].class);
                 tryCatchUp();
                 responseHeaders = exchange.getHeaders();
-                responseBody = exchange.getBody();
+                responseBody = Optional.ofNullable(exchange.getBody()).orElse(new byte[0]);
                 responseStatus = exchange.getStatusCodeValue();
             } catch (IllegalStateException | ResourceAccessException e) {
                 responseStatus = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
@@ -245,19 +246,21 @@ public class QueryNodeFilter implements Filter {
                 KylinException exception;
                 val manager = ResourceGroupManager.getInstance(KylinConfig.getInstanceFromEnv());
                 if (manager.isResourceGroupEnabled() && !manager.isProjectBindToResourceGroup(project)) {
-                    exception = new KylinException(PROJECT_WITHOUT_RESOURCE_GROUP, msg.getPROJECT_WITHOUT_RESOURCE_GROUP());
+                    exception = new KylinException(PROJECT_WITHOUT_RESOURCE_GROUP,
+                            msg.getPROJECT_WITHOUT_RESOURCE_GROUP());
                 } else {
                     exception = new KylinException(SYSTEM_IS_RECOVER, msg.getLEADERS_HANDLE_OVER());
                 }
-                ErrorResponse errorResponse = new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(servletRequest), exception);
+                ErrorResponse errorResponse = new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(servletRequest),
+                        exception);
                 responseBody = JsonUtil.writeValueAsBytes(errorResponse);
                 responseHeaders = new HttpHeaders();
-                responseHeaders.setContentType(MediaType.APPLICATION_JSON_UTF8);
+                responseHeaders.setContentType(MediaType.APPLICATION_JSON);
                 log.error("no job node", e);
             } catch (HttpStatusCodeException e) {
                 responseStatus = e.getRawStatusCode();
                 responseBody = e.getResponseBodyAsByteArray();
-                responseHeaders = e.getResponseHeaders();
+                responseHeaders = Optional.ofNullable(e.getResponseHeaders()).orElse(new HttpHeaders());
                 log.warn("code {}, error {}", e.getStatusCode(), e.getMessage());
             } catch (Exception e) {
                 log.error("transfer failed", e);
@@ -313,11 +316,11 @@ public class QueryNodeFilter implements Filter {
     }
 
     private boolean checkProcessLocal(KylinConfig kylinConfig, String project, String contentType) {
-        if(kylinConfig.isQueryNodeOnly()){
+        if (kylinConfig.isQueryNodeOnly()) {
             return false;
         }
 
-        if(!EpochManager.getInstance().checkEpochOwner(project)){
+        if (!EpochManager.getInstance().checkEpochOwner(project)) {
             return false;
         }
 
@@ -340,7 +343,7 @@ public class QueryNodeFilter implements Filter {
                 new KylinException(FAILED_CONNECT_CATALOG, MsgPicker.getMsg().getCONNECT_DATABASE_ERROR(), false));
         byte[] responseBody = JsonUtil.writeValueAsBytes(errorResponse);
         HttpHeaders responseHeaders = new HttpHeaders();
-        responseHeaders.setContentType(MediaType.APPLICATION_JSON_UTF8);
+        responseHeaders.setContentType(MediaType.APPLICATION_JSON);
         servletResponse.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         setResponseHeaders(responseHeaders, servletResponse);
         servletResponse.getOutputStream().write(responseBody);

@@ -42,6 +42,7 @@ import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.Pbkdf2PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -80,6 +81,10 @@ public class LimitLoginAuthenticationProviderTest extends ServiceTestBase {
         MockitoAnnotations.initMocks(this);
         RequestContextHolder.setRequestAttributes(attrs);
         limitLoginAuthenticationProvider = Mockito.spy(new LimitLoginAuthenticationProvider());
+        // spring security 5 has removed PlainTextPasswordEncoder
+        // https://github.com/spring-projects/spring-security/blob/4.2.x/core/src/main/java/
+        // org/springframework/security/authentication/encoding/PlaintextPasswordEncoder.java
+        limitLoginAuthenticationProvider.setPasswordEncoder(NoOpPasswordEncoder.getInstance());
         ReflectionTestUtils.setField(limitLoginAuthenticationProvider, "userService", userService);
         ReflectionTestUtils.setField(limitLoginAuthenticationProvider, "userDetailsService", userService);
         kylinUserService.updateUser(userAdmin);
@@ -143,8 +148,8 @@ public class LimitLoginAuthenticationProviderTest extends ServiceTestBase {
         } catch (Exception e) {
             Assert.assertTrue(e instanceof LockedException);
             String msg = e.getMessage();
-            Assert.assertTrue(msg.matches(
-                    "For security concern, account ADMIN has been locked. Please try again in \\d+ seconds. "
+            Assert.assertTrue(msg
+                    .matches("For security concern, account ADMIN has been locked. Please try again in \\d+ seconds. "
                             + "Login failure again will be locked for 1 minutes.."));
         }
     }
