@@ -45,7 +45,6 @@ management:
       enabled: true
     prometheus:
       enabled: true
-
   endpoints:
     web:
       base-path: "/api"
