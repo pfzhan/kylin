@@ -173,7 +173,7 @@ services:
     ports:
       - 9092:9092
   influxdb:
-    image: influxdb:2.0
+    image: influxdb:1.6.4
     container_name: influxdb
     hostname: influxdb
     networks:
