@@ -584,8 +584,13 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.get("/api/async_query/{query_id:.+}/result_download", "123")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(mockAsyncQuerySQLRequest()))
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON))).andExpect(result -> {
+                    Assert.assertTrue(result.getResolvedException() instanceof KylinException);
+                    KylinException resolvedException = (KylinException) result.getResolvedException();
+                    Assert.assertEquals("KE-010024001", resolvedException.getErrorCode().getCodeString());
+                    Assert.assertEquals(MsgPicker.getMsg().getFORBIDDEN_EXPORT_ASYNC_QUERY_RESULT(),
+                            resolvedException.getMessage());
+                });
 
         Mockito.verify(nAsyncQueryController).downloadQueryResult(Mockito.anyString(), Mockito.anyBoolean(),
                 Mockito.anyBoolean(), Mockito.any(), Mockito.any(), Mockito.any());

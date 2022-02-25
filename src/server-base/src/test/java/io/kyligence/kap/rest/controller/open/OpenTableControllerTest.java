@@ -25,6 +25,7 @@ package io.kyligence.kap.rest.controller.open;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
@@ -104,7 +105,7 @@ public class OpenTableControllerTest extends NLocalFileMetadataTestCase {
         MockitoAnnotations.initMocks(this);
 
         mockMvc = MockMvcBuilders.standaloneSetup(openTableController).defaultRequest(MockMvcRequestBuilders.get("/"))
-                .build();
+                .defaultResponseCharacterEncoding(StandardCharsets.UTF_8).build();
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
 

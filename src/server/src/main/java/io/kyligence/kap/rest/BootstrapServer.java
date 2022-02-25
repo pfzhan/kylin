@@ -34,12 +34,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.embedded.EmbeddedServletContainerFactory;
-import org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
+import org.springframework.boot.web.servlet.server.ServletWebServerFactory;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
-import org.springframework.cloud.netflix.ribbon.RibbonClient;
+import org.springframework.cloud.loadbalancer.annotation.LoadBalancerClient;
 import org.springframework.cloud.zookeeper.discovery.ZookeeperInstance;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
@@ -61,7 +61,7 @@ import lombok.val;
 @EnableAsync
 @EnableCaching
 @EnableDiscoveryClient
-@RibbonClient(name = "spring-boot-provider", configuration = io.kyligence.kap.rest.LoadBalanced.class)
+@LoadBalancerClient(name = "spring-boot-provider", configuration = io.kyligence.kap.rest.LoadBalanced.class)
 public class BootstrapServer implements ApplicationListener<ApplicationEvent> {
 
     private static final Logger logger = LoggerFactory.getLogger(BootstrapServer.class);
@@ -71,12 +71,13 @@ public class BootstrapServer implements ApplicationListener<ApplicationEvent> {
     }
 
     @Bean
-    public EmbeddedServletContainerFactory servletContainer() {
-        TomcatEmbeddedServletContainerFactory tomcatFactory = new TomcatEmbeddedServletContainerFactory();
-
-        if (KylinConfig.getInstanceFromEnv().isServerHttpsEnabled())
-            tomcatFactory.addAdditionalTomcatConnectors(createSslConnector());
-        return tomcatFactory;
+    public ServletWebServerFactory servletContainer() {
+        TomcatServletWebServerFactory tomcat = new TomcatServletWebServerFactory();
+        tomcat.addContextCustomizers(context -> context.setRequestCharacterEncoding("UTF-8"));
+        if (KylinConfig.getInstanceFromEnv().isServerHttpsEnabled()) {
+            tomcat.addAdditionalTomcatConnectors(createSslConnector());
+        }
+        return tomcat;
     }
 
     private Connector createSslConnector() {

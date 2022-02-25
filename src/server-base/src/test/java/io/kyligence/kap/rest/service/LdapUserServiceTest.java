@@ -92,7 +92,7 @@ import lombok.extern.slf4j.Slf4j;
 @ContextHierarchy({ @ContextConfiguration(locations = { "classpath:applicationContext.xml" }),
         @ContextConfiguration(locations = { "classpath:kylinSecurity.xml" }) })
 @WebAppConfiguration(value = "src/main/resources")
-@ActiveProfiles({ "ldap", "ldap-test" })
+@ActiveProfiles({ "ldap", "ldap-test", "test" })
 public class LdapUserServiceTest extends NLocalFileMetadataTestCase {
 
     private static final String LDAP_CONFIG = "ut_ldap/ldap-config.properties";

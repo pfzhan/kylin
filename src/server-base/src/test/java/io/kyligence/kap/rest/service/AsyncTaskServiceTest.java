@@ -67,7 +67,7 @@ import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDaoTest;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = ServiceTestBase.SpringConfig.class)
 @WebAppConfiguration(value = "src/main/resources")
-@ActiveProfiles("testing")
+@ActiveProfiles({ "testing", "test" })
 public class AsyncTaskServiceTest extends NLocalFileMetadataTestCase {
 
     private static final String PROJECT = "default";

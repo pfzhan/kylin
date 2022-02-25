@@ -21,19 +21,28 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.rest;
 
-import org.springframework.cloud.client.ServiceInstance;
-import org.springframework.cloud.loadbalancer.core.ReactorLoadBalancer;
+package io.kyligence.kap.rest.security.config;
+
+import java.lang.reflect.InvocationTargetException;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 
+@Profile({ "testing", "ldap", "custom" })
 @Configuration
-public class LoadBalanced {
+public class LogoutHandlerConfiguration {
+
+    @Value("${kylin.security.custom.logout-success-handler}")
+    private String logoutHandlerClass;
 
     @Bean
-    public ReactorLoadBalancer<ServiceInstance> reactorServiceInstanceLoadBalancer() {
-        return new ProjectBasedLoadBalancer();
+    public LogoutSuccessHandler logoutSuccessHandler() throws ClassNotFoundException, InstantiationException,
+            IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+        Class<?> serviceClass = Class.forName(logoutHandlerClass);
+        return (LogoutSuccessHandler) serviceClass.getDeclaredConstructor().newInstance();
     }
-
 }

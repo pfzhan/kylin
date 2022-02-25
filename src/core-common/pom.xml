@@ -79,6 +79,10 @@
             <artifactId>commons-email</artifactId>
         </dependency>
         <dependency>
+            <groupId>commons-fileupload</groupId>
+            <artifactId>commons-fileupload</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
         </dependency>
@@ -131,12 +135,12 @@
         <!-- micrometer -->
         <dependency>
             <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-spring-legacy</artifactId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-registry-prometheus</artifactId>
+            <groupId>org.latencyutils</groupId>
+            <artifactId>LatencyUtils</artifactId>
         </dependency>
 
         <dependency>

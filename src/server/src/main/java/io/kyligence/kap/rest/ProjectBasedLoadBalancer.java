@@ -23,7 +23,6 @@
  */
 package io.kyligence.kap.rest;
 
-
 import static org.apache.kylin.common.exception.ServerErrorCode.SYSTEM_IS_RECOVER;
 
 import javax.servlet.http.HttpServletRequest;
@@ -33,38 +32,38 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.Pair;
+import org.springframework.cloud.client.DefaultServiceInstance;
+import org.springframework.cloud.client.ServiceInstance;
+import org.springframework.cloud.client.loadbalancer.DefaultResponse;
+import org.springframework.cloud.client.loadbalancer.Request;
+import org.springframework.cloud.client.loadbalancer.Response;
+import org.springframework.cloud.loadbalancer.core.ReactorServiceInstanceLoadBalancer;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import com.netflix.client.config.IClientConfig;
-import com.netflix.loadbalancer.AbstractLoadBalancerRule;
-import com.netflix.loadbalancer.ILoadBalancer;
-import com.netflix.loadbalancer.Server;
-
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.rest.interceptor.ProjectInfoParser;
+import lombok.val;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Mono;
+
+import java.util.Objects;
 
 @Slf4j
-public class ProjectBasedRoundRobinRule extends AbstractLoadBalancerRule {
-
-    public ProjectBasedRoundRobinRule() {
-    }
-
-    public ProjectBasedRoundRobinRule(ILoadBalancer lb) {
-        this();
-        setLoadBalancer(lb);
-    }
+public class ProjectBasedLoadBalancer implements ReactorServiceInstanceLoadBalancer {
 
     @Override
-    public Server choose(Object key) {
-        HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes())
-                .getRequest();
-        return choose(request);
+    // see original
+    // https://github.com/Netflix/ocelli/blob/master/ocelli-core/
+    // src/main/java/netflix/ocelli/loadbalancer/RoundRobinLoadBalancer.java
+    public Mono<Response<ServiceInstance>> choose(Request request) {
+        return Mono.fromCallable(this::getInstanceResponse);
     }
 
-    private Server choose(HttpServletRequest request) {
-        Pair<String, HttpServletRequest> projectInfo = ProjectInfoParser.parseProjectInfo(request);
+    private Response<ServiceInstance> getInstanceResponse() {
+        HttpServletRequest httpServletRequest = ((ServletRequestAttributes) Objects
+                .requireNonNull(RequestContextHolder.getRequestAttributes())).getRequest();
+        Pair<String, HttpServletRequest> projectInfo = ProjectInfoParser.parseProjectInfo(httpServletRequest);
         String project = projectInfo.getFirst();
         String owner = EpochManager.getInstance().getEpochOwner(project);
         if (StringUtils.isBlank(owner)) {
@@ -72,13 +71,10 @@ public class ProjectBasedRoundRobinRule extends AbstractLoadBalancerRule {
             throw new KylinException(SYSTEM_IS_RECOVER, msg.getLEADERS_HANDLE_OVER());
         }
         String[] host = owner.split(":");
-        Server server = new Server(host[0], Integer.parseInt(host[1]));
-        log.info("Request {} is redirecting to project's owner node {}.", request.getRequestURI(), server);
-        return server;
-    }
+        val serviceInstance = new DefaultServiceInstance("all", "all", host[0], Integer.parseInt(host[1]), false);
+        log.info("Request {} is redirecting to project's owner node {}.", httpServletRequest.getRequestURI(),
+                serviceInstance);
 
-    @Override
-    public void initWithNiwsConfig(IClientConfig iClientConfig) {
-        //do nothing
+        return new DefaultResponse(serviceInstance);
     }
 }

@@ -513,6 +513,10 @@ public class Message {
         return "Don’t have permission to export the query result. Please contact admin if needed.";
     }
 
+    public String getFORBIDDEN_EXPORT_ASYNC_QUERY_RESULT() {
+        return "Access denied. Only task submitters or admin users can download the query results";
+    }
+
     public String getDUPLICATE_QUERY_NAME() {
         return "Query named \"%s\" already exists. Please check and try again.";
     }
