@@ -38,6 +38,7 @@ import io.kyligence.kap.query.util.CalcitePlanRouterVisitor;
 import io.kyligence.kap.query.util.HepUtils;
 import io.kyligence.kap.query.engine.view.ViewAnalyzer;
 
+import io.kyligence.kap.query.engine.view.ViewAnalyzer;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalcitePrepare;
