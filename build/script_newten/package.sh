@@ -49,6 +49,45 @@ echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit
 
 cat > build/CHANGELOG.md <<'EOL'
 ### Release History
+#### Kyligence Enterprise 4.5.9 release note
+
+**Enhancement**
+
+- When there are many small files in the partition table, the time-consuming detection of resources is reduced.
+- Supports high-availability deployment of tiered storage clusters
+- Upgrade brand, update logo
+
+**Bugfix**
+
+-  Model cannot accept AI recommend resulting from out of boundary array
+-  Querying the FLOOR function reports an error
+-  Field of Decimal type in the Where statement is not supported to be pushed down to tiered storage for comparison
+-  The ORDER BY statement is not supported to be pushed down to tiered storage for sorting
+-  When the row level ACL setting API is used with input parameter of table name / column name / database name in the lowercase, an exception will occur during query
+-  After sum (expression) is enabled, the result of union all query is incorrect
+-  Time partition column does not support yyyymm format of type bigint
+-  The partition column is of VARCHAR type. If the partition column is converted to DATE type in the filter condition of SQL statement, segment pruning error will appear
+-  Incorrect installation description of load balancing "Tengine"
+-  Incorrect installation description preconditions : and hive's DDL permission is not required
+-  When the S3 space growinng in AWS environment , the command line tool RoutineTool cannot clean up temporary files normally
+-  Edit the model, add a data filter condition and report an unknown error code
+-  If the SQL statement with hint cannot hit the model, an error will be reported and the query cannot pushdown
+-  There is a kafka table with the same name, and it can be selected when adding a hive table
+-  On the streaming job page, when all items are selected, the filtering function of the "Object" filter box is not available
+-  Project administrator cannot configure project-level parameters, prompting no permission
+-  The query limit is FETCH NEXT XXX ROWS ONLY keywords cannot be optimized and recommended, but limit can be recommended
+-  COLLECT_SET measure cannot be answered with model when configuration parameter kylin.query.use-tableindex-answer-non-raw-query=true
+-  When adding Row ACL, after the operator of VARCHAR column is changed from 'LIKE' to 'IN', it cannot be changed back to 'LIKE'
+-  When the metastore.sh restore command is followed by an empty directory, there is no double confirmation step, resulting in the metadata being blanked
+-  Incorrect query result when fusion model hits logic of dimension as measure
+-  When Kafka and Hive data sources have tables with the same name, the number of tables is displayed incorrectly
+-  Turn on table-level data sampling, and all tables are sampled when loading some tables
+-  On streaming job page, after selecting all items, the filter item in the "Object" column is missing
+-  When recommending optimizations, if there is a SQL Hint, select the model with it
+-  When recommending CC, the CC of the offline state model is not reus
+-  Some completed query tasks are timed out in spark UI and cannot be cancelle
+-  Failed to execute check-env.sh on MAPR-6.1 platform
+
 
 #### Kyligence Enterprise 4.5.7 release note
 
