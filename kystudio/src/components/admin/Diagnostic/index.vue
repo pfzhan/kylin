@@ -604,7 +604,7 @@ export default class Diagnostic extends Vue {
             .title {
               font-size: 12px;
               font-weight: 400;
-              text-align: end;
+              text-align: right;
               color: @text-disabled-color;
             }
             .progress {

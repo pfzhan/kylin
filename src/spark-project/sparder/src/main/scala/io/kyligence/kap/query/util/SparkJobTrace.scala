@@ -50,7 +50,6 @@ class SparkJobTrace(jobGroup: String,
    */
   def jobFinished(): Unit = {
     try {
-      queryTrace.setDuration(QueryTrace.PREPARE_AND_SUBMIT_JOB, 0)
       val currentTimestamp = System.currentTimeMillis()
       jobTraceThreadPool.submit(new Runnable {
         override def run(): Unit = {

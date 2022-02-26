@@ -16,7 +16,7 @@
  */
 package org.apache.spark.sql.execution.datasources.v2.pushdown.sql
 
-import org.apache.spark.sql.catalyst.expressions.{AttributeReference, NamedExpression}
+import org.apache.spark.sql.catalyst.expressions.{AttributeReference, NamedExpression, SortOrder}
 import org.apache.spark.sql.connector.read.sqlpushdown.SQLStatement
 import org.apache.spark.sql.execution.datasources.jdbc.{JDBCOptions, JDBCRDD}
 import org.apache.spark.sql.execution.datasources.v2.DataSourceV2Relation
@@ -25,6 +25,10 @@ import org.apache.spark.sql.sources
 import org.apache.spark.sql.sources.Filter
 
 import java.util.Locale
+
+case class OrderDesc(col: String, direction: String, nullOrdering: String) {
+  lazy val sql = s"$col $direction $nullOrdering"
+}
 
 /**
  * Builds a pushed `SELECT` query with optional WHERE and GROUP BY clauses.
@@ -39,6 +43,8 @@ case class SingleSQLStatement(
     projects: Option[Seq[String]],
     filters: Option[Seq[sources.Filter]],
     groupBy: Option[Seq[String]],
+    orders: Seq[OrderDesc] = Seq.empty,
+    limitOpt: Option[Int] = None,
     url: Option[String] = None) extends SQLStatement {
 
   /**
@@ -54,10 +60,22 @@ case class SingleSQLStatement(
   /**
    * `filters`, but as a WHERE clause suitable for injection into a SQL query.
    */
-  lazy val filterWhereClause: String =
-    filters.getOrElse(Seq.empty)
-      .flatMap(JDBCRDD.compileFilter(_, JdbcDialects.get(url.getOrElse("Unknown URL"))))
-      .map(p => s"($p)").mkString(" AND ")
+  lazy val filterWhereClause: String = filters.getOrElse(Seq.empty)
+    .flatMap(JDBCRDD.compileFilter(_, JdbcDialects.get(url.getOrElse("Unknown URL")))).map { p =>
+      val replacement = p.replaceAll("`castFloat(\\w+)castFloat`", "toFloat64(`$1`)")
+        .replaceAll("\"castFloat(\\w+)castFloat\"", "toFloat64(`$1`)")
+      s"($replacement)"
+    }.mkString(" AND ")
+
+  lazy val orderByClause = if (orders.nonEmpty) {
+    s" ORDER BY ${orders.map(_.sql).mkString(", ")}"
+  } else {
+    ""
+  }
+
+  lazy val limitClause = limitOpt.map { limit =>
+    if (limit > 0 ) s"LIMIT $limit" else ""
+  }.getOrElse("")
 
   lazy val groupByStr: String = groupBy.map(g => s" GROUP BY ${g.mkString(", ")}").getOrElse("")
 
@@ -78,7 +96,7 @@ case class SingleSQLStatement(
 
   def toSQL(extraFilter: String = null): String = {
     val myWhereClause = getWhereClause(extraFilter)
-    s"SELECT $columnList FROM $relation $myWhereClause $groupByStr"
+    s"SELECT $columnList FROM $relation $myWhereClause $orderByClause $groupByStr $limitClause"
   }
 }
 
@@ -112,7 +130,9 @@ case class SingleCatalystStatement(
   relation: DataSourceV2Relation,
   projects: Seq[NamedExpression],
   filters: Seq[sources.Filter],
-  groupBy: Seq[NamedExpression]) extends SQLStatement {
+  groupBy: Seq[NamedExpression],
+  orders: Seq[SortOrder],
+  limitOpt: Option[Int] = None) extends SQLStatement {
 }
 
 object SingleCatalystStatement {
@@ -144,13 +164,15 @@ object SingleCatalystStatement {
       relation: DataSourceV2Relation,
       projects: Seq[NamedExpression],
       filters: Seq[sources.Filter],
-      groupBy: Seq[NamedExpression]
+      groupBy: Seq[NamedExpression],
+      orders: Seq[SortOrder] = Seq.empty,
+      limitOpt: Option[Int] = None
   ): SingleCatalystStatement = {
     val schemaSet = relation.schema
       .map(s => getColumnName(s.name, isCaseSensitive))
       .toSet
     projects.foreach(verifyPushedColumn(_, schemaSet))
     groupBy.foreach(verifyPushedColumn(_, schemaSet))
-    SingleCatalystStatement(relation, projects, filters, groupBy)
+    SingleCatalystStatement(relation, projects, filters, groupBy, orders, limitOpt)
   }
 }

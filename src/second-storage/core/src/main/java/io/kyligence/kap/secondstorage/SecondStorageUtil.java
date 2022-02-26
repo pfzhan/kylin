@@ -25,6 +25,7 @@
 package io.kyligence.kap.secondstorage;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
@@ -48,6 +49,7 @@ import io.kyligence.kap.secondstorage.response.SecondStorageInfo;
 import io.kyligence.kap.secondstorage.response.SecondStorageNode;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.SecondStorageConfig;
 import org.apache.kylin.common.exception.JobErrorCode;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
@@ -154,6 +156,8 @@ public class SecondStorageUtil {
         }
         List<NodeGroup> nodeGroups = nodeGroupManager.get().listAll();
         if(CollectionUtils.isNotEmpty(nodeGroups)) {
+            Preconditions.checkState(nodeGroups.stream().map(NodeGroup::getLockTypes).distinct().count() == 1,
+                    "Logical Error, this is a bug! Cluster has different lock type.");
             return nodeGroups.get(0).getLockTypes();
         }
         return new ArrayList<>();
@@ -239,15 +243,23 @@ public class SecondStorageUtil {
                 secondStorageInfo.setSecondStorageNodes(Collections.emptyList());
                 secondStorageInfo.setSecondStorageSize(0);
             } else {
-                TablePartition tablePartition = tableFlow.getTableDataList().get(0).getPartitions().get(0);
-                secondStorageInfo.setSecondStorageNodes(tablePartition.getShardNodes().stream()
-                        .map(SecondStorageUtil::transformNode).collect(Collectors.toList()));
-                List<TablePartition> partitions = tableFlow.getTableDataList().stream()
+                List<TablePartition> tablePartitions = tableFlow.getTableDataList().stream()
                         .flatMap(tableData -> tableData.getPartitions().stream())
                         .collect(Collectors.toList());
-                Long bytes = partitions.stream().map(partition -> partition.getSizeInNode().values()
-                        .stream().reduce(Long::sum).orElse(0L)).reduce(Long::sum).orElse(0L);
-                secondStorageInfo.setSecondStorageSize(bytes);
+                List<String> nodesStr = Lists.newArrayList();
+                Long sizes = 0L;
+                for (TablePartition partition : tablePartitions) {
+                    nodesStr.addAll(partition.getShardNodes());
+                    sizes += partition.getSizeInNode().values().stream()
+                            .reduce(Long::sum).orElse(0L);
+                }
+
+                List<SecondStorageNode> nodes = nodesStr.stream()
+                        .distinct()
+                        .map(SecondStorageUtil::transformNode)
+                        .collect(Collectors.toList());
+                secondStorageInfo.setSecondStorageNodes(nodes);
+                secondStorageInfo.setSecondStorageSize(sizes / SecondStorageConfig.getInstanceFromEnv().getReplicaNum());
             }
             return secondStorageInfo;
         }).collect(Collectors.toList());

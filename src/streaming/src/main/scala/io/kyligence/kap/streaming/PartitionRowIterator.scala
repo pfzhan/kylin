@@ -21,9 +21,6 @@
  */
 package io.kyligence.kap.streaming
 
-import java.sql.{Date, Timestamp}
-import java.util.Locale
-
 import com.google.gson.JsonParser
 import org.apache.commons.lang.time.DateUtils
 import org.apache.commons.lang3.StringUtils
@@ -32,6 +29,8 @@ import org.apache.spark.sql.Row
 import org.apache.spark.sql.types._
 import org.slf4j.LoggerFactory
 
+import java.sql.{Date, Timestamp}
+import java.util.Locale
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 

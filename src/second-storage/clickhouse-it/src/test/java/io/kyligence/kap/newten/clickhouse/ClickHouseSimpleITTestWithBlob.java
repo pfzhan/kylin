@@ -106,7 +106,7 @@ public class ClickHouseSimpleITTestWithBlob extends ClickHouseSimpleITTest {
     public void testTwoShards() throws Exception {
         // TODO: make sure splitting data into two shards
         try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse();
-             JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse()) {
+                JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse()) {
             build_load_query("testTwoShardsBlob", false, clickhouse1, clickhouse2);
         }
     }
@@ -121,7 +121,7 @@ public class ClickHouseSimpleITTestWithBlob extends ClickHouseSimpleITTest {
     @Test
     public void testIncrementalTwoShard() throws Exception {
         try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse();
-             JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse()) {
+                JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse()) {
             build_load_query("testIncrementalTwoShardBlob", true, clickhouse1, clickhouse2);
         }
     }
@@ -131,9 +131,9 @@ public class ClickHouseSimpleITTestWithBlob extends ClickHouseSimpleITTest {
         return "host.docker.internal";
     }
 
-    protected void fullBuildCube(String dfName, String prj) throws Exception {
+    protected void fullBuild(String dfName) throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        NDataflowManager dsMgr = NDataflowManager.getInstance(config, prj);
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
         Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("wasb"));
         // ready dataflow, segment, cuboid layout
         NDataflow df = dsMgr.getDataflow(dfName);
@@ -144,10 +144,9 @@ public class ClickHouseSimpleITTestWithBlob extends ClickHouseSimpleITTest {
         df = dsMgr.getDataflow(dfName);
         List<LayoutEntity> layouts = df.getIndexPlan().getAllLayouts();
         List<LayoutEntity> round1 = Lists.newArrayList(layouts);
-        buildCuboid(dfName, SegmentRange.TimePartitionedSegmentRange.createInfinite(), Sets.newLinkedHashSet(round1),
-                prj, true);
+        indexDataConstructor.buildIndex(dfName, SegmentRange.TimePartitionedSegmentRange.createInfinite(),
+                Sets.newLinkedHashSet(round1), true);
     }
-
 
     @Override
     protected void checkHttpServer() throws IOException {

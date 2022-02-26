@@ -126,12 +126,23 @@ class CalciteToSparkPlaner(dataContext: DataContext) extends RelVisitor with Log
   }
 
   private def actionWithCache(rel: KapRel)(body: => DataFrame): DataFrame = {
+    var layoutId = 0L
+    var modelId = ""
     if (rel.getDigest == null) {
       body
     }
-    val digestWithoutId = KapRelUtil.getDigestWithoutRelNodeId(rel.getDigest)
+    try {
+      val layoutEntity = rel.getContext.storageContext.getCandidate.getLayoutEntity
+      layoutId = layoutEntity.getId
+      modelId = layoutEntity.getModel.getId
+    } catch {
+      case e: Throwable => logWarning("Calculate layoutId modelId failed", e)
+    }
+    rel.recomputeDigest()
+    val digestWithoutId = KapRelUtil.getDigestWithoutRelNodeId(rel.getDigest, layoutId, modelId)
     if (unionLayer >= 1 && TableScanPlan.cacheDf.get.containsKey(digestWithoutId)) {
       stack.pop()
+      logInfo("Happen Optimized from cache dataframe CacheKey:" + digestWithoutId)
       TableScanPlan.cacheDf.get.get(digestWithoutId)
     } else {
       val df = body

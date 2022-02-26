@@ -175,6 +175,8 @@ public class FunctionDesc implements Serializable {
     public static final ImmutableSet<String> DIMENSION_AS_MEASURES = ImmutableSet.<String> builder()
             .add(FUNC_MAX, FUNC_MIN, FUNC_COUNT_DISTINCT).build();
     public static final ImmutableSet<String> NOT_SUPPORTED_FUNCTION = ImmutableSet.<String> builder().build();
+    public static final ImmutableSet<String> NOT_SUPPORTED_FUNCTION_TABLE_INDEX = ImmutableSet.<String> builder()
+            .add(FUNC_COLLECT_SET).build();
 
     private static final Map<String, String> EXPRESSION_DEFAULT_TYPE_MAP = Maps.newHashMap();
 
@@ -313,6 +315,15 @@ public class FunctionDesc implements Serializable {
             neededCols.addAll(colRef.getSourceColumns());
         }
         return neededCols;
+    }
+
+    public static boolean nonSupportFunTableIndex(List<FunctionDesc> aggregations) {
+        for (FunctionDesc functionDesc : aggregations) {
+            if (NOT_SUPPORTED_FUNCTION_TABLE_INDEX.contains(functionDesc.expression)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public ColumnDesc newFakeRewriteColumn(String rewriteFiledName, TableDesc sourceTable) {

@@ -37,7 +37,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
@@ -93,7 +92,6 @@ public class SmartMasterTest extends AutoTestOnLearnKylinData {
         Assert.assertNotNull(modelManager.getDataModelDesc(model2.getId()));
     }
 
-    @Ignore
     @Test
     public void testRenameModel() {
         String[] sqlStatements1 = new String[] {

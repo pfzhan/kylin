@@ -37,7 +37,7 @@ import java.lang.reflect.Method;
 import java.nio.charset.Charset;
 import java.util.TreeMap;
 
-import org.apache.kylin.common.util.AbstractTestCase;
+import org.apache.kylin.common.AbstractTestCase;
 import org.junit.Assert;
 import org.junit.Test;
 

@@ -17,10 +17,11 @@
 
 package org.apache.spark.sql.execution.datasources.v2
 
-import org.apache.spark.sql.catalyst.expressions.{AttributeReference, AttributeSet, BinaryComparison, Expression, NamedExpression, PredicateHelper, SchemaPruning, SubqueryExpression}
+import org.apache.spark.sql.catalyst.expressions
+import org.apache.spark.sql.catalyst.expressions.{AttributeReference, AttributeSet, Expression, Literal, NamedExpression, PredicateHelper, SchemaPruning, SubqueryExpression}
 import org.apache.spark.sql.catalyst.util.CharVarcharUtils
 import org.apache.spark.sql.connector.read.{Scan, ScanBuilder, SupportsPushDownFilters, SupportsPushDownRequiredColumns}
-import org.apache.spark.sql.execution.datasources.DataSourceStrategy
+import org.apache.spark.sql.execution.datasources.{DataSourceStrategy, PushableColumn, PushableColumnBase}
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.sources
 import org.apache.spark.sql.types.{DataType, DecimalType, StructType}
@@ -47,14 +48,14 @@ object PushDownUtils2 extends PredicateHelper {
         // Catalyst filter expression that can't be translated to data source filters.
         val untranslatableExprs = mutable.ArrayBuffer.empty[Expression]
 
-        val (unsupportedFilters, supportedFilters) = filters.partition(unsupportedFilter(_))
-
-        for (filterExpr <- supportedFilters) {
+        val pushableColumn = PushableColumn(true)
+        for (filterExpr <- filters) {
+          val transformedFilter = transformFilter(filterExpr, pushableColumn)
           val translated =
-            DataSourceStrategy.translateFilterWithMapping(filterExpr, Some(translatedFilterToExpr),
+            DataSourceStrategy.translateFilterWithMapping(transformedFilter, Some(translatedFilterToExpr),
               nestedPredicatePushdownEnabled = true)
           if (translated.isEmpty) {
-            untranslatableExprs += filterExpr
+            untranslatableExprs += transformedFilter
           } else {
             translatedFilters += translated.get
           }
@@ -66,7 +67,7 @@ object PushDownUtils2 extends PredicateHelper {
         val postScanFilters = r.pushFilters(translatedFilters.toArray).map { filter =>
           DataSourceStrategy.rebuildExpressionFromFilter(filter, translatedFilterToExpr)
         }
-        (r.pushedFilters(), unsupportedFilters ++ untranslatableExprs ++ postScanFilters)
+        (r.pushedFilters(), untranslatableExprs ++ postScanFilters)
 
       case _ => (Nil, filters)
     }
@@ -77,11 +78,124 @@ object PushDownUtils2 extends PredicateHelper {
     case _ => false
   }
 
-  private def unsupportedFilter(filter: Expression): Boolean = filter.find {
-    case BinaryComparison(column, value) =>
-      unsupportedDecimalType(column.dataType) || unsupportedDecimalType(value.dataType)
-    case _ => false
-  }.nonEmpty
+  /**
+   * Spark doesn't support push-down filter with function and ClickHouse doesn't support comparable
+   * operator which contains decimal with scale != 0 and scale != precision.
+   * In order to push-down the above comparable operator in filter into ClickHouse, make 'castFloat'
+   * enclose column name and then replace it with 'toFloat64'.
+   */
+  private def transformFilter(filter: Expression, pushableColumn: PushableColumnBase): Expression = {
+    filter match {
+      case et @ expressions.EqualTo(attr: AttributeReference, l: Literal)
+        if unsupportedDecimalType(attr.dataType) =>
+        attr match {
+          case pushableColumn(name) =>
+            val newName = s"castFloat${name}castFloat"
+            et.withNewChildren(Seq(attr.withName(newName), l))
+          case _ => et
+        }
+      case et @ expressions.EqualTo(l: Literal, attr: AttributeReference)
+        if unsupportedDecimalType(attr.dataType) =>
+        attr match {
+          case pushableColumn(name) =>
+            val newName = s"castFloat${name}castFloat"
+            et.withNewChildren(Seq(l, attr.withName(newName)))
+          case _ => et
+        }
+      case ens @ expressions.EqualNullSafe(attr: AttributeReference, l: Literal)
+        if unsupportedDecimalType(attr.dataType) =>
+        attr match {
+          case pushableColumn(name) =>
+            val newName = s"castFloat${name}castFloat"
+            ens.withNewChildren(Seq(attr.withName(newName), l))
+          case _ => ens
+        }
+      case ens @ expressions.EqualNullSafe(l: Literal, attr: AttributeReference)
+        if unsupportedDecimalType(attr.dataType) =>
+        attr match {
+          case pushableColumn(name) =>
+            val newName = s"castFloat${name}castFloat"
+            ens.withNewChildren(Seq(l, attr.withName(newName)))
+          case _ => ens
+        }
+      case gt @ expressions.GreaterThan(attr: AttributeReference, l: Literal)
+        if unsupportedDecimalType(attr.dataType) =>
+        attr match {
+          case pushableColumn(name) =>
+            val newName = s"castFloat${name}castFloat"
+            gt.withNewChildren(Seq(attr.withName(newName), l))
+          case _ => gt
+        }
+      case gt @ expressions.GreaterThan(l: Literal, attr: AttributeReference)
+        if unsupportedDecimalType(attr.dataType) =>
+        attr match {
+          case pushableColumn(name) =>
+            val newName = s"castFloat${name}castFloat"
+            gt.withNewChildren(Seq(l, attr.withName(newName)))
+          case _ => gt
+        }
+      case lt @ expressions.LessThan(attr: AttributeReference, l: Literal)
+        if unsupportedDecimalType(attr.dataType) =>
+        attr match {
+          case pushableColumn(name) =>
+            val newName = s"castFloat${name}castFloat"
+            lt.withNewChildren(Seq(attr.withName(newName), l))
+          case _ => lt
+        }
+      case lt @ expressions.LessThan(l: Literal, attr: AttributeReference)
+        if unsupportedDecimalType(attr.dataType) =>
+        attr match {
+          case pushableColumn(name) =>
+            val newName = s"castFloat${name}castFloat"
+            lt.withNewChildren(Seq(l, attr.withName(newName)))
+          case _ => lt
+        }
+      case gte @ expressions.GreaterThanOrEqual(attr: AttributeReference, l: Literal)
+        if unsupportedDecimalType(attr.dataType) =>
+        attr match {
+          case pushableColumn(name) =>
+            val newName = s"castFloat${name}castFloat"
+            gte.withNewChildren(Seq(attr.withName(newName), l))
+          case _ => gte
+        }
+      case gte @ expressions.GreaterThanOrEqual(l: Literal, attr: AttributeReference)
+        if unsupportedDecimalType(attr.dataType) =>
+        attr match {
+          case pushableColumn(name) =>
+            val newName = s"castFloat${name}castFloat"
+            gte.withNewChildren(Seq(l, attr.withName(newName)))
+          case _ => gte
+        }
+      case lte @ expressions.LessThanOrEqual(attr: AttributeReference, l: Literal)
+        if unsupportedDecimalType(attr.dataType) =>
+        attr match {
+          case pushableColumn(name) =>
+            val newName = s"castFloat${name}castFloat"
+            lte.withNewChildren(Seq(attr.withName(newName), l))
+          case _ => lte
+        }
+      case lte @ expressions.LessThanOrEqual(l: Literal, attr: AttributeReference)
+        if unsupportedDecimalType(attr.dataType) =>
+        attr match {
+          case pushableColumn(name) =>
+            val newName = s"castFloat${name}castFloat"
+            lte.withNewChildren(Seq(l, attr.withName(newName)))
+          case _ => lte
+        }
+      case nt @ expressions.Not(child) =>
+        val newChild = transformFilter(child, pushableColumn)
+        nt.withNewChildren(Seq(newChild))
+      case and @ expressions.And(left, right) =>
+        val newLeft = transformFilter(left, pushableColumn)
+        val newRight = transformFilter(right, pushableColumn)
+        and.withNewChildren(Seq(newLeft, newRight))
+      case or @ expressions.Or(left, right) =>
+        val newLeft = transformFilter(left, pushableColumn)
+        val newRight = transformFilter(right, pushableColumn)
+        or.withNewChildren(Seq(newLeft, newRight))
+      case other => other
+    }
+  }
 
   /**
    * Applies column pruning to the data source, w.r.t. the references of the given expressions.

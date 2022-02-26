@@ -34,6 +34,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.FunctionDesc;
@@ -54,6 +55,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModel.TableKind;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.util.JoinDescUtil;
+import io.kyligence.kap.query.util.QueryModelPriorities;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.util.TableAliasGenerator;
@@ -74,11 +76,12 @@ public class GreedyModelTreesBuilder {
 
     public List<ModelTree> build(List<String> sqls, List<Collection<OLAPContext>> olapContexts,
             TableDesc expectedFactTable) {
-        // 1. group OLAPContexts by fact_table
+        // 1. group OLAPContexts by fact_table & modelPriorities
         log.info("Split OLAPContexts by fact table.");
-        Map<TableDesc, TreeBuilder> builders = Maps.newHashMap();
+        Map<TableDesc, Map<String, TreeBuilder>> buildersMap = Maps.newHashMap();
         for (int i = 0; i < sqls.size(); i++) {
             String sql = sqls.get(i);
+            String[] modelPriorities = QueryModelPriorities.getModelPrioritiesFromComment(sql);
             Collection<OLAPContext> sqlContexts = olapContexts.get(i);
             sqlContexts.stream() //
                     .filter(ctx -> ctx.firstTableScan != null) //
@@ -101,15 +104,18 @@ public class GreedyModelTreesBuilder {
                             }
                         }).collect(Collectors.toList());
 
-                        TreeBuilder builder = builders.computeIfAbsent(actualFactTbl,
-                                tbl -> new TreeBuilder(tbl, tableMap, proposeContext));
+                        Map<String, TreeBuilder> builders = buildersMap.computeIfAbsent(actualFactTbl,
+                                key -> Maps.newHashMap());
+                        TreeBuilder builder = builders.computeIfAbsent(StringUtils.join(modelPriorities),
+                                k -> new TreeBuilder(actualFactTbl, tableMap, proposeContext));
                         builder.addOLAPContext(sql, ctx);
                     });
         }
 
         // 2. each group generate multiple ModelTrees
-        List<ModelTree> results = builders.values() //
+        List<ModelTree> results = buildersMap.values() //
                 .stream() //
+                .flatMap(builders -> builders.values().stream())//
                 .map(TreeBuilder::build) //
                 .flatMap(List::stream) //
                 .collect(Collectors.toList());
@@ -296,8 +302,10 @@ public class GreedyModelTreesBuilder {
             JoinsGraph graphA = new JoinsGraph(ctxA.firstTableScan.getTableRef(), Lists.newArrayList(ctxA.joins));
             JoinsGraph graphB = new JoinsGraph(ctxB.firstTableScan.getTableRef(), Lists.newArrayList(ctxB.joins));
 
-            return graphA.match(graphB, Maps.newHashMap(), proposeContext.isPartialMatch(), proposeContext.isPartialMatchNonEqui()) //
-                    || graphB.match(graphA, Maps.newHashMap(), proposeContext.isPartialMatch(), proposeContext.isPartialMatchNonEqui())
+            return graphA.match(graphB, Maps.newHashMap(), proposeContext.isPartialMatch(),
+                    proposeContext.isPartialMatchNonEqui()) //
+                    || graphB.match(graphA, Maps.newHashMap(), proposeContext.isPartialMatch(),
+                            proposeContext.isPartialMatchNonEqui())
                     || (graphA.unmatched(graphB).stream().allMatch(e -> e.isLeftJoin() && !e.isNonEquiJoin())
                             && graphB.unmatched(graphA).stream().allMatch(e -> e.isLeftJoin() && !e.isNonEquiJoin()));
         }

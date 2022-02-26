@@ -24,14 +24,13 @@
 
 package org.apache.spark.sql.kafka010
 
-import java.util
-
 import org.apache.kafka.common.TopicPartition
 import org.apache.kylin.common.KylinConfig
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.execution.streaming.{Offset, StreamExecution, StreamingQueryWrapper}
 
+import java.util
 import scala.collection.JavaConverters._
 
 object OffsetRangeManager extends Logging {

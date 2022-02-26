@@ -29,13 +29,14 @@ import java.util.Locale;
 import java.util.NavigableSet;
 import java.util.TreeSet;
 
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.FilePathUtil;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 import lombok.Getter;
 import lombok.val;
 
@@ -154,6 +155,11 @@ public class ThreadViewResourceStore extends ResourceStore {
     @Override
     protected String getReadableResourcePathImpl(String resPath) {
         return toString() + ":" + resPath;
+    }
+
+    @Override
+    public void reload() {
+        throw new NotImplementedException("ThreadViewResourceStore doesn't support reload");
     }
 
     @Override

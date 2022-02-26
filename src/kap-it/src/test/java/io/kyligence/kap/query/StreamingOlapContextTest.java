@@ -45,12 +45,12 @@ public class StreamingOlapContextTest extends NLocalWithSparkSessionTest {
 
     @Before
     public void setUp() throws Exception {
-        staticCreateBrandNewTestMetadata("src/test/resources/ut_meta/streaming");
+        staticCreateTestMetadata("src/test/resources/ut_meta/streaming");
     }
 
     @Override
     public String getProject() {
-        return "streaming_test";
+        return "streaming_test2";
     }
 
     @Test

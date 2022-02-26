@@ -25,7 +25,7 @@
 package org.apache.kylin.common;
 
 import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class QueryTraceTest {
 
@@ -62,6 +62,28 @@ public class QueryTraceTest {
         trace.startSpan(QueryTrace.WAIT_FOR_EXECUTION);
         trace.startSpan(QueryTrace.EXECUTION);
         trace.startSpan(QueryTrace.FETCH_RESULT);
+        trace.startSpan(QueryTrace.SQL_PUSHDOWN_TRANSFORMATION);
+        trace.startSpan(QueryTrace.HIT_CACHE);
+        trace.endLastSpan();
+
+        for (QueryTrace.Span span : trace.spans()) {
+            if (QueryTrace.PREPARATION.equals(span.getGroup())
+                || QueryTrace.JOB_EXECUTION.equals(span.getGroup())) {
+                Assert.assertTrue(QueryTrace.SPAN_GROUPS.containsKey(span.getName()));
+            } else {
+                Assert.assertFalse(QueryTrace.SPAN_GROUPS.containsKey(span.getName()));
+            }
+        }
+    }
+
+    @Test
+    public void testGroupsOfSPARK_JOB_EXECUTION() {
+        QueryTrace trace = new QueryTrace();
+        trace.startSpan(QueryTrace.GET_ACL_INFO);
+        trace.startSpan(QueryTrace.SQL_TRANSFORMATION);
+        trace.startSpan(QueryTrace.SQL_PARSE_AND_OPTIMIZE);
+        trace.startSpan(QueryTrace.MODEL_MATCHING);
+        trace.startSpan(QueryTrace.SPARK_JOB_EXECUTION);
         trace.startSpan(QueryTrace.SQL_PUSHDOWN_TRANSFORMATION);
         trace.startSpan(QueryTrace.HIT_CACHE);
         trace.endLastSpan();

@@ -23,6 +23,9 @@
  */
 package io.kyligence.kap.common.persistence;
 
+import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasourceParameters;
+
+import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -32,57 +35,50 @@ import java.util.Locale;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.CompressionUtils;
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
-
-import com.google.common.collect.Lists;
-import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.persistence.event.Event;
 import io.kyligence.kap.common.persistence.event.ResourceCreateOrUpdateEvent;
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.common.persistence.metadata.jdbc.RawResourceRowMapper;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.guava20.shaded.common.collect.Lists;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
+import io.kyligence.kap.junit.annotation.MetadataInfo;
+import io.kyligence.kap.junit.annotation.OverwriteProp;
 import lombok.val;
 
-public class JdbcMetadataStoreTest extends NLocalFileMetadataTestCase {
+@MetadataInfo(onlyProps = true)
+@OverwriteProp(key = "kylin.metadata.url", value = "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=")
+public class JdbcMetadataStoreTest {
 
-    private static int index = 0;
     public static final Charset DEFAULT_CHARSET = StandardCharsets.UTF_8;
 
-    @Before
-    public void setup() {
-        createTestMetadata();
-        getTestConfig().setMetadataUrl("test" + index
-                + "@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
-        index++;
-    }
-
-    @After
-    public void destroy() {
-        cleanupTestMetadata();
+    @AfterEach
+    public void destroy() throws Exception {
+        val jdbcTemplate = getJdbcTemplate();
+        jdbcTemplate.batchUpdate("DROP ALL OBJECTS");
     }
 
     @Test
-    public void testBasic() {
+    public void testBasic() throws IOException {
         UnitOfWork.doInTransactionWithRetry(() -> {
             val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
             store.checkAndPutResource("/p1/abc", ByteSource.wrap("abc".getBytes(DEFAULT_CHARSET)), -1);
             store.checkAndPutResource("/p1/abc2", ByteSource.wrap("abc".getBytes(DEFAULT_CHARSET)), -1);
             store.checkAndPutResource("/p1/abc3", ByteSource.wrap("abc".getBytes(DEFAULT_CHARSET)), -1);
             store.checkAndPutResource("/p1/abc3", ByteSource.wrap("abc2".getBytes(DEFAULT_CHARSET)), 0);
-            store.checkAndPutResource("/p1/abc4", ByteSource.wrap("abc2".getBytes(DEFAULT_CHARSET)), 1000L,
-                    -1);
+            store.checkAndPutResource("/p1/abc4", ByteSource.wrap("abc2".getBytes(DEFAULT_CHARSET)), 1000L, -1);
             store.deleteResource("/p1/abc");
             return 0;
         }, "p1");
@@ -106,6 +102,28 @@ public class JdbcMetadataStoreTest extends NLocalFileMetadataTestCase {
                 Assert.assertEquals(1000L, resource.getTimestamp());
             }
         }
+    }
+
+    @Test
+    public void testReload() throws Exception {
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
+            store.checkAndPutResource("/_global/abc", ByteSource.wrap("abc".getBytes(DEFAULT_CHARSET)), -1);
+            return 0;
+        }, "_global");
+
+        val dataSource = new DriverManagerDataSource();
+        val url = getTestConfig().getMetadataUrl();
+        dataSource.setUrl(url.getParameter("url"));
+        dataSource.setDriverClassName(url.getParameter("driverClassName"));
+        dataSource.setUsername(url.getParameter("username"));
+        dataSource.setPassword(url.getParameter("password"));
+        val jdbcTemplate = new JdbcTemplate(dataSource);
+        val all = jdbcTemplate.query("select * from " + url.getIdentifier(), new RawResourceRowMapper());
+        Assert.assertEquals(1, all.size());
+        ResourceStore systemStore = ResourceStore.getKylinMetaStore(getTestConfig());
+        systemStore.reload();
+        Assert.assertEquals(1, systemStore.listResourcesRecursively("/").size());
     }
 
     @Test
@@ -145,7 +163,7 @@ public class JdbcMetadataStoreTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    @Ignore("for develop")
+    @Disabled("for develop")
     public void testDuplicate() {
         UnitOfWork.doInTransactionWithRetry(() -> {
             val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
@@ -173,9 +191,8 @@ public class JdbcMetadataStoreTest extends NLocalFileMetadataTestCase {
     @Test
     public void testBatchUpdate() throws Exception {
         val metadataStore = MetadataStore.createMetadataStore(getTestConfig());
-        List<Event> events = Collections.singletonList(new ResourceCreateOrUpdateEvent(
-                new RawResource("/p1/test", ByteSource.wrap("test content".getBytes(StandardCharsets.UTF_8)),
-                        System.currentTimeMillis(), 0)));
+        List<Event> events = Collections.singletonList(new ResourceCreateOrUpdateEvent(new RawResource("/p1/test",
+                ByteSource.wrap("test content".getBytes(StandardCharsets.UTF_8)), System.currentTimeMillis(), 0)));
         val unitMessages = new UnitMessages(events);
         UnitOfWork.doInTransactionWithRetry(() -> {
             metadataStore.batchUpdate(unitMessages, false, "/p1/test", -1);
@@ -214,13 +231,15 @@ public class JdbcMetadataStoreTest extends NLocalFileMetadataTestCase {
                 CompressionUtils.decompress(auditLogContents));
     }
 
+    @OverwriteProp.OverwriteProps({ //
+            @OverwriteProp(key = "kylin.metadata.compress.enabled", value = "false"), //
+            @OverwriteProp(key = "kylin.server.port", value = "8081")//
+    })
     @Test
     public void testBatchUpdateWithMetadataCompressDisable() throws Exception {
-        overwriteSystemProp("kylin.metadata.compress.enabled", "false");
         val metadataStore = MetadataStore.createMetadataStore(getTestConfig());
-        List<Event> events = Collections.singletonList(new ResourceCreateOrUpdateEvent(
-                new RawResource("/p1/test", ByteSource.wrap("test content".getBytes(StandardCharsets.UTF_8)),
-                        System.currentTimeMillis(), 0)));
+        List<Event> events = Collections.singletonList(new ResourceCreateOrUpdateEvent(new RawResource("/p1/test",
+                ByteSource.wrap("test content".getBytes(StandardCharsets.UTF_8)), System.currentTimeMillis(), 0)));
         val unitMessages = new UnitMessages(events);
         UnitOfWork.doInTransactionWithRetry(() -> {
             metadataStore.batchUpdate(unitMessages, false, "/p1/test", -1);
@@ -252,4 +271,14 @@ public class JdbcMetadataStoreTest extends NLocalFileMetadataTestCase {
         Assert.assertFalse(CompressionUtils.isCompressed(auditLogContents));
     }
 
+    KylinConfig getTestConfig() {
+        return KylinConfig.getInstanceFromEnv();
+    }
+
+    JdbcTemplate getJdbcTemplate() throws Exception {
+        val url = getTestConfig().getMetadataUrl();
+        val props = datasourceParameters(url);
+        val dataSource = BasicDataSourceFactory.createDataSource(props);
+        return new JdbcTemplate(dataSource);
+    }
 }

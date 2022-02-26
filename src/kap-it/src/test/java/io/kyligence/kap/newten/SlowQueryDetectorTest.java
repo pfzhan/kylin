@@ -182,6 +182,7 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
         slowQueryDetector.queryEnd();
     }
 
+    @Ignore
     @Test
     public void testRealizationChooserTimeout() {
         slowQueryDetector.queryStart("");

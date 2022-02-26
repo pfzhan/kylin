@@ -24,8 +24,9 @@
 
 package io.kyligence.kap.clickhouse.management;
 
+import com.google.common.base.Preconditions;
 import io.kyligence.kap.secondstorage.SecondStorageConfigLoader;
-import io.kyligence.kap.secondstorage.config.Cluster;
+import io.kyligence.kap.secondstorage.config.ClusterInfo;
 import io.kyligence.kap.secondstorage.config.Node;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -38,13 +39,15 @@ import org.yaml.snakeyaml.constructor.Constructor;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class ClickHouseConfigLoader implements SecondStorageConfigLoader {
 
     private final File configFile;
-    private final AtomicReference<Cluster> cluster = new AtomicReference<>();
+    private final AtomicReference<ClusterInfo> cluster = new AtomicReference<>();
 
     private ClickHouseConfigLoader(File configFile) {
         this.configFile = configFile;
@@ -64,9 +67,9 @@ public class ClickHouseConfigLoader implements SecondStorageConfigLoader {
     }
 
     public static Yaml getConfigYaml() {
-        Constructor constructor = new Constructor(Cluster.class);
-        val clusterDesc = new TypeDescription(Cluster.class);
-        clusterDesc.addPropertyParameters("nodes", Node.class);
+        Constructor constructor = new Constructor(ClusterInfo.class);
+        val clusterDesc = new TypeDescription(ClusterInfo.class);
+        clusterDesc.addPropertyParameters("cluster", String.class, List.class);
         clusterDesc.addPropertyParameters("socketTimeout", String.class);
         clusterDesc.addPropertyParameters("keepAliveTimeout", String.class);
         clusterDesc.addPropertyParameters("installPath", String.class);
@@ -88,10 +91,21 @@ public class ClickHouseConfigLoader implements SecondStorageConfigLoader {
     public void load() {
         Yaml yaml = getConfigYaml();
         try {
-            cluster.set(yaml.load(new FileInputStream(configFile)));
+            ClusterInfo config = yaml.load(new FileInputStream(configFile));
+            config.transformNode();
+            val pairSizeList = config.getCluster().values().stream().map(List::size).collect(Collectors.toSet());
+            Preconditions.checkState(pairSizeList.size() <= 1, "There are different size node pair.");
+            val allNodes = config.getNodes();
+            Preconditions.checkState(allNodes.size() == allNodes.stream().map(Node::getName).collect(Collectors.toSet()).size(),
+                    "There are duplicate node name");
+            cluster.set(config);
         } catch (FileNotFoundException e) {
             log.error("ClickHouse config file {} not found", configFile.getAbsolutePath());
         }
+    }
+
+    public static class ClusterConstructor extends Constructor {
+
     }
 
     @Override
@@ -101,7 +115,7 @@ public class ClickHouseConfigLoader implements SecondStorageConfigLoader {
     }
 
     @Override
-    public Cluster getCluster() {
-        return new Cluster(cluster.get());
+    public ClusterInfo getCluster() {
+        return new ClusterInfo(cluster.get());
     }
 }

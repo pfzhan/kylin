@@ -48,14 +48,16 @@ import java.nio.charset.Charset;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import io.kyligence.kap.junit.annotation.MetadataInfo;
 
 /**
  * @author ysong1
  */
+@MetadataInfo(onlyProps = true)
 public class SSHClientTest {
 
     private boolean isRemote;
@@ -64,20 +66,10 @@ public class SSHClientTest {
     private String username;
     private String password;
 
-    private CleanMetadataHelper cleanMetadataHelper = null;
-
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
-        cleanMetadataHelper = new CleanMetadataHelper();
-        cleanMetadataHelper.setUp();
-
         loadPropertiesFile();
 
-    }
-
-    @After
-    public void after() throws Exception {
-        cleanMetadataHelper.tearDown();
     }
 
     private void loadPropertiesFile() throws IOException {

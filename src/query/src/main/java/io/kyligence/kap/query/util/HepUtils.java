@@ -24,12 +24,22 @@
 
 package io.kyligence.kap.query.util;
 
+import com.google.common.collect.ImmutableList;
 import io.kyligence.kap.query.optrule.CountDistinctCaseWhenFunctionRule;
+import io.kyligence.kap.query.optrule.JoinFilterRule;
+import io.kyligence.kap.query.optrule.KapAggFilterTransposeRule;
+import io.kyligence.kap.query.optrule.KapAggJoinTransposeRule;
+import io.kyligence.kap.query.optrule.KapAggProjectMergeRule;
+import io.kyligence.kap.query.optrule.KapAggProjectTransposeRule;
 import io.kyligence.kap.query.optrule.KapAggSumCastRule;
 import io.kyligence.kap.query.optrule.KapAggregateRule;
+import io.kyligence.kap.query.optrule.KapCountDistinctJoinRule;
 import io.kyligence.kap.query.optrule.KapEquiJoinConditionFixRule;
+import io.kyligence.kap.query.optrule.KapFilterRule;
+import io.kyligence.kap.query.optrule.KapJoinProjectTransposeRule;
 import io.kyligence.kap.query.optrule.KapJoinRule;
 import io.kyligence.kap.query.optrule.KapProjectMergeRule;
+import io.kyligence.kap.query.optrule.KapProjectRule;
 import io.kyligence.kap.query.optrule.KapSumCastTransposeRule;
 import io.kyligence.kap.query.optrule.KapSumTransCastToThenRule;
 import io.kyligence.kap.query.optrule.SumBasicOperatorRule;
@@ -42,13 +52,6 @@ import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.rules.FilterMergeRule;
 import org.apache.calcite.rel.rules.ProjectRemoveRule;
-
-import com.google.common.collect.ImmutableList;
-
-import io.kyligence.kap.query.optrule.JoinFilterRule;
-import io.kyligence.kap.query.optrule.KapFilterRule;
-import io.kyligence.kap.query.optrule.KapJoinProjectTransposeRule;
-import io.kyligence.kap.query.optrule.KapProjectRule;
 
 import java.util.Collection;
 
@@ -80,6 +83,19 @@ public class HepUtils {
             KapProjectRule.INSTANCE,
             KapAggregateRule.INSTANCE,
             KapJoinRule.EQUAL_NULL_SAFE_INSTANT
+    );
+
+    public static final ImmutableList<RelOptRule> AggPushDownRules = ImmutableList.of(
+            KapAggProjectMergeRule.AGG_PROJECT_JOIN,
+            KapAggProjectMergeRule.AGG_PROJECT_FILTER_JOIN,
+            KapAggProjectTransposeRule.AGG_PROJECT_FILTER_JOIN,
+            KapAggProjectTransposeRule.AGG_PROJECT_JOIN,
+            KapAggFilterTransposeRule.AGG_FILTER_JOIN,
+            KapAggJoinTransposeRule.INSTANCE_JOIN_RIGHT_AGG,
+            KapCountDistinctJoinRule.INSTANCE_COUNT_DISTINCT_JOIN_ONESIDEAGG,
+            KapProjectRule.INSTANCE,
+            KapAggregateRule.INSTANCE,
+            KapJoinRule.INSTANCE
     );
 
     public static final ImmutableList<RelOptRule> CountDistinctExprRules = ImmutableList.of(

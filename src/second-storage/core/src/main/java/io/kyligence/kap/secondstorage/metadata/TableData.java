@@ -24,7 +24,6 @@
 package io.kyligence.kap.secondstorage.metadata;
 
 import java.io.Serializable;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -36,6 +35,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.secondstorage.SecondStorageQueryRouteUtil;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.spark.sql.execution.datasources.jdbc.ShardOptions$;
 
@@ -59,7 +59,6 @@ import scala.collection.JavaConverters;
 @DataDefinition
 public class TableData implements Serializable, WithLayout {
 
-    private static final SecureRandom replicaRandom = new SecureRandom();
 
     public static final class Builder {
 
@@ -207,13 +206,12 @@ public class TableData implements Serializable, WithLayout {
         return aSet.containsAll(bSet) || bSet.containsAll(aSet);
     }
 
-    public String getShardJDBCURLs() {
+    public String getShardJDBCURLs(String project, Set<String> allSegIds) {
         if (partitions.isEmpty()) {
             return null;
         }
-        // random choice available shards replica
-        final int index = replicaRandom.nextInt(partitions.size());
-        List<String> nodes = SecondStorageNodeHelper.resolveToJDBC(partitions.get(index).getShardNodes());
+        List<String> aliveShardReplica = SecondStorageQueryRouteUtil.getAliveShardReplica(partitions, project, allSegIds);
+        List<String> nodes = SecondStorageNodeHelper.resolveToJDBC(aliveShardReplica);
         return ShardOptions$.MODULE$.buildSharding(JavaConverters.asScalaBuffer(nodes));
     }
 
@@ -221,7 +219,7 @@ public class TableData implements Serializable, WithLayout {
         if (partitions.isEmpty()) {
             return null;
         }
-        List<String> nodes = SecondStorageNodeHelper.resolveToJDBC(partitions.get(0).getShardNodes());
+        List<String> nodes = SecondStorageNodeHelper.resolveToJDBC(SecondStorageQueryRouteUtil.getCurrentAliveShardReplica());
         return nodes.get(0);
     }
 

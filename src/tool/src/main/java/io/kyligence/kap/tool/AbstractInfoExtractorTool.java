@@ -60,8 +60,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.xml.bind.DatatypeConverter;
 
-import io.kyligence.kap.query.util.ExtractFactory;
-import io.kyligence.kap.query.util.ILogExtractor;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.io.FileUtils;
@@ -75,12 +73,15 @@ import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.TimeZoneUtils;
+import org.apache.kylin.common.util.ZipFileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.common.util.OptionBuilder;
+import io.kyligence.kap.query.util.ExtractFactory;
+import io.kyligence.kap.query.util.ILogExtractor;
 import io.kyligence.kap.tool.constant.DiagSubTaskEnum;
 import io.kyligence.kap.tool.constant.SensitiveConfigKeysConstant;
 import io.kyligence.kap.tool.constant.StageEnum;
@@ -93,7 +94,6 @@ import io.kyligence.kap.tool.util.DiagnosticFilesChecker;
 import io.kyligence.kap.tool.util.HashFunction;
 import io.kyligence.kap.tool.util.ServerInfoUtil;
 import io.kyligence.kap.tool.util.ToolUtil;
-import io.kyligence.kap.tool.util.ZipFileUtil;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -275,7 +275,7 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
         if (shouldCompress) {
             stage = StageEnum.COMPRESS;
             File tempZipFile = new File(RandomUtil.randomUUIDStr() + ".zip");
-            ZipFileUtil.compressZipFile(exportDir.getAbsolutePath(), tempZipFile.getAbsolutePath());
+            ZipFileUtils.compressZipFile(exportDir.getAbsolutePath(), tempZipFile.getAbsolutePath());
             FileUtils.cleanDirectory(exportDir);
             String sha256Sum = DatatypeConverter.printHexBinary((HashFunction.SHA256.checksum(tempZipFile)));
 

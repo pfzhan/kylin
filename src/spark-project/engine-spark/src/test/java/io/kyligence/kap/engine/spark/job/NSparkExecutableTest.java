@@ -68,7 +68,7 @@ public class NSparkExecutableTest extends NLocalFileMetadataTestCase {
         MockSparkTestExecutable executable = new MockSparkTestExecutable();
         executable.setMetaUrl(path);
         executable.setProject("default");
-        Assert.assertEquals(7, executable.getMetadataDumpList(config).size());
+        Assert.assertEquals(8, executable.getMetadataDumpList(config).size());
         NDataModel model = modelManager.getDataModelDesc("82fa7671-a935-45f5-8779-85703601f49a");
         for (int i = 0; i < 10; i++) {
             new Thread(new AddModelRunner(model)).start();
@@ -133,6 +133,16 @@ public class NSparkExecutableTest extends NLocalFileMetadataTestCase {
             String cmd = sparkExecutable.generateSparkCmd(hadoopConf, kylinJobJar, appArgs);
             Assert.assertNotNull(cmd);
             Assert.assertTrue(cmd.contains("/this_new_path.jar"));
+        }
+
+        overwriteSystemProp("kylin.engine.spark-conf.spark.driver.extraJavaOptions",
+                "'`touch /tmp/foo.bar` $(touch /tmp/foo.bar)'");
+        {
+            try {
+                sparkExecutable.generateSparkCmd(hadoopConf, kylinJobJar, appArgs);
+            } catch (IllegalArgumentException iae) {
+                Assert.assertTrue(iae.getMessage().contains("Not allowed to specify injected command"));
+            }
         }
     }
 }

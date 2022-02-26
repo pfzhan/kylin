@@ -82,14 +82,21 @@
         <dependency>
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-spark-common</artifactId>
-            <version>${project.version}</version>
             <type>test-jar</type>
         </dependency>
-
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.vintage</groupId>
+            <artifactId>junit-vintage-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.scalatest</groupId>
             <artifactId>scalatest_2.12</artifactId>
-            <version>3.2.0</version>
             <scope>test</scope>
         </dependency>
 

@@ -1,5 +1,5 @@
 <template>
-  <div class="model-layout">
+  <div class="model-layout" :key="randomKey">
     <div class="header-layout">
       <div class="title"><el-button type="primary" text icon-button-mini icon="el-ksd-icon-arrow_left_16" size="small" @click="jumpBack"></el-button>
         <span class="model-name"><span class="name ksd-fs-16">{{modelName}}</span><el-button class="ksd-ml-2" type="primary" text @click.stop="showModelList = !showModelList" icon-button-mini icon="el-ksd-icon-arrow_down_16" size="small"></el-button></span>
@@ -10,7 +10,7 @@
               <div class="no-data">{{$t('noResult')}}</div>
             </template>
             <template v-else>
-              <div class="items" v-for="item in modelList" :key="item.uuid" @click="selectModel({model: item})">
+              <div class="items" v-for="item in modelList" :key="item.uuid" @click="chooseOtherModel({model: item})">
                 <i class="el-icon-ksd-accept" v-if="item.alias === modelName"></i>
                 <span v-custom-tooltip="{text: item.alias, w: 60}" :class="['model-name', item.alias === modelName ? 'ksd-ml-5' : 'ksd-ml-25', {'is-disabled': item.status === 'BROKEN'}]">{{item.alias}}</span>
               </div>
@@ -32,7 +32,7 @@
         other-icon="el-ksd-icon-more_with_border_22"
       />
     </div>
-    <el-tabs class="el-tabs--default model-detail-tabs" tab-position="left" v-if="currentModelRow" v-model="currentModelRow.tabTypes">
+    <el-tabs class="el-tabs--default model-detail-tabs" tab-position="left" v-if="currentModelRow" v-model="currentModelRow.tabTypes" :key="$lang">
       <el-tab-pane class="tab-pane-item" :label="$t('overview')" name="overview">
         <ModelOverview
           v-if="currentModelRow.tabTypes === 'overview'"
@@ -233,6 +233,7 @@ import ModelStreamingJob from '../ModelStreamingJob/ModelStreamingJob.vue'
   locales
 })
 export default class ModelLayout extends Vue {
+  randomKey = Date.now().toString(32)
   initData = false
   currentModelRow = null
   currentIndexTab = 'indexOverview'
@@ -292,16 +293,34 @@ export default class ModelLayout extends Vue {
     this.loadModelList()
   }
 
-  selectModel ({model, ...args}) {
-    // this.$router.replace({name: 'ModelDetails', params: {modelName: model.alias, searchModelName: this.searchModelName, ...args}})
-    // this.$nextTick(() => {
-    //   this.forceUpdateRoute()
-    // })
+  chooseOtherModel ({model, ...args}) {
     if (model.status && model.status === 'BROKEN') return
     this.$router.push({name: 'refresh'})
     this.$nextTick(() => {
       this.$router.replace({name: 'ModelDetails', params: {modelName: model.alias, searchModelName: this.searchModelName, ...args}, query: {modelPageOffest: this.modelPageOffest}})
     })
+  }
+
+  selectModel ({model, ...args}) {
+    // this.$router.replace({name: 'ModelDetails', params: {modelName: model.alias, searchModelName: this.searchModelName, ...args}})
+    // this.$nextTick(() => {
+    //   this.forceUpdateRoute()
+    // })
+    // if (model.status && model.status === 'BROKEN') return
+    // this.$router.push({name: 'refresh'})
+    // this.$nextTick(() => {
+    //   this.$router.replace({name: 'ModelDetails', params: {modelName: model.alias, searchModelName: this.searchModelName, ...args}, query: {modelPageOffest: this.modelPageOffest}})
+    // })
+    let data = {searchModelName: this.searchModelName, ...args}
+    let modelData = this.modelList.filter(it => it.alias === this.modelName)
+    this.modelName = model.alias
+    if (!modelData.length) {
+      this.$router.replace({name: 'ModelList'})
+      return
+    }
+    // this.currentModelRow = {...this.modelList.filter(it => it.alias === this.modelName)[0], tabTypes: data.jump && data.jump === 'recommendation' ? 'second' : (typeof data.tabTypes !== 'undefined' ? data.tabTypes : 'overview')}
+    this.$set(this, 'currentModelRow', {...modelData[0], tabTypes: data.jump && data.jump === 'recommendation' ? 'second' : (typeof data.tabTypes !== 'undefined' ? data.tabTypes : 'overview')})
+    this.randomKey = Date.now().toString(32)
   }
 
   loadModelList (name = '') {

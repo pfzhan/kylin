@@ -34,12 +34,13 @@
     <version>4.0.0-SNAPSHOT</version>
 
     <name>Kyligence Enterprise</name>
-    <url>http://kyligence.io</url>
+    <url>https://kyligence.io</url>
     <inceptionYear>2016</inceptionYear>
+    <description>Kyligence Enterprise YingLong Hatching</description>
 
     <organization>
         <name>Kyligence Inc.</name>
-        <url>http://kyligence.io</url>
+        <url>https://kyligence.io</url>
     </organization>
 
     <properties>
@@ -53,7 +54,7 @@
         <!-- Keep same order with dependencyManagement -->
 
         <!-- Hadoop versions -->
-        <hadoop.version>2.8.4</hadoop.version>
+        <hadoop.version>2.10.1</hadoop.version>
         <yarn.version>${hadoop.version}</yarn.version>
         <hadoop.cloud.version>${hadoop.version}</hadoop.cloud.version>
 
@@ -65,14 +66,14 @@
         <kafka.version>2.1.1</kafka.version>
 
         <!-- Spark versions -->
-        <spark.version>3.1.1-kylin-sp-4.x-r51</spark.version>
+        <spark.version>3.1.1-kylin-4.x-r52</spark.version>
 
         <roaring.version>0.9.2-kylin-r3</roaring.version>
 
         <kryo.version>4.0.0</kryo.version>
 
         <!-- Calcite Version -->
-        <calcite.version>1.16.0-kylin-4.x-r014</calcite.version>
+        <calcite.version>1.16.0-kylin-4.x-r017</calcite.version>
         <avatica.version>1.10.0</avatica.version>
 
         <!-- Hadoop Common deps, keep compatible with hadoop2.version -->
@@ -81,25 +82,29 @@
         <jsr305.version>3.0.1</jsr305.version>
         <guava.version>14.0</guava.version>
         <listenablefuture.version>1.0</listenablefuture.version>
-        <jsch.version>0.1.53</jsch.version>
+        <jsch.version>0.1.54</jsch.version>
         <commons-cli.version>1.2</commons-cli.version>
         <commons-lang.version>2.6</commons-lang.version>
-        <commons-io.version>2.4</commons-io.version>
+        <commons-io.version>2.7</commons-io.version>
         <commons-upload.version>1.3.3</commons-upload.version>
         <commons-math3.version>3.4.1</commons-math3.version>
         <commons-collections.version>3.2.2</commons-collections.version>
         <commons-codec.version>1.10</commons-codec.version>
+        <commons-compress.version>1.21</commons-compress.version>
         <gson.version>2.8.9</gson.version>
+        <fastutil.version>7.0.13</fastutil.version>
 
         <!-- Test Dependency versions -->
         <antlr.version>3.4</antlr.version>
         <junit.version>5.7.2</junit.version>
+        <junit-pioneer.version>1.5.0</junit-pioneer.version>
+        <scalatest.version>3.2.0</scalatest.version>
         <dbunit.version>2.5.2</dbunit.version>
         <h2.version>1.4.197</h2.version>
         <jetty.version>9.2.20.v20161216</jetty.version>
         <jamm.version>0.3.1</jamm.version>
-        <mockito.version>2.7.14</mockito.version>
-        <powermock.version>1.7.1</powermock.version>
+        <mockito.version>3.12.4</mockito.version>
+        <powermock.version>2.0.9</powermock.version>
         <assertj-core.version>3.11.1</assertj-core.version>
         <awaitility.version>3.0.0</awaitility.version>
         <embedded-redis.version>0.6</embedded-redis.version>
@@ -110,30 +115,31 @@
 
         <!-- Utility -->
         <mssql-jdbc.version>6.1.0.jre7</mssql-jdbc.version>
-        <mysql-connector.version>8.0.16</mysql-connector.version>
-        <postgresql.version>42.2.13</postgresql.version>
+        <mysql-connector.version>8.0.28</mysql-connector.version>
+        <postgresql.version>42.2.25</postgresql.version>
         <commons-dbcp.version>2.5.0</commons-dbcp.version>
         <lmax.disruptor.versoin>3.4.2</lmax.disruptor.versoin>
-        <log4j2.version>2.17.0</log4j2.version>
+        <log4j2.version>2.17.1</log4j2.version>
         <log4j2-cachefile-transformer.version>2.14.1</log4j2-cachefile-transformer.version>
         <slf4j.version>1.7.30</slf4j.version>
         <apache-log4j.version>2.12.1</apache-log4j.version>
         <xalan.version>2.7.2</xalan.version>
-        <ehcache.version>2.10.2.2.21</ehcache.version>
-        <redis.version>3.6.0</redis.version>
+        <ehcache.version>2.10.9.2</ehcache.version>
+        <redis.version>3.8.0</redis.version>
         <apache-httpclient.version>4.5.13</apache-httpclient.version>
         <beanutils.version>1.9.4</beanutils.version>
         <snakeyaml.version>1.26</snakeyaml.version>
-        <xerces.version>2.12.0.SP03</xerces.version>
-        <bcprov-ext-jdk15on.version>1.61</bcprov-ext-jdk15on.version>
+        <xerces.version>2.12.2</xerces.version>
+        <bcprov-ext-jdk15on.version>1.67</bcprov-ext-jdk15on.version>
+        <bcprov-jdk15on.version>1.67</bcprov-jdk15on.version>
         <opencsv.version>5.5.2</opencsv.version>
 
         <mybatis.version>3.5.6</mybatis.version>
-        <mybatis-sql.version>1.1.4</mybatis-sql.version>
+        <mybatis-sql.version>1.3.1</mybatis-sql.version>
         <cglib.version>3.2.4</cglib.version>
         <supercsv.version>2.4.0</supercsv.version>
         <cors.version>2.5</cors.version>
-        <tomcat.version>8.5.68</tomcat.version>
+        <tomcat.version>8.5.75</tomcat.version>
         <t-digest.version>3.1.1-kylin-r1</t-digest.version>
         <jsonpath.version>2.3.0</jsonpath.version>
         <lombok.version>1.18.2</lombok.version>
@@ -141,10 +147,10 @@
         <javassist.version>3.20.0-GA</javassist.version>
         <!--metric-->
         <dropwizard.version>4.1.1</dropwizard.version>
-        <micrometer.version>1.3.8</micrometer.version>
+        <micrometer.version>1.3.20</micrometer.version>
 
         <!-- REST Service, ref https://github.com/spring-projects/spring-boot/blob/v1.3.8.RELEASE/spring-boot-dependencies/pom.xml -->
-        <spring.cloud.version>Edgware.RELEASE</spring.cloud.version>
+        <spring.cloud.version>Edgware.SR6</spring.cloud.version>
         <spring.boot.version>1.5.16.0-kylin-r2</spring.boot.version>
         <spring.session.version>1.3.6-kylin-r7</spring.session.version>
         <spring.framework.version>4.3.30.RELEASE</spring.framework.version>
@@ -157,11 +163,15 @@
         <transmittable-thread-local.version>2.12.0</transmittable-thread-local.version>
 
         <!-- Maven -->
-        <maven.surefire.version>2.22.2</maven.surefire.version>
+        <maven.surefire.version>3.0.0-M5</maven.surefire.version>
 
         <!-- container -->
         <jetty.toolchain.test-helper.version>3.1.1</jetty.toolchain.test-helper.version>
         <test.container.version>1.15.3</test.container.version>
+
+        <groovy-all.version>2.4.7</groovy-all.version>
+        <slf4j-ext.version>1.7.26</slf4j-ext.version>
+        <protobuf-java.version>3.16.1</protobuf-java.version>
 
         <!-- Sonar -->
         <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
@@ -241,10 +251,8 @@
         <grpc.version>1.0.2</grpc.version>
         <fastPFOR.version>0.0.13</fastPFOR.version>
         <parquet.version>1.12.2-kylin-r1</parquet.version>
-        <jackson.version>2.10.5</jackson.version>
-        <jackson.databind.version>2.10.5.1</jackson.databind.version>
+        <jackson.version>2.13.1</jackson.version>
         <quartz.version>2.1.1</quartz.version>
-        <mockito.version>2.7.14</mockito.version>
         <janino.version>3.0.9</janino.version>
 
         <!-- AWS versions -->
@@ -261,6 +269,7 @@
         <swagger.version>1.5.24</swagger.version>
         <springfox.version>2.9.2</springfox.version>
         <swagger2markup.version>1.3.3</swagger2markup.version>
+        <bytebuddy.version>1.11.13</bytebuddy.version>
         <rhino.version>1.7.13</rhino.version>
         <jsoup.version>1.14.2</jsoup.version>
 
@@ -270,7 +279,7 @@
         <paranamer.version>2.8</paranamer.version>
 
         <!-- JVM Args for Testing -->
-        <argLine>-Xms2G -Xmx8G -XX:MaxPermSize=512M -Duser.timezone=UTC</argLine>
+        <argLine>-Xms2G -Xmx8G</argLine>
 
         <guava20.shade>io.kyligence.kap.guava20.shaded</guava20.shade>
 
@@ -282,6 +291,18 @@
         <clickhouse-jdbc.version>0.2.4</clickhouse-jdbc.version>
         <clickhouse.group>ru.yandex.clickhouse</clickhouse.group>
         <clickhouse.artifact>clickhouse-jdbc</clickhouse.artifact>
+
+        <external.version>4.5.8</external.version>
+
+        <json-smart.version>2.4.7</json-smart.version>
+        <xmlsec.version>2.1.7</xmlsec.version>
+        <derby.version>10.14.2.0</derby.version>
+        <jcommander.version>1.75</jcommander.version>
+        <ant.version>1.9.15</ant.version>
+        <netty-all.version>4.1.73.Final</netty-all.version>
+        <netty.version>3.10.6.Final</netty.version>
+        <servo-core.version>0.13.2</servo-core.version>
+        <apache-api.version>1.0.3</apache-api.version>
     </properties>
 
     <modules>
@@ -291,23 +312,47 @@
         <module>src/query</module>
         <module>src/kap-it</module>
         <module>src/smart</module>
-        <module>src/udf</module>
         <module>src/core-common</module>
         <module>src/core-metadata</module>
         <module>src/source-hive</module>
         <module>src/server-base</module>
         <module>src/license-service</module>
         <module>src/server</module>
-        <module>src/spark-project</module>
+        <module>src/spark-project/spark-common</module>
+        <module>src/spark-project/sparder</module>
+        <module>src/spark-project/engine-spark</module>
+        <module>src/spark-project/kylin-user-session</module>
+        <module>src/spark-project/kylin-user-session-dep</module>
+        <module>src/spark-project/source-jdbc</module>
+        <module>src/spark-project/spark-it</module>
         <module>src/streaming</module>
         <module>src/assembly</module>
         <module>src/tool</module>
         <module>src/datasource-sdk</module>
-        <module>src/external-catalog</module>
+        <module>src/external-catalog/external-catalog-sdk</module>
         <module>src/second-storage/core</module>
         <module>src/second-storage/core-ui</module>
         <module>src/second-storage/clickhouse</module>
         <module>src/second-storage/clickhouse-it</module>
+        <!-- yinglong modules -->
+        <module>src/yinglong-enterprise-core-metadata</module>
+        <module>src/yinglong-systools</module>
+        <!-- yinglong service -->
+        <module>src/yinglong-modeling-service</module>
+        <module>src/yinglong-smart-service</module>
+        <module>src/yinglong-query-service</module>
+        <module>src/yinglong-datasource-service</module>
+        <module>src/yinglong-build-service</module>
+        <module>src/yinglong-common-service</module>
+        <module>src/yinglong-job-service</module>
+        <module>src/yinglong-streaming-service</module>
+        <module>src/yinglong-enterprise-service</module>
+        <module>src/yinglong-integration-service</module>
+        <!-- yinglong server (starter) -->
+        <module>src/yinglong-metadata-server</module>
+        <module>src/yinglong-data-loading-server</module>
+        <module>src/yinglong-smart-server</module>
+        <module>src/yinglong-query-server</module>
     </modules>
 
     <dependencyManagement>
@@ -355,17 +400,17 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-udf</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-storage-parquet-protocol</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-smart</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.ke</groupId>
+                <artifactId>kap-external-catalog-sdk</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -408,6 +453,61 @@
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-second-storage-ui</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.yinglong</groupId>
+                <artifactId>yinglong-common-service</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.yinglong</groupId>
+                <artifactId>yinglong-build-service</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.yinglong</groupId>
+                <artifactId>yinglong-datasource-service</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.yinglong</groupId>
+                <artifactId>yinglong-enterprise-service</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.yinglong</groupId>
+                <artifactId>yinglong-job-service</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.yinglong</groupId>
+                <artifactId>yinglong-modeling-service</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.yinglong</groupId>
+                <artifactId>yinglong-query-service</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.yinglong</groupId>
+                <artifactId>yinglong-smart-service</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.yinglong</groupId>
+                <artifactId>yinglong-streaming-service</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.yinglong</groupId>
+                <artifactId>yinglong-systools</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.yinglong</groupId>
+                <artifactId>yinglong-integration-service</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -466,6 +566,11 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
+                <artifactId>yinglong-enterprise-core-metadata</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-core-job</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -499,6 +604,7 @@
                 <artifactId>kap-tool</artifactId>
                 <version>${project.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>io.dropwizard.metrics</groupId>
                 <artifactId>metrics-core</artifactId>
@@ -520,8 +626,20 @@
                 <type>test-jar</type>
             </dependency>
             <dependency>
+                <groupId>io.kyligence.yinglong</groupId>
+                <artifactId>yinglong-datasource-service</artifactId>
+                <version>${project.version}</version>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
                 <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-core-metadata</artifactId>
+                <version>${project.version}</version>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.ke</groupId>
+                <artifactId>yinglong-enterprise-core-metadata</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
             </dependency>
@@ -545,10 +663,29 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
+                <artifactId>kap-spark-common</artifactId>
+                <version>${project.version}</version>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.ke</groupId>
+                <artifactId>kap-engine-spark</artifactId>
+                <version>${project.version}</version>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-sparder</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
             </dependency>
+            <dependency>
+                <groupId>io.kyligence.yinglong</groupId>
+                <artifactId>yinglong-common-service</artifactId>
+                <version>${project.version}</version>
+                <type>test-jar</type>
+            </dependency>
+
 
             <!-- Hadoop2 dependencies -->
             <dependency>
@@ -607,6 +744,14 @@
                         <groupId>log4j</groupId>
                         <artifactId>*</artifactId>
                     </exclusion>
+                    <exclusion>
+                        <groupId>com.google.protobuf</groupId>
+                        <artifactId>protobuf-java</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.mortbay.jetty</groupId>
+                        <artifactId>jetty</artifactId>
+                    </exclusion>
                 </exclusions>
                 <version>${hadoop.version}</version>
                 <scope>provided</scope>
@@ -615,12 +760,28 @@
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-mapreduce-client-app</artifactId>
                 <version>${hadoop.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.apache.thrift</groupId>
+                        <artifactId>libthrift</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.protobuf</groupId>
+                        <artifactId>protobuf-java</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-yarn-api</artifactId>
                 <version>${hadoop.version}</version>
                 <scope>provided</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.google.protobuf</groupId>
+                        <artifactId>protobuf-java</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
@@ -646,6 +807,10 @@
                         <groupId>log4j</groupId>
                         <artifactId>*</artifactId>
                     </exclusion>
+                    <exclusion>
+                        <groupId>com.google.protobuf</groupId>
+                        <artifactId>protobuf-java</artifactId>
+                    </exclusion>
                 </exclusions>
                 <version>${hadoop.version}</version>
             </dependency>
@@ -663,6 +828,10 @@
                         <groupId>org.slf4j</groupId>
                         <artifactId>slf4j-log4j12</artifactId>
                     </exclusion>
+                    <exclusion>
+                        <groupId>com.google.protobuf</groupId>
+                        <artifactId>protobuf-java</artifactId>
+                    </exclusion>
                 </exclusions>
             </dependency>
             <dependency>
@@ -672,6 +841,26 @@
                     <exclusion>
                         <groupId>com.sun.jersey</groupId>
                         <artifactId>*</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.thrift</groupId>
+                        <artifactId>libthrift</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.protobuf</groupId>
+                        <artifactId>protobuf-java</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-log4j12</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>log4j</groupId>
+                        <artifactId>log4j</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>javax.servlet</groupId>
+                        <artifactId>servlet-api</artifactId>
                     </exclusion>
                 </exclusions>
                 <version>${hadoop.version}</version>
@@ -693,6 +882,11 @@
                 <version>${hadoop.version}</version>
             </dependency>
             <dependency>
+                <groupId>net.minidev</groupId>
+                <artifactId>json-smart</artifactId>
+                <version>${json-smart.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-minicluster</artifactId>
                 <exclusions>
@@ -700,9 +894,39 @@
                         <groupId>com.sun.jersey</groupId>
                         <artifactId>*</artifactId>
                     </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.zookeeper</groupId>
+                        <artifactId>zookeeper</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.protobuf</groupId>
+                        <artifactId>protobuf-java</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.mortbay.jetty</groupId>
+                        <artifactId>jetty</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-log4j12</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>log4j</groupId>
+                        <artifactId>log4j</artifactId>
+                    </exclusion>
                 </exclusions>
                 <version>${hadoop.version}</version>
                 <optional>true</optional>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.directory.api</groupId>
+                <artifactId>api-util</artifactId>
+                <version>${apache-api.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.directory.api</groupId>
+                <artifactId>api-asn1-api</artifactId>
+                <version>${apache-api.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.zookeeper</groupId>
@@ -771,7 +995,6 @@
                 <groupId>commons-lang</groupId>
                 <artifactId>commons-lang</artifactId>
                 <version>${commons-lang.version}</version>
-                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
@@ -783,7 +1006,6 @@
                 <groupId>commons-io</groupId>
                 <artifactId>commons-io</artifactId>
                 <version>${commons-io.version}</version>
-                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>commons-fileupload</groupId>
@@ -805,6 +1027,16 @@
                 <groupId>commons-codec</groupId>
                 <artifactId>commons-codec</artifactId>
                 <version>${commons-codec.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>${commons-compress.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>it.unimi.dsi</groupId>
+                <artifactId>fastutil</artifactId>
+                <version>${fastutil.version}</version>
             </dependency>
             <!-- Hive dependencies -->
             <dependency>
@@ -839,8 +1071,41 @@
                         <groupId>org.apache.hbase</groupId>
                         <artifactId>hbase-server</artifactId>
                     </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.thrift</groupId>
+                        <artifactId>libthrift</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.eclipse.jetty.aggregate</groupId>
+                        <artifactId>jetty-all</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.protobuf</groupId>
+                        <artifactId>protobuf-java</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>tomcat</groupId>
+                        <artifactId>jasper-compiler</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>tomcat</groupId>
+                        <artifactId>jasper-runtime</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-log4j12</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>log4j</groupId>
+                        <artifactId>log4j</artifactId>
+                    </exclusion>
                 </exclusions>
                 <version>${hive.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.beust</groupId>
+                <artifactId>jcommander</artifactId>
+                <version>${jcommander.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.hive.hcatalog</groupId>
@@ -891,6 +1156,38 @@
                         <groupId>org.apache.hbase</groupId>
                         <artifactId>hbase-server</artifactId>
                     </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.thrift</groupId>
+                        <artifactId>libthrift</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.protobuf</groupId>
+                        <artifactId>protobuf-java</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>tomcat</groupId>
+                        <artifactId>jasper-compiler</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>tomcat</groupId>
+                        <artifactId>jasper-runtime</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.hive</groupId>
+                        <artifactId>hive-exec</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>javax.servlet</groupId>
+                        <artifactId>servlet-api</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-log4j12</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>log4j</groupId>
+                        <artifactId>log4j</artifactId>
+                    </exclusion>
                 </exclusions>
             </dependency>
             <dependency>
@@ -906,8 +1203,45 @@
                         <groupId>org.apache.logging.log4j</groupId>
                         <artifactId>log4j-slf4j-impl</artifactId>
                     </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.zookeeper</groupId>
+                        <artifactId>zookeeper</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.eclipse.jetty.aggregate</groupId>
+                        <artifactId>jetty-all</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.thrift</groupId>
+                        <artifactId>libthrift</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.protobuf</groupId>
+                        <artifactId>protobuf-java</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>tomcat</groupId>
+                        <artifactId>jasper-compiler</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>tomcat</groupId>
+                        <artifactId>jasper-runtime</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-log4j12</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>log4j</groupId>
+                        <artifactId>log4j</artifactId>
+                    </exclusion>
                 </exclusions>
                 <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.ant</groupId>
+                <artifactId>ant</artifactId>
+                <version>${ant.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.hive</groupId>
@@ -930,6 +1264,34 @@
                         <groupId>org.slf4j</groupId>
                         <artifactId>slf4j-log4j12</artifactId>
                     </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.zookeeper</groupId>
+                        <artifactId>zookeeper</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.thrift</groupId>
+                        <artifactId>libthrift</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.protobuf</groupId>
+                        <artifactId>protobuf-java</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.mortbay.jetty</groupId>
+                        <artifactId>jetty</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-log4j12</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>log4j</groupId>
+                        <artifactId>log4j</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.tdunning</groupId>
+                        <artifactId>json</artifactId>
+                    </exclusion>
                 </exclusions>
                 <scope>provided</scope>
             </dependency>
@@ -950,8 +1312,49 @@
                         <artifactId>hbase-client</artifactId>
                         <groupId>org.apache.hbase</groupId>
                     </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.zookeeper</groupId>
+                        <artifactId>zookeeper</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.eclipse.jetty.aggregate</groupId>
+                        <artifactId>jetty-all</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.thrift</groupId>
+                        <artifactId>libthrift</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.protobuf</groupId>
+                        <artifactId>protobuf-java</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.mortbay.jetty</groupId>
+                        <artifactId>jetty</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>tomcat</groupId>
+                        <artifactId>jasper-compiler</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>tomcat</groupId>
+                        <artifactId>jasper-runtime</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-log4j12</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>log4j</groupId>
+                        <artifactId>log4j</artifactId>
+                    </exclusion>
                 </exclusions>
                 <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.derby</groupId>
+                <artifactId>derby</artifactId>
+                <version>${derby.version}</version>
             </dependency>
             <!-- Yarn dependencies -->
             <dependency>
@@ -961,6 +1364,26 @@
                     <exclusion>
                         <groupId>com.sun.jersey</groupId>
                         <artifactId>*</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.zookeeper</groupId>
+                        <artifactId>zookeeper</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.mortbay.jetty</groupId>
+                        <artifactId>jetty</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-log4j12</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>log4j</groupId>
+                        <artifactId>log4j</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>javax.servlet</groupId>
+                        <artifactId>servlet-api</artifactId>
                     </exclusion>
                 </exclusions>
                 <version>${yarn.version}</version>
@@ -1011,6 +1434,12 @@
                 <artifactId>spark-sql_2.12</artifactId>
                 <version>${spark.version}</version>
                 <scope>provided</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.google.protobuf</groupId>
+                        <artifactId>protobuf-java</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.apache.spark</groupId>
@@ -1024,6 +1453,12 @@
                 <version>${spark.version}</version>
                 <type>test-jar</type>
                 <scope>test</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.google.protobuf</groupId>
+                        <artifactId>protobuf-java</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.apache.spark</groupId>
@@ -1066,6 +1501,14 @@
                         <groupId>org.apache.hive</groupId>
                         <artifactId>hive-llap-client</artifactId>
                     </exclusion>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-log4j12</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>log4j</groupId>
+                        <artifactId>log4j</artifactId>
+                    </exclusion>
                     <!-- End of Hive dependencies -->
                 </exclusions>
                 <version>${spark.version}</version>
@@ -1107,6 +1550,12 @@
                         <artifactId>*</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-clients</artifactId>
+                <version>${kafka.version}</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.spark</groupId>
@@ -1208,11 +1657,48 @@
 
             <!-- Test -->
             <dependency>
+                <groupId>org.scalatest</groupId>
+                <artifactId>scalatest_2.12</artifactId>
+                <version>${scalatest.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
                 <groupId>org.junit.vintage</groupId>
                 <artifactId>junit-vintage-engine</artifactId>
                 <version>${junit.version}</version>
                 <scope>test</scope>
             </dependency>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-api</artifactId>
+                <version>${junit.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.junit-pioneer</groupId>
+                <artifactId>junit-pioneer</artifactId>
+                <version>${junit-pioneer.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-core</artifactId>
+                <scope>test</scope>
+                <version>${mockito.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-inline</artifactId>
+                <scope>test</scope>
+                <version>${mockito.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-junit-jupiter</artifactId>
+                <scope>test</scope>
+                <version>${mockito.version}</version>
+            </dependency>
+
             <dependency>
                 <groupId>org.dbunit</groupId>
                 <artifactId>dbunit</artifactId>
@@ -1240,12 +1726,6 @@
                         <artifactId>junit</artifactId>
                     </exclusion>
                 </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>org.mockito</groupId>
-                <artifactId>mockito-core</artifactId>
-                <version>${mockito.version}</version>
-                <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.powermock</groupId>
@@ -1427,6 +1907,21 @@
             </dependency>
             <dependency>
                 <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-autoconfigure</artifactId>
+                <version>${spring.boot.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <artifactId>spring-context</artifactId>
+                        <groupId>org.springframework</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>spring-core</artifactId>
+                        <groupId>org.springframework</groupId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-starter-test</artifactId>
                 <version>${spring.boot.version}</version>
                 <scope>test</scope>
@@ -1459,6 +1954,12 @@
                 <version>${spring.cloud.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>com.netflix.servo</groupId>
+                <artifactId>servo-core</artifactId>
+                <version>${servo-core.version}</version>
             </dependency>
 
             <!-- Spring framework -->
@@ -1552,13 +2053,40 @@
                         <groupId>org.apache.velocity</groupId>
                         <artifactId>velocity-engine-core</artifactId>
                     </exclusion>
+                    <exclusion>
+                        <groupId>org.bouncycastle</groupId>
+                        <artifactId>bcprov-jdk15on</artifactId>
+                    </exclusion>
                 </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.santuario</groupId>
+                <artifactId>xmlsec</artifactId>
+                <version>${xmlsec.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcprov-ext-jdk15on</artifactId>
+                <version>${bcprov-ext-jdk15on.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcprov-jdk15on</artifactId>
+                <version>${bcprov-jdk15on.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>org.eclipse.jetty</groupId>
                 <artifactId>jetty-server</artifactId>
                 <version>${jetty.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>javax.servlet</groupId>
+                        <artifactId>servlet-api</artifactId>
+                    </exclusion>
+                </exclusions>
                 <scope>test</scope>
             </dependency>
             <dependency>
@@ -1580,8 +2108,30 @@
                 <scope>provided</scope>
             </dependency>
             <dependency>
+                <groupId>org.apache.tomcat</groupId>
+                <artifactId>tomcat-jdbc</artifactId>
+                <version>${tomcat.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.tomcat</groupId>
+                <artifactId>tomcat-juli</artifactId>
+                <version>${tomcat.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.apache.tomcat.embed</groupId>
                 <artifactId>tomcat-embed-core</artifactId>
+                <version>${tomcat.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.tomcat.embed</groupId>
+                <artifactId>tomcat-embed-el</artifactId>
+                <version>${tomcat.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.tomcat.embed</groupId>
+                <artifactId>tomcat-embed-websocket</artifactId>
                 <version>${tomcat.version}</version>
                 <scope>provided</scope>
             </dependency>
@@ -1656,6 +2206,14 @@
                     <exclusion>
                         <artifactId>hadoop-client</artifactId>
                         <groupId>org.apache.hadoop</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.protobuf</groupId>
+                        <artifactId>protobuf-java</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.mortbay.jetty</groupId>
+                        <artifactId>jetty</artifactId>
                     </exclusion>
                     <!-- End of Hadoop 3.x dependencies -->
                 </exclusions>
@@ -1830,7 +2388,7 @@
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
-                <version>${jackson.databind.version}</version>
+                <version>${jackson.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.dataformat</groupId>
@@ -1840,6 +2398,11 @@
             <dependency>
                 <groupId>com.fasterxml.jackson.dataformat</groupId>
                 <artifactId>jackson-dataformat-yaml</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.module</groupId>
+                <artifactId>jackson-module-scala_2.12</artifactId>
                 <version>${jackson.version}</version>
             </dependency>
             <dependency>
@@ -1895,6 +2458,12 @@
                 </exclusions>
             </dependency>
             <dependency>
+                <artifactId>byte-buddy</artifactId>
+                <groupId>net.bytebuddy</groupId>
+                <version>${bytebuddy.version}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>io.springfox</groupId>
                 <artifactId>springfox-swagger2</artifactId>
                 <version>${springfox.version}</version>
@@ -1918,12 +2487,12 @@
             <dependency>
                 <groupId>io.netty</groupId>
                 <artifactId>netty-all</artifactId>
-                <version>4.1.59.Final</version>
+                <version>${netty-all.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.netty</groupId>
                 <artifactId>netty</artifactId>
-                <version>3.9.9.Final</version>
+                <version>${netty.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.codehaus.janino</groupId>
@@ -1956,6 +2525,24 @@
                 <artifactId>paranamer</artifactId>
                 <version>${paranamer.version}</version>
                 <scope>runtime</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.codehaus.groovy</groupId>
+                <artifactId>groovy-all</artifactId>
+                <version>${groovy-all.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-ext</artifactId>
+                <version>${slf4j-ext.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java</artifactId>
+                <version>${protobuf-java.version}</version>
             </dependency>
 
             <!-- ldap test -->
@@ -2043,69 +2630,29 @@
         </dependency>
     </dependencies>
 
-    <repositories>
+    <distributionManagement>
         <repository>
-            <id>central</id>
-            <name>Central Repository</name>
-            <url>https://repo.maven.apache.org/maven2</url>
+            <id>${repository.id}</id>
+            <url>${repository.url}</url>
+            <name>${repository.name}</name>
             <layout>default</layout>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
         </repository>
-
-        <repository>
-            <id>nexus</id>
-            <name>Kyligence Repository</name>
-            <url>https://repository.kyligence.io/repository/maven-public/
-            </url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-
-        <repository>
-            <id>cloudera</id>
-            <url>https://repository.cloudera.com/artifactory/cloudera-repos/
-            </url>
-        </repository>
-        <repository>
-            <id>Sonatype</id>
-            <url>https://repo1.maven.org/maven2/org/scalastyle/scalastyle-maven-plugin/
-            </url>
-        </repository>
-        <repository>
-            <id>jcenter-snapshots</id>
-            <name>jcenter</name>
-            <url>https://jcenter.bintray.com/</url>
-        </repository>
-        <repository>
-            <id>spring-release</id>
-            <url>https://repo.spring.io/libs-release</url>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-
-        <repository>
-            <id>shibboleth</id>
-            <name>shibboleth repository</name>
-            <url>https://build.shibboleth.net/nexus/content/repositories/releases/</url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
+        <snapshotRepository>
+            <id>${repository.id.snapshots}</id>
+            <url>${repository.url.snapshots}</url>
+            <name>${repository.name.snapshots}</name>
+            <layout>default</layout>
+        </snapshotRepository>
+    </distributionManagement>
 
     <build>
         <pluginManagement>
             <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>${maven.surefire.version}</version>
+                </plugin>
                 <plugin>
                     <groupId>de.thetaphi</groupId>
                     <artifactId>forbiddenapis</artifactId>
@@ -2145,7 +2692,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.5.1</version>
+                    <version>3.9.0</version>
                     <configuration>
                         <source>${javaVersion}</source>
                         <target>${javaVersion}</target>
@@ -2388,6 +2935,11 @@
 
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven.surefire.version}</version>
+            </plugin>
+            <plugin>
                 <groupId>de.thetaphi</groupId>
                 <artifactId>forbiddenapis</artifactId>
                 <version>${forbiddenapis.version}</version>
@@ -2446,20 +2998,12 @@
                         <exclude>**/io/kyligence/kap/rest/scheduler/JobSchedulerListenerTest$ModelHandler.class
                         </exclude>
                         <exclude>**/io/kyligence/kap/tool/kerberos/KerberosLoginUtil.class</exclude>
+                        <exclude>**/org/apache/spark/sql/execution/columnar/ColumnarCachedBatchSerializer$FromCachedBatch.class</exclude>
                     </excludes>
                     <signaturesFiles>
                         <signaturesFile>${user.dir}/dev-support/forbidden-signatures.txt</signaturesFile>
                     </signaturesFiles>
                 </configuration>
-<!--                <executions>-->
-<!--                    <execution>-->
-<!--                        <phase>compile</phase>-->
-<!--                        <goals>-->
-<!--                            <goal>check</goal>-->
-<!--                            <goal>testCheck</goal>-->
-<!--                        </goals>-->
-<!--                    </execution>-->
-<!--                </executions>-->
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -2479,28 +3023,15 @@
                         <goals>
                             <goal>analyze-only</goal>
                         </goals>
-                        <!--<configuration>-->
-                        <!--<failOnWarning>true</failOnWarning>-->
-                        <!--</configuration>-->
                     </execution>
                 </executions>
             </plugin>
-
             <plugin>
-                <groupId>org.asciidoctor</groupId>
-                <artifactId>asciidoctor-maven-plugin</artifactId>
-                <version>1.5.6</version>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>versions-maven-plugin</artifactId>
+                <version>2.7</version>
                 <configuration>
-                    <sourceDirectory>${basedir}/docs/asciidoc</sourceDirectory>
-                    <outputFile>${basedir}/docs/docs.html</outputFile>
-                    <backend>html5</backend>
-                    <sourceHighlighter>highlight.js</sourceHighlighter>
-                    <attributes>
-                        <icons>font</icons>
-                        <doctype>book</doctype>
-                        <toc>left</toc>
-                        <toclevels>3</toclevels>
-                    </attributes>
+                    <generateBackupPoms>true</generateBackupPoms>
                 </configuration>
             </plugin>
         </plugins>
@@ -2547,6 +3078,24 @@
 
     <profiles>
         <profile>
+            <id>kyoffice</id>
+
+            <repositories>
+                <repository>
+                    <id>kyoffice</id>
+                    <name>Central Repository</name>
+                    <url>http://mvn.ops.kylincorp.com/repository/maven-public/</url>
+                    <layout>default</layout>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>true</enabled>
+                    </snapshots>
+                </repository>
+            </repositories>
+        </profile>
+        <profile>
             <id>sandbox</id>
             <activation>
                 <activeByDefault>true</activeByDefault>
@@ -2556,37 +3105,11 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-compiler-plugin</artifactId>
-                        <!--<version>2.5.1</version>-->
                         <configuration>
                             <fork>true</fork>
                             <meminitial>1024m</meminitial>
                             <maxmem>2048m</maxmem>
                         </configuration>
-                    </plugin>
-
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-dependency-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>copy-jamm</id>
-                                <goals>
-                                    <goal>copy</goal>
-                                </goals>
-                                <phase>generate-test-resources</phase>
-                                <configuration>
-                                    <artifactItems>
-                                        <artifactItem>
-                                            <groupId>com.github.jbellis</groupId>
-                                            <artifactId>jamm</artifactId>
-                                            <outputDirectory>${project.build.testOutputDirectory}
-                                            </outputDirectory>
-                                            <destFileName>jamm.jar</destFileName>
-                                        </artifactItem>
-                                    </artifactItems>
-                                </configuration>
-                            </execution>
-                        </executions>
                     </plugin>
 
                     <plugin>
@@ -2624,16 +3147,12 @@
                         <version>${maven.surefire.version}</version>
                         <configuration>
                             <reportsDirectory>${project.basedir}/../../target/surefire-reports</reportsDirectory>
-                            <argLine>-Xms2G -Xmx8G -XX:PermSize=128M -XX:MaxPermSize=512M -Dhdp.version=current
-                            </argLine>
+                            <argLine>-Dhdp.version=current</argLine>
                             <reportFormat>plain</reportFormat>
-                            <forkCount>2</forkCount>
                             <excludes>
                                 <exclude>**/IT*.java</exclude>
                             </excludes>
-                            <argLine>-javaagent:${project.build.testOutputDirectory}/jamm.jar
-                                ${argLine} ${surefireArgLine}
-                            </argLine>
+                            <argLine>${argLine} ${surefireArgLine}</argLine>
                         </configuration>
                     </plugin>
 
@@ -2672,6 +3191,71 @@
                 <clickhouse.group>com.github.housepower</clickhouse.group>
                 <clickhouse.artifact>clickhouse-native-jdbc</clickhouse.artifact>
             </properties>
+        </profile>
+        <profile>
+            <id>nexus</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <repositories>
+                <repository>
+                    <id>central</id>
+                    <name>Central Repository</name>
+                    <url>https://repo.maven.apache.org/maven2</url>
+                    <layout>default</layout>
+                    <snapshots>
+                        <enabled>false</enabled>
+                    </snapshots>
+                </repository>
+
+                <repository>
+                    <id>nexus</id>
+                    <name>Kyligence Repository</name>
+                    <url>https://repository.kyligence.io/repository/maven-public/
+                    </url>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>true</enabled>
+                    </snapshots>
+                </repository>
+
+                <repository>
+                    <id>cloudera</id>
+                    <url>https://repository.cloudera.com/artifactory/cloudera-repos/
+                    </url>
+                </repository>
+                <repository>
+                    <id>Sonatype</id>
+                    <url>https://repo1.maven.org/maven2/org/scalastyle/scalastyle-maven-plugin/
+                    </url>
+                </repository>
+                <repository>
+                    <id>jcenter-snapshots</id>
+                    <name>jcenter</name>
+                    <url>https://jcenter.bintray.com/</url>
+                </repository>
+                <repository>
+                    <id>spring-release</id>
+                    <url>https://repo.spring.io/libs-release</url>
+                    <snapshots>
+                        <enabled>false</enabled>
+                    </snapshots>
+                </repository>
+
+                <repository>
+                    <id>shibboleth</id>
+                    <name>shibboleth repository</name>
+                    <url>https://build.shibboleth.net/nexus/content/repositories/releases/</url>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>false</enabled>
+                    </snapshots>
+                </repository>
+            </repositories>
         </profile>
     </profiles>
 </project>

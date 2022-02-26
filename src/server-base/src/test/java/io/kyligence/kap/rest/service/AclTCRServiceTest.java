@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.service;
 
+import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
 import static org.springframework.security.acls.domain.BasePermission.ADMINISTRATION;
 
 import java.io.IOException;
@@ -70,10 +71,12 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 import org.springframework.context.ApplicationContext;
 import org.springframework.security.acls.domain.PermissionFactory;
+import org.springframework.security.acls.model.Permission;
 import org.springframework.security.acls.model.PermissionGrantingStrategy;
 import org.springframework.security.acls.model.Sid;
 import org.springframework.security.authentication.TestingAuthenticationToken;
@@ -103,6 +106,7 @@ import lombok.val;
 import lombok.var;
 
 @RunWith(PowerMockRunner.class)
+@PowerMockIgnore("javax.management.*")
 @PrepareForTest({ SpringContext.class, UserGroupInformation.class })
 public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
 
@@ -111,8 +115,10 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
     private final String user3 = "u3";
     private final String user4 = "u4";
     private final String user5 = "u5";
+    private final String user6 = "u6";
     private final String group1 = "g1";
     private final String group2 = "g2";
+    private final String group3 = "g3";
 
     private final String allAuthorizedUser1 = "a1u1";
     private final String allAuthorizedGroup1 = "a1g1";
@@ -172,7 +178,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(aclTCRService, "projectService", projectService);
         initUsers();
 
-        Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
+        Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", ROLE_ADMIN);
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
@@ -185,9 +191,11 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         userManager.update(new ManagedUser(user3, "Q`w11g23", false, Arrays.asList(//
                 new SimpleGrantedAuthority(Constant.ROLE_MODELER))));
         userManager.update(new ManagedUser(user4, "Q`w11g23", false, Arrays.asList(//
-                new SimpleGrantedAuthority(Constant.ROLE_ADMIN))));
+                new SimpleGrantedAuthority(ROLE_ADMIN))));
         userManager.update(new ManagedUser(user5, "Q`w11g23", false, Arrays.asList(//
                 new SimpleGrantedAuthority(Constant.GROUP_ALL_USERS))));
+        userManager.update(new ManagedUser(user6, "Q`w11g23", false, Arrays.asList(//
+                new SimpleGrantedAuthority(Constant.GROUP_ALL_USERS), new SimpleGrantedAuthority("g3"))));
 
         switchToAdmin();
         // mock AclManager bean in spring
@@ -207,7 +215,13 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         MutableAclRecord projectAcl = (MutableAclRecord) aclService.createAcl(new ObjectIdentityImpl(projectAE));
         aclService.createAcl(new ObjectIdentityImpl(userAE));
         Sid sidUser5 = accessService.getSid(user5, true);
-        aclManger.upsertAce(projectAcl, sidUser5, ADMINISTRATION);
+        Sid sidGroup3 = accessService.getSid(group3, false);
+
+        Map<Sid, Permission> map = new HashMap<>();
+        map.put(sidUser5, ADMINISTRATION);
+        map.put(sidGroup3, ADMINISTRATION);
+        aclManger.batchUpsertAce(projectAcl, map);
+//        aclManger.upsertAce(projectAcl, sidGroup3, ADMINISTRATION);
     }
 
     private void switchToAdmin() {
@@ -1286,4 +1300,37 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
                     });
                 }));
     }
+
+    @Test
+    public void testUpdateAdminAndProjectAdminGroupTableAcl() {
+        AclTCRRequest request = new AclTCRRequest();
+        request.setDatabaseName("DEFAULT");
+        AclTCRRequest.Table u1t1 = new AclTCRRequest.Table();
+        u1t1.setTableName("TEST_ORDER");
+        u1t1.setAuthorized(true);
+
+        AclTCRRequest.Column u1c1 = new AclTCRRequest.Column();
+        u1c1.setColumnName("ORDER_ID");
+        u1c1.setAuthorized(false);
+        // add columns
+        u1t1.setColumns(Collections.singletonList(u1c1));
+
+        //add tables
+        request.setTables(Collections.singletonList(u1t1));
+
+        assertKylinExeption(() -> {
+            aclTCRService.updateAclTCR(projectDefault, group3, false, fillAclTCRRequest(request));
+        }, "Admin is not supported to update permission.");
+
+        assertKylinExeption(() -> {
+            aclTCRService.updateAclTCR(projectDefault, ROLE_ADMIN, false, fillAclTCRRequest(request));
+        }, "Admin is not supported to update permission.");
+
+        overwriteSystemProp("kylin.security.acl.admin-role", "ldap-admin");
+
+        assertKylinExeption(() -> {
+            aclTCRService.updateAclTCR(projectDefault, "ldap-admin", false, fillAclTCRRequest(request));
+        }, "Admin is not supported to update permission.");
+    }
+
 }

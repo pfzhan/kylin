@@ -197,6 +197,7 @@
                 ref="indexesTable"
                 :data="indexDatas"
                 class="indexes-table"
+                :show-empty-img="false"
                 :empty-text="emptyText"
                 @sort-change="onSortChange"
                 @selection-change="handleSelectionChange"
@@ -1146,6 +1147,9 @@ export default class ModelAggregate extends Vue {
     }
   }
   .indexes-table {
+    .el-table__empty-img-text {
+      padding: 16px;
+    }
     .empty-index {
       background: @warning-color-2;
     }

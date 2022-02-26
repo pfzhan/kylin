@@ -34,6 +34,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 
+import io.kyligence.kap.rest.request.UserRequest;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.util.JsonUtil;
@@ -472,7 +473,9 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testUpdateUser() throws Exception {
         val user = new ManagedUser("ADMIN", pwdEncoder.encode("KYLIN"), false);
-
+        val userRequest = new UserRequest();
+        userRequest.setUsername("ADMIN");
+        userRequest.setDisabled(false);
         Mockito.doReturn(true).when(userGroupService).exists("ALL_USERS");
         Mockito.doReturn(new HashSet<String>() {
             {
@@ -481,11 +484,11 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         }).when(userGroupService).listUserGroups(user.getUsername());
         Mockito.doReturn(user).when(nUserController).getManagedUser("ADMIN");
         mockMvc.perform(MockMvcRequestBuilders.put("/api/user").contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(user))
+                .content(JsonUtil.writeValueAsString(userRequest))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        Mockito.verify(nUserController).updateUser(Mockito.any(ManagedUser.class));
+        Mockito.verify(nUserController).updateUser(Mockito.any(UserRequest.class));
     }
 
     @Test
@@ -493,9 +496,12 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         val user = new ManagedUser();
         user.setUsername("ADMIN");
         user.setPassword("KYLIN1234@");
+        val userRequest = new UserRequest();
+        userRequest.setUsername(user.getUsername());
+        userRequest.setPassword(user.getPassword());
         userGroupService.addGroup(Constant.GROUP_ALL_USERS);
-        List<SimpleGrantedAuthority> groups = Lists.newArrayList(new SimpleGrantedAuthority(Constant.GROUP_ALL_USERS),
-                new SimpleGrantedAuthority(Constant.GROUP_ALL_USERS));
+        List<String> groups = Lists.newArrayList(Constant.GROUP_ALL_USERS,
+                Constant.GROUP_ALL_USERS);
         Mockito.doReturn(user).when(nUserController).getManagedUser("ADMIN");
         Mockito.doReturn(new HashSet<String>() {
             {
@@ -503,15 +509,19 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
             }
         }).when(userGroupService).listUserGroups(user.getUsername());
         Mockito.doReturn(true).when(userGroupService).exists(Constant.GROUP_ALL_USERS);
-        user.setGrantedAuthorities(groups);
+        userRequest.setAuthorities(groups);
         thrown.expect(KylinException.class);
         thrown.expectMessage("Values in authorities can't be duplicated.");
-        nUserController.updateUser(user);
+        nUserController.updateUser(userRequest);
     }
 
     @Test
     public void testUpdateOwnUserType() throws Exception {
         val user = new ManagedUser("ADMIN", pwdEncoder.encode("KYLIN"), false);
+        val userRequest = new UserRequest();
+        userRequest.setUsername(user.getUsername());
+        userRequest.setPassword(user.getPassword());
+        userRequest.setDefaultPassword(user.isDefaultPassword());
         HashSet<String> groups = new HashSet<String>() {
             {
                 add(Constant.GROUP_ALL_USERS);
@@ -523,10 +533,10 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         Mockito.doReturn(true).when(userGroupService).exists(Constant.GROUP_ALL_USERS);
         Mockito.doReturn(true).when(userGroupService).exists(Constant.ROLE_ADMIN);
         mockMvc.perform(MockMvcRequestBuilders.put("/api/user").contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(user))
+                .content(JsonUtil.writeValueAsString(userRequest))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError());
-        Mockito.verify(nUserController).updateUser(Mockito.any(ManagedUser.class));
+        Mockito.verify(nUserController).updateUser(Mockito.any(UserRequest.class));
     }
 
     @Test

@@ -189,6 +189,7 @@ export default class SourceSelect extends Vue {
     box-shadow: 0px 1px 4px rgba(63, 89, 128, 0.16);
     box-sizing: border-box;
     cursor: pointer;
+    overflow: hidden;
     * {
       vertical-align: middle;
     }

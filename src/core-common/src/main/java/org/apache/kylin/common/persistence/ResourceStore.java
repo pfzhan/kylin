@@ -226,8 +226,8 @@ public abstract class ResourceStore implements AutoCloseable {
     protected abstract NavigableSet<String> listResourcesImpl(String folderPath, boolean recursive);
 
     protected void init(MetadataStore metadataStore) throws Exception {
-        metadataStore.restore(this);
         this.metadataStore = metadataStore;
+        reload();
     }
 
     public String getMetaStoreUUID() {
@@ -435,6 +435,8 @@ public abstract class ResourceStore implements AutoCloseable {
         } catch (Throwable ignore) {
         }
     }
+
+    public abstract void reload() throws IOException;
 
     public interface Visitor {
         void visit(String path);

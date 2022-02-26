@@ -179,11 +179,11 @@ public class DataLoader {
 
         for (ShardLoader shardLoader : shardLoaders) {
             Future<?> future = executorService.submit(() -> {
-                try (SetThreadName ignored = new SetThreadName("Shard %s",
-                        shardLoader.getClickHouse().getShardName())) {
+                String replicaName = shardLoader.getClickHouse().getShardName();
+                try (SetThreadName ignored = new SetThreadName("Shard %s", replicaName)) {
                     shardLoader.setup(loadContext.isNewJob());
-                    val files = shardLoader.loadDataIntoTempTable(loadContext.getHistory(), stopFlag);
-                    files.forEach(loadContext::finishSingleFile);
+                    val files = shardLoader.loadDataIntoTempTable(loadContext.getHistory(replicaName), stopFlag);
+                    files.forEach(file -> loadContext.finishSingleFile(replicaName, file));
                     // save progress
                     return true;
                 } finally {

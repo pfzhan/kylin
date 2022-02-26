@@ -210,8 +210,8 @@ public class NBasicController {
     @ExceptionHandler(AccessDeniedException.class)
     @ResponseBody
     ErrorResponse handleAccessDenied(HttpServletRequest req, Throwable ex) {
-        KylinException e = new KylinException(ACCESS_DENIED, ex);
-        getLogger().error("", e);
+        getLogger().error("", ex);
+        KylinException e = new KylinException(ACCESS_DENIED, MsgPicker.getMsg().getACCESS_DENY());
         return new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(req), e);
     }
 
@@ -358,6 +358,10 @@ public class NBasicController {
         data.put(name, PagingUtil.cutPage(result, offset, limit));
         data.put("size", result.size());
         return data;
+    }
+
+    public List<?> getDataNoEnvelopeResponse(List<?> result, int offset, int limit){
+        return PagingUtil.cutPage(result, offset, limit);
     }
 
     public String checkProjectName(String project) {

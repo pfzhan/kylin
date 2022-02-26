@@ -44,7 +44,11 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
+import io.kyligence.kap.smart.AbstractContext;
+import io.kyligence.kap.smart.SqlValidateContext;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class QueryRunnerBuilder {
 
     private final KylinConfig kylinConfig;
@@ -79,11 +83,15 @@ public class QueryRunnerBuilder {
         dumpProj.init(kylinConfig, true);
         mockupResources.put(dumpProj.getResourcePath(), dumpProj);
 
-        NTableMetadataManager metadataManager = NTableMetadataManager.getInstance(kylinConfig, project);
-        metadataManager.listAllTables().forEach(tableDesc -> dumpResources.add(tableDesc.getResourcePath()));
+        NTableMetadataManager tableManager = NTableMetadataManager.getInstance(kylinConfig, project);
+        AbstractContext context = new SqlValidateContext(kylinConfig, project, sqls);
+        Set<String> relatedTables = context.getRelatedTables();
+        relatedTables.stream().map(tableManager::getTableDesc)
+                .forEach(tableDesc -> dumpResources.add(tableDesc.getResourcePath()));
 
         KafkaConfigManager kafkaConfigManager = KafkaConfigManager.getInstance(kylinConfig, project);
-        kafkaConfigManager.listAllKafkaConfigs().forEach(kafkaConfig -> dumpResources.add(kafkaConfig.getResourcePath()));
+        kafkaConfigManager.listAllKafkaConfigs()
+                .forEach(kafkaConfig -> dumpResources.add(kafkaConfig.getResourcePath()));
 
         dataModels.forEach(dataModel -> {
             mockupResources.put(dataModel.getResourcePath(), dataModel);

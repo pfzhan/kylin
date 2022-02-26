@@ -98,17 +98,17 @@ public class RenameProjectResourceToolTest extends NLocalFileMetadataTestCase {
             // dataflow
             val dataflowManager = NDataflowManager.getInstance(config, "default1");
             val dataflows = dataflowManager.listAllDataflows(true);
-            Assert.assertEquals(7, dataflows.size());
+            Assert.assertEquals(8, dataflows.size());
 
             // index plan
             val indexPlanManager = NIndexPlanManager.getInstance(config, "default1");
             val indexPlans = indexPlanManager.listAllIndexPlans(true);
-            Assert.assertEquals(7, indexPlans.size());
+            Assert.assertEquals(8, indexPlans.size());
 
             //model desc
             val dataModelManager = NDataModelManager.getInstance(config, "default1");
             val dataModels = dataModelManager.listAllModels();
-            Assert.assertEquals(7, dataModels.size());
+            Assert.assertEquals(8, dataModels.size());
 
             // rule
             val favoriteRuleManager = FavoriteRuleManager.getInstance(config, "default1");

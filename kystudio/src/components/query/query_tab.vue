@@ -38,7 +38,7 @@
           <p class="resultText" v-if="extraoptionObj.queryId">
             <span class="label">{{$t('kylinLang.query.query_id')}}: </span>
             <span class="text" v-if="extraoptionObj.queryId">{{extraoptionObj.queryId}}</span><span v-if="$store.state.config.platform === 'iframe'">
-              <a target="_blank" :href="extraoptionObj.appMasterURL" v-if="extraoptionObj.appMasterURL" class="ksd-ml-15 ksd-ml-15">{{$t('linkToSpark')}}</a><el-button class="btn-view-log" type="primary" text @click="goSystemLog">{{$t('viewLogs')}}</el-button>
+              <a target="_blank" :href="extraoptionObj.appMasterURL" v-if="extraoptionObj.appMasterURL" class="ksd-ml-15 ksd-ml-15">{{$t('linkToSpark')}}</a><el-button class="btn-view-log" type="primary" size="small" nobg-text @click="goSystemLog">{{$t('viewLogs')}}</el-button>
             </span>
             <span v-else class="ksd-ml-10">
               <common-tip :content="$t('linkToSpark')" v-if="extraoptionObj.appMasterURL">
@@ -391,6 +391,8 @@ export default class QueryTab extends Vue {
     }
     .btn-view-log {
       margin-left: 15px;
+      position: relative;
+      top: -2px;
     }
   }
   #queryPanelBox {

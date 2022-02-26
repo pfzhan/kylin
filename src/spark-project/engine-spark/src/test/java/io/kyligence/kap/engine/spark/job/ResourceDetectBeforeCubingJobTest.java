@@ -26,6 +26,7 @@ package io.kyligence.kap.engine.spark.job;
 
 import java.util.Set;
 
+import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -96,8 +97,8 @@ public class ResourceDetectBeforeCubingJobTest extends NLocalWithSparkSessionTes
         execMgr.addJob(job);
 
         // wait job done
-        ExecutableState status = wait(job);
-        Assert.assertEquals(firstFailedJobErrorMessage(execMgr, job), ExecutableState.SUCCEED, status);
+        ExecutableState status = IndexDataConstructor.wait(job);
+        Assert.assertEquals(IndexDataConstructor.firstFailedJobErrorMessage(execMgr, job), ExecutableState.SUCCEED, status);
     }
 
 }

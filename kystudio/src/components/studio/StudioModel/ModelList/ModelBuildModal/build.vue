@@ -96,6 +96,7 @@
                   <div style="display: inline-block;">
                     <el-button
                       size="medium"
+                      class="auto-detect-btn"
                       :loading="isLoadingFormat"
                       :disabled="isLoadingNewRange || !datasourceActions.includes('changePartition')"
                       icon="el-ksd-icon-data_range_search_old"
@@ -173,11 +174,13 @@
               <div class="ky-no-br-space" style="height:32px;">
                 <el-date-picker
                   type="datetime"
+                  style="width: 44%;"
                   :class="['ksd-mr-5', {'is-error': dateErrorMsg}]"
+                  :key="`prevPicker_${new Date(modelBuildMeta.dataRangeVal[0]).getTime()}`"
                   ref="prevPicker"
                   v-model="modelBuildMeta.dataRangeVal[0]"
                   :disabled="modelBuildMeta.isLoadExisted || isLoadingNewRange"
-                  @change="resetError"
+                  @change="(v) => handleChangeDateTime(v, 'start')"
                   value-format="timestamp"
                   :is-auto-complete="true"
                   :format="partitionFormat"
@@ -185,12 +188,14 @@
                 </el-date-picker>
                 <el-date-picker
                   type="datetime"
+                  style="width: 44%;"
                   ref="nextPicker"
                   :class="{'is-error': dateErrorMsg}"
+                  :key="`prevPicker_${new Date(modelBuildMeta.dataRangeVal[1]).getTime()}`"
                   v-model="modelBuildMeta.dataRangeVal[1]"
                   :disabled="modelBuildMeta.isLoadExisted || isLoadingNewRange"
                   value-format="timestamp"
-                  @change="resetError"
+                  @change="(v) => handleChangeDateTime(v, 'end')"
                   :is-auto-complete="true"
                   :format="partitionFormat"
                 >
@@ -198,7 +203,7 @@
                 <common-tip :content="noPartition ? $t('partitionFirst'):$t('detectAvailableRange')" placement="top">
                   <el-button
                     size="medium"
-                    class="ksd-ml-10"
+                    class="auto-detect-btn ksd-ml-10"
                     v-if="$store.state.project.projectPushdownConfig&&!isStreamModel"
                     :disabled="modelBuildMeta.isLoadExisted || noPartition"
                     :loading="isLoadingNewRange"
@@ -218,6 +223,13 @@
               </div>
             </el-form-item>
           </el-form>
+          <el-alert
+            v-show="!isShowRangeDateError && modelBuildMeta.dataRangeVal[1]"
+            class="date-range-alert"
+            :title="$t('segmentDateRangeTips')"
+            type="warning"
+            :closable="false"
+          ></el-alert>
           <div class="error-msg" v-if="isShowRangeDateError">{{loadRangeDateError}}</div>
           <div v-if="isShowErrorSegments" class="error_segments">
             <el-alert type="error" :show-background="false" :closable="false" show-icon>
@@ -351,6 +363,7 @@
     locales
   })
   export default class ModelBuildModal extends Vue {
+    moment = moment
     btnLoading = false
     isLoadingNewRange = false
     modelBuildMeta = {
@@ -482,9 +495,22 @@
       }
       this.dateErrorMsg = ''
       this.isShowWarning = this.isHaveSegment && (this.buildType !== this.defaultBuildType || JSON.stringify(this.prevPartitionMeta) !== JSON.stringify(this.partitionMeta))
-      // this.$nextTick(() => {
-      //   this.changePartitionSetting()
-      // })
+    }
+    handleChangeDateTime (val, pos) {
+      // 仅在 IE 浏览器下做兼容处理
+      if (val && navigator.userAgent.indexOf('Windows NT') >= 0) {
+        const newDate = function (date) {
+          if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}/.test(date)) {
+            return new Date(date.replace(/-/g, '/'))
+          } else {
+            return new Date(date)
+          }
+        }
+        let dateVal = this.modelBuildMeta.dataRangeVal
+        pos === 'start' ? dateVal.splice(0, 1, newDate(val).getTime()) : dateVal.splice(1, 1, newDate(val).getTime())
+        this.$set(this.modelBuildMeta, 'dataRangeVal', dateVal)
+      }
+      this.resetError()
     }
     validateBrokenColumn (rule, value, callback) {
       if (value) {
@@ -659,21 +685,31 @@
     get format () {
       return this.modelDesc.partition_desc && this.modelDesc.partition_desc.partition_date_format || 'yyyy-MM-dd'
     }
+    formatPartition () {
+      let format = ''
+      switch (this.partitionMeta.format) {
+        case 'yyyy-MM-dd':
+        case 'yyyyMMdd':
+        case 'yyyy/MM/dd':
+          format = 'YYYY/MM/DD'
+          break
+        case 'yyyy-MM':
+        case 'yyyyMM':
+          format = 'YYYY/MM'
+          break
+        case 'yyyy-MM-dd HH:mm:ss':
+          format = 'YYYY/MM/DD HH:mm:ss'
+          break
+        case 'yyyy-MM-dd HH:mm:ss.SSS':
+          format = 'YYYY/MM/DD HH:mm:ss.SSS'
+          break
+      }
+      return format
+    }
     validateRange (value) {
       return new Promise((resolve, reject) => {
         const [ startValue, endValue ] = value
-        let format = ''
-        switch (this.partitionMeta.format) {
-          case 'yyyy-MM-dd':
-          case 'yyyyMMdd':
-          case 'yyyy/MM/dd':
-            format = 'YYYY/MM/DD'
-            break
-          case 'yyyy-MM':
-          case 'yyyyMM':
-            format = 'YYYY/MM'
-            break
-        }
+        let format = this.formatPartition()
         const formatTimestampStart = !format ? startValue : (startValue && new Date(moment(new Date(startValue)).format(format)).getTime())
         const formatTimestampEnd = !format ? endValue : (endValue && new Date(moment(new Date(endValue)).format(format)).getTime())
         const isLoadExisted = this.modelBuildMeta.isLoadExisted
@@ -1178,6 +1214,13 @@
         }
       }
     }
+    .date-range-alert {
+      padding: 10px 0;
+      background-color: transparent;
+    }
+    .auto-detect-btn {
+      line-height: 22px;
+    }
     .detail-content {
       background-color: @base-background-color-1;
       padding: 8px 16px;
@@ -1277,6 +1320,12 @@
     .select-sub-partition.error-border {
       .el-input__inner {
         border-color: @error-color-1;
+      }
+    }
+    .select-sub-partition {
+      // 针对 IE 游览器下中文输入法下输入文字后面会自带叉叉问题
+      .el-select__input::-ms-clear {
+        display: none;
       }
     }
     .el-icon-info {

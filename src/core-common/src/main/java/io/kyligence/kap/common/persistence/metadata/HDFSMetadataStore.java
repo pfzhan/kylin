@@ -49,15 +49,15 @@ import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.persistence.VersionedRawResource;
 import org.apache.kylin.common.util.HadoopUtil;
 
-import com.google.common.base.Preconditions;
-import com.google.common.base.Throwables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
+import io.kyligence.kap.guava20.shaded.common.base.Preconditions;
+import io.kyligence.kap.guava20.shaded.common.base.Throwables;
+import io.kyligence.kap.guava20.shaded.common.collect.Lists;
+import io.kyligence.kap.guava20.shaded.common.collect.Maps;
+import io.kyligence.kap.guava20.shaded.common.collect.Sets;
 import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
-
 import lombok.Getter;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -243,16 +243,17 @@ public class HDFSMetadataStore extends MetadataStore {
     }
 
     @Override
-    public void restore(ResourceStore store) throws IOException {
+    public MemoryMetaData reloadAll() throws IOException {
         val compressedFile = getRealHDFSPath(COMPRESSED_FILE);
         if (!fs.exists(compressedFile) || !fs.isFile(compressedFile)) {
-            super.restore(store);
-            return;
+            return super.reloadAll();
         }
-        log.info("restore from metadata.zip");
-        getCompressedFiles().forEach((name, raw) -> store.putResourceWithoutCheck(name, raw.getByteSource(),
-                raw.getTimestamp(), raw.getMvcc()));
+        log.info("reloadAll from metadata.zip");
+        MemoryMetaData data = MemoryMetaData.createEmpty();
+        getCompressedFiles().forEach((name, raw) -> data.put(name, new VersionedRawResource(raw)));
+        return data;
     }
+
 
     private void compress(ZipOutputStream out, RawResource raw) throws IOException {
         ZipEntry entry = new ZipEntry(raw.getResPath());

@@ -104,7 +104,8 @@
           </el-row>
           <el-row v-for="(item, index) in partitionColumnData.list" :key="index" :gutter="5" class="ksd-mt-5">
             <el-col :span="7">
-              <el-input :value="`${item.database}.${item.table}`" :disabled="true" style="width: 100%;"></el-input>
+              <!-- <el-input :value="`${item.database}.${item.table}`" :disabled="true" style="width: 100%;"></el-input> -->
+              <span class="snapshot-table-name" v-custom-tooltip="{text: `${item.database}.${item.table}`, w: 20, position: 'bottom-start', 'visible-arrow': false, 'popper-class': 'popper--small'}">{{`${item.database}.${item.table}`}}</span>
             </el-col>
             <el-col :span="8">
               <el-select v-model="item.partition_column" :placeholder="$t('selectPartitionPlaceholder')" @change="changePartitionColumns(item, item)" style="width: 100%;" :disabled="item.isLoadingPartition || item.source_type !== 9">
@@ -801,6 +802,9 @@ export default class SnapshotModel extends Vue {
       width: 100%;
       text-align: right;
     }
+    .snapshot-table-name {
+      line-height: 34px;
+    }
     .error-msg {
       color: @color-danger;
       font-size: 12px;
@@ -1106,7 +1110,7 @@ export default class SnapshotModel extends Vue {
       position: static;
     }
     .el-tree-node {
-      overflow-x: hidden;
+      overflow: hidden;
     }
     .el-tree .el-tree-node__content {
       .tree-item {
@@ -1142,6 +1146,7 @@ export default class SnapshotModel extends Vue {
     .el-tree-node__content {
       min-height: 16px;
       position:relative;
+      line-height: 34px\0;
     }
     .el-tree-node__content:hover .select-all {
       display: block;
@@ -1166,6 +1171,7 @@ export default class SnapshotModel extends Vue {
       user-select: none;
       width: 100%;
       white-space: normal;
+      line-height: 34px\0;
     }
     .el-icon-ksd-good_health {
       color: @color-success;

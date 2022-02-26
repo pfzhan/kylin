@@ -50,6 +50,7 @@ import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.kyligence.kap.query.engine.QueryExec;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exception.KylinTimeoutException;
@@ -65,7 +66,6 @@ import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.query.engine.ProjectSchemaFactory;
 import io.kyligence.kap.query.util.CommentParser;
 import io.kyligence.kap.query.util.RestoreFromComputedColumn;
 import lombok.extern.slf4j.Slf4j;
@@ -86,11 +86,11 @@ public class QueryUtil {
 
     public static String normalizeForTableDetecting(String project, String sql) {
         KylinConfig kylinConfig = QueryUtil.getKylinConfig(project);
-        String convertedSql = normalMassageSql(kylinConfig, sql, 1, 1);
+        String convertedSql = normalMassageSql(kylinConfig, sql, 0, 0);
         String defaultSchema = "DEFAULT";
         try {
-            ProjectSchemaFactory schemaFactory = new ProjectSchemaFactory(project, kylinConfig);
-            defaultSchema = schemaFactory.getDefaultSchema();
+            QueryExec queryExec = new QueryExec(project, kylinConfig);
+            defaultSchema = queryExec.getDefaultSchemaName();
         } catch (Exception e) {
             log.error("Get project default schema failed.", e);
         }
@@ -201,6 +201,9 @@ public class QueryUtil {
         String sql = queryParams.getSql();
         while (sql.endsWith(";"))
             sql = sql.substring(0, sql.length() - 1);
+        // fix KE-34379，filter "/*+ MODEL_PRIORITY({cube_name}) */" hint
+        String regex = "/\\*\\s*\\+\\s*(?i)MODEL_PRIORITY\\s*\\([\\s\\S]*\\)\\s*\\*/";
+        sql = Pattern.compile(regex).matcher(sql).replaceAll("");
         initPushDownConvertersIfNeeded(queryParams.getKylinConfig());
         for (IPushDownConverter converter : pushDownConverters) {
             if (Thread.currentThread().isInterrupted()) {

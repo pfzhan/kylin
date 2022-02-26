@@ -38,10 +38,9 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.StringEntity;
 import org.apache.kylin.common.util.RandomUtil;
 import org.awaitility.Awaitility;
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
@@ -52,15 +51,17 @@ import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
 import io.kyligence.kap.common.persistence.transaction.AuditLogReplayWorker;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.guava20.shaded.common.collect.Maps;
 import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
 import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
+import io.kyligence.kap.junit.annotation.MetadataInfo;
+import io.kyligence.kap.junit.annotation.OverwriteProp;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class JdbcAuditLogRecoveryTest extends NLocalFileMetadataTestCase {
+@MetadataInfo(onlyProps = true)
+public class JdbcAuditLogRecoveryTest {
 
     static final String META_TABLE_KEY = "META_TABLE_KEY";
     static final String META_TABLE_CONTENT = "META_TABLE_CONTENT";
@@ -85,21 +86,13 @@ public class JdbcAuditLogRecoveryTest extends NLocalFileMetadataTestCase {
             + ") values (?, ?, ?, ?, ?, ?, ?)";
     private final Charset charset = Charset.defaultCharset();
 
-    @Before
-    public void setup() {
-        createTestMetadata();
-        getTestConfig().setMetadataUrl(
-                "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
-        getTestConfig().setProperty("server.port", "7072");
-    }
-
-    @After
+    @AfterEach
     public void destroy() throws Exception {
         val jdbcTemplate = getJdbcTemplate();
         jdbcTemplate.batchUpdate("DROP ALL OBJECTS");
-        cleanupTestMetadata();
     }
 
+    @OverwriteProp(key = "kylin.metadata.url", value = "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=")
     @Test
     public void testAuditLogOutOfOrder() throws Exception {
         val listener = new StatusListener();
@@ -237,5 +230,9 @@ public class JdbcAuditLogRecoveryTest extends NLocalFileMetadataTestCase {
         val props = datasourceParameters(url);
         val dataSource = BasicDataSourceFactory.createDataSource(props);
         return new JdbcTemplate(dataSource);
+    }
+
+    KylinConfig getTestConfig() {
+        return KylinConfig.getInstanceFromEnv();
     }
 }

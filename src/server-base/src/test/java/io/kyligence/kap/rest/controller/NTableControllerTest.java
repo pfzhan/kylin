@@ -78,6 +78,7 @@ import io.kyligence.kap.rest.request.TopTableRequest;
 import io.kyligence.kap.rest.response.LoadTableResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
+import io.kyligence.kap.rest.service.ModelBuildService;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.TableExtService;
 import io.kyligence.kap.rest.service.TableSamplingService;
@@ -97,6 +98,9 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
 
     @Mock
     private ModelService modelService;
+
+    @Mock
+    private ModelBuildService modelBuildService;
 
     @Mock
     private TableExtService tableExtService;
@@ -573,7 +577,8 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testRefreshSegments() throws Exception {
-        Mockito.doNothing().when(modelService).refreshSegments("default", "TEST_KYLIN_FACT", "0", "100", "0", "100");
+        Mockito.doNothing().when(modelBuildService).refreshSegments("default", "TEST_KYLIN_FACT", "0", "100", "0",
+                "100");
         RefreshSegmentsRequest refreshSegmentsRequest = new RefreshSegmentsRequest();
         refreshSegmentsRequest.setProject("default");
         refreshSegmentsRequest.setRefreshStart("0");

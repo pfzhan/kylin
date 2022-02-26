@@ -59,6 +59,8 @@ trait SegmentExec extends Logging {
 
   protected def runtime: JobRuntime
 
+  @volatile protected var backgroundFailure: Option[Throwable] = None
+
   // Layout result pipe.
   protected final lazy val pipe = Queues.newLinkedBlockingQueue[ResultType]()
 
@@ -159,7 +161,7 @@ trait SegmentExec extends Logging {
       setConfig4CurrentThread()
       drain()
     } catch {
-      case t: Throwable => logError(s"Segment $segmentId checkpoint failed.", t); throw t
+      case t: Throwable => logError(s"Segment $segmentId checkpoint failed.", t); backgroundFailure = Some(t); throw t
     })
   }
 

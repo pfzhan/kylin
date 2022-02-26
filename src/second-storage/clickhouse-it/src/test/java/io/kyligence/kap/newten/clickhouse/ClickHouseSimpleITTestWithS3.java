@@ -23,22 +23,11 @@
  */
 package io.kyligence.kap.newten.clickhouse;
 
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.client.builder.AwsClientBuilder;
-import com.amazonaws.internal.StaticCredentialsProvider;
-import com.amazonaws.regions.Regions;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.transfer.MultipleFileUpload;
-import com.amazonaws.services.s3.transfer.TransferManager;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import lombok.extern.slf4j.Slf4j;
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -51,10 +40,23 @@ import org.junit.runners.JUnit4;
 import org.sparkproject.guava.collect.Sets;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.client.builder.AwsClientBuilder;
+import com.amazonaws.internal.StaticCredentialsProvider;
+import com.amazonaws.regions.Regions;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.transfer.MultipleFileUpload;
+import com.amazonaws.services.s3.transfer.TransferManager;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import lombok.extern.slf4j.Slf4j;
 
 @Ignore("disable this suite, it is slow")
 @Slf4j
@@ -78,9 +80,8 @@ public class ClickHouseSimpleITTestWithS3 extends ClickHouseSimpleITTest {
         String bucket = "test";
         String workDir = "s3a://" + bucket + "/kylin";
 
-
-        AmazonS3 client = AmazonS3Client.builder().withCredentials(new StaticCredentialsProvider(
-                new BasicAWSCredentials(ACCESS_KEY, SECRET_KEY)))
+        AmazonS3 client = AmazonS3Client.builder()
+                .withCredentials(new StaticCredentialsProvider(new BasicAWSCredentials(ACCESS_KEY, SECRET_KEY)))
                 .withEndpointConfiguration(
                         new AwsClientBuilder.EndpointConfiguration(endpoint, Regions.US_WEST_2.getName()))
                 .build();
@@ -105,12 +106,11 @@ public class ClickHouseSimpleITTestWithS3 extends ClickHouseSimpleITTest {
         config.setProperty("kylin.env.hdfs-working-dir", workDir);
         SparkContext sc = ss.sparkContext();
         overrideConf.forEach(sc.hadoopConfiguration()::set);
-//        copyMetaData(manager, bucket, origin, path);
+        //        copyMetaData(manager, bucket, origin, path);
     }
 
     private void copyMetaData(TransferManager manager, String bucket, String orginPath, String destPath) {
-        MultipleFileUpload xfer = manager.uploadDirectory(bucket,
-                destPath.replace("s3a://" + bucket + "/", ""),
+        MultipleFileUpload xfer = manager.uploadDirectory(bucket, destPath.replace("s3a://" + bucket + "/", ""),
                 new File(orginPath), true);
         try {
             xfer.waitForCompletion();
@@ -139,7 +139,7 @@ public class ClickHouseSimpleITTestWithS3 extends ClickHouseSimpleITTest {
     public void testTwoShards() throws Exception {
         // TODO: make sure splitting data into two shards
         try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse();
-             JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse()) {
+                JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse()) {
             build_load_query("testTwoShardsS3", false, clickhouse1, clickhouse2);
         }
     }
@@ -154,7 +154,7 @@ public class ClickHouseSimpleITTestWithS3 extends ClickHouseSimpleITTest {
     @Test
     public void testIncrementalTwoShard() throws Exception {
         try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse();
-             JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse()) {
+                JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse()) {
             build_load_query("testIncrementalTwoShardS3", true, clickhouse1, clickhouse2);
         }
     }
@@ -164,10 +164,10 @@ public class ClickHouseSimpleITTestWithS3 extends ClickHouseSimpleITTest {
         return "host.docker.internal:" + S3Container.DEFAULT_PORT + "&" + ACCESS_KEY + "&" + SECRET_KEY;
     }
 
-    protected void fullBuildCube(String dfName, String prj) throws Exception {
+    protected void fullBuild(String dfName) throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        NDataflowManager dsMgr = NDataflowManager.getInstance(config, prj);
-//        Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("s3"));
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
+        //        Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("s3"));
         // ready dataflow, segment, cuboid layout
         NDataflow df = dsMgr.getDataflow(dfName);
         // cleanup all segments first
@@ -177,10 +177,9 @@ public class ClickHouseSimpleITTestWithS3 extends ClickHouseSimpleITTest {
         df = dsMgr.getDataflow(dfName);
         List<LayoutEntity> layouts = df.getIndexPlan().getAllLayouts();
         List<LayoutEntity> round1 = Lists.newArrayList(layouts);
-        buildCuboid(dfName, SegmentRange.TimePartitionedSegmentRange.createInfinite(), Sets.newLinkedHashSet(round1),
-                prj, true);
+        indexDataConstructor.buildIndex(dfName, SegmentRange.TimePartitionedSegmentRange.createInfinite(),
+                Sets.newLinkedHashSet(round1), true);
     }
-
 
     @Override
     protected void checkHttpServer() throws IOException {

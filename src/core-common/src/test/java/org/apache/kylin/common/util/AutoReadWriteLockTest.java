@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -47,11 +46,10 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.kylin.common.util.AutoReadWriteLock.AutoLock;
 import org.junit.Assert;
-import org.junit.Test;
-
+import org.junit.jupiter.api.Test;
 
 public class AutoReadWriteLockTest {
-    
+
     @Test
     public void testBasics() {
         AutoReadWriteLock lock = new AutoReadWriteLock(new ReentrantReadWriteLock());
@@ -59,7 +57,7 @@ public class AutoReadWriteLockTest {
             Assert.assertTrue(lock.innerLock().getReadHoldCount() == 1);
         }
         Assert.assertTrue(lock.innerLock().getReadHoldCount() == 0);
-        
+
         try (AutoLock al = lock.lockForWrite()) {
             Assert.assertTrue(lock.innerLock().getWriteHoldCount() == 1);
         }

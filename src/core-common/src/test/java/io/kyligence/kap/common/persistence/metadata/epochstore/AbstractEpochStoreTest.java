@@ -23,19 +23,22 @@
  */
 package io.kyligence.kap.common.persistence.metadata.epochstore;
 
+import static io.kyligence.kap.common.util.TestUtils.getTestConfig;
+
 import java.util.Arrays;
 import java.util.Objects;
 
 import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.kyligence.kap.common.persistence.metadata.Epoch;
 import io.kyligence.kap.common.persistence.metadata.EpochStore;
 import io.kyligence.kap.common.persistence.metadata.JdbcEpochStore;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.junit.annotation.MetadataInfo;
 import lombok.val;
 
-public abstract class AbstractEpochStoreTest extends NLocalFileMetadataTestCase {
+@MetadataInfo(onlyProps = true)
+public abstract class AbstractEpochStoreTest {
 
     EpochStore epochStore;
 

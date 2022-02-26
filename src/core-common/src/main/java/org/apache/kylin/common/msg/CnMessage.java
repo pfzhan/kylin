@@ -478,6 +478,11 @@ public class CnMessage extends Message {
         return "用户/组没有当前项目访问权限";
     }
 
+    @Override
+    public String getACCESS_DENY() {
+        return "当前用户无访问权限。";
+    }
+
     // user group
 
     @Override
@@ -649,7 +654,7 @@ public class CnMessage extends Message {
     }
 
     @Override
-    public String getMIN_HIT_COUNT_NOT_EMPTY(){
+    public String getMIN_HIT_COUNT_NOT_EMPTY() {
         return "命中次数不能为空";
     }
 
@@ -768,14 +773,14 @@ public class CnMessage extends Message {
 
     @Override
     public String getLICENSE_SOURCE_NODES_OVER_CAPACITY() {
-        return "当前已使用数据量（%s/%s）和节点数（%s/%s）均超过许可证上限。系统无法进行构建或数据加载任务。\n"
-                + "请联系 Kyligence 销售人员，或尝试停止部分节点并且删除一些 Segment并停止部分节点以解除限制。";
+        return "当前已使用数据量（%s/%s）和节点数（%s/%s）均超过许可证上限。\n" + "系统无法进行构建或数据加载任务。\n"
+                + "请联系 Kyligence 销售人员，或尝试删除一些 segments 并停止部分节点以解除限制。";
     }
 
     @Override
     public String getLICENSE_PROJECT_SOURCE_NODES_OVER_CAPACITY() {
-        return "当前项目已使用数据量（%s/%s）和节点数（%s/%s）均超过配置上限。系统无法进行构建或数据加载任务。\n"
-                + "请联系 Kyligence 销售人员，或尝试停止部分节点并且删除一些 Segment并停止部分节点以解除限制。";
+        return "当前项目已使用数据量（%s/%s）和节点数（%s/%s）均超过配置上限。\n" + "系统无法进行构建或数据加载任务。\n"
+                + "请联系 Kyligence 销售人员，或尝试删除一些 segments 并停止部分节点以解除限制。";
     }
 
     @Override
@@ -802,12 +807,12 @@ public class CnMessage extends Message {
 
     @Override
     public String getDIMENSION_NOTFOUND() {
-        return "维度 %s 正在被聚合组、系统推荐的聚合索引或明细索引引用。请将该维度从相关聚合组中删除，或删除相关索引。";
+        return "维度 %s 正在被索引、聚合组引用。请到”数据资产-模型-索引”查看，删除引用的聚合组、索引。";
     }
 
     @Override
     public String getMEASURE_NOTFOUND() {
-        return "度量 %s 正在被索引引用。请在聚合组或明细索引中删除对应字段后再进行操作。";
+        return "度量 %s 正在被索引、聚合组引用。请到”数据资产-模型-索引”查看，删除引用的聚合组、索引。";
     }
 
     @Override
@@ -830,7 +835,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getCHANGE_DEGAULTADMIN() {
-        return "由于用户ADMIN是系统默认内置管理员，所以不可以移除ROLE_ADMIN权限，删除，禁用用户ADMIN，并且仅用户ADMIN才可以更改用户ADMIN的密码和用户组";
+        return "无法修改系统默认内置管理员 ADMIN 用户的权限。";
     }
 
     //Query
@@ -1770,7 +1775,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getADMIN_PERMISSION_UPDATE_ABANDON() {
-        return "管理员不支持被更新权限.";
+        return "管理员不支持被更新权限。";
     }
 
     @Override

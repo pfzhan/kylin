@@ -179,6 +179,7 @@ public class AdaptiveSpanningTree implements Serializable {
         final Comparator<Candidate> comparator = Comparator.comparingInt(Candidate::getParentLevel) //
                 .thenComparingDouble(Candidate::getParentUnfinishedFraction) //
                 .thenComparingLong(Candidate::getParentRows) //
+                .thenComparingInt(Candidate::getLocalPriority) //
                 .thenComparingLong(Candidate::getIndexId);
 
         return treeNodes.stream().filter(TreeNode::nonSpanned) //
@@ -236,7 +237,7 @@ public class AdaptiveSpanningTree implements Serializable {
 
     private List<Candidate> getParentCandidates(TreeNode node, final NDataSegment dataSegment) {
 
-        return node.getDirectParents().stream()
+        return node.getDirectParents().stream() //
                 .map(this::getNode).filter(Objects::nonNull) //
                 .map(parent -> parent.getLayouts().stream().map(layout -> dataSegment.getLayout(layout.getId())) //
                         .filter(Objects::nonNull).findAny().map(layout -> new Candidate(node, parent, layout)) //
@@ -408,6 +409,10 @@ public class AdaptiveSpanningTree implements Serializable {
         // Level 0th nodes have no direct parents, they may have parent node.
         protected List<IndexEntity> directParents = Collections.emptyList();
 
+        // Maintained by inferior flat table if enabled.
+        // Locality of reference principle.
+        protected int localPriority = -1;
+
         public TreeNode(IndexEntity index, List<LayoutEntity> layouts) {
 
             Preconditions.checkNotNull(index);
@@ -475,6 +480,14 @@ public class AdaptiveSpanningTree implements Serializable {
 
         public int getDimensionSize() {
             return index.getEffectiveDimCols().size();
+        }
+
+        public void setLocalPriority(int localPriority) {
+            this.localPriority = localPriority;
+        }
+
+        public int getLocalPriority() {
+            return localPriority;
         }
     }
 
@@ -562,6 +575,10 @@ public class AdaptiveSpanningTree implements Serializable {
 
         protected Double getParentUnfinishedFraction() {
             return 1.0d - fraction;
+        }
+
+        protected Integer getLocalPriority() {
+            return node.getLocalPriority();
         }
 
         protected String getReadableDesc() {

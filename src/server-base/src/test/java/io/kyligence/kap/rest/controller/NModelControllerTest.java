@@ -95,7 +95,9 @@ import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.RelatedModelResponse;
 import io.kyligence.kap.rest.response.SegmentPartitionResponse;
 import io.kyligence.kap.rest.service.FusionModelService;
+import io.kyligence.kap.rest.service.ModelBuildService;
 import io.kyligence.kap.rest.service.ModelService;
+import io.kyligence.kap.rest.service.ModelSmartService;
 import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
 import io.kyligence.kap.rest.service.params.MergeSegmentParams;
 import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
@@ -107,6 +109,12 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Mock
     private ModelService modelService;
+
+    @Mock
+    private ModelBuildService modelBuildService;
+
+    @Mock
+    private ModelSmartService modelSmartService;
 
     @Mock
     private FusionModelService fusionModelService;
@@ -370,7 +378,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         jobInfos.add(new JobInfoResponse.JobInfo("78847556-2cdb-4b07-b39e-4c29856309aa",
                 "89af4ee2-2cdb-4b07-b39e-4c29856309aa"));
         SegmentsRequest request = mockSegmentRequest();
-        Mockito.doAnswer(x -> jobInfos).when(modelService).refreshSegmentById(Mockito.any());
+        Mockito.doAnswer(x -> jobInfos).when(modelBuildService).refreshSegmentById(Mockito.any());
         Mockito.doReturn(request.getIds()).when(modelService).convertSegmentIdWithName(
                 "89af4ee2-2cdb-4b07-b39e-4c29856309aa", request.getProject(), request.getIds(), null);
         String mvcResult = mockMvc
@@ -390,7 +398,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         request.setType(SegmentsRequest.SegmentsRequestType.MERGE);
         request.setIds(new String[] { "0", "1" });
         Mockito.doAnswer(x -> new JobInfoResponse.JobInfo("0312bcc1-092e-42b1-ab0e-27807cf54f16",
-                "79c27a68-343c-4b73-b406-dd5af0add951")).when(modelService).mergeSegmentsManually(Mockito.any());
+                "79c27a68-343c-4b73-b406-dd5af0add951")).when(modelBuildService).mergeSegmentsManually(Mockito.any());
         Mockito.doReturn(request.getIds()).when(modelService).convertSegmentIdWithName(
                 "89af4ee2-2cdb-4b07-b39e-4c29856309aa", request.getProject(), request.getIds(), null);
         val mvcResult = mockMvc
@@ -408,7 +416,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     public void testMergeSegmentsException() throws Exception {
         SegmentsRequest request = mockSegmentRequest();
         request.setType(SegmentsRequest.SegmentsRequestType.MERGE);
-        Mockito.doReturn(new JobInfoResponse.JobInfo()).when(modelService).mergeSegmentsManually(
+        Mockito.doReturn(new JobInfoResponse.JobInfo()).when(modelBuildService).mergeSegmentsManually(
                 new MergeSegmentParams("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", request.getIds()));
         mockMvc.perform(
                 MockMvcRequestBuilders.put("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
@@ -423,7 +431,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     public void testRefreshSegmentsByIdException() throws Exception {
         SegmentsRequest request = mockSegmentRequest();
         request.setIds(null);
-        Mockito.doAnswer(x -> null).when(modelService).refreshSegmentById(
+        Mockito.doAnswer(x -> null).when(modelBuildService).refreshSegmentById(
                 new RefreshSegmentParams("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", request.getIds()));
         mockMvc.perform(
                 MockMvcRequestBuilders.put("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
@@ -572,7 +580,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     public void testBuildSegments() throws Exception {
         BuildSegmentsRequest request1 = new BuildSegmentsRequest();
         request1.setProject("default");
-        Mockito.doAnswer(x -> null).when(modelService).buildSegmentsManually("default",
+        Mockito.doAnswer(x -> null).when(modelBuildService).buildSegmentsManually("default",
                 "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "");
         mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
@@ -606,7 +614,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         request.setProject("default");
         request.setStart("100");
         request.setEnd("1");
-        Mockito.doAnswer(x -> null).when(modelService).buildSegmentsManually("default", "nmodel_basci", "100", "1");
+        Mockito.doAnswer(x -> null).when(modelBuildService).buildSegmentsManually("default", "nmodel_basci", "100",
+                "1");
         mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
@@ -622,7 +631,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         request.setProject("default");
         request.setStart("-1");
         request.setEnd("1");
-        Mockito.doAnswer(x -> null).when(modelService).buildSegmentsManually("default", "nmodel_basci", "-1", "1");
+        Mockito.doAnswer(x -> null).when(modelBuildService).buildSegmentsManually("default", "nmodel_basci", "-1", "1");
         mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
@@ -662,7 +671,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     public void testBuildIndex() throws Exception {
         BuildIndexRequest request = new BuildIndexRequest();
         request.setProject("default");
-        Mockito.doAnswer(x -> null).when(modelService).buildSegmentsManually("default", "nmodel_basci", "0", "100");
+        Mockito.doAnswer(x -> null).when(modelBuildService).buildSegmentsManually("default", "nmodel_basci", "0",
+                "100");
         mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/models/{model}/indices", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
@@ -746,8 +756,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         List<String> sqls = Lists.newArrayList("select price, count(*) from test_kylin_fact limit 1");
         SqlAccelerateRequest favoriteRequest = new SqlAccelerateRequest("gc_test", sqls, true);
         // reuse existed model
-        Mockito.doReturn(null).when(modelService).suggestModel(favoriteRequest.getProject(), Mockito.spy(sqls), true,
-                true);
+        Mockito.doReturn(null).when(modelSmartService).suggestModel(favoriteRequest.getProject(), Mockito.spy(sqls),
+                true, true);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/suggest_model").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(favoriteRequest))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
@@ -763,8 +773,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 + "GROUP BY lstg_format_name, test_cal_dt.week_beg_dt";
         List<String> sqls = Lists.newArrayList(sql);
         SqlAccelerateRequest accerelateRequest = new SqlAccelerateRequest("gc_test", sqls, false);
-        Mockito.doReturn(null).when(modelService).suggestModel(accerelateRequest.getProject(), Mockito.spy(sqls), false,
-                true);
+        Mockito.doReturn(null).when(modelSmartService).suggestModel(accerelateRequest.getProject(), Mockito.spy(sqls),
+                false, true);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/suggest_model").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(accerelateRequest))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
@@ -906,8 +916,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         param.setSubPartitionValues(Lists.newArrayList());
         param.setBuildAllSubPartitions(false);
         Mockito.doReturn(new ModelSaveCheckResponse()).when(modelService).checkBeforeModelSave(Mockito.any());
-        Mockito.doReturn(new JobInfoResponse()).when(modelService).buildSegmentPartitionByValue(param.getProject(), "",
-                param.getSegmentId(), param.getSubPartitionValues(), param.isParallelBuildBySegment(),
+        Mockito.doReturn(new JobInfoResponse()).when(modelBuildService).buildSegmentPartitionByValue(param.getProject(),
+                "", param.getSegmentId(), param.getSubPartitionValues(), param.isParallelBuildBySegment(),
                 param.isBuildAllSubPartitions(), param.getPriority(), param.getYarnQueue(), param.getTag());
         Mockito.doNothing().when(modelService).validateCCType(Mockito.any(), Mockito.any());
         mockMvc.perform(MockMvcRequestBuilders
@@ -929,7 +939,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         param.setProject("default");
         param.setSegmentId("73570f31-05a5-448f-973c-44209830dd01");
 
-        Mockito.doReturn(response).when(modelService).refreshSegmentPartition(Mockito.any(), Mockito.any());
+        Mockito.doReturn(response).when(modelBuildService).refreshSegmentPartition(Mockito.any(), Mockito.any());
         mockMvc.perform(MockMvcRequestBuilders
                 .put("/api/models/{model}/model_segments/multi_partition", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(param))
@@ -944,7 +954,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 "89af4ee2-2cdb-4b07-b39e-4c29856309aa"));
         JobInfoResponse response = new JobInfoResponse();
         response.setJobs(jobInfos);
-        Mockito.doReturn(response).when(modelService).refreshSegmentPartition(Mockito.any(), Mockito.any());
+        Mockito.doReturn(response).when(modelBuildService).refreshSegmentPartition(Mockito.any(), Mockito.any());
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/models/model_segments/multi_partition")
                 .param("model", "89af4ee2-2cdb-4b07-b39e-4c29856309aa").param("project", "default")
                 .param("segment", "73570f31-05a5-448f-973c-44209830dd01").param("ids", new String[] { "1", "2" })

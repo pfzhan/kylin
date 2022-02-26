@@ -55,4 +55,7 @@ public interface AuditLogStore extends Closeable {
 
     AuditLog get(String resPath, long mvcc);
 
+    void pause();
+
+    void reInit();
 }

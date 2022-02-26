@@ -162,7 +162,7 @@ public class SecondStorageEndpoint extends NBasicController {
     @ApiOperation(value = "listSecondStorageNodes")
     @GetMapping(value = "/nodes")
     @ResponseBody
-    public EnvelopeResponse<List<NodeData>> listNodes() {
+    public EnvelopeResponse<Map<String, List<NodeData>>> listNodes() {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, secondStorageService.listAvailableNodes(), "");
     }
 
@@ -254,6 +254,12 @@ public class SecondStorageEndpoint extends NBasicController {
     @PostMapping(value = "/reset")
     public EnvelopeResponse resetStorage() {
         secondStorageService.resetStorage();
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, null, "");
+    }
+
+    @PostMapping("/node/status")
+    public EnvelopeResponse<Void> updateNodeStatus(@RequestBody Map<String, Map<String, Boolean>> nodeStatusMap) {
+        secondStorageService.updateNodeStatus(nodeStatusMap);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, null, "");
     }
 

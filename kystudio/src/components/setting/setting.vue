@@ -4,7 +4,7 @@
       <h1 class="ksd-title-label" v-if="projectSettings">{{projectSettings.alias || projectSettings.project}}</h1>
     </header>
     <section class="setting-body" v-if="projectSettings">
-      <el-tabs v-model="viewType">
+      <el-tabs v-model="viewType" :key="$lang">
         <el-tab-pane :label="$t('basic')" :name="viewTypes.BASIC">
           <SettingBasic :project="projectSettings" @reload-setting="getCurrentSettings" @form-changed="handleFormChanged"></SettingBasic>
         </el-tab-pane>

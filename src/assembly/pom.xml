@@ -138,7 +138,6 @@
         <dependency>
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java</artifactId>
-            <version>3.4.0</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
@@ -287,11 +286,6 @@
                                     <shadedPattern>${shadeBase}.me.lemire.integercompression</shadedPattern>
                                 </relocation>
                                 <relocation>
-                                    <pattern>org.apache.parquet</pattern>
-                                    <shadedPattern>${shadeBase}.org.apache.parquet
-                                    </shadedPattern>
-                                </relocation>
-                                <relocation>
                                     <pattern>shaded.parquet.org</pattern>
                                     <shadedPattern>${shadeBase}.shaded.parquet.org
                                     </shadedPattern>
@@ -328,6 +322,7 @@
                                         <exclude>META-INF/*.SF</exclude>
                                         <exclude>META-INF/*.DSA</exclude>
                                         <exclude>META-INF/*.RSA</exclude>
+                                        <exclude>rest-management-private-classpath/**</exclude>
                                     </excludes>
                                 </filter>
                             </filters>

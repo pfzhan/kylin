@@ -280,8 +280,8 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn().getResponse().getContentAsString();
 
-        Assert.assertTrue(errorMessage.contains("The measure SUM_DEAL_AMOUNT is referenced by indexes. "
-                + "Please try again after deleting it from aggregation group or table index."));
+        Assert.assertTrue(errorMessage.contains("The measure SUM_DEAL_AMOUNT is referenced by indexes or aggregate groups. "
+                + "Please go to the Data Asset - Model - Index page to view, delete referenced aggregate groups and indexes."));
     }
 
     private ModelRequest getModelRequest() throws Exception {

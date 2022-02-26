@@ -54,7 +54,6 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.query.engine.ProjectSchemaFactory;
 import io.kyligence.kap.query.engine.QueryExec;
 import lombok.val;
 
@@ -71,7 +70,7 @@ public class ModelViewTest extends NLocalFileMetadataTestCase {
         this.cleanupTestMetadata();
     }
 
-    private void createProject(String project) {
+    private void createProject(String project) throws IOException {
         val projMgr = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         if (projMgr.getProject(project) == null) {
             NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).createProject(project, "ADMIN", "",
@@ -89,9 +88,17 @@ public class ModelViewTest extends NLocalFileMetadataTestCase {
                 }
             }
         }
+
+        val contents = StringUtils
+                .join(Files.readAllLines(new File("src/test/resources/ut_meta/view/DEFAULT.TEST_DECIMAL.json").toPath(),
+                        Charset.defaultCharset()), "\n");
+        val bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
+        val decimalTableDesc = tableMgr.getTableMetadataSerializer().deserialize(new DataInputStream(bais));
+        decimalTableDesc.setMvcc(-1);
+        tableMgr.saveSourceTable(decimalTableDesc);
     }
 
-    private NDataModel createSSBModel(String project, String modelAlias) throws IOException {
+    private NDataModel createModel(String project, String modelAlias) throws IOException {
         val mgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val serializer = mgr.getDataModelSerializer();
         val contents = StringUtils
@@ -115,7 +122,7 @@ public class ModelViewTest extends NLocalFileMetadataTestCase {
     }
 
     private void assertView(String project, String modelAlias) throws IOException {
-        val model = createSSBModel(project, modelAlias);
+        val model = createModel(project, modelAlias);
 
         // assert generated sql
         val expectedSQL = StringUtils
@@ -127,7 +134,7 @@ public class ModelViewTest extends NLocalFileMetadataTestCase {
                 generated);
 
         // assert schema
-        val rootSchema = new ProjectSchemaFactory(project, KylinConfig.getInstanceFromEnv()).createProjectRootSchema();
+        val rootSchema = new QueryExec(project, KylinConfig.getInstanceFromEnv()).getRootSchema();
         Assert.assertNotNull(String.format("%s view sql generated unexpected schema", modelAlias),
                 rootSchema.getSubSchema(project, false).getTableBasedOnNullaryFunction(modelAlias, false).getTable());
 
@@ -145,14 +152,14 @@ public class ModelViewTest extends NLocalFileMetadataTestCase {
         overwriteSystemProp("kylin.query.auto-model-view-enabled", "FALSE");
         val projectName = "SSB_TEST";
         createProject(projectName);
-        createSSBModel(projectName, "model_single_table");
-        val schemaBefore = new ProjectSchemaFactory(projectName, KylinConfig.getInstanceFromEnv())
-                .createProjectRootSchema().getSubSchema(projectName, false);
+        createModel(projectName, "model_single_table");
+        val schemaBefore = new QueryExec(projectName, KylinConfig.getInstanceFromEnv())
+                .getRootSchema().getSubSchema(projectName, false);
         Assert.assertNull(schemaBefore);
 
         overwriteSystemProp("kylin.query.auto-model-view-enabled", "TRUE");
-        val schemaAfter = new ProjectSchemaFactory(projectName, KylinConfig.getInstanceFromEnv())
-                .createProjectRootSchema().getSubSchema(projectName, false);
+        val schemaAfter = new QueryExec(projectName, KylinConfig.getInstanceFromEnv())
+                .getRootSchema().getSubSchema(projectName, false);
         Assert.assertNotNull(schemaAfter);
     }
 
@@ -180,11 +187,24 @@ public class ModelViewTest extends NLocalFileMetadataTestCase {
         val modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), projectName);
         val model = modelMgr.getDataModelDescByAlias("model_single_table");
         modelMgr.updateDataModel(model.getId(), (m) -> m.setAlias("LINEORDER"));
-        val rootSchema = new ProjectSchemaFactory(projectName, KylinConfig.getInstanceFromEnv())
-                .createProjectRootSchema().getSubSchema(projectName, false);
+        val rootSchema = new QueryExec(projectName, KylinConfig.getInstanceFromEnv())
+                .getRootSchema().getSubSchema(projectName, false);
         // assert model view disappears
         Assert.assertNull(rootSchema.getTable("model_single_table", false));
         // assert lineorder is not the model view table
         Assert.assertNotEquals(ViewTable.class, rootSchema.getTable("LINEORDER", false).getTable().getClass());
+    }
+
+    // see AL-5321
+    @Test
+    public void testModelViewsDeicmal() throws IOException, SqlParseException {
+        val projectName = "DECIAML_TEST";
+        val modelName = "model_decimal";
+        createProject(projectName);
+        createModel(projectName, "model_decimal");
+
+        val relNode = new QueryExec(projectName, KylinConfig.getInstanceFromEnv())
+                .parseAndOptimize(String.format("select sum(PRICE) from %s.%s", projectName, modelName));
+        Assert.assertEquals("DECIMAL(35, 6)", relNode.getRowType().getFieldList().get(0).getType().toString());
     }
 }

@@ -67,13 +67,13 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.common.constant.Constants;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.common.util.TempMetadataBuilder;
+import io.kyligence.kap.junit.rule.ClearKEPropertiesRule;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.CapacityStatus;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.ProjectCapacityDetail;
 import io.kyligence.kap.rest.request.LicenseRequest;
 import io.kyligence.kap.rest.request.SourceUsageFilter;
 import io.kyligence.kap.rest.response.CapacityDetailsResponse;
 import io.kyligence.kap.rest.response.RemoteLicenseResponse;
-import io.kyligence.kap.junit.rule.ClearKEPropertiesRule;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 

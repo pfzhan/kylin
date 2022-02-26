@@ -72,7 +72,7 @@ public class NComputedColumnTest extends NLocalWithSparkSessionTest {
         NDataflowManager dsMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
         NDataflow df = dsMgr.getDataflow(dfID);
         val layouts = df.getIndexPlan().getAllLayouts();
-        buildCuboid(dfID, SegmentRange.TimePartitionedSegmentRange.createInfinite(), Sets.newLinkedHashSet(layouts),
+        indexDataConstructor.buildIndex(dfID, SegmentRange.TimePartitionedSegmentRange.createInfinite(), Sets.newLinkedHashSet(layouts),
                 true);
         String sqlHitCube = "select (1+2) as c1,(LINEORDER.LO_TAX +1) as c2,(CUSTOMER.C_NAME +'USA') as c3 "
                 + "from SSB.P_LINEORDER as LINEORDER join SSB.CUSTOMER as CUSTOMER on LINEORDER.LO_CUSTKEY = CUSTOMER.C_CUSTKEY "

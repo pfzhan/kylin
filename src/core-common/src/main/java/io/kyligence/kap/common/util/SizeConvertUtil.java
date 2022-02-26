@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.common.util;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.Locale;
@@ -32,6 +34,11 @@ import java.util.regex.Pattern;
 import com.google.common.collect.ImmutableMap;
 
 public class SizeConvertUtil {
+
+    private static final BigDecimal ONE_KB = BigDecimal.valueOf(1024L);
+    private static final BigDecimal ONE_MB = BigDecimal.valueOf(1024L * 1024);
+    private static final BigDecimal ONE_GB = BigDecimal.valueOf(1024L * 1024 * 1024);
+    private static final BigDecimal ONE_TB = BigDecimal.valueOf(1024L * 1024 * 1024 * 1024);
 
     private static final ImmutableMap<String, ByteUnit> byteSuffixes;
 
@@ -76,6 +83,38 @@ public class SizeConvertUtil {
             String byteError = "Size must be specified as bytes (b), kibibytes (k), mebibytes (m), gibibytes (g), tebibytes (t), or pebibytes(p). E.g. 50b, 100k, or 250m.";
             throw new NumberFormatException(byteError + "\n" + var8.getMessage());
         }
+    }
+
+    /**
+     * calculate dataSize in front end at file src/filter/index.js
+     * @param size
+     * @param scale
+     * @return
+     */
+    public static String byteCountToDisplaySize(BigDecimal size, int scale) {
+        String displaySize;
+
+        if (size.divide(ONE_TB, scale, RoundingMode.HALF_UP).compareTo(BigDecimal.ONE) >= 0) {
+            displaySize = size.divide(ONE_TB, scale, RoundingMode.HALF_UP) + " TB";
+        } else if (size.divide(ONE_GB, scale, RoundingMode.HALF_UP).compareTo(BigDecimal.ONE) >= 0) {
+            displaySize = size.divide(ONE_GB, scale, RoundingMode.HALF_UP) + " GB";
+        } else if (size.divide(ONE_MB, scale, RoundingMode.HALF_UP).compareTo(BigDecimal.ONE) >= 0) {
+            displaySize = size.divide(ONE_MB, scale, RoundingMode.HALF_UP) + " MB";
+        } else if (size.divide(ONE_KB, scale, RoundingMode.HALF_UP).compareTo(BigDecimal.ONE) >= 0) {
+            displaySize = size.divide(ONE_KB, scale, RoundingMode.HALF_UP) + " KB";
+        } else {
+            displaySize = size + " B";
+        }
+
+        return displaySize;
+    }
+
+    public static String byteCountToDisplaySize(long size, int scale) {
+        return byteCountToDisplaySize(BigDecimal.valueOf(size), scale);
+    }
+
+    public static String byteCountToDisplaySize(long size) {
+        return byteCountToDisplaySize(size, 2);
     }
 
     static {

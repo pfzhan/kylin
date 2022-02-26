@@ -45,22 +45,19 @@ package org.apache.kylin.common;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.junit.annotation.MetadataInfo;
+import org.junit.jupiter.api.Test;
 
-public class KapConfigTest extends NLocalFileMetadataTestCase {
+@MetadataInfo(onlyProps = true)
+public class KapConfigTest {
 
     private static final Map<String, PropertiesEntity> map = new HashMap<>();
 
     {
-        createTestMetadata();
         map.put("getParquetReadFileSystem", new PropertiesEntity("kylin.storage.columnar.file-system", "", ""));
 
         map.put("getParquetSparkExecutorInstance", new PropertiesEntity(
@@ -166,14 +163,6 @@ public class KapConfigTest extends NLocalFileMetadataTestCase {
         map.put("influxdbPassword", new PropertiesEntity("kylin.influxdb.password", "root", "root"));
 
         map.put("getInfluxDBFlushDuration", new PropertiesEntity("kylin.influxdb.flush-duration", "3000", 3000));
-
-        map.put("getMetricsDbNameWithMetadataUrlPrefix",
-                new PropertiesEntity("kylin.metrics.influx-db", "KE_METRICS", String.format(Locale.ROOT, "%s_%s",
-                        KylinConfig.getInstanceFromEnv().getMetadataUrlPrefix(), "KE_METRICS")));
-
-        map.put("getDailyMetricsDbNameWithMetadataUrlPrefix",
-                new PropertiesEntity("kylin.metrics.daily-influx-db", "KE_METRICS_DAILY", String.format(Locale.ROOT,
-                        "%s_%s", KylinConfig.getInstanceFromEnv().getMetadataUrlPrefix(), "KE_METRICS_DAILY")));
 
         map.put("getMetricsRpcServiceBindAddress", new PropertiesEntity("kylin.metrics.influx-rpc-service-bind-address",
                 "127.0.0.1:8088", "127.0.0.1:8088"));
@@ -306,15 +295,6 @@ public class KapConfigTest extends NLocalFileMetadataTestCase {
                 new PropertiesEntity("kylin.metadata.history-source-usage-unwrap-computed-column", "true", true));
     }
 
-    @Before
-    public void setup() {
-    }
-
-    @After
-    public void teardown() {
-        cleanupTestMetadata();
-    }
-
     @Test
     public void test() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         KapConfig kapConfig = KapConfig.getInstanceFromEnv();
@@ -327,9 +307,6 @@ public class KapConfigTest extends NLocalFileMetadataTestCase {
             Assert.assertNotNull(method);
             kapConfig.getKylinConfig().setProperty(propertiesEntity.getKey(), propertiesEntity.getValue());
             Object invoke = method.invoke(kapConfig);
-            System.out.printf(Locale.ROOT, "assert func %s expect %s actual %s%n", func,
-                    propertiesEntity.getExpectValue(), invoke);
-
             if (invoke != null && invoke.getClass().isArray()) {
                 Class<?> componentType = invoke.getClass().getComponentType();
                 if (componentType.isPrimitive()) {

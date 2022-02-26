@@ -44,6 +44,8 @@ package org.apache.kylin.rest.service;
 
 import static io.kyligence.kap.rest.metrics.QueryMetricsContextTest.getInfluxdbFields;
 import static org.apache.kylin.common.QueryContext.PUSHDOWN_HIVE;
+import static org.apache.kylin.common.QueryTrace.EXECUTION;
+import static org.apache.kylin.common.QueryTrace.SPARK_JOB_EXECUTION;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -51,6 +53,9 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -64,12 +69,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.query.util.CommentParser;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.QueryTrace;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.KylinTimeoutException;
 import org.apache.kylin.common.exception.ResourceLimitExceededException;
@@ -206,6 +213,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
         queryService = Mockito.spy(new QueryService());
         queryService.queryRoutingEngine = Mockito.spy(QueryRoutingEngine.class);
+        Mockito.when(SpringContext.getBean(CacheSignatureQuerySupporter.class)).thenReturn(queryService);
         Mockito.when(appConfig.getPort()).thenReturn(7070);
         ReflectionTestUtils.setField(queryService, "aclEvaluate", Mockito.mock(AclEvaluate.class));
         ReflectionTestUtils.setField(queryService, "queryCacheManager", queryCacheManager);
@@ -259,7 +267,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
         QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(sqlRequest.getProject()),
                 sqlRequest.getSql(), sqlRequest.getProject(), sqlRequest.getLimit(), sqlRequest.getOffset(),
-                queryExec.getSchema(), true);
+                queryExec.getDefaultSchemaName(), true);
         String correctedSql = QueryUtil.massageSql(queryParams);
 
         Mockito.when(queryExec.executeQuery(correctedSql))
@@ -289,7 +297,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
         QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(sqlRequest.getProject()),
                 sqlRequest.getSql(), sqlRequest.getProject(), sqlRequest.getLimit(), sqlRequest.getOffset(),
-                queryExec.getSchema(), true);
+                queryExec.getDefaultSchemaName(), true);
         String correctedSql = QueryUtil.massageSql(queryParams);
 
         Mockito.when(queryExec.executeQuery(correctedSql))
@@ -389,7 +397,9 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
         // case of not hitting cache
         String expectedQueryID = QueryContext.current().getQueryId();
-        Mockito.when(SpringContext.getBean(QueryService.class)).thenReturn(queryService);
+        //Mockito.when(SpringContext.getBean(QueryService.class)).thenReturn(queryService);
+        Mockito.when(SpringContext.getBean(CacheSignatureQuerySupporter.class)).thenReturn(queryService);
+        //Mockito.when(queryService.createAclSignature(project)).thenReturn("root");
         final SQLResponse firstSuccess = queryService.queryWithCache(request);
         Assert.assertEquals(expectedQueryID, firstSuccess.getQueryId());
         Assert.assertEquals(2, firstSuccess.getNativeRealizations().size());
@@ -1322,6 +1332,24 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testQueryOfTrace() {
+        final String sql = "select * from test";
+        final String project = "default";
+        final SQLRequest request = new SQLRequest();
+        request.setProject(project);
+        request.setSql(sql);
+        request.setQueryId(RandomUtil.randomUUIDStr());
+        QueryContext.currentTrace().startSpan(QueryTrace.PREPARE_AND_SUBMIT_JOB);
+        final SQLResponse response = queryService.queryWithCache(request);
+        Assert.assertEquals(SPARK_JOB_EXECUTION, response.getTraces().get(0).getName());
+
+        QueryContext.currentTrace().clear();
+        QueryContext.currentTrace().startSpan(EXECUTION);
+        final SQLResponse response1 = queryService.queryWithCache(request);
+        Assert.assertEquals(EXECUTION, response1.getTraces().get(0).getName());
+    }
+
+    @Test
     public void testQueryLogMatch() {
         final String sql = "-- This is comment" + '\n' + "select * from test";
         final String project = "default";
@@ -1754,7 +1782,31 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testQueryContextWithFsuionModel() throws Exception {
+    public void testTableauIntercept() throws Exception {
+        List<String> sqlList = Files.walk(Paths.get("../kap-it/src/test/resources/query/tableau_probing"))
+                .filter(file -> Files.isRegularFile(file)).map(path -> {
+                    try {
+                        String sql = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
+                        return new CommentParser(sql).Input();
+                    } catch (Exception e) {
+                        return null;
+                    }
+                }).filter(sql -> sql != null || sql.startsWith("SELECT")).collect(Collectors.toList());
+
+        for (String sql : sqlList) {
+            SQLRequest request = new SQLRequest();
+            request.setProject("default");
+            request.setSql(sql);
+            request.setQueryId(RandomUtil.randomUUIDStr());
+
+            final SQLResponse response = queryService.query(request);
+            Assert.assertNotNull(response);
+            Assert.assertEquals(SPARK_JOB_EXECUTION, QueryContext.currentTrace().getLastSpan().get().getName());
+        }
+    }
+
+    @Test
+    public void testQueryContextWithFusionModel() throws Exception {
         final String project = "streaming_test";
         final String sql = "select count(*) from SSB_STREAMING";
 

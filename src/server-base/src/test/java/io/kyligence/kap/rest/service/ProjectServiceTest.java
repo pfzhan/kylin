@@ -132,6 +132,9 @@ public class ProjectServiceTest extends ServiceTestBase {
     @InjectMocks
     private final ModelService modelService = Mockito.spy(ModelService.class);
 
+    @InjectMocks
+    private final RawRecService rawRecService = Mockito.spy(RawRecService.class);
+
     @Mock
     private final AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
 
@@ -160,6 +163,8 @@ public class ProjectServiceTest extends ServiceTestBase {
         ReflectionTestUtils.setField(projectService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(projectService, "asyncTaskService", asyncTaskService);
         ReflectionTestUtils.setField(projectService, "accessService", accessService);
+        ReflectionTestUtils.setField(projectService, "projectModelSupporter", modelService);
+        ReflectionTestUtils.setField(projectService, "projectSmartSupporter", rawRecService);
         ReflectionTestUtils.setField(projectService, "userService", userService);
 
         ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
@@ -252,14 +257,14 @@ public class ProjectServiceTest extends ServiceTestBase {
     public void testGetReadableProjects() throws Exception {
         Mockito.doReturn(true).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
         List<ProjectInstance> projectInstances = projectService.getReadableProjects("", false);
-        Assert.assertEquals(23, projectInstances.size());
+        Assert.assertEquals(24, projectInstances.size());
     }
 
     @Test
     public void testGetAdminProjects() throws Exception {
         Mockito.doReturn(true).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
         List<ProjectInstance> projectInstances = projectService.getAdminProjects();
-        Assert.assertEquals(23, projectInstances.size());
+        Assert.assertEquals(24, projectInstances.size());
     }
 
     @Test
@@ -273,7 +278,7 @@ public class ProjectServiceTest extends ServiceTestBase {
     public void testGetReadableProjects_hasNoPermissionProject() throws Exception {
         Mockito.doReturn(true).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
         List<ProjectInstance> projectInstances = projectService.getReadableProjects("", false);
-        Assert.assertEquals(23, projectInstances.size());
+        Assert.assertEquals(24, projectInstances.size());
 
     }
 
@@ -1051,7 +1056,6 @@ public class ProjectServiceTest extends ServiceTestBase {
         Assert.assertEquals(11, favoriteRuleResponse.get("effective_days"));
         Assert.assertEquals(3, favoriteRuleResponse.get("update_frequency"));
 
-
         // check excluded_tables
         request.setExcludeTablesEnable(true);
         request.setExcludedTables("a.a,b.b,c.c");
@@ -1169,7 +1173,7 @@ public class ProjectServiceTest extends ServiceTestBase {
         Assert.assertEquals(-1, statisticsOfProjectDefault.getApprovedRecCount());
         Assert.assertEquals(-1, statisticsOfProjectDefault.getApprovedAdditionalRecCount());
         Assert.assertEquals(-1, statisticsOfProjectDefault.getApprovedRemovalRecCount());
-        Assert.assertEquals(7, statisticsOfProjectDefault.getModelSize());
+        Assert.assertEquals(8, statisticsOfProjectDefault.getModelSize());
         Assert.assertEquals(-1, statisticsOfProjectDefault.getAcceptableRecSize());
         Assert.assertFalse(statisticsOfProjectDefault.isRefreshed());
         Assert.assertEquals(-1, statisticsOfProjectDefault.getMaxRecShowSize());

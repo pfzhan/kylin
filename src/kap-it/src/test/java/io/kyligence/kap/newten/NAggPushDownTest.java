@@ -73,7 +73,7 @@ public class NAggPushDownTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testBasic() throws Exception {
-        fullBuildCube("a749e414-c40e-45b7-92e4-bbfe63af705d", getProject());
+        fullBuild("a749e414-c40e-45b7-92e4-bbfe63af705d");
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NExecAndComp.CompareLevel compareLevel = NExecAndComp.CompareLevel.SAME;
         populateSSWithCSVData(config, getProject(), SparderEnv.getSparkSession());
@@ -91,7 +91,7 @@ public class NAggPushDownTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testAggPushDown() throws Exception {
-        fullBuildCube("ce2057da-54c8-4e05-b0bf-d225a6bbb62c", getProject());
+        fullBuild("ce2057da-54c8-4e05-b0bf-d225a6bbb62c");
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NExecAndComp.CompareLevel compareLevel = NExecAndComp.CompareLevel.SAME;
         populateSSWithCSVData(config, getProject(), SparderEnv.getSparkSession());

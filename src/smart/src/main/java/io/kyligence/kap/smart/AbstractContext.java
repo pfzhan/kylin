@@ -171,7 +171,7 @@ public abstract class AbstractContext {
     private Map<String, Set<String>> getProjectTableMap() {
         NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(smartConfig.getKylinConfig(), project);
         List<TableDesc> tableList = tableMgr.listAllTables();
-        Map<String, Set<String>> tableNameMap = Maps.newHashMap();
+        Map<String, Set<String>> tableNameMap = Maps.newTreeMap(String.CASE_INSENSITIVE_ORDER);
         tableList.forEach(table -> {
             tableNameMap.putIfAbsent(table.getName(), Sets.newHashSet());
             tableNameMap.putIfAbsent(table.getIdentity(), Sets.newHashSet());

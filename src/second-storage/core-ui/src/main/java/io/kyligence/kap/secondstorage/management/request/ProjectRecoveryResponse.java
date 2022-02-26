@@ -25,6 +25,7 @@
 package io.kyligence.kap.secondstorage.management.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.kyligence.kap.rest.response.JobInfoResponse;
 import lombok.Data;
 
 import java.util.List;
@@ -37,4 +38,6 @@ public class ProjectRecoveryResponse {
     private List<String> submittedModels;
     @JsonProperty("skipped_models")
     private List<String> failedModels;
+    @JsonProperty("jobs")
+    private List<JobInfoResponse.JobInfo> jobs;
 }

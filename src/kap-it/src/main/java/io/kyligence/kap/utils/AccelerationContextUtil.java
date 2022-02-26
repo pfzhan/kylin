@@ -24,8 +24,6 @@
 
 package io.kyligence.kap.utils;
 
-import static org.apache.kylin.common.util.AbstractKylinTestCase.getTestConfig;
-
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -103,7 +101,7 @@ public class AccelerationContextUtil {
             return;
         }
         context.getModelContexts().forEach(ctx -> {
-            val dfManager = NDataflowManager.getInstance(getTestConfig(), context.getProject());
+            val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), context.getProject());
             val model = ctx.getTargetModel();
             if (model == null || dfManager.getDataflow(model.getId()) == null) {
                 return;
@@ -113,7 +111,7 @@ public class AccelerationContextUtil {
     }
 
     private static Set<String> getOnlineModelIds(String project) {
-        return NDataflowManager.getInstance(getTestConfig(), project).listOnlineDataModels().stream()
+        return NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project).listOnlineDataModels().stream()
                 .map(RootPersistentEntity::getUuid).collect(Collectors.toSet());
     }
 }

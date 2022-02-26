@@ -46,7 +46,7 @@ import java.io.IOException;
 import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.AbstractTestCase;
+import org.apache.kylin.common.AbstractTestCase;
 import org.apache.kylin.common.util.CleanMetadataHelper;
 import org.junit.After;
 import org.junit.Assert;

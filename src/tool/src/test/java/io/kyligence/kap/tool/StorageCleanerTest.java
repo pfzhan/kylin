@@ -226,6 +226,28 @@ public class StorageCleanerTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(snapshots.iterator().next().getAbsolutePath().contains(countryTableSnapshotPath));
     }
 
+    @Test
+    public void testStorageCleanerWithRateLimiter() throws Exception {
+        boolean cleanup = true;
+        Collection<String> projects = Collections.emptyList();
+        double requestFSRate = 10.0;
+        int tRetryTimes = 10;
+
+        val cleaner = new StorageCleaner(cleanup, projects, requestFSRate, tRetryTimes);
+        val fsd = StorageCleaner.FileSystemDecorator.getInstance(HadoopUtil.getWorkingFileSystem());
+        val filePath = new Path(getTestConfig().getHdfsWorkingDirectory());
+
+        int totalRequestTimes = 30;
+        long start = System.currentTimeMillis();
+        for (int i = 0; i < totalRequestTimes; i++) {
+            fsd.listStatus(filePath);
+        }
+        long duration = System.currentTimeMillis() - start;
+        double expectTime = 1000 * (totalRequestTimes - 2 * requestFSRate) / requestFSRate;
+
+        Assert.assertTrue(duration > expectTime);
+    }
+
     private void prepare() throws IOException {
         val config = getTestConfig();
         config.setProperty("kylin.garbage.storage.cuboid-layout-survival-time-threshold", "0s");

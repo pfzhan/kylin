@@ -79,7 +79,7 @@ public class MockupQueryExecutor extends AbstractQueryExecutor {
         try {
             // execute and discard the result data
             QueryExec queryExec = new QueryExec(projectName, kylinConfig);
-            QueryParams queryParams = new QueryParams(kylinConfig, sql, projectName, 0, 0, queryExec.getSchema(), true);
+            QueryParams queryParams = new QueryParams(kylinConfig, sql, projectName, 0, 0, queryExec.getDefaultSchemaName(), true);
             queryExec.executeQuery(QueryUtil.massageSql(queryParams));
 
             sqlResult.setStatus(SQLResult.Status.SUCCESS);

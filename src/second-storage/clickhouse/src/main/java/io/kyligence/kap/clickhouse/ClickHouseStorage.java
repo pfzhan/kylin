@@ -59,7 +59,7 @@ import io.kyligence.kap.clickhouse.metadata.ClickHouseNodeGroupManager;
 import io.kyligence.kap.secondstorage.SecondStorageConfigLoader;
 import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
 import io.kyligence.kap.secondstorage.SecondStoragePlugin;
-import io.kyligence.kap.secondstorage.config.Cluster;
+import io.kyligence.kap.secondstorage.config.ClusterInfo;
 import io.kyligence.kap.secondstorage.metadata.Manager;
 import io.kyligence.kap.secondstorage.metadata.NodeGroup;
 import io.kyligence.kap.secondstorage.metadata.TableFlow;
@@ -76,7 +76,7 @@ public class ClickHouseStorage implements SecondStoragePlugin {
      */
     public static void reloadNodeMap() {
         ClickHouseConfigLoader.getInstance().refresh();
-        Cluster cluster = ClickHouseConfigLoader.getInstance().getCluster();
+        ClusterInfo cluster = ClickHouseConfigLoader.getInstance().getCluster();
         SecondStorageNodeHelper.clear();
         SecondStorageNodeHelper.initFromCluster(cluster, node -> {
             Map<String, String> param = new HashMap<>(4);

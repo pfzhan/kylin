@@ -237,6 +237,10 @@ public class DateFormat {
                 || DEFAULT_DATE_PATTERN_WITH_SLASH.equals(ptn) || DEFAULT_DATE_PATTERN_WITH_DOT.equals(ptn);
     }
 
+    public static boolean isMonthPatten(String ptn) {
+        return COMPACT_MONTH_PATTERN.equals(ptn) || DEFAULT_MONTH_PATTERN.equals(ptn);
+    }
+
     public static String proposeDateFormat(String sampleData) {
         Preconditions.checkArgument(StringUtils.isNotEmpty(sampleData));
         for (Map.Entry<String, String> patternMap : dateFormatRegex.entrySet()) {

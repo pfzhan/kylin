@@ -30,8 +30,8 @@ import java.util.Locale;
 
 import org.assertj.core.util.Lists;
 import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import io.kyligence.kap.common.metrics.service.InfluxDBInstance;
@@ -44,7 +44,7 @@ public class MonitorDaoTest {
 
     private final InfluxDBInstance influxDBInstance = Mockito.mock(InfluxDBInstance.class);
 
-    @Before
+    @BeforeEach
     public void setUp() {
         Mockito.doReturn("KE_MONITOR").when(influxDBInstance).getDatabase();
         Mockito.doReturn(true).when(influxDBInstance).write(eq("tb_query"), Mockito.anyMap(), Mockito.anyMap(),

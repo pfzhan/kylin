@@ -75,23 +75,6 @@ public class AggPushdownRuleTest extends CalciteRuleTestBase {
     }
 
     @Test
-    //Test property kylin.query.calcite.aggregate-pushdown-enabled
-    //Test with VolcanoPlanner for all rules
-    public void testAggPushdown() throws IOException {
-        KylinConfig configBefore = KylinConfig.getInstanceFromEnv();
-        List<Pair<String, String>> queries = readALLSQLs(configBefore, project, "query/sql_select_subquery");
-
-        KylinConfig configAfter = KylinConfig.createKylinConfig(configBefore);
-        configAfter.setProperty("kylin.query.calcite.aggregate-pushdown-enabled", "true");
-
-        for (Pair<String, String> pair : queries) {
-            RelNode relBefore = toCalcitePlan(project, pair.getSecond(), configBefore);
-            RelNode relAfter = toCalcitePlan(project, pair.getSecond(), configAfter);
-            checkPlanning(relBefore, relAfter, pair.getFirst());
-        }
-    }
-
-    @Test
     //Test with VolcanoPlanner for all rules
     public void testAddRules() throws IOException {
         KylinConfig config = KylinConfig.getInstanceFromEnv();

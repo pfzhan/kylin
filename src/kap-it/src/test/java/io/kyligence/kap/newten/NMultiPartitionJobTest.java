@@ -91,7 +91,7 @@ public class NMultiPartitionJobTest extends NLocalWithSparkSessionTest {
         buildPartitions.add(new String[] { "cn" });
         buildPartitions.add(new String[] { "africa" });
 
-        buildCuboid(dfID, segmentRange, Sets.newLinkedHashSet(layouts), getProject(), true, buildPartitions);
+        indexDataConstructor.buildIndex(dfID, segmentRange, Sets.newLinkedHashSet(layouts), true, buildPartitions);
         String sqlHitCube = " select count(1) from TEST_BANK_INCOME t1 inner join TEST_BANK_LOCATION t2 on t1. COUNTRY = t2. COUNTRY "
                 + " where  t1.dt = '2020-11-05' ";
         List<String> hitCubeResult = NExecAndComp.queryFromCube(getProject(), sqlHitCube).collectAsList().stream()
@@ -103,7 +103,7 @@ public class NMultiPartitionJobTest extends NLocalWithSparkSessionTest {
         long startTime2 = SegmentRange.dateToLong("2020-11-06");
         long endTime2 = SegmentRange.dateToLong("2020-11-07");
         val segmentRange2 = new SegmentRange.TimePartitionedSegmentRange(startTime2, endTime2);
-        buildCuboid(dfID, segmentRange2, Sets.newLinkedHashSet(layouts), getProject(), true, buildPartitions);
+        indexDataConstructor.buildIndex(dfID, segmentRange2, Sets.newLinkedHashSet(layouts), true, buildPartitions);
         NDataflow df2 = dfManager.getDataflow(dfID);
         Assert.assertEquals(RealizationStatusEnum.OFFLINE, df2.getStatus());
     }

@@ -116,4 +116,8 @@ then
         [[ -e "${JAVA}" ]] || quit "${JAVA} does not exist. Please set JAVA_HOME correctly."
         verbose "java is ${JAVA}" 
     fi
+
+    if [[ -z ${MAPR_HOME} ]];then
+        export MAPR_HOME="/opt/mapr"
+    fi
 fi

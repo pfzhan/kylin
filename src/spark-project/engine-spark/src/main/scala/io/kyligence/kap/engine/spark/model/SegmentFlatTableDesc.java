@@ -210,6 +210,10 @@ public class SegmentFlatTableDesc {
                         .anyMatch(col -> !col.getTableRef().getTableIdentity().equalsIgnoreCase(factTableId))));
     }
 
+    public int getFlatTableCoalescePartitionNum() {
+        return config.getFlatTableCoalescePartitionNum();
+    }
+
     // Check what columns from hive tables are required, and index them
     protected void initColumns() {
         if (shouldPersistFlatTable()) {

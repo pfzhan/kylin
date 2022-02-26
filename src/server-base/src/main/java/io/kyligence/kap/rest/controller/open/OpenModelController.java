@@ -112,6 +112,7 @@ import io.kyligence.kap.rest.response.SegmentPartitionResponse;
 import io.kyligence.kap.rest.service.FavoriteRuleService;
 import io.kyligence.kap.rest.service.FusionIndexService;
 import io.kyligence.kap.rest.service.FusionModelService;
+import io.kyligence.kap.rest.service.ModelSmartService;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.OptRecService;
 import io.kyligence.kap.smart.AbstractContext;
@@ -145,6 +146,9 @@ public class OpenModelController extends NBasicController {
 
     @Autowired
     private FusionModelService fusionModelService;
+
+    @Autowired
+    private ModelSmartService modelSmartService;
 
     @Autowired
     private OptRecService optRecService;
@@ -449,7 +453,7 @@ public class OpenModelController extends NBasicController {
         String projectName = checkProjectName(request.getProject());
         checkSqlIsNotNull(request.getSqls());
         request.setProject(projectName);
-        AbstractContext proposeContext = modelService.probeRecommendation(request.getProject(), request.getSqls());
+        AbstractContext proposeContext = modelSmartService.probeRecommendation(request.getProject(), request.getSqls());
         List<NDataModel> models = proposeContext.getProposedModels();
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                 models.stream().map(NDataModel::getAlias).collect(Collectors.toList()), "");
@@ -471,7 +475,7 @@ public class OpenModelController extends NBasicController {
             }
         });
 
-        AbstractContext proposeContext = modelService.probeRecommendation(project, Lists.newArrayList(normalSqls));
+        AbstractContext proposeContext = modelSmartService.probeRecommendation(project, Lists.newArrayList(normalSqls));
         Map<String, NDataModel> uuidToModelMap = proposeContext.getRelatedModels().stream()
                 .collect(Collectors.toMap(NDataModel::getUuid, Function.identity()));
         Map<String, Set<String>> answeredModelAlias = Maps.newHashMap();
@@ -570,9 +574,8 @@ public class OpenModelController extends NBasicController {
         checkSqlIsNotNull(request.getSqls());
         request.setProject(projectName);
         request.setForce2CreateNewModel(false);
-        request.setWithOptimalModel(true);
         checkProjectNotSemiAuto(request.getProject());
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, modelService.suggestAndOptimizeModels(request), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, modelSmartService.suggestAndOptimizeModels(request), "");
     }
 
     @ApiOperation(value = "suggestModels", tags = { "AI" })
@@ -585,7 +588,7 @@ public class OpenModelController extends NBasicController {
         checkProjectNotSemiAuto(request.getProject());
         request.setForce2CreateNewModel(true);
         request.setAcceptRecommendation(true);
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, modelService.suggestOrOptimizeModels(request), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, modelSmartService.suggestOrOptimizeModels(request), "");
     }
 
     @ApiOperation(value = "optimizeModels", tags = { "AI" })
@@ -598,7 +601,7 @@ public class OpenModelController extends NBasicController {
         checkProjectNotSemiAuto(request.getProject());
         checkNotEmpty(request.getSqls());
         request.setForce2CreateNewModel(false);
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, modelService.suggestOrOptimizeModels(request), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, modelSmartService.suggestOrOptimizeModels(request), "");
     }
 
     @ApiOperation(value = "deleteModel", tags = { "AI" })

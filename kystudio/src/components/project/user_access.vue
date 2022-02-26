@@ -215,21 +215,21 @@
         </div>
       </div>
       <div v-for="(row, key) in rowLists" :key="key" class="ksd-mb-10">
-        <el-select v-model="row.column_name" class="row-column" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" filterable :disabled="isRowAuthorEdit" @change="isUnCharColumn(row.column_name)">
+        <el-select v-model="row.column_name" class="row-column" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" filterable :disabled="isRowAuthorEdit" @change="isUnCharColumn(row.column_name, key)">
           <i slot="prefix" class="el-input__icon el-icon-search" v-if="!row.column_name"></i>
-          <el-option v-for="c in columns" :disabled="c.datatype.indexOf('char') === -1 && c.datatype.indexOf('varchar') === -1 && row.joinType === 'LIKE'" :key="c.name" :label="c.name" :value="c.name">
+          <el-option v-for="c in checkedColumns" :disabled="c.datatype.indexOf('char') === -1 && c.datatype.indexOf('varchar') === -1 && row.joinType === 'LIKE'" :key="c.name" :label="c.name" :value="c.name">
             <el-tooltip :content="c.name" effect="dark" placement="top"><span>{{c.name | omit(30, '...')}}</span></el-tooltip>
             <span class="ky-option-sub-info">{{c.datatype.toLocaleLowerCase()}}</span>
           </el-option>
         </el-select>
         <el-select
           :placeholder="$t('kylinLang.common.pleaseSelect')"
-          style="width:70px;"
+          style="width:75px;"
           class="link-type"
           popper-class="js_like-type"
           :disabled="isRowAuthorEdit"
           v-model="row.joinType">
-          <el-option :disabled="isNeedDisableLike && key === 'LIKE'" :value="key" v-for="(key, i) in linkKind" :key="i">{{key}}</el-option>
+          <el-option :disabled="row.isNeedDisableLike && key === 'LIKE'" :value="key" v-for="(key, i) in linkKind" :key="i">{{key}}</el-option>
         </el-select>
         <el-select
           v-model="row.items"
@@ -340,7 +340,7 @@ import { pageSizeMapping, maxFilterAndFilterValues } from '../../config'
       add: '添加',
       filters: '过滤器',
       filterGroups: '过滤组',
-      filterTips: '同一过滤器的不同值的关系为 “或” (OR) ',
+      filterTips: '同一过滤器的不同值的关系为 “或”（OR）',
       deleteFilterGroupTips: '确定要删除过滤组吗？过滤组中的过滤器会被一并删除。',
       deleteFilterGroupTitle: '删除过滤组',
       expandAll: '展开全部',
@@ -401,7 +401,6 @@ export default class UserAccess extends Vue {
   isAuthority = false
   showDetails = false
   showErrorDetails = false
-  isNeedDisableLike = false
   isAddFilterForGroup = false
   filterTotalLength = 0
   newFiltersLenth = 0
@@ -481,17 +480,21 @@ export default class UserAccess extends Vue {
     }
     return columns
   }
-  isUnCharColumn (columnName) {
+  isUnCharColumn (columnName, key) {
     if (columnName) {
       const index = indexOfObjWithSomeKey(this.columns, 'name', columnName)
       let datatype = ''
       if (index !== -1) {
         datatype = this.columns[index].datatype
       }
-      this.isNeedDisableLike = datatype.indexOf('char') === -1 && datatype.indexOf('varchar') === -1
+      const isNeedDisableLike = datatype.indexOf('char') === -1 && datatype.indexOf('varchar') === -1
+      this.$set(this.rowLists[key], 'isNeedDisableLike', isNeedDisableLike)
     } else {
-      this.isNeedDisableLike = false
+      this.$set(this.rowLists[key], 'isNeedDisableLike', false)
     }
+  }
+  get checkedColumns () {
+    return this.columns.filter(c => c.authorized)
   }
   get pagedFilterColumns () {
     const filterCols = objectClone(this.columns)
@@ -620,10 +623,10 @@ export default class UserAccess extends Vue {
   }
   handleLoadMoreStyle () {
     this.$nextTick(() => {
-      const loadMore = this.$el.querySelectorAll('.acl-tree .load-more')
+      const loadMore = this.$el.querySelectorAll('.acl-tree .load-more') || this.$el.getElementsByClassName('.acl-tree .load-more')
       const indeterminateNodes = this.$el.querySelectorAll('.acl-tree .indeterminate-node')
       if (loadMore.length) {
-        loadMore.forEach((m) => {
+        Array.prototype.forEach.call(loadMore, (m) => {
           const targetCheckbox = m.parentNode.parentNode.querySelector('.el-checkbox')
           if (targetCheckbox) {
             targetCheckbox.style.display = 'none'
@@ -631,7 +634,7 @@ export default class UserAccess extends Vue {
         })
       }
       if (indeterminateNodes.length) {
-        indeterminateNodes.forEach((n) => {
+        Array.prototype.forEach.call(indeterminateNodes, (n) => {
           const indeterminateCheckbox = n.parentNode.parentNode.querySelector('.el-checkbox .el-checkbox__input')
           if (indeterminateCheckbox) {
             indeterminateCheckbox.className = 'el-checkbox__input is-indeterminate'
@@ -817,7 +820,6 @@ export default class UserAccess extends Vue {
   }
   cancelRowAccess () {
     this.rowAccessVisible = false
-    this.isNeedDisableLike = false
     this.filterTotalLength = 0
     this.overedRowValueFilters = []
   }
@@ -960,7 +962,6 @@ export default class UserAccess extends Vue {
     this.showErrorDetails = false
     this.showDetails = false
     this.rowLists = [{column_name: '', joinType: 'IN', items: []}]
-    this.isNeedDisableLike = false
   }
   async loadAccessDetails (authorizedOnly) {
     this.defaultCheckedKeys = []
@@ -1063,19 +1064,24 @@ export default class UserAccess extends Vue {
     width: 210px;
   }
   .row-values-edit {
-    width: calc(~'100% - 290px');
+    width: calc(~'100% - 295px');
   }
   .row-values-add {
-    width: calc(~'100% - 360px');
+    width: calc(~'100% - 365px');
   }
   .row-values-edit,
   .row-values-add {
+    .el-select__input {
+      margin-left: 12px;
+    }
     .el-select__tags > span {
       max-width: 100%;
       .el-tag {
         max-width: 100%;
         position: relative;
         padding-right: 16px;
+        white-space: normal;
+        word-break: break-word;
         .el-select__tags-text {
           max-width: 100%;
           overflow: hidden;

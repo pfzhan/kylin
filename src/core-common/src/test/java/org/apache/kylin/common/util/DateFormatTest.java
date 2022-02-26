@@ -53,18 +53,15 @@ import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
 
-import io.kyligence.kap.junit.TimeZoneTestRunner;
+import io.kyligence.kap.junit.annotation.MultiTimezoneTest;
 
 /**
  * Created by dongli on 1/4/16.
  */
-@RunWith(TimeZoneTestRunner.class)
 public class DateFormatTest {
 
-    @Test
+    @MultiTimezoneTest(timezones = { "UTC", "GMT+8", "GMT+15" })
     public void testIsSupportedDateFormat() {
         Assert.assertTrue(DateFormat.isSupportedDateFormat("20100101"));
         Assert.assertTrue(DateFormat.isSupportedDateFormat("2010-01-01"));
@@ -91,7 +88,7 @@ public class DateFormatTest {
         Assert.assertFalse(DateFormat.isSupportedDateFormat("abc"));
     }
 
-    @Test
+    @MultiTimezoneTest(timezones = { "GMT+8", "America/Chicago" })
     public void testGetFormattedDate() {
         String testDate = "2010-01-01";
         String zoneId = ZoneId.systemDefault().getId();

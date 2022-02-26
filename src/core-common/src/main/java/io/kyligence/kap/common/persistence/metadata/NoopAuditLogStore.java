@@ -94,6 +94,16 @@ public class NoopAuditLogStore implements AuditLogStore {
     }
 
     @Override
+    public void pause() {
+        //do noting
+    }
+
+    @Override
+    public void reInit() {
+        //do nothing
+    }
+
+    @Override
     public void close() throws IOException {
         // just implement it
     }

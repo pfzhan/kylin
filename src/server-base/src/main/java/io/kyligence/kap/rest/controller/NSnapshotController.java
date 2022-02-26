@@ -68,7 +68,7 @@ import io.kyligence.kap.rest.response.SnapshotPartitionsResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.service.ModelSemanticHelper;
 import io.kyligence.kap.rest.service.SnapshotService;
-import io.kyligence.kap.rest.service.SnapshotService.SnapshotStatus;
+import io.kyligence.kap.rest.constant.SnapshotStatus;
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
 

@@ -108,3 +108,19 @@
 4）`./dev-support/sandbox/sandbox.sh down` 停止所有容器，并删除它们
 
 5）`./dev-support/sandbox/sandbox.sh interactive` 进入指定容器
+
+### FAQ
+
+1）当出现如下图 `No Filesystem for schema: hdfs` 时，重新刷新 Maven Profile 即可
+
+![](./images/img_8835f30f-7805-4951-808d-45469370fa7g.png)
+
+![](images/6nP8shbaNX.png)
+
+2）当执行 `sandbox.sh init` 后，runConfiguration 没有生成可用的配置时，替换 `.idea/runconfigurations/BootstrapServer_sandbox_.xml` 中的 `type="SpringBootApplicationConfigurationType" factoryName="Spring Boot"` 为 `type="Application" factoryName="Application"`
+
+![](images/img.png)
+
+3）当在本地开发和 Spark 相关功能时，需要访问 Spark Web UI，可以临时修改 `KylinSession.scala` 中的代码，如图：
+
+![](images/img_1.png)

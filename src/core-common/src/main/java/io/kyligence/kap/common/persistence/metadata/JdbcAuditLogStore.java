@@ -59,6 +59,7 @@ import io.kyligence.kap.common.persistence.transaction.AuditLogGroupedReplayWork
 import io.kyligence.kap.common.persistence.transaction.AuditLogReplayWorker;
 import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.guava20.shaded.common.annotations.VisibleForTesting;
+import io.kyligence.kap.guava20.shaded.common.base.Strings;
 import lombok.Getter;
 import lombok.val;
 import lombok.var;
@@ -299,6 +300,17 @@ public class JdbcAuditLogStore implements AuditLogStore {
     }
 
     @Override
+    public void pause() {
+        replayWorker.close(true);
+    }
+
+    @Override
+    public void reInit() {
+        val store = ResourceStore.getKylinMetaStore(config);
+        replayWorker.reStartSchedule(store.getOffset());
+    }
+
+    @Override
     public void rotate() {
         withTransaction(transactionManager, () -> {
             val maxSize = config.getMetadataAuditLogMaxSize();
@@ -344,6 +356,9 @@ public class JdbcAuditLogStore implements AuditLogStore {
             Properties properties = loadMedataProperties();
             var sql = properties.getProperty(META_KEY_META_MVCC_INDEX_KEY);
 
+            if (Strings.isNullOrEmpty(sql)) {
+                return;
+            }
             jdbcTemplate.execute(String.format(Locale.ROOT, sql, indexName, table));
             log.info("Succeed to create table {} index: {}", table, indexName);
         } catch (Exception e) {

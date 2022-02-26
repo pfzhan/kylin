@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -44,14 +43,16 @@
 package org.apache.kylin.common.util;
 
 import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ClassUtilTest {
 
     @Test
     public void testFindContainingJar() throws ClassNotFoundException {
-        Assert.assertTrue(ClassUtil.findContainingJar(Class.forName("org.apache.commons.logging.LogFactory")).contains("commons-logging"));
-        Assert.assertTrue(ClassUtil.findContainingJar(Class.forName("org.apache.commons.logging.LogFactory"), "slf4j").contains("jcl-over-slf4j"));
+        Assert.assertTrue(ClassUtil.findContainingJar(Class.forName("org.apache.commons.logging.LogFactory"))
+                .contains("commons-logging"));
+        Assert.assertTrue(ClassUtil.findContainingJar(Class.forName("org.apache.commons.logging.LogFactory"), "slf4j")
+                .contains("jcl-over-slf4j"));
     }
 
 }

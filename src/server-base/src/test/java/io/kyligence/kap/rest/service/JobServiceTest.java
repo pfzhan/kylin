@@ -162,7 +162,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
         ReflectionTestUtils.setField(jobService, "aclEvaluate", aclEvaluate);
-        ReflectionTestUtils.setField(jobService, "tableExtService", tableExtService);
+        //ReflectionTestUtils.setField(jobService, "tableExtService", tableExtService);
         ReflectionTestUtils.setField(jobService, "projectService", projectService);
         ReflectionTestUtils.setField(jobService, "modelService", modelService);
     }

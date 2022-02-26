@@ -94,6 +94,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.constant.Constants;
+import io.kyligence.kap.common.event.SourceUsageUpdateReqEvent;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.scheduler.SourceUsageUpdateNotifier;
 import io.kyligence.kap.common.util.Unsafe;
@@ -811,6 +812,7 @@ public class LicenseInfoService extends BasicService {
     }
 
     public void updateSourceUsage() {
+        EventBusFactory.getInstance().callService(new SourceUsageUpdateReqEvent());
         if (EpochManager.getInstance().checkEpochOwner(EpochManager.GLOBAL)) {
             SourceUsageRecord sourceUsageRecord = sourceUsageService.refreshLatestSourceUsageRecord();
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {

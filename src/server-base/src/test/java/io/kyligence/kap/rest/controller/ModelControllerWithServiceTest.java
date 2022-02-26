@@ -40,6 +40,7 @@ import org.apache.kylin.rest.service.ServiceTestBase;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -232,6 +233,7 @@ public class ModelControllerWithServiceTest extends ServiceTestBase {
     }
 
     @Test
+    @Ignore
     public void testSuggestModels() throws Exception {
         changeProjectToSemiAutoMode("default");
 

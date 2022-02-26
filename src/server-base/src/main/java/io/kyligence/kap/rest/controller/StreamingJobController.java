@@ -105,7 +105,7 @@ public class StreamingJobController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<List<String>> getStreamingModelNameList(
             @RequestParam(value = "model_name", required = false, defaultValue = "") String modelName,
-            @RequestParam(value = "project") String project,
+            @RequestParam(value = "project", required = false, defaultValue = "") String project,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize) {
         StreamingJobFilter jobFilter = new StreamingJobFilter(modelName, Collections.EMPTY_LIST,
                 Arrays.asList("STREAMING_BUILD"), Collections.EMPTY_LIST, project, "last_modified", true);

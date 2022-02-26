@@ -24,7 +24,7 @@
 package io.kyligence.kap.common.util;
 
 import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class SizeConvertUtilTest {
 
@@ -43,5 +43,21 @@ public class SizeConvertUtilTest {
         Assert.assertEquals(100 * 1024 * 1024 * 1024L, SizeConvertUtil.byteStringAs("100GB", ByteUnit.BYTE));
         Assert.assertEquals(100 * 1024 * 1024, SizeConvertUtil.byteStringAs("100m", ByteUnit.BYTE));
         Assert.assertEquals(1, SizeConvertUtil.byteStringAsMb("1024KB"));
+    }
+
+    @Test
+    public void testByteCountToDisplaySize() {
+        Assert.assertEquals("1 B", SizeConvertUtil.byteCountToDisplaySize(1));
+        Assert.assertEquals("1.00 KB", SizeConvertUtil.byteCountToDisplaySize(1024));
+        Assert.assertEquals("1.00 MB", SizeConvertUtil.byteCountToDisplaySize(1024L * 1024));
+        Assert.assertEquals("1.00 GB", SizeConvertUtil.byteCountToDisplaySize(1024L * 1024 * 1024));
+        Assert.assertEquals("1.00 TB", SizeConvertUtil.byteCountToDisplaySize(1024L * 1024 * 1024 * 1024));
+        Assert.assertEquals("1024.00 TB", SizeConvertUtil.byteCountToDisplaySize(1024L * 1024 * 1024 * 1024 * 1024));
+
+        Assert.assertEquals("2 B", SizeConvertUtil.byteCountToDisplaySize(2));
+        Assert.assertEquals("1.00 KB", SizeConvertUtil.byteCountToDisplaySize(1025));
+        Assert.assertEquals("1.00 KB", SizeConvertUtil.byteCountToDisplaySize(1025, 2));
+        Assert.assertEquals("1.01 KB", SizeConvertUtil.byteCountToDisplaySize(1035));
+        Assert.assertEquals("1.01 KB", SizeConvertUtil.byteCountToDisplaySize(1035, 2));
     }
 }

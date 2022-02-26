@@ -23,31 +23,23 @@
  */
 package io.kyligence.kap.common.util;
 
+import static io.kyligence.kap.common.util.TestUtils.getTestConfig;
+
 import org.apache.commons.lang3.StringUtils;
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.ExpectedException;
 
+import io.kyligence.kap.junit.annotation.MetadataInfo;
 import lombok.val;
 
-public class AddressUtilTest extends NLocalFileMetadataTestCase {
+@MetadataInfo(onlyProps = true)
+public class AddressUtilTest {
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
     private DefaultHostInfoFetcher hostInfoFetcher = new DefaultHostInfoFetcher();
-
-    @Before
-    public void setUp() throws Exception {
-        this.createTestMetadata();
-    }
-
-    @After
-    public void tearDown() {
-        this.cleanupTestMetadata();
-    }
 
     @Test
     public void testGetLocalInstance() {

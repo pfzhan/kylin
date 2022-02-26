@@ -23,8 +23,8 @@
  */
 package io.kyligence.kap.secondstorage.test;
 
-import static org.apache.kylin.common.util.AbstractTestCase.overwriteSystemPropBeforeClass;
-import static org.apache.kylin.common.util.AbstractTestCase.restoreSystemPropsOverwriteBeforeClass;
+import static org.apache.kylin.common.AbstractTestCase.overwriteSystemPropBeforeClass;
+import static org.apache.kylin.common.AbstractTestCase.restoreSystemPropsOverwriteBeforeClass;
 
 import java.io.File;
 import java.util.Collections;

@@ -231,7 +231,7 @@ export default class StudioSource extends Vue {
     }
     const confirmButtonText = this.$t('kylinLang.common.ok')
     const cancelButtonText = this.$t('kylinLang.common.cancel')
-    const confirmParams = { confirmButtonText, cancelButtonText, type: 'warning' }
+    const confirmParams = { confirmButtonText, cancelButtonText, type: 'warning', closeOnClickModal: false, closeOnPressEscape: false }
     return this.$confirm(confirmMessage, confirmTitle, confirmParams)
   }
   sampleTable () {
@@ -277,9 +277,9 @@ export default class StudioSource extends Vue {
     const projectName = this.currentSelectedProject
     const databaseName = this.selectedTable.database
     const tableName = this.selectedTable.name
+    this.delBtnLoading = true
     const { hasModel, hasJob, hasSnapshot, modelSize } = await this._getAffectedModelCountAndSize()
     if (!hasModel && !hasSnapshot) {
-      this.delBtnLoading = true
       try {
         await this.showDeleteTableConfirm(hasModel, hasJob)
         await this.deleteTable({ projectName, databaseName, tableName })
@@ -292,6 +292,7 @@ export default class StudioSource extends Vue {
         handleError(e)
       }
     } else {
+      this.delBtnLoading = false
       const storageSize = Vue.filter('dataSize')(modelSize)
       const dropTabelDepenSub = this.selectedTable.datasource === 1 ? this.$t('dropTabelDepenSub') : ''
       const dropTabelDepenSub2 = this.selectedTable.datasource === 9 ? this.$t('dropTabelDepenSub2') : ''

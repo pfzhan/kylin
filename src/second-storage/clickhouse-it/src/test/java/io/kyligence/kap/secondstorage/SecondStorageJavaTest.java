@@ -24,46 +24,26 @@
 
 package io.kyligence.kap.secondstorage;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
 import static io.kyligence.kap.clickhouse.ClickHouseConstants.CONFIG_CLICKHOUSE_QUERY_CATALOG;
-import io.kyligence.kap.clickhouse.database.ClickHouseOperator;
-import io.kyligence.kap.clickhouse.ddl.ClickHouseCreateTable;
-import io.kyligence.kap.clickhouse.ddl.ClickHouseRender;
-import io.kyligence.kap.clickhouse.job.ClickHouse;
-import io.kyligence.kap.clickhouse.job.ClickHouseModelCleanJob;
-import io.kyligence.kap.clickhouse.job.ClickHouseSegmentCleanJob;
-import io.kyligence.kap.clickhouse.job.Engine;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.common.util.Unsafe;
-import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
-import io.kyligence.kap.metadata.query.NativeQueryRealization;
-import io.kyligence.kap.newten.NExecAndComp;
-import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import static io.kyligence.kap.secondstorage.SecondStorageConcurrentTestUtil.registerWaitPoint;
-import io.kyligence.kap.secondstorage.ddl.exp.ColumnWithType;
-import io.kyligence.kap.secondstorage.management.SecondStorageEndpoint;
-import io.kyligence.kap.secondstorage.management.SecondStorageScheduleService;
-import io.kyligence.kap.secondstorage.management.SecondStorageService;
-import io.kyligence.kap.secondstorage.management.request.RecoverRequest;
-import io.kyligence.kap.secondstorage.management.request.StorageRequest;
-import io.kyligence.kap.secondstorage.test.ClickHouseClassRule;
-import io.kyligence.kap.secondstorage.test.EnableClickHouseJob;
-import io.kyligence.kap.secondstorage.test.EnableTestUser;
-import io.kyligence.kap.secondstorage.test.SharedSparkSession;
-import io.kyligence.kap.secondstorage.test.utils.JobWaiter;
-import lombok.val;
-import org.apache.kylin.common.KylinConfig;
 import static org.apache.kylin.common.exception.JobErrorCode.SECOND_STORAGE_JOB_EXISTS;
-import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.exception.ServerErrorCode;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JOB;
 import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_NODE_NOT_AVAILABLE;
+import static org.awaitility.Awaitility.await;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -73,12 +53,9 @@ import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.spark.sql.SparkSession;
-
-import static org.awaitility.Awaitility.await;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -86,10 +63,45 @@ import org.junit.rules.TestRule;
 import org.mockito.Mockito;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.clickhouse.database.ClickHouseOperator;
+import io.kyligence.kap.clickhouse.ddl.ClickHouseCreateTable;
+import io.kyligence.kap.clickhouse.ddl.ClickHouseRender;
+import io.kyligence.kap.clickhouse.job.ClickHouse;
+import io.kyligence.kap.clickhouse.job.ClickHouseModelCleanJob;
+import io.kyligence.kap.clickhouse.job.ClickHouseSegmentCleanJob;
+import io.kyligence.kap.clickhouse.job.Engine;
+import io.kyligence.kap.clickhouse.management.ClickHouseConfigLoader;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.util.Unsafe;
+import io.kyligence.kap.engine.spark.IndexDataConstructor;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.metadata.query.NativeQueryRealization;
+import io.kyligence.kap.newten.NExecAndComp;
+import io.kyligence.kap.newten.clickhouse.ClickHouseUtils;
+import io.kyligence.kap.rest.response.NDataSegmentResponse;
+import io.kyligence.kap.secondstorage.config.Node;
+import io.kyligence.kap.secondstorage.ddl.exp.ColumnWithType;
+import io.kyligence.kap.secondstorage.management.SecondStorageEndpoint;
+import io.kyligence.kap.secondstorage.management.SecondStorageScheduleService;
+import io.kyligence.kap.secondstorage.management.SecondStorageService;
+import io.kyligence.kap.secondstorage.management.request.RecoverRequest;
+import io.kyligence.kap.secondstorage.management.request.StorageRequest;
+import io.kyligence.kap.secondstorage.metadata.TablePartition;
+import io.kyligence.kap.secondstorage.test.ClickHouseClassRule;
+import io.kyligence.kap.secondstorage.test.EnableClickHouseJob;
+import io.kyligence.kap.secondstorage.test.EnableTestUser;
+import io.kyligence.kap.secondstorage.test.SharedSparkSession;
+import io.kyligence.kap.secondstorage.test.utils.JobWaiter;
+import lombok.val;
 
 public class SecondStorageJavaTest implements JobWaiter {
     private static final String modelName = "test_table_index";
@@ -124,7 +136,7 @@ public class SecondStorageJavaTest implements JobWaiter {
 
     @Test
     public void testModelUpdate() throws Exception {
-        NLocalWithSparkSessionTest.fullBuildAllCube(modelId, project);
+        new IndexDataConstructor(project).buildDataflow(modelId);
         secondStorageService.onUpdate(project, modelId);
         val manager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         Assert.assertTrue(manager.getAllExecutables().stream().anyMatch(ClickHouseModelCleanJob.class::isInstance));
@@ -138,7 +150,7 @@ public class SecondStorageJavaTest implements JobWaiter {
     public void testCleanSegment() throws Exception {
         val tableFlowManager = SecondStorageUtil.tableFlowManager(KylinConfig.getInstanceFromEnv(), project);
         Assert.assertTrue(tableFlowManager.isPresent());
-        NLocalWithSparkSessionTest.fullBuildAllCube(modelId, project);
+        new IndexDataConstructor(project).buildDataflow(modelId);
         int segmentNum = tableFlowManager.get().get(modelId).orElseThrow(() -> new IllegalStateException("tableflow not found")).getTableDataList().get(0).getPartitions().size();
         Assert.assertEquals(1, segmentNum);
         val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
@@ -161,7 +173,7 @@ public class SecondStorageJavaTest implements JobWaiter {
 
     @Test
     public void testDoubleTriggerSegmentLoad() throws Exception {
-        NLocalWithSparkSessionTest.fullBuildAllCube(modelId, project);
+        new IndexDataConstructor(project).buildDataflow(modelId);
         val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val dataflow = dataflowManager.getDataflow(modelId);
         val segs = dataflow.getQueryableSegments().stream().map(NDataSegment::getId).collect(Collectors.toList());
@@ -194,7 +206,7 @@ public class SecondStorageJavaTest implements JobWaiter {
 
     @Test
     public void testRecoverModelWhenHasLoadTask() throws Exception {
-        NLocalWithSparkSessionTest.fullBuildAllCube(modelId, project);
+        new IndexDataConstructor(project).buildDataflow(modelId);
         val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val dataflow = dataflowManager.getDataflow(modelId);
         val segs = dataflow.getQueryableSegments().stream().map(NDataSegment::getId).collect(Collectors.toList());
@@ -213,7 +225,7 @@ public class SecondStorageJavaTest implements JobWaiter {
 
     @Test
     public void testCleanSegmentWhenHasLoadTask() throws Exception {
-        NLocalWithSparkSessionTest.fullBuildAllCube(modelId, project);
+        new IndexDataConstructor(project).buildDataflow(modelId);
         val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val dataflow = dataflowManager.getDataflow(modelId);
         val segs = dataflow.getQueryableSegments().stream().map(NDataSegment::getId).collect(Collectors.toList());
@@ -295,7 +307,7 @@ public class SecondStorageJavaTest implements JobWaiter {
         secondStorageService.sizeInNode(project);
 
         //build
-        NLocalWithSparkSessionTest.fullBuildAllCube(modelId, project);
+        new IndexDataConstructor(project).buildDataflow(modelId);
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         Assert.assertEquals(3, SecondStorageUtil.setSecondStorageSizeInfo(modelManager.listAllModels()).size());
 
@@ -338,7 +350,7 @@ public class SecondStorageJavaTest implements JobWaiter {
 
     @Test
     public void testSchedulerService() throws Exception {
-        NLocalWithSparkSessionTest.fullBuildAllCube(modelId, project);
+        new IndexDataConstructor(project).buildDataflow(modelId);
         val jdbcUrl = SecondStorageNodeHelper.resolve(SecondStorageNodeHelper.getAllNames().get(0));
         ClickHouse clickHouse = new ClickHouse(jdbcUrl);
         ClickHouseOperator operator = new ClickHouseOperator(SecondStorageNodeHelper.resolve(SecondStorageNodeHelper.getAllNames().get(0)));
@@ -376,9 +388,8 @@ public class SecondStorageJavaTest implements JobWaiter {
     }
 
     @Test
-    @Ignore("fix it later")
     public void testJobPaused() throws Exception {
-        NLocalWithSparkSessionTest.fullBuildAllCube(modelId, project);
+        new IndexDataConstructor(project).buildDataflow(modelId);
         val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val dataflow = dataflowManager.getDataflow(modelId);
         val segs = dataflow.getQueryableSegments().stream().map(NDataSegment::getId).collect(Collectors.toList());
@@ -426,16 +437,15 @@ public class SecondStorageJavaTest implements JobWaiter {
 
     @Test(expected = KylinException.class)
     public void testCheckJobRestart() throws Exception {
-        NLocalWithSparkSessionTest.fullBuildAllCube(modelId, project);
+        new IndexDataConstructor(project).buildDataflow(modelId);
         val manager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val job = manager.getAllJobs().get(0);
         SecondStorageUtil.checkJobRestart(project, job.getId());
     }
 
     @Test
-    @Ignore("fix it later")
     public void testCleanModelWhenTableNotExists() throws Exception {
-        NLocalWithSparkSessionTest.fullBuildAllCube(modelId, project);
+        new IndexDataConstructor(project).buildDataflow(modelId);
         val node = SecondStorageNodeHelper.getAllNames().get(0);
         val jdbc = SecondStorageNodeHelper.resolve(node);
         ClickHouse clickHouse = new ClickHouse(jdbc);
@@ -448,7 +458,7 @@ public class SecondStorageJavaTest implements JobWaiter {
 
     @Test
     public void testCleanModelWhenDatabaseNotExists() throws Exception {
-        NLocalWithSparkSessionTest.fullBuildAllCube(modelId, project);
+        new IndexDataConstructor(project).buildDataflow(modelId);
         val node = SecondStorageNodeHelper.getAllNames().get(0);
         val jdbc = SecondStorageNodeHelper.resolve(node);
         ClickHouse clickHouse = new ClickHouse(jdbc);
@@ -461,9 +471,8 @@ public class SecondStorageJavaTest implements JobWaiter {
     }
 
     @Test
-    @Ignore("fix it later")
     public void testModelUpdateNoClean() throws Exception {
-        NLocalWithSparkSessionTest.fullBuildAllCube(modelId, project);
+        new IndexDataConstructor(project).buildDataflow(modelId);
         val manager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val jobCnt = manager.getAllExecutables().stream()
                 .filter(ClickHouseModelCleanJob.class::isInstance)
@@ -472,6 +481,99 @@ public class SecondStorageJavaTest implements JobWaiter {
         Assert.assertEquals(jobCnt, manager.getAllExecutables().stream()
                 .filter(ClickHouseModelCleanJob.class::isInstance)
                 .filter(job -> modelId.equals(job.getTargetModelId())).count());
+    }
+
+
+
+    @Test
+    public void updateNodeStatus() throws Exception {
+
+        TablePartition tablePartition1 = TablePartition.builder().setShardNodes(Collections.singletonList("node1")).build();
+        TablePartition tablePartition2 = TablePartition.builder().setShardNodes(Collections.singletonList("node2")).build();
+        List<TablePartition> tablePartitions = Lists.newArrayList(tablePartition1, tablePartition2);
+        val partition1 = SecondStorageQueryRouteUtil.getNextPartition(tablePartitions);
+        QueryContext.current().setLastFailed(true);
+        val partition2 = SecondStorageQueryRouteUtil.getNextPartition(tablePartitions);
+        Set<String> allNodes = org.glassfish.jersey.internal.guava.Sets.newHashSet();
+        allNodes.addAll(partition1.getShardNodes());
+        allNodes.addAll(partition2.getShardNodes());
+        Assert.assertEquals(2, allNodes.size());
+
+        Map<String, Map<String, Boolean>> nodeStatusMap = new HashMap<>();
+        Map<String, Boolean> nodeStatus = Maps.newHashMap();
+        nodeStatus.put("node1", false);
+        nodeStatus.put("node2", true);
+        nodeStatusMap.put("pair1", nodeStatus);
+        secondStorageEndpoint.updateNodeStatus(nodeStatusMap);
+        QueryContext.current().getUsedPartitionIndexes().clear();
+        QueryContext.current().setLastFailed(false);
+        val partition3 = SecondStorageQueryRouteUtil.getNextPartition(tablePartitions);
+        allNodes.addAll(partition3.getShardNodes());
+        Assert.assertTrue(partition3.getShardNodes().contains("node2"));
+
+        try {
+            QueryContext.current().setLastFailed(true);
+            val partition4 = SecondStorageQueryRouteUtil.getNextPartition(tablePartitions);
+        } catch (IllegalStateException e) {
+            Assert.assertEquals("All cluster failed, no candidate found.", e.getMessage());
+            return;
+        }
+        Assert.fail();
+    }
+
+    @Test
+    public void testQueryWithClickHouseHADown() throws Exception {
+        final String queryCatalog = "testQueryWithClickHouseHASuccess";
+        Unsafe.setProperty(CONFIG_CLICKHOUSE_QUERY_CATALOG, queryCatalog);
+
+        JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse();
+        JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse();
+        JdbcDatabaseContainer<?> clickhouse3 = ClickHouseUtils.startClickHouse();
+        JdbcDatabaseContainer<?> clickhouse4 = ClickHouseUtils.startClickHouse();
+
+        internalConfigClickHouse(2, clickhouse1, clickhouse2, clickhouse3, clickhouse4);
+
+        //build
+        new IndexDataConstructor(project).buildDataflow(modelId);
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        Assert.assertEquals(3, SecondStorageUtil.setSecondStorageSizeInfo(modelManager.listAllModels()).size());
+
+        // check
+        test.checkHttpServer();
+        test.overwriteSystemProp("kylin.query.use-tableindex-answer-non-raw-query", "true");
+
+        sparkSession.sessionState().conf().setConfString(
+                "spark.sql.catalog." + queryCatalog,
+                "org.apache.spark.sql.execution.datasources.jdbc.v2.SecondStorageCatalog");
+        sparkSession.sessionState().conf().setConfString(
+                "spark.sql.catalog." + queryCatalog + ".url",
+                clickhouse1.getJdbcUrl());
+        sparkSession.sessionState().conf().setConfString(
+                "spark.sql.catalog." + queryCatalog + ".driver",
+                clickhouse1.getDriverClassName());
+
+        String sql = "select sum(PRICE) from TEST_KYLIN_FACT group by PRICE";
+
+        Map<String, List<Node>> cluster = ClickHouseConfigLoader.getInstance().getCluster().getCluster();
+
+        for (String pair : cluster.keySet()) {
+            Map<String, Map<String, Boolean>> nodeStatusMap = new HashMap<>();
+            Map<String, Boolean> nodeStatus = Maps.newHashMap();
+            cluster.get(pair).forEach(n -> nodeStatus.put(n.getName(), false));
+            nodeStatusMap.put(pair, nodeStatus);
+            secondStorageEndpoint.updateNodeStatus(nodeStatusMap);
+
+            NExecAndComp.queryWithKapWithMeta(project, "left", Pair.newPair("query_table_index", sql), null);
+            Assert.assertTrue(OLAPContext.getNativeRealizations().stream().noneMatch(NativeQueryRealization::isSecondStorage));
+
+            nodeStatus.replaceAll((n, v) -> true);
+            secondStorageEndpoint.updateNodeStatus(nodeStatusMap);
+            return;
+        }
+    }
+
+    public static void internalConfigClickHouse(int replica, JdbcDatabaseContainer<?>... clickhouse) throws IOException {
+        ClickHouseUtils.internalConfigClickHouse(clickhouse, replica);
     }
 
 }

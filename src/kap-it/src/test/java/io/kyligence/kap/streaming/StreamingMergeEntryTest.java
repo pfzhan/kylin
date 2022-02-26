@@ -26,8 +26,6 @@ package io.kyligence.kap.streaming;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -85,7 +83,6 @@ public class StreamingMergeEntryTest extends StreamingTestCase {
     @Test
     public void testMergeSegmentLayer0() {
         val config = getTestConfig();
-        config.setProperty("kylin.engine.streaming-segment-merge-interval", "1");
         config.setProperty("kylin.engine.spark.cluster-manager-class-name",
                 "io.kyligence.kap.streaming.util.MockClusterManager");
         Callback callback = () -> {
@@ -102,15 +99,9 @@ public class StreamingMergeEntryTest extends StreamingTestCase {
             df = createSegments(mgr, df, 11);
             df = setSegmentStorageSize(mgr, df, 1024);
 
-            val latch = new CountDownLatch(1);
-            shutdownStreamingMergeJob(latch);
-            try {
-                mockRestSupport(streamingMergeEntry, config, 0);
-                streamingMergeEntry.schedule(PROJECT, DATAFLOW_ID);
-            } finally {
-                latch.await(15, TimeUnit.SECONDS);
-            }
-
+            mockRestSupport(streamingMergeEntry, config, 0);
+            streamingMergeEntry.process(PROJECT, DATAFLOW_ID);
+            streamingMergeEntry.getSparkSession().close();
             df = mgr.getDataflow(DATAFLOW_ID);
             Assert.assertEquals(2, df.getSegments().size());
             Assert.assertEquals("1", df.getSegments().get(0).getAdditionalInfo().get("file_layer"));
@@ -123,9 +114,8 @@ public class StreamingMergeEntryTest extends StreamingTestCase {
      * test normal merge: L0 merge & L1 merge
      */
     @Test
-    public void testMergeSegment() throws Exception {
+    public void testMergeSegment() {
         val config = getTestConfig();
-        config.setProperty("kylin.engine.streaming-segment-merge-interval", "1");
         config.setProperty("kylin.engine.spark.cluster-manager-class-name",
                 "io.kyligence.kap.streaming.util.MockClusterManager");
         Callback callback = () -> {
@@ -142,14 +132,11 @@ public class StreamingMergeEntryTest extends StreamingTestCase {
             df = createSegments(mgr, df, 10);
             setSegmentStorageSize(mgr, df, 1024);
 
-            val latch = new CountDownLatch(1);
-            shutdownStreamingMergeJob(latch);
-            try {
-                mockRestSupport(streamingMergeEntry, config, 0);
-                streamingMergeEntry.schedule(PROJECT, DATAFLOW_ID);
-            } finally {
-                latch.await(15, TimeUnit.SECONDS);
+            mockRestSupport(streamingMergeEntry, config, 0);
+            for (int i = 0; i < 4; i++) {
+                streamingMergeEntry.process(PROJECT, DATAFLOW_ID);
             }
+            streamingMergeEntry.getSparkSession().close();
             df = mgr.getDataflow(DATAFLOW_ID);
             Assert.assertEquals(2, df.getSegments().size());
             Assert.assertEquals("2", df.getSegments().get(0).getAdditionalInfo().get("file_layer"));
@@ -164,7 +151,6 @@ public class StreamingMergeEntryTest extends StreamingTestCase {
     @Test
     public void testMergeSegmentLayer1() {
         val config = getTestConfig();
-        config.setProperty("kylin.engine.streaming-segment-merge-interval", "1");
         Callback callback = () -> {
             StreamingMergeEntry streamingMergeEntry = Mockito.spy(new StreamingMergeEntry());
             streamingMergeEntry.setThresholdOfSegSize(20 * 1024);
@@ -179,14 +165,9 @@ public class StreamingMergeEntryTest extends StreamingTestCase {
             df = createSegments(mgr, df, 10, 1);
             df = setSegmentStorageSize(mgr, df, 1024);
 
-            val latch = new CountDownLatch(1);
-            shutdownStreamingMergeJob(latch);
-            try {
-                mockRestSupport(streamingMergeEntry, config, 0);
-                streamingMergeEntry.schedule(PROJECT, DATAFLOW_ID);
-            } finally {
-                latch.await(15, TimeUnit.SECONDS);
-            }
+            mockRestSupport(streamingMergeEntry, config, 0);
+            streamingMergeEntry.process(PROJECT, DATAFLOW_ID);
+            streamingMergeEntry.getSparkSession().close();
             df = mgr.getDataflow(DATAFLOW_ID);
             Assert.assertEquals(10, df.getSegments().size());
             df.getSegments().stream()
@@ -198,7 +179,6 @@ public class StreamingMergeEntryTest extends StreamingTestCase {
     @Test
     public void testMergeSegmentOfCatchup1() {
         val config = getTestConfig();
-        config.setProperty("kylin.engine.streaming-segment-merge-interval", "1");
         Callback callback = () -> {
             StreamingMergeEntry streamingMergeEntry = Mockito.spy(new StreamingMergeEntry());
             streamingMergeEntry.setThresholdOfSegSize(20 * 1024);
@@ -213,14 +193,9 @@ public class StreamingMergeEntryTest extends StreamingTestCase {
             df = createSegments(mgr, df, 16);
             setSegmentStorageSize(mgr, df, 1024);
 
-            val latch = new CountDownLatch(1);
-            shutdownStreamingMergeJob(latch);
-            try {
-                mockRestSupport(streamingMergeEntry, config, 0);
-                streamingMergeEntry.schedule(PROJECT, DATAFLOW_ID);
-            } finally {
-                latch.await(15, TimeUnit.SECONDS);
-            }
+            mockRestSupport(streamingMergeEntry, config, 0);
+            streamingMergeEntry.process(PROJECT, DATAFLOW_ID);
+            streamingMergeEntry.getSparkSession().close();
             df = mgr.getDataflow(DATAFLOW_ID);
             Assert.assertEquals(2, df.getSegments().size());
             Assert.assertEquals("1", df.getSegments().get(0).getAdditionalInfo().get("file_layer"));
@@ -233,7 +208,6 @@ public class StreamingMergeEntryTest extends StreamingTestCase {
     public void testMergeSegmentOfCatchup2() {
         val config = getTestConfig();
         config.setProperty("kylin.engine.streaming-segment-merge-ratio", "1");
-        config.setProperty("kylin.engine.streaming-segment-merge-interval", "1");
         Callback callback = () -> {
             StreamingMergeEntry streamingMergeEntry = Mockito.spy(new StreamingMergeEntry());
 
@@ -250,14 +224,9 @@ public class StreamingMergeEntryTest extends StreamingTestCase {
             Assert.assertEquals(16, df.getSegments().size());
             setSegmentStorageSize(mgr, df, 1024);
 
-            val latch = new CountDownLatch(1);
-            shutdownStreamingMergeJob(latch);
-            try {
-                mockRestSupport(streamingMergeEntry, config, 0);
-                streamingMergeEntry.schedule(PROJECT, DATAFLOW_ID);
-            } finally {
-                latch.await(15, TimeUnit.SECONDS);
-            }
+            mockRestSupport(streamingMergeEntry, config, 0);
+            streamingMergeEntry.process(PROJECT, DATAFLOW_ID);
+            streamingMergeEntry.getSparkSession().close();
             df = mgr.getDataflow(DATAFLOW_ID);
             Assert.assertEquals(3, df.getSegments().size());
             Assert.assertEquals("1", df.getSegments().get(0).getAdditionalInfo().get("file_layer"));
@@ -271,7 +240,6 @@ public class StreamingMergeEntryTest extends StreamingTestCase {
     public void testMergeSegmentOfCatchup3() {
         val config = getTestConfig();
         config.setProperty("kylin.engine.streaming-segment-merge-ratio", "1");
-        config.setProperty("kylin.engine.streaming-segment-merge-interval", "1");
         Callback callback = () -> {
             StreamingMergeEntry streamingMergeEntry = Mockito.spy(new StreamingMergeEntry());
 
@@ -295,14 +263,10 @@ public class StreamingMergeEntryTest extends StreamingTestCase {
                 }
             });
             setSegmentStorageSize(mgr, df, 1024);
-            val latch = new CountDownLatch(1);
-            shutdownStreamingMergeJob(latch);
-            try {
-                mockRestSupport(streamingMergeEntry, config, 0);
-                streamingMergeEntry.schedule(PROJECT, DATAFLOW_ID);
-            } finally {
-                latch.await(15, TimeUnit.SECONDS);
-            }
+
+            mockRestSupport(streamingMergeEntry, config, 0);
+            streamingMergeEntry.process(PROJECT, DATAFLOW_ID);
+            streamingMergeEntry.getSparkSession().close();
             df = mgr.getDataflow(DATAFLOW_ID);
             Assert.assertEquals(2, df.getSegments().size());
             Assert.assertEquals("1", df.getSegments().get(0).getAdditionalInfo().get("file_layer"));
@@ -315,7 +279,6 @@ public class StreamingMergeEntryTest extends StreamingTestCase {
     public void testMergeSegmentOfCatchup4() {
         val config = getTestConfig();
         config.setProperty("kylin.engine.streaming-segment-merge-ratio", "1");
-        config.setProperty("kylin.engine.streaming-segment-merge-interval", "1");
         Callback callback = () -> {
             StreamingMergeEntry streamingMergeEntry = Mockito.spy(new StreamingMergeEntry());
 
@@ -339,14 +302,10 @@ public class StreamingMergeEntryTest extends StreamingTestCase {
                 }
             });
             setSegmentStorageSize(mgr, df, 1024);
-            val latch = new CountDownLatch(1);
-            shutdownStreamingMergeJob(latch);
-            try {
-                mockRestSupport(streamingMergeEntry, config, 0);
-                streamingMergeEntry.schedule(PROJECT, DATAFLOW_ID);
-            } finally {
-                latch.await(15, TimeUnit.SECONDS);
-            }
+
+            mockRestSupport(streamingMergeEntry, config, 0);
+            streamingMergeEntry.process(PROJECT, DATAFLOW_ID);
+            streamingMergeEntry.getSparkSession().close();
             df = mgr.getDataflow(DATAFLOW_ID);
             Assert.assertEquals(4, df.getSegments().size());
             Assert.assertEquals("1", df.getSegments().get(0).getAdditionalInfo().get("file_layer"));
@@ -360,7 +319,6 @@ public class StreamingMergeEntryTest extends StreamingTestCase {
     @Test
     public void testMergeSegmentOfPeak1() {
         val config = getTestConfig();
-        config.setProperty("kylin.engine.streaming-segment-merge-interval", "1");
         Callback callback = () -> {
             StreamingMergeEntry streamingMergeEntry = Mockito.spy(new StreamingMergeEntry());
 
@@ -396,15 +354,10 @@ public class StreamingMergeEntryTest extends StreamingTestCase {
                 setSegmentStorageSize(seg, 5 * 1024L);
             }
             mgr.getDataflow(df.getId());
-            val latch = new CountDownLatch(1);
-            shutdownStreamingMergeJob(latch);
-            try {
-                mockRestSupport(streamingMergeEntry, config, 0);
-                streamingMergeEntry.schedule(PROJECT, DATAFLOW_ID);
-            } finally {
-                latch.await(15, TimeUnit.SECONDS);
-            }
+            mockRestSupport(streamingMergeEntry, config, 0);
+            streamingMergeEntry.process(PROJECT, DATAFLOW_ID);
             streamingMergeEntry.getSparkSession().stop();
+
             df = mgr.getDataflow(DATAFLOW_ID);
             Assert.assertEquals(2, df.getSegments().size());
             Assert.assertEquals("1", df.getSegments().get(0).getAdditionalInfo().get("file_layer"));

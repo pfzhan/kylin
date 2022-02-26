@@ -29,7 +29,7 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 import io.kyligence.kap.query.optrule.CorrReduceFunctionRule;
-import io.kyligence.kap.query.optrule.KapCountDistinctJoinRule;
+
 import org.apache.calcite.adapter.enumerable.EnumerableInterpreterRule;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.config.CalciteConnectionConfig;
@@ -82,10 +82,6 @@ import com.google.common.collect.ImmutableList;
 
 import io.kyligence.kap.query.engine.meta.PlannerContext;
 import io.kyligence.kap.query.optrule.KAPValuesRule;
-import io.kyligence.kap.query.optrule.KapAggFilterTransposeRule;
-import io.kyligence.kap.query.optrule.KapAggJoinTransposeRule;
-import io.kyligence.kap.query.optrule.KapAggProjectMergeRule;
-import io.kyligence.kap.query.optrule.KapAggProjectTransposeRule;
 import io.kyligence.kap.query.optrule.KapAggregateRule;
 import io.kyligence.kap.query.optrule.KapFilterJoinRule;
 import io.kyligence.kap.query.optrule.KapFilterRule;
@@ -277,17 +273,6 @@ public class PlannerFactory {
 
         planner.addRule(KapProjectJoinTransposeRule.INSTANCE);
         planner.removeRule(ProjectRemoveRule.INSTANCE);
-
-        //KE-15015
-        if (kylinConfig.isAgregatePushdownEnabled()) {
-            planner.addRule(KapAggProjectMergeRule.AGG_PROJECT_JOIN);
-            planner.addRule(KapAggProjectMergeRule.AGG_PROJECT_FILTER_JOIN);
-            planner.addRule(KapAggProjectTransposeRule.AGG_PROJECT_FILTER_JOIN);
-            planner.addRule(KapAggProjectTransposeRule.AGG_PROJECT_JOIN);
-            planner.addRule(KapAggFilterTransposeRule.AGG_FILTER_JOIN);
-            planner.addRule(KapAggJoinTransposeRule.INSTANCE_JOIN_RIGHT_AGG);
-            planner.addRule(KapCountDistinctJoinRule.INSTANCE_COUNT_DISTINCT_JOIN_ONESIDEAGG);
-        }
 
         // skip corr expandsion during model suggestion
         if (!KylinConfig.getInstanceFromEnv().getSkipCorrReduceRule()) {

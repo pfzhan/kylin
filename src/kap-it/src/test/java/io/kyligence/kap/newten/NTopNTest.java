@@ -90,7 +90,7 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
     public void testTopNWithMultiDims() throws Exception {
         String dfID = "79547ec2-350e-4ba4-88f9-099048962ceb";
         NDataflow dataflow = dfMgr.getDataflow(dfID);
-        buildCuboid(dfID, TimePartitionedSegmentRange.createInfinite(),
+        indexDataConstructor.buildIndex(dfID, TimePartitionedSegmentRange.createInfinite(),
                 Sets.newHashSet(dataflow.getIndexPlan().getLayoutEntity(101001L)), true);
 
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
@@ -108,7 +108,7 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
     public void testTopNCannotAnswerAscendingTopnQuery() throws Exception {
         String dfID = "79547ec2-350e-4ba4-88f9-099048962ceb";
         NDataflow dataflow = dfMgr.getDataflow(dfID);
-        buildCuboid(dfID, TimePartitionedSegmentRange.createInfinite(),
+        indexDataConstructor.buildIndex(dfID, TimePartitionedSegmentRange.createInfinite(),
                 Sets.newHashSet(dataflow.getIndexPlan().getLayoutEntity(101001L)), true);
 
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
@@ -131,7 +131,7 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
         dfMgr.updateDataflowStatus("fb6ce800-43ee-4ef9-b100-39d523f36304", RealizationStatusEnum.OFFLINE);
         dfMgr.updateDataflowStatus("da101c43-6d22-48ce-88d2-bf0ce0594022", RealizationStatusEnum.OFFLINE);
         String dfID = "79547ec2-350e-4ba4-88f9-099048962ceb";
-        buildCuboid(dfID, TimePartitionedSegmentRange.createInfinite(),
+        indexDataConstructor.buildIndex(dfID, TimePartitionedSegmentRange.createInfinite(),
                 Sets.newHashSet(dfMgr.getDataflow(dfID).getIndexPlan().getLayoutEntity(100001L),
                         dfMgr.getDataflow(dfID).getIndexPlan().getLayoutEntity(100003L)),
                 true);
@@ -162,7 +162,7 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
         dfMgr.updateDataflowStatus("da101c43-6d22-48ce-88d2-bf0ce0594022", RealizationStatusEnum.OFFLINE);
         String dfID = "fb6ce800-43ee-4ef9-b100-39d523f36304";
         //  layout[ID, count(*), sum(price), Topn(price, SELLER_ID)]
-        buildCuboid(dfID, TimePartitionedSegmentRange.createInfinite(),
+        indexDataConstructor.buildIndex(dfID, TimePartitionedSegmentRange.createInfinite(),
                 Sets.newHashSet(dfMgr.getDataflow(dfID).getIndexPlan().getLayoutEntity(1L)), true);
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
 
@@ -181,7 +181,7 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
     public void testSameTableNameInDifferentDatabase() throws Exception {
         TopNCounter.EXTRA_SPACE_RATE = 1;
 
-        fullBuildCube("da101c43-6d22-48ce-88d2-bf0ce0594022", getProject());
+        fullBuild("da101c43-6d22-48ce-88d2-bf0ce0594022");
 
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
 

@@ -76,16 +76,16 @@
                   :width="$lang === 'en' ? 400 : 320"
                   popper-class="duration-popover"
                   trigger="hover">
-                  <el-row v-for="(step, index) in querySteps" :key="step.name">
+                  <el-row v-for="(step, index) in querySteps" :key="step.name" v-show="step.group !== 'PREPARATION' || (step.group === 'PREPARATION' && isShowDetail)">
                     <el-col :span="14">
-                      <span class="step-name" :class="{'font-medium': index === 0, 'sub-step': step.group === 'PREPARATION'}" v-show="step.group !== 'PREPARATION' || (step.group === 'PREPARATION' && isShowDetail)">{{$t(step.name)}}</span>
+                      <span class="step-name" :class="{'font-medium': index === 0, 'sub-step': step.group === 'PREPARATION'}">{{$t(step.name)}}</span>
                       <i class="el-icon-ksd-more_01" :class="{'up': isShowDetail}" v-if="step.name==='PREPARATION'" @click.stop="isShowDetail = !isShowDetail"></i>
                     </el-col>
                     <el-col :span="4">
-                      <span class="step-duration ksd-fright" v-show="step.group !== 'PREPARATION'" :class="{'font-medium': index === 0}">{{Math.round(step.duration / 1000 * 100) / 100}}s</span>
+                      <span class="step-duration ksd-fright" :class="{'font-medium': index === 0, 'sub-step': step.group === 'PREPARATION'}">{{Math.round(step.duration / 1000 * 100) / 100}}s</span>
                     </el-col>
                     <el-col :span="6" v-if="querySteps&&querySteps[0].duration>0">
-                      <el-progress v-if="step.group !== 'PREPARATION' && index !== 0" :stroke-width="6" :percentage="getProgress(step.duration, querySteps[0].duration)" color="#A6D6F6" :show-text="false"></el-progress>
+                      <el-progress :stroke-width="6" :percentage="getProgress(step.duration, querySteps[0].duration)" color="#A6D6F6" :show-text="false"></el-progress>
                     </el-col>
                   </el-row>
                   <span slot="reference" class="duration">{{Math.round(extraoption.duration / 1000 * 100)/100||0.00}}s</span>
@@ -105,30 +105,32 @@
         </el-col>
       </el-row>
     </div>
-    <div v-if="!isStop" class="result-block">
+    <div v-show="!isStop" class="result-block">
       <!-- <el-button-group class="result-layout-btns">
         <el-button :class="{active: item.value === activeResultType}" size="mini" plain v-for="(item, index) in insightBtnGroups" :key="index" @click="changeDataType(item)">{{item.text}}</el-button>
       </el-button-group> -->
       <el-tabs v-model="activeResultType" class="ksd-mt-16" type="button" :class="{'en-model': $lang==='en'}" @tab-click="changeDataType">
           <el-tab-pane :label="$t('dataBtn')" name="data">
-            <div class="grid-box narrowTable" v-if="!isStop">
-              <el-table
-                :data="pagerTableData"
-                v-scroll-shadow
-                ref="tableLayout"
-                style="width: 100%;">
-                <el-table-column v-for="(value, index) in tableMeta" :key="index"
-                  :prop="''+index"
-                  :min-width="value.label&&value.label.length > 100 ? 52+8*(value.label&&value.label.length || 0) : 52+15*(value.label&&value.label.length || 0)"
-                  show-overflow-tooltip
-                  :label="value.label">
-                  <template slot-scope="props">
-                    <span class="table-cell-text">{{props.row[index]}}</span>
-                  </template>
-                </el-table-column>
-              </el-table>
+            <div class="grid-box narrowTable">
+              <template v-if="!isStop">
+                <el-table
+                  :data="pagerTableData"
+                  v-scroll-shadow
+                  ref="tableLayout"
+                  style="width: 100%;">
+                  <el-table-column v-for="(value, index) in tableMeta" :key="index"
+                    :prop="''+index"
+                    :min-width="value.label&&value.label.length > 100 ? 52+8*(value.label&&value.label.length || 0) : 52+10*(value.label&&value.label.length || 0)"
+                    show-overflow-tooltip
+                    :label="value.label">
+                    <template slot-scope="props">
+                      <span class="table-cell-text">{{props.row[index]}}</span>
+                    </template>
+                  </el-table-column>
+                </el-table>
 
-              <kap-pager v-on:handleCurrentChange='pageSizeChange' :curPage="currentPage+1" class="ksd-center ksd-mtb-16" ref="pager" :refTag="pageRefTags.queryResultPager" :totalSize="modelsTotal"></kap-pager>
+                <kap-pager v-on:handleCurrentChange='pageSizeChange' :curPage="currentPage+1" class="ksd-center ksd-mtb-16" ref="pager" :refTag="pageRefTags.queryResultPager" :totalSize="modelsTotal"></kap-pager>
+              </template>
             </div>
             <form name="export" class="exportTool" action="/kylin/api/query/format/csv" method="post">
               <input type="hidden" name="sql" v-model="sql"/>
@@ -182,7 +184,7 @@
     <index-details :index-detail-title="indexDetailTitle" :detail-type="detailType" :cuboid-data="cuboidData" @close="closeDetailDialog" v-if="indexDetailShow" />
     <el-dialog
       :title="$t('indexOverview')"
-      top="5vh"
+      top="10vh"
       limited-area
       :visible.sync="aggDetailVisible"
       class="agg-dialog"
@@ -676,10 +678,7 @@ export default class queryResult extends Vue {
   filterTableData () {
     if (this.resultFilter) {
       const filteredData = this.extraoption.results && this.extraoption.results.filter((item) => {
-        const cur = item
-        const trans = scToFloat(cur)
-        const finalItem = showNull(trans)
-        return finalItem.toString().toLocaleUpperCase().indexOf(this.resultFilter.toLocaleUpperCase()) !== -1
+        return item.toString().toLocaleUpperCase().indexOf(this.resultFilter.toLocaleUpperCase()) !== -1
       })
       this.modelsTotal = filteredData.length
       return filteredData
@@ -700,11 +699,19 @@ export default class queryResult extends Vue {
       var innerLen = this.tableData[i].length
       for (var m = 0; m < innerLen; m++) {
         var cur = this.tableData[i][m]
-        var trans = scToFloat(cur)
+        var colType = this.extraoption.columnMetas[m].columnTypeName
+        // char varchar 类型列不进行科学计算转数字显示的转换
+        var trans = cur
+        if (colType.toLocaleLowerCase().indexOf('char') === -1) {
+          trans = scToFloat(cur)
+        }
         this.tableData[i][m] = showNull(trans)
       }
     }
     this.pagerTableData = Object.assign([], this.tableData)
+    this.$nextTick(() => {
+      this.$refs.tableLayout && this.$refs.tableLayout.doLayout()
+    })
   }
   getMoreData () {
     if (this.$refs.tableLayout.scrollPosition === 'right') {

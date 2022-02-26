@@ -72,7 +72,7 @@ public class NCountDistinctWithoutEncodeTest extends NLocalWithSparkSessionTest 
                 getProject());
         indexPlanManager.updateIndexPlan("b06eee9f-3e6d-41de-ac96-89dbf170b99b",
                 copyForWrite -> copyForWrite.getOverrideProps().put("kylin.query.skip-encode-integer-enabled", "true"));
-        fullBuildCube("b06eee9f-3e6d-41de-ac96-89dbf170b99b", getProject());
+        fullBuild("b06eee9f-3e6d-41de-ac96-89dbf170b99b");
         List<String> results1 = NExecAndComp
                 .queryCube(getProject(),
                         "select city, " + "count(distinct string_id), " + "count(distinct tinyint_id), "
@@ -103,7 +103,7 @@ public class NCountDistinctWithoutEncodeTest extends NLocalWithSparkSessionTest 
 
     @Test
     public void testWithEncode() throws Exception {
-        fullBuildCube("b06eee9f-3e6d-41de-ac96-89dbf170b99b", getProject());
+        fullBuild("b06eee9f-3e6d-41de-ac96-89dbf170b99b");
         String dictPath = KylinConfig.getInstanceFromEnv().getHdfsWorkingDirectory() + "/" + getProject()
                 + HadoopUtil.GLOBAL_DICT_STORAGE_ROOT + "/DEFAULT.TEST_COUNT_DISTINCT";
         FileStatus[] fileStatuses = new Path(dictPath).getFileSystem(new Configuration())

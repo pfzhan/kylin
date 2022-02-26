@@ -18,7 +18,7 @@
           <i slot="prefix" class="el-input__icon el-ksd-icon-search_22"></i>
         </el-input>
       </div>
-      <div v-if="!searchChar">
+      <div v-show="!searchChar">
         <!-- 事实表 -->
         <div v-for="(table, index) in factTable" class="ksd-mb-10 scroll-table-item" :key="index">
           <div @click="toggleTableShow(table)" class="table-header clearfix">
@@ -30,7 +30,7 @@
             <div class="table-title"><span class="measure-header-tip-layout">{{table.alias}}</span> <span>({{table.meaColNum}}/{{table.columns.length}})</span></div>
           </div>
           <el-table
-            v-if="table.show || isGuideMode"
+            v-show="table.show || isGuideMode"
             :data="table.columns"
             :ref="table.guid">
             <el-table-column show-overflow-tooltip prop="name" :label="$t('name')"></el-table-column>
@@ -74,7 +74,7 @@
             </div>
           </div>
           <el-table
-            v-if="table.show || isGuideMode"
+            v-show="table.show || isGuideMode"
             :class="{'disabled-checkbox': flattenLookupTables.includes(table.alias)}"
             :data="table.columns"
             :ref="table.guid">
@@ -118,7 +118,7 @@
               </common-tip>
             </div>
             <el-table
-              v-if="ccTable.show || isGuideMode"
+              v-show="ccTable.show || isGuideMode"
               :data="ccTable.columns"
               :ref="ccTable.guid">
               <el-table-column show-overflow-tooltip prop="name" :label="$t('column')"></el-table-column>
@@ -147,12 +147,13 @@
           </div>
         </template>
       </div>
-      <div v-else>
+      <div v-show="searchChar">
         <div v-for="searchTable in pagerSearchTable" class="scroll-table-item" :key="searchTable.guid">
           {{searchTable.table_alias}}
           <el-table
             :empty-text="emptyText"
-            v-if="isShowSearchTable || isGuideMode"
+            :key="searchTable.guid"
+            :ref="searchTable.guid"
             :data="searchTable.columns">
             <el-table-column show-overflow-tooltip prop="name" :label="$t('column')"></el-table-column>
             <el-table-column show-overflow-tooltip prop="table_alias" :label="$t('table')"></el-table-column>
@@ -245,12 +246,12 @@ export default class BatchMeasureModal extends Vue {
     pageOffset: 0,
     pageSize: +localStorage.getItem(this.pageRefTags.batchMeasurePager) || pageCount
   }
-  isShowSearchTable = false
   scrollDom = null
   tableHeaderTops = []
   scrollTableList = []
   targetFixedTable = null
   syncComment = false
+  filterTableGuid = sampleGuid()
 
   get flattenLookupTables () {
     return this.modelDesc.anti_flatten_lookups
@@ -354,9 +355,7 @@ export default class BatchMeasureModal extends Vue {
     }, 300)
   }
   changeSearchVal (val) {
-    this.isShowSearchTable = false
     this.$nextTick(() => {
-      this.isShowSearchTable = true
       this.searchChar = val && val.replace(/^\s+|\s+$/, '') || ''
       this.filterArgs.pageOffset = 0
       if (!this.searchChar) {
@@ -451,10 +450,6 @@ export default class BatchMeasureModal extends Vue {
   pageCurrentChange (size, count) {
     this.filterArgs.pageOffset = size
     this.filterArgs.pageSize = count
-    this.isShowSearchTable = false
-    this.$nextTick(() => {
-      this.isShowSearchTable = true
-    })
   }
   // 总搜索条数
   get searchTotalSize () {

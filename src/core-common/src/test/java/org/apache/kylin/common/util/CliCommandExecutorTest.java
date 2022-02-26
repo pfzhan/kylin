@@ -24,34 +24,23 @@
 package org.apache.kylin.common.util;
 
 import java.io.File;
+import java.lang.reflect.Method;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.junit.rules.TestName;
-import org.junit.runner.RunWith;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PowerMockIgnore;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.io.TempDir;
+import org.mockito.Mockito;
 
 import lombok.val;
 
-@RunWith(PowerMockRunner.class)
-@PrepareForTest(CliCommandExecutor.class)
-@PowerMockIgnore({"javax.management.*"})
 public class CliCommandExecutorTest {
-    @Rule
-    public TemporaryFolder temporaryFolder = new TemporaryFolder();
-    @Rule
-    public TestName testName = new TestName();
 
     @Test
-    public void testCopyRemoteToLocal() throws Exception {
+    public void testCopyRemoteToLocal(@TempDir File root, TestInfo testInfo) throws Exception {
 
-        File mainDir = new File(temporaryFolder.getRoot(), testName.getMethodName());
+        File mainDir = new File(root, testInfo.getTestMethod().map(Method::getName).orElse(""));
         FileUtils.forceMkdir(mainDir);
 
         File tmpDir = new File(mainDir, "from");
@@ -60,11 +49,10 @@ public class CliCommandExecutorTest {
         File targetDir = new File(mainDir, "to");
 
         SSHClient mockSSHClient = MockSSHClient.getInstance();
-        CliCommandExecutor cliSpy = PowerMockito.spy(new CliCommandExecutor("localhost", "root", null));
-        PowerMockito.doReturn(mockSSHClient).when(cliSpy, "getSshClient");
+        CliCommandExecutor cliSpy = Mockito.spy(new CliCommandExecutor("localhost", "root", null));
+        Mockito.doReturn(mockSSHClient).when(cliSpy).getSshClient();
 
         cliSpy.copyRemoteToLocal(tempFile.getAbsolutePath(), targetDir.getAbsolutePath());
-
 
         val fileList = targetDir.listFiles();
         Assert.assertNotNull(fileList);
@@ -74,9 +62,8 @@ public class CliCommandExecutorTest {
     }
 
     @Test
-    public void testCopyLocalToRemote() throws Exception {
-
-        File mainDir = new File(temporaryFolder.getRoot(), testName.getMethodName());
+    public void testCopyLocalToRemote(@TempDir File root, TestInfo testInfo) throws Exception {
+        File mainDir = new File(root, testInfo.getTestMethod().map(Method::getName).orElse(""));
         FileUtils.forceMkdir(mainDir);
 
         File tmpDir = new File(mainDir, "from");
@@ -85,11 +72,10 @@ public class CliCommandExecutorTest {
         File targetDir = new File(mainDir, "to");
 
         SSHClient mockSSHClient = MockSSHClient.getInstance();
-        CliCommandExecutor cliSpy = PowerMockito.spy(new CliCommandExecutor("localhost", "root", null));
-        PowerMockito.doReturn(mockSSHClient).when(cliSpy, "getSshClient");
+        CliCommandExecutor cliSpy = Mockito.spy(new CliCommandExecutor("localhost", "root", null));
+        Mockito.doReturn(mockSSHClient).when(cliSpy).getSshClient();
 
         cliSpy.copyFile(tempFile.getAbsolutePath(), targetDir.getAbsolutePath());
-
 
         val fileList = targetDir.listFiles();
         Assert.assertNotNull(fileList);

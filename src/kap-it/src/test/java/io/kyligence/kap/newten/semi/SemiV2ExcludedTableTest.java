@@ -56,6 +56,7 @@ import io.kyligence.kap.metadata.recommendation.entity.CCRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
 import io.kyligence.kap.rest.service.ModelSemanticHelper;
 import io.kyligence.kap.rest.service.ModelService;
+import io.kyligence.kap.rest.service.ModelSmartService;
 import io.kyligence.kap.rest.service.NUserGroupService;
 import io.kyligence.kap.rest.service.OptRecService;
 import io.kyligence.kap.rest.service.ProjectService;
@@ -79,6 +80,8 @@ public class SemiV2ExcludedTableTest extends SemiAutoTestBase {
     @Mock
     ModelService modelService = Mockito.spy(ModelService.class);
     @Mock
+    ModelSmartService modelSmartService = Mockito.spy(ModelSmartService.class);
+    @Mock
     private final AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
     @Mock
     private final AclUtil aclUtil = Mockito.spy(AclUtil.class);
@@ -96,7 +99,9 @@ public class SemiV2ExcludedTableTest extends SemiAutoTestBase {
         favoriteRuleManager = FavoriteRuleManager.getInstance(getTestConfig(), getProject());
         modelService.setSemanticUpdater(semanticService);
         prepareACL();
-        QueryHistoryTaskScheduler.getInstance(getProject()).init();
+        QueryHistoryTaskScheduler queryHistoryTaskScheduler = QueryHistoryTaskScheduler.getInstance(getProject());
+        ReflectionTestUtils.setField(queryHistoryTaskScheduler, "querySmartSupporter", rawRecService);
+        queryHistoryTaskScheduler.init();
     }
 
     private void prepareACL() {
@@ -104,10 +109,14 @@ public class SemiV2ExcludedTableTest extends SemiAutoTestBase {
         ReflectionTestUtils.setField(optRecService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(modelService, "userGroupService", userGroupService);
+        ReflectionTestUtils.setField(modelSmartService, "modelService", modelService);
+        ReflectionTestUtils.setField(modelSmartService, "optRecService", optRecService);
+        ReflectionTestUtils.setField(modelSmartService, "rawRecService", rawRecService);
+        ReflectionTestUtils.setField(modelSmartService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(projectService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(projectService, "userGroupService", userGroupService);
+        ReflectionTestUtils.setField(projectService, "projectSmartSupporter", rawRecService);
         ReflectionTestUtils.setField(rawRecService, "optRecService", optRecService);
-        ReflectionTestUtils.setField(projectService, "rawRecService", rawRecService);
         TestingAuthenticationToken auth = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
         SecurityContextHolder.getContext().setAuthentication(auth);
     }
@@ -576,7 +585,7 @@ public class SemiV2ExcludedTableTest extends SemiAutoTestBase {
         String[] sqls = { "select lstg_format_name, sum(buyer_id + 1) from test_kylin_fact inner join test_order "
                 + "on test_kylin_fact.order_id = test_order.order_id group by lstg_format_name" };
 
-        AbstractContext context = modelService.suggestModel(getProject(), Arrays.asList(sqls.clone()), true, true);
+        AbstractContext context = modelSmartService.suggestModel(getProject(), Arrays.asList(sqls.clone()), true, true);
 
         // assert origin model
         List<AbstractContext.ModelContext> modelContexts = context.getModelContexts();

@@ -398,6 +398,9 @@ export default class UserEditModal extends Vue {
 <style lang="less">
 @import '../../../assets/styles/variables.less';
 .user-edit-modal {
+  .el-dialog {
+    width: 650px\0 !important;
+  }
   .el-dialog__body{
     overflow-y: overlay !important;
   }

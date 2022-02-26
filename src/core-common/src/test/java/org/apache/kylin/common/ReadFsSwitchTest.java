@@ -42,31 +42,22 @@
 
 package org.apache.kylin.common;
 
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.junit.annotation.MetadataInfo;
+import io.kyligence.kap.junit.annotation.OverwriteProp;
 
-public class ReadFsSwitchTest extends NLocalFileMetadataTestCase {
+@MetadataInfo
+public class ReadFsSwitchTest {
 
-    @Before
-    public void setup() {
-        createTestMetadata();
-    }
-
-    @After
-    public void teardown() {
-        cleanupTestMetadata();
-    }
-
+    @OverwriteProp.OverwriteProps({ //
+            @OverwriteProp(key = "kylin.storage.columnar.file-system-backup-reset-sec", value = "1"), //
+            @OverwriteProp(key = "kylin.storage.columnar.file-system", value = "a://"), //
+            @OverwriteProp(key = "kylin.storage.columnar.file-system-backup", value = "b://")//
+    })
     @Test
     public void test() throws InterruptedException {
-        overwriteSystemProp("kylin.storage.columnar.file-system-backup-reset-sec", "1");
-        overwriteSystemProp("kylin.storage.columnar.file-system", "a://");
-        overwriteSystemProp("kylin.storage.columnar.file-system-backup", "b://");
-
         for (int i = 0; i < 15; i++) {
             if (i == 2)
                 Assert.assertTrue(ReadFsSwitch.turnOnSwitcherIfBackupFsAllowed(ex(),

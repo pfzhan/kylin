@@ -37,7 +37,7 @@ public class NAutoOneByOnePropose {
      * @throws Exception
      */
     public static void main(String[] args) throws Exception {
-        NAutoPerformanceTestBase performanceTestBase = new NAutoPerformanceTestBase();
+        AutoPerformanceTestBase performanceTestBase = new AutoPerformanceTestBase();
         // Prepare spark for CC
         NLocalWithSparkSessionTest.beforeClass();
         performanceTestBase.setup();

@@ -58,21 +58,21 @@ export const validate = {
   'positiveNumber' (rule, value, callback) {
     const regex = /^\d+(\.\d{1,2})?$/
     if (value === '' || value === undefined || value < 0 || isNaN(value) || !regex.test(value)) {
-      callback(new Error(null))
+      callback(new Error(this.$t('emptyTips')))
     } else {
       callback()
     }
   },
   'storageQuotaSize' (rule, value, callback) {
     if (value === '' || value === undefined || value < 1 || isNaN(value)) {
-      callback(new Error(window.kapVm.$t('kylinLang.common.storageQuotaLimit')))
+      callback(new Error(this.$t('emptyTips')))
     } else {
       callback()
     }
   },
   'storageQuotaNum' (rule, value, callback) {
     if (value === '' || value === undefined || value < 0 || isNaN(value)) {
-      callback(new Error(null))
+      callback(new Error(this.$t('emptyTips')))
     } else {
       callback()
     }

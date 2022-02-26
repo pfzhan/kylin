@@ -50,17 +50,14 @@ import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
 
-import io.kyligence.kap.junit.TimeZoneTestRunner;
+import io.kyligence.kap.junit.annotation.MultiTimezoneTest;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 /**
  */
 @Slf4j
-@RunWith(TimeZoneTestRunner.class)
 public class TimeUtilTest {
 
     public enum NormalizedTimeUnit {
@@ -85,7 +82,7 @@ public class TimeUtilTest {
         return b.getTimeInMillis();
     }
 
-    @Test
+    @MultiTimezoneTest(timezones = { "UTC", "GMT+8", "GMT+15" })
     public void basicTest() throws ParseException {
         java.text.DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss",
                 Locale.getDefault(Locale.Category.FORMAT));
@@ -117,7 +114,7 @@ public class TimeUtilTest {
         Assert.assertEquals(24 * 60 * 60 * 1000, TimeUtil.timeStringAs("1d", TimeUnit.MILLISECONDS));
     }
 
-    @Test
+    @MultiTimezoneTest(timezones = { "UTC", "GMT+8", "GMT+15" })
     public void summerTimeChangeTest() throws ParseException {
         log.info(Locale.getDefault(Locale.Category.FORMAT).toString());
         log.info(TimeZone.getDefault().toString());
@@ -130,7 +127,7 @@ public class TimeUtilTest {
         Assert.assertEquals(summerTime, TimeUtil.getDayStart(winterTime));
     }
 
-    @Test
+    @MultiTimezoneTest(timezones = { "UTC", "GMT+8", "GMT+15" })
     public void minusDaysTest() throws ParseException {
         val dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss", Locale.getDefault(Locale.Category.FORMAT));
         dateFormat.setTimeZone(TimeZone.getDefault());

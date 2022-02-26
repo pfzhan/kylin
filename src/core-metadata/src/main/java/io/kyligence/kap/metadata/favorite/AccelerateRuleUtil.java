@@ -24,7 +24,9 @@
 
 package io.kyligence.kap.metadata.favorite;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
 
@@ -35,7 +37,6 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryInfo;
-import io.kyligence.kap.metadata.user.NKylinUserManager;
 import lombok.var;
 
 public class AccelerateRuleUtil {
@@ -76,15 +77,15 @@ public class AccelerateRuleUtil {
         }
     }
 
-    public List<QueryHistory> findMatchedCandidate(String project, List<QueryHistory> queryHistories,
-            List<Pair<Long, QueryHistoryInfo>> batchArgs) {
+    public List<QueryHistory> findMatchedCandidate(String project, List<QueryHistory> queryHistories, Map<String,
+            Set<String>> submitterToGroups, List<Pair<Long, QueryHistoryInfo>> batchArgs) {
         List<QueryHistory> candidate = Lists.newArrayList();
         for (QueryHistory qh : queryHistories) {
             QueryHistoryInfo queryHistoryInfo = qh.getQueryHistoryInfo();
             if (queryHistoryInfo == null) {
                 continue;
             }
-            if (matchCustomerRule(qh, project) && matchInternalRule(qh)) {
+            if (matchCustomerRule(qh, project, submitterToGroups) && matchInternalRule(qh)) {
                 queryHistoryInfo.setState(QueryHistoryInfo.HistoryState.SUCCESS);
                 candidate.add(qh);
             } else {
@@ -102,7 +103,7 @@ public class AccelerateRuleUtil {
         return InternalBlackOutRule.getSingletonInstance().filterCannotAccelerate(queryHistory);
     }
 
-    boolean matchCustomerRule(QueryHistory queryHistory, String project) {
+    boolean matchCustomerRule(QueryHistory queryHistory, String project, Map<String, Set<String>> submitterToGroups) {
         var submitterRule = FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                 .getOrDefaultByName(FavoriteRule.SUBMITTER_RULE_NAME);
         boolean submitterMatch = matchRule(queryHistory, submitterRule,
@@ -114,7 +115,8 @@ public class AccelerateRuleUtil {
 
         boolean userGroupMatch = matchRule(queryHistory, groupRule,
                 (queryHistory1, conditions) -> conditions.stream()
-                        .anyMatch(cond -> getUserGroups(queryHistory1.getQuerySubmitter())
+                        .anyMatch(cond -> submitterToGroups.computeIfAbsent(queryHistory1.getQuerySubmitter(),
+                                        key -> new HashSet<>())
                                 .contains(((FavoriteRule.Condition) cond).getRightThreshold())));
 
         var durationRule = FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
@@ -135,10 +137,6 @@ public class AccelerateRuleUtil {
             return false;
 
         return function.apply(history, favoriteRule.getConds());
-    }
-
-    private Set<String> getUserGroups(String userName) {
-        return NKylinUserManager.getInstance(KylinConfig.getInstanceFromEnv()).getUserGroups(userName);
     }
 
 }

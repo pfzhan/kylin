@@ -69,7 +69,7 @@ public class TableIndexTest extends NLocalWithSparkSessionTest {
     @Test
     public void testUseTableIndexAnswerNonRawQuery() throws Exception {
         overwriteSystemProp("kylin.query.use-tableindex-answer-non-raw-query", "true");
-        fullBuildCube("acfde546-2cc9-4eec-bc92-e3bd46d4e2ee", getProject());
+        fullBuild("acfde546-2cc9-4eec-bc92-e3bd46d4e2ee");
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
         List<Pair<String, String>> query = new ArrayList<>();
 
@@ -120,7 +120,7 @@ public class TableIndexTest extends NLocalWithSparkSessionTest {
     public void testUseTableIndexAnswerCountDistinctWithConvertRuleOn() throws Exception {
         overwriteSystemProp("kylin.query.use-tableindex-answer-non-raw-query", "true");
         overwriteSystemProp("kylin.query.convert-count-distinct-expression-enabled", "true");
-        fullBuildCube("acfde546-2cc9-4eec-bc92-e3bd46d4e2ee", getProject());
+        fullBuild("acfde546-2cc9-4eec-bc92-e3bd46d4e2ee");
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
         List<Pair<String, String>> query = new ArrayList<>();
         query.add(Pair.newPair("query_count_distinct", "select\n"
@@ -142,8 +142,8 @@ public class TableIndexTest extends NLocalWithSparkSessionTest {
         overwriteSystemProp("kylin.query.use-tableindex-answer-non-raw-query", "true");
         overwriteSystemProp("kylin.query.convert-count-distinct-expression-enabled", "true");
         overwriteSystemProp("kylin.query.convert-sum-expression-enabled", "true");
-        fullBuildCube("975ae5ed-e670-3613-5e80-f9def911c632", getProject());
-        fullBuildCube("acfde546-2cc9-4eec-bc92-e3bd46d4e2bf", getProject());
+        fullBuild("975ae5ed-e670-3613-5e80-f9def911c632");
+        fullBuild("acfde546-2cc9-4eec-bc92-e3bd46d4e2bf");
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
         List<Pair<String, String>> query = new ArrayList<>();
         query.add(Pair.newPair("query_count_distinct", "SELECT Count(DISTINCT CASE\n"

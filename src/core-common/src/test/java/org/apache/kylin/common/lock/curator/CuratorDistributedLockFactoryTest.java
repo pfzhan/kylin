@@ -42,6 +42,7 @@
 
 package org.apache.kylin.common.lock.curator;
 
+import static io.kyligence.kap.common.util.TestUtils.getTestConfig;
 import static org.awaitility.Awaitility.await;
 
 import java.util.List;
@@ -55,34 +56,34 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.curator.test.TestingServer;
 import org.apache.kylin.common.util.RandomUtil;
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junitpioneer.jupiter.RetryingTest;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.junit.annotation.MetadataInfo;
 import io.kyligence.kap.shaded.curator.org.apache.curator.framework.CuratorFramework;
 import io.kyligence.kap.shaded.curator.org.apache.curator.framework.state.ConnectionState;
 import io.kyligence.kap.shaded.curator.org.apache.curator.framework.state.ConnectionStateListener;
 
-public class CuratorDistributedLockFactoryTest extends NLocalFileMetadataTestCase {
+@MetadataInfo(onlyProps = true)
+public class CuratorDistributedLockFactoryTest {
 
     private TestingServer zkTestServer;
     private volatile boolean locked = false;
     private volatile boolean isInterrupted = false;
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
-        createTestMetadata();
         zkTestServer = new TestingServer(true);
     }
 
-    @After
+    @AfterEach
     public void after() throws Exception {
-        cleanupTestMetadata();
         zkTestServer.close();
     }
 
@@ -90,7 +91,7 @@ public class CuratorDistributedLockFactoryTest extends NLocalFileMetadataTestCas
     public void testBasic() throws Exception {
         String path = "/test/distributed_lock_factory_test/test_basic/" + RandomUtil.randomUUIDStr();
 
-        overwriteSystemProp("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());
+        getTestConfig().setProperty("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());
         CuratorDistributedLock lock = getTestConfig().getDistributedLockFactory().lockForCurrentThread(path);
 
         Assert.assertFalse(lock.isAcquiredInThisThread());
@@ -100,16 +101,16 @@ public class CuratorDistributedLockFactoryTest extends NLocalFileMetadataTestCas
         Assert.assertFalse(lock.isAcquiredInThisThread());
     }
 
-    @Test
+    @RetryingTest(3)
     public void testInterruptWhenLost() throws Exception {
         String path = "/test/distributed_lock_factory_test/test_interrupt_lost/" + RandomUtil.randomUUIDStr();
         TestingServer zkTestServer2 = new TestingServer(true);
 
         ExecutorService executorService = Executors.newFixedThreadPool(1);
 
-        overwriteSystemProp("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());
-        overwriteSystemProp("kap.env.zookeeper-max-retries", "1");
-        overwriteSystemProp("kap.env.zookeeper-base-sleep-time", "1000");
+        getTestConfig().setProperty("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());
+        getTestConfig().setProperty("kap.env.zookeeper-max-retries", "1");
+        getTestConfig().setProperty("kap.env.zookeeper-base-sleep-time", "1000");
 
         executorService.submit(() -> {
             CuratorDistributedLock lock = getTestConfig().getDistributedLockFactory().lockForCurrentThread(path);
@@ -136,7 +137,7 @@ public class CuratorDistributedLockFactoryTest extends NLocalFileMetadataTestCas
 
         Assert.assertFalse(locked);
 
-        overwriteSystemProp("kylin.env.zookeeper-connect-string", zkTestServer2.getConnectString());
+        getTestConfig().setProperty("kylin.env.zookeeper-connect-string", zkTestServer2.getConnectString());
         executorService.submit(() -> {
             CuratorDistributedLock lock = getTestConfig().getDistributedLockFactory().lockForCurrentThread(path);
             lock.lock();
@@ -157,9 +158,9 @@ public class CuratorDistributedLockFactoryTest extends NLocalFileMetadataTestCas
         ExecutorService executorService = Executors.newFixedThreadPool(1);
         CuratorDistributedLockFactory lockFactory;
         CuratorDistributedLock lock1;
-        overwriteSystemProp("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());
-        overwriteSystemProp("kap.env.zookeeper-max-retries", "1");
-        overwriteSystemProp("kap.env.zookeeper-base-sleep-time", "1000");
+        getTestConfig().setProperty("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());
+        getTestConfig().setProperty("kap.env.zookeeper-max-retries", "1");
+        getTestConfig().setProperty("kap.env.zookeeper-base-sleep-time", "1000");
         lockFactory = getTestConfig().getDistributedLockFactory();
         lock1 = lockFactory.lockForCurrentThread(path);
         executorService.submit(() -> {
@@ -190,7 +191,7 @@ public class CuratorDistributedLockFactoryTest extends NLocalFileMetadataTestCas
 
     @Test
     public void testConcurrence() throws ExecutionException, InterruptedException {
-        overwriteSystemProp("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());
+        getTestConfig().setProperty("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());
         String path = "/test/distributed_lock_factory_test/test_concurrence/" + RandomUtil.randomUUIDStr();
         int threadNum = 10;
         int times = 10;

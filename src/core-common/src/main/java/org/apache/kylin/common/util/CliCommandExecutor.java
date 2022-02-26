@@ -49,6 +49,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
+import io.kyligence.kap.guava20.shaded.common.annotations.VisibleForTesting;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.LoggerFactory;
 
@@ -142,7 +143,8 @@ public class CliCommandExecutor {
         }
     }
 
-    private SSHClient getSshClient() {
+    @VisibleForTesting
+    public SSHClient getSshClient() {
         return new SSHClient(remoteHost, port, remoteUser, remotePwd, localIdentityPath);
     }
 

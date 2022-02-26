@@ -39,6 +39,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -502,6 +504,8 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
         final String command = cmdBuilder.toString();
         logger.info("spark submit cmd: {}", command);
 
+        // Safe check.
+        checkCommandInjection(command);
         return command;
     }
 
@@ -941,5 +945,25 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
                 .collect(Collectors.toCollection(LinkedHashSet::new));
 
         return Collections.unmodifiableSet(sparkFiles);
+    }
+
+    private void checkCommandInjection(String command) {
+        if (Objects.isNull(command)) {
+            return;
+        }
+        List<String> illegals = Lists.newArrayList();
+        Matcher matcher = Pattern.compile("(`.*?`)|(\\$\\(.*?\\))").matcher(command);
+        while (matcher.find()) {
+            illegals.add(matcher.group());
+        }
+
+        if (illegals.isEmpty()) {
+            return;
+        }
+
+        String msg = String.format("Not allowed to specify injected command through "
+                + "java options (like: %s). Vulnerabilities would allow attackers to trigger "
+                + "such a crash or crippling of the service.", String.join(", ", illegals));
+        throw new IllegalArgumentException(msg);
     }
 }

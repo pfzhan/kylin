@@ -95,6 +95,7 @@ import io.kyligence.kap.rest.response.OpenValidationResponse;
 import io.kyligence.kap.rest.response.SegmentPartitionResponse;
 import io.kyligence.kap.rest.response.SuggestionResponse;
 import io.kyligence.kap.rest.service.FusionIndexService;
+import io.kyligence.kap.rest.service.ModelSmartService;
 import io.kyligence.kap.rest.service.FusionModelService;
 import io.kyligence.kap.rest.service.IndexPlanService;
 import io.kyligence.kap.rest.service.ModelService;
@@ -121,6 +122,9 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Mock
     private ModelService modelService;
+
+    @Mock
+    private ModelSmartService modelSmartService;
 
     @Mock
     private FusionModelService fusionModelService;
@@ -522,7 +526,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         FavoriteRequest favoriteRequest = new FavoriteRequest("default", sqls);
         AbstractContext proposeContext = new ModelSelectContextOfSemiV2(getTestConfig(), favoriteRequest.getProject(),
                 sqls.toArray(new String[0]));
-        Mockito.doReturn(proposeContext).when(modelService).probeRecommendation(favoriteRequest.getProject(),
+        Mockito.doReturn(proposeContext).when(modelSmartService).probeRecommendation(favoriteRequest.getProject(),
                 favoriteRequest.getSqls());
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/validation").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(favoriteRequest))
@@ -613,8 +617,8 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         AbstractContext context = new ModelCreateContextOfSemiV2(getTestConfig(), favoriteRequest.getProject(),
                 sqls.toArray(new String[0]));
         val result = new SuggestionResponse(Lists.newArrayList(), Lists.newArrayList());
-        Mockito.doReturn(context).when(modelService).suggestModel(favoriteRequest.getProject(), sqls, false, false);
-        Mockito.doReturn(result).when(modelService).buildModelSuggestionResponse(context);
+        Mockito.doReturn(context).when(modelSmartService).suggestModel(favoriteRequest.getProject(), sqls, false, false);
+        Mockito.doReturn(result).when(modelSmartService).buildModelSuggestionResponse(context);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/model_suggestion")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(favoriteRequest))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
@@ -632,8 +636,8 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         AbstractContext context = new ModelReuseContextOfSemiV2(getTestConfig(), favoriteRequest.getProject(),
                 sqls.toArray(new String[0]));
         val result = new SuggestionResponse(Lists.newArrayList(), Lists.newArrayList());
-        Mockito.doReturn(context).when(modelService).suggestModel(favoriteRequest.getProject(), sqls, true, false);
-        Mockito.doReturn(result).when(modelService).buildModelSuggestionResponse(context);
+        Mockito.doReturn(context).when(modelSmartService).suggestModel(favoriteRequest.getProject(), sqls, true, false);
+        Mockito.doReturn(result).when(modelSmartService).buildModelSuggestionResponse(context);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/model_optimization")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(favoriteRequest))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
@@ -651,8 +655,8 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         AbstractContext context = new ModelReuseContextOfSemiV2(getTestConfig(), favoriteRequest.getProject(),
                 sqls.toArray(new String[0]));
         val result = new SuggestionResponse(Lists.newArrayList(), Lists.newArrayList());
-        Mockito.doReturn(context).when(modelService).suggestModel(favoriteRequest.getProject(), sqls, true, false);
-        Mockito.doReturn(result).when(modelService).buildModelSuggestionResponse(context);
+        Mockito.doReturn(context).when(modelSmartService).suggestModel(favoriteRequest.getProject(), sqls, true, false);
+        Mockito.doReturn(result).when(modelSmartService).buildModelSuggestionResponse(context);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/accelerate_sqls")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(favoriteRequest))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))

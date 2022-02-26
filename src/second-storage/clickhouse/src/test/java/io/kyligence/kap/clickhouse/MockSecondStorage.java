@@ -27,7 +27,7 @@ package io.kyligence.kap.clickhouse;
 import io.kyligence.kap.clickhouse.management.ClickHouseConfigLoader;
 import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.secondstorage.SecondStorage;
-import io.kyligence.kap.secondstorage.config.Cluster;
+import io.kyligence.kap.secondstorage.config.ClusterInfo;
 import org.apache.kylin.common.util.JsonUtil;
 
 import java.io.File;
@@ -42,10 +42,10 @@ import static io.kyligence.kap.secondstorage.SecondStorageConstants.CONFIG_SECON
 public class MockSecondStorage {
     public static void mock() throws IOException {
         Unsafe.setProperty("kylin.second-storage.class", ClickHouseStorage.class.getCanonicalName());
-        Cluster cluster = new Cluster();
+        ClusterInfo cluster = new ClusterInfo();
         cluster.setKeepAliveTimeout("600000");
         cluster.setSocketTimeout("600000");
-        cluster.setNodes(Collections.emptyList());
+        cluster.setCluster(Collections.emptyMap());
         File file = File.createTempFile("clickhouse", ".yaml");
         ClickHouseConfigLoader.getConfigYaml().dump(JsonUtil.readValue(JsonUtil.writeValueAsString(cluster),
                 Map.class), new PrintWriter(file, Charset.defaultCharset().name()));

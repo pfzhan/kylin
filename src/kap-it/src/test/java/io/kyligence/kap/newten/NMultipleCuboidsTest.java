@@ -62,7 +62,7 @@ public class NMultipleCuboidsTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testBuild() throws Exception {
-        fullBuildCube("b58bfe46-78e7-4c67-9850-5abd6abd6cf4", getProject());
+        fullBuild("b58bfe46-78e7-4c67-9850-5abd6abd6cf4");
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
         List<Pair<String, String>> query = new ArrayList<>();
         query.add(Pair.newPair("can_answer", "select count(*) from TEST_KYLIN_FACT"));

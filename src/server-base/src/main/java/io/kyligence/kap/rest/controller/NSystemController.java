@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.controller;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
+import java.io.IOException;
 import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
@@ -240,7 +241,7 @@ public class NSystemController extends NBasicController {
     @ApiOperation(value = "reload metadata", tags = { "MID" })
     @PostMapping(value = "/metadata/reload")
     @ResponseBody
-    public EnvelopeResponse<String> reloadMetadata() {
+    public EnvelopeResponse<String> reloadMetadata() throws IOException {
         systemService.reloadMetadata();
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }

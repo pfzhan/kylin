@@ -1,5 +1,5 @@
 <template>
-  <el-dialog class="group-edit-modal" :width="modalWidth"
+  <el-dialog :class="['group-edit-modal', {'assign-group': editType === 'assign'}]" :width="modalWidth"
     :title="$t(modalTitle)"
     :visible="isShow"
     limited-area
@@ -9,7 +9,7 @@
     <el-form :model="form" @submit.native.prevent :rules="rules" ref="form" v-if="isFormShow">
       <!-- 表单：组名 -->
       <el-form-item :label="$t('kylinLang.common.groupName')" prop="group_name" v-if="isFieldShow('group_name')">
-        <el-input auto-complete="off" :placeholder="$t('userGroupPld')" @input="value => inputHandler('group_name', value)" :value="form.group_name" @keyup.enter.native="submit"></el-input>
+        <el-input auto-complete="off" :placeholder="$t('groupnamePld')" @input="value => inputHandler('group_name', value)" :value="form.group_name" @keyup.enter.native="submit"></el-input>
       </el-form-item>
       <!-- 表单：分配用户 -->
       <el-form-item v-if="isFieldShow('users')">
@@ -282,6 +282,11 @@ export default class GroupEditModal extends Vue {
 <style lang="less">
 @import '../../../assets/styles/variables.less';
 .group-edit-modal {
+  &.assign-group {
+    .el-dialog {
+      width: 650px\0 !important;
+    }
+  }
   .el-form-item__content {
     line-height: 1;
   }

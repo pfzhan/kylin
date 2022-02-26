@@ -104,7 +104,11 @@ public class KapPasswordResetCLI {
         logger.trace("update user : {}", user.getUsername());
         logger.info("User {}'s password is set to default password.", user.getUsername());
 
-        MetadataTool.backup(config);
+        try {
+            MetadataTool.backup(config);
+        } catch (Exception e) {
+            logger.error("metadata backup failed", e);
+        }
 
         if (randomPasswordEnabled) {
             String blackColorUsernameForPrint = StorageCleaner.ANSI_RESET + AdminUserInitCLI.ADMIN_USER_NAME

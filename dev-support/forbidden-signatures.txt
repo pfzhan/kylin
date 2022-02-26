@@ -72,7 +72,7 @@ java.lang.Runtime#exit(int)
 @defaultMessage For an enum, use == rather than equals
 java.lang.Enum#equals(java.lang.Object)
 
-@defaultMessage Please do not try to use System.setProperty in test, instead: 1) overwriting property/properties in KylinConfig; 2) extending class org.apache.kylin.common.util.AbstractTestCase and using Unsafe.overwriteSystemProperties. Moreover, be cautious when setting system properties in production file with io.kyligence.kap.common.util.Unsafe.setProperty().
+@defaultMessage Please do not try to use System.setProperty in test, instead: 1) overwriting property/properties in KylinConfig; 2) extending class org.apache.kylin.common.AbstractTestCase and using Unsafe.overwriteSystemProperties. Moreover, be cautious when setting system properties in production file with io.kyligence.kap.common.util.Unsafe.setProperty().
 java.lang.System#setProperty(java.lang.String,java.lang.String)
 
 @defaultMessage Please do not try to use System.clearProperty instead Unsafe.clearProperty. Be cautious when clearing system properties in production file with io.kyligence.kap.common.util.Unsafe.clearProperty().

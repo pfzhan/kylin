@@ -70,7 +70,7 @@ public class NMatchingTest extends NLocalWithSparkSessionTest {
     public void testCanNotAnswer() throws Exception {
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
         dfMgr.updateDataflowStatus("073198da-ce0e-4a0c-af38-cc27ae31cc0e", RealizationStatusEnum.OFFLINE);
-        fullBuildCube("83ade475-5b80-483a-ae4b-1144e4f04e81", getProject());
+        fullBuild("83ade475-5b80-483a-ae4b-1144e4f04e81");
 
         try {
             KylinConfig config = KylinConfig.getInstanceFromEnv();
@@ -91,8 +91,8 @@ public class NMatchingTest extends NLocalWithSparkSessionTest {
     public void testCanAnswer() throws Exception {
         ss.sparkContext().setLogLevel("ERROR");
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        fullBuildCube("83ade475-5b80-483a-ae4b-1144e4f04e81", getProject());
-        fullBuildCube("073198da-ce0e-4a0c-af38-cc27ae31cc0e", getProject());
+        fullBuild("83ade475-5b80-483a-ae4b-1144e4f04e81");
+        fullBuild("073198da-ce0e-4a0c-af38-cc27ae31cc0e");
 
         populateSSWithCSVData(config, getProject(), SparderEnv.getSparkSession());
 

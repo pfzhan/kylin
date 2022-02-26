@@ -364,6 +364,7 @@ public class JobManagerTest extends NLocalFileMetadataTestCase {
             jobManager.addJob(param);
         } finally {
             defaultScheduler.forceShutdown();
+            defaultScheduler.getContext().setReachQuotaLimit(false);
         }
     }
 

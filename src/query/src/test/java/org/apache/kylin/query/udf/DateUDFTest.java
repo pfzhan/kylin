@@ -42,28 +42,25 @@
 
 package org.apache.kylin.query.udf;
 
-import io.kyligence.kap.junit.TimeZoneTestRunner;
-import org.apache.kylin.common.HotLoadKylinPropertiesTestCase;
-import org.apache.kylin.query.udf.dateUdf.DatePartUDF;
-import org.apache.kylin.query.udf.dateUdf.DateDiffUDF;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import static org.junit.Assert.assertEquals;
 
 import java.sql.Date;
 import java.sql.Timestamp;
 
-import static org.junit.Assert.assertEquals;
+import org.apache.kylin.query.udf.dateUdf.DateDiffUDF;
+import org.apache.kylin.query.udf.dateUdf.DatePartUDF;
 
-@RunWith(TimeZoneTestRunner.class)
-public class DateUDFTest extends HotLoadKylinPropertiesTestCase {
+import io.kyligence.kap.junit.annotation.MultiTimezoneTest;
 
-    @Test
+public class DateUDFTest {
+
+    @MultiTimezoneTest(timezones = { "GMT+8", "GMT+12", "GMT+0" })
     public void testDateDiffUDF() throws Exception {
         DateDiffUDF dateDiffUDF = new DateDiffUDF();
         assertEquals(-35, (long) dateDiffUDF.DATEDIFF(Date.valueOf("2019-06-28"), Date.valueOf("2019-08-02")));
     }
 
-    @Test
+    @MultiTimezoneTest(timezones = { "GMT+8", "GMT+12", "GMT+0" })
     public void testDatePartUDF() throws Exception {
         DatePartUDF datePartUDF = new DatePartUDF();
         assertEquals(2019, (long) datePartUDF.DATE_PART("year", Timestamp.valueOf("2019-05-09 11:49:45")));

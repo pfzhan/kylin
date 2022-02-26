@@ -27,6 +27,7 @@ package io.kyligence.kap.newten.semi;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.kylin.common.util.JsonUtil;
@@ -83,6 +84,7 @@ public class ExcludedTableTest extends SemiAutoTestBase {
     private RDBMSQueryHistoryDAO queryHistoryDAO;
     private FavoriteRuleManager favoriteRuleManager;
 
+    @Mock
     OptRecService optRecService = Mockito.spy(new OptRecService());
     @Mock
     ModelService modelService = Mockito.spy(ModelService.class);
@@ -113,7 +115,9 @@ public class ExcludedTableTest extends SemiAutoTestBase {
         modelService.setSemanticUpdater(semanticService);
         queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance();
         prepareACL();
-        QueryHistoryTaskScheduler.getInstance(getProject()).init();
+        QueryHistoryTaskScheduler queryHistoryTaskScheduler = QueryHistoryTaskScheduler.getInstance(getProject());
+        ReflectionTestUtils.setField(queryHistoryTaskScheduler, "querySmartSupporter", rawRecService);
+        queryHistoryTaskScheduler.init();
     }
 
     private void prepareACL() {
@@ -122,11 +126,12 @@ public class ExcludedTableTest extends SemiAutoTestBase {
         ReflectionTestUtils.setField(optRecService, "modelService", modelService);
         ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(modelService, "userGroupService", userGroupService);
-        ReflectionTestUtils.setField(modelService, "optRecService", optRecService);
+        ReflectionTestUtils.setField(modelService, "modelChangeSupporters", Arrays.asList(rawRecService));
         ReflectionTestUtils.setField(projectService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(projectService, "userGroupService", userGroupService);
         ReflectionTestUtils.setField(rawRecService, "optRecService", optRecService);
-        ReflectionTestUtils.setField(projectService, "rawRecService", rawRecService);
+        ReflectionTestUtils.setField(projectService, "projectModelSupporter", modelService);
+        ReflectionTestUtils.setField(projectService, "projectSmartSupporter", rawRecService);
         TestingAuthenticationToken auth = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
         SecurityContextHolder.getContext().setAuthentication(auth);
     }
@@ -187,7 +192,7 @@ public class ExcludedTableTest extends SemiAutoTestBase {
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
 
         // build indexes
-        buildAllCubes(getTestConfig(), getProject());
+        buildAllModels(getTestConfig(), getProject());
 
         // query and assert
         List<Pair<String, String>> queryList = Lists.newArrayList();
@@ -245,7 +250,7 @@ public class ExcludedTableTest extends SemiAutoTestBase {
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
 
         // build indexes
-        buildAllCubes(getTestConfig(), getProject());
+        buildAllModels(getTestConfig(), getProject());
 
         // query and assert
         List<Pair<String, String>> queryList = Lists.newArrayList();
@@ -302,7 +307,7 @@ public class ExcludedTableTest extends SemiAutoTestBase {
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
 
         // build indexes
-        buildAllCubes(getTestConfig(), getProject());
+        buildAllModels(getTestConfig(), getProject());
 
         // query and assert
         List<Pair<String, String>> queryList = Lists.newArrayList();
@@ -362,7 +367,7 @@ public class ExcludedTableTest extends SemiAutoTestBase {
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
 
         // build indexes
-        buildAllCubes(getTestConfig(), getProject());
+        buildAllModels(getTestConfig(), getProject());
 
         // query and assert
         List<Pair<String, String>> queryList = Lists.newArrayList();

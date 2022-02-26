@@ -74,6 +74,8 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
 
     public static final String DEFAULT_PROJECT = "default";
     public static final String MODEL_ID = "741ca86a-1f13-46da-a59f-95fb68615e3a";
+
+    NDefaultScheduler scheduler;
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
@@ -86,7 +88,7 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
     }
 
     void startScheduler() {
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(DEFAULT_PROJECT);
+        scheduler = NDefaultScheduler.getInstance(DEFAULT_PROJECT);
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
         if (!scheduler.hasStarted()) {
             throw new RuntimeException("scheduler has not been started");
@@ -355,6 +357,10 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
         val seg1 = dfm.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(
                 SegmentRange.dateToLong("2012-09-01"), SegmentRange.dateToLong("" + "2012-10-01")));
         try {
+            scheduler.getContext().setReachQuotaLimit(false);
+            log.info("init scheduler, current quota limit state is {}", scheduler.getContext().isReachQuotaLimit());
+            log.info("start schedule, current kylin.storage.quota-in-giga-bytes is {}",
+                    KylinConfig.getInstanceFromEnv().getStorageQuotaSize());
             jobManager.mergeSegmentJob(new JobParam(seg1, MODEL_ID, "ADMIN"));
             Assert.fail();
         } catch (KylinException e) {
@@ -364,6 +370,10 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testMergeJob_timeEception() {
+        scheduler.getContext().setReachQuotaLimit(false);
+        log.info("init scheduler, current quota limit state is {}", scheduler.getContext().isReachQuotaLimit());
+        log.info("start schedule, current kylin.storage.quota-in-giga-bytes is {}",
+                KylinConfig.getInstanceFromEnv().getStorageQuotaSize());
         val jobManager = JobManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         val dfm = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         var df = dfm.getDataflow(MODEL_ID);

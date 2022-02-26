@@ -24,19 +24,21 @@
 
 package io.kyligence.kap.clickhouse.job;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.execution.ExecutableState;
 
 import javax.annotation.concurrent.ThreadSafe;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 @ThreadSafe
@@ -44,29 +46,29 @@ public class LoadContext {
     public static final String CLICKHOUSE_LOAD_CONTEXT = "P_CLICKHOUSE_LOAD_CONTEXT";
 
     private final List<String> completedSegments;
-    private final List<String> completedFiles;
-    private final List<String> history;
+    private final ConcurrentMap<String, List<String>> completedFiles;
+    private final ConcurrentMap<String, List<String>> history;
     private final List<String> historySegments;
     private final ClickHouseLoad job;
 
     public LoadContext(ClickHouseLoad job) {
-        completedFiles = new CopyOnWriteArrayList<>();
+        completedFiles = new ConcurrentHashMap<>();
         completedSegments = new CopyOnWriteArrayList<>();
-        history = new ArrayList<>();
+        history = new ConcurrentHashMap<>();
         historySegments = new ArrayList<>();
         this.job = job;
     }
 
-    public void finishSingleFile(String file) {
-        completedFiles.add(file);
+    public void finishSingleFile(String replicaName, String file) {
+        completedFiles.computeIfAbsent(replicaName, key -> new CopyOnWriteArrayList<>()).add(file);
     }
 
     public void finishSegment(String segment) {
         completedSegments.add(segment);
     }
 
-    public List<String> getHistory() {
-        return Collections.unmodifiableList(this.history);
+    public List<String> getHistory(String replicaName) {
+        return Collections.unmodifiableList(this.history.getOrDefault(replicaName, Collections.emptyList()));
     }
 
     public List<String> getHistorySegments() {
@@ -75,28 +77,25 @@ public class LoadContext {
 
     @SneakyThrows
     public String serializeToString() {
-        Map<String, List<String>> state = new HashMap<>();
-        state.put("completedSegments", completedSegments);
-        state.put("completedFiles", completedFiles);
-        return JsonUtil.writeValueAsString(state);
+        return JsonUtil.writeValueAsString(new ContextDump(completedSegments, completedFiles));
     }
 
+    @SneakyThrows
     public static String emptyState() {
-        return "{\"completedSegments\":[],\"completedFiles\":[]}";
+        return JsonUtil.writeValueAsString(ContextDump.getEmptyInstance());
     }
 
     @SneakyThrows
     public void deserializeToString(String state) {
-        Map<String, List<String>> historyState = JsonUtil.readValue(state, new TypeReference<Map<String, List<String>>>() {
-        });
+        ContextDump historyState = JsonUtil.readValue(state, ContextDump.class);
         completedFiles.clear();
         history.clear();
         completedSegments.clear();
         historySegments.clear();
 
-        history.addAll(historyState.getOrDefault("completedFiles", Collections.emptyList()));
-        historySegments.addAll(historyState.getOrDefault("completedSegments", Collections.emptyList()));
-        completedFiles.addAll(history);
+        history.putAll(historyState.getCompletedFiles() == null ? Collections.emptyMap() : historyState.getCompletedFiles());
+        historySegments.addAll(historyState.getCompletedSegments() == null ? Collections.emptyList() : historyState.getCompletedSegments());
+        completedFiles.putAll(history);
         completedSegments.addAll(historySegments);
     }
 
@@ -109,6 +108,18 @@ public class LoadContext {
     }
 
     public boolean isNewJob() {
-        return CollectionUtils.isEmpty(history);
+        return history.isEmpty();
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    static class ContextDump {
+        private List<String> completedSegments;
+        private Map<String, List<String>> completedFiles; // kes: replicaName / value: hdfs files
+
+        static ContextDump getEmptyInstance() {
+            return new ContextDump(Collections.emptyList(), Collections.emptyMap());
+        }
     }
 }

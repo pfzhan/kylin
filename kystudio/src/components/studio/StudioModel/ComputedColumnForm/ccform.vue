@@ -4,7 +4,7 @@
   <el-form :model="ccObject" :class="{'editCC': !isEdit, 'cc-block': !isPureForm, 'is-datatype-error': errorMsg}" label-position="top" :rules="ccRules" ref="ccForm">
     <el-form-item prop="columnName" class="ksd-mb-10 ksd-mt-10">
       <span slot="label">{{$t('columnName')}}: <el-tooltip :content="ccObject.columnName" effect="dark" placement="top"><span v-show="!isEdit" class="column-name">{{ccObject.columnName}}</span></el-tooltip></span>
-      <el-input class="measures-width" size="medium" v-model="ccObject.columnName" :disabled="isEdited" v-if="isEdit" :placeholder="$t('kylinLang.common.nameFormatValidTip')" @blur="upperCaseCCName"></el-input>
+      <el-input class="measures-width" size="medium" @keydown.enter.native.prevent v-model="ccObject.columnName" :disabled="isEdited" v-if="isEdit" :placeholder="$t('kylinLang.common.nameFormatValidTip')" @blur="upperCaseCCName"></el-input>
     </el-form-item>
     <el-form-item prop="datatype" class="ksd-mb-10" v-if="!isEdit">
       <span slot="label">{{$t('returnType')}}<span>: {{ccObject.datatype}}</span></span>
@@ -353,7 +353,7 @@ export default class CCForm extends Vue {
       border: 1px solid @line-border-color;
       padding: 15px;
       background-color: @table-stripe-color;
-      margin-top: 10px;
+      margin-top: 8px;
     }
     .is-datatype-error {
       border-color: @ke-color-danger;
@@ -372,6 +372,7 @@ export default class CCForm extends Vue {
       padding: 15px 10px;
       box-sizing: border-box;
       margin-bottom: 10px;
+      color: @color-text-secondary;
       p {
         line-height: 20px;
       }

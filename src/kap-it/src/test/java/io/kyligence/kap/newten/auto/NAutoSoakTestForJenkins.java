@@ -28,7 +28,7 @@ import java.util.Map;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.newten.auto.NAutoPerformanceTestBase.ProposeStats;
+import io.kyligence.kap.newten.auto.AutoPerformanceTestBase.ProposeStats;
 
 public class NAutoSoakTestForJenkins {
 
@@ -44,7 +44,7 @@ public class NAutoSoakTestForJenkins {
         int round = Integer.parseInt(args[0]);
         int factor = Integer.parseInt(args[1]);
 
-        NAutoPerformanceTestBase performanceTestBase = new NAutoPerformanceTestBase();
+        AutoPerformanceTestBase performanceTestBase = new AutoPerformanceTestBase();
         // Prepare spark for CC
         NLocalWithSparkSessionTest.beforeClass();
         performanceTestBase.setup();

@@ -24,9 +24,11 @@
 package io.kyligence.kap.newten;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
@@ -77,6 +79,7 @@ import io.kyligence.kap.newten.semi.SemiAutoTestBase;
 import io.kyligence.kap.rest.request.IndexesToSegmentsRequest;
 import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.service.IndexPlanService;
+import io.kyligence.kap.rest.service.ModelBuildService;
 import io.kyligence.kap.rest.service.ModelSemanticHelper;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.NUserGroupService;
@@ -95,9 +98,12 @@ public class PartialBuildJobTest extends SemiAutoTestBase {
     private ProjectService projectService;
     private NIndexPlanManager indexPlanManager;
 
+    @Mock
     OptRecService optRecService = Mockito.spy(new OptRecService());
     @InjectMocks
     private final ModelService modelService = Mockito.spy(new ModelService());
+    @InjectMocks
+    private final ModelBuildService modelBuildService = Mockito.spy(new ModelBuildService());
     @Autowired
     private final IndexPlanService indexPlanService = Mockito.spy(new IndexPlanService());
     @Mock
@@ -125,13 +131,20 @@ public class PartialBuildJobTest extends SemiAutoTestBase {
         ReflectionTestUtils.setField(semanticService, "userGroupService", userGroupService);
         ReflectionTestUtils.setField(modelService, "projectService", projectService);
 
+        ReflectionTestUtils.setField(modelService, "modelBuildService", modelBuildService);
+
+        ReflectionTestUtils.setField(modelBuildService, "modelService", modelService);
+        ReflectionTestUtils.setField(modelBuildService, "aclEvaluate", aclEvaluate);
+
         rawRecService = new RawRecService();
         projectService = new ProjectService();
         indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
         modelService.setSemanticUpdater(semanticService);
         modelService.setIndexPlanService(indexPlanService);
         prepareACL();
-        QueryHistoryTaskScheduler.getInstance(getProject()).init();
+        QueryHistoryTaskScheduler queryHistoryTaskScheduler = QueryHistoryTaskScheduler.getInstance(getProject());
+        ReflectionTestUtils.setField(queryHistoryTaskScheduler, "querySmartSupporter", rawRecService);
+        queryHistoryTaskScheduler.init();
         getTestConfig().setMetadataUrl("test" + 777777
                 + "@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
     }
@@ -408,7 +421,7 @@ public class PartialBuildJobTest extends SemiAutoTestBase {
             if (modelDesc.isMultiPartitionModel()) {
                 multiValues.add(new String[] { "123" });
             }
-            jobInfo = modelService.buildSegmentsManually(getProject(), modelId, "" + range.getStart(),
+            jobInfo = modelBuildService.buildSegmentsManually(getProject(), modelId, "" + range.getStart(),
                     "" + range.getEnd(), true, null, multiValues, 3, false, layoutIds, true, null, null);
         } catch (Exception e) {
             e.printStackTrace();
@@ -418,7 +431,7 @@ public class PartialBuildJobTest extends SemiAutoTestBase {
         NSparkCubingJob job = (NSparkCubingJob) execMgr.getJob(jobInfo.getJobs().get(0).getJobId());
         ExecutableState status = null;
         try {
-            status = wait(job);
+            status = IndexDataConstructor.wait(job);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -440,14 +453,14 @@ public class PartialBuildJobTest extends SemiAutoTestBase {
         req.setSegmentIds(Lists.newArrayList(oneSeg.getId()));
         req.setPartialBuild(true);
         req.setIndexIds(Lists.newArrayList(layoutId));
-        val rs = modelService.addIndexesToSegments(req.getProject(), modelId, req.getSegmentIds(), req.getIndexIds(),
-                req.isParallelBuildBySegment(), req.getPriority(), req.isPartialBuild(), null, null);
+        val rs = modelBuildService.addIndexesToSegments(req.getProject(), modelId, req.getSegmentIds(),
+                req.getIndexIds(), req.isParallelBuildBySegment(), req.getPriority(), req.isPartialBuild(), null, null);
         Assert.assertEquals(rs.getJobs().size(), 1);
         val execMgr = NExecutableManager.getInstance(getTestConfig(), getProject());
         NSparkCubingJob job = (NSparkCubingJob) execMgr.getJob(rs.getJobs().get(0).getJobId());
         ExecutableState status = null;
         try {
-            status = wait(job);
+            status = IndexDataConstructor.wait(job);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -460,7 +473,7 @@ public class PartialBuildJobTest extends SemiAutoTestBase {
         val layouts = dsMgr.getDataflow(modelId).getIndexPlan().getAllLayouts();
         val layoutIds = layouts.stream().map(LayoutEntity::getId).collect(Collectors.toList());
         NDataSegment oneSeg = dsMgr.getDataflow(modelId).getSegments().get(0);
-        val rs = modelService.refreshSegmentById(
+        val rs = modelBuildService.refreshSegmentById(
                 new RefreshSegmentParams(getProject(), modelId, new String[] { oneSeg.getId() }, true)
                         .withPartialBuild(true) //
                         .withBatchIndexIds(layoutIds));
@@ -469,7 +482,7 @@ public class PartialBuildJobTest extends SemiAutoTestBase {
         NSparkCubingJob job = (NSparkCubingJob) execMgr.getJob(rs.get(0).getJobId());
         ExecutableState status = null;
         try {
-            status = wait(job);
+            status = IndexDataConstructor.wait(job);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -508,11 +521,12 @@ public class PartialBuildJobTest extends SemiAutoTestBase {
         ReflectionTestUtils.setField(optRecService, "modelService", modelService);
         ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(modelService, "userGroupService", userGroupService);
-        ReflectionTestUtils.setField(modelService, "optRecService", optRecService);
+        ReflectionTestUtils.setField(modelService, "modelChangeSupporters", Arrays.asList(rawRecService));
         ReflectionTestUtils.setField(projectService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(projectService, "userGroupService", userGroupService);
         ReflectionTestUtils.setField(rawRecService, "optRecService", optRecService);
-        ReflectionTestUtils.setField(projectService, "rawRecService", rawRecService);
+        ReflectionTestUtils.setField(projectService, "projectModelSupporter", modelService);
+        ReflectionTestUtils.setField(projectService, "projectSmartSupporter", rawRecService);
         TestingAuthenticationToken auth = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
         SecurityContextHolder.getContext().setAuthentication(auth);
     }

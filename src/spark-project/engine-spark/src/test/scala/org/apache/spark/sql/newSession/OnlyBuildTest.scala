@@ -23,10 +23,8 @@
  */
 package org.apache.spark.sql.newSession
 
-import java.util
-
 import com.google.common.collect.Sets
-import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest
+import io.kyligence.kap.engine.spark.IndexDataConstructor
 import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataflow, NDataflowManager}
 import io.kyligence.kap.metadata.model.NDataModelManager.NDataModelUpdater
 import io.kyligence.kap.metadata.model.{NDataModel, NDataModelManager}
@@ -34,8 +32,9 @@ import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.job.engine.JobEngineConfig
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler
 import org.apache.kylin.metadata.model.SegmentRange
-import org.apache.spark.sql.common.SparderBaseFunSuite
 import org.apache.spark.sql.test.SQLTestUtils
+
+import java.util
 
 abstract class OnlyBuildTest extends SQLTestUtils with WithKylinExternalCatalog {
 
@@ -74,7 +73,7 @@ abstract class OnlyBuildTest extends SQLTestUtils with WithKylinExternalCatalog 
     val dsMgr: NDataflowManager = NDataflowManager.getInstance(kylinConf, project)
     val df: NDataflow = dsMgr.getDataflow(dfID)
     val layouts: util.List[LayoutEntity] = df.getIndexPlan.getAllLayouts
-    NLocalWithSparkSessionTest.buildCuboid(dfID,
-      new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts), project, true)
+    new IndexDataConstructor(project).buildIndex(dfID,
+      new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts), true)
   }
 }

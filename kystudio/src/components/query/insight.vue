@@ -463,7 +463,7 @@ export default class NewQuery extends Vue {
           width: 100%;
           height: 503px;
           .saved_query_content {
-            margin: 20px;
+            padding: 20px;
             .save-query_name {
               word-break: break-all;
               display: inline-block;

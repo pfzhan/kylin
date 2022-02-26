@@ -30,15 +30,18 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.util.AbstractJdbcMetadataTestCase;
+import io.kyligence.kap.junit.annotation.JdbcMetadataInfo;
+import io.kyligence.kap.junit.annotation.MetadataInfo;
 import lombok.val;
 
-public class EpochUpdateLockManagerTest extends AbstractJdbcMetadataTestCase {
+@MetadataInfo(onlyProps = true)
+@JdbcMetadataInfo
+public class EpochUpdateLockManagerTest {
 
     private final String project = "test";
 

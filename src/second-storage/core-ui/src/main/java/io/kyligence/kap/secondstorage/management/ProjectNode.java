@@ -27,15 +27,16 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.util.Map;
 
 @Data
 @NoArgsConstructor
 public class ProjectNode {
     private String project;
     private boolean enable;
-    private List<NodeData> nodes;
+    private Map<String, List<NodeData>> nodes;
 
-    public ProjectNode(String project, boolean enable, List<NodeData> nodes) {
+    public ProjectNode(String project, boolean enable, Map<String, List<NodeData>> nodes) {
         this.project = project;
         this.enable = enable;
         this.nodes = nodes;

@@ -70,8 +70,17 @@ function printExitMaintainModeResult() {
 }
 
 function check_path_empty() {
+  # this function is to check whether the path is an empty str.
     if [ -z "$1" ]; then
           exit 1
+    fi
+}
+
+function check_path_empty_dir() {
+  # this function is to check whether the path is an empty directory.
+    if [ -z "$(ls -A "$1")" ]; then
+        echo -e "${YELLOW}The directory \"$1\" is an empty directory, please check.${RESTORE}"
+        exit 1
     fi
 }
 
@@ -93,10 +102,10 @@ function turn_off_maintain_mode() {
     fi
 }
 
-
 function restore_all() {
         local path=`cd $1 && pwd -P`
         check_path_empty ${path}
+        check_path_empty_dir ${path}
         turn_on_maintain_mode
         printEnterMaintainModeResult
         ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -restore -dir ${path} ${2}
@@ -108,6 +117,7 @@ function restore_all() {
 function restore_project() {
         local path=`cd $1 && pwd -P`
         check_path_empty ${path}
+        check_path_empty_dir ${path}
         turn_on_maintain_mode
         printEnterMaintainModeResult
         ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -restore -dir ${path} -project ${2} ${3}

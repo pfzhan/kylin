@@ -32,7 +32,6 @@
         <dependency>
             <groupId>org.apache.calcite</groupId>
             <artifactId>calcite-linq4j</artifactId>
-            <version>${calcite.version}</version>
         </dependency>
         <!--Test and Environment-->
         <dependency>
@@ -66,7 +65,6 @@
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
             <scope>test</scope>
-            <version>${mockito.version}</version>
         </dependency>
     </dependencies>
 

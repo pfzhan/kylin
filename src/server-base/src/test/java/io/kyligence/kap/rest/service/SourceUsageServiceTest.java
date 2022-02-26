@@ -70,13 +70,13 @@ public class SourceUsageServiceTest extends NLocalFileMetadataTestCase {
             Assert.assertNull(sourceUsageRecord);
             sourceUsageManager.updateSourceUsage(record);
             SourceUsageRecord usage = sourceUsageManager.getLatestRecord(1);
-            Assert.assertEquals(1990649L, usage.getCurrentCapacity());
+            Assert.assertEquals(2889717L, usage.getCurrentCapacity());
             Assert.assertEquals(SourceUsageRecord.CapacityStatus.OK, usage.getCapacityStatus());
             // -1 means UNLIMITED
             Assert.assertEquals(-1L, usage.getLicenseCapacity());
             SourceUsageRecord.ProjectCapacityDetail projectCapacityDetail = usage.getProjectCapacity("default");
             // history segments didn't have column_source_bytes
-            Assert.assertNull(projectCapacityDetail);
+            Assert.assertNotNull(projectCapacityDetail);
 
             projectCapacityDetail = usage.getProjectCapacity("heterogeneous_segment");
             SourceUsageRecord.TableCapacityDetail tableCapacityDetail = projectCapacityDetail

@@ -4,8 +4,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 <+>UTF-8
 ===================================================================
 diff --git a/src/license-service/src/main/java/io/kyligence/kap/license/service/LicenseInfoService.java b/src/license-service/src/main/java/io/kyligence/kap/license/service/LicenseInfoService.java
---- a/src/license-service/src/main/java/io/kyligence/kap/license/service/LicenseInfoService.java	(revision 40420447ca53d9af034b4db30839d4db6d7ecb45)
-+++ b/src/license-service/src/main/java/io/kyligence/kap/license/service/LicenseInfoService.java	(revision 5fa19a8d2d06c72d6e967da3d9c65327f009e696)
+--- a/src/license-service/src/main/java/io/kyligence/kap/license/service/LicenseInfoService.java	(revision c3d3b003f4df9f2a3ab4c448d8513197acea2e7d)
++++ b/src/license-service/src/main/java/io/kyligence/kap/license/service/LicenseInfoService.java	(date 1645586811226)
 @@ -32,14 +32,19 @@
  import java.io.IOException;
  import java.io.InputStreamReader;
@@ -44,8 +44,8 @@ diff --git a/src/license-service/src/main/java/io/kyligence/kap/license/service/
 +import com.google.common.hash.Hashing;
 
  import io.kyligence.kap.common.constant.Constants;
- import io.kyligence.kap.common.scheduler.EventBusFactory;
-@@ -191,39 +200,236 @@
+ import io.kyligence.kap.common.event.SourceUsageUpdateReqEvent;
+@@ -192,39 +201,236 @@
      }
 
      public LicenseInfo extractLicenseInfo() {
@@ -305,7 +305,7 @@ diff --git a/src/license-service/src/main/java/io/kyligence/kap/license/service/
      public void gatherLicenseInfo(File licenseFile, File commitFile, File versionFile, UUID prefix) {
          gatherLicense(licenseFile, prefix);
          gatherCommits(commitFile, prefix);
-@@ -394,12 +600,18 @@
+@@ -395,12 +601,18 @@
              while ((line = reader.readLine()) != null) {
                  if (lineNum == 0 && line.toLowerCase(Locale.ROOT).contains("license")) {
                      setProperty(Constants.KE_LICENSE_INFO, prefix, line);
@@ -330,7 +330,7 @@ diff --git a/src/license-service/src/main/java/io/kyligence/kap/license/service/
                  }
                  extractValue.apply(line, "Service End:")
                          .ifPresent(v -> setProperty(Constants.KE_LICENSE_SERVICEEND, prefix, v));
-@@ -488,28 +700,37 @@
+@@ -489,28 +701,37 @@
          String newLicenseInfo = new String(bytes, StandardCharsets.UTF_8);
          if (StringUtils.equals(oldLicenseInfo, newLicenseInfo)) {
              log.info("skip license update due to new license is equals to old license");
@@ -388,7 +388,7 @@ diff --git a/src/license-service/src/main/java/io/kyligence/kap/license/service/
          EventBusFactory.getInstance().postAsync(new SourceUsageUpdateNotifier());
      }
 
-@@ -529,6 +750,8 @@
+@@ -530,6 +751,8 @@
          Unsafe.setProperty(Constants.KE_LICENSE_INFO, "");
          Unsafe.setProperty(Constants.KE_LICENSE_VERSION, "");
          Unsafe.setProperty(Constants.KE_LICENSE_VOLUME, "");

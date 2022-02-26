@@ -24,12 +24,15 @@
 
 package io.kyligence.kap.rest.service;
 
+import java.net.ConnectException;
 import java.util.List;
 
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.platform.commons.util.StringUtils;
+import org.junit.rules.ExpectedException;
 import org.mockito.InjectMocks;
 import org.mockito.Mockito;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -160,6 +163,18 @@ public class MonitorServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(2, response.getActiveInstances());
         Assert.assertEquals(ClusterStatusResponse.NodeState.CRASH, response.getJobStatus());
         Assert.assertEquals(ClusterStatusResponse.NodeState.WARNING, response.getQueryStatus());
+    }
+
+    @Test
+    public void testFetchAndMergeSpark3Metrics() {
+        String s1 = monitorService.fetchAndMergeSparkMetrics();
+        Assert.assertTrue(StringUtils.isBlank(s1));
+
+        getTestConfig().setProperty("kylin.storage.columnar.spark-conf.spark.ui.prometheus.enabled", "true");
+        getTestConfig().setProperty("kylin.storage.columnar.spark-conf.spark.metrics.conf.*.sink.prometheusServlet.class", "org.apache.spark.metrics.sink.PrometheusServlet");
+        getTestConfig().setProperty("kylin.storage.columnar.spark-conf.spark.metrics.conf.*.sink.prometheusServlet.path", "/metrics/prometheus");
+        ExpectedException.none().expect(ConnectException.class);
+        monitorService.fetchAndMergeSparkMetrics();
     }
 
     private List<JobStatusMonitorMetric> mockJobMetricList1() {

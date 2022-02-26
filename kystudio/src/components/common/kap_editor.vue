@@ -16,6 +16,7 @@
       <i class="el-icon-circle-check"></i> <span>{{$t('kylinLang.common.copySuccess')}}</span>
     </el-popover>
     <i class="el-ksd-icon-dup_16 edit-copy-btn ksd-fs-16"
+      @click.stop
       v-if="readOnly"
       :class="{'is-show': editorData, 'alwaysShow': alwaysShowCopyBtn}"
       v-clipboard:copy="editorData"
@@ -129,10 +130,22 @@ export default {
       return editor.getValue()
     },
     onCopy () {
-      this.showCopyStatus = true
-      setTimeout(() => {
-        this.showCopyStatus = false
-      }, 1000)
+      if (navigator.userAgent.indexOf('Windows NT') >= 0 && window.clipboardData) {
+        let text = window.clipboardData.getData('text')
+        if (text && text === this.editorData) {
+          this.showCopyStatus = true
+          setTimeout(() => {
+            this.showCopyStatus = false
+          }, 1000)
+        } else {
+          this.$message(this.$t('kylinLang.common.copyfail'))
+        }
+      } else {
+        this.showCopyStatus = true
+        setTimeout(() => {
+          this.showCopyStatus = false
+        }, 1000)
+      }
     },
     onError () {
       this.$message(this.$t('kylinLang.common.copyfail'))
@@ -310,8 +323,8 @@ export default {
     }
     .edit-copy-btn {
       position: absolute;
-      right: 10px;
-      top: 10px;
+      right: 16px;
+      top: 8px;
       z-index: 9;
       opacity: 0;
       display: none;

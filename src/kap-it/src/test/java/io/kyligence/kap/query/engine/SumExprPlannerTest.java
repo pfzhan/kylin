@@ -23,9 +23,6 @@
  */
 package io.kyligence.kap.query.engine;
 
-import java.io.IOException;
-import java.util.List;
-
 import com.google.common.collect.ImmutableList;
 import io.kyligence.kap.query.optrule.KapAggFilterTransposeRule;
 import io.kyligence.kap.query.optrule.KapAggJoinTransposeRule;
@@ -35,7 +32,14 @@ import io.kyligence.kap.query.optrule.KapAggregateRule;
 import io.kyligence.kap.query.optrule.KapCountDistinctJoinRule;
 import io.kyligence.kap.query.optrule.KapJoinRule;
 import io.kyligence.kap.query.optrule.KapProjectRule;
+import io.kyligence.kap.query.optrule.KapSumCastTransposeRule;
+import io.kyligence.kap.query.optrule.KapSumTransCastToThenRule;
+import io.kyligence.kap.query.optrule.SumBasicOperatorRule;
+import io.kyligence.kap.query.optrule.SumCaseWhenFunctionRule;
+import io.kyligence.kap.query.optrule.SumConstantConvertRule;
+import io.kyligence.kap.query.rules.CalciteRuleTestBase;
 import io.kyligence.kap.query.util.HepUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.calcite.test.DiffRepository;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
@@ -45,8 +49,8 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import io.kyligence.kap.query.rules.CalciteRuleTestBase;
-import lombok.extern.slf4j.Slf4j;
+import java.io.IOException;
+import java.util.List;
 
 @Slf4j
 public class SumExprPlannerTest extends CalciteRuleTestBase {
@@ -197,5 +201,104 @@ public class SumExprPlannerTest extends CalciteRuleTestBase {
                         KapAggFilterTransposeRule.AGG_FILTER_JOIN, KapAggJoinTransposeRule.INSTANCE_JOIN_RIGHT_AGG,
                         KapCountDistinctJoinRule.INSTANCE_COUNT_DISTINCT_JOIN_ONESIDEAGG, KapAggregateRule.INSTANCE,
                         KapJoinRule.INSTANCE, KapProjectRule.INSTANCE));
+    }
+
+    @Test
+    public void testAggPushdownWithCrossJoin1() {
+
+        String SQL = "SELECT\n"
+                + " SUM(\n"
+                + " (\n"
+                + " CASE\n"
+                + " WHEN (\n"
+                + " CASE\n"
+                + " WHEN (\"LINEORDER\".\"LO_ORDERDATE\" = \"t0\".\"X_measure__0\") THEN true\n"
+                + " WHEN NOT (\"LINEORDER\".\"LO_ORDERDATE\" = \"t0\".\"X_measure__0\") THEN false\n"
+                + " ELSE NULL\n"
+                + " END\n"
+                + " ) THEN \"LINEORDER\".\"LO_QUANTITY\"\n"
+                + " ELSE CAST(NULL AS INTEGER)\n"
+                + " END\n"
+                + " )\n"
+                + " ) AS \"sum_LO_QUANTITY_SUM______88\"\n"
+                + "FROM\n"
+                + " \"SSB\".\"LINEORDER\" \"LINEORDER\"\n"
+                + " CROSS JOIN (\n"
+                + " SELECT\n"
+                + " MAX(\"LINEORDER\".\"LO_ORDERDATE\") AS \"X_measure__0\"\n"
+                + " FROM\n"
+                + " \"SSB\".\"LINEORDER\" \"LINEORDER\"\n"
+                + " GROUP BY\n"
+                + " 1.1000000000000001\n"
+                + " ) \"t0\"\n"
+                + "GROUP BY\n"
+                + " 1.1000000000000001\n"
+                + "LIMIT 500";
+        super.checkSQLPostOptimize(defaultProject, SQL, null, null,
+                ImmutableList.of(SumCaseWhenFunctionRule.INSTANCE,
+                        SumBasicOperatorRule.INSTANCE,
+                        SumConstantConvertRule.INSTANCE,
+                        KapSumTransCastToThenRule.INSTANCE,
+                        KapSumCastTransposeRule.INSTANCE,
+                        KapProjectRule.INSTANCE,
+                        KapAggregateRule.INSTANCE,
+                        KapJoinRule.EQUAL_NULL_SAFE_INSTANT,
+                        KapAggProjectMergeRule.AGG_PROJECT_JOIN,
+                        KapAggProjectMergeRule.AGG_PROJECT_FILTER_JOIN,
+                        KapAggProjectTransposeRule.AGG_PROJECT_FILTER_JOIN,
+                        KapAggProjectTransposeRule.AGG_PROJECT_JOIN,
+                        KapAggFilterTransposeRule.AGG_FILTER_JOIN,
+                        KapAggJoinTransposeRule.INSTANCE_JOIN_RIGHT_AGG,
+                        KapCountDistinctJoinRule.INSTANCE_COUNT_DISTINCT_JOIN_ONESIDEAGG));
+    }
+
+    @Test
+    public void testAggPushdownWithCrossJoin2() {
+
+        String SQL = "SELECT\n"
+                + " SUM(\n"
+                + " (\n"
+                + " CASE\n"
+                + " WHEN (\n"
+                + " CASE\n"
+                + " WHEN (\"LINEORDER\".\"LO_ORDERDATE\" = \"t0\".\"X_measure__0\") THEN true\n"
+                + " WHEN NOT (\"LINEORDER\".\"LO_ORDERDATE\" = \"t0\".\"X_measure__0\") THEN false\n"
+                + " ELSE NULL\n"
+                + " END\n"
+                + " ) THEN \"LINEORDER\".\"LO_QUANTITY\"\n"
+                + " ELSE CAST(NULL AS INTEGER)\n"
+                + " END\n"
+                + " )\n"
+                + " ) AS \"sum_LO_QUANTITY_SUM______88\"\n"
+                + "FROM\n"
+                + " \"SSB\".\"LINEORDER\" \"LINEORDER\"\n"
+                + " CROSS JOIN (\n"
+                + " SELECT\n"
+                + " MAX(\"LINEORDER\".\"LO_ORDERDATE\") AS \"X_measure__0\"\n"
+                + " FROM\n"
+                + " \"SSB\".\"LINEORDER\" \"LINEORDER\"\n"
+                + " GROUP BY\n"
+                + " 1.1000000000000001\n"
+                + " ) \"t0\"\n"
+                + "where \"LINEORDER\".\"LO_QUANTITY\" > 1 \n"
+                + "GROUP BY\n"
+                + " 1.1000000000000001\n"
+                + "LIMIT 500";
+        super.checkSQLPostOptimize(defaultProject, SQL, null, null,
+                ImmutableList.of(SumCaseWhenFunctionRule.INSTANCE,
+                        SumBasicOperatorRule.INSTANCE,
+                        SumConstantConvertRule.INSTANCE,
+                        KapSumTransCastToThenRule.INSTANCE,
+                        KapSumCastTransposeRule.INSTANCE,
+                        KapProjectRule.INSTANCE,
+                        KapAggregateRule.INSTANCE,
+                        KapJoinRule.EQUAL_NULL_SAFE_INSTANT,
+                        KapAggProjectMergeRule.AGG_PROJECT_JOIN,
+                        KapAggProjectMergeRule.AGG_PROJECT_FILTER_JOIN,
+                        KapAggProjectTransposeRule.AGG_PROJECT_FILTER_JOIN,
+                        KapAggProjectTransposeRule.AGG_PROJECT_JOIN,
+                        KapAggFilterTransposeRule.AGG_FILTER_JOIN,
+                        KapAggJoinTransposeRule.INSTANCE_JOIN_RIGHT_AGG,
+                        KapCountDistinctJoinRule.INSTANCE_COUNT_DISTINCT_JOIN_ONESIDEAGG));
     }
 }

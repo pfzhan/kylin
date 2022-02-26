@@ -1049,6 +1049,17 @@ public abstract class KylinConfigBase implements Serializable {
         return Lists.newArrayList(getOptional("kylin.engine-yarn.queue.in.task.available", "default").split(","));
     }
 
+    public boolean isConcurrencyFetchDataSourceSize() {
+        return Boolean.parseBoolean(getOptional("kylin.job.concurrency-fetch-datasource-size-enabled", FALSE));
+    }
+    public int getConcurrencyFetchDataSourceSizeThreadNumber() {
+        return Integer.parseInt(getOptional("kylin.job.concurrency-fetch-datasource-size-thread_number", "10"));
+    }
+
+    public boolean isUseBigIntAsTimestampForPartitionColumn() {
+        return Boolean.parseBoolean(getOptional("kylin.job.use-bigint-as-timestamp-for-partition-column", FALSE));
+    }
+
     // ============================================================================
     // SOURCE.HIVE
     // ============================================================================
@@ -1359,6 +1370,14 @@ public abstract class KylinConfigBase implements Serializable {
         return getPropertiesByPrefix("kylin.query.async-query.spark-conf.");
     }
 
+    public boolean isCleanSparkUIZombieJob() {
+        return Boolean.parseBoolean(this.getOptional("kylin.query.engine.clean-spark-ui-zombie-job-enabled", "false"));
+    }
+
+    public int getSparkUIZombieJobCleanSeconds() {
+        return Integer.parseInt(this.getOptional("kylin.query.engine.spark-ui-zombie-job-clean-seconds", "180"));
+    }
+    
     public int getSparkEngineMaxRetryTime() {
         return Integer.parseInt(getOptional("kylin.engine.max-retry-time", "3"));
     }
@@ -3048,7 +3067,19 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public String getInferiorFlatTableStorageLevel() {
-        return getOptional("kylin.engine.inferior-flattable-storage-level", "DISK_ONLY");
+        return getOptional("kylin.engine.inferior-flattable-storage-level", "MEMORY_AND_DISK");
+    }
+
+    public int getInferiorFlatTableGroupFactor() {
+        return Integer.parseInt(getOptional("kylin.engine.inferior-flattable-group-factor", "20"));
+    }
+
+    public int getInferiorFlatTableDimensionFactor() {
+        return Integer.parseInt(getOptional("kylin.engine.inferior-flattable-dimension-factor", "10"));
+    }
+
+    public int getFlatTableCoalescePartitionNum() {
+        return Integer.parseInt(getOptional("kylin.engine.flattable-coalesce-partition-num", "-1"));
     }
 
     public boolean auditLogGroupByProjectReload() {
@@ -3105,6 +3136,18 @@ public abstract class KylinConfigBase implements Serializable {
 
     public long[] getMetricsJobSlaMinutes() {
         return getOptionalLongArray("kylin.metrics.job.sla.minutes", new String[]{"30", "60", "300"});
+    }
+
+    public boolean isSpark3ExecutorPrometheusEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.storage.columnar.spark-conf.spark.ui.prometheus.enabled", FALSE));
+    }
+
+    public String getSpark3DriverPrometheusServletClass() {
+        return this.getOptional("kylin.storage.columnar.spark-conf.spark.metrics.conf.*.sink.prometheusServlet.class", "");
+    }
+
+    public String getSpark3DriverPrometheusServletPath() {
+        return this.getOptional("kylin.storage.columnar.spark-conf.spark.metrics.conf.*.sink.prometheusServlet.path", "");
     }
 
     protected final long[] getOptionalLongArray(String prop, String[] dft) {

@@ -1,7 +1,7 @@
 <template>
   <div class="about-kap">
     <div class="header">
-      <el-row class="logo text-center">
+      <el-row class="logo">
         <a href="http://kyligence.io/" target="_blank">
           <img src="../../assets/img/kyligence-logo.png" alt="" />
         </a>
@@ -222,7 +222,7 @@ export default {
 	line-height:20px;
 	font-size:14px;
 	text-align: left;
-	img {width: 88px;}
+	// img {width: 88px;}
 	label {font-weight: @font-medium;}
 	// .header, 
 	// .container {padding-bottom:20px;border-bottom:1px solid #424860;}

@@ -2805,12 +2805,14 @@ export default class ModelEdit extends Vue {
           }
           text-overflow: ellipsis;
           overflow: hidden;
+          line-height: 29px\0;
           width:calc(~"100% - 50px");
         }
         span {
           width:24px;
           height:24px;
           float:left;
+          line-height: 30px\0;
         }
         .kind {
           cursor:move;

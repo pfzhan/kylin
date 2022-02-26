@@ -47,6 +47,14 @@ public class RoutineToolTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testExecuteRoutineWithRetryTimesAndRequestFSRate() {
+        RoutineTool routineTool = new RoutineTool();
+        routineTool.execute(new String[] { "-t=10", "-r=100" });
+        Assert.assertEquals(10, routineTool.getRetryTimes());
+        Assert.assertEquals(100, routineTool.getRequestFSRate(), 0.1);
+    }
+
+    @Test
     public void testFastRoutineToolMaintenanceMode() {
         EpochManager epochManager = EpochManager.getInstance();
         epochManager.tryUpdateEpoch(EpochManager.GLOBAL, false);

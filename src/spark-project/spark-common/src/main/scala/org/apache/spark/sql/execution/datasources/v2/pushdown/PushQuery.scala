@@ -18,16 +18,16 @@ package org.apache.spark.sql.execution.datasources.v2.pushdown
 
 import java.util.Locale
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.catalyst.expressions.{Abs, Acos, Alias, AliasHelper, And, Asin, Atan, Atan2, AttributeMap, AttributeReference, CaseWhen, Cast, Concat, Cos, DayOfMonth, DayOfYear, Exp, Expression, Floor, Hour, Literal, Lower, Minute, Month, NamedExpression, Pow, ProjectionOverSchema, Quarter, RegExpReplace, Remainder, ScalaUDF, Second, Signum, Sin, StringLocate, StringTrimLeft, StringTrimRight, Substring, Tan, ToDegrees, ToRadians, TruncTimestamp}
+import org.apache.spark.sql.catalyst.expressions.{Abs, Acos, Alias, AliasHelper, And, Asin, Atan, Atan2, AttributeMap, AttributeReference, CaseWhen, Cast, Concat, Cos, DayOfMonth, DayOfYear, Exp, Expression, Floor, Hour, IntegerLiteral, Literal, Lower, Minute, Month, NamedExpression, Pow, ProjectionOverSchema, Quarter, RegExpReplace, Remainder, ScalaUDF, Second, Signum, Sin, SortOrder, StringLocate, StringTrimLeft, StringTrimRight, Substring, Tan, ToDegrees, ToRadians, TruncTimestamp}
 import org.apache.spark.sql.catalyst.expressions.aggregate.{AggregateExpression, AggregateFunction, Average, Count, Max, Min, Sum}
 import org.apache.spark.sql.catalyst.planning.ScanOperation
 import org.apache.spark.sql.catalyst.plans.logical
-import org.apache.spark.sql.catalyst.plans.logical.{Aggregate, LogicalPlan, Project}
+import org.apache.spark.sql.catalyst.plans.logical.{Aggregate, GlobalLimit, GlobalLimitAndOffset, Limit, LocalLimit, LogicalPlan, Project, Sort}
 import org.apache.spark.sql.connector.read.{Scan, ScanBuilder, V1Scan}
 import org.apache.spark.sql.connector.read.sqlpushdown.{NotSupportPushDown, SupportsSQL, SupportsSQLPushDown}
-import org.apache.spark.sql.execution.datasources.DataSourceStrategy
+import org.apache.spark.sql.execution.datasources.{DataSourceStrategy, PushableColumnWithoutNestedColumn}
 import org.apache.spark.sql.execution.datasources.v2.{DataSourceV2Implicits, DataSourceV2Relation, DataSourceV2ScanRelation, PushDownUtils2, V1ScanWrapper}
-import org.apache.spark.sql.execution.datasources.v2.pushdown.sql.{PushDownAggUtils, SingleCatalystStatement}
+import org.apache.spark.sql.execution.datasources.v2.pushdown.sql.{OrderDesc, PushDownAggUtils, SQLBuilder, SingleCatalystStatement}
 import org.apache.spark.sql.sources
 import org.apache.spark.sql.types.{NullType, StructType}
 
@@ -46,7 +46,10 @@ class OldPush (
     project: Seq[NamedExpression],
     filters: Seq[Expression],
     relation: DataSourceV2Relation,
-    scanBuilder: ScanBuilder) extends PushQuery {
+    scanBuilder: ScanBuilder,
+    sortOpt: Option[Sort] = None,
+    limitOpt: Option[GlobalLimit] = None,
+    limitAndOffsetOpt: Option[GlobalLimitAndOffset] = None) extends PushQuery {
 
   private[pushdown] lazy val(pushedFilters, postScanFilters) =
     PushDownUtils2.pushDownFilter(scanBuilder, filters, relation)
@@ -104,7 +107,25 @@ class OldPush (
     } else {
       withFilter
     }
-    withProjection
+
+    val withSort = if (sortOpt.isDefined) {
+      val originSort = sortOpt.get
+      Sort(originSort.order, originSort.global, withProjection)
+    } else {
+      withProjection
+    }
+
+    val withLimit = limitOpt.map {
+      case g @ GlobalLimit(_, l @ LocalLimit(_, _)) =>
+        g.copy(child = l.copy(child = withSort))
+    }.getOrElse(withSort)
+
+    val withLimitAndOffset = limitAndOffsetOpt.map {
+      case g @GlobalLimitAndOffset(_, _, l @ LocalLimit(_, _)) =>
+        g.copy(child = l.copy(child = withSort))
+    }.getOrElse(withLimit)
+
+    withLimitAndOffset
   }
 
   override def push(): LogicalPlan = {
@@ -116,7 +137,28 @@ case class PushScanQuery(
     project: Seq[NamedExpression],
     filters: Seq[Expression],
     relation: DataSourceV2Relation,
-    scanBuilder: SupportsSQLPushDown) extends OldPush(project, filters, relation, scanBuilder) {
+    scanBuilder: SupportsSQLPushDown,
+    sortOpt: Option[Sort] = None,
+    limitOpt: Option[GlobalLimit] = None,
+    limitAndOffsetOpt: Option[GlobalLimitAndOffset] = None)
+  extends OldPush(project, filters, relation, scanBuilder, sortOpt, limitOpt, limitAndOffsetOpt) {
+
+  /**
+   * Sometimes, the order by col is an alias, not the real column name in ClickHouse.
+   * We should replace it with the real one.
+   */
+  private def translateSortOrder(sortOrder: SortOrder): SortOrder = {
+    val aliasToAttr = project.collect {
+      case Alias(child: AttributeReference, name: String) => (name, child)
+    }.toMap
+
+    sortOrder match {
+      case order @ SortOrder(PushableColumnWithoutNestedColumn(name), _, _, _)
+        if aliasToAttr.contains(name) =>
+        order.copy(child = aliasToAttr(name))
+      case other => other
+    }
+  }
 
   override def pruningColumns(): (Scan, Seq[AttributeReference]) = {
     val prunedSchema = PushDownUtils2.prunedColumns(
@@ -125,7 +167,10 @@ case class PushScanQuery(
     prunedSchema.map { prunedSchema =>
       scanBuilder.pruneColumns(prunedSchema)
       val output = PushDownUtils2.toOutputAttrs(prunedSchema, relation)
-      val pushStatement = SingleCatalystStatement.of(relation, output, pushedFilters, Seq.empty)
+      val orders: Seq[SortOrder] = sortOpt.map(_.order.map(translateSortOrder)).getOrElse(Seq.empty)
+      val localLimit = limitOpt.map(_.child).orElse(limitAndOffsetOpt.map(_.child))
+      val limit = localLimit.map(_.asInstanceOf[LocalLimit].limitExpr).map(IntegerLiteral.unapply(_).get)
+      val pushStatement = SingleCatalystStatement.of(relation, output, pushedFilters, Seq.empty, orders, limit)
       /**
        * output schema set by `SupportsPushDownRequiredColumns#pruneColumns`
        */
@@ -349,11 +394,32 @@ object PushQuery extends Logging {
           case ae: AggregateExpression if ae.aggregateFunction.isInstanceOf[Count] => ae.aggregateFunction
         }}
         resolvePushQuery(child, counts.exists(count => count.children(0) == Literal(1))).flatMap {
-          case s@PushScanQuery(_, _, _, _) if !subqueryPlan(child) &&
+          case s @ PushScanQuery(_, _, _, _, _, _, _) if !subqueryPlan(child) &&
             !containNonSupportedAggregateFunction(aggExpressions) &&
             !containNonSupportProjects(s.project) &&
             s.postScanFilters.isEmpty =>
             Some(PushAggregateQuery(groupBy, aggExpressions, s))
+          case _ => None
+        }
+      case s @ Sort(_, _, child) =>
+        unapply(child).flatMap {
+          case p @ PushScanQuery(_, _, _, _, _, _, _) if !subqueryPlan(child) &&
+            !containNonSupportProjects(p.project) =>
+            Some(p.copy(sortOpt = Some(s)))
+          case _ => None
+        }
+      case globalLimit @ Limit(_, child) =>
+        unapply(child).flatMap {
+          case p @ PushScanQuery(_, _, _, _, Some(_: Sort), _, _) if !subqueryPlan(child) &&
+            !containNonSupportProjects(p.project) =>
+            Some(p.copy(limitOpt = Some(globalLimit)))
+          case _ => None
+        }
+      case globalLimitAndOffset @ GlobalLimitAndOffset(_, _, LocalLimit(_, child)) =>
+        unapply(child).flatMap {
+          case p @ PushScanQuery(_, _, _, _, Some(_: Sort), _, _) if !subqueryPlan(child) &&
+            !containNonSupportProjects(p.project) =>
+            Some(p.copy(limitAndOffsetOpt = Some(globalLimitAndOffset)))
           case _ => None
         }
 

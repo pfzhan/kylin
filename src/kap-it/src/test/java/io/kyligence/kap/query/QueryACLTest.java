@@ -41,7 +41,7 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.metadata.acl.AclTCR;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.query.StructField;
-import io.kyligence.kap.newten.auto.NAutoTestBase;
+import io.kyligence.kap.newten.auto.AutoTestBase;
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.smart.SmartContext;
 import io.kyligence.kap.smart.SmartMaster;
@@ -49,7 +49,7 @@ import io.kyligence.kap.utils.AccelerationContextUtil;
 import lombok.val;
 import lombok.var;
 
-public class QueryACLTest extends NAutoTestBase {
+public class QueryACLTest extends AutoTestBase {
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
@@ -163,7 +163,7 @@ public class QueryACLTest extends NAutoTestBase {
         smartMaster.runUtWithContext(null);
         context.saveMetadata();
         AccelerationContextUtil.onlineModel(context);
-        buildAllCubes(getTestConfig(), PROJECT);
+        buildAllModels(getTestConfig(), PROJECT);
     }
 
     @Test

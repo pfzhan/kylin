@@ -99,6 +99,7 @@ import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
 import io.kyligence.kap.rest.request.PasswordChangeRequest;
 import io.kyligence.kap.rest.service.AclTCRService;
 import io.kyligence.kap.rest.util.CreateAdminUserUtils;
+import io.kyligence.kap.rest.request.UserRequest;
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
 
@@ -193,55 +194,49 @@ public class NUserController extends NBasicController {
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     //do not use aclEvaluate, if there's no users and will come into init() and will call save.
-    public EnvelopeResponse<String> updateUser(@RequestBody ManagedUser user) throws IOException {
+    public EnvelopeResponse<String> updateUser(@RequestBody UserRequest userRequest) throws IOException {
         val msg = MsgPicker.getMsg();
         checkProfile();
+        val username = userRequest.getUsername();
+        checkUsername(username);
+        // merge with existing user
+        val existing = getManagedUser(username);
+        ManagedUser mergeUser = userRequest.updateManager(existing);
 
-        if (StringUtils.equals(getPrincipal(), user.getUsername()) && user.isDisabled()) {
+        if (StringUtils.equals(getPrincipal(), mergeUser.getUsername()) && mergeUser.isDisabled()) {
             throw new KylinException(FAILED_UPDATE_USER, msg.getSELF_DISABLE_FORBIDDEN());
         }
 
-        if (StringUtils.equals(getPrincipal(), user.getUsername())) {
-            Set<String> userGroupSet = user.getAuthorities().stream().map(SimpleGrantedAuthority::getAuthority)
+        if (StringUtils.equals(getPrincipal(), userRequest.getUsername())) {
+            Set<String> userGroupSet = mergeUser.getAuthorities().stream().map(SimpleGrantedAuthority::getAuthority)
                     .collect(Collectors.toSet());
-            Set<String> currentUserGroupSet = userGroupService.listUserGroups(user.getUsername());
+            Set<String> currentUserGroupSet = userGroupService.listUserGroups(mergeUser.getUsername());
             boolean roleChange = !(userGroupSet.size() == currentUserGroupSet.size())
                     || !(userGroupSet.containsAll(currentUserGroupSet));
             if (roleChange) {
                 throw new KylinException(FAILED_UPDATE_USER, msg.getSELF_EDIT_FORBIDDEN());
             }
         }
-
-        val username = user.getUsername();
-        checkUsername(username);
-
-        // merge with existing user
-        val existing = getManagedUser(username);
         if (existing == null) {
             throw new KylinException(USER_NOT_EXIST, String.format(Locale.ROOT, msg.getUSER_NOT_FOUND(), username));
         }
-        if (StringUtils.isEmpty(user.getPassword()))
-            user.setPassword(existing.getPassword());
-        if (user.getAuthorities() == null || user.getAuthorities().isEmpty())
-            user.setGrantedAuthorities(existing.getAuthorities());
-
-        user.setPassword(pwdBase64Decode(user.getPassword()));
-
-        if (!user.isDefaultPassword()) {
-            checkPasswordLength(user.getPassword());
-            checkPasswordCharacter(user.getPassword());
+        if (mergeUser.getAuthorities() == null || mergeUser.getAuthorities().isEmpty())
+            mergeUser.setGrantedAuthorities(existing.getAuthorities());
+        mergeUser.setPassword(pwdBase64Decode(mergeUser.getPassword()));
+        if (!mergeUser.isDefaultPassword()) {
+            checkPasswordLength(mergeUser.getPassword());
+            checkPasswordCharacter(mergeUser.getPassword());
         }
+        mergeUser.setPassword(pwdEncode(mergeUser.getPassword()));
+        checkUserGroupExists(mergeUser.getAuthorities());
+        checkUserGroupNotDuplicated(mergeUser.getAuthorities());
+        completeAuthorities(mergeUser);
 
-        user.setPassword(pwdEncode(user.getPassword()));
-        checkUserGroupExists(user.getAuthorities());
-        checkUserGroupNotDuplicated(user.getAuthorities());
-        completeAuthorities(user);
+        boolean noAdminRight = mergeUser.getAuthorities().contains(new SimpleGrantedAuthority(ROLE_ADMIN));
+        accessService.checkDefaultAdmin(mergeUser.getUsername(), noAdminRight);
 
-        boolean noAdminRight = user.getAuthorities().contains(new SimpleGrantedAuthority(ROLE_ADMIN));
-        accessService.checkDefaultAdmin(user.getUsername(), noAdminRight);
-
-        logger.info("Saving user {}", user);
-        userService.updateUser(user);
+        logger.info("Saving user {}", mergeUser);
+        userService.updateUser(mergeUser);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 

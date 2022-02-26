@@ -69,6 +69,7 @@ import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.rest.constant.SnapshotStatus;
 import io.kyligence.kap.rest.request.SnapshotConfigRequest;
 import io.kyligence.kap.rest.request.SnapshotRequest;
 import io.kyligence.kap.rest.response.NInitTablesResponse;
@@ -77,7 +78,6 @@ import io.kyligence.kap.rest.response.SnapshotColResponse;
 import io.kyligence.kap.rest.response.SnapshotInfoResponse;
 import io.kyligence.kap.rest.response.SnapshotPartitionsResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
-import io.kyligence.kap.rest.service.SnapshotService.SnapshotStatus;
 import lombok.val;
 
 public class SnapshotServiceTest extends NLocalFileMetadataTestCase {

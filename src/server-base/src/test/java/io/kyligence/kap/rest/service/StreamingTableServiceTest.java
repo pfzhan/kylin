@@ -69,8 +69,8 @@ public class StreamingTableServiceTest extends CSVSourceTestCase {
     @Mock
     private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
 
-    @Mock
-    private AclTCRService aclTCRService = Mockito.spy(AclTCRService.class);
+//    @Mock
+//    private AclTCRService aclTCRService = Mockito.spy(AclTCRService.class);
 
     @InjectMocks
     private StreamingTableService streamingTableService = Mockito.spy(new StreamingTableService());
@@ -95,11 +95,11 @@ public class StreamingTableServiceTest extends CSVSourceTestCase {
 
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
         ReflectionTestUtils.setField(streamingTableService, "aclEvaluate", aclEvaluate);
-        ReflectionTestUtils.setField(streamingTableService, "aclTCRService", aclTCRService);
-        ReflectionTestUtils.setField(streamingTableService, "userGroupService", userGroupService);
-
+        //ReflectionTestUtils.setField(streamingTableService, "aclTCRService", aclTCRService);
+        //ReflectionTestUtils.setField(streamingTableService, "userGroupService", userGroupService);
+        //ReflectionTestUtils.setField(streamingTableService,"tableSupporters", Arrays.asList(tableService));
         ReflectionTestUtils.setField(tableService, "aclEvaluate", aclEvaluate);
-        ReflectionTestUtils.setField(tableService, "aclTCRService", aclTCRService);
+        //ReflectionTestUtils.setField(tableService, "aclTCRService", aclTCRService);
         ReflectionTestUtils.setField(tableService, "userGroupService", userGroupService);
 
         val prjManager = NProjectManager.getInstance(getTestConfig());

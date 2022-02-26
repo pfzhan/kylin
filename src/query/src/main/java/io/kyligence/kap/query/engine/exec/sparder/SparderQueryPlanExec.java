@@ -29,6 +29,7 @@ import java.util.List;
 import io.kyligence.kap.query.engine.exec.ExecuteResult;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.rel.RelNode;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.QueryTrace;
@@ -114,10 +115,27 @@ public class SparderQueryPlanExec implements QueryPlanExec {
                 && !QueryContext.current().getSecondStorageUsageMap().isEmpty();
     }
 
+    private static boolean shouldRetryOnSecondStorage(Exception e) {
+        return QueryContext.current().isRetrySecondStorage() && e instanceof SparkException
+                && !QueryContext.current().getSecondStorageUsageMap().isEmpty();
+    }
+
     protected ExecuteResult internalCompute(QueryEngine queryEngine, DataContext dataContext, RelNode rel) {
         try {
             return queryEngine.computeToIterable(dataContext, rel);
         } catch (final Exception e) {
+            Exception cause = e;
+            while (shouldRetryOnSecondStorage(cause)) {
+                try {
+                    return queryEngine.computeToIterable(dataContext, rel);
+                } catch (final Exception retryException) {
+                    if (log.isInfoEnabled()) {
+                        log.info("Failed to use second storage table-index", e);
+                    }
+                    QueryContext.current().setLastFailed(true);
+                    cause = retryException;
+                }
+            }
             if (forceTableIndexAtException(e)) {
                 if (log.isInfoEnabled()) {
                     log.info("Failed to use second storage table-index", e);
@@ -125,7 +143,7 @@ public class SparderQueryPlanExec implements QueryPlanExec {
                 QueryContext.current().setForceTableIndex(true);
                 QueryContext.current().getSecondStorageUsageMap().clear();
             } else {
-                throw e;
+                return ExceptionUtils.rethrow(e);
             }
         }
         return queryEngine.computeToIterable(dataContext, rel);

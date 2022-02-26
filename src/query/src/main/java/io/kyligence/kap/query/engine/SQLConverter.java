@@ -32,6 +32,7 @@ import java.util.Locale;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteConnectionConfig;
+import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptTable;
@@ -99,7 +100,6 @@ public class SQLConverter {
         return new SQLConverter(connectionConfig, planner, catalogReader, (SimpleViewExpander) sqlConverter::convertSqlToRelNode);
     }
 
-
     /**
      * parse, validate and convert sql into RelNodes
      * Note that the output relNodes are not optimized
@@ -112,6 +112,19 @@ public class SQLConverter {
         QueryContext.current().record("end calcite parse sql");
 
         return convertToRelNode(sqlNode);
+    }
+
+    /**
+     * analyze sql for views
+     * @param sql
+     * @return
+     * @throws SqlParseException
+     */
+    public CalcitePrepare.AnalyzeViewResult analyzeSQl(String sql) throws SqlParseException {
+        SqlNode sqlNode = parseSQL(sql);
+        RelRoot relRoot = convertToRelNode(sqlNode);
+        return new CalcitePrepare.AnalyzeViewResult(null, validator, sql, sqlNode, relRoot.validatedRowType, relRoot,
+                null, null, null, null, false);
     }
 
     private SqlValidator createValidator(CalciteConnectionConfig connectionConfig, Prepare.CatalogReader catalogReader,

@@ -61,15 +61,15 @@ public enum CommonErrorCode implements ErrorCodeSupplier {
     FAILED_NOTIFY_CATCHUP("KE-000027002"), //
     FAILED_CONNECT_META_DATABASE("KE-000027003"),
 
-    // 10028XXX json
-    FAILED_PARSE_JSON("KE-000028001"), //
-
     // 00028XXX source usage
     LICENSE_OVER_CAPACITY("KE-000028001"), //
 
     // 00029XXX file
     INVALID_ZIP_NAME("KE-000029001"), //
-    INVALID_ZIP_ENTRY("KE-000029002");
+    INVALID_ZIP_ENTRY("KE-000029002"), //
+
+    // 00030XXX json
+    FAILED_PARSE_JSON("KE-000030001");
 
     private final ErrorCode errorCode;
 

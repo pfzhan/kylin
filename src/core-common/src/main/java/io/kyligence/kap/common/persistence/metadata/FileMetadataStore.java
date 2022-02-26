@@ -108,7 +108,7 @@ public class FileMetadataStore extends MetadataStore {
     @Override
     public RawResource load(String path) throws IOException {
         val f = new File(root, path);
-        val resPath = f.getPath().replace(root.getPath() + path, "");
+        val resPath = f.getPath().replace(root.getPath(), "");
         try (FileInputStream in = new FileInputStream(f)) {
             val bs = ByteSource.wrap(IOUtils.toByteArray(in));
             return new RawResource(resPath, bs, f.lastModified(), 0);

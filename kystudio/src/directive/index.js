@@ -766,7 +766,13 @@ function createToolTipDom (el, binding, parentWidth) {
       propsData
     })
   }
-  let t = createCommonTip({placement: 'top', effect: 'dark', content: binding.value.text})
+  let t = createCommonTip({
+    placement: binding.value.position ?? 'top',
+    effect: 'dark',
+    visibleArrow: binding.value['visible-arrow'] ?? true,
+    content: binding.value.text,
+    popperClass: binding.value['popper-class'] ?? ''
+  })
   t.$slots.default = [t.$createElement(renderer)]
   t.$mount()
   customLayout.appendChild(t.$el)

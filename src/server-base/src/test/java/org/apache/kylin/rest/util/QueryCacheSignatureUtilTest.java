@@ -51,6 +51,7 @@ import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.response.SQLResponse;
+import org.apache.kylin.rest.service.CacheSignatureQuerySupporter;
 import org.apache.kylin.rest.service.QueryService;
 import org.junit.After;
 import org.junit.Assert;
@@ -86,6 +87,8 @@ public class QueryCacheSignatureUtilTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setup() throws Exception {
+
+        //ReflectionTestUtils.setField(QueryCacheSignatureUtil, "queryService", queryService);
         PowerMockito.mockStatic(SpringContext.class);
         PowerMockito.mockStatic(UserGroupInformation.class);
         UserGroupInformation userGroupInformation = Mockito.mock(UserGroupInformation.class);
@@ -96,11 +99,13 @@ public class QueryCacheSignatureUtilTest extends NLocalFileMetadataTestCase {
                 .newArrayList(new NativeQueryRealization(modelId, layoutId, "TEST"));
         response.setNativeRealizations(nativeRealizations);
         QueryService queryService = PowerMockito.mock(QueryService.class);
-        PowerMockito.when(SpringContext.getBean(QueryService.class)).thenReturn(queryService);
-        PowerMockito.when(queryService.createAclSignature(project)).thenReturn("root");
+        //PowerMockito.when(SpringContext.getBean(QueryService.class)).thenReturn(queryService);
+        PowerMockito.when(SpringContext.getBean(CacheSignatureQuerySupporter.class)).thenReturn(queryService);
+        PowerMockito.when(queryService.onCreateAclSignature(project)).thenReturn("root");
         response.setSignature(QueryCacheSignatureUtil.createCacheSignature(response, project));
         dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         dataflow = dataflowManager.getDataflow(modelId);
+
     }
 
     @After
@@ -186,8 +191,8 @@ public class QueryCacheSignatureUtilTest extends NLocalFileMetadataTestCase {
                 Lists.newArrayList("DEFAULT.TEST_ORDER")));
         sqlResponse.setNativeRealizations(nativeRealizations);
         QueryService queryService = PowerMockito.mock(QueryService.class);
-        PowerMockito.when(SpringContext.getBean(QueryService.class)).thenReturn(queryService);
-        PowerMockito.when(queryService.createAclSignature(project)).thenReturn("root");
+        PowerMockito.when(SpringContext.getBean(CacheSignatureQuerySupporter.class)).thenReturn(queryService);
+        PowerMockito.when(queryService.onCreateAclSignature(project)).thenReturn("root");
         sqlResponse.setSignature(QueryCacheSignatureUtil.createCacheSignature(sqlResponse, project));
         Assert.assertFalse(QueryCacheSignatureUtil.checkCacheExpired(sqlResponse, project));
 
@@ -207,8 +212,8 @@ public class QueryCacheSignatureUtilTest extends NLocalFileMetadataTestCase {
                 Lists.newArrayList("DEFAULT.TEST_ORDER", "DEFAULT.TEST_ACCOUNT")));
         sqlResponse.setNativeRealizations(nativeRealizations);
         QueryService queryService = PowerMockito.mock(QueryService.class);
-        PowerMockito.when(SpringContext.getBean(QueryService.class)).thenReturn(queryService);
-        PowerMockito.when(queryService.createAclSignature(project)).thenReturn("root");
+        PowerMockito.when(SpringContext.getBean(CacheSignatureQuerySupporter.class)).thenReturn(queryService);
+        PowerMockito.when(queryService.onCreateAclSignature(project)).thenReturn("root");
         sqlResponse.setSignature(QueryCacheSignatureUtil.createCacheSignature(sqlResponse, project));
         Assert.assertFalse(QueryCacheSignatureUtil.checkCacheExpired(sqlResponse, project));
 
@@ -229,8 +234,9 @@ public class QueryCacheSignatureUtilTest extends NLocalFileMetadataTestCase {
                 "89af4ee2-2cdb-4b07-b39e-4c29856309aa", 1000001L, QueryMetricsContext.AGG_INDEX));
         sqlResponse.setNativeRealizations(nativeRealizations);
         QueryService queryService = PowerMockito.mock(QueryService.class);
-        PowerMockito.when(SpringContext.getBean(QueryService.class)).thenReturn(queryService);
-        PowerMockito.when(queryService.createAclSignature(project)).thenReturn("root");
+        //PowerMockito.when(SpringContext.getBean(QueryService.class)).thenReturn(queryService);
+        PowerMockito.when(SpringContext.getBean(CacheSignatureQuerySupporter.class)).thenReturn(queryService);
+        PowerMockito.when(queryService.onCreateAclSignature(project)).thenReturn("root");
         sqlResponse.setSignature(QueryCacheSignatureUtil.createCacheSignature(sqlResponse, project));
         Assert.assertFalse(QueryCacheSignatureUtil.checkCacheExpired(sqlResponse, project));
 

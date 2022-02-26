@@ -23,19 +23,13 @@
  */
 package io.kyligence.kap.common.persistence.metadata.epochstore;
 
-import org.junit.After;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 
 public final class FileEpochStoreTest extends AbstractEpochStoreTest {
 
-    @Before
+    @BeforeEach
     public void setup() {
-        createTestMetadata();
         epochStore = getEpochStore();
     }
 
-    @After
-    public void destroy() {
-        cleanupTestMetadata();
-    }
 }

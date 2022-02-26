@@ -162,7 +162,7 @@ exports.default = {
     help: '帮助',
     username: '用户账号',
     password: '密码',
-    saveDraft: '系统正在响应保存草稿的请求，请稍后。',
+    saveDraft: '系统正在响应保存草稿的请求，请稍候。',
     streamingConnectHiveError: '尚不支持 Hive 表与 Streaming 表关联。',
     seeDetail: '详情',
     notConnectServer: '目前无法连接到 Kyligence Enterprise, 请检查您的网络连接状况和 Kyligence Enterprise 服务器运行状态。',

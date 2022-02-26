@@ -566,6 +566,10 @@ public class Message {
         return "The user/group doesn’t have access to this project.";
     }
 
+    public String getACCESS_DENY() {
+        return "The user doesn't have access.";
+    }
+
     // Async Query
     public String getQUERY_RESULT_NOT_FOUND() {
         return "Can’t find the query by this query ID in this project. Please check and try again.";
@@ -621,7 +625,7 @@ public class Message {
         return "The query delay threshold cannot be empty";
     }
 
-    public String getMIN_HIT_COUNT_NOT_EMPTY(){
+    public String getMIN_HIT_COUNT_NOT_EMPTY() {
         return "The hits cannot be empty";
     }
 
@@ -730,13 +734,13 @@ public class Message {
     public String getLICENSE_SOURCE_NODES_OVER_CAPACITY() {
         return "The amount of data volume used (%s/%s)  and nodes used (%s/%s) exceeds license’s limit.\n"
                 + "Build index and load data is unavailable.\n"
-                + "Please contact Kyligence, or try stopping some nodes and deleting some segments and stopping some nodes.";
+                + "Please contact Kyligence, or try deleting some segments and stopping some nodes.";
     }
 
     public String getLICENSE_PROJECT_SOURCE_NODES_OVER_CAPACITY() {
         return "The amount of data volume used (%s/%s)  and nodes used (%s/%s) exceeds project’s limit.\n"
                 + "Build index and load data is unavailable.\n"
-                + "Please contact Kyligence, or try stopping some nodes and deleting some segments and stopping some nodes.";
+                + "Please contact Kyligence, or try deleting some segments and stopping some nodes.";
     }
 
     public String getTABLENOTFOUND() {
@@ -758,11 +762,11 @@ public class Message {
     }
 
     public String getDIMENSION_NOTFOUND() {
-        return "The dimension %s is being referenced by aggregation group, recommended aggregate index or table index. Please delete this dimension from the above first.";
+        return "The dimension %s is referenced by indexes or aggregate groups. Please go to the Data Asset - Model - Index page to view, delete referenced aggregate groups and indexes.";
     }
 
     public String getMEASURE_NOTFOUND() {
-        return "The measure %s is referenced by indexes. Please try again after deleting it from aggregation group or table index.";
+        return "The measure %s is referenced by indexes or aggregate groups. Please go to the Data Asset - Model - Index page to view, delete referenced aggregate groups and indexes.";
     }
 
     public String getNESTED_CC_CASCADE_ERROR() {
@@ -782,7 +786,7 @@ public class Message {
     }
 
     public String getCHANGE_DEGAULTADMIN() {
-        return "Since the user ADMIN is the default built-in administrator, you cannot remove the role admin permission, delete or disable the user admin, And only user ADMIN can change the password and user group of user ADMIN";
+        return "Can’t modify the permission of user “ADMIN”, as this user is a built-in admin by default.";
     }
 
     //Query

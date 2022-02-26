@@ -24,28 +24,34 @@
 
 package io.kyligence.kap.clickhouse.job;
 
+import java.net.URISyntaxException;
+
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Test;
+import org.mockito.Mockito;
+
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
+
 import lombok.val;
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mockito;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.modules.junit4.PowerMockRunner;
 
-import java.net.URISyntaxException;
-
-@RunWith(PowerMockRunner.class)
 public class AzureBlobClientTest {
+
+    @After
+    public void teardown() {
+        Mockito.clearAllCaches();
+    }
 
     @Test
     public void getBlob() throws URISyntaxException, StorageException {
-        val container = PowerMockito.mock(CloudBlobContainer.class);
-        val blob = PowerMockito.mock(CloudBlockBlob.class);
+        val container = Mockito.mock(CloudBlobContainer.class);
+        val blob = Mockito.mock(CloudBlockBlob.class);
         val client = new AzureBlobClient(null, null);
-        PowerMockito.when(container.getBlockBlobReference(Mockito.anyString())).thenReturn(blob);
+        Mockito.when(container.getBlockBlobReference(Mockito.anyString())).thenReturn(blob);
+        // support hadoop-azure 2.10.1
+        Mockito.when(container.getBlobReferenceFromServer(Mockito.anyString())).thenReturn(blob);
         val result = client.getBlob(container, "/test/a.txt");
         Assert.assertEquals(blob, result);
     }

@@ -36,6 +36,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.RandomUtil;
@@ -214,8 +215,8 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         if (Boolean.parseBoolean(System.getProperty("noBuild", "false"))) {
             System.out.println("Direct query");
         } else if (Boolean.parseBoolean(System.getProperty("isDeveloperMode", "false"))) {
-            fullBuildCube("89af4ee2-2cdb-4b07-b39e-4c29856309aa", getProject());
-            fullBuildCube("741ca86a-1f13-46da-a59f-95fb68615e3a", getProject());
+            fullBuild("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+            fullBuild("741ca86a-1f13-46da-a59f-95fb68615e3a");
         } else {
             buildAndMergeCube("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
             buildAndMergeCube("741ca86a-1f13-46da-a59f-95fb68615e3a");
@@ -289,11 +290,11 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         List<LayoutEntity> layouts = df.getIndexPlan().getAllLayouts();
         long start = SegmentRange.dateToLong("2010-01-01");
         long end = SegmentRange.dateToLong("2013-01-01");
-        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts),
+        indexDataConstructor.buildIndex(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts),
                 true);
         start = SegmentRange.dateToLong("2013-01-01");
         end = SegmentRange.dateToLong("2015-01-01");
-        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts),
+        indexDataConstructor.buildIndex(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts),
                 true);
 
         /**
@@ -306,7 +307,7 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
                 RandomUtil.randomUUIDStr());
         execMgr.addJob(firstMergeJob);
         // wait job done
-        Assert.assertEquals(ExecutableState.SUCCEED, wait(firstMergeJob));
+        Assert.assertEquals(ExecutableState.SUCCEED, IndexDataConstructor.wait(firstMergeJob));
         val merger = new AfterMergeOrRefreshResourceMerger(config, getProject());
         merger.merge(firstMergeJob.getSparkMergingStep());
 
@@ -370,22 +371,22 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         List<LayoutEntity> layouts = df.getIndexPlan().getAllLayouts();
         long start = SegmentRange.dateToLong("2010-01-01");
         long end = SegmentRange.dateToLong("2012-06-01");
-        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts),
+        indexDataConstructor.buildIndex(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts),
                 true);
 
         start = SegmentRange.dateToLong("2012-06-01");
         end = SegmentRange.dateToLong("2013-01-01");
-        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts),
+        indexDataConstructor.buildIndex(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts),
                 true);
 
         start = SegmentRange.dateToLong("2013-01-01");
         end = SegmentRange.dateToLong("2013-06-01");
-        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts),
+        indexDataConstructor.buildIndex(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts),
                 true);
 
         start = SegmentRange.dateToLong("2013-06-01");
         end = SegmentRange.dateToLong("2015-01-01");
-        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts),
+        indexDataConstructor.buildIndex(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts),
                 true);
 
         /**
@@ -398,7 +399,7 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
                 RandomUtil.randomUUIDStr());
         execMgr.addJob(firstMergeJob);
         // wait job done
-        Assert.assertEquals(ExecutableState.SUCCEED, wait(firstMergeJob));
+        Assert.assertEquals(ExecutableState.SUCCEED, IndexDataConstructor.wait(firstMergeJob));
         val merger = new AfterMergeOrRefreshResourceMerger(config, getProject());
         merger.merge(firstMergeJob.getSparkMergingStep());
 
@@ -410,7 +411,7 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
                 "ADMIN", RandomUtil.randomUUIDStr());
         execMgr.addJob(secondMergeJob);
         // wait job done
-        Assert.assertEquals(ExecutableState.SUCCEED, wait(secondMergeJob));
+        Assert.assertEquals(ExecutableState.SUCCEED, IndexDataConstructor.wait(secondMergeJob));
         merger.merge(secondMergeJob.getSparkMergingStep());
 
         /**

@@ -39,6 +39,8 @@ import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import lombok.extern.slf4j.Slf4j;
 
+import static org.apache.kylin.metadata.model.FunctionDesc.nonSupportFunTableIndex;
+
 @Slf4j
 public class TableIndexMatcher extends IndexMatcher {
 
@@ -89,6 +91,7 @@ public class TableIndexMatcher extends IndexMatcher {
     }
 
     private boolean needTableIndexMatch(IndexEntity index) {
-        return index.isTableIndex() && (sqlDigest.isRawQuery || isUseTableIndexAnswerNonRawQuery);
+        boolean isUseTableIndex = isUseTableIndexAnswerNonRawQuery && !nonSupportFunTableIndex(sqlDigest.aggregations);
+        return index.isTableIndex() && (sqlDigest.isRawQuery || isUseTableIndex);
     }
 }

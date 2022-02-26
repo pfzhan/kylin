@@ -26,7 +26,7 @@ package io.kyligence.kap.clickhouse.metadata;
 
 import io.kyligence.kap.clickhouse.management.ClickHouseConfigLoader;
 import io.kyligence.kap.common.util.Unsafe;
-import io.kyligence.kap.secondstorage.config.Cluster;
+import io.kyligence.kap.secondstorage.config.ClusterInfo;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.util.JsonUtil;
 
@@ -34,17 +34,17 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 
 import static io.kyligence.kap.secondstorage.SecondStorageConstants.CONFIG_SECOND_STORAGE_CLUSTER;
 
 public class TestUtils {
     public static void createEmptyClickHouseConfig() {
-        Cluster cluster = new Cluster();
+        ClusterInfo cluster = new ClusterInfo();
         cluster.setKeepAliveTimeout("600000");
         cluster.setSocketTimeout("600000");
-        cluster.setNodes(new ArrayList<>(0));
+        cluster.setCluster(new HashMap<>());
         int i = 1;
         File file = null;
         try {

@@ -33,7 +33,7 @@
         <div class="empty" v-if="!loadingTreeData && treeData.length===0">
           <p class="empty-text" v-html="emptyText"></p>
         </div>
-        <p class="ksd-right refreshNow" :class="{'isRefresh': reloadHiveTablesStatus.isRunning || hasClickRefreshBtn}" v-if="loadHiveTableNameEnabled === 'true'">{{$t('refreshText')}} <a href="javascript:;" @click="refreshHive(true)">{{refreshBtnText}}</a></p>
+        <p class="ksd-right refreshNow" :class="{'isRefresh': reloadHiveTablesStatus.isRunning || hasClickRefreshBtn}" v-if="loadHiveTableNameEnabled === 'true'">{{$t('refreshText')}} <a href="javascript:;" @click="refreshHive(true)" v-if="!(reloadHiveTablesStatus.isRunning || hasClickRefreshBtn)">{{$t('refreshNow')}}</a><span v-else class="el-ksd-icon-loading_22"></span></p>
       </div>
     </div>
     <div class="content" :style="contentStyle">
@@ -249,9 +249,9 @@ export default class SourceHive extends Vue {
   get emptyText () {
     return this.filterText ? this.$t('kylinLang.common.noResults') : this.$t('noSourceData')
   }
-  get refreshBtnText () {
-    return this.reloadHiveTablesStatus.isRunning || this.hasClickRefreshBtn ? this.$t('refreshIng') : this.$t('refreshNow')
-  }
+  // get refreshBtnText () {
+  //   return this.reloadHiveTablesStatus.isRunning || this.hasClickRefreshBtn ? this.$t('refreshIng') : this.$t('refreshNow')
+  // }
 
   get databaseOptions () {
     return this.treeData.map(database => ({
@@ -978,18 +978,19 @@ export default class SourceHive extends Vue {
       position: static;
     }
     .el-tree-node {
-      overflow-x: hidden;
+      overflow: hidden;
     }
     .el-tree .el-tree-node__content {
       .tree-item {
         width: 377px;
       }
       .database .label {
-        text-overflow:ellipsis!important; 
-        overflow:hidden!important; 
-        word-break:keep-all!important;
-        white-space:nowrap!important;
+        text-overflow:ellipsis !important;
+        overflow:hidden !important;
+        word-break:keep-all !important;
+        white-space:nowrap !important;
         width: 98%;
+        line-height: 35px\0;
       }
       &:hover .database .label{
         width: 85%;
@@ -1024,6 +1025,7 @@ export default class SourceHive extends Vue {
       right: 14px;
       color: @text-disabled-color;
       transform: translateY(-50%);
+      font-size: 13px\0;
     }
     .tree-item {
       &>div {
@@ -1038,6 +1040,7 @@ export default class SourceHive extends Vue {
       user-select: none;
       width: 100%;
       white-space: normal;
+      line-height: 35px\0;
     }
     .el-icon-ksd-good_health {
       color: @color-success;

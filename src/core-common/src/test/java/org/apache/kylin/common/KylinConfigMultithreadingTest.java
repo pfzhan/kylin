@@ -24,6 +24,7 @@
 
 package org.apache.kylin.common;
 
+import static io.kyligence.kap.common.util.TestUtils.getTestConfig;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -39,14 +40,14 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
-import org.junit.FixMethodOrder;
-import org.junit.Test;
-import org.junit.runners.MethodSorters;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Lists;
 
-@FixMethodOrder(MethodSorters.NAME_ASCENDING)
-public class KylinConfigMultithreadingTest extends HotLoadKylinPropertiesTestCase {
+import io.kyligence.kap.junit.annotation.MetadataInfo;
+
+@MetadataInfo
+public class KylinConfigMultithreadingTest {
 
     @Test
     public void test9PropertiesHotLoadWithMultithreading() throws InterruptedException, ExecutionException {
@@ -68,7 +69,7 @@ public class KylinConfigMultithreadingTest extends HotLoadKylinPropertiesTestCas
     }
 
     void reloadFromSiteProperties() {
-        updateProperty("server.port", "4444");
+        getTestConfig().setProperty("server.port", "4444");
         //        KylinConfig.getInstanceFromEnv().reloadFromSiteProperties();
         KylinConfig.getInstanceFromEnv().reloadKylinConfigPropertiesFromSiteProperties();
     }
@@ -106,6 +107,7 @@ public class KylinConfigMultithreadingTest extends HotLoadKylinPropertiesTestCas
 
     @Test
     public void test8ReloadKylinConfigPropertiesFromSiteProperties() {
+        KylinConfig.getInstanceFromEnv().reloadKylinConfigPropertiesFromSiteProperties();
         final Properties oldProperties = KylinConfig.getInstanceFromEnv().exportToProperties();
         KylinConfig.getInstanceFromEnv().reloadKylinConfigPropertiesFromSiteProperties();
         final Properties newProperties = KylinConfig.getInstanceFromEnv().exportToProperties();

@@ -47,6 +47,7 @@ import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 
+import io.kyligence.kap.rest.service.ModelBuildSupporter;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -126,6 +127,10 @@ public class NTableController extends NBasicController {
     @Autowired
     @Qualifier("modelService")
     private ModelService modelService;
+
+    @Autowired
+    @Qualifier("modelBuildService")
+    private ModelBuildSupporter modelBuildService;
 
     @Autowired
     @Qualifier("tableSamplingService")
@@ -296,7 +301,7 @@ public class NTableController extends NBasicController {
         checkRequiredArg("affected start", request.getAffectedStart());
         checkRequiredArg("affected end", request.getAffectedEnd());
         validateRange(request.getRefreshStart(), request.getRefreshEnd());
-        modelService.refreshSegments(request.getProject(), request.getTable(), request.getRefreshStart(),
+        modelBuildService.refreshSegments(request.getProject(), request.getTable(), request.getRefreshStart(),
                 request.getRefreshEnd(), request.getAffectedStart(), request.getAffectedEnd());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }

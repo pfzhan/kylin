@@ -24,20 +24,20 @@
 
 package io.kyligence.kap.streaming.common
 
-import java.util.concurrent.atomic.AtomicLong
-
-import org.apache.spark.sql.SparkSession
 import io.kyligence.kap.metadata.cube.model.NDataSegment
+import org.apache.spark.sql.SparkSession
+
+import java.util.concurrent.atomic.AtomicLong
 import java.util.{List => JList}
 
 class MergeJobEntry(
-       spark: SparkSession,
-       project: String,
-       dataflowId: String,
-       val afterMergeSegmentSourceCount: Long,
-       val globalMergeTime: AtomicLong,
-       val unMergedSegments: JList[NDataSegment],
-       val afterMergeSegment: NDataSegment) extends JobEntry(project, dataflowId, spark) {
+                     spark: SparkSession,
+                     project: String,
+                     dataflowId: String,
+                     val afterMergeSegmentSourceCount: Long,
+                     val globalMergeTime: AtomicLong,
+                     val unMergedSegments: JList[NDataSegment],
+                     val afterMergeSegment: NDataSegment) extends JobEntry(project, dataflowId, spark) {
   override def toString: String = {
     s"""
        |==========================[MEGER JOB INFO]===============================

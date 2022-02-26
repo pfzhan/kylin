@@ -14,7 +14,7 @@
       </div>
     </div>
     <div class="data_features-details">
-      <el-tabs class="data_features-tabs" v-model="tabType" v-loading="loadingData" tab-position="top">
+      <el-tabs class="data_features-tabs" v-model="tabType" v-loading="loadingData" tab-position="top" @tab-click="handleTabClick">
         <el-tab-pane :label="$t('dataFeatures')" name="dataFeatures">
           <template v-if="tabType === 'dataFeatures'">
             <el-table
@@ -229,9 +229,19 @@ export default class DataFeatures extends Vue {
       this.sample.allList = result.tables[0].sampling_rows.length ? result.tables[0].sampling_rows.map((item) => ({...this.statistics.list.reduce((t, it, index) => ({...t, [it.name]: item[index]}), {})})) : []
       this.sample.list = this.sample.allList.slice(this.sample.pageOffset, this.sample.pageSize)
       this.sample.totalSize = this.sample.allList.length
+      this.$nextTick(() => {
+        this.tabType === 'dataFeatures' ? (this.$refs.dataFeatureTable && this.$refs.dataFeatureTable.doLayout()) : (this.$refs.sampleTable && this.$refs.sampleTable.doLayout())
+      })
     }).catch((e) => {
       this.loadingData = false
       handleError(e)
+    })
+  }
+
+  // 切换数据特征 tab
+  handleTabClick () {
+    this.$nextTick(() => {
+      this.tabType === 'dataFeatures' ? (this.$refs.dataFeatureTable && this.$refs.dataFeatureTable.doLayout()) : (this.$refs.sampleTable && this.$refs.sampleTable.doLayout())
     })
   }
 

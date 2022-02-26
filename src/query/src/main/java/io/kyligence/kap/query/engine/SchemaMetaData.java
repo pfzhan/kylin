@@ -40,14 +40,14 @@ import io.kyligence.kap.query.engine.data.TableSchema;
 
 public class SchemaMetaData {
 
-    private ProjectSchemaFactory projectSchemaFactory;
+    private QueryExec queryExec;
 
     public SchemaMetaData(String project, KylinConfig kylinConfig) {
-        projectSchemaFactory = new ProjectSchemaFactory(project, kylinConfig);
+        queryExec = new QueryExec(project, kylinConfig);
     }
 
     public List<TableSchema> getTables() {
-        return projectSchemaFactory.createProjectRootSchema().getSubSchemaMap().values().stream()
+        return queryExec.getRootSchema().getSubSchemaMap().values().stream()
                 .flatMap(schema -> getTables(schema).stream())
                 .collect(Collectors.toList());
     }

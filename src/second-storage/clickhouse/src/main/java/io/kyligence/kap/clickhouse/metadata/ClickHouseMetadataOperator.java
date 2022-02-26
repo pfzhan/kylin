@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.clickhouse.metadata;
 
+import com.google.common.base.Preconditions;
 import io.kyligence.kap.clickhouse.job.ClickHouse;
 import io.kyligence.kap.clickhouse.job.ClickHouseTableStorageMetric;
 import io.kyligence.kap.clickhouse.parser.ExistsQueryParser;
@@ -145,6 +146,23 @@ public class ClickHouseMetadataOperator implements MetadataOperator {
         return new TableSyncResponse(project, new ArrayList<>(nodes), database, new ArrayList<>(tables));
     }
 
+    private NodeGroup getNodeGroup(List<NodeGroup> nodeGroups, Set<String> existShardNodes){
+        Preconditions.checkArgument(!nodeGroups.isEmpty());
+        val existShardNodesList = new ArrayList<>(existShardNodes);
+        NodeGroup addGroup = nodeGroups.get(0);
+        if (existShardNodesList.size() > 0) {
+            for (NodeGroup nodeGroup : nodeGroups){
+                val nodeNames = nodeGroup.getNodeNames();
+                val item = existShardNodesList.get(0);
+                if (nodeNames.contains(item)){
+                    addGroup = nodeGroup;
+                    break;
+                }
+            }
+        }
+        return addGroup;
+    }
+
     @Override
     public SizeInNodeResponse sizeInNode() {
         SecondStorageProjectModelSegment projectModelSegment = properties.get(new ConfigOption<>(SecondStorageConstants.PROJECT_MODEL_SEGMENT_PARAM, SecondStorageProjectModelSegment.class));
@@ -172,7 +190,8 @@ public class ClickHouseMetadataOperator implements MetadataOperator {
                             SecondStorageSegment secondStorageSegment = modelSegment.getSegmentMap().get(tablePartition.getSegmentId());
                             Map<String, Long> sizeInNodeMap = storageMetric.getByPartitions(tableData.getDatabase(), tableData.getTable(), secondStorageSegment.getSegmentRange(), modelSegment.getDateFormat());
                             Set<String> existShardNodes = new HashSet<>(tablePartition.getShardNodes());
-                            List<String> addShardNodes = nodes.stream()
+                            NodeGroup addGroup = getNodeGroup(nodeGroups, existShardNodes);
+                            List<String> addShardNodes = addGroup.getNodeNames().stream()
                                     .filter(node -> !existShardNodes.contains(node))
                                     .collect(Collectors.toList());
 

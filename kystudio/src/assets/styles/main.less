@@ -509,6 +509,17 @@ i[class^=el-icon-]{
     }
   }
 
+// 针对 IE 游览器下中文输入法下输入文字后面会自带叉叉问题
+
+.el-select__input::-ms-clear, .el-input__inner::-ms-clear {
+  display: none;
+}
+
+// IE 下 tooltip 更改
+.el-tooltip__popper .popper__arrow::after {
+  content: none\0;
+}
+
 // 组件特殊覆盖代码
 .el-dialog {
   .el-dialog__body {

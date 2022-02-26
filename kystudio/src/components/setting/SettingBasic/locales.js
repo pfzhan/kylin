@@ -81,11 +81,11 @@ export default {
     acclerationRuleSettings: 'Recommendation Preferences',
     optimizationSuggestions: 'Limit of Recommendations for Adding Index',
     suggestionTip1: 'Up to',
-    suggestionTip2: 'recommendations for adding indexes would be generated per time. Recommendations would be updated every day by default. The frequency could be configured. Check <a class="ky-a-like" href="https://docs.kyligence.io/books/v4.5/en/Designers-Guide/acceleration/" target="_blank">user manual</a> for details.',
+    suggestionTip2: 'recommendations for adding indexes would be generated per time. Recommendations would be updated every 2 days by default. The frequency could be configured. Check <a class="ky-a-like" href="https://docs.kyligence.io/books/v4.5/en/Designers-Guide/acceleration/" target="_blank">user manual</a> for details.',
     emptySegmentEnable: 'Creating Reserved Segments',
     emptySegmentEnableDesc: 'With this switch ON, you may create a segment with no index (reserved segment). Please note that queries would be answered by pushdown engine when they hit reserved segments.',
-    overTimeLimitTip: 'The upper limit of the latency range can\'t exceed 3600 seconds',
-    prevGreaterThanNext: 'The upper limit of the latency range should be greater than the lower limit',
+    overTimeLimitTip: 'Can\'t exceed 3600 seconds',
+    prevGreaterThanNext: 'The content should be greater than the lower limit',
     excludeRule: 'Exclude Rule',
     excludeRuleTip: 'Columns in the following tables will not be included in the recommendations. Suitable for AS-IS analysis. ',
     moreDetails: 'More Info',
@@ -101,10 +101,11 @@ export default {
     hitNums: 'Number of Hits: At Least',
     hitNumTips: 'Hit(s). It\'s recommended to set this value higher according to the actual situation to reduce the number of low-value recommendations.',
     recommendationFrequency: 'Recommendation Frequency: Every',
-    recommendationFrequencyTips: 'Day(s) update recommendations sorted by hits in the time frame you set.',
+    recommendationFrequencyTips: 'Day(s) update recommendations sorted by hits in the time frame you set. Check <a class="ky-a-like" href="https://docs.kyligence.io/books/v4.5/en/Designers-Guide/acceleration/" target="_blank">user manual</a> for details.',
     effectiveDaysEmptyTips: 'Please input time frame',
     minHitCountEmptyTips: 'Please input number of hits',
-    upadateFreEmptyTips: 'Please input recommendation frequency'
+    upadateFreEmptyTips: 'Please input recommendation frequency',
+    emptyTips: 'Can\'t be empty'
   },
   'zh-cn': {
     basicInfo: '通用信息',
@@ -187,11 +188,11 @@ export default {
     acclerationRuleSettings: '优化建议偏好设置',
     optimizationSuggestions: '优化建议数量上限',
     suggestionTip1: '每次最多生成',
-    suggestionTip2: '条类型为新增索引的优化建议。默认每天更新一次，此更新频率可进行配置，详情请<a class="ky-a-like" href="https://docs.kyligence.io/books/v4.5/zh-cn/Designers-Guide/acceleration/" target="_blank">查看手册</a>。',
+    suggestionTip2: '条类型为新增索引的优化建议。默认每 2 天更新一次，此更新频率可进行配置，详情请<a class="ky-a-like" href="https://docs.kyligence.io/books/v4.5/zh-cn/Designers-Guide/acceleration/" target="_blank">查看手册</a>。',
     emptySegmentEnable: '支持创建保留 Segment',
     emptySegmentEnableDesc: '该选项开启后，您可以在 Segment 列表页面直接创建一个不包含任何索引的 Segment (保留 segment)。请注意，查询命中保留 Segment 时将会通过下压查询回答。',
-    overTimeLimitTip: '延迟范围的上限不超过 3600 秒',
-    prevGreaterThanNext: '延迟范围的上限应大于下限',
+    overTimeLimitTip: '不超过 3600 秒',
+    prevGreaterThanNext: '应大于下限',
     excludeRule: '屏蔽设置',
     excludeRuleTip: '以下表中的列将不被推荐到优化建议中，适用于 AS-IS 分析场景。',
     moreDetails: '更多信息',
@@ -207,9 +208,10 @@ export default {
     hitNums: '命中次数：至少',
     hitNumTips: '次。建议根据实际情况将该值设置得高一些，可显著减少低价值优化建议数量。',
     recommendationFrequency: '推荐频率：每',
-    recommendationFrequencyTips: '天推荐一次优化建议，按所设置的“时间范围”内命中次数从高到低选取。详情请查看手册。',
+    recommendationFrequencyTips: '天推荐一次优化建议，按所设置的“时间范围”内命中次数从高到低选取。详情请<a class="ky-a-like" href="https://docs.kyligence.io/books/v4.5/zh-cn/Designers-Guide/acceleration/" target="_blank">查看手册</a>。',
     effectiveDaysEmptyTips: '请输入时间范围',
     minHitCountEmptyTips: '请输入命中次数',
-    upadateFreEmptyTips: '请输入推荐频率'
+    upadateFreEmptyTips: '请输入推荐频率',
+    emptyTips: '不为空'
   }
 }

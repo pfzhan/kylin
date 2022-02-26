@@ -23,13 +23,14 @@
  */
 package io.kyligence.kap.rest.service;
 
+import static org.junit.Assert.fail;
+
 import java.io.File;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import io.kyligence.kap.tool.constant.DiagTypeEnum;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
@@ -52,6 +53,7 @@ import com.google.common.cache.CacheBuilder;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.rest.request.DiagProgressRequest;
 import io.kyligence.kap.rest.response.DiagStatusResponse;
+import io.kyligence.kap.tool.constant.DiagTypeEnum;
 import io.kyligence.kap.tool.constant.StageEnum;
 import lombok.val;
 
@@ -224,6 +226,15 @@ public class SystemServiceTest extends NLocalFileMetadataTestCase {
         val result = systemService.getExtractorStatus("testUpdate");
         Assert.assertEquals(StageEnum.DONE.toString(), result.getData().getStage());
         Assert.assertEquals(new Float(100), result.getData().getProgress());
+    }
+
+    @Test
+    public void testRecoverMetadata() {
+        try {
+            systemService.reloadMetadata();
+        } catch (Exception e) {
+            fail("reload should be successful but not");
+        }
     }
 
 }
