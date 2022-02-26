@@ -574,7 +574,6 @@ public class OpenModelController extends NBasicController {
         checkSqlIsNotNull(request.getSqls());
         request.setProject(projectName);
         request.setForce2CreateNewModel(false);
-        request.setWithOptimalModel(true);
         checkProjectNotSemiAuto(request.getProject());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, modelSmartService.suggestAndOptimizeModels(request), "");
     }
