@@ -24,7 +24,9 @@ const store = new Vuex.Store({
       platform: 'iframe'
     },
     datasource: {
-      dataSource: {}
+      dataSource: {
+        test_shardby: []
+      }
     },
     project: {
       allProject: [{
@@ -83,5 +85,57 @@ describe('Component SourceSelect', () => {
   })
   it('methods', () => {
     expect(wrapper.vm.getSourceClass([9])).toEqual({active: true, 'is-disabled': false})
+    wrapper.vm.clickHandler(9)
+    expect(wrapper.emitted()).toEqual({'input': [[9]]})
+
+    wrapper.vm.clickHandler()
+    expect(wrapper.emitted().input[1][0]).toBe('')
+
+    expect(wrapper.vm.disabledSelectDataSource([9])).toBeFalsy()
+    expect(wrapper.vm.disabledSelectDataSource([8])).toBeFalsy()
+    expect(wrapper.vm.disabledSelectDataSource()).toBeFalsy()
+  })
+  it('computed', async () => {
+    wrapper.vm.$store.state.datasource.dataSource = {
+      test_shardby: [
+        {
+          database: 'SSB',
+          columns: [],
+          table: 'SSB.CUSTOMER',
+          source_type: 9
+        },
+        {
+          database: 'KAFKA',
+          columns: [],
+          table: 'KAFKA.LINEORDER',
+          source_type: 1
+        }
+      ]
+    }
+    await wrapper.vm.$nextTick()
+    expect(wrapper.vm.isOpenJDBCSource).toBe(false)
+    expect(wrapper.vm.disabledSelectDataSource([9])).toBeFalsy()
+    expect(wrapper.vm.disabledSelectDataSource([8])).toBeTruthy()
+
+    wrapper.vm.$store.state.datasource.dataSource = {
+      test_shardby: [{
+        database: 'SSB',
+        columns: [],
+        table: 'SSB.CUSTOMER',
+        source_type: 8
+      }]
+    }
+    await wrapper.vm.$nextTick()
+    expect(wrapper.vm.disabledSelectDataSource([1])).toBeTruthy()
+
+    expect(wrapper.vm.getSourceClass()).toEqual({'active': false, 'is-disabled': false})
+
+    wrapper.vm.$store.state.project.selected_project = 'project'
+    wrapper.vm.$store.state.project.allProject.splice(1, 0, {
+      name: 'project',
+      override_kylin_properties: {'kylin.source.jdbc.source.enable': 'true', 'kylin.source.jdbc.source.name': 'JDBC'}
+    })
+    await wrapper.vm.$nextTick()
+    expect(wrapper.vm.showJDBCEnter).toBeTruthy()
   })
 })

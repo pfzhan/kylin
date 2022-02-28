@@ -5,8 +5,8 @@ let apiUrl
 let baseUrl
 let regexApiUrl
 
-let pageCount = 10
-let pageSizes = [10, 20, 30, 50, 100]
+let pageCount = 20
+let pageSizes = [10, 20, 50, 100]
 
 let maxExportLength = 100000 // 出厂最低配置下，10万行导出在 10秒以内
 

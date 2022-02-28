@@ -74,7 +74,8 @@ const _refs = {
       addEventListener: jest.fn(),
       removeEventListener: jest.fn()
     },
-    scrollPosition: 'right'
+    scrollPosition: 'right',
+    doLayout: jest.fn()
   }
 }
 

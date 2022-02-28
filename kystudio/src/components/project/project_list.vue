@@ -3,7 +3,7 @@
  <!-- <el-button type="primary" plain class="ksd-mb-20 ksd-mt-10" v-if="isAdmin && (projectList && projectList.length)" @click="addProject">+{{$t('kylinLang.common.project')}}</el-button> -->
  <div class="ksd-title-label ksd-mt-20">{{$t('projectsList')}}</div>
   <div>
-    <el-button type="primary" plain size="medium" class="ksd-mb-10 ksd-mt-10" icon="el-ksd-icon-add_22" v-if="projectActions.includes('addProject')" @click="newProject">{{$t('kylinLang.common.project')}}</el-button>
+    <el-button type="primary" size="medium" class="ksd-mb-10 ksd-mt-10" icon="el-ksd-icon-add_22" v-if="projectActions.includes('addProject')" @click="newProject">{{$t('kylinLang.common.project')}}</el-button>
     <div style="width:240px;" class="ksd-fright ksd-mtb-10">
       <el-input class="show-search-btn"
         size="medium"

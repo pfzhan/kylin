@@ -9,7 +9,8 @@ export default {
     delGroupTitle: 'Delete Group',
     userGroupsList: 'User Group List',
     groupFilter: 'Search by user group name',
-    userGroup: 'User Group'
+    userGroup: 'User Group',
+    securityProfileTip: 'The current security configuration doesn\'t allow managing users/user groups, including adding, editing, deleting, assigning, and changing passwords.'
   },
   'zh-cn': {
     newGroup: '添加用户组',
@@ -21,6 +22,7 @@ export default {
     delGroupTitle: '删除用户组',
     userGroupsList: '用户组列表',
     groupFilter: '搜索用户组',
-    userGroup: '用户组'
+    userGroup: '用户组',
+    securityProfileTip: '当前安全配置不支持管理用户/用户组，包括新增、编辑、删除、分配，以及修改密码等。'
   }
 }

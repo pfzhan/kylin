@@ -92,7 +92,7 @@ describe('Component GroupEditModal', () => {
     await wrapper.vm.submit()
     expect(wrapper.vm.$refs.form.validate).toBeCalled()
     expect(mockApis.mockAddUsersToGroup.mock.calls[0][1]).toEqual({'group_name': '', 'users': ['test_01']})
-    expect(mockMessage).toBeCalledWith({'message': ' Added the user group successfully.', 'type': 'success'})
+    expect(mockMessage).toBeCalledWith({'message': 'Adjusted the assigned users and user groups successfully.', 'type': 'success'})
     expect(wrapper.vm.$data.submitLoading).toBeFalsy()
 
     wrapper.vm.$refs.form = {
@@ -113,7 +113,7 @@ describe('Component GroupEditModal', () => {
     wrapper.vm.queryHandler('Unassigned Users', 'test')
     jest.runAllTimers()
     // expect(mockApis.mockLoadUserList.mock.calls[6][1]).toEqual({'name': 'test', 'page_offset': 0, 'page_size': 1000})
-    expect(wrapper.vm.$store.state.GroupEditModal.totalUsers.length).toBe(32)
+    expect(wrapper.vm.$store.state.GroupEditModal.totalUsers.length).toBe(2)
 
     wrapper.vm.queryHandler('Assigned Users', '')
     expect(wrapper.vm.$data.searchValueRight).toBe('')

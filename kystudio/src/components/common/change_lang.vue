@@ -65,7 +65,7 @@
         // 判断IE浏览器使用语言
           currentLang = navigator.browserLanguage
         }
-        if (currentLang.indexOf('zh') >= 0) {
+        if (currentLang && currentLang.indexOf('zh') >= 0) {
           this.defaultLang = 'zh-cn'
         }
         const finalLang = localStorage.getItem('kystudio_lang') ? localStorage.getItem('kystudio_lang') : this.defaultLang

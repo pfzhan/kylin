@@ -256,7 +256,7 @@ describe('Component QueryHistoryTable', () => {
     await wrapper.setData({filterData: {...wrapper.vm.filterData, sql: 'select * from SSB'}})
     // await wrapper.update()
     wrapper.vm.onSqlFilterChange()
-    expect(mockMessage).toBeCalledWith({'duration': 0, 'message': 'Invalide entering: cannot search space', 'showClose': true, 'type': 'warning'})
+    expect(mockMessage).toBeCalledWith({'duration': 10000, 'message': 'Invalide entering: cannot search space', 'showClose': true, 'type': 'warning'})
     expect(wrapper.emitted().loadFilterList).toEqual([[{'latencyFrom': null, 'latencyTo': null, 'query_status': [], 'realization': [], 'server': '', 'sql': '', 'startTimeFrom': 1613318400000, 'startTimeTo': 1613923200000, 'submitter': []}], [{'latencyFrom': null, 'latencyTo': null, 'query_status': [], 'realization': [], 'server': '', 'sql': 'select * from SSB', 'startTimeFrom': 1613318400000, 'startTimeTo': 1613923200000, 'submitter': []}]])
     expect(wrapper.vm.toggleExpandId).toEqual([])
 

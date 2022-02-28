@@ -1,8 +1,18 @@
 import { mount } from '@vue/test-utils'
 import { localVue } from '../../../../test/common/spec_common'
 import Tab from '../tab.vue'
+import Vuex from 'vuex'
+
+const store = new Vuex.Store({
+  state: {
+    system: {
+      lang: 'en'
+    }
+  }
+})
 
 const wrapper = mount(Tab, {
+  store,
   localVue,
   propsData: {
     tabslist: [{name: 'query', icon: 'el-icon-ksd-healthy', i18n: false, closable: true, disabled: false, title: 'query', spin: ''}],

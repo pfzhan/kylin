@@ -156,7 +156,7 @@ wrapper.vm.$refs = {
 
 describe('Component SettingBasic', () => {
   it('init', async () => {
-    expect(wrapper.vm.rulesAccerationDefault).toEqual({'count_enable': true, 'count_value': 0, 'duration_enable': false, 'excluded_tables': [], 'excluded_tables_enable': false, 'max_duration': 0, 'min_duration': 0, 'recommendation_enable': true, 'recommendations_value': 20, 'submitter_enable': true, 'user_groups': [], 'users': []})
+    expect(wrapper.vm.rulesAccerationDefault).toEqual({'count_enable': true, 'count_value': 0, 'duration_enable': false, 'effective_days': 2, 'excluded_tables': [], 'excluded_tables_enable': false, 'max_duration': 0, 'min_duration': 0, 'min_hit_count': 30, 'recommendation_enable': true, 'recommendations_value': 20, 'submitter_enable': true, 'update_frequency': 2, 'user_groups': [], 'users': []})
     await wrapper.vm.$options.mounted[0].call(wrapper.vm)
     expect(wrapper.vm.form).toEqual({'JDBCConnectSetting': [], 'alias': 'xm_test_1', 'auto_merge_enabled': true, 'auto_merge_time_ranges': ['WEEK', 'MONTH'], 'jdbc_datasource_enabled': false, 'create_empty_segment_enabled': undefined, 'description': undefined, 'frequency_time_window': 'MONTH', 'low_frequency_threshold': 0, 'maintain_model_type': 'MANUAL_MAINTAIN', 'project': 'xm_test_1', 'push_down_enabled': true, 'push_down_range_limited': undefined, 'retention_range': {'retention_range_enabled': false, 'retention_range_number': '1', 'retention_range_type': 'MONTH'}, 'semi_automatic_mode': true, 'storage_garbage': true, 'storage_quota_size': 14293651161088, 'storage_quota_tb_size': '13.00', 'volatile_range': {'volatile_range_enabled': true, 'volatile_range_number': '0', 'volatile_range_type': 'DAY'}})
     expect(wrapper.vm.$refs.acclerationRuleSettings.$el.scrollIntoView).toBeCalled()
@@ -210,7 +210,7 @@ describe('Component SettingBasic', () => {
       error: jest.fn()
     }
     await wrapper.vm.handleSubmit('basic-info', callbackFnc.success, callbackFnc.error)
-    expect(mockApi.mockCallGlobalDetailDialog.mock.calls[0][1]).toEqual({'dangerouslyUseHTMLString': true, 'dialogType': 'warning', 'isBeta': true, 'isCenterBtn': true, 'msg': 'Please note that this feature is still in BETA phase. Potential risks or known limitations might exist. Check <a class="ky-a-like" href="https://docs.kyligence.io/books/v4.5/en/acceleration/" target="_blank">user manual</a> for details.<br/>Do you want to continue?', 'needConcelReject': true, 'showDetailBtn': false, 'submitText': 'Turn On', 'title': 'Turn On Recommendation', 'wid': '400px'})
+    expect(mockApi.mockCallGlobalDetailDialog.mock.calls[0][1]).toEqual({'dangerouslyUseHTMLString': true, 'dialogType': 'warning', 'isBeta': false, 'isCenterBtn': true, 'msg': 'With recommendation mode turned on, the system will generate recommendations for existing models by analyzing the query history and model usage. You may set the related preferences in settings.<br/><br/>Do you want to continue?', 'needConcelReject': true, 'showDetailBtn': false, 'submitText': 'Turn On', 'title': 'Turn On Recommendation', 'wid': '400px'})
     expect(mockApi.mockUpdateProjectGeneralInfo.mock.calls[0][1]).toEqual({'alias': 'xm_test_1', 'description': undefined, 'maintain_model_type': 'MANUAL_MAINTAIN', 'project': 'xm_test_1', 'semi_automatic_mode': true})
     expect(callbackFnc.success).toBeCalled()
     expect(wrapper.emitted()['reload-setting'].length).toBe(5)
@@ -274,10 +274,10 @@ describe('Component SettingBasic', () => {
     await wrapper.vm.handleResetForm('accleration-rule-settings', callbackFnc.success, callbackFnc.error)
     expect(mockApi.mockResetConfig.mock.calls[3][1]).toEqual({'project': 'Kyligence', 'reset_item': 'favorite_rule_config'})
     expect(mockHandleSuccessAsync).toBeCalled()
-    expect(wrapper.vm.rulesObj.min_duration).toBe(10)
-    expect(wrapper.vm.rulesObj.max_duration).toBe(20)
+    expect(wrapper.vm.rulesObj.min_duration).toBe(0)
+    expect(wrapper.vm.rulesObj.max_duration).toBe(0)
     expect(callbackFnc.success).toBeCalled()
-    expect(wrapper.emitted()['reload-setting'].length).toBe(13)
+    expect(wrapper.emitted()['reload-setting'].length).toBe(12)
     expect(mockMessage).toBeCalledWith({'message': 'Reset successfully.', 'type': 'success'})
 
     expect(wrapper.vm.isFormEdited(wrapper.vm.form, 'basic-info')).toBeFalsy()
@@ -293,7 +293,7 @@ describe('Component SettingBasic', () => {
     expect(wrapper.vm.filterUsers).toEqual(['ADMIN', 'ANALYST', 'fanfan', 'gaoyuan'])
 
     wrapper.vm.saveAcclerationRule()
-    expect(mockApi.mockUpdateFavoriteRules.mock.calls[0][1]).toEqual({'count_enable': true, 'count_value': 0, 'duration_enable': false, 'excluded_tables': '', 'excluded_tables_enable': false, 'max_duration': 0, 'min_duration': 0, 'project': 'Kyligence', 'recommendation_enable': true, 'recommendations_value': 20, 'submitter_enable': true, 'user_groups': [], 'users': []})
+    expect(mockApi.mockUpdateFavoriteRules.mock.calls[0][1]).toEqual({'count_enable': true, 'count_value': 0, 'duration_enable': false, 'effective_days': 2, 'excluded_tables': '', 'excluded_tables_enable': false, 'max_duration': 0, 'min_duration': 0, 'min_hit_count': 30, 'project': 'Kyligence', 'recommendation_enable': true, 'recommendations_value': 20, 'submitter_enable': true, 'update_frequency': 2, 'user_groups': [], 'users': []})
     expect(mockHandleSuccess).toBeCalled()
     expect(wrapper.vm.rulesAccerationDefault === wrapper.vm.rulesObj).toBeFalsy()
 
@@ -356,19 +356,19 @@ describe('SettingBasic handler', () => {
   it('event', () => {
     const callbackValidate = jest.fn()
     global.window.kapVm = wrapper.vm
-    handler.validate.storageQuotaSize(null, '', callbackValidate)
+    handler.validate.storageQuotaSize.call(wrapper.vm, null, '', callbackValidate)
     expect(callbackValidate).not.toBe()
-    handler.validate.storageQuotaSize(null, 10, callbackValidate)
+    handler.validate.storageQuotaSize.call(wrapper.vm, null, 10, callbackValidate)
     expect(callbackValidate).toBeCalledWith()
 
-    handler.validate.positiveNumber(null, 'ab123', callbackValidate)
+    handler.validate.positiveNumber.call(wrapper.vm, null, 'ab123', callbackValidate)
     expect(callbackValidate.mock.calls[0][0]).toBeTruthy()
-    handler.validate.positiveNumber(null, '10.00', callbackValidate)
+    handler.validate.positiveNumber.call(wrapper.vm, null, '10.00', callbackValidate)
     expect(callbackValidate).toBeCalledWith()
 
-    handler.validate.storageQuotaNum(null, '', callbackValidate)
+    handler.validate.storageQuotaNum.call(wrapper.vm, null, '', callbackValidate)
     expect(callbackValidate.mock.calls[0][0]).toBeTruthy()
-    handler.validate.storageQuotaNum(null, 100, callbackValidate)
+    handler.validate.storageQuotaNum.call(wrapper.vm, null, 100, callbackValidate)
     expect(callbackValidate).toBeCalledWith()
   })
 })

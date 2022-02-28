@@ -5,7 +5,6 @@ import aboutKap from '../about_kap.vue'
 import updateLicense from '../../user/license.vue'
 import * as business from '../../../util/business'
 import Vuex from 'vuex'
-import { call } from 'function-bind'
 
 jest.useFakeTimers()
 
@@ -232,7 +231,7 @@ describe('Component Help', () => {
     await wrapper.vm.submitApply()
     expect(wrapper.vm.userMessage.category).toBe('4.x')
     expect(mockApi.mockTrialLicenseFile.mock.calls[0][1]).toEqual({"category": "4.x", "company": "", "email": "", "lang": "en", "product_type": "kap", "username": ""})
-    expect(mockAlert).toBeCalledWith('Evaluation Period:2019-06-01, 2022-01-01', 'Evaluation License', {"cancelConfirmButton": true, "type": "success"})
+    expect(mockAlert.mock.calls[1]).toEqual(['Evaluation Period:2019-06-01, 2023-01-01', 'Evaluation License', {"cancelConfirmButton": true, "type": "success"}])
 
     const callback = jest.fn()
     wrapper.vm.validateEmail(null, 'testcontenttestcontenttestcontenttestcontenttestcontenttestcontenttestcontenttestcontent', callback)

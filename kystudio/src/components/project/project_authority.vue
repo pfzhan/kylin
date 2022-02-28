@@ -1,11 +1,19 @@
 <template>
   <div id="projectAuth">
-    <div class="ksd-title-label">{{$t('projectTitle', {projectName: currentProject})}}</div>
+    <div class="ksd-title-label titleBox">
+      <el-button
+        type="primary"
+        text
+        icon-button-mini
+        icon="el-ksd-icon-arrow_left_16"
+        size="small"
+        @click="$router.push('/admin/project')"></el-button>
+      <span>{{$t('projectTitle', {projectName: currentProject})}}</span>
+    </div>
     <el-row class="ksd-mt-10 ksd-mb-10">
       <el-col :span="24">
         <div class="ksd-fleft ky-no-br-space">
-          <el-button plain type="primary" icon="el-ksd-icon-back_old" @click="$router.push('/admin/project')">{{$t('back')}}</el-button>
-          <el-button plain type="primary" icon="el-ksd-icon-add_22" v-if="projectActions.includes('accessActions')" @click="authorUser()">{{$t('userAccess')}}</el-button>
+          <el-button type="primary" icon="el-ksd-icon-add_22" v-if="projectActions.includes('accessActions')" @click="authorUser()">{{$t('userAccess')}}</el-button>
           <!-- <el-button v-if="accessView == 'user'" plain type="primary" @click="toggleView('table')">{{$t('toggleTableView')}}</el-button>
           <el-button v-if="accessView == 'table'" plain type="primary" @click="toggleView('user')">{{$t('toggleUserView')}}</el-button> -->
         </div>
@@ -611,6 +619,10 @@ export default class ProjectAuthority extends Vue {
   @import '../../assets/styles/variables.less';
   #projectAuth {
     padding: 20px;
+    .titleBox{
+      display: flex;
+      align-items: center;
+    }
     .user-access-table {
       .el-icon-ksd-table_edit,
       .el-icon-ksd-table_delete {

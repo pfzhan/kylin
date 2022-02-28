@@ -15,6 +15,7 @@
           size="medium"
           icon="el-ksd-icon-add_22"
           v-if="userActions.includes('addUser')"
+          :disabled="!isTestingSecurityProfile"
           @click="editUser('new')">
           {{$t('user')}}
         </el-button>
@@ -32,7 +33,7 @@
       </el-col>
     </el-row>
 
-    <el-alert class="ksd-mb-20" type="info"
+    <el-alert class="ksd-mb-16" type="info"
       v-if="!isTestingSecurityProfile"
       :title="$t('securityProfileTip')"
       :closable="false">
@@ -71,18 +72,18 @@
       <el-table-column v-if="isActionShow" :label="$t('action')" :width="87">
         <template slot-scope="scope">
           <el-tooltip :content="$t('resetPassword')" effect="dark" placement="top">
-            <i class="el-icon-ksd-table_reset_password ksd-fs-14 ksd-mr-10" v-show="userActions.includes('changePassword') || scope.row.uuid === currentUser.uuid" @click="editUser(scope.row.uuid === currentUser.uuid ? 'password' : 'resetUserPassword', scope.row)"></i>
+            <i class="el-icon-ksd-table_reset_password ksd-fs-14 ksd-mr-10" :class="{'is-disabled': !isTestingSecurityProfile}" v-if="userActions.includes('changePassword') || scope.row.uuid === currentUser.uuid" @click="editUser(scope.row.uuid === currentUser.uuid ? 'password' : 'resetUserPassword', scope.row)"></i>
           </el-tooltip><span>
           </span><el-tooltip :content="$t('groupMembership')" effect="dark" placement="top">
-            <i class="el-icon-ksd-table_group ksd-fs-14 ksd-mr-10" v-show="userActions.includes('assignGroup')" @click="editUser('group', scope.row)"></i>
+            <i class="el-icon-ksd-table_group ksd-fs-14 ksd-mr-10" :class="{'is-disabled': !isTestingSecurityProfile}" v-if="userActions.includes('assignGroup')" @click="editUser('group', scope.row)"></i>
           </el-tooltip><span>
-          </span><common-tip :content="$t('kylinLang.common.moreActions')"><el-dropdown trigger="click">
-            <i class="el-icon-ksd-table_others" v-show="isMoreActionShow"></i>
+          </span><common-tip :content="$t('kylinLang.common.moreActions')" v-if="isMoreActionShow"><el-dropdown trigger="click">
+            <i class="el-icon-ksd-table_others" :class="{'is-disabled': !isTestingSecurityProfile}"></i>
             <el-dropdown-menu slot="dropdown">
-              <el-dropdown-item v-if="userActions.includes('editUser')&&scope.row.uuid !== currentUser.uuid" @click.native="editUser('edit', scope.row)">{{$t('editRole')}}</el-dropdown-item>
-              <el-dropdown-item v-if="userActions.includes('deleteUser')" @click.native="dropUser(scope.row)">{{$t('drop')}}</el-dropdown-item>
-              <el-dropdown-item v-if="userActions.includes('disableUser') && scope.row.disabled" @click.native="changeStatus(scope.row)">{{$t('enable')}}</el-dropdown-item>
-              <el-dropdown-item v-if="userActions.includes('disableUser') && !scope.row.disabled" @click.native="changeStatus(scope.row)">{{$t('disable')}}</el-dropdown-item>
+              <el-dropdown-item :disabled="!isTestingSecurityProfile" v-if="userActions.includes('editUser')&&scope.row.uuid !== currentUser.uuid" @click.native="editUser('edit', scope.row)">{{$t('editRole')}}</el-dropdown-item>
+              <el-dropdown-item :disabled="!isTestingSecurityProfile" v-if="userActions.includes('deleteUser')" @click.native="dropUser(scope.row)">{{$t('drop')}}</el-dropdown-item>
+              <el-dropdown-item :disabled="!isTestingSecurityProfile" v-if="userActions.includes('disableUser') && scope.row.disabled" @click.native="changeStatus(scope.row)">{{$t('enable')}}</el-dropdown-item>
+              <el-dropdown-item :disabled="!isTestingSecurityProfile" v-if="userActions.includes('disableUser') && !scope.row.disabled" @click.native="changeStatus(scope.row)">{{$t('disable')}}</el-dropdown-item>
             </el-dropdown-menu>
           </el-dropdown>
           </common-tip>
@@ -226,11 +227,13 @@ export default class SecurityUser extends Vue {
   }
 
   async editUser (editType, userDetail) {
+    if (!this.isTestingSecurityProfile) return
     const isSubmit = await this.callUserEditModal({ editType, userDetail })
     isSubmit && this.loadUsers(this.filterName)
   }
 
   async dropUser (userDetail) {
+    if (!this.isTestingSecurityProfile) return
     try {
       const { uuid, username } = userDetail
 
@@ -245,6 +248,7 @@ export default class SecurityUser extends Vue {
   }
 
   async changeStatus (userDetail) {
+    if (!this.isTestingSecurityProfile) return
     const status = userDetail.disabled ? this.$t('enable') : this.$t('disable')
     await kapConfirm(this.$t('changeUserTips', {status: status.toLowerCase(), userName: userDetail.username}), {cancelButtonText: this.$t('kylinLang.common.cancel'), confirmButtonText: status, type: 'warning'})
     try {
@@ -282,6 +286,14 @@ export default class SecurityUser extends Vue {
     }
     .user-name-col {
       white-space: pre;
+    }
+    .is-disabled {
+      cursor: not-allowed;
+      color: @text-disabled-color;
+      &:hover {
+        cursor: not-allowed;
+        color: @text-disabled-color;
+      }
     }
   }
 }

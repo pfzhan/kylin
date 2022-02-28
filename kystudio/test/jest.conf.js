@@ -22,7 +22,7 @@ module.exports = {
   testPathIgnorePatterns: ['<rootDir>/src/config'],
   testMatch: [
     '<rootDir>/src/**/__test__/**/*.spec.js'
-    // '<rootDir>/src/components/monitor/__test__/jobs.spec.js'
+    // '<rootDir>/src/components/common/__test__/DataSourceModal/index.spec.js'
   ],
   setupFiles: ['<rootDir>/test/setup'],
   moduleNameMapper: {
@@ -48,6 +48,7 @@ module.exports = {
     'src/components/**/*.{js,vue}',
     'src/components/common/__test__/slider.spec.js',
     '!src/**/__test__/**/*.js',
+    '!src/**/locales.js',
     '!src/components/dome.vue',
     '!**/node_modules/**',
     '!src/router/**',

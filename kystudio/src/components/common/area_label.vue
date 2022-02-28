@@ -95,7 +95,7 @@ export default {
   watch: {
     selectedlabels (val) {
       this.selectedL = val.map((item) => {
-        return item.toLocaleUpperCase()
+        return this.isNeedNotUpperCase ? item : item.toLocaleUpperCase()
       })
     },
     // 保证组件在外部切换校验类型的时候能够动态切换校验表达式
@@ -120,7 +120,7 @@ export default {
         this.$emit('change')
         this.tags = Array.prototype.slice.call(this.$el.querySelectorAll('.el-tag'))
         if (this.allowcreate && e.length > 0) {
-          let item = (e[e.length - 1]).toLocaleUpperCase()
+          let item = this.isNeedNotUpperCase ? e[e.length - 1] : (e[e.length - 1]).toLocaleUpperCase()
           let result = this.filterCreateTag(item)
           var splitChar = this.splitChar || ';'
           var regOfSeparate = new RegExp(splitChar)
@@ -136,7 +136,7 @@ export default {
         }
         // 都转为大写
         let temp = this.selectedL.map((item) => {
-          return item.toLocaleUpperCase()
+          return this.isNeedNotUpperCase ? item : item.toLocaleUpperCase()
         })
         // 去重返回
         this.duplicateremove && (this.selectedL = [...new Set(temp)])
