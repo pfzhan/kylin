@@ -129,8 +129,7 @@ vuex.registerModule(['modals', 'DataSourceModal'], store)
       editType: state => state.editType,
       callback: state => state.callback,
       firstEditType: state => state.firstEditType,
-      databaseSizeObj: state => state.databaseSizeObj,
-      connectGbaseSetting: state => state.form.connectGbaseSetting
+      databaseSizeObj: state => state.databaseSizeObj
     }),
     ...mapGetters([
       'currentSelectedProject'
@@ -423,7 +422,7 @@ export default class DataSourceModal extends Vue {
           return
         }
         if (submitData.isShowHiveTree && submitData.table_desc.columns.length === submitData.batchTableColumns.length) {
-          for (let i; i < submitData.table_desc.columns.length - 1; i++) {
+          for (let i = 0; i <= submitData.table_desc.columns.length - 1; i++) {
             const index = indexOfObjWithSomeKey(submitData.batchTableColumns, 'name', submitData.table_desc.columns[i].name)
             if (index === -1) {
               isValid = false

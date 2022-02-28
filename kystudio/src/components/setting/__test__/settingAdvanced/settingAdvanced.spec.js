@@ -226,7 +226,7 @@ describe('Component SettingAdvanced', () => {
     expect('threshold' in wrapper.vm.accelerateRules).toBeTruthy()
     expect(wrapper.vm.setDefaultDBRules).toEqual({'default_database': {'message': 'Please select', 'required': true, 'trigger': 'change'}})
     expect(wrapper.vm.emailRules).toEqual({'job_notification_emails.0': [{'message': 'Please enter email', 'required': true, 'trigger': 'blur'}, {'message': 'Please enter a valid email address.', 'trigger': 'blur', 'type': 'email'}]})
-    expect(wrapper.vm.yarnQueueRules['yarn_queue'][0].message).toEqual(['The queue name is required', 'Incorrect format'])
+    expect(wrapper.vm.yarnQueueRules['yarn_queue'][0].message).toEqual(["Can't be empty", 'Incorrect format'])
     expect(wrapper.vm.userType).toBeTruthy()
     expect('principal' in wrapper.vm.kerberosRules).toBeTruthy()
     expect(wrapper.vm.kerberosActionUrl).toBe('/kylin/api/projects/kyligence/project_kerberos_info')

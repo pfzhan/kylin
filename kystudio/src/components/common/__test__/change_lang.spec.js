@@ -13,46 +13,56 @@ Vue.use(VueResource)
 const store = new Vuex.Store({
   state: {
     system: {
-      lang: 'en'
+      lang: 'en',
+      messageDirectives: []
     }
   }
 })
 let mockFn = jest.spyOn(util, 'getQueryString').mockReturnValue('')
-const navigator = {
-  language: 'zh-cn',
-  browserLanguage: 'zh-cn'
-}
-
-global.navigator = navigator
+let mockEventBus = jest.fn().mockImplementation((type, callback) => {
+  callback('en')
+})
 
 let wrapper = null
 
+const factory = (mocks, language) => {
+  // global.navigator.language = language || 'zh-cn'
+  Object.defineProperty(global.navigator, 'language', {
+    writable: true,
+    value: language
+  })
+  return shallowMount(changeLang, {
+    store,
+    localVue,
+    mocks: {
+      // navigator: navigator,
+      $_bus: {
+        $on: mockEventBus
+      },
+      ...mocks
+    }
+  })
+}
+
 describe('Component change_lang', () => {
-  beforeEach(() => {
-    wrapper = shallowMount(changeLang, {
-      store,
-      localVue,
-      mocks: {
-        navigator: navigator
-      }
-    })
-  })
-  afterEach(() => {
-    wrapper.destroy()
-  })
   it('init', () => {
-    expect(wrapper.vm.defaultLang).toBe('en')
+    wrapper = factory({}, 'zh-cn')
+    expect(wrapper.vm.defaultLang).toBe('zh-cn')
     localStorage.setItem('kystudio_lang', 'zh-cn')
     wrapper.setData({ lang: localStorage.getItem('kystudio_lang') ? localStorage.getItem('kystudio_lang') : wrapper.vm.defaultLang })
     expect(wrapper.vm.lang).toBe('zh-cn')
+    wrapper.destroy()
   })
   it('created', () => {
+    wrapper = factory({}, 'zh-cn')
     // expect(mockFn).toBeCalled()
     changeLang.created.call(wrapper.vm)
     expect(mockFn).toBeCalled()
     expect(mockFn).toHaveBeenCalledWith('lang')
+    wrapper.destroy()
   })
   it('method changeLang', () => {
+    wrapper = factory({}, 'zh-cn')
     // 更改语言类型为英文时
     wrapper.vm.changeLang('en')
     expect(wrapper.vm.$store.state.system.lang).toBe('en')
@@ -69,5 +79,25 @@ describe('Component change_lang', () => {
     expect(Vue.http.headers.common['Accept-Language']).toBe('cn')
     expect(localStorage.getItem('kystudio_lang')).toBe('zh-cn')
     expect(document.documentElement.lang).toBe('zh-cn')
+    wrapper.destroy()
+  })
+  it('no language', () => {
+    wrapper = factory({}, '')
+    expect(wrapper.vm.defaultLang).toBe('en')
+    expect(mockEventBus).toBeCalled()
+    expect(wrapper.vm.lang).toBe('en')
+    wrapper.destroy()
+  })
+  it('api query', () => {
+    mockFn = jest.spyOn(util, 'getQueryString').mockReturnValue('en')
+    wrapper = factory({}, '')
+    expect(wrapper.vm.lang).toBe('en')
+    wrapper.destroy()
+  })
+  it('language message', () => {
+    store.state.system.messageDirectives = [{action: 'changeLang', params: 'en'}]
+    wrapper = factory({}, 'zh-cn')
+    expect(wrapper.vm.lang).toBe('en')
+    wrapper.destroy()
   })
 })

@@ -97,7 +97,7 @@ describe('vue-filter', () => {
     expect(filterElements.dataSize(undefined)).toBe(undefined)
   })
   it('timeSize', () => {
-    expect(filterElements.timeSize(1000)).toBe('1 seconds')
+    expect(filterElements.timeSize(1000)).toBe('1.00 seconds')
     expect(filterElements.timeSize(1000000)).toBe('16.67 minutes')
     expect(filterElements.timeSize(10000000)).toBe('2.78 hours')
     expect(filterElements.timeSize(1000000000)).toBe('11.57 days')

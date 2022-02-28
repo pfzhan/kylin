@@ -107,6 +107,12 @@ let mockGetQueryString = jest.spyOn(utils, 'getQueryString').mockImplementation(
 let mockPostCloudUrlMessage = jest.spyOn(business, 'postCloudUrlMessage').mockImplementation()
 
 const mockGetStepStatusTips = jest.spyOn(handlers, 'getStepStatusTips').mockImplementation()
+const mockGetSubTasksName = jest.spyOn(handlers, 'getSubTasksName').mockImplementation((name) => {
+  return handlers.getSubTasksName(wrapper.vm, name)
+})
+const mockGetStepLineName = jest.spyOn(handlers, 'getStepLineName').mockImplementation((name) => {
+  return name
+})
 
 const $message = {
   success: jest.fn(),
@@ -200,7 +206,9 @@ const wrapper = shallowMount(JobsList, {
     $router: {push: mockPush},
     postCloudUrlMessage: mockPostCloudUrlMessage,
     getQueryString: mockGetQueryString,
-    getStepStatusTips: mockGetStepStatusTips
+    getStepStatusTips: mockGetStepStatusTips,
+    getStepLineName: mockGetStepLineName,
+    getSubTasksName: mockGetSubTasksName
   },
   components: {
     JobDialog,
@@ -352,7 +360,25 @@ describe('Component Monitor', () => {
     // await wrapper.update()
     await wrapper.vm.getJobsList()
     expect(handleSuccess).toBeCalled()
-    expect(wrapper.vm.selectedJob.details).toEqual([{'ccmd_type': 'SHELL_CMD_HADOOP', 'create_time': 1634699141016, 'duration': 6293, 'err_msg': null, 'exec_cmd': null, 'exec_end_time': 1634699148609, 'exec_start_time': 1634699142316, 'id': '8f793533-fd9c-c09b-1768-fd312b514cdf_00', 'index_count': 0, 'info': {'job_params': '', 'node_info': '10.3.0.206:7070'}, 'name': 'Detect Resource', 'segment_sub_stages': null, 'sequence_id': 0, 'step_status': 'FINISHED', 'sub_stages': null, 'success_index_count': 0, 'wait_time': 1300}])
+    expect(wrapper.vm.selectedJob.details).toEqual([{
+      'ccmd_type': 'SHELL_CMD_HADOOP',
+      'create_time': 1634699141016,
+      'duration': 6293,
+      'err_msg': null,
+      'exec_cmd': null,
+      'exec_end_time': 1634699148609,
+      'exec_start_time': 1634699142316,
+      'id': '8f793533-fd9c-c09b-1768-fd312b514cdf_00',
+      'index_count': 0,
+      'info': {'job_params': '', 'node_info': '10.3.0.206:7070'},
+      'name': 'Detect Resource',
+      'segment_sub_stages': [],
+      'sequence_id': 0,
+      'step_status': 'FINISHED',
+      'sub_stages': [],
+      'success_index_count': 0,
+      'wait_time': 1300
+    }])
     expect(wrapper.vm.$refs.jobsTable.toggleRowSelection).toBeCalled()
 
     wrapper.vm.$store._actions.LOAD_JOBS_LIST = [jest.fn().mockImplementation(() => {
@@ -600,9 +626,9 @@ describe('Component Monitor', () => {
     wrapper.vm.showLineSteps({id: 'job2'}, {property: 'icon'})
     await wrapper.vm.$nextTick()
     expect(wrapper.vm.showStep).toBeTruthy()
-    expect(wrapper.vm.selectedJob).toEqual({'details': [{'ccmd_type': 'SHELL_CMD_HADOOP', 'create_time': 1634699141016, 'duration': 6293, 'err_msg': null, 'exec_cmd': null, 'exec_end_time': 1634699148609, 'exec_start_time': 1634699142316, 'id': '8f793533-fd9c-c09b-1768-fd312b514cdf_00', 'index_count': 0, 'info': {'job_params': '', 'node_info': '10.3.0.206:7070'}, 'name': 'Detect Resource', 'segment_sub_stages': null, 'sequence_id': 0, 'step_status': 'FINISHED', 'sub_stages': null, 'success_index_count': 0, 'wait_time': 1300}], 'id': 'job2'})
+    expect(wrapper.vm.selectedJob).toEqual({'details': [{'ccmd_type': 'SHELL_CMD_HADOOP', 'create_time': 1634699141016, 'duration': 6293, 'err_msg': null, 'exec_cmd': null, 'exec_end_time': 1634699148609, 'exec_start_time': 1634699142316, 'id': '8f793533-fd9c-c09b-1768-fd312b514cdf_00', 'index_count': 0, 'info': {'job_params': '', 'node_info': '10.3.0.206:7070'}, 'name': 'Detect Resource', 'segment_sub_stages': [], 'sequence_id': 0, 'step_status': 'FINISHED', 'sub_stages': [], 'success_index_count': 0, 'wait_time': 1300}], 'id': 'job2'})
     expect(getJobDetail).toBeCalled()
-    expect(wrapper.vm.selectedJob.details).toEqual([{'ccmd_type': 'SHELL_CMD_HADOOP', 'create_time': 1634699141016, 'duration': 6293, 'err_msg': null, 'exec_cmd': null, 'exec_end_time': 1634699148609, 'exec_start_time': 1634699142316, 'id': '8f793533-fd9c-c09b-1768-fd312b514cdf_00', 'index_count': 0, 'info': {'job_params': '', 'node_info': '10.3.0.206:7070'}, 'name': 'Detect Resource', 'segment_sub_stages': null, 'sequence_id': 0, 'step_status': 'FINISHED', 'sub_stages': null, 'success_index_count': 0, 'wait_time': 1300}])
+    expect(wrapper.vm.selectedJob.details).toEqual([{'ccmd_type': 'SHELL_CMD_HADOOP', 'create_time': 1634699141016, 'duration': 6293, 'err_msg': null, 'exec_cmd': null, 'exec_end_time': 1634699148609, 'exec_start_time': 1634699142316, 'id': '8f793533-fd9c-c09b-1768-fd312b514cdf_00', 'index_count': 0, 'info': {'job_params': '', 'node_info': '10.3.0.206:7070'}, 'name': 'Detect Resource', 'segment_sub_stages': [], 'sequence_id': 0, 'step_status': 'FINISHED', 'sub_stages': [], 'success_index_count': 0, 'wait_time': 1300}])
     expect(handleError).toBeCalled()
 
     wrapper.vm.clickFile({id: 'step1'})

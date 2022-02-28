@@ -1,10 +1,10 @@
-import { shallowMount, createLocalVue } from '@vue/test-utils'
+import { shallowMount } from '@vue/test-utils'
+import { localVue } from '../../../../test/common/spec_common'
 import Vuex from 'vuex'
 import Login from '../login.vue'
 import VueResource from 'vue-resource'
 import VueRouter from 'vue-router'
 import Vue from 'vue'
-import ElementUI from 'kyligence-ui'
 import * as util from '../../../util/business'
 import License from '../license.vue'
 import iconBtn from 'components/common/icon_button'
@@ -17,14 +17,12 @@ const types = {
   TRIAL_LICENSE_FILE: 'TRIAL_LICENSE_FILE',
   SAVE_CURRENT_LOGIN_USER: 'SAVE_CURRENT_LOGIN_USER',
   TOGGLE_LICENSE_DIALOG: 'TOGGLE_LICENSE_DIALOG',
-  IS_CLOUD: 'IS_CLOUD'
+  IS_CLOUD: 'IS_CLOUD',
+  GET_CONF: 'GET_CONF'
 }
 const router = new VueRouter()
-const localVue = createLocalVue()
-localVue.use(Vuex)
-localVue.use(ElementUI)
 localVue.use(VueRouter)
-Vue.use(VueResource)
+localVue.use(VueResource)
 
 const data = {
   code: '000',
@@ -58,13 +56,14 @@ const mockLicenseFile = jest.fn().mockImplementation(() => {
 })
 const mockLicenseDialog = jest.fn()
 const saveUser = jest.fn()
-const mockAlert = jest.fn().mockImplementation(() => {})
+const mockAlert = jest.fn()
 let store = new Vuex.Store({
   actions: {
     [types.LOGIN]: mockLogin,
     [types.GET_ABOUTKAP]: mockGetAboutKap,
     [types.TRIAL_LICENSE_FILE]: mockLicenseFile,
-    [types.IS_CLOUD]: jest.fn().mockResolvedValue()
+    [types.IS_CLOUD]: jest.fn().mockResolvedValue(),
+    [types.GET_CONF]: jest.fn().mockResolvedValue()
   },
   mutations: {
     [types.SAVE_CURRENT_LOGIN_USER]: saveUser,
@@ -75,7 +74,11 @@ let store = new Vuex.Store({
       serverAboutKap: {
         code: '001',
         'ke.dates': null
-      }
+      },
+      ssoLoginEnabled: false,
+      ssoRedirectUrl: 'http://sso.cn',
+      cookieNames: 'aaa',
+      lang: 'en'
     },
     user: {},
     config: {
@@ -95,14 +98,16 @@ let store1 = new Vuex.Store({
     [types.LOGIN]: mockLoginReject,
     [types.GET_ABOUTKAP]: mockGetAboutKapReject,
     [types.TRIAL_LICENSE_FILE]: mockLicenseFileReject,
-    [types.IS_CLOUD]: jest.fn().mockResolvedValue()
+    [types.IS_CLOUD]: jest.fn().mockResolvedValue(),
+    [types.GET_CONF]: jest.fn().mockResolvedValue()
   },
   state: {
     system: {
       serverAboutKap: {
         code: '001',
         'ke.dates': null
-      }
+      },
+      ssoLoginEnabled: false
     },
     user: {},
     config: {
@@ -120,10 +125,10 @@ let mockHandleError = jest.spyOn(util, 'handleError').mockImplementation()
 
 let factory = (type, store, otherMocks) => {
   mockHandleSuccess = type !== 'applyLicense' ? jest.spyOn(util, 'handleSuccess').mockImplementation((res, callback, errorCallback) => {
-    callback(data.data)
+    callback(res.data)
     errorCallback && errorCallback()
   }) : jest.spyOn(util, 'handleSuccess').mockImplementation((res, callback) => {
-    callback({'ke.dates': '2020-04-10,2020-07-13'})
+    callback(res.data || {'ke.dates': '2020-04-10,2020-07-13'})
   })
   return shallowMount(Login, {
     localVue,
@@ -147,11 +152,12 @@ describe('Component Login', () => {
     expect(wrapper.element.tagName).toBe('DIV')
     expect(wrapper.classes()).toEqual([])
     expect(wrapper.vm.$data.user).toEqual({ username: null, password: '' })
-    expect(wrapper.find('.login-footer').text()).toEqual('©2021 Kyligence Inc. All rights reserved.')
+    expect(wrapper.find('.login-footer').text()).toEqual('©2022 Kyligence Inc. All rights reserved.')
     expect(mockGetAboutKap).toBeCalled()
     expect(mockHandleSuccess).toBeCalled()
     expect(mockHandleError).toBeCalled()
     expect(wrapper.vm.$data.hasLicense).toBe(true)
+    expect(wrapper.vm.ssoLoginEnabled).toBeFalsy()
     wrapper.destroy()
   })
   it('dom element', async () => {
@@ -167,7 +173,7 @@ describe('Component Login', () => {
     const guideList = wrapper.find('.login-box').find('ul').findAll('li')
     expect(guideList.length).toBe(3)
     expect(guideList.at(0).find('a').attributes().href).toEqual('http://kyligence.io/enterprise/#analytics')
-    expect(guideList.at(1).find('a').attributes().href).toEqual('http://docs.kyligence.io/?lang=undefined')
+    expect(guideList.at(1).find('a').attributes().href).toEqual('http://docs.kyligence.io/?lang=en')
     expect(guideList.at(2).find('a').attributes().href).toEqual('mailto:info@Kyligence.io')
     // expect(wrapper.find('.forget-pwd').attributes().style).toBe('')
     // expect(wrapper.find('.forget-pwd').text()).toBe('Forget Password')
@@ -222,9 +228,15 @@ describe('Component Login', () => {
     expect(wrapper.vm.$store.state.config.overLock).toBe(false)
     Login.methods.loginEnd.call(options)
     expect(Vue.http.headers.common['Authorization']).toBe('')
+
     wrapper.vm.$data.hasLicenseMsg = true
-    // wrapper.vm.$store.state.system.serverAboutKap.code = '002'
-    // await wrapper.update()
+
+    wrapper.vm.$store.state.system.serverAboutKap.code = '002'
+    Login.methods.onLoginSubmit.call(options)
+    await wrapper.vm.$nextTick()
+    expect(options.loginSuccess).toBe(true)
+    expect(mockHandleSuccess).toBeCalled()
+
     Login.methods.loginEnd.call(options)
     await wrapper.vm.$nextTick()
     expect(wrapper.vm.$route).toEqual({'fullPath': '/', 'hash': '', 'matched': [], 'meta': {}, 'name': null, 'params': {}, 'path': '/', 'query': {}})
@@ -273,6 +285,22 @@ describe('Component Login', () => {
     expect(wrapper.vm.$route).toEqual({'fullPath': '/dashboard', 'hash': '', 'matched': [], 'meta': {}, 'name': null, 'params': {}, 'path': '/dashboard', 'query': {}})
     wrapper.destroy()
   })
+  it('sso login', async () => {
+    const wrapper = await factory('', store)
+    window.location.replace = jest.fn()
+    wrapper.vm.ssoLogin()
+    expect(window.location.replace).toHaveBeenCalledWith('http://sso.cnhttp://localhost/kylin/#/dashboard')
+    expect(wrapper.vm.$route.fullPath).toBe('/dashboard')
+
+    document.cookie = 'aaa=123;'
+    wrapper.vm.ssoLogin()
+    expect(wrapper.vm.$route.fullPath).toBe('/dashboard')
+
+    wrapper.vm.$store.state.system.cookieNames = 123
+    wrapper.vm.ssoLogin()
+    expect(wrapper.vm.$route.fullPath).toBe('/dashboard')
+    wrapper.destroy()
+  })
   it('apply license', async () => {
     const wrapper = await factory('applyLicense', store)
     let that = {
@@ -282,6 +310,7 @@ describe('Component Login', () => {
           validate: function (callback) { callback(true) }
         }
       },
+      $t: jest.fn().mockImplementation(res => res),
       '$alert': mockAlert
     }
     wrapper.vm.apply()
@@ -290,12 +319,25 @@ describe('Component Login', () => {
     expect(wrapper.vm.$data.applyLicense).toBeTruthy()
     expect(wrapper.vm.$data.changeDialog).toBeTruthy()
     Login.methods.submitApply.call(that)
+    // await wrapper.vm.$nextTick()
     expect(mockLicenseFile).toBeCalled()
     expect(wrapper.vm.$data.applyLoading).toBe(false)
     expect(wrapper.vm.$data.userMessage).toEqual({'category': 'undefined.x', 'company': '', 'email': '', 'lang': 'en', 'productType': 'kap', 'username': ''})
     expect(mockHandleSuccess).toBeCalled()
     expect(wrapper.vm.$store.state.system.serverAboutKap).toEqual({'code': '001', 'ke.dates': null})
+
+    that.trialLicenseFile = jest.fn().mockImplementation((res) => {
+      return new Promise((resolve) => {
+        resolve({code: '000', data: {'ke.dates': '2020-04-10,2123-07-13'}, msg: ''})
+      })
+    })
+    Login.methods.submitApply.call(that)
+    await wrapper.vm.$nextTick()
+    expect(mockAlert).toBeCalled()
+    expect(that.$store.state.system.serverAboutKap).toEqual({'code': '001', 'ke.dates': '2020-04-10,2123-07-13'})
+
     wrapper.destroy()
+
     const wp = await factory('applyLicense', store1)
     let th = {
       ...wp.vm,
@@ -329,18 +371,27 @@ describe('Component Login', () => {
     expect(wrapper.vm.lastTime('')).toBe(0)
     expect(wrapper.vm.lastTime('2020-04-10,2020-07-13')).not.toBeNaN()
     expect(wrapper.vm.lastTime('2020-04-10,2020-04-10')).toBe(0)
+    expect(wrapper.vm.lastTime('2020-04-10,2023-04-10')).toBeGreaterThan(0)
     wrapper.destroy()
   })
   it('license success', async () => {
     let wrapper = await factory('', store)
     wrapper.vm.licenseValidSuccess(true)
-    expect(wrapper.vm.$data.hasLicense).toBeTruthy()
+    expect(wrapper.vm.$data.hasLicense).toBeFalsy()
     expect(wrapper.vm.$data.showLicenseCheck).toBeTruthy()
     wrapper.vm.$store.state.system.serverAboutKap.code = '000'
     await wrapper.vm.$nextTick()
     wrapper.vm.licenseValidSuccess(true)
     expect(wrapper.vm.hasLicense).toBeFalsy()
     expect(mockLicenseDialog).toBeCalled()
+
+    wrapper.vm.licenseValidSuccess(false)
+    expect(wrapper.vm.loadCheck).toBeFalsy()
+
+    wrapper.vm.$store.state.system.lang = 'zh-cn'
+    await wrapper.vm.$nextTick()
+    expect(mockGetAboutKap).toBeCalled()
+
     wrapper.destroy()
   })
   it('submit license form', async () => {

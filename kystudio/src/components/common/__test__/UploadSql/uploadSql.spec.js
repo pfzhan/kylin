@@ -361,7 +361,7 @@ describe('Component SuggestModel', () => {
 
     await wrapper.vm.convertSqlsSubmit(true)
     jest.runAllTimers()
-    expect(mockGlobalConfirm).toBeCalledWith('Recommendations can\'t be shown properly due to the extreme large amount. Please try selecting fewer SQLs to import at a time.', 'Can\'t Show All Recommendations', {'confirmButtonText': 'OK', 'showCancelButton': false, 'showClose': false, 'type': 'warning'})
+    expect(mockGlobalConfirm).toBeCalledWith('Successfully accepted 0 recommendation(s), The added indexes would be ready for queries after being built.', 'Imported successfully', {'confirmButtonText': 'OK', 'showCancelButton': false, 'type': 'success'})
     expect(wrapper.vm.generateLoading).toBeFalsy()
     expect(wrapper.vm.convertLoading).toBeFalsy()
     expect(wrapper.vm.cancelConvertLoading).toBeFalsy()
@@ -382,11 +382,15 @@ describe('Component SuggestModel', () => {
         }
       }
     })]
+    wrapper.vm.$store.state.UploadSqlModel.isShow = true
     await wrapper.vm.$nextTick()
     await wrapper.vm.getSuggestModels()
     expect(wrapper.vm.uploadFlag).toBe('step3')
     expect(wrapper.vm.suggestModels).toEqual([{alias: 'TABLE_NAME', uuid: '23123124-fie3124312-323123fe', isChecked: true, isNameError: false}])
     expect(wrapper.vm.originModels).toEqual([{isChecked: true, rec_items: []}])
+
+    wrapper.vm.$store.state.UploadSqlModel.isShow = false
+    await wrapper.vm.$nextTick()
 
     wrapper.vm.selectPagerSqls()
     jest.runAllTimers()
@@ -412,7 +416,7 @@ describe('Component SuggestModel', () => {
     expect(wrapper.vm.inputHeight).toBe(382)
     expect(formatSql).toBeCalled()
     expect(handleSuccessAsync).toBeCalled()
-    expect(wrapper.vm.sqlFormatterObj).toEqual({'2': {'capable': true, 'id': 1}, '4': {'capable': true, 'id': 1}})
+    expect(wrapper.vm.sqlFormatterObj).toEqual({'2': {'capable': true, 'id': 1}})
     expect(wrapper.vm.$refs.whiteInputBox.$emit).toBeCalled()
     expect(wrapper.vm.activeSqlObj).toEqual({'capable': true, 'id': '2'})
     expect(wrapper.vm.isReadOnly).toBeFalsy()

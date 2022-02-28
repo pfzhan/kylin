@@ -2,7 +2,7 @@
   <div class="security-group" v-loading="isLoadingUserGroups">
     <div class="ksd-title-label ksd-mt-20 ksd-mrl-20">{{$t('userGroupsList')}}</div>
     <el-row class="ksd-mb-10 ksd-mt-10 ksd-mrl-20">
-      <el-button type="primary" plain size="medium" v-if="groupActions.includes('addGroup')" icon="el-ksd-icon-add_22" @click="editGroup('new')">{{$t('userGroup')}}</el-button>
+      <el-button type="primary" size="medium" v-if="groupActions.includes('addGroup')" :disabled="!isTestingSecurityProfile" icon="el-ksd-icon-add_22" @click="editGroup('new')">{{$t('userGroup')}}</el-button>
       <div style="width:240px;" class="ksd-fright">
         <el-input class="show-search-btn"
           size="medium"
@@ -14,6 +14,11 @@
         </el-input>
       </div>
     </el-row>
+    <el-alert class="ksd-mb-16 ksd-ml-20" type="info"
+      v-if="!isTestingSecurityProfile"
+      :title="$t('securityProfileTip')"
+      :closable="false">
+    </el-alert>
     <el-row class="ksd-mrl-20">
       <el-table
         :data="groupUsersList"
@@ -41,10 +46,10 @@
           :label="$t('kylinLang.common.action')" :width="83">
           <template slot-scope="scope">
             <el-tooltip :content="$t('assignUsers')" effect="dark" placement="top" v-show="scope.row.group_name!=='ALL_USERS' && groupActions.includes('editGroup')">
-              <i class="el-icon-ksd-table_assign ksd-fs-14 ksd-mr-10" @click="editGroup('assign', scope.row)"></i>
+              <i class="el-icon-ksd-table_assign ksd-fs-14 ksd-mr-10" :class="{'is-disabled': !isTestingSecurityProfile}" @click="editGroup('assign', scope.row)"></i>
             </el-tooltip><span>
             </span><el-tooltip :content="$t('kylinLang.common.drop')" effect="dark" placement="top" v-show="(scope.row.group_name!=='ROLE_ADMIN' && scope.row.group_name!=='ALL_USERS') && groupActions.includes('deleteGroup')">
-              <i class="el-icon-ksd-table_delete ksd-fs-14" @click="dropGroup(scope.row)"></i>
+              <i class="el-icon-ksd-table_delete ksd-fs-14" :class="{'is-disabled': !isTestingSecurityProfile}" @click="dropGroup(scope.row)"></i>
             </el-tooltip>
           </template>
         </el-table-column>
@@ -81,7 +86,8 @@ import { handleError, kapConfirm } from 'util/business'
   computed: {
     ...mapGetters([
       'groupActions',
-      'currentSelectedProject'
+      'currentSelectedProject',
+      'isTestingSecurityProfile'
     ]),
     ...mapState({
       groupUsersListSize: state => state.user.usersGroupSize,
@@ -122,6 +128,7 @@ export default class SecurityGroup extends Vue {
   }
 
   async editGroup (editType, group) {
+    if (!this.isTestingSecurityProfile) return
     const isSubmit = await this.callGroupEditModal({ editType, group })
     isSubmit && this.loadGroupUsers()
   }
@@ -146,6 +153,7 @@ export default class SecurityGroup extends Vue {
   }
 
   async dropGroup (group) {
+    if (!this.isTestingSecurityProfile) return
     try {
       await kapConfirm(this.$t('confirmDelGroup', {groupName: group.group_name}), {confirmButtonText: this.$t('kylinLang.common.delete')}, this.$t('delGroupTitle'))
       await this.delGroup({group_uuid: group.uuid})
@@ -187,6 +195,14 @@ export default class SecurityGroup extends Vue {
     .el-icon-ksd-table_assign:hover,
     .el-icon-ksd-table_delete:hover {
       color: @base-color;
+    }
+    .is-disabled {
+      cursor: not-allowed;
+      color: @text-disabled-color;
+      &:hover {
+        cursor: not-allowed;
+        color: @text-disabled-color;
+      }
     }
     .group-name {
       white-space: pre;

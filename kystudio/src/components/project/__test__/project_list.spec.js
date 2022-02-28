@@ -167,7 +167,7 @@ describe('Component ProjectList', () => {
 
     await wrapper.vm.removeProject({name: 'xm_test'})
     await wrapper.vm.$nextTick()
-    expect(kapConfirm.mock.calls[0]).toEqual(["The metadata and data of the project \"xm_test\" would be deleted and couldn't be restored.", null, "Delete Project"])
+    expect(kapConfirm.mock.calls[0]).toEqual(["The project \"xm_test\" cannot be restored after deletion. Are you sure you want to delete?", null, "Delete Project"])
     expect(mockApi.mockDeleteProject.mock.calls[0][1]).toBe('xm_test')
     expect(mockMessage).toBeCalledWith({"message": "Deleted successfully.", "type": "success"})
     expect(mockApi.mockLoadProjectList.mock.calls[5][1]).toEqual({"exact": false, "page_offset": 2, "page_size": 10, "permission": "ADMINISTRATION", "project": ""})
@@ -194,7 +194,7 @@ describe('Component ProjectList', () => {
     expect(kapConfirm.mock.calls[2]).toEqual(["Are you sure you want to backup this project ?", {"type": "info"}, "Backup Project"])
     expect(mockApi.mockBackupProject.mock.calls[0][1]).toEqual('xm_test')
     expect(handleSuccess).toBeCalled()
-    expect(mockMessage).toBeCalledWith({"duration": 0, "message": "Metadata backup successfully: true", "showClose": true, "type": "success"})
+    expect(mockMessage.mock.calls[1]).toEqual([{"message": "Metadata backup successfully: true", "type": "success"}])
 
     wrapper.vm.$store._actions.BACKUP_PROJECT = [jest.fn().mockImplementation(() => {
       return {
@@ -218,7 +218,7 @@ describe('Component ProjectList', () => {
     wrapper.vm.$store._actions.GET_AVAILABLE_PROJECT_OWNERS = [jest.fn().mockRejectedValue({body: {msg: 'error'}})]
     await wrapper.vm.loadAvailableProjectOwners('')
     expect(wrapper.vm.ownerFilter.name).toBe('')
-    expect(mockMessage).toBeCalledWith({"closeOtherMessages": true, "duration": 0, "message": "error", "showClose": true, "type": "error"})
+    expect(mockMessage.mock.calls[2]).toEqual([{"closeOtherMessages": true, "message": "error", "type": "error"}])
 
     await wrapper.vm.openChangeProjectOwner('xm_test')
     expect(wrapper.vm.projectOwner.project).toBe('xm_test')
@@ -232,13 +232,13 @@ describe('Component ProjectList', () => {
     expect(mockApi.mockUpdateProjectOwner.mock.calls[0][1]).toEqual({"owner": "ADMIN", "project": "xm_test"})
     expect(wrapper.vm.changeLoading).toBeFalsy()
     expect(wrapper.vm.changeOwnerVisible).toBeFalsy()
-    expect(mockMessage).toBeCalledWith({"message": "The owner of the project \"xm_test\" has been successfully changed to \"ADMIN\".", "type": "success"})
+    expect(mockMessage.mock.calls[3]).toEqual([{"closeOtherMessages": true, "message": "error", "type": "error"}])
 
     wrapper.vm.$store._actions.UPDATE_PROJECT_OWNER = [jest.fn().mockRejectedValue({body: {msg: 'error'}})]
     await wrapper.vm.changeProjectOwner()
     expect(wrapper.vm.changeLoading).toBeFalsy()
     expect(wrapper.vm.changeOwnerVisible).toBeFalsy()
-    expect(mockMessage).toBeCalledWith({"duration": 0, "message": "error", "showClose": true, "type": "error"})
+    expect(mockMessage.mock.calls[4]).toEqual([{"message": "The owner of the project \"xm_test\" has been successfully changed to \"ADMIN\".", "type": "success"}])
   })
 })
 
