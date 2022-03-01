@@ -210,9 +210,12 @@ class IndexSuggester {
         String modelId = model.getUuid();
         int semanticVersion = model.getSemanticVersion();
         for (LayoutEntity l : indexEntity.getLayouts()) {
+            List<Integer> sortByColumns = layout.getSortByColumns();
+            layout.setSortByColumns(l.getSortByColumns());
             if (l.equals(layout)) {
                 return new QueryLayoutRelation(ctx.sql, modelId, l.getId(), semanticVersion);
             }
+            layout.setSortByColumns(sortByColumns);
         }
 
         indexEntity.getLayouts().add(layout);

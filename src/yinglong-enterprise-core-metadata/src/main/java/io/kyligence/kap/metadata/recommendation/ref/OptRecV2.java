@@ -259,8 +259,7 @@ public class OptRecV2 {
     private List<RawRecItem> queryBestLayoutRecItems() {
         FavoriteRule favoriteRule = FavoriteRuleManager.getInstance(config, project)
                 .getOrDefaultByName(FavoriteRule.REC_SELECT_RULE_NAME);
-        int topN = Integer.parseInt(
-                ((FavoriteRule.Condition) favoriteRule.getConds().get(0)).getRightThreshold());
+        int topN = Integer.parseInt(((FavoriteRule.Condition) favoriteRule.getConds().get(0)).getRightThreshold());
         return RawRecSelection.getInstance().selectBestLayout(topN, uuid, project);
     }
 
@@ -305,7 +304,6 @@ public class OptRecV2 {
             translate(partitionColumns, layout.getPartitionByColumns());
             layout.setColOrder(colOrder);
             layout.setShardByColumns(shardColumns);
-            layout.setSortByColumns(sortColumns);
             layout.setPartitionByColumns(partitionColumns);
             long layoutId = getLayouts().stream() //
                     .filter(layoutEntity -> layoutEntity.equals(layout)) //

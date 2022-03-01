@@ -38,7 +38,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.metadata.model.util.ExpandableMeasureUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -93,6 +92,7 @@ import io.kyligence.kap.metadata.cube.model.RuleBasedIndex;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.model.util.ExpandableMeasureUtil;
 import io.kyligence.kap.rest.aspect.Transaction;
 import io.kyligence.kap.rest.request.AggShardByColumnsRequest;
 import io.kyligence.kap.rest.request.CreateBaseIndexRequest;
@@ -221,7 +221,6 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
         newLayout.setColOrder(convertColumn(request.getColOrder(), model));
         newLayout.setStorageType(request.getStorageType());
         newLayout.setShardByColumns(convertColumn(request.getShardByColumns(), model));
-        newLayout.setSortByColumns(convertColumn(request.getSortByColumns(), model));
         newLayout.setUpdateTime(System.currentTimeMillis());
         newLayout.setOwner(BasicService.getUsername());
         newLayout.setManual(true);
@@ -1177,9 +1176,6 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
         }
         if (!CollectionUtils.isEmpty(layoutProperty.getShardByColumns())) {
             layout.setShardByColumns(convertColumn(layoutProperty.getShardByColumns(), model));
-        }
-        if (!CollectionUtils.isEmpty(layoutProperty.getSortByColumns())) {
-            layout.setSortByColumns(convertColumn(layoutProperty.getSortByColumns(), model));
         }
 
     }

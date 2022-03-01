@@ -298,7 +298,7 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
         }
         Assert.assertThat(newLayout.getColOrder(), CoreMatchers.is(Arrays.asList(0, 11)));
         Assert.assertThat(newLayout.getShardByColumns(), CoreMatchers.is(Arrays.asList(11)));
-        Assert.assertThat(newLayout.getSortByColumns(), CoreMatchers.is(Arrays.asList(0)));
+        Assert.assertThat(newLayout.getSortByColumns(), CoreMatchers.is(Arrays.asList()));
         Assert.assertEquals(Range.HYBRID, newLayout.getIndexRange());
 
         var streamingIndexes = fusionIndexService.getIndexes("streaming_test", modelId, "",
@@ -329,7 +329,7 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
         }
         Assert.assertThat(newLayout1.getColOrder(), CoreMatchers.is(Arrays.asList(0, 12)));
         Assert.assertThat(newLayout1.getShardByColumns(), CoreMatchers.is(Arrays.asList(12)));
-        Assert.assertThat(newLayout1.getSortByColumns(), CoreMatchers.is(Arrays.asList(0)));
+        Assert.assertThat(newLayout1.getSortByColumns(), CoreMatchers.is(Arrays.asList()));
 
         fusionIndexService.removeIndex("streaming_test", modelId, 20000070001L, Range.HYBRID);
 
@@ -368,7 +368,7 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
         }
         Assert.assertThat(newLayout.getColOrder(), CoreMatchers.is(Arrays.asList(0, 11)));
         Assert.assertThat(newLayout.getShardByColumns(), CoreMatchers.is(Arrays.asList(11)));
-        Assert.assertThat(newLayout.getSortByColumns(), CoreMatchers.is(Arrays.asList(0)));
+        Assert.assertThat(newLayout.getSortByColumns(), CoreMatchers.is(Arrays.asList()));
         Assert.assertEquals(Range.BATCH, newLayout.getIndexRange());
 
         var streamingIndexes = fusionIndexService.getIndexes("streaming_test", modelId, "",
@@ -380,7 +380,6 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
                 Lists.newArrayList(20000000001L), null);
         Assert.assertEquals(1, index.size());
         Assert.assertEquals(Range.BATCH, index.get(0).getIndexRange());
-        Assert.assertEquals(Arrays.asList("P_LINEORDER_STREAMING.LO_ORDERKEY"), index.get(0).getSortByColumns());
 
         fusionIndexService.updateTableIndex("streaming_test", CreateTableIndexRequest.builder()
                 .project("streaming_test").modelId(modelId).indexRange(Range.BATCH).id(20000000001L)
@@ -400,9 +399,10 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
                 }
             }
         }
+
         Assert.assertThat(newLayout1.getColOrder(), CoreMatchers.is(Arrays.asList(0, 12)));
         Assert.assertThat(newLayout1.getShardByColumns(), CoreMatchers.is(Arrays.asList(12)));
-        Assert.assertThat(newLayout1.getSortByColumns(), CoreMatchers.is(Arrays.asList(0)));
+        Assert.assertThat(newLayout1.getSortByColumns(), CoreMatchers.is(Arrays.asList()));
 
         fusionIndexService.removeIndex("streaming_test", modelId, 20000010001L, Range.BATCH);
 
@@ -439,7 +439,7 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
         }
         Assert.assertThat(newLayout.getColOrder(), CoreMatchers.is(Arrays.asList(0, 11)));
         Assert.assertThat(newLayout.getShardByColumns(), CoreMatchers.is(Arrays.asList(11)));
-        Assert.assertThat(newLayout.getSortByColumns(), CoreMatchers.is(Arrays.asList(0)));
+        Assert.assertThat(newLayout.getSortByColumns(), CoreMatchers.is(Arrays.asList()));
         Assert.assertEquals(Range.STREAMING, newLayout.getIndexRange());
 
         var streamingIndexes = fusionIndexService.getIndexes("streaming_test", modelId, "",
@@ -466,7 +466,7 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
         }
         Assert.assertThat(newLayout1.getColOrder(), CoreMatchers.is(Arrays.asList(0, 12)));
         Assert.assertThat(newLayout1.getShardByColumns(), CoreMatchers.is(Arrays.asList(12)));
-        Assert.assertThat(newLayout1.getSortByColumns(), CoreMatchers.is(Arrays.asList(0)));
+        Assert.assertThat(newLayout1.getSortByColumns(), CoreMatchers.is(Arrays.asList()));
 
         fusionIndexService.removeIndex("streaming_test", modelId, 20000070001L, Range.STREAMING);
 
@@ -819,18 +819,18 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
     @Test
     public void testGetAllIndex() throws Exception {
         val modelId = "4965c827-fbb4-4ea1-a744-3f341a3b030d";
-        var indexResponses = fusionIndexService.getAllIndexes("streaming_test", modelId, "", Lists.newArrayList(), "data_size",
-                true, Lists.newArrayList());
+        var indexResponses = fusionIndexService.getAllIndexes("streaming_test", modelId, "", Lists.newArrayList(),
+                "data_size", true, Lists.newArrayList());
         Assert.assertEquals(8, indexResponses.size());
 
         val modelId1 = "b05034a8-c037-416b-aa26-9e6b4a41ee40";
-        var indexResponses1 = fusionIndexService.getAllIndexes("streaming_test", modelId1, "", Lists.newArrayList(), "data_size",
-                true, Lists.newArrayList());
+        var indexResponses1 = fusionIndexService.getAllIndexes("streaming_test", modelId1, "", Lists.newArrayList(),
+                "data_size", true, Lists.newArrayList());
         Assert.assertEquals(8, indexResponses1.size());
 
         val modelId2 = "e78a89dd-847f-4574-8afa-8768b4228b72";
-        var indexResponses2 = fusionIndexService.getAllIndexes("streaming_test", modelId2, "", Lists.newArrayList(), "data_size",
-                true, Lists.newArrayList());
+        var indexResponses2 = fusionIndexService.getAllIndexes("streaming_test", modelId2, "", Lists.newArrayList(),
+                "data_size", true, Lists.newArrayList());
         Assert.assertEquals(64, indexResponses2.size());
     }
 }

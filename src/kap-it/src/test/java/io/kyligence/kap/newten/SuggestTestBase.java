@@ -323,7 +323,6 @@ public abstract class SuggestTestBase extends NLocalWithSparkSessionTest {
         val copy = JsonUtil.deepCopyQuietly(virtual, LayoutEntity.class);
         copy.setColOrder(translate(copy.getColOrder(), realModel, virtualModel));
         copy.setShardByColumns(translate(copy.getShardByColumns(), realModel, virtualModel));
-        copy.setSortByColumns(translate(copy.getSortByColumns(), realModel, virtualModel));
         return real.equals(copy);
     }
 

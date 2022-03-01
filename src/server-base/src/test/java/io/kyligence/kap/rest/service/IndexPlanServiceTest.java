@@ -503,7 +503,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         }
         Assert.assertThat(newLayout.getColOrder(), CoreMatchers.is(Arrays.asList(1, 2, 3, 4)));
         Assert.assertThat(newLayout.getShardByColumns(), CoreMatchers.is(Arrays.asList(1)));
-        Assert.assertThat(newLayout.getSortByColumns(), CoreMatchers.is(Arrays.asList(2)));
+        Assert.assertThat(newLayout.getSortByColumns(), CoreMatchers.is(Arrays.asList()));
 
         val executables = getRunningExecutables("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(1, executables.size());
@@ -561,7 +561,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         }
         Assert.assertThat(newLayout.getColOrder(), CoreMatchers.is(Arrays.asList(1, 2, 3, 4)));
         Assert.assertThat(newLayout.getShardByColumns(), CoreMatchers.is(Arrays.asList(1)));
-        Assert.assertThat(newLayout.getSortByColumns(), CoreMatchers.is(Arrays.asList(2)));
+        Assert.assertThat(newLayout.getSortByColumns(), CoreMatchers.is(Arrays.asList()));
 
         indexPlanService.updateTableIndex("default",
                 CreateTableIndexRequest.builder().id(20000040000L).project("default")
@@ -734,8 +734,8 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         Assert.assertThat(first.getColOrder(), CoreMatchers.is(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID",
                 "TEST_KYLIN_FACT.CAL_DT", "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LSTG_SITE_ID")));
         Assert.assertThat(first.getShardByColumns(), CoreMatchers.is(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID")));
-        Assert.assertThat(first.getSortByColumns(), CoreMatchers.is(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")));
-        Assert.assertThat(first.getSortByColumns(), CoreMatchers.is(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")));
+        Assert.assertThat(first.getSortByColumns(), CoreMatchers.is(Arrays.asList()));
+        Assert.assertThat(first.getSortByColumns(), CoreMatchers.is(Arrays.asList()));
         Assert.assertEquals(20000040001L, first.getId().longValue());
         Assert.assertEquals("default", first.getProject());
         Assert.assertEquals("ADMIN", first.getOwner());

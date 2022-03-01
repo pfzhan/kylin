@@ -289,9 +289,7 @@
             4,
             11
           ],
-          "sort_by_columns": [
-            0
-          ],
+          "sort_by_columns": [],
           "storage_type": 20
         }
       ]
