@@ -109,13 +109,7 @@
               <span class="close" @click="toggleMenu('dimension')"><i class="el-icon-ksd-close"></i></span>
             </div>
             <div class="panel-sub-title">
-              <div class="action_group" :class="{'is_active': !isShowCheckbox}"
-              :style="{
-                msTransform: `translateX(${ translate }px)`,
-                webkitTransform: `translateX(${ translate }px)`,
-                transform: `translateX(${ translate }px)`,
-                width: panelAppear.dimension.width-2+'px'
-              }">
+              <div class="action_group" :class="{'is_active': !isShowCheckbox}">
                 <!-- <span class="action_btn" @click="addCCDimension">
                   <i class="el-icon-ksd-project_add"></i>
                   <span>{{$t('add')}}</span>
@@ -132,12 +126,8 @@
               <div
               class="batch_group"
               :class="{'is_active': isShowCheckbox}"
-              :style="{
-                msTransform: `translateX(${ translate+parseInt(panelAppear.dimension.width) }px)`,
-                webkitTransform: `translateX(${ translate+parseInt(panelAppear.dimension.width) }px)`,
-                transform: `translateX(${ translate+parseInt(panelAppear.dimension.width) }px)`,
-                width: panelAppear.dimension.width-2+'px'
-              }">
+              :style="{transform: isShowCheckbox ? 'translateX(0)' : 'translateX(100%)'}"
+              >
                 <span class="action_btn" :class="{'disabled': isDisableBatchCheck}" @click="toggleCheckAllDimension">
                   <i class="el-icon-ksd-batch_uncheck" v-if="dimensionSelectedList.length==allDimension.length || (modelInstance.second_storage_enabled||isHybridModel)&&dimensionSelectedList.length+1==allDimension.length&&!isDisableBatchCheck"></i>
                   <i class="el-icon-ksd-batch" v-else></i>
@@ -188,13 +178,7 @@
               <span class="close" @click="toggleMenu('measure')"><i class="el-icon-ksd-close"></i></span>
             </div>
             <div class="panel-sub-title">
-              <div class="action_group" :class="{'is_active': !isShowMeaCheckbox}"
-              :style="{
-                msTransform: `translateX(${ translateMea }px)`,
-                webkitTransform: `translateX(${ translateMea }px)`,
-                transform: `translateX(${ translateMea }px)`,
-                width: panelAppear.measure.width-2+'px'
-              }">
+              <div class="action_group" :class="{'is_active': !isShowMeaCheckbox}">
                 <span class="action_btn" @click="addNewMeasure" v-guide.measureAddBtn>
                   <i class="el-icon-ksd-project_add"></i>
                   <span>{{$t('add')}}</span>
@@ -211,12 +195,8 @@
               <div
                 class="batch_group"
                 :class="{'is_active': isShowMeaCheckbox}"
-                :style="{
-                  msTransform: `translateX(${ translateMea+parseInt(panelAppear.measure.width) }px)`,
-                  webkitTransform: `translateX(${ translateMea+parseInt(panelAppear.measure.width) }px)`,
-                  transform: `translateX(${ translateMea+parseInt(panelAppear.measure.width) }px)`,
-                  width: panelAppear.measure.width-2+'px'
-                }">
+                :style="{transform: isShowMeaCheckbox ? 'translateX(0)' : 'translateX(100%)'}"
+              >
                 <span class="action_btn" @click="toggleCheckAllMeasure">
                   <i class="el-icon-ksd-batch" v-if="measureSelectedList.length > 0 && measureSelectedList.length==toggleMeasureStatus"></i>
                   <i class="el-icon-ksd-batch_uncheck" v-else></i>
@@ -269,13 +249,7 @@
               <span class="close" @click="toggleMenu('cc')"><i class="el-icon-ksd-close"></i></span>
             </div>
             <div class="panel-sub-title">
-              <div class="action_group" :class="{'is_active': !isShowCCCheckbox}"
-              :style="{
-                msTransform: `translateX(${ translateCC }px)`,
-                webkitTransform: `translateX(${ translateCC }px)`,
-                transform: `translateX(${ translateCC }px)`,
-                width: panelAppear.cc.width-2+'px'
-              }">
+              <div class="action_group" :class="{'is_active': !isShowCCCheckbox}">
                 <el-tooltip :content="$t('forbidenCreateCCTip')" :disabled="!isHybridModel">
                   <span :class="['action_btn', {'disabled': isHybridModel}]" @click="!isHybridModel && addCC()">
                     <i class="el-icon-ksd-project_add"></i>
@@ -290,12 +264,7 @@
               <div
                 class="batch_group"
                 :class="{'is_active': isShowCCCheckbox}"
-                :style="{
-                  msTransform: `translateX(${ translateCC+parseInt(panelAppear.cc.width) }px)`,
-                  webkitTransform: `translateX(${ translateCC+parseInt(panelAppear.cc.width) }px)`,
-                  transform: `translateX(${ translateCC+parseInt(panelAppear.cc.width) }px)`,
-                  width: panelAppear.cc.width-2+'px'
-                }">
+              >
                 <span class="action_btn" @click="toggleCheckAllCC">
                   <i class="el-icon-ksd-batch_uncheck" v-if="ccSelectedList.length==modelRender.computed_columns.length"></i>
                   <i class="el-icon-ksd-batch" v-else></i>
@@ -1651,17 +1620,17 @@ export default class ModelEdit extends Vue {
   watchSearch (v) {
     this.showSearchResult = v
   }
-  get panelStyle () {
-    return (k) => {
-      var styleObj = {'z-index': this.panelAppear[k].zIndex, width: this.panelAppear[k].width + 'px', height: this.panelAppear[k].height + 'px', right: this.panelAppear[k].right + 'px', top: this.panelAppear[k].top + 'px'}
-      if (this.panelAppear[k].left) {
-        styleObj.left = this.panelAppear[k].left + 'px'
-      }
-      if (this.panelAppear[k].right) {
-        styleObj.right = this.panelAppear[k].right + 'px'
-      }
-      return styleObj
+  panelStyle (k) {
+    // return (k) => {
+    var styleObj = {'z-index': this.panelAppear[k].zIndex, width: this.panelAppear[k].width + 'px', height: this.panelAppear[k].height + 'px', right: this.panelAppear[k].right + 'px', top: this.panelAppear[k].top + 'px'}
+    if (this.panelAppear[k].left) {
+      styleObj.left = this.panelAppear[k].left + 'px'
     }
+    if (this.panelAppear[k].right) {
+      styleObj.right = this.panelAppear[k].right + 'px'
+    }
+    return styleObj
+    // }
   }
   get tableBoxStyle () {
     return (drawSize) => {
@@ -2413,9 +2382,10 @@ export default class ModelEdit extends Vue {
           font-size: 0;
           display: flex;
           position: absolute;
-          width: 248px;
+          width: 100%;
           top: 1px;
           z-index: @--index-normal - 1;
+          // transform: translateX(0px);
           transition: transform .4s ease-in-out;
           &.is_active {
             transition: transform .4s ease-in-out;
@@ -2468,7 +2438,6 @@ export default class ModelEdit extends Vue {
           &:hover {
             background-color: @base-color-11;
           }
-
         }
       }
       background:#fff;

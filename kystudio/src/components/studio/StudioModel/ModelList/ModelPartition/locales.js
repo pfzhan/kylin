@@ -20,7 +20,8 @@ export default {
     viewDetail: 'More info',
     rule1: 'Support using some elements of yyyy, MM, dd, HH, mm, ss, SSS in positive order',
     rule2: 'Support using - (hyphen), / (slash), : (colon), English space as separator',
-    rule3: 'When using unformatted letters, use a pair of \' (single quotes) to quote, i.e. \'T\' will be recognized as T'
+    rule3: 'When using unformatted letters, use a pair of \' (single quotes) to quote, i.e. \'T\' will be recognized as T',
+    secondStoragePartitionTips: 'Can\'t save the model partition. When the model uses incremental load method and the tiered storage is ON, the time partition column must be added as a dimension.'
   },
   'zh-cn': {
     partitionSet: '分区设置',
@@ -43,6 +44,7 @@ export default {
     viewDetail: '更多信息',
     rule1: '支持使用 yyyy, MM, dd, HH, mm, ss, SSS 中的部分要素正序组合',
     rule2: '支持使用 -（连字符）、/（斜线号）、:（冒号）、英文空格做分隔符',
-    rule3: '使用无格式字母时，需用一对 \' （单引号）引用，例如：\'T\' 将被识别为 T'
+    rule3: '使用无格式字母时，需用一对 \' （单引号）引用，例如：\'T\' 将被识别为 T',
+    secondStoragePartitionTips: '无法保存分区设置。当增量加载的模型开启分层存储时，必须将时间分区列加入维度。'
   }
 }

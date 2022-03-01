@@ -70,7 +70,8 @@ export default {
     rule1: 'Support using some elements of yyyy, MM, dd, HH, mm, ss, SSS in positive order',
     rule2: 'Support using - (hyphen), / (slash), : (colon), English space as separator',
     rule3: 'When using unformatted letters, use a pair of \' (single quotes) to quote, i.e. \'T\' will be recognized as T',
-    segmentDateRangeTips: 'The data range is left closed and right open, the actual query range is the first 1 millisecond of the right timestamp.'
+    segmentDateRangeTips: 'The data range is left closed and right open, the actual query range is the first 1 millisecond of the right timestamp.',
+    secondStoragePartitionTips: 'Can\'t build index. When the model uses incremental load method and the tiered storage is ON, the time partition column must be added as a dimension.'
   },
   'zh-cn': {
     dataRangeValValid: '请输入构建日期范围',
@@ -143,6 +144,7 @@ export default {
     rule1: '支持使用 yyyy, MM, dd, HH, mm, ss, SSS 中的部分要素正序组合',
     rule2: '支持使用 -（连字符）、/（斜线号）、:（冒号）、英文空格做分隔符',
     rule3: '使用无格式字母时，需用一对 \' （单引号）引用，例如：\'T\' 将被识别为 T',
-    segmentDateRangeTips: '数据范围左闭右开，实际查询范围为右边时间戳的前 1 毫秒。'
+    segmentDateRangeTips: '数据范围左闭右开，实际查询范围为右边时间戳的前 1 毫秒。',
+    secondStoragePartitionTips: '无法构建索引。当增量加载的模型开启分层存储时，必须将时间分区列加入维度。'
   }
 }

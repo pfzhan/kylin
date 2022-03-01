@@ -214,7 +214,7 @@
           </el-alert>
           <span class="ksd-title-label-mini">{{$t('secStorage')}}</span>
           <span class="sec-switch">
-            <common-tip :content="disableSecStorageTips" :disabled="!isNotBatchModel && !isHaveNoDimMea">
+            <common-tip :content="disableSecStorageTips" :disabled="!isNotBatchModel && !isHaveNoDimMeas">
               <el-switch
                 :disabled="isNotBatchModel || isHaveNoDimMeas"
                 v-model="modelDesc.with_second_storage"
