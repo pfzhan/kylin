@@ -336,7 +336,7 @@ object SparderTypeUtil extends Logging {
               val time = DateFormat.stringToDate(string).getTime
               if (toCalcite) {
                 //current date is local timezone, org.apache.calcite.avatica.util.AbstractCursor.DateFromNumberAccessor need to utc
-                DateTimeUtils.stringToDate(UTF8String.fromString(string), ZoneId.systemDefault()).get
+                DateTimeUtils.stringToDate(UTF8String.fromString(string)).get
               } else {
                 // ms to s
                 time / 1000

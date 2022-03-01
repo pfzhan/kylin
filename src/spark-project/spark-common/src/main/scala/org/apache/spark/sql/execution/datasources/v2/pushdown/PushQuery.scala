@@ -82,9 +82,7 @@ class OldPush (
 
     val wrappedScan = scan match {
       case v1: V1Scan =>
-        val translated = filters.flatMap(
-          DataSourceStrategy.translateFilter(_, supportNestedPredicatePushdown = true))
-        V1ScanWrapper(v1, translated, pushedFilters)
+        V1ScanWrapper(v1, pushedFilters, None)
       case _ => scan
     }
     DataSourceV2ScanRelation(relation, wrappedScan, output)
@@ -272,7 +270,7 @@ case class PushAggregateQuery(
 
     val scan = SQLPushDown.build() match {
       case v1: V1Scan =>
-        V1ScanWrapper(v1, Seq.empty[sources.Filter], Seq.empty[sources.Filter])
+        V1ScanWrapper(v1, Seq.empty[sources.Filter], None)
       case scan => scan
     }
 

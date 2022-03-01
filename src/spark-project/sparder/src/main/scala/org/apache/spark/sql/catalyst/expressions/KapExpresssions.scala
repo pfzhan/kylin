@@ -78,6 +78,11 @@ case class KapAddMonths(startDate: Expression, numMonths: Expression)
   }
 
   override def prettyName: String = "kap_add_months"
+
+  override protected def withNewChildrenInternal(newLeft: Expression, newRight: Expression): Expression = {
+    val newChildren = Seq(newLeft, newRight)
+    super.legacyWithNewChildren(newChildren)
+  }
 }
 
 // Returns the date that is num_months after start_date.
@@ -119,6 +124,12 @@ case class KapSubtractMonths(a: Expression, b: Expression)
   }
 
   override def prettyName: String = "kap_months_between"
+
+  override protected def withNewChildrenInternal(newLeft: Expression, newRight: Expression): Expression = {
+    val newChildren = Seq(newLeft, newRight)
+    super.legacyWithNewChildren(newChildren)
+  }
+
 }
 
 import org.apache.spark.sql.catalyst.analysis.TypeCheckResult
@@ -188,6 +199,9 @@ case class Sum0(child: Expression)
   }
 
   override lazy val evaluateExpression: Expression = sum
+
+  override protected def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): Expression =
+    super.legacyWithNewChildren(newChildren)
 }
 
 case class KapDayOfWeek(a: Expression)
@@ -214,6 +228,9 @@ case class KapDayOfWeek(a: Expression)
   override def dataType: DataType = IntegerType
 
   override def prettyName: String = "kap_day_of_week"
+
+  override protected def withNewChildInternal(newChild: Expression): KapDayOfWeek =
+    copy(a = newChild)
 }
 
 case class TimestampAdd(left: Expression, mid: Expression, right: Expression) extends TernaryExpression with ExpectsInputTypes {
@@ -272,7 +289,11 @@ case class TimestampAdd(left: Expression, mid: Expression, right: Expression) ex
     }
   }
 
-  override def children: Seq[Expression] = Seq(left, mid, right)
+  override def first: Expression = left
+
+  override def second: Expression = mid
+
+  override def third: Expression = right
 
   def canConvertTimestamp(): Boolean = {
     if (left.isInstanceOf[Literal] && left.asInstanceOf[Literal].value != null) {
@@ -282,6 +303,11 @@ case class TimestampAdd(left: Expression, mid: Expression, right: Expression) ex
       }
     }
     false
+  }
+
+  override protected def withNewChildrenInternal(newFirst: Expression, newSecond: Expression, newThird: Expression): Expression = {
+    val newChildren = Seq(newFirst, newSecond, newThird)
+    super.legacyWithNewChildren(newChildren)
   }
 }
 
@@ -310,9 +336,18 @@ case class TimestampDiff(left: Expression, mid: Expression, right: Expression) e
     })
   }
 
+  override def first: Expression = left
+
+  override def second: Expression = mid
+
+  override def third: Expression = right
+
   override def dataType: DataType = LongType
 
-  override def children: Seq[Expression] = Seq(left, mid, right)
+  override protected def withNewChildrenInternal(newFirst: Expression, newSecond: Expression, newThird: Expression): Expression = {
+    val newChildren = Seq(newFirst, newSecond, newThird)
+    super.legacyWithNewChildren(newChildren)
+  }
 }
 
 case class Truncate(_left: Expression, _right: Expression) extends BinaryExpression with ExpectsInputTypes {
@@ -342,11 +377,22 @@ case class Truncate(_left: Expression, _right: Expression) extends BinaryExpress
   }
 
   override def dataType: DataType = left.dataType
+
+  override protected def withNewChildrenInternal(newLeft: Expression, newRight: Expression): Expression = {
+    val newChildren = Seq(newLeft, newRight)
+    super.legacyWithNewChildren(newChildren)
+  }
 }
 
 case class DictEncode(left: Expression, mid: Expression, right: Expression) extends TernaryExpression with ExpectsInputTypes {
 
   def maxFields: Int = SQLConf.get.maxToStringFields
+
+  override def first: Expression = left
+
+  override def second: Expression = mid
+
+  override def third: Expression = right
 
   override def inputTypes: Seq[AbstractDataType] = Seq(AnyDataType, StringType, StringType)
 
@@ -354,13 +400,16 @@ case class DictEncode(left: Expression, mid: Expression, right: Expression) exte
                                    ev: ExprCode): ExprCode = {
     val globalDictClass = classOf[NGlobalDictionaryV2].getName
     val bucketDictClass = classOf[NBucketDictionary].getName
-
     val globalDictTerm = ctx.addMutableState(globalDictClass,
-      s"${mid.simpleString(maxFields)
-        .replace("[", "").replace("]", "")}_globalDict")
+      s"${
+        mid.simpleString(maxFields)
+          .replace("[", "").replace("]", "")
+      }_globalDict")
     val bucketDictTerm = ctx.addMutableState(bucketDictClass,
-      s"${mid.simpleString(maxFields)
-        .replace("[", "").replace("]", "")}_bucketDict")
+      s"${
+        mid.simpleString(maxFields)
+          .replace("[", "").replace("]", "")
+      }_bucketDict")
 
     val dictParamsTerm = mid.simpleString(maxFields)
     val bucketSizeTerm = right.simpleString(maxFields).toInt
@@ -399,9 +448,12 @@ case class DictEncode(left: Expression, mid: Expression, right: Expression) exte
 
   override def dataType: DataType = LongType
 
-  override def children: Seq[Expression] = Seq(left, mid, right)
-
   override def prettyName: String = "DICTENCODE"
+
+  override protected def withNewChildrenInternal(newFirst: Expression, newSecond: Expression, newThird: Expression): Expression = {
+    val newChildren = Seq(newFirst, newSecond, newThird)
+    super.legacyWithNewChildren(newChildren)
+  }
 }
 
 
@@ -412,6 +464,12 @@ case class SplitPart(left: Expression, mid: Expression, right: Expression) exten
   override def nullable: Boolean = true
 
   override def inputTypes: Seq[AbstractDataType] = Seq(StringType, StringType, IntegerType)
+
+  override def first: Expression = left
+
+  override def second: Expression = mid
+
+  override def third: Expression = right
 
   override protected def nullSafeEval(input1: Any, input2: Any, input3: Any): Any = {
     SplitPartImpl.evaluate(input1.toString, input2.toString, input3.asInstanceOf[Int])
@@ -431,7 +489,10 @@ case class SplitPart(left: Expression, mid: Expression, right: Expression) exten
     })
   }
 
-  override def children: Seq[Expression] = Seq(left, mid, right)
+  override protected def withNewChildrenInternal(newFirst: Expression, newSecond: Expression, newThird: Expression): Expression = {
+    val newChildren = Seq(newFirst, newSecond, newThird)
+    super.legacyWithNewChildren(newChildren)
+  }
 }
 
 case class FloorDateTime(timestamp: Expression,
@@ -468,6 +529,11 @@ case class FloorDateTime(timestamp: Expression,
       (date: String, fmt: String) =>
         s"truncTimestamp($date, $fmt, $tz);"
     }
+  }
+
+  override protected def withNewChildrenInternal(newLeft: Expression, newRight: Expression): Expression = {
+    val newChildren = Seq(newLeft, newRight)
+    super.legacyWithNewChildren(newChildren)
   }
 }
 
@@ -507,10 +573,17 @@ case class CeilDateTime(timestamp: Expression,
       s"""$dtu.ceilTimestamp($date, $fmt, $zid)"""
     })
   }
+
+  override protected def withNewChildrenInternal(newLeft: Expression, newRight: Expression): Expression = {
+    val newChildren = Seq(newLeft, newRight)
+    super.legacyWithNewChildren(newChildren)
+  }
 }
 
-case class IntersectCountByCol(children: Expression*) extends Expression {
+case class IntersectCountByCol(childrenExp: Seq[Expression]) extends Expression {
   override def nullable: Boolean = false
+
+  override def children: Seq[Expression] = childrenExp
 
   override def eval(input: InternalRow): Long = {
     val array = children.map(_.eval(input).asInstanceOf[Array[Byte]]).toList.asJava
@@ -527,10 +600,11 @@ case class IntersectCountByCol(children: Expression*) extends Expression {
     val builder = new StringBuilder()
     builder.append(s"$list.clear();\n")
     codes.map(_.value).foreach { code =>
-        builder.append(s"$list.add($code);\n")
+      builder.append(s"$list.add($code);\n")
     }
 
-    val resultCode = s"""
+    val resultCode =
+      s"""
          ${builder.toString()}
          ${ev.value} = $ic.evaluate($list);"""
 
@@ -539,16 +613,20 @@ case class IntersectCountByCol(children: Expression*) extends Expression {
       builder.append(s"${code.code}\n")
     }
 
-    ev.copy(code = code"""
+    ev.copy(code =
+      code"""
         ${builder.toString()}
         ${CodeGenerator.javaType(dataType)} ${ev.value} = ${CodeGenerator.defaultValue(dataType)};
         $resultCode""", isNull = FalseLiteral)
   }
 
   override def dataType: DataType = LongType
+
+  override protected def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): Expression =
+    super.legacyWithNewChildren(newChildren)
 }
 
-case class SubtractBitmapUUID(child1: Expression, child2: Expression) extends BinaryExpression with ExpectsInputTypes  {
+case class SubtractBitmapUUID(child1: Expression, child2: Expression) extends BinaryExpression with ExpectsInputTypes {
   override def nullable: Boolean = false
 
   override def eval(input: InternalRow): Array[Byte] = {
@@ -571,9 +649,14 @@ case class SubtractBitmapUUID(child1: Expression, child2: Expression) extends Bi
       s"""$sb.evaluate2Bytes($arg1, $arg2)"""
     })
   }
+
+  override protected def withNewChildrenInternal(newLeft: Expression, newRight: Expression): Expression = {
+    val newChildren = Seq(newLeft, newRight)
+    super.legacyWithNewChildren(newChildren)
+  }
 }
 
-case class SubtractBitmapValue(child1: Expression, child2: Expression, upperBound: Int) extends BinaryExpression with ExpectsInputTypes  {
+case class SubtractBitmapValue(child1: Expression, child2: Expression, upperBound: Int) extends BinaryExpression with ExpectsInputTypes {
   override def nullable: Boolean = false
 
   override def eval(input: InternalRow): GenericArrayData = {
@@ -595,6 +678,11 @@ case class SubtractBitmapValue(child1: Expression, child2: Expression, upperBoun
     defineCodeGen(ctx, ev, (arg1, arg2) => {
       s"""$sb.evaluate2Values($arg1, $arg2, $upperBound)"""
     })
+  }
+
+  override protected def withNewChildrenInternal(newLeft: Expression, newRight: Expression): Expression = {
+    val newChildren = Seq(newLeft, newRight)
+    super.legacyWithNewChildren(newChildren)
   }
 }
 
@@ -627,12 +715,16 @@ case class PreciseCountDistinctDecode(_child: Expression)
   override def dataType: DataType = LongType
 
   override def prettyName: String = "precise_count_distinct_decode"
+
+  override protected def withNewChildInternal(newChild: Expression): Expression =
+    copy(_child = newChild)
 }
 
 case class ApproxCountDistinctDecode(expr: Expression, precision: Expression)
   extends BinaryExpression with ExpectsInputTypes {
 
   def left: Expression = expr
+
   def right: Expression = precision
 
   override def inputTypes: Seq[AbstractDataType] = Seq(BinaryType, IntegerType)
@@ -659,11 +751,22 @@ case class ApproxCountDistinctDecode(expr: Expression, precision: Expression)
   override def dataType: DataType = LongType
 
   override def prettyName: String = "approx_count_distinct_decode"
+
+  override protected def withNewChildrenInternal(newLeft: Expression, newRight: Expression): Expression = {
+    val newChildren = Seq(newLeft, newRight)
+    super.legacyWithNewChildren(newChildren)
+  }
 }
 
 case class PercentileDecode(bytes: Expression, quantile: Expression, precision: Expression) extends TernaryExpression with ExpectsInputTypes {
 
   override def inputTypes: Seq[AbstractDataType] = Seq(BinaryType, DecimalType, IntegerType)
+
+  override def first: Expression = bytes
+
+  override def second: Expression = quantile
+
+  override def third: Expression = precision
 
   override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
     val expressionUtils = ExpressionUtils.getClass.getName.stripSuffix("$")
@@ -673,7 +776,7 @@ case class PercentileDecode(bytes: Expression, quantile: Expression, precision: 
   }
 
   override protected def nullSafeEval(bytes: Any, quantile: Any, precision: Any): Any = {
-      ExpressionUtils.percentileDecodeHelper(bytes, quantile, precision)
+    ExpressionUtils.percentileDecodeHelper(bytes, quantile, precision)
   }
 
   override def dataType: DataType = DoubleType
@@ -682,5 +785,8 @@ case class PercentileDecode(bytes: Expression, quantile: Expression, precision: 
 
   override def nullable: Boolean = false
 
-  override def children: Seq[Expression] = Seq(bytes, quantile, precision)
+  override protected def withNewChildrenInternal(newFirst: Expression, newSecond: Expression, newThird: Expression): Expression = {
+    val newChildren = Seq(newFirst, newSecond, newThird)
+    super.legacyWithNewChildren(newChildren)
+  }
 }

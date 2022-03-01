@@ -153,6 +153,11 @@ object KapFunctions {
     extends RoundBase(child, scale, BigDecimal.RoundingMode.DOWN, "ROUND_DOWN")
       with Serializable with ImplicitCastInputTypes {
     def this(child: Expression) = this(child, Literal(0))
+
+    override protected def withNewChildrenInternal(newLeft: Expression, newRight: Expression): Expression = {
+      val newChildren = Seq(newLeft, newRight)
+      super.legacyWithNewChildren(newChildren)
+    }
   }
 
   def dict_encode(column: Column, dictParams: Column, bucketSize: Column): Column = {

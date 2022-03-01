@@ -75,7 +75,7 @@ case class LayoutFileSourceScanExec(
 
   private lazy val needsUnsafeRowConversion: Boolean = {
     if (relation.fileFormat.isInstanceOf[ParquetSource]) {
-      sqlContext.conf.parquetVectorizedReaderEnabled
+      conf.parquetVectorizedReaderEnabled
     } else {
       false
     }

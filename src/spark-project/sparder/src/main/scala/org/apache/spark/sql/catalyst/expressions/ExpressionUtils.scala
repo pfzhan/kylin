@@ -104,6 +104,7 @@ object ExpressionUtils {
           df.note(),
           null,
           df.since(),
+          null,
           null)
       } else {
         // This exists for the backward compatibility with old `ExpressionDescription`s defining

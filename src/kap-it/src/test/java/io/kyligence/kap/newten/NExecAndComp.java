@@ -108,7 +108,7 @@ public class NExecAndComp {
 
     public static void execAndCompare(List<Pair<String, String>> queries, String prj, CompareLevel compareLevel,
             String joinType) {
-        execAndCompareNew(queries, prj, compareLevel, joinType, null);
+        execAndCompareNew(queries, prj, compareLevel, joinType, null, null);
     }
 
     public static void execAndCompareDynamic(List<Pair<String, String>> queries, String prj, CompareLevel compareLevel,
@@ -150,7 +150,7 @@ public class NExecAndComp {
             String joinType) {
         List<Pair<String, String>> transformed = queries.stream().map(q -> Pair.newPair("", q))
                 .collect(Collectors.toList());
-        execAndCompareNew(transformed, prj, compareLevel, joinType, null);
+        execAndCompareNew(transformed, prj, compareLevel, joinType, null, null);
     }
 
     // TODO: udf/calcite function return type should be same as sparksql.
@@ -191,7 +191,7 @@ public class NExecAndComp {
     }
 
     public static void execAndCompareNew(List<Pair<String, String>> queries, String prj, CompareLevel compareLevel,
-            String joinType, Map<String, CompareEntity> recAndQueryResult) {
+            String joinType, Map<String, CompareEntity> recAndQueryResult, Pair<String, String> views) {
         for (Pair<String, String> query : queries) {
             logger.info("Exec and compare query ({}) :{}", joinType, query.getFirst());
 
@@ -205,7 +205,11 @@ public class NExecAndComp {
             Dataset<Row> cubeResult = SparderEnv.getDF();
             addQueryPath(recAndQueryResult, query, sql);
             if (compareLevel != CompareLevel.NONE) {
-                Dataset<Row> sparkResult = queryWithSpark(prj, sql, query.getFirst());
+                String newSql = sql;
+                if (views != null) {
+                    newSql = sql.replaceAll(views.getFirst(), views.getSecond());
+                }
+                Dataset<Row> sparkResult = queryWithSpark(prj, newSql, query.getFirst());
                 if ((compareLevel == CompareLevel.SAME || compareLevel == CompareLevel.SAME_ORDER)
                         && sparkResult.schema().fields().length != cubeResult.schema().fields().length) {
                     logger.error("Failed on compare query ({}) :{} \n cube schema: {} \n, spark schema: {}", joinType,

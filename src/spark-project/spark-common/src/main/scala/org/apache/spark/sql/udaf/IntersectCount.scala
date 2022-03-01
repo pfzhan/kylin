@@ -166,6 +166,9 @@ case class IntersectCount(child1: Expression, child2: Expression, child3: Expres
   override def nullable: Boolean = false
 
   override def children: Seq[Expression] = child1 :: child2 :: child3 :: filterType :: Nil
+
+  override protected def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): Expression =
+    super.legacyWithNewChildren(newChildren)
 }
 
 sealed abstract class IntersectFilter {

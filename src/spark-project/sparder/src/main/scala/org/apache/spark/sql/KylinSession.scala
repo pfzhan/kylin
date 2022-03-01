@@ -285,7 +285,7 @@ object KylinSession extends Logging {
       if (new File(
         KylinConfig.getKylinConfDir.getCanonicalPath + "/fairscheduler.xml")
         .exists()) {
-        val fairScheduler = KylinConfig.getKylinConfDir.getCanonicalPath + "/fairscheduler.xml"
+        val fairScheduler = "file://" + KylinConfig.getKylinConfDir.getCanonicalPath + "/fairscheduler.xml"
         sparkConf.set("spark.scheduler.allocation.file", fairScheduler)
       }
 

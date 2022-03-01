@@ -301,7 +301,7 @@ public class NAutoBuildAndQueryTest extends AutoTestBase {
         List<Pair<String, String>> queries = scenario.getQueries();
         populateSSWithCSVData(kylinConfig, getProject(), SparderEnv.getSparkSession());
         NExecAndComp.execAndCompareNew(queries, getProject(), scenario.getCompareLevel(),
-                scenario.getJoinType().toString(), null);
+                scenario.getJoinType().toString(), null, null);
     }
 
     @Test

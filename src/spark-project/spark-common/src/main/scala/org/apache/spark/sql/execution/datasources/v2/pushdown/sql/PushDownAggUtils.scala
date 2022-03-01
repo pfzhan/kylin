@@ -175,7 +175,7 @@ object PushDownAggUtils {
           referenceAs(sumName, sumAlias, sumExpression),
           referenceAs(cntName, countAlias, countExpression))
 
-      case Count(_) | Sum(_) | Max(_) | Min(_) =>
+      case Count(_) | Sum(_, _) | Max(_) | Min(_) =>
         // See Sum for understanding why take 1
         inputBuffers.take(1).map { ref =>
           val aliasName = createAliasName.map(_.apply()).getOrElse(outerName + ref.name)

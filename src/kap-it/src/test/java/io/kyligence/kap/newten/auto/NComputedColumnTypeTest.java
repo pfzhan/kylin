@@ -115,7 +115,7 @@ public class NComputedColumnTypeTest extends NLocalWithSparkSessionTest {
         exprTypes.put("TEST_MEASURE.TIME2", "TIMESTAMP");
         exprTypes.put("DATEDIFF(CAST(TEST_MEASURE.TIME2 AS DATE), TEST_MEASURE.TIME1)", "INTEGER");
         exprTypes.put("CAST(TEST_MEASURE.TIME2 AS STRING)", "VARCHAR");
-        exprTypes.put("TEST_MEASURE.TIME1 + INTERVAL 12 HOURS", "DATE");
+        exprTypes.put("TEST_MEASURE.TIME1 + INTERVAL 12 HOURS", "TIMESTAMP");
         exprTypes.put("TEST_MEASURE.TIME2 + INTERVAL 12 HOURS", "TIMESTAMP");
         exprTypes.put("YEAR(TEST_MEASURE.TIME2)", "INTEGER");
         exprTypes.put("MONTH(TEST_MEASURE.TIME2)", "INTEGER");

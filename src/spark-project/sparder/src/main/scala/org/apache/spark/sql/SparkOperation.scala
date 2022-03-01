@@ -25,7 +25,8 @@ package org.apache.spark.sql
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.plans.logical.GroupingSets
+import org.apache.spark.sql.catalyst.expressions.GroupingSets
+import org.apache.spark.sql.catalyst.plans.logical.Aggregate
 import org.apache.spark.sql.types.StructType
 
 object SparkOperation {
@@ -69,11 +70,11 @@ object SparkOperation {
     if (aggArgc.agg.nonEmpty && aggArgc.group.nonEmpty && !aggArgc.isSimpleGroup && aggArgc.groupSets.nonEmpty) {
       Dataset.ofRows(
         aggArgc.dataFrame.sparkSession,
-        GroupingSets(
-          aggArgc.groupSets.map(gs => gs.map(_.expr)),
-          aggArgc.group.map(_.expr),
-          aggArgc.dataFrame.queryExecution.logical,
-          aggArgc.group.map(_.named) ++ aggArgc.agg.map(_.named)
+        Aggregate(
+          Seq(GroupingSets(aggArgc.groupSets.map(gs => gs.map(_.expr)),
+            aggArgc.group.map(_.expr))),
+          aggArgc.group.map(_.named) ++ aggArgc.agg.map(_.named),
+          aggArgc.dataFrame.queryExecution.logical
         )
       )
     } else if (aggArgc.agg.nonEmpty && aggArgc.group.nonEmpty) {

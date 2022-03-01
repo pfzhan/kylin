@@ -286,10 +286,10 @@ class ColumnarCachedBatchSerializer extends CachedBatchSerializer {
     protected val convertTz: Option[ZoneId] = None
 
     protected val datetimeRebaseMode: SQLConf.LegacyBehaviorPolicy.Value = //
-      LegacyBehaviorPolicy.withName(conf.getConf(SQLConf.LEGACY_PARQUET_REBASE_MODE_IN_WRITE))
+      LegacyBehaviorPolicy.withName(conf.getConf(SQLConf.PARQUET_REBASE_MODE_IN_WRITE))
 
     protected val int96RebaseMode: SQLConf.LegacyBehaviorPolicy.Value = //
-      LegacyBehaviorPolicy.withName(conf.getConf(SQLConf.LEGACY_PARQUET_INT96_REBASE_MODE_IN_WRITE))
+      LegacyBehaviorPolicy.withName(conf.getConf(SQLConf.PARQUET_INT96_REBASE_MODE_IN_WRITE))
 
     private val sparkSchema = cacheAttributes.toStructType
     private val requestedSchema = selectedAttributes.toStructType
@@ -511,8 +511,9 @@ class ColumnarCachedBatchSerializer extends CachedBatchSerializer {
           if (!missingColumns(i)) {
             columnReaders(i) =
               new VectorizedColumnReader(columnsInCache.get(i),
-                typesInCache.get(i).getOriginalType,
+                typesInCache.get(i).getLogicalTypeAnnotation,
                 pages.getPageReader(columnsInCache.get(i)),
+                pages.getRowIndexes().orElse(null),
                 convertTz.orNull,
                 datetimeRebaseMode.toString,
                 int96RebaseMode.toString)
@@ -562,12 +563,12 @@ class ColumnarCachedBatchSerializer extends CachedBatchSerializer {
       sqlConf.isParquetINT96AsTimestamp)
 
     // datetimeRebaseMode
-    hadoopConf.set(SQLConf.LEGACY_PARQUET_REBASE_MODE_IN_WRITE.key,
-      sqlConf.getConf(SQLConf.LEGACY_PARQUET_REBASE_MODE_IN_WRITE))
+    hadoopConf.set(SQLConf.PARQUET_REBASE_MODE_IN_WRITE.key,
+      sqlConf.getConf(SQLConf.PARQUET_REBASE_MODE_IN_WRITE))
 
     // int96RebaseMode
-    hadoopConf.set(SQLConf.LEGACY_PARQUET_INT96_REBASE_MODE_IN_WRITE.key,
-      sqlConf.getConf(SQLConf.LEGACY_PARQUET_INT96_REBASE_MODE_IN_WRITE))
+    hadoopConf.set(SQLConf.PARQUET_INT96_REBASE_MODE_IN_WRITE.key,
+      sqlConf.getConf(SQLConf.PARQUET_INT96_REBASE_MODE_IN_WRITE))
 
     hadoopConf.set(SQLConf.PARQUET_OUTPUT_TIMESTAMP_TYPE.key,
       sqlConf.parquetOutputTimestampType.toString)

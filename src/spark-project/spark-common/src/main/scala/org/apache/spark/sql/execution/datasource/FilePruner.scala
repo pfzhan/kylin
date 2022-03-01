@@ -31,15 +31,15 @@ import org.apache.kylin.common.{KapConfig, KylinConfig, QueryContext}
 import org.apache.kylin.metadata.model.{PartitionDesc, TblColRef}
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.analysis.Resolver
-import org.apache.spark.sql.catalyst.expressions.{Attribute, AttributeSet, EmptyRow, Expression, Literal}
+import org.apache.spark.sql.catalyst.expressions.{Attribute, AttributeSet, EmptyRow, Expression, GetStructField, Literal}
 import org.apache.spark.sql.catalyst.{InternalRow, expressions}
 import org.apache.spark.sql.execution.datasources._
 import org.apache.spark.sql.sources.{Filter, _}
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{AnalysisException, SparkSession}
 import org.apache.spark.util.collection.BitSet
-
 import java.sql.{Date, Timestamp}
+
 import scala.collection.JavaConverters._
 
 case class SegmentDirectory(segmentID: String, partitions: List[Long], files: Seq[FileStatus])
@@ -364,7 +364,6 @@ class FilePruner(val session: SparkSession,
       val reducedFilter = filters.toList.map(filter => convertCastFilter(filter))
         .flatMap(f => DataSourceStrategy.translateFilter(f, true)).reduceLeft(And)
 
-      reducedFilter.references.distinct.toList
       segDirs.filter {
         e => {
           val dimRange = dataflow.getSegment(e.segmentID).getDimensionRangeInfoMap
@@ -462,25 +461,25 @@ class FilePruner(val session: SparkSession,
   //  translate for filter type match
   private def convertCastFilter(filter: Expression): Expression = {
     filter match {
-      case expressions.EqualTo(expressions.Cast(a: Attribute, _, _), Literal(v, t)) =>
+      case expressions.EqualTo(expressions.Cast(a: Attribute, _, _, _), Literal(v, t)) =>
         expressions.EqualTo(a, Literal(v, t))
-      case expressions.EqualTo(Literal(v, t), expressions.Cast(a: Attribute, _, _)) =>
+      case expressions.EqualTo(Literal(v, t), expressions.Cast(a: Attribute, _, _, _)) =>
         expressions.EqualTo(Literal(v, t), a)
-      case expressions.GreaterThan(expressions.Cast(a: Attribute, _, _), Literal(v, t)) =>
+      case expressions.GreaterThan(expressions.Cast(a: Attribute, _, _, _), Literal(v, t)) =>
         expressions.GreaterThan(a, Literal(v, t))
-      case expressions.GreaterThan(Literal(v, t), expressions.Cast(a: Attribute, _, _)) =>
+      case expressions.GreaterThan(Literal(v, t), expressions.Cast(a: Attribute, _, _, _)) =>
         expressions.GreaterThan(Literal(v, t), a)
-      case expressions.LessThan(expressions.Cast(a: Attribute, _, _), Literal(v, t)) =>
+      case expressions.LessThan(expressions.Cast(a: Attribute, _, _, _), Literal(v, t)) =>
         expressions.LessThan(a, Literal(v, t))
-      case expressions.LessThan(Literal(v, t), expressions.Cast(a: Attribute, _, _)) =>
+      case expressions.LessThan(Literal(v, t), expressions.Cast(a: Attribute, _, _, _)) =>
         expressions.LessThan(Literal(v, t), a)
-      case expressions.GreaterThanOrEqual(expressions.Cast(a: Attribute, _, _), Literal(v, t)) =>
+      case expressions.GreaterThanOrEqual(expressions.Cast(a: Attribute, _, _, _), Literal(v, t)) =>
         expressions.GreaterThanOrEqual(a, Literal(v, t))
-      case expressions.GreaterThanOrEqual(Literal(v, t), expressions.Cast(a: Attribute, _, _)) =>
+      case expressions.GreaterThanOrEqual(Literal(v, t), expressions.Cast(a: Attribute, _, _, _)) =>
         expressions.GreaterThanOrEqual(Literal(v, t), a)
-      case expressions.LessThanOrEqual(expressions.Cast(a: Attribute, _, _), Literal(v, t)) =>
+      case expressions.LessThanOrEqual(expressions.Cast(a: Attribute, _, _, _), Literal(v, t)) =>
         expressions.LessThanOrEqual(a, Literal(v, t))
-      case expressions.LessThanOrEqual(Literal(v, t), expressions.Cast(a: Attribute, _, _)) =>
+      case expressions.LessThanOrEqual(Literal(v, t), expressions.Cast(a: Attribute, _, _, _)) =>
         expressions.LessThanOrEqual(Literal(v, t), a)
       case expressions.Or(left, right) =>
         expressions.Or(convertCastFilter(left), convertCastFilter(right))
@@ -669,6 +668,15 @@ case class SegFilters(start: Long, end: Long, pattern: String) extends Logging {
   }
 }
 
+
+abstract class PushableColumnBase {
+
+  def unapply(col: String): String = {
+    s"${col.replace("`", "")}"
+  }
+
+}
+
 case class SegDimFilters(dimRange: java.util.Map[String, DimensionRangeInfo], dimCols: java.util.Map[Integer, TblColRef]) extends Logging {
 
   private def insurance(id: String, value: Any)
@@ -684,22 +692,27 @@ case class SegDimFilters(dimRange: java.util.Map[String, DimensionRangeInfo], di
    * Recursively fold provided filters to trivial,
    * blocks are always non-empty.
    */
+
+  def escapeQuote(colName: String): String = {s"${colName.replace("`", "")}"}
+
   def foldFilter(filter: Filter): Filter = {
     filter match {
       case EqualTo(id, value: Any) =>
-        insurance(id, value) {
+        val col = escapeQuote(id)
+        insurance(col, value) {
           ts => {
-            val dataType = dimCols.get(id.toInt).getType
-            Trivial(dataType.compare(ts, dimRange.get(id).getMin) >= 0
-              && dataType.compare(ts, dimRange.get(id).getMax) <= 0)
+            val dataType = dimCols.get(col.toInt).getType
+            Trivial(dataType.compare(ts, dimRange.get(col).getMin) >= 0
+              && dataType.compare(ts, dimRange.get(col).getMax) <= 0)
           }
         }
       case In(id, values: Array[Any]) =>
-        val satisfied = values.map(v => insurance(id, v) {
+        val col = escapeQuote(id)
+        val satisfied = values.map(v => insurance(col, v) {
           ts => {
-            val dataType = dimCols.get(id.toInt).getType
-            Trivial(dataType.compare(ts, dimRange.get(id).getMin) >= 0
-              && dataType.compare(ts, dimRange.get(id).getMax) <= 0)
+            val dataType = dimCols.get(col.toInt).getType
+            Trivial(dataType.compare(ts, dimRange.get(col).getMin) >= 0
+              && dataType.compare(ts, dimRange.get(col).getMax) <= 0)
           }
         }).exists(_.equals(Trivial(true)))
         Trivial(satisfied)
@@ -709,20 +722,24 @@ case class SegDimFilters(dimRange: java.util.Map[String, DimensionRangeInfo], di
       case IsNotNull(_) =>
         Trivial(true)
       case GreaterThan(id, value: Any) =>
-        insurance(id, value) {
-          ts => Trivial(dimCols.get(id.toInt).getType.compare(ts, dimRange.get(id).getMax) < 0)
+        val col = escapeQuote(id)
+        insurance(col, value) {
+          ts => Trivial(dimCols.get(col.toInt).getType.compare(ts, dimRange.get(col).getMax) < 0)
         }
       case GreaterThanOrEqual(id, value: Any) =>
-        insurance(id, value) {
-          ts => Trivial(dimCols.get(id.toInt).getType.compare(ts, dimRange.get(id).getMax) <= 0)
+        val col = escapeQuote(id)
+        insurance(col, value) {
+          ts => Trivial(dimCols.get(col.toInt).getType.compare(ts, dimRange.get(col).getMax) <= 0)
         }
       case LessThan(id, value: Any) =>
-        insurance(id, value) {
-          ts => Trivial(dimCols.get(id.toInt).getType.compare(ts, dimRange.get(id).getMin) > 0)
+        val col = escapeQuote(id)
+        insurance(col, value) {
+          ts => Trivial(dimCols.get(col.toInt).getType.compare(ts, dimRange.get(col).getMin) > 0)
         }
       case LessThanOrEqual(id, value: Any) =>
-        insurance(id, value) {
-          ts => Trivial(dimCols.get(id.toInt).getType.compare(ts, dimRange.get(id).getMin) >= 0)
+        val col = escapeQuote(id)
+        insurance(col, value) {
+          ts => Trivial(dimCols.get(col.toInt).getType.compare(ts, dimRange.get(col).getMin) >= 0)
         }
       case And(left: Filter, right: Filter) =>
         And(foldFilter(left), foldFilter(right)) match {

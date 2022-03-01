@@ -65,4 +65,7 @@ case class UnsafelyInsertIntoHadoopFsRelationCommand(
   }
 
   override def outputColumnNames: Seq[String] = query.output.map(_.name)
+
+  override protected def withNewChildInternal(newChild: LogicalPlan): UnsafelyInsertIntoHadoopFsRelationCommand =
+    copy(query = newChild)
 }
