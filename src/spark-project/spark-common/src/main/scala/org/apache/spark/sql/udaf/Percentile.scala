@@ -128,5 +128,8 @@ case class Percentile(aggColumn: Expression,
         counter.getResultEstimate
     }
   }
+
+  override protected def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): Expression =
+    super.legacyWithNewChildren(newChildren)
 }
 

@@ -403,7 +403,7 @@ object ExpressionConverter {
           case func if bitmapUDF.contains(func) =>
             func match {
               case "intersect_count_by_col" =>
-                new Column(IntersectCountByCol(children.head.asInstanceOf[Column].expr.children.toArray: _*))
+                new Column(IntersectCountByCol(children.head.asInstanceOf[Column].expr.children.toSeq))
               case "subtract_bitmap_value" =>
                 new Column(SubtractBitmapValue(children.head.asInstanceOf[Column].expr, children.last.asInstanceOf[Column].expr, KylinConfig.getInstanceFromEnv.getBitmapValuesUpperBound))
               case "subtract_bitmap_uuid" =>

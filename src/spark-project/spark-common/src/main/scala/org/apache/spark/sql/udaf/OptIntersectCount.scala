@@ -74,7 +74,7 @@ case class OptIntersectCount(child: Expression,
   }
 
   override def eval(buffer: Counter): Any = {
-    val map = buffer.map.map{ e =>
+    val map = buffer.map.map { e =>
       e._1 -> serializeBitmap(e._2)
     }.toMap
     ArrayBasedMapData.apply(map)
@@ -166,6 +166,9 @@ case class OptIntersectCount(child: Expression,
   override def withNewInputAggBufferOffset(newInputAggBufferOffset: Int): ImperativeAggregate = {
     copy(inputAggBufferOffset = newInputAggBufferOffset)
   }
+
+  override protected def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): Expression =
+    super.legacyWithNewChildren(newChildren)
 }
 
 class Counter() {

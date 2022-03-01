@@ -132,7 +132,7 @@ object SQLBuilder {
       case t@Literal(_, dataType) if dataType.equals(TimestampType) =>
         s"toDateTime('${longToReadableTimestamp(t.value.asInstanceOf[Long])}')"
       case expr.Literal(value, _) => literalToSql(value)
-      case expr.Cast(child, dataType, _) =>
+      case expr.Cast(child, dataType, _, _) =>
         s"CAST(${expressionToSql(child)} AS ${typeToSql(dataType, child.nullable)})"
       // TODO work on that, for SPark 1.6
       // case expr.CountDistinct(children) => s"COUNT(DISTINCT ${expressionsToSql(children, ",")})"

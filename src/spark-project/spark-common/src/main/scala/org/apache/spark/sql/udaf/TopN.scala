@@ -180,6 +180,9 @@ case class ReuseTopN(
     copy(inputAggBufferOffset = newInputAggBufferOffset)
 
   override def children: Seq[Expression] = child :: Nil
+
+  override protected def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): Expression =
+    super.legacyWithNewChildren(newChildren)
 }
 
 case class EncodeTopN(
@@ -218,4 +221,7 @@ case class EncodeTopN(
     copy(inputAggBufferOffset = newInputAggBufferOffset)
 
   override def children: Seq[Expression] = Seq(measure) ++ dimensions
+
+  override protected def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): Expression =
+    super.legacyWithNewChildren(newChildren)
 }

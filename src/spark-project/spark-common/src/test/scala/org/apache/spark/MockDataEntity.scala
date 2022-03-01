@@ -104,7 +104,9 @@ class MockStageData(
                         executorSummary = None,
                         killedTasksSummary = Map.empty,
                         ResourceProfile.DEFAULT_RESOURCE_PROFILE_ID,
-                        peakExecutorMetrics = None)
+                        peakExecutorMetrics = None,
+                        taskMetricsDistributions = None,
+                        executorMetricsDistributions = None)
 
 class MockTaskData(
                     override val taskId: Long,

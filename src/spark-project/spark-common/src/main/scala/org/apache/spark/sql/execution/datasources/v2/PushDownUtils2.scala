@@ -222,6 +222,10 @@ object PushDownUtils2 extends PredicateHelper {
     relation: DataSourceV2Relation,
     projects: Seq[NamedExpression],
     filters: Seq[Expression]): Option[StructType] = {
+    val exprs = projects ++ filters
+    val requiredColumns = AttributeSet(exprs.flatMap(_.references))
+    val neededOutput = relation.output.filter(requiredColumns.contains)
+
     scanBuilder match {
       case _: SupportsPushDownRequiredColumns if SQLConf.get.nestedSchemaPruningEnabled =>
         val rootFields = SchemaPruning.identifyRootFields(projects, filters)
@@ -230,12 +234,10 @@ object PushDownUtils2 extends PredicateHelper {
         } else {
           new StructType()
         }
-        Some(prunedSchema)
+        val neededFieldNames = neededOutput.map(_.name).toSet
+        Some(StructType(prunedSchema.filter(f => neededFieldNames.contains(f.name))))
 
       case _: SupportsPushDownRequiredColumns =>
-        val exprs = projects ++ filters
-        val requiredColumns = AttributeSet(exprs.flatMap(_.references))
-        val neededOutput = relation.output.filter(requiredColumns.contains)
         // always project, in case the relation's output has been updated and doesn't match
         // the underlying table schema
         Some(neededOutput.toStructType)

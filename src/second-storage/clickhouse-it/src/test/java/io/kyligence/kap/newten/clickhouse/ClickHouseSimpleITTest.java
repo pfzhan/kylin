@@ -1125,10 +1125,12 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
 
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
         List<Pair<String, String>> query = new ArrayList<>();
+        Pair<String, String> pair = null;
         if (incremental) {
             val result = SparderEnv.getSparkSession()
                     .sql("select * from TEST_KYLIN_FACT where CAL_DT >= '2012-01-01' and CAL_DT < '2012-01-03'");
-            result.createOrReplaceTempView("TEST_KYLIN_FACT");
+            result.createOrReplaceTempView("TEST_KYLIN_FACT1");
+            pair = new Pair<>("TEST_KYLIN_FACT", "TEST_KYLIN_FACT1");
         }
         query.add(Pair.newPair("query_table_index1", "select PRICE from TEST_KYLIN_FACT group by PRICE"));
         query.add(Pair.newPair("query_table_index2", "select sum(PRICE) from TEST_KYLIN_FACT group by PRICE"));
@@ -1180,7 +1182,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
                         + "group by \n"
                         + "  LSTG_FORMAT_NAME\n"));
 
-        NExecAndComp.execAndCompareNew(query, getProject(), NExecAndComp.CompareLevel.SAME, "left", null);
+        NExecAndComp.execAndCompareNew(query, getProject(), NExecAndComp.CompareLevel.SAME, "left", null, pair);
     }
 
     public List<Integer> getHAModelRowCount(String project, String modelId) throws SQLException {

@@ -22,7 +22,8 @@
 
 package io.kyligence.kap.common
 
-import avro.shaded.com.google.common.collect.Maps
+
+import com.google.common.collect.Maps
 import io.kyligence.kap.common.util.Unsafe
 
 import scala.collection.JavaConverters._

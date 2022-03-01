@@ -27,7 +27,7 @@ import io.kyligence.api.catalog.{IExternalCatalog => KeExternalCatalog}
 import org.apache.hadoop.conf.Configuration
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.TableIdentifier
-import org.apache.spark.sql.catalyst.analysis.FunctionRegistry
+import org.apache.spark.sql.catalyst.analysis.{FunctionRegistry, TableFunctionRegistry}
 import org.apache.spark.sql.catalyst.catalog._
 import org.apache.spark.sql.catalyst.parser.ParserInterface
 import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, SubqueryAlias}
@@ -38,6 +38,7 @@ class KylinSessionCatalog(
     externalCatalogBuilder: () => ExternalCatalog,
     globalTempViewManagerBuilder: () => GlobalTempViewManager,
     functionRegistry: FunctionRegistry,
+    tableFunctionRegistry: TableFunctionRegistry,
     hadoopConf: Configuration,
     parser: ParserInterface,
     functionResourceLoader: FunctionResourceLoader,
@@ -46,6 +47,7 @@ class KylinSessionCatalog(
     externalCatalogBuilder,
     globalTempViewManagerBuilder,
     functionRegistry,
+    tableFunctionRegistry,
     hadoopConf,
     parser,
     functionResourceLoader) {

@@ -505,7 +505,7 @@ public abstract class SuggestTestBase extends NLocalWithSparkSessionTest {
                             testScenario.getCompareLevel(), testScenario.joinType.name(), compareMap);
                 } else {
                     NExecAndComp.execAndCompareNew(testScenario.queries, getProject(), testScenario.getCompareLevel(),
-                            testScenario.joinType.name(), compareMap);
+                            testScenario.joinType.name(), compareMap, null);
                 }
             });
             log.info("compare result cost {} ms", System.currentTimeMillis() - startTime);

@@ -71,7 +71,7 @@ class KylinSharedState (
 class KylinSessionStateBuilder(
     session: SparkSession,
     state: Option[SessionState])
-  extends BaseSessionStateBuilder(session, state, Map.empty) {
+  extends BaseSessionStateBuilder(session, state) {
 
   override def build(): SessionState = {
     require(session.sharedState.isInstanceOf[KylinSharedState])
@@ -83,6 +83,7 @@ class KylinSessionStateBuilder(
       () => session.sharedState.externalCatalog,
       () => session.sharedState.globalTempViewManager,
       functionRegistry,
+      tableFunctionRegistry,
       SessionState.newHadoopConf(session.sparkContext.hadoopConfiguration, conf),
       sqlParser,
       resourceLoader,

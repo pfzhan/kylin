@@ -29,6 +29,7 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.aggregate.{ImperativeAggregate, TypedImperativeAggregate}
 import org.apache.spark.sql.catalyst.expressions.codegen.CodegenFallback
 import org.apache.spark.sql.catalyst.expressions.{Expression, _}
+import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.catalyst.util.GenericArrayData
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
@@ -105,6 +106,9 @@ case class EncodePreciseCountDistinct(
 
   override def withNewInputAggBufferOffset(newInputAggBufferOffset: Int): ImperativeAggregate =
     copy(inputAggBufferOffset = newInputAggBufferOffset)
+
+  override protected def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): Expression =
+    super.legacyWithNewChildren(newChildren)
 }
 
 @SerialVersionUID(1)
@@ -134,6 +138,9 @@ case class ReusePreciseCountDistinct(
   override def withNewInputAggBufferOffset(newInputAggBufferOffset: Int): ImperativeAggregate =
     copy(inputAggBufferOffset = newInputAggBufferOffset)
   override val prettyName: String = "bitmap_or"
+
+  override protected def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): Expression =
+    super.legacyWithNewChildren(newChildren)
 }
 
 @SerialVersionUID(1)
@@ -166,6 +173,9 @@ case class PreciseCountDistinct(
 
   override def withNewInputAggBufferOffset(newInputAggBufferOffset: Int): ImperativeAggregate =
     copy(inputAggBufferOffset = newInputAggBufferOffset)
+
+  override protected def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): Expression =
+    super.legacyWithNewChildren(newChildren)
 }
 
 @SerialVersionUID(1)
@@ -263,6 +273,9 @@ case class PreciseCountDistinctAndValue(
     copy(inputAggBufferOffset = newInputAggBufferOffset)
 
   override val prettyName: String = "bitmap_and_value"
+
+  override protected def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): Expression =
+    super.legacyWithNewChildren(newChildren)
 }
 
 @SerialVersionUID(1)
@@ -282,6 +295,9 @@ case class PreciseCountDistinctAndArray(
     copy(inputAggBufferOffset = newInputAggBufferOffset)
 
   override val prettyName: String = "bitmap_and_ids"
+
+  override protected def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): Expression =
+    super.legacyWithNewChildren(newChildren)
 }
 
 case class PreciseCardinality(override val child: Expression)
@@ -295,6 +311,9 @@ case class PreciseCardinality(override val child: Expression)
     val data = input.asInstanceOf[Array[Byte]]
     BitmapSerAndDeSerObj.deserialize(data).getLongCardinality
   }
+
+  override protected def withNewChildInternal(newChild: Expression): PreciseCardinality =
+    copy(child = newChild)
 }
 
 @SerialVersionUID(1)
@@ -326,6 +345,9 @@ case class PreciseBitmapBuildBase64WithIndex(
     copy(inputAggBufferOffset = newInputAggBufferOffset)
 
   override val prettyName: String = "bitmap_build_with_index"
+
+  override protected def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): Expression =
+    super.legacyWithNewChildren(newChildren)
 }
 
 @SerialVersionUID(1)
@@ -341,6 +363,9 @@ case class PreciseBitmapBuildBase64Decode(override val child: Expression)
     val encodeValue = org.apache.commons.codec.binary.Base64.encodeBase64String(data)
     UTF8String.fromString(encodeValue)
   }
+
+  override protected def withNewChildInternal(newChild: Expression): Expression =
+    copy(child = newChild)
 }
 
 @SerialVersionUID(1)
@@ -382,4 +407,7 @@ case class PreciseBitmapBuildPushDown(child: Expression,
 
   override def withNewInputAggBufferOffset(newInputAggBufferOffset: Int): ImperativeAggregate =
     copy(inputAggBufferOffset = newInputAggBufferOffset)
+
+  override protected def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): Expression =
+    super.legacyWithNewChildren(newChildren)
 }

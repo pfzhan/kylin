@@ -131,7 +131,7 @@ public class SemiAutoTestBase extends SuggestTestBase {
                     testScenario.getJoinType().name(), compareMap);
         } else {
             NExecAndComp.execAndCompareNew(validQueries, getProject(), testScenario.getCompareLevel(),
-                    testScenario.getJoinType().name(), compareMap);
+                    testScenario.getJoinType().name(), compareMap, null);
             NExecAndComp.execAndFail(invalidQueries, getProject(), testScenario.getJoinType().name(), compareMap);
 
         }

@@ -155,7 +155,7 @@ public class SparkSourceServiceTest extends ServiceTestBase {
     }
 
     @Test
-    public void testExportTables() throws IOException {
+    public void testExportTables() {
         String expectedTableStructure = "CREATE EXTERNAL TABLE `default`.`hive_bigints`(   `id` BIGINT) "
             + "ROW FORMAT SERDE 'org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe' "
             + "WITH SERDEPROPERTIES (   'serialization.format' = '1') STORED AS   "

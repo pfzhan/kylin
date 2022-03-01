@@ -138,7 +138,7 @@ public class QueryRouteTest {
             NLocalWithSparkSessionTest.populateSSWithCSVData(test.getTestConfig(), project, sparkSession);
             List<Pair<String, String>> query = new ArrayList<>();
             query.add(Pair.newPair("query_table_index1", testSQL));
-            NExecAndComp.execAndCompareNew(query, project, NExecAndComp.CompareLevel.SAME, "left", null);
+            NExecAndComp.execAndCompareNew(query, project, NExecAndComp.CompareLevel.SAME, "left", null, null);
 
             //close one of clickhouse
             JdbcDatabaseContainer<?> clickhouse0 = clickHouseClassRule.getClickhouse(0);

@@ -41,9 +41,9 @@ import org.junit.rules.ExpectedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
-import avro.shaded.com.google.common.base.Preconditions;
 import io.kyligence.kap.common.StreamingTestConstant;
 import io.kyligence.kap.engine.spark.job.KylinBuildEnv;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;

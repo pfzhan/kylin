@@ -34,7 +34,7 @@ import org.apache.spark.sql.internal.{BaseSessionStateBuilder, SessionState}
  */
 class KylinHiveSessionStateBuilder(sparkSession: SparkSession,
                                    parentState: Option[SessionState] = None)
-    extends HiveSessionStateBuilder(sparkSession, parentState, Map.empty) {
+    extends HiveSessionStateBuilder(sparkSession, parentState) {
 
   private def externalCatalog: HiveExternalCatalog =
     session.sharedState.externalCatalog.asInstanceOf[HiveExternalCatalog]
@@ -52,7 +52,7 @@ class KylinHiveSessionStateBuilder(sparkSession: SparkSession,
  */
 class KylinSessionStateBuilder(sparkSession: SparkSession,
                                parentState: Option[SessionState] = None)
-    extends BaseSessionStateBuilder(sparkSession, parentState, Map.empty) {
+    extends BaseSessionStateBuilder(sparkSession, parentState) {
 
   override protected def newBuilder: NewBuilder =
     new KylinSessionStateBuilder(_, _)
