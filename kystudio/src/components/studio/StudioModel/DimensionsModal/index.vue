@@ -18,7 +18,7 @@
       </div>
       <div v-scroll.reactive v-guide.dimensionScroll style="max-height:60vh; overflow:hidden">
         <div class="add_dimensions" v-guide.batchAddDimensionBox>
-          <div v-show="!searchChar.trim()">
+          <div v-if="!searchChar.trim()">
             <!-- 事实表 -->
             <div v-for="(table, index) in factTable" class="ksd-mb-10" :key="index">
               <div :class="{'error-content-tip': filterErrorContent(table)}">
@@ -32,7 +32,7 @@
                   <div class="table-title"><span class="dimension-header-tip-layout">{{table.alias}}</span> <span> ({{countTableSelectColumns(table)}}/{{table.columns.length}})</span></div>
                 </div>
                 <el-table
-                  v-show="table.show || isGuideMode"
+                  v-if="table.show || isGuideMode"
                   :data="table.columns"
                   @row-click="(row) => {rowClick(row, table.guid)}"
                   :ref="table.guid"
@@ -114,7 +114,7 @@
                   </div>
                 </div>
                 <el-table
-                  v-show="table.show || isGuideMode"
+                  v-if="table.show || isGuideMode"
                   :class="[flattenLookupTables.includes(table.alias) && 'is-disabled']"
                   :row-class-name="(para) => tableRowClassName(para, table)"
                   :data="table.columns" :ref="table.guid"
@@ -241,7 +241,7 @@
               </div>
             </template>
           </div>
-          <div v-show="searchChar.trim()">
+          <div v-else>
             <el-table v-for="searchTable in pagerSearchTable" :key="searchTable.guid"
               :empty-text="emptyText"
               :row-class-name="(para) => tableRowClassName(para, searchTable)"

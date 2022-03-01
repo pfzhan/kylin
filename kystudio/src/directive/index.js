@@ -283,14 +283,14 @@ Vue.directive('keyborad-select', {
 })
 Vue.directive('drag', {
   inserted: function (el, binding, vnode) {
-    var oDiv = el
+    let oDiv = el
     var dragInfo = binding.value
-    var limitObj = dragInfo.limit
-    var changeOption = binding.modifiers.hasOwnProperty ? binding.modifiers : {}
-    var boxDom = null
-    var boxW = 0
-    var boxH = 0
-    var callback = binding.value && binding.value.sizeChangeCb
+    let limitObj = dragInfo.limit
+    let changeOption = binding.modifiers.hasOwnProperty ? binding.modifiers : {}
+    let boxDom = null
+    let boxW = 0
+    let boxH = 0
+    let callback = binding.value && binding.value.sizeChangeCb
     let reverse = changeOption.hasOwnProperty('reverse')
     let reverseW = changeOption.hasOwnProperty('reverseW')
     let reverseH = changeOption.hasOwnProperty('reverseH')
@@ -417,89 +417,106 @@ Vue.directive('drag', {
         callback && callback(0, 0, boxW, boxH, dragInfo)
       }, 2)
     })
-    oDiv.onmousedown = function (ev) {
+    oDiv.onmousedown = (ev) => {
+      let info = JSON.parse(JSON.stringify(dragInfo))
       let zoom = el.getAttribute('data-zoom') || 10
-      ev.stopPropagation()
+      // ev.stopPropagation()
       ev.preventDefault()
-      var offsetX = ev.clientX
-      var offsetY = ev.clientY
+      let offsetX = ev.clientX
+      let offsetY = ev.clientY
+      let flag = false
       regainBox()
       if (changeOption.hasOwnProperty('height') || changeOption.hasOwnProperty('width')) {
         el.className += ' ky-resize-ing'
       } else {
         el.className += ' ky-move-ing'
       }
-      document.onmousemove = function (e) {
+      var timer = setInterval(() => { flag = true }, 30)
+      document.onmousemove = (e) => {
         ev.stopPropagation()
         ev.preventDefault()
-        var x = e.clientX - offsetX
-        var y = e.clientY - offsetY
+        if (!flag) return
+        let x = e.clientX - offsetX
+        let y = e.clientY - offsetY
+        let parent = oDiv.parentElement
         x /= zoom / 10
         y /= zoom / 10
         offsetX = e.clientX
         offsetY = e.clientY
+        flag = false
+
         if (changeOption) {
-          for (var i in changeOption) {
+          for (let i in changeOption) {
             if (i === 'top') {
-              if (checkBoxCollision(i, dragInfo['top'] + y)) {
-                dragInfo['top'] += y
+              if (checkBoxCollision(i, info['top'] + y)) {
+                info['top'] += y
               }
             }
             if (i === 'right') {
-              if (checkBoxCollision(i, dragInfo['right'] - x)) {
-                dragInfo['right'] -= x
+              if (checkBoxCollision(i, info['right'] - x)) {
+                info['right'] -= x
               }
             }
             if (i === 'left') {
-              if (checkBoxCollision(i, dragInfo['left'] + x)) {
-                dragInfo['left'] += x
+              if (checkBoxCollision(i, info['left'] + x)) {
+                info['left'] += x
               }
             }
             if (i === 'height') {
               if (reverse || reverseH) {
-                if (checkBoxCollision(i, dragInfo['height'] - y, y)) {
-                  dragInfo['height'] -= y
-                  dragInfo['top'] += y
+                if (checkBoxCollision(i, info['height'] - y, y)) {
+                  info['height'] -= y
+                  info['top'] += y
                 }
               } else {
-                if (checkBoxCollision(i, dragInfo['height'] + y)) {
-                  dragInfo['height'] += y
+                if (checkBoxCollision(i, info['height'] + y)) {
+                  info['height'] += y
                 }
               }
             }
             if (i === 'width') {
               if (reverse || reverseW) {
                 let rectify = 0
-                if (!isNaN(dragInfo['left'])) {
+                if (!isNaN(info['left'])) {
                   rectify = x
                 }
-                if (checkBoxCollision(i, dragInfo['width'] - x, rectify)) {
-                  dragInfo['width'] -= x
-                  if (!isNaN(dragInfo['left'])) {
-                    dragInfo['left'] += x
+                if (checkBoxCollision(i, info['width'] - x, rectify)) {
+                  info['width'] -= x
+                  if (!isNaN(info['left'])) {
+                    info['left'] += x
                   }
                 }
               } else {
                 let rectify = 0
-                if (dragInfo['right']) {
+                if (info['right']) {
                   rectify = x
                 }
-                if (checkBoxCollision(i, dragInfo['width'] + x, rectify)) {
-                  dragInfo['width'] += x
-                  if (!isNaN(dragInfo['right'])) {
-                    dragInfo['right'] -= x
+                if (checkBoxCollision(i, info['width'] + x, rectify)) {
+                  info['width'] += x
+                  if (!isNaN(info['right'])) {
+                    info['right'] -= x
                   }
                 }
               }
             }
           }
         }
-        callback && callback(x, y, boxW, boxH, dragInfo)
+
+        const { width, height, right, left, top, zIndex } = info
+        if ([...oDiv.classList].includes('drag-bar')) {
+          parent = parent.parentElement
+        }
+        parent && (parent.style.cssText = `width: ${width}px; height: ${height}px; right: ${right ? right + 'px' : null}; left: ${left ? left + 'px' : null}; top: ${top}px; z-index: ${zIndex}`)
+        callback && callback(x, y, boxW, boxH, info)
       }
       document.onmouseup = function () {
         el.className = el.className.replace(/ky-[a-z]+-ing/g, '').replace(/\s+$/, '')
         document.onmousemove = null
         document.onmouseup = null
+        timer = null
+        Object.keys(info).forEach(item => {
+          dragInfo[item] = info[item]
+        })
         $(window).unbind('resize')
       }
     }
@@ -560,20 +577,21 @@ Vue.directive('global-key-event', {
     Object.keys(keys).forEach((key) => {
       keyCodeMap[key] && keyCodes.push(keyCodeMap[key])
     })
-    document.onkeydown = (e) => {
+    document.addEventListener('keydown', function (e) {
       var key = (e || window.event).keyCode || e.which
+      let event = binding.value
       if (keyCodes.indexOf(key) >= 0) {
         if (key === 13 && 'debounce' in keys) {
           if (el.querySelector('input') && document.activeElement !== el.querySelector('input')) return
           clearTimeout(timeTransit)
           timeTransit = setTimeout(() => {
-            typeof binding.value === 'function' && typeof e.target.value !== 'undefined' && binding.value.call(this, e.target.value)
+            typeof event === 'function' && typeof e.target.value !== 'undefined' && event.call(this, e.target.value)
           }, 500)
           return
         }
-        typeof binding.value === 'function' && binding.value()
+        typeof event === 'function' && event()
       }
-    }
+    })
   },
   unbind: function (el, binding) {
     document.onkeydown = null

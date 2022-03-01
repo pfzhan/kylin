@@ -4,6 +4,14 @@
       <div>
         <p class="habird-tips ksd-mb-16" v-if="isHybridModel">{{$t('habirdModelBuildTips')}}</p>
         <el-alert
+          :title="$t('secondStoragePartitionTips')"
+          type="error"
+          :closable="false"
+          class="ksd-mb-10"
+          v-if="secondStoragePartitionTips"
+          show-icon>
+        </el-alert>
+        <el-alert
           :title="$t('changeBuildTypeTips')"
           type="warning"
           :closable="false"
@@ -419,6 +427,7 @@
     errorFormat = ''
     isExpandFormatRule = false
     timestamp = Date.now().toString(32)
+    secondStoragePartitionTips = false
 
     @Watch('buildType')
     changeBuildType (newVal, oldVal) {
@@ -494,6 +503,7 @@
         this.partitionMeta.table = this.partitionTables[0].alias
       }
       this.dateErrorMsg = ''
+      this.secondStoragePartitionTips = false
       this.isShowWarning = this.isHaveSegment && (this.buildType !== this.defaultBuildType || JSON.stringify(this.prevPartitionMeta) !== JSON.stringify(this.partitionMeta))
     }
     handleChangeDateTime (val, pos) {
@@ -621,6 +631,7 @@
       this.partitionMeta.format = ''
       this.$refs.partitionForm.validate()
       this.modelBuildMeta.dataRangeVal = []
+      this.secondStoragePartitionTips = false
       this.changePartitionSetting()
     }
 
@@ -628,6 +639,7 @@
       // this.partitionMeta.format = 'yyyy-MM-dd'
       // this.$refs.partitionForm.validate()
       this.modelBuildMeta.dataRangeVal = []
+      this.secondStoragePartitionTips = false
       this.changePartitionSetting()
     }
 
@@ -907,6 +919,12 @@
             }
             await (this.$refs.rangeForm && this.$refs.rangeForm.validate()) || Promise.resolve()
             await (this.$refs.partitionForm && this.$refs.partitionForm.validate()) || Promise.resolve()
+            const { column, table } = this.partitionMeta
+            if (this.modelDesc.second_storage_enabled && !this.modelDesc.simplified_dimensions.map(it => it.column).includes(`${table}.${column}`)) {
+              this.secondStoragePartitionTips = true
+              this.btnLoading = false
+              return
+            }
             if (type && type === 'onlySave') {
               try {
                 await this.$msgbox({

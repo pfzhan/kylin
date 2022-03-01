@@ -10,6 +10,14 @@
     :close-on-click-modal="false">
     <!-- <p class="segment-change-tip"><i class="el-icon-ksd-info ksd-mr-5"></i>{{$t('segmentChangedTips')}}</p> -->
     <el-alert
+      :title="$t('secondStoragePartitionTips')"
+      type="error"
+      :closable="false"
+      class="ksd-mb-10"
+      v-if="secondStoragePartitionTips"
+      show-icon>
+    </el-alert>
+    <el-alert
       :title="$t('segmentChangedTips')"
       type="warning"
       :closable="false"
@@ -200,6 +208,7 @@ export default class ModelPartition extends Vue {
   formatedDate = ''
   errorFormat = ''
   isExpandFormatRule = false
+  secondStoragePartitionTips = false
   validateBrokenColumn (rule, value, callback) {
     if (value) {
       if (this.checkIsBroken(this.brokenPartitionColumns, value)) {
@@ -306,6 +315,7 @@ export default class ModelPartition extends Vue {
     this.partitionMeta.column = ''
     this.partitionMeta.format = ''
     this.partitionMeta.multiPartition = ''
+    this.secondStoragePartitionTips = false
     this.$refs.partitionForm.validate()
     this.changePartitionSetting()
   }
@@ -313,6 +323,7 @@ export default class ModelPartition extends Vue {
     if (!this.isNotBatchModel) {
       this.partitionMeta.format = 'yyyy-MM-dd'
     }
+    this.secondStoragePartitionTips = false
     this.$refs.partitionForm.validate()
     this.changePartitionSetting()
   }
@@ -389,8 +400,13 @@ export default class ModelPartition extends Vue {
     return this.prevPartitionMeta.table !== this.partitionMeta.table || this.prevPartitionMeta.column !== this.partitionMeta.column || this.prevPartitionMeta.format !== this.partitionMeta.format || this.prevPartitionMeta.multiPartition !== this.partitionMeta.multiPartition
   }
   async savePartitionConfirm () {
+    const { table, column } = this.partitionMeta
     await (this.$refs.rangeForm && this.$refs.rangeForm.validate()) || Promise.resolve()
     await (this.$refs.partitionForm && this.$refs.partitionForm.validate()) || Promise.resolve()
+    if (this.modelDesc.second_storage_enabled && !this.modelDesc.simplified_dimensions.map(it => it.column).includes(`${table}.${column}`)) {
+      this.secondStoragePartitionTips = true
+      return
+    }
     if (typeof this.modelDesc.available_indexes_count === 'number' && this.modelDesc.available_indexes_count > 0) {
       // if (this.prevPartitionMeta.table && !this.partitionMeta.table) {
       //   await kapConfirm(this.$t('changeSegmentTip2', {modelName: this.modelDesc.name}), '', this.$t('kylinLang.common.tip'))

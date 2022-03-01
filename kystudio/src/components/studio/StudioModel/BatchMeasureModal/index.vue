@@ -18,7 +18,7 @@
           <i slot="prefix" class="el-input__icon el-ksd-icon-search_22"></i>
         </el-input>
       </div>
-      <div v-show="!searchChar">
+      <div v-if="!searchChar">
         <!-- 事实表 -->
         <div v-for="(table, index) in factTable" class="ksd-mb-10 scroll-table-item" :key="index">
           <div @click="toggleTableShow(table)" class="table-header clearfix">
@@ -30,7 +30,7 @@
             <div class="table-title"><span class="measure-header-tip-layout">{{table.alias}}</span> <span>({{table.meaColNum}}/{{table.columns.length}})</span></div>
           </div>
           <el-table
-            v-show="table.show || isGuideMode"
+            v-if="table.show || isGuideMode"
             :data="table.columns"
             :ref="table.guid">
             <el-table-column show-overflow-tooltip prop="name" :label="$t('name')"></el-table-column>
@@ -74,7 +74,7 @@
             </div>
           </div>
           <el-table
-            v-show="table.show || isGuideMode"
+            v-if="table.show || isGuideMode"
             :class="{'disabled-checkbox': flattenLookupTables.includes(table.alias)}"
             :data="table.columns"
             :ref="table.guid">
@@ -147,7 +147,7 @@
           </div>
         </template>
       </div>
-      <div v-show="searchChar">
+      <div v-else>
         <div v-for="searchTable in pagerSearchTable" class="scroll-table-item" :key="searchTable.guid">
           {{searchTable.table_alias}}
           <el-table

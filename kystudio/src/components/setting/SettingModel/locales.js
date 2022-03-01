@@ -97,7 +97,7 @@ export default {
     retentionThresholdDesc: '在留存阈值内的 Segment 将会被系统保留，之外的将会被自动移除。',
     pleaseSetAutoMerge: '请先添加”自动合并“设置项。',
     'Auto-merge': '自动合并',
-    'Volatile Range': '动态区间',
+    'Volatile Range': '变动范围',
     'Retention Threshold': '留存设置',
     'kylin.engine.spark-conf.spark.executor.cores': 'kylin.engine.spark-conf.spark.executor.cores',
     'kylin.engine.spark-conf.spark.executor.instances': 'kylin.engine.spark-conf.spark.executor.instances',
