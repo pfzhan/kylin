@@ -39,9 +39,9 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.newten.NExecAndComp;
+import io.kyligence.kap.newten.ExecAndComp;
 import io.kyligence.kap.smart.SmartMaster;
-import io.kyligence.kap.utils.AccelerationContextUtil;
+import io.kyligence.kap.util.AccelerationContextUtil;
 import lombok.Data;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -96,7 +96,7 @@ public class AutoSqlFunctionsValidationTest extends AutoTestBase {
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
         List<Pair<String, String>> queries = Lists.newArrayList();
         queries.add(new Pair<>("random generated sql", sql));
-        NExecAndComp.execAndCompare(queries, getProject(), NExecAndComp.CompareLevel.SAME, "default");
+        ExecAndComp.execAndCompare(queries, getProject(), ExecAndComp.CompareLevel.SAME, "default");
     }
 
     private Set<String> generateAllMeasures() {

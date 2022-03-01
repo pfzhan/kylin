@@ -39,19 +39,18 @@ import org.junit.After;
 import org.junit.Before;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.newten.NExecAndComp;
+import io.kyligence.kap.newten.ExecAndComp;
 import io.kyligence.kap.newten.SuggestTestBase;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
-import io.kyligence.kap.utils.AccelerationContextUtil;
-import io.kyligence.kap.utils.RecAndQueryCompareUtil;
+import io.kyligence.kap.util.AccelerationContextUtil;
+import io.kyligence.kap.util.RecAndQueryCompareUtil;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -90,12 +89,12 @@ public class SemiAutoTestBase extends SuggestTestBase {
         return smartMaster;
     }
 
-    protected Map<String, RecAndQueryCompareUtil.CompareEntity> collectCompareEntity(SmartMaster smartMaster) {
-        Map<String, RecAndQueryCompareUtil.CompareEntity> map = Maps.newHashMap();
+    protected Map<String, ExecAndComp.CompareEntity> collectCompareEntity(SmartMaster smartMaster) {
+        Map<String, ExecAndComp.CompareEntity> map = Maps.newHashMap();
         final Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         accelerateInfoMap.forEach((sql, accelerateInfo) -> {
-            map.putIfAbsent(sql, new RecAndQueryCompareUtil.CompareEntity());
-            final RecAndQueryCompareUtil.CompareEntity entity = map.get(sql);
+            map.putIfAbsent(sql, new ExecAndComp.CompareEntity());
+            final ExecAndComp.CompareEntity entity = map.get(sql);
             entity.setAccelerateInfo(accelerateInfo);
             entity.setAccelerateLayouts(RecAndQueryCompareUtil.writeQueryLayoutRelationAsString(kylinConfig,
                     getProject(), accelerateInfo.getRelatedLayouts()));
@@ -105,35 +104,30 @@ public class SemiAutoTestBase extends SuggestTestBase {
         return map;
     }
 
-    protected void buildAndCompare(Map<String, RecAndQueryCompareUtil.CompareEntity> compareMap,
-            TestScenario... testScenarios) throws Exception {
+    protected void buildAndCompare(TestScenario... testScenarios) throws Exception {
         try {
             buildAllModels(kylinConfig, getProject());
-            compare(compareMap, testScenarios);
+            compare(testScenarios);
         } finally {
             FileUtils.deleteQuietly(new File("../kap-it/metastore_db"));
         }
     }
 
-    protected void compare(Map<String, RecAndQueryCompareUtil.CompareEntity> compareMap,
-            TestScenario... testScenarios) {
-        Arrays.stream(testScenarios).forEach(
-                testScenario -> compare(compareMap, testScenario, testScenario.getQueries(), Lists.newArrayList()));
+    protected void compare(TestScenario... testScenarios) {
+        Arrays.stream(testScenarios)
+                .forEach(testScenario -> compare(testScenario, testScenario.getQueries()));
     }
 
-    protected void compare(Map<String, RecAndQueryCompareUtil.CompareEntity> compareMap, TestScenario testScenario,
-            List<Pair<String, String>> validQueries, List<Pair<String, String>> invalidQueries) {
+    private void compare(TestScenario testScenario, List<Pair<String, String>> validQueries) {
         populateSSWithCSVData(kylinConfig, getProject(), SparderEnv.getSparkSession());
         if (testScenario.isLimit()) {
-            NExecAndComp.execLimitAndValidateNew(validQueries, getProject(), JoinType.DEFAULT.name(), compareMap);
+            ExecAndComp.execLimitAndValidateNew(validQueries, getProject(), JoinType.DEFAULT.name(), null);
         } else if (testScenario.isDynamicSql()) {
-            NExecAndComp.execAndCompareDynamic(validQueries, getProject(), testScenario.getCompareLevel(),
-                    testScenario.getJoinType().name(), compareMap);
+            ExecAndComp.execAndCompareDynamic(validQueries, getProject(), testScenario.getCompareLevel(),
+                    testScenario.getJoinType().name(), null);
         } else {
-            NExecAndComp.execAndCompareNew(validQueries, getProject(), testScenario.getCompareLevel(),
-                    testScenario.getJoinType().name(), compareMap, null);
-            NExecAndComp.execAndFail(invalidQueries, getProject(), testScenario.getJoinType().name(), compareMap);
-
+            ExecAndComp.execAndCompare(validQueries, getProject(), testScenario.getCompareLevel(),
+                    testScenario.getJoinType().name());
         }
     }
 }

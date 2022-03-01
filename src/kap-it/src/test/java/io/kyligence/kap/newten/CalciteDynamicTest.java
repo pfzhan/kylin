@@ -64,11 +64,11 @@ public class CalciteDynamicTest extends NLocalWithSparkSessionTest {
                 + "FROM TEST_KYLIN_FACT\n" + "GROUP BY (case when 1=1 then SELLER_ID else TRANS_ID end) limit 5";
         String parameter = "1";
         // benchmark
-        List<List<String>> benchmark = NExecAndComp.queryCubeWithJDBC(getProject(), sqlOrigin);
+        List<List<String>> benchmark = ExecAndComp.queryCubeWithJDBC(getProject(), sqlOrigin);
         // setTimestamp
         String sqlWithPlaceholder = sqlOrigin.replace("case when 1=1", "case when ?=1");
-        List<Row> rows = NExecAndComp
-                .queryCube(getProject(), sqlWithPlaceholder, Arrays.asList(new String[] { parameter, parameter }))
+        List<Row> rows = ExecAndComp
+                .queryModel(getProject(), sqlWithPlaceholder, Arrays.asList(new String[] { parameter, parameter }))
                 .collectAsList();
         List<List<String>> results = transformToString(rows);
         for (int i = 0; i < benchmark.size(); i++) {

@@ -32,7 +32,7 @@ import org.apache.spark.sql.types.StructType
 class AlignmentTableStatsSuite extends SparderBaseFunSuite with SharedSparkSession {
   test("AlignmentTableStatsSuite") {
 
-    TableMetaManager.putTableMeta("tbl", 0, 11111)
+    TableMetaManager.putTableMeta("db1.tbl", 0, 11111)
     val table = CatalogTable(
       identifier = TableIdentifier("tbl", Some("db1")),
       tableType = CatalogTableType.MANAGED,

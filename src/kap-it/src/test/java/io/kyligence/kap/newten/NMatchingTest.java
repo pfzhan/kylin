@@ -40,7 +40,7 @@ import org.junit.Test;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
+import io.kyligence.kap.newten.ExecAndComp.CompareLevel;
 import lombok.val;
 
 public class NMatchingTest extends NLocalWithSparkSessionTest {
@@ -79,7 +79,7 @@ public class NMatchingTest extends NLocalWithSparkSessionTest {
             List<Pair<String, String>> query = new ArrayList<>();
             query.add(
                     Pair.newPair("can_not_answer", "select sum(price) from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME"));
-            NExecAndComp.execAndCompare(query, getProject(), CompareLevel.SAME, "left");
+            ExecAndComp.execAndCompare(query, getProject(), CompareLevel.SAME, "left");
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e.getCause().getCause().getMessage().contains("No realization found for OLAPContext"));
@@ -98,6 +98,6 @@ public class NMatchingTest extends NLocalWithSparkSessionTest {
 
         List<Pair<String, String>> query = new ArrayList<>();
         query.add(Pair.newPair("can_not_answer", "select sum(price) from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME"));
-        NExecAndComp.execAndCompare(query, getProject(), CompareLevel.SAME, "left");
+        ExecAndComp.execAndCompare(query, getProject(), CompareLevel.SAME, "left");
     }
 }

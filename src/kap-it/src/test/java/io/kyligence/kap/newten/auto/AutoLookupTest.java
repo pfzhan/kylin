@@ -32,9 +32,9 @@ import org.junit.Test;
 
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.newten.NExecAndComp;
+import io.kyligence.kap.newten.ExecAndComp;
 import io.kyligence.kap.smart.SmartMaster;
-import io.kyligence.kap.utils.AccelerationContextUtil;
+import io.kyligence.kap.util.AccelerationContextUtil;
 import lombok.val;
 
 public class AutoLookupTest extends AutoTestBase {
@@ -79,7 +79,7 @@ public class AutoLookupTest extends AutoTestBase {
             Assert.assertTrue(model.isLookupTable("DEFAULT.TEST_CATEGORY_GROUPINGS"));
 
             buildAllModels(kylinConfig, getProject());
-            Assert.assertEquals(1, NExecAndComp.queryFromCube(getProject(), modelQuery).toDF().count());
+            Assert.assertEquals(1, ExecAndComp.queryModelWithoutCompute(getProject(), modelQuery).toDF().count());
         }
 
         {
@@ -100,7 +100,7 @@ public class AutoLookupTest extends AutoTestBase {
             Assert.assertTrue(model.isLookupTable("DEFAULT.TEST_CATEGORY_GROUPINGS"));
 
             // Use snapshot, no need to build
-            Assert.assertEquals(1, NExecAndComp.queryFromCube(getProject(), lookupQuery).toDF().count());
+            Assert.assertEquals(1, ExecAndComp.queryModelWithoutCompute(getProject(), lookupQuery).toDF().count());
         }
     }
 
@@ -198,7 +198,7 @@ public class AutoLookupTest extends AutoTestBase {
         Assert.assertEquals(2, models.size());
 
         buildAllModels(kylinConfig, getProject());
-        Assert.assertEquals(1, NExecAndComp.queryFromCube(getProject(), modelQuery).toDF().count());
-        Assert.assertEquals(1, NExecAndComp.queryFromCube(getProject(), lookupQuery).toDF().count());
+        Assert.assertEquals(1, ExecAndComp.queryModelWithoutCompute(getProject(), modelQuery).toDF().count());
+        Assert.assertEquals(1, ExecAndComp.queryModelWithoutCompute(getProject(), lookupQuery).toDF().count());
     }
 }

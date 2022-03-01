@@ -29,7 +29,7 @@ import static io.kyligence.kap.clickhouse.ClickHouseConstants.CONFIG_CLICKHOUSE_
 import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.newten.NExecAndComp;
+import io.kyligence.kap.newten.ExecAndComp;
 import io.kyligence.kap.newten.clickhouse.ClickHouseUtils;
 import static io.kyligence.kap.newten.clickhouse.ClickHouseUtils.columnMapping;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
@@ -100,7 +100,7 @@ public class SecondaryCatalogTest {
                     clickhouse2.getDriverClassName());
 
             Dataset<Row> groupPlan =
-                    NExecAndComp.queryCubeAndSkipCompute(project, "select sum(PRICE) from TEST_KYLIN_FACT group by PRICE");
+                    ExecAndComp.queryModelWithoutCompute(project, "select sum(PRICE) from TEST_KYLIN_FACT group by PRICE");
             ShardJDBCScan shardJDBCScan = ClickHouseUtils.findShardScan(groupPlan.queryExecution().optimizedPlan());
             List<String> expected = ImmutableList.of(columnMapping.get("PRICE"));
             ClickHouseUtils.checkGroupBy(shardJDBCScan, expected);

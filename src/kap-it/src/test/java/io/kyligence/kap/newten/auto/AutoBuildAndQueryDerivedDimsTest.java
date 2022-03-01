@@ -36,9 +36,9 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.util.scd2.SCD2CondChecker;
-import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
+import io.kyligence.kap.newten.ExecAndComp.CompareLevel;
 import io.kyligence.kap.smart.SmartMaster;
-import io.kyligence.kap.utils.AccelerationContextUtil;
+import io.kyligence.kap.util.AccelerationContextUtil;
 
 public class AutoBuildAndQueryDerivedDimsTest extends AutoTestBase {
 
@@ -142,7 +142,7 @@ public class AutoBuildAndQueryDerivedDimsTest extends AutoTestBase {
         TestScenario derivedQuerys = new TestScenario(CompareLevel.SAME, testFolder, joinType, startIndex + 1,
                 startIndex + 2);
         collectQueries(Lists.newArrayList(derivedQuerys));
-        buildAndCompare(null, derivedQuerys);
+        buildAndCompare(derivedQuerys);
     }
 
     private void compareSCD2Derived(String testFolder, int startIndex, JoinType joinType) throws Exception {

@@ -113,7 +113,7 @@ public class NJoinOptTest extends NLocalWithSparkSessionTest {
         query.add(sql1);
         query.add(sql2);
         query.add(sql3);
-        NExecAndComp.execAndCompareQueryList(query, getProject(), NExecAndComp.CompareLevel.SAME, "default");
+        ExecAndComp.execAndCompareQueryList(query, getProject(), ExecAndComp.CompareLevel.SAME, "default");
 
         basicScenario(sql1);
         testExchangePruningAfterAgg(sql2);
@@ -147,7 +147,7 @@ public class NJoinOptTest extends NLocalWithSparkSessionTest {
         val sql = "select count(*) from TEST_KYLIN_FACT where SELLER_ID in (select SELLER_ID from TEST_KYLIN_FACT group by SELLER_ID)";
         List<String> query = new ArrayList<>();
         query.add(sql);
-        NExecAndComp.execAndCompareQueryList(query, getProject(), NExecAndComp.CompareLevel.SAME, "default");
+        ExecAndComp.execAndCompareQueryList(query, getProject(), ExecAndComp.CompareLevel.SAME, "default");
 
         // assert exists exchange
         // assert exists sort
@@ -178,7 +178,7 @@ public class NJoinOptTest extends NLocalWithSparkSessionTest {
         List<String> query = new ArrayList<>();
         query.add(sql1);
         query.add(sql2);
-        NExecAndComp.execAndCompareQueryList(query, getProject(), NExecAndComp.CompareLevel.SAME, "default");
+        ExecAndComp.execAndCompareQueryList(query, getProject(), ExecAndComp.CompareLevel.SAME, "default");
 
         // assert no exchange, cuz we unified the num of shards in different segments.
         // assert exists sort
@@ -194,7 +194,7 @@ public class NJoinOptTest extends NLocalWithSparkSessionTest {
     }
 
     private SortMergeJoinExec getSortMergeJoinExec(String sql) throws SQLException {
-        val plan = NExecAndComp.queryCube(getProject(), sql).queryExecution().executedPlan();
+        val plan = ExecAndComp.queryModel(getProject(), sql).queryExecution().executedPlan();
         return (SortMergeJoinExec) findSpecPlan(plan, SortMergeJoinExec.class).get();
     }
 

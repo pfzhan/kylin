@@ -28,7 +28,7 @@ import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.query.util.ConvertToComputedColumn;
 import io.kyligence.kap.smart.SmartMaster;
-import io.kyligence.kap.utils.AccelerationContextUtil;
+import io.kyligence.kap.util.AccelerationContextUtil;
 import lombok.val;
 import org.junit.Assert;
 import org.junit.Test;

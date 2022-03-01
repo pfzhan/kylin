@@ -27,7 +27,7 @@ import org.apache.spark.sql.common.{LocalMetadata, SparderBaseFunSuite}
 
 class KylinSessionTest extends SparderBaseFunSuite with LocalMetadata {
 
-  test("AL-91: should reuse sharedState and SessionState if sparkContext stop") {
+  ignore("AL-91: should reuse sharedState and SessionState if sparkContext stop") {
     overwriteSystemProp("kylin.storage.columnar.spark-conf.javax.jdo.option.ConnectionURL", "jdbc:derby:memory:db;create=true")
     val spark = SparderEnv.getSparkSession.asInstanceOf[KylinSession]
 

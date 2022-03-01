@@ -50,7 +50,7 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.smart.SmartContext;
 import io.kyligence.kap.smart.SmartMaster;
-import io.kyligence.kap.utils.AccelerationContextUtil;
+import io.kyligence.kap.util.AccelerationContextUtil;
 import lombok.val;
 
 public class HeterogeneousSegmentPruningTest extends NLocalWithSparkSessionTest {

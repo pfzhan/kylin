@@ -29,7 +29,6 @@ import io.kyligence.kap.metadata.model.{NDataModel, NDataModelManager}
 import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.common.util.RandomUtil
 import org.apache.kylin.metadata.model.SegmentRange
-import org.apache.spark.InfoHelper
 import org.apache.spark.sql.common.{LocalMetadata, SharedSparkSession, SparderBaseFunSuite}
 import org.apache.spark.sql.{Dataset, Row}
 import org.junit.Assert
@@ -108,26 +107,6 @@ class TestCreateFlatTable extends SparderBaseFunSuite with SharedSparkSession wi
     val seg4 = dsMgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(1396019200000L, 1416019200000L))
     val afterJoin4 = generateFlatTable(seg4, df, true)
     checkEncodeCols(afterJoin4, seg4, true)
-  }
-
-  test("Check the flattable spark jobs num correctness") {
-    val helper: InfoHelper = new InfoHelper(spark)
-
-    val dsMgr: NDataflowManager = NDataflowManager.getInstance(getTestConfig, DEFAULT_PROJECT)
-    val df: NDataflow = dsMgr.getDataflow(MODEL_NAME2)
-    // cleanup all segments first
-    val update = new NDataflowUpdate(df.getUuid)
-    update.setToRemoveSegsWithArray(df.getSegments.asScala.toArray)
-    dsMgr.updateDataflow(update)
-
-    val groupId = RandomUtil.randomUUID().toString
-    spark.sparkContext.setJobGroup(groupId, "test", false)
-    val seg1 = dsMgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(0L, 1356019200000L))
-    val afterJoin1 = generateFlatTable(seg1, df, true)
-    afterJoin1.collect()
-
-    val jobs = helper.getJobsByGroupId(groupId)
-    Assert.assertEquals(jobs.length, 1)
   }
 
   private def checkFilterCondition(ds: Dataset[Row], seg: NDataSegment) = {

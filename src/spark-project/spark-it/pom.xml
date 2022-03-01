@@ -42,6 +42,10 @@
         <relativePath>../../../pom.xml</relativePath>
     </parent>
 
+    <properties>
+        <sonar.skip>true</sonar.skip>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>io.kyligence.ke</groupId>
@@ -187,34 +191,10 @@
             <plugin>
                 <groupId>net.alchim31.maven</groupId>
                 <artifactId>scala-maven-plugin</artifactId>
-                <version>3.2.2</version>
             </plugin>
             <plugin>
                 <groupId>org.scalatest</groupId>
                 <artifactId>scalatest-maven-plugin</artifactId>
-                <version>1.0</version>
-                <configuration>
-                    <reportsDirectory>
-                        ${project.build.directory}/surefire-reports
-                    </reportsDirectory>
-                    <junitxml>.</junitxml>
-                    <filereports>WDF TestSuite.txt</filereports>
-                    <systemProperties>
-                        <property>
-                            <name>user.dir</name>
-                            <value>/tmp</value>
-                        </property>
-                    </systemProperties>
-                    <stdout>I</stdout>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>test</id>
-                        <goals>
-                            <goal>test</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>

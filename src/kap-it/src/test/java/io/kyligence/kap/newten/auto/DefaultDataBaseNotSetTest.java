@@ -31,7 +31,7 @@ import org.junit.Test;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.smart.SmartMaster;
-import io.kyligence.kap.utils.AccelerationContextUtil;
+import io.kyligence.kap.util.AccelerationContextUtil;
 import lombok.val;
 
 public class DefaultDataBaseNotSetTest extends AutoTestBase {

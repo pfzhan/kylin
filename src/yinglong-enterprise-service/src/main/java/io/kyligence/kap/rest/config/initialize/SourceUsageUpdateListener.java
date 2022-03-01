@@ -81,7 +81,7 @@ public class SourceUsageUpdateListener {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         EpochManager epochManager = EpochManager.getInstance();
         if (epochManager.checkEpochOwner(EpochManager.GLOBAL)) {
-            log.debug("Start to update source usage...");
+            log.info("Start to update source usage...");
             SourceUsageRecord sourceUsageRecord = sourceUsageService.refreshLatestSourceUsageRecord();
 
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
@@ -96,7 +96,7 @@ public class SourceUsageUpdateListener {
                     clientMap.clear();
                     clientMap.put(owner, new RestClient(owner));
                 }
-                log.debug("Start to notify {} to update source usage", owner);
+                log.info("Start to notify {} to update source usage", owner);
                 clientMap.get(owner).updateSourceUsage();
             } catch (Exception e) {
                 log.error("Failed to update source usage using rest client", e);
@@ -106,7 +106,7 @@ public class SourceUsageUpdateListener {
 
     @Subscribe
     public void onVerify(SourceUsageVerifyNotifier notifier) {
-        log.debug("Verify model partition is aligned with source table partition.");
+        log.info("Verify model partition is aligned with source table partition.");
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         final EpochManager epochManager = EpochManager.getInstance();
         List<String> projects = NProjectManager.getInstance(config).listAllProjects().stream() //

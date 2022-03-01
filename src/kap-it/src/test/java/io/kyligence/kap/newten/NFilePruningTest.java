@@ -213,7 +213,7 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest implements Adap
         query.add(Pair.newPair("not_equal0", not_equal0));
         query.add(Pair.newPair("not0", not0));
         query.add(Pair.newPair("in_pruning0", in_pruning0));
-        NExecAndComp.execAndCompare(query, getProject(), NExecAndComp.CompareLevel.SAME, "default");
+        ExecAndComp.execAndCompare(query, getProject(), ExecAndComp.CompareLevel.SAME, "default");
     }
 
     @Test
@@ -245,7 +245,7 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest implements Adap
         List<Pair<String, String>> query = new ArrayList<>();
         query.add(Pair.newPair("", chinese0));
         query.add(Pair.newPair("", chinese1));
-        NExecAndComp.execAndCompare(query, getProject(), NExecAndComp.CompareLevel.SAME, "left");
+        ExecAndComp.execAndCompare(query, getProject(), ExecAndComp.CompareLevel.SAME, "left");
     }
 
     private void pruningWithVariousTypesScenario(String dfId) throws Exception {
@@ -317,7 +317,7 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest implements Adap
         // see #11598
         query.add(Pair.newPair("", ts0));
         query.add(Pair.newPair("", ts1));
-        NExecAndComp.execAndCompare(query, getProject(), NExecAndComp.CompareLevel.SAME, "left");
+        ExecAndComp.execAndCompare(query, getProject(), ExecAndComp.CompareLevel.SAME, "left");
     }
 
     @Test
@@ -436,7 +436,7 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest implements Adap
                 Pair.newPair("", in_query0), Pair.newPair("", in_query1), //
                 Pair.newPair("", date_function_query0), //
                 Pair.newPair("", complex_query0), Pair.newPair("", complex_query1));
-        NExecAndComp.execAndCompare(query, getProject(), NExecAndComp.CompareLevel.SAME, "left");
+        ExecAndComp.execAndCompare(query, getProject(), ExecAndComp.CompareLevel.SAME, "left");
 
         // kylin.query.heterogeneous-segment-enabled is turned off
         val projectManager = NProjectManager.getInstance(getTestConfig());
@@ -508,7 +508,7 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest implements Adap
         query.add(Pair.newPair("", or));
         query.add(Pair.newPair("", notSupported0));
         query.add(Pair.newPair("", notSupported1));
-        NExecAndComp.execAndCompare(query, getProject(), NExecAndComp.CompareLevel.SAME, "left");
+        ExecAndComp.execAndCompare(query, getProject(), ExecAndComp.CompareLevel.SAME, "left");
     }
 
     @Test
@@ -536,7 +536,7 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest implements Adap
         assertResultsAndScanFiles(modelId, priceTest, 1, false, expectedRanges);
         List<Pair<String, String>> query = new ArrayList<>();
         query.add(Pair.newPair("", priceTest));
-        NExecAndComp.execAndCompare(query, getProject(), NExecAndComp.CompareLevel.SAME, "left");
+        ExecAndComp.execAndCompare(query, getProject(), ExecAndComp.CompareLevel.SAME, "left");
     }
 
     @Test
@@ -589,7 +589,7 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest implements Adap
         query.add(Pair.newPair("", or));
         query.add(Pair.newPair("", notSupported0));
         query.add(Pair.newPair("", notSupported1));
-        NExecAndComp.execAndCompare(query, getProject(), NExecAndComp.CompareLevel.SAME, "left");
+        ExecAndComp.execAndCompare(query, getProject(), ExecAndComp.CompareLevel.SAME, "left");
     }
 
     @Override
@@ -599,7 +599,7 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest implements Adap
 
     private long assertResultsAndScanFiles(String modelId, String sql, long numScanFiles, boolean emptyLayout,
             List<Pair<String, String>> expectedRanges) throws Exception {
-        val df = NExecAndComp.queryCubeAndSkipCompute(getProject(), sql);
+        val df = ExecAndComp.queryModelWithoutCompute(getProject(), sql);
         val context = ContextUtil.listContexts().get(0);
         if (emptyLayout) {
             Assert.assertTrue(context.storageContext.isEmptyLayout());

@@ -58,7 +58,7 @@ public class SupportTypeAnyTest extends NLocalWithSparkSessionTest {
     @Test
     public void test() throws SQLException {
         String sql = "select replace(TEST_COUNT_DISTINCT_BITMAP, 'TEST', '') as HEADER from TEST_KYLIN_FACT where 1 = 0";
-        Dataset<Row> dataset = NExecAndComp.queryCube(getProject(), sql);
+        Dataset<Row> dataset = ExecAndComp.queryModel(getProject(), sql);
         Assert.assertEquals("HEADER", dataset.schema().apply(0).name());
         Assert.assertEquals(0, dataset.collectAsList().size());
     }

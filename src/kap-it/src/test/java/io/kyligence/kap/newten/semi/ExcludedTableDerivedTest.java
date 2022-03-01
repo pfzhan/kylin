@@ -63,7 +63,7 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
-import io.kyligence.kap.newten.NExecAndComp;
+import io.kyligence.kap.newten.ExecAndComp;
 import io.kyligence.kap.rest.service.ModelSemanticHelper;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.NUserGroupService;
@@ -73,7 +73,7 @@ import io.kyligence.kap.rest.service.RawRecService;
 import io.kyligence.kap.rest.service.task.QueryHistoryTaskScheduler;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.SmartMaster;
-import io.kyligence.kap.utils.AccelerationContextUtil;
+import io.kyligence.kap.util.AccelerationContextUtil;
 
 public class ExcludedTableDerivedTest extends SemiAutoTestBase {
     private RawRecService rawRecService;
@@ -194,7 +194,7 @@ public class ExcludedTableDerivedTest extends SemiAutoTestBase {
         List<Pair<String, String>> queryList = Lists.newArrayList();
         queryList.add(Pair.newPair("sql", sql));
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
-        NExecAndComp.execAndCompare(queryList, getProject(), NExecAndComp.CompareLevel.SAME, "default");
+        ExecAndComp.execAndCompare(queryList, getProject(), ExecAndComp.CompareLevel.SAME, "default");
     }
 
     private void mockExcludeTableRule(String excludedTables) {

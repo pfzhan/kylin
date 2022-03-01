@@ -109,7 +109,7 @@ public class NBitmapFunctionTest extends NLocalWithSparkSessionTest {
 
         //================= constant case
         String query1 = "select bitmap_build(1)";
-        result = NExecAndComp.queryCube(getProject(), query1).collectAsList().stream()
+        result = ExecAndComp.queryModel(getProject(), query1).collectAsList().stream()
                 .map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
         Assert.assertEquals("AAAAAAEAAAAAOjAAAAEAAAAAAAAAEAAAAAEA", result.get(0));
 
@@ -118,7 +118,7 @@ public class NBitmapFunctionTest extends NLocalWithSparkSessionTest {
                 + "bitmap_build(TEST_COUNT_DISTINCT_BITMAP) as first_day "
                 + "from test_kylin_fact " + "where CAL_DT in (date'2012-01-01',date'2012-01-02',date'2012-01-03') "
                 + "group by CAL_DT " + "order by CAL_DT ";
-        result = NExecAndComp.queryCube(getProject(), query2).collectAsList().stream()
+        result = ExecAndComp.queryModel(getProject(), query2).collectAsList().stream()
                 .map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
         Assert.assertEquals("2012-01-01,AAAAAAEAAAAAOzAAAAEAAA0AAQABAA0A", result.get(0));
         Assert.assertEquals("2012-01-02,AAAAAAEAAAAAOzAAAAEAAAkAAgAFAAAADwAIAA==", result.get(1));
@@ -129,7 +129,7 @@ public class NBitmapFunctionTest extends NLocalWithSparkSessionTest {
                 + "bitmap_build(LEAF_CATEG_ID)"
                 + "from test_kylin_fact " + "where CAL_DT in (date'2012-01-01',date'2012-01-02',date'2012-01-03') "
                 + "group by CAL_DT " + "order by CAL_DT";
-        result = NExecAndComp.querySparkSql(query3).collectAsList().stream()
+        result = ExecAndComp.querySparkSql(query3).collectAsList().stream()
                 .map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
         Assert.assertEquals("2012-01-01,AAAAAAEAAAAAOjAAAAMAAAAAAAUAAQABAAIAAwAgAAAALAAAADAAAADDA0UFIi0FUPKK4/LFc7h1yiVkQ05shq4=", result.get(0));
         Assert.assertEquals("2012-01-02,AAAAAAEAAAAAOjAAAAIAAAAAAAYAAQACABgAAAAmAAAATQVKJ31ABVDdX3uckfmRJ7h1CpM=", result.get(1));
@@ -145,7 +145,7 @@ public class NBitmapFunctionTest extends NLocalWithSparkSessionTest {
                 + "intersect_count(TEST_COUNT_DISTINCT_BITMAP, CAL_DT, array[date'2012-01-01',date'2012-01-02',date'2012-01-03']) as retention_twoday "
                 + "from test_kylin_fact " + "where CAL_DT in (date'2012-01-01',date'2012-01-02',date'2012-01-03') "
                 + "group by CAL_DT " + "order by CAL_DT ";
-        List<String> result = NExecAndComp.queryCube(getProject(), query).collectAsList().stream()
+        List<String> result = ExecAndComp.queryModel(getProject(), query).collectAsList().stream()
                 .map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
         Assert.assertEquals("2012-01-01,14,0,0,0,0", result.get(0));
         Assert.assertEquals("2012-01-02,0,10,0,0,0", result.get(1));
@@ -163,7 +163,7 @@ public class NBitmapFunctionTest extends NLocalWithSparkSessionTest {
                 + "count(distinct TEST_COUNT_DISTINCT_BITMAP) as sellers, count(*) as cnt "
                 + "from test_kylin_fact left join edw.test_cal_dt on test_kylin_fact.cal_dt = edw.test_cal_dt.CAL_DT "
                 + "where week_beg_dt in (DATE '2013-12-22', DATE '2012-06-23') group by week_beg_dt order by week_beg_dt";
-        List<String> result = NExecAndComp.queryCube(getProject(), query).collectAsList().stream()
+        List<String> result = ExecAndComp.queryModel(getProject(), query).collectAsList().stream()
                 .map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
         Assert.assertEquals("2012-06-23,21,17,13,0,0,0,90,94", result.get(0));
         Assert.assertEquals("2013-12-22,18,22,13,0,0,0,98,99", result.get(1));
@@ -178,7 +178,7 @@ public class NBitmapFunctionTest extends NLocalWithSparkSessionTest {
                 + "intersect_count(TEST_COUNT_DISTINCT_BITMAP, CAL_DT, array[date'2012-01-01',date'2012-01-02',date'2012-01-03']) as retention_twoday "
                 + "from test_kylin_fact where CAL_DT in (date'2012-01-01',date'2012-01-02',date'2012-01-03') "
                 + "group by LSTG_FORMAT_NAME order by LSTG_FORMAT_NAME";
-        List<String> result = NExecAndComp.queryCube(getProject(), query).collectAsList().stream()
+        List<String> result = ExecAndComp.queryModel(getProject(), query).collectAsList().stream()
                 .map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
         Assert.assertEquals("ABIN,6,4,2,0,0", result.get(0));
         Assert.assertEquals("Auction,4,3,1,0,0", result.get(1));
@@ -192,7 +192,7 @@ public class NBitmapFunctionTest extends NLocalWithSparkSessionTest {
                 + "intersect_count(TEST_COUNT_DISTINCT_BITMAP, CAL_DT, array[date'2012-01-01']) as first_day "
                 + "from test_kylin_fact where CAL_DT in (date'2012-01-01',date'2012-01-02',date'2012-01-03') "
                 + "group by LEAF_CATEG_ID " + "order by LEAF_CATEG_ID";
-        List<String> result = NExecAndComp.queryCube(getProject(), query4).collectAsList().stream()
+        List<String> result = ExecAndComp.queryModel(getProject(), query4).collectAsList().stream()
                 .map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
         Assert.assertEquals("963,1", result.get(0));
         Assert.assertEquals("1349,1", result.get(1));
@@ -220,7 +220,7 @@ public class NBitmapFunctionTest extends NLocalWithSparkSessionTest {
                 + "       intersect_count(TEST_COUNT_DISTINCT_BITMAP, cal_dt, array[date'2012-01-02',date'2012-01-04'])"
                 + "FROM   test_kylin_fact WHERE  cal_dt >= date '2012-01-02' AND cal_dt < date'2012-01-07'"
                 + "order by sdate";
-        List<String> result = NExecAndComp.queryCube(getProject(), query).collectAsList().stream()
+        List<String> result = ExecAndComp.queryModel(getProject(), query).collectAsList().stream()
                 .map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
         Assert.assertEquals("2012-01-01,14,1,0", result.get(0));
         Assert.assertEquals("2012-01-02,10,1,0", result.get(1));
@@ -229,7 +229,7 @@ public class NBitmapFunctionTest extends NLocalWithSparkSessionTest {
     private void testWithLimit() throws SQLException {
         String query = "select intersect_count(TEST_COUNT_DISTINCT_BITMAP, CAL_DT, array[date'2012-01-01']) as first_day "
                 + "from test_kylin_fact " + "limit 1";
-        List<String> result = NExecAndComp.queryCube(getProject(), query).collectAsList().stream()
+        List<String> result = ExecAndComp.queryModel(getProject(), query).collectAsList().stream()
                 .map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
         Assert.assertEquals("14", result.get(0));
     }
@@ -239,7 +239,7 @@ public class NBitmapFunctionTest extends NLocalWithSparkSessionTest {
                 + "    (select bitmap_uuid(SELLER_ID) as a1, LSTG_FORMAT_NAME "
                 + "        from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME) t1 order by LSTG_FORMAT_NAME";
 
-        List<String> result1 = NExecAndComp.queryCube(getProject(), query1).collectAsList().stream()
+        List<String> result1 = ExecAndComp.queryModel(getProject(), query1).collectAsList().stream()
                 .map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
         Assert.assertEquals("855,ABIN", result1.get(0));
         Assert.assertEquals("896,Auction", result1.get(1));
@@ -262,7 +262,7 @@ public class NBitmapFunctionTest extends NLocalWithSparkSessionTest {
                 + "    (select intersect_bitmap_uuid_v2( " + "        SELLER_ID, LSTG_FORMAT_NAME, "
                 + "        array['FP-GTC|FP-non GTC', 'Others'], 'RAWSTRING') as a2 " + "from TEST_KYLIN_FACT) t2";
 
-        List<String> result1 = NExecAndComp.queryCube(getProject(), query1).collectAsList().stream()
+        List<String> result1 = ExecAndComp.queryModel(getProject(), query1).collectAsList().stream()
                 .map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
         Assert.assertEquals("841", result1.get(0));
         Assert.assertEquals("841", result1.get(1));
@@ -280,7 +280,7 @@ public class NBitmapFunctionTest extends NLocalWithSparkSessionTest {
                 + "    (select bitmap_uuid(TEST_COUNT_DISTINCT_BITMAP) as a1 " + "        from TEST_KYLIN_FACT) t1, "
                 + "    (select intersect_bitmap_uuid_v2( " + "        TEST_COUNT_DISTINCT_BITMAP, LSTG_FORMAT_NAME, "
                 + "        array['FP-GTC|FP-non GTC', 'Others'], 'RAWSTRING') as a2 " + "from TEST_KYLIN_FACT) t2";
-        List<String> result2 = NExecAndComp.queryCube(getProject(), query2).collectAsList().stream()
+        List<String> result2 = ExecAndComp.queryModel(getProject(), query2).collectAsList().stream()
                 .map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
         Assert.assertEquals("862", result2.get(0));
         Assert.assertEquals("862", result2.get(1));
@@ -293,7 +293,7 @@ public class NBitmapFunctionTest extends NLocalWithSparkSessionTest {
                 + "intersect_count_v2(TEST_COUNT_DISTINCT_BITMAP, LSTG_FORMAT_NAME, array['FP-.*GTC', 'Others'], 'REGEXP') as b, "
                 + "intersect_count_v2(TEST_COUNT_DISTINCT_BITMAP, LSTG_FORMAT_NAME, array['FP-GTC|FP-non GTC', 'Others'], 'RAWSTRING') as c "
                 + "from test_kylin_fact";
-        List<String> result = NExecAndComp.queryCube(getProject(), query).collectAsList().stream()
+        List<String> result = ExecAndComp.queryModel(getProject(), query).collectAsList().stream()
                 .map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
         Assert.assertEquals("862,862,862", result.get(0));
     }
@@ -304,7 +304,7 @@ public class NBitmapFunctionTest extends NLocalWithSparkSessionTest {
                 + "intersect_value_v2(LSTG_SITE_ID, LSTG_FORMAT_NAME, array['FP-.*GTC', 'Others'], 'REGEXP') as b, "
                 + "intersect_value_v2(LSTG_SITE_ID, LSTG_FORMAT_NAME, array['FP-GTC|FP-non GTC', 'Others'], 'RAWSTRING') as c "
                 + "from test_kylin_fact ";
-        List<String> result = NExecAndComp.queryCube(getProject(), query).collectAsList().stream()
+        List<String> result = ExecAndComp.queryModel(getProject(), query).collectAsList().stream()
                 .map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
         Assert.assertEquals("WrappedArray(0, 2, 3, 15, 23, 100, 101, 211),"
                 + "WrappedArray(0, 2, 3, 15, 23, 100, 101, 211)," + "WrappedArray(0, 2, 3, 15, 23, 100, 101, 211)",
@@ -315,7 +315,7 @@ public class NBitmapFunctionTest extends NLocalWithSparkSessionTest {
         String query = "select "
                 + "explode(intersect_value(LSTG_SITE_ID, lstg_format_name, array['FP-GTC|FP-non GTC', 'Others'])) as a "
                 + "from test_kylin_fact ";
-        List<String> result = NExecAndComp.queryCube(getProject(), query).collectAsList().stream()
+        List<String> result = ExecAndComp.queryModel(getProject(), query).collectAsList().stream()
                 .map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
         Assert.assertEquals("0", result.get(0));
         Assert.assertEquals("2", result.get(1));
@@ -331,7 +331,7 @@ public class NBitmapFunctionTest extends NLocalWithSparkSessionTest {
         String query = "select intersect_count_by_col(Array[t1.a1]), LSTG_FORMAT_NAME from"
                 + " (select bitmap_uuid(SELLER_ID) as a1, LSTG_FORMAT_NAME from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME) t1"
                 + " order by LSTG_FORMAT_NAME";
-        List<String> result = NExecAndComp.queryCube(getProject(), query).collectAsList().stream()
+        List<String> result = ExecAndComp.queryModel(getProject(), query).collectAsList().stream()
                 .map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
         Assert.assertEquals("855,ABIN", result.get(0));
         Assert.assertEquals("896,Auction", result.get(1));
@@ -345,7 +345,7 @@ public class NBitmapFunctionTest extends NLocalWithSparkSessionTest {
                 + "intersect_bitmap_uuid_v2(SELLER_ID, LSTG_FORMAT_NAME, array['FP-GTC|FP-non GTC', 'Others'], 'RAWSTRING'),"
                 + "intersect_bitmap_uuid_v2(SELLER_ID, LSTG_FORMAT_NAME, array['ABIN', 'Auction'], 'RAWSTRING'))"
                 + "from TEST_KYLIN_FACT";
-        List<Integer> acutal = NExecAndComp.queryCube(getProject(), query).collectAsList().get(0).getList(0).stream()
+        List<Integer> acutal = ExecAndComp.queryModel(getProject(), query).collectAsList().get(0).getList(0).stream()
                 .map(row -> Integer.parseInt(row.toString())).collect(Collectors.toList());
 
         Dataset<Row> fg = ss.sql("select distinct SELLER_ID from TEST_KYLIN_FACT where LSTG_FORMAT_NAME = 'FP-GTC'");
@@ -367,7 +367,7 @@ public class NBitmapFunctionTest extends NLocalWithSparkSessionTest {
                 + "intersect_bitmap_uuid_v2(SELLER_ID, LSTG_FORMAT_NAME, array['FP-GTC|FP-non GTC', 'Others'], 'RAWSTRING'),"
                 + "intersect_bitmap_uuid_v2(SELLER_ID, LSTG_FORMAT_NAME, array['ABIN', 'Auction'], 'RAWSTRING')) as a1 "
                 + "from TEST_KYLIN_FACT) t1, " + "(select bitmap_uuid(SELLER_ID) as a2 from TEST_KYLIN_FACT) t2";
-        List<String> result = NExecAndComp.queryCube(getProject(), query).collectAsList().stream()
+        List<String> result = ExecAndComp.queryModel(getProject(), query).collectAsList().stream()
                 .map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
         Assert.assertEquals("210", result.get(0));
     }

@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<extensions>
-  <extension>
-    <groupId>org.arquillian.smart.testing</groupId>
-    <artifactId>maven-lifecycle-extension</artifactId>
-    <version>0.0.10</version>
-  </extension>
-</extensions>

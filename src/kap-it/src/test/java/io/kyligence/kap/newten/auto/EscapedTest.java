@@ -27,21 +27,16 @@ package io.kyligence.kap.newten.auto;
 import java.io.File;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.query.KylinTestBase;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.common.SparderQueryTest;
 import org.junit.Test;
 
-import com.google.common.collect.Maps;
-
-import io.kyligence.kap.newten.NExecAndComp;
-import io.kyligence.kap.utils.RecAndQueryCompareUtil;
+import io.kyligence.kap.newten.ExecAndComp;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -52,11 +47,10 @@ public class EscapedTest extends AutoTestBase {
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");
         overwriteSystemProp("kylin.query.non-equi-join-model-enabled", "TRUE");
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
-        executeTestScenario(2, new TestScenario(NExecAndComp.CompareLevel.SAME, "query/sql_escaped"));
+        executeTestScenario(2, new TestScenario(ExecAndComp.CompareLevel.SAME, "query/sql_escaped"));
     }
 
-    protected void buildAndCompare(Map<String, RecAndQueryCompareUtil.CompareEntity> compareMap,
-            TestScenario... testScenarios) throws Exception {
+    protected void buildAndCompare(TestScenario... testScenarios) throws Exception {
         try {
             // 2. execute cube building
             long startTime = System.currentTimeMillis();
@@ -72,7 +66,7 @@ public class EscapedTest extends AutoTestBase {
             Arrays.stream(testScenarios).forEach(testScenario -> {
                 populateSSWithCSVData(kylinConfig, getProject(), SparderEnv.getSparkSession());
                 execAndCompareEscaped(testScenario.getQueries(), getProject(), testScenario.getCompareLevel(),
-                        testScenario.getJoinType().name(), compareMap);
+                        testScenario.getJoinType().name());
             });
             log.debug("compare result cost {} s", System.currentTimeMillis() - startTime);
         } finally {
@@ -81,29 +75,26 @@ public class EscapedTest extends AutoTestBase {
     }
 
     public void execAndCompareEscaped(List<Pair<String, String>> queries, String prj,
-            NExecAndComp.CompareLevel compareLevel, String joinType,
-            Map<String, RecAndQueryCompareUtil.CompareEntity> recAndQueryResult) {
+                                      ExecAndComp.CompareLevel compareLevel, String joinType) {
         for (Pair<String, String> query : queries) {
             log.info("Exec and compare query ({}) :{}", joinType, query.getFirst());
-            String sql = KylinTestBase.changeJoinType(query.getSecond(), joinType);
+            String sql = ExecAndComp.changeJoinType(query.getSecond(), joinType);
 
             // query not escaped sql from cube and spark
             long startTime = System.currentTimeMillis();
-            Dataset<Row> cubeResult = NExecAndComp.queryWithKap(prj, joinType, Pair.newPair(sql, sql),
-                    recAndQueryResult);
-            NExecAndComp.addQueryPath(recAndQueryResult, query, sql);
-            Dataset<Row> sparkResult = NExecAndComp.queryWithSpark(prj, sql, query.getFirst());
+            Dataset<Row> cubeResult = ExecAndComp.queryModelWithoutCompute(prj, sql);
+            ExecAndComp.addQueryPath(null, query, sql);
+            Dataset<Row> sparkResult = ExecAndComp.queryWithSpark(prj, sql, query.getFirst(), query.getFirst());
 
             // make ke not escape sql and escape sql manually
             overwriteSystemProp("kylin.query.parser.escaped-string-literals", "true");
             val eSql = sql.replace("\\\\", "\\");
 
             // query escaped sql from cube and spark
-            Dataset<Row> cubeResult2 = NExecAndComp.queryWithKap(prj, joinType, Pair.newPair(eSql, eSql),
-                    Maps.newHashMap());
+            Dataset<Row> cubeResult2 = ExecAndComp.queryModelWithoutCompute(prj, eSql);
             SparderEnv.getSparkSession().conf().set("spark.sql.parser.escapedStringLiterals", true);
-            Dataset<Row> sparkResult2 = NExecAndComp.queryWithSpark(prj, eSql, query.getFirst());
-            if ((compareLevel == NExecAndComp.CompareLevel.SAME || compareLevel == NExecAndComp.CompareLevel.SAME_ORDER)
+            Dataset<Row> sparkResult2 = ExecAndComp.queryWithSpark(prj, eSql, query.getFirst(), query.getFirst());
+            if ((compareLevel == ExecAndComp.CompareLevel.SAME || compareLevel == ExecAndComp.CompareLevel.SAME_ORDER)
                     && sparkResult.schema().fields().length != cubeResult.schema().fields().length) {
                 log.error("Failed on compare query ({}) :{} \n cube schema: {} \n, spark schema: {}", joinType, query,
                         cubeResult.schema().fieldNames(), sparkResult.schema().fieldNames());
@@ -117,11 +108,11 @@ public class EscapedTest extends AutoTestBase {
             List<Row> kapRows2 = SparderQueryTest.castDataType(cubeResult2, sparkResult).collectAsList();
 
             // compare all result set
-            if (!NExecAndComp.compareResults(NExecAndComp.normRows(sparkRows), NExecAndComp.normRows(kapRows),
+            if (!ExecAndComp.compareResults(ExecAndComp.normRows(sparkRows), ExecAndComp.normRows(kapRows),
                     compareLevel)
-                    || !NExecAndComp.compareResults(NExecAndComp.normRows(sparkRows), NExecAndComp.normRows(sparkRows2),
+                    || !ExecAndComp.compareResults(ExecAndComp.normRows(sparkRows), ExecAndComp.normRows(sparkRows2),
                             compareLevel)
-                    || !NExecAndComp.compareResults(NExecAndComp.normRows(kapRows), NExecAndComp.normRows(kapRows2),
+                    || !ExecAndComp.compareResults(ExecAndComp.normRows(kapRows), ExecAndComp.normRows(kapRows2),
                             compareLevel)) {
                 log.error("Failed on compare query ({}) :{}", joinType, query);
                 throw new IllegalArgumentException("query (" + joinType + ") :" + query + " result not match");

@@ -116,7 +116,6 @@ trait SharedSparkSession
   }
 
   def sql(sql: String): DataFrame = {
-    logInfo(s"Executor sql: $sql")
     spark.sql(sql)
   }
   /**

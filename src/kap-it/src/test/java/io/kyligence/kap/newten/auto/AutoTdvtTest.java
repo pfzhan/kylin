@@ -28,7 +28,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
+import io.kyligence.kap.newten.ExecAndComp.CompareLevel;
 
 public class AutoTdvtTest extends AutoTestBase {
 
@@ -39,9 +39,7 @@ public class AutoTdvtTest extends AutoTestBase {
 
     @Test
     public void testTdvt() throws Exception {
-        if ("true".equals(System.getProperty("runDailyUT"))) { // -DrunNonCompareTdvt=true
-            new TestScenario(CompareLevel.NONE, "sql_tdvt").execute();
-        }
+        new TestScenario(CompareLevel.NONE, "sql_tdvt").execute();
     }
 
     @Test
@@ -61,11 +59,4 @@ public class AutoTdvtTest extends AutoTestBase {
         new TestScenario(CompareLevel.SAME, "sql_tdvt/nested_select_star").execute();
     }
 
-    @Ignore("for testing")
-    @Test
-    public void test() throws Exception {
-        KylinConfig.getInstanceFromEnv().setProperty("kylin.query.calcite.extras-props.conformance", "DEFAULT");
-        overwriteSystemProp("calcite.debug", "true");
-        new TestScenario(CompareLevel.SAME, "query/temp").execute();
-    }
 }

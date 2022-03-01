@@ -53,7 +53,7 @@ import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.cube.cuboid.NQueryLayoutChooser;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
+import io.kyligence.kap.newten.ExecAndComp.CompareLevel;
 import io.kyligence.kap.smart.SmartContext;
 import io.kyligence.kap.smart.SmartMaster;
 import lombok.val;
@@ -101,7 +101,7 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
         query.add(Pair.newPair("topn_with_one_dim", sql2));
         // TopN will answer TopN style query.
         verifyTopnResult(query, dfMgr.getDataflow(dfID));
-        NExecAndComp.execAndCompare(query, getProject(), CompareLevel.NONE, "left");
+        ExecAndComp.execAndCompare(query, getProject(), CompareLevel.NONE, "left");
     }
 
     @Test
@@ -119,7 +119,7 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
         query.add(Pair.newPair("topn_with_one_dim", sql2));
 
         try {
-            NExecAndComp.execAndCompare(query, getProject(), CompareLevel.SAME, "left");
+            ExecAndComp.execAndCompare(query, getProject(), CompareLevel.SAME, "left");
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e.getCause().getCause().getMessage().contains("No realization found for OLAPContext"));
@@ -144,12 +144,12 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
                 "select sum(PRICE) from TEST_TOP_N group by SELLER_ID,TRANS_ID order by sum(PRICE) desc limit 1"));
         // TopN will answer TopN style query.
         verifyTopnResult(query, dfMgr.getDataflow(dfID));
-        NExecAndComp.execAndCompare(query, getProject(), CompareLevel.NONE, "left");
+        ExecAndComp.execAndCompare(query, getProject(), CompareLevel.NONE, "left");
         try {
             query.clear();
             query.add(Pair.newPair("can_not_answer", "select sum(PRICE) from TEST_TOP_N group by SELLER_ID"));
             // TopN will not answer sum.
-            NExecAndComp.execAndCompare(query, getProject(), CompareLevel.SAME, "left");
+            ExecAndComp.execAndCompare(query, getProject(), CompareLevel.SAME, "left");
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e.getCause().getCause().getMessage().contains("No realization found for OLAPContext"));
@@ -170,7 +170,7 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
         query.add(Pair.newPair("cannot_answer_multi_dim_in_single_dim_index",
                 "select sum(PRICE) from TEST_TOP_N group by SELLER_ID,ID order by sum(PRICE) desc limit 1"));
         try {
-            NExecAndComp.execAndCompare(query, getProject(), CompareLevel.SAME, "left");
+            ExecAndComp.execAndCompare(query, getProject(), CompareLevel.SAME, "left");
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e.getCause().getCause().getMessage().contains("No realization found for OLAPContext"));
@@ -185,14 +185,13 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
 
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
 
-        List<Pair<String, String>> query = new ArrayList<>();
-        query.add(Pair.newPair("top_n_answer", "select A.SELLER_ID,sum(A.PRICE) from ISSUES.TEST_TOP_N A "
-                + " join TEST_TOP_N B on A.ID=B.ID group by A.SELLER_ID order by sum(B.PRICE) desc limit 100"));
+        val sql = "select A.SELLER_ID,sum(A.PRICE) from ISSUES.TEST_TOP_N A "
+                + " join TEST_TOP_N B on A.ID=B.ID group by A.SELLER_ID order by sum(B.PRICE) desc limit 100";
         try {
-            NExecAndComp.queryFromCube(getProject(), query.get(0).getSecond());
+            ExecAndComp.queryModelWithoutCompute(getProject(), sql);
             Assert.fail();
         } catch (Exception e) {
-            Assert.assertTrue(e.getCause().getCause().getMessage().contains("No realization found for OLAPContext"));
+            Assert.assertTrue(e.getCause().getMessage().contains("No realization found for OLAPContext"));
         }
 
     }

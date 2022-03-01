@@ -94,7 +94,7 @@ public class NMultiPartitionJobTest extends NLocalWithSparkSessionTest {
         indexDataConstructor.buildIndex(dfID, segmentRange, Sets.newLinkedHashSet(layouts), true, buildPartitions);
         String sqlHitCube = " select count(1) from TEST_BANK_INCOME t1 inner join TEST_BANK_LOCATION t2 on t1. COUNTRY = t2. COUNTRY "
                 + " where  t1.dt = '2020-11-05' ";
-        List<String> hitCubeResult = NExecAndComp.queryFromCube(getProject(), sqlHitCube).collectAsList().stream()
+        List<String> hitCubeResult = ExecAndComp.queryModelWithoutCompute(getProject(), sqlHitCube).collectAsList().stream()
                 .map(Row::toString).collect(Collectors.toList());
         Assert.assertEquals(1, hitCubeResult.size());
 

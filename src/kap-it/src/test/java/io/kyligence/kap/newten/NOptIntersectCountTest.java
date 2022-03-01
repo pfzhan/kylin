@@ -150,7 +150,7 @@ public class NOptIntersectCountTest extends NLocalWithSparkSessionTest {
 
         String query1 = "select AGE, CITY, " + "intersect_count(USER_ID, TAG, array['rich','tall','handsome']) "
                 + "from TEST_INTERSECT_COUNT group by AGE, CITY";
-        List<String> r1 = NExecAndComp.queryCube(getProject(), query1).collectAsList().stream()
+        List<String> r1 = ExecAndComp.queryModel(getProject(), query1).collectAsList().stream()
                 .map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
 
         Assert.assertEquals("18,Shenzhen,0", r1.get(0));
@@ -159,7 +159,7 @@ public class NOptIntersectCountTest extends NLocalWithSparkSessionTest {
 
         String query2 = "select AGE, CITY, intersect_count(USER_ID, TAG, array['rich']) "
                 + "from TEST_INTERSECT_COUNT group by AGE, CITY";
-        List<String> r2 = NExecAndComp.queryCube(getProject(), query2).collectAsList().stream()
+        List<String> r2 = ExecAndComp.queryModel(getProject(), query2).collectAsList().stream()
                 .map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
 
         Assert.assertEquals("18,Shenzhen,1", r2.get(0));
@@ -168,7 +168,7 @@ public class NOptIntersectCountTest extends NLocalWithSparkSessionTest {
 
         String query3 = "select AGE, CITY, intersect_count(USER_ID, TAG, array['tall']) "
                 + "from TEST_INTERSECT_COUNT group by AGE, CITY";
-        List<String> r3 = NExecAndComp.queryCube(getProject(), query3).collectAsList().stream()
+        List<String> r3 = ExecAndComp.queryModel(getProject(), query3).collectAsList().stream()
                 .map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
 
         Assert.assertEquals("18,Shenzhen,1", r3.get(0));
@@ -177,7 +177,7 @@ public class NOptIntersectCountTest extends NLocalWithSparkSessionTest {
 
         String query4 = "select AGE, CITY, intersect_count(USER_ID, TAG, array['handsome']) "
                 + "from TEST_INTERSECT_COUNT group by AGE, CITY";
-        List<String> r4 = NExecAndComp.queryCube(getProject(), query4).collectAsList().stream()
+        List<String> r4 = ExecAndComp.queryModel(getProject(), query4).collectAsList().stream()
                 .map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
 
         Assert.assertEquals("18,Shenzhen,1", r4.get(0));
@@ -186,7 +186,7 @@ public class NOptIntersectCountTest extends NLocalWithSparkSessionTest {
 
         String query5 = "select AGE, CITY, intersect_count(USER_ID, TAG, array['rich', 'tall']) "
                 + "from TEST_INTERSECT_COUNT group by AGE, CITY";
-        List<String> r5 = NExecAndComp.queryCube(getProject(), query5).collectAsList().stream()
+        List<String> r5 = ExecAndComp.queryModel(getProject(), query5).collectAsList().stream()
                 .map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
 
         Assert.assertEquals("18,Shenzhen,0", r5.get(0));
@@ -195,7 +195,7 @@ public class NOptIntersectCountTest extends NLocalWithSparkSessionTest {
 
         String query6 = "select CITY, intersect_count(USER_ID, TAG, array['rich', 'tall']) "
                 + "from TEST_INTERSECT_COUNT group by CITY";
-        List<String> r6 = NExecAndComp.queryCube(getProject(), query6).collectAsList().stream()
+        List<String> r6 = ExecAndComp.queryModel(getProject(), query6).collectAsList().stream()
                 .map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
 
         Assert.assertEquals("Beijing,1", r6.get(0));

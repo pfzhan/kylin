@@ -48,7 +48,6 @@ import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.realization.IRealization;
-import org.apache.kylin.query.KylinTestBase;
 import org.apache.spark.sql.SparderEnv;
 import org.junit.After;
 import org.junit.Assert;
@@ -75,7 +74,7 @@ import io.kyligence.kap.newten.auto.AutoTestBase;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
-import io.kyligence.kap.utils.RecAndQueryCompareUtil;
+import io.kyligence.kap.util.RecAndQueryCompareUtil;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -195,7 +194,7 @@ public abstract class SuggestTestBase extends NLocalWithSparkSessionTest {
 
         Set<Pair<String, Long>> removeLayouts;
         String folderName;
-        private NExecAndComp.CompareLevel compareLevel;
+        private ExecAndComp.CompareLevel compareLevel;
         JoinType joinType;
         private int fromIndex;
         private int toIndex;
@@ -207,32 +206,32 @@ public abstract class SuggestTestBase extends NLocalWithSparkSessionTest {
         List<Pair<String, String>> queries;
 
         public TestScenario(String folderName) {
-            this(NExecAndComp.CompareLevel.SAME, folderName);
+            this(ExecAndComp.CompareLevel.SAME, folderName);
         }
 
-        public TestScenario(NExecAndComp.CompareLevel compareLevel, String folder) {
+        public TestScenario(ExecAndComp.CompareLevel compareLevel, String folder) {
             this(compareLevel, JoinType.DEFAULT, folder);
         }
 
-        public TestScenario(NExecAndComp.CompareLevel compareLevel, JoinType joinType, String folder) {
+        public TestScenario(ExecAndComp.CompareLevel compareLevel, JoinType joinType, String folder) {
             this(compareLevel, joinType, false, folder, 0, 0, null);
         }
 
-        public TestScenario(NExecAndComp.CompareLevel compareLevel, String folder, int fromIndex, int toIndex) {
+        public TestScenario(ExecAndComp.CompareLevel compareLevel, String folder, int fromIndex, int toIndex) {
             this(compareLevel, JoinType.DEFAULT, false, folder, fromIndex, toIndex, null);
         }
 
-        public TestScenario(NExecAndComp.CompareLevel compareLevel, String folder, JoinType joinType, int fromIndex,
-                int toIndex) {
+        public TestScenario(ExecAndComp.CompareLevel compareLevel, String folder, JoinType joinType, int fromIndex,
+                            int toIndex) {
             this(compareLevel, joinType, false, folder, fromIndex, toIndex, null);
         }
 
-        public TestScenario(NExecAndComp.CompareLevel compareLevel, boolean isLimit, String folder) {
+        public TestScenario(ExecAndComp.CompareLevel compareLevel, boolean isLimit, String folder) {
             this(compareLevel, JoinType.DEFAULT, isLimit, folder, 0, 0, null);
         }
 
-        public TestScenario(NExecAndComp.CompareLevel compareLevel, JoinType joinType, boolean isLimit,
-                String folderName, int fromIndex, int toIndex, Set<String> exclusionList) {
+        public TestScenario(ExecAndComp.CompareLevel compareLevel, JoinType joinType, boolean isLimit,
+                            String folderName, int fromIndex, int toIndex, Set<String> exclusionList) {
             this.compareLevel = compareLevel;
             this.folderName = folderName;
             this.joinType = joinType;
@@ -249,24 +248,25 @@ public abstract class SuggestTestBase extends NLocalWithSparkSessionTest {
 
     } // end TestScenario
 
-    protected Map<String, RecAndQueryCompareUtil.CompareEntity> executeTestScenario(
+    protected Map<String, ExecAndComp.CompareEntity> executeTestScenario(
             SuggestTestBase.TestScenario... testScenarios) throws Exception {
         return executeTestScenario(
                 BuildAndCompareContext.builder().testScenarios(Lists.newArrayList(testScenarios)).build());
     }
 
-    protected Map<String, RecAndQueryCompareUtil.CompareEntity> executeTestScenario(Integer expectModelNum,
-            SuggestTestBase.TestScenario... testScenarios) throws Exception {
+    protected Map<String, ExecAndComp.CompareEntity> executeTestScenario(Integer expectModelNum,
+                                                                         SuggestTestBase.TestScenario... testScenarios) throws Exception {
         return executeTestScenario(BuildAndCompareContext.builder().expectModelNum(expectModelNum)
                 .testScenarios(Lists.newArrayList(testScenarios)).build());
     }
 
-    protected Map<String, RecAndQueryCompareUtil.CompareEntity> executeTestScenario(BuildAndCompareContext context)
+    protected Map<String, ExecAndComp.CompareEntity> executeTestScenario(BuildAndCompareContext context)
             throws Exception {
         long startTime = System.currentTimeMillis();
         final SmartMaster smartMaster = proposeWithSmartMaster(getProject(), context.getTestScenarios());
         updateAccelerateInfoMap(smartMaster);
-        final Map<String, RecAndQueryCompareUtil.CompareEntity> compareMap = collectCompareEntity(smartMaster);
+        final Map<String, ExecAndComp.CompareEntity> compareMap = Maps.newConcurrentMap();
+        compareMap.putAll(collectCompareEntity(smartMaster));
         context.setCompareMap(compareMap);
         log.debug("smart proposal cost {} ms", System.currentTimeMillis() - startTime);
         if (context.getExpectModelNum() != null) {
@@ -383,12 +383,12 @@ public abstract class SuggestTestBase extends NLocalWithSparkSessionTest {
         indexDataConstructor.buildSegments(buildInfos);
     }
 
-    protected Map<String, RecAndQueryCompareUtil.CompareEntity> collectCompareEntity(SmartMaster smartMaster) {
-        Map<String, RecAndQueryCompareUtil.CompareEntity> map = Maps.newHashMap();
+    protected Map<String, ExecAndComp.CompareEntity> collectCompareEntity(SmartMaster smartMaster) {
+        Map<String, ExecAndComp.CompareEntity> map = Maps.newHashMap();
         final Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         accelerateInfoMap.forEach((sql, accelerateInfo) -> {
-            map.putIfAbsent(sql, new RecAndQueryCompareUtil.CompareEntity());
-            final RecAndQueryCompareUtil.CompareEntity entity = map.get(sql);
+            map.putIfAbsent(sql, new ExecAndComp.CompareEntity());
+            final ExecAndComp.CompareEntity entity = map.get(sql);
             entity.setAccelerateInfo(accelerateInfo);
             entity.setAccelerateLayouts(RecAndQueryCompareUtil.writeQueryLayoutRelationAsString(kylinConfig,
                     getProject(), accelerateInfo.getRelatedLayouts()));
@@ -403,7 +403,7 @@ public abstract class SuggestTestBase extends NLocalWithSparkSessionTest {
             List<Pair<String, String>> queries = fetchQueries(test.folderName, test.getFromIndex(), test.getToIndex());
             normalizeSql(test.joinType, queries);
             test.queries = test.getExclusionList() == null ? queries
-                    : NExecAndComp.doFilter(queries, test.getExclusionList());
+                    : ExecAndComp.doFilter(queries, test.getExclusionList());
             allQueries.addAll(test.queries.stream().map(Pair::getSecond).collect(Collectors.toList()));
         }
 
@@ -414,26 +414,26 @@ public abstract class SuggestTestBase extends NLocalWithSparkSessionTest {
         List<Pair<String, String>> queries;
         String folder = getFolder(subFolder);
         if (fromIndex == toIndex) {
-            queries = NExecAndComp.fetchQueries(folder);
+            queries = ExecAndComp.fetchQueries(folder);
         } else {
             if (fromIndex > toIndex) {
                 int tmp = fromIndex;
                 fromIndex = toIndex;
                 toIndex = tmp;
             }
-            queries = NExecAndComp.fetchPartialQueries(folder, fromIndex, toIndex);
+            queries = ExecAndComp.fetchPartialQueries(folder, fromIndex, toIndex);
         }
         return queries;
     }
 
     private void normalizeSql(JoinType joinType, List<Pair<String, String>> queries) {
         queries.forEach(pair -> {
-            String tmp = KylinTestBase.changeJoinType(pair.getSecond(), joinType.name());
+            String tmp = ExecAndComp.changeJoinType(pair.getSecond(), joinType.name());
             pair.setSecond(tmp);
         });
     }
 
-    private void assertOrPrintCmpResult(Map<String, RecAndQueryCompareUtil.CompareEntity> compareMap) {
+    private void assertOrPrintCmpResult(Map<String, ExecAndComp.CompareEntity> compareMap) {
         // print details
         compareMap.forEach((key, value) -> {
             if (RecAndQueryCompareUtil.AccelerationMatchedLevel.FAILED_QUERY == value.getLevel()) {
@@ -453,7 +453,7 @@ public abstract class SuggestTestBase extends NLocalWithSparkSessionTest {
     protected Set<String> changeJoinType(String sql) {
         Set<String> patterns = Sets.newHashSet();
         for (JoinType joinType : JoinType.values()) {
-            final String rst = KylinTestBase.changeJoinType(sql, joinType.name());
+            final String rst = ExecAndComp.changeJoinType(sql, joinType.name());
             patterns.add(rst);
         }
 
@@ -473,10 +473,8 @@ public abstract class SuggestTestBase extends NLocalWithSparkSessionTest {
     protected abstract SmartMaster proposeWithSmartMaster(String project, List<TestScenario> testScenarios)
             throws IOException;
 
-    protected void buildAndCompare(Map<String, RecAndQueryCompareUtil.CompareEntity> compareMap,
-            TestScenario... testScenarios) throws Exception {
+    protected void buildAndCompare(TestScenario... testScenarios) throws Exception {
         buildAndCompare(BuildAndCompareContext.builder()//
-                .compareMap(compareMap) //
                 .testScenarios(Lists.newArrayList(testScenarios)) //
                 .build());
     }
@@ -489,7 +487,7 @@ public abstract class SuggestTestBase extends NLocalWithSparkSessionTest {
             log.info("build models cost {} ms", System.currentTimeMillis() - startTime);
 
             // dump metadata for debugging
-            dumpMetadata();
+//            dumpMetadata();
 
             // 3. validate results between SparkSQL and cube
             populateSSWithCSVData(kylinConfig, getProject(), SparderEnv.getSparkSession());
@@ -498,13 +496,13 @@ public abstract class SuggestTestBase extends NLocalWithSparkSessionTest {
             params.getTestScenarios().forEach(testScenario -> {
                 populateSSWithCSVData(kylinConfig, getProject(), SparderEnv.getSparkSession());
                 if (testScenario.isLimit()) {
-                    NExecAndComp.execLimitAndValidateNew(testScenario.queries, getProject(), JoinType.DEFAULT.name(),
+                    ExecAndComp.execLimitAndValidateNew(testScenario.queries, getProject(), JoinType.DEFAULT.name(),
                             compareMap);
                 } else if (testScenario.isDynamicSql()) {
-                    NExecAndComp.execAndCompareDynamic(testScenario.queries, getProject(),
+                    ExecAndComp.execAndCompareDynamic(testScenario.queries, getProject(),
                             testScenario.getCompareLevel(), testScenario.joinType.name(), compareMap);
                 } else {
-                    NExecAndComp.execAndCompareNew(testScenario.queries, getProject(), testScenario.getCompareLevel(),
+                    ExecAndComp.execAndCompare(testScenario.queries, getProject(), testScenario.getCompareLevel(),
                             testScenario.joinType.name(), compareMap, null);
                 }
             });
@@ -523,7 +521,7 @@ public abstract class SuggestTestBase extends NLocalWithSparkSessionTest {
 
         Integer expectModelNum;
 
-        Map<String, RecAndQueryCompareUtil.CompareEntity> compareMap;
+        Map<String, ExecAndComp.CompareEntity> compareMap;
 
         @Singular
         List<TestScenario> testScenarios;

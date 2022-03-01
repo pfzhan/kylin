@@ -84,7 +84,7 @@ public class NTopNResultTest extends NLocalWithSparkSessionTest {
         indexDataConstructor.buildIndex(dfID, SegmentRange.TimePartitionedSegmentRange.createInfinite(), Sets.newLinkedHashSet(layouts),
                 true);
 
-        return NExecAndComp.queryFromCube(getProject(), sqlHitCube).collectAsList().stream().map(Row::toString)
+        return ExecAndComp.queryModelWithoutCompute(getProject(), sqlHitCube).collectAsList().stream().map(Row::toString)
                 .collect(Collectors.toList());
     }
 }

@@ -102,7 +102,7 @@ import io.kyligence.kap.smart.ProposerJob;
 import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.streaming.manager.StreamingJobManager;
-import io.kyligence.kap.utils.AccelerationContextUtil;
+import io.kyligence.kap.util.AccelerationContextUtil;
 import lombok.val;
 
 public class SemiV2CITest extends SemiAutoTestBase {

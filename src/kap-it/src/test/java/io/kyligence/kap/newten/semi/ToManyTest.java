@@ -63,7 +63,7 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
-import io.kyligence.kap.newten.NExecAndComp;
+import io.kyligence.kap.newten.ExecAndComp;
 import io.kyligence.kap.rest.service.ModelSemanticHelper;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.NUserGroupService;
@@ -74,7 +74,7 @@ import io.kyligence.kap.rest.service.task.QueryHistoryTaskScheduler;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.ProposerJob;
 import io.kyligence.kap.smart.SmartMaster;
-import io.kyligence.kap.utils.AccelerationContextUtil;
+import io.kyligence.kap.util.AccelerationContextUtil;
 
 public class ToManyTest extends SemiAutoTestBase {
 
@@ -214,7 +214,7 @@ public class ToManyTest extends SemiAutoTestBase {
         // compare sql
         List<Pair<String, String>> queryList = readSQL();
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
-        NExecAndComp.execAndCompare(queryList, getProject(), NExecAndComp.CompareLevel.SAME, "default");
+        ExecAndComp.execAndCompare(queryList, getProject(), ExecAndComp.CompareLevel.SAME, "default");
     }
 
     /**
@@ -279,7 +279,7 @@ public class ToManyTest extends SemiAutoTestBase {
         queryList.add(Pair.newPair("sql1", sql1));
         queryList.add(Pair.newPair("sql2", sql2));
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
-        NExecAndComp.execAndCompare(queryList, getProject(), NExecAndComp.CompareLevel.SAME, "default");
+        ExecAndComp.execAndCompare(queryList, getProject(), ExecAndComp.CompareLevel.SAME, "default");
     }
 
     /**
@@ -348,7 +348,7 @@ public class ToManyTest extends SemiAutoTestBase {
         queryList.add(Pair.newPair("sql2", sql2));
         queryList.add(Pair.newPair("sql3", sql3));
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
-        NExecAndComp.execAndCompare(queryList, getProject(), NExecAndComp.CompareLevel.SAME, "default");
+        ExecAndComp.execAndCompare(queryList, getProject(), ExecAndComp.CompareLevel.SAME, "default");
     }
 
     @Test
@@ -400,7 +400,7 @@ public class ToManyTest extends SemiAutoTestBase {
         queryList.add(Pair.newPair("sql2", sql2));
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
         try {
-            NExecAndComp.execAndCompare(queryList, getProject(), NExecAndComp.CompareLevel.SAME, "default");
+            ExecAndComp.execAndCompare(queryList, getProject(), ExecAndComp.CompareLevel.SAME, "default");
         } catch (Exception e) {
             Assert.assertTrue(e.getMessage().contains("not match"));
         }
@@ -408,7 +408,7 @@ public class ToManyTest extends SemiAutoTestBase {
 
     private List<Pair<String, String>> readSQL() throws IOException {
         String folder = "src/test/resources/anti_flatten/to_many/sql/";
-        return NExecAndComp.fetchPartialQueries(folder, 0, 100);
+        return ExecAndComp.fetchPartialQueries(folder, 0, 100);
     }
 
     private void prepareData() throws IOException {

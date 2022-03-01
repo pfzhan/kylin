@@ -105,9 +105,9 @@ public class NMultipleColumnsInTest extends NLocalWithSparkSessionTest {
     }
 
     private void assertSameResults(String actualSql, String expectSql) throws Exception {
-        List<String> actualResults = NExecAndComp.queryCubeAndSkipCompute(getProject(), actualSql).collectAsList()
+        List<String> actualResults = ExecAndComp.queryModelWithoutCompute(getProject(), actualSql).collectAsList()
                 .stream().map(Row::toString).collect(Collectors.toList());
-        List<String> expectResults = NExecAndComp.queryCubeAndSkipCompute(getProject(), expectSql).collectAsList()
+        List<String> expectResults = ExecAndComp.queryModelWithoutCompute(getProject(), expectSql).collectAsList()
                 .stream().map(Row::toString).collect(Collectors.toList());
         Assert.assertTrue(actualResults.containsAll(expectResults) && expectResults.containsAll(actualResults));
     }

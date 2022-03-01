@@ -26,7 +26,7 @@ package io.kyligence.kap.newten.auto;
 import com.google.common.collect.Lists;
 import org.junit.Test;
 
-import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
+import io.kyligence.kap.newten.ExecAndComp.CompareLevel;
 
 public class AutoBuildAndQuerySSBTest extends AutoTestBase {
     @Test
@@ -35,7 +35,7 @@ public class AutoBuildAndQuerySSBTest extends AutoTestBase {
         proposeWithSmartMaster(getProject(), Lists.newArrayList(new TestScenario(CompareLevel.NONE, TEST_FOLDER, 0, 1)));
         TestScenario testQueries = new TestScenario(CompareLevel.SAME, TEST_FOLDER, 1, 5);
         collectQueries(Lists.newArrayList(testQueries));
-        buildAndCompare(null, testQueries);
+        buildAndCompare(testQueries);
     }
 
     @Override
