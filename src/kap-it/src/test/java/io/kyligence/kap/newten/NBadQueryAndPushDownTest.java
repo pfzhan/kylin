@@ -80,7 +80,7 @@ public class NBadQueryAndPushDownTest extends NLocalWithSparkSessionTest {
                 "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
         KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_ENABLED, "true");
         try {
-            NExecAndComp.queryCubeAndSkipCompute(getProject(), sql);
+            ExecAndComp.queryModelWithoutCompute(getProject(), sql);
         } catch (Exception sqlException) {
             Assert.assertTrue(sqlException instanceof SQLException);
             Assert.assertTrue(ExceptionUtils.getRootCause(sqlException) instanceof SqlValidatorException);
@@ -132,7 +132,7 @@ public class NBadQueryAndPushDownTest extends NLocalWithSparkSessionTest {
         KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_RUNNER_KEY,
                 "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
         try {
-            NExecAndComp.queryCubeAndSkipCompute(getProject(), sql);
+            ExecAndComp.queryModelWithoutCompute(getProject(), sql);
         } catch (Exception sqlException) {
             if (sqlException instanceof SQLException) {
                 Assert.assertTrue(ExceptionUtils.getRootCauseMessage(sqlException).contains("Path does not exist"));
@@ -165,12 +165,12 @@ public class NBadQueryAndPushDownTest extends NLocalWithSparkSessionTest {
         String sql = new String(Files.readAllBytes(sqlFile.toPath()), StandardCharsets.UTF_8);
         KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_ENABLED, "false");
         try {
-            NExecAndComp.queryCubeAndSkipCompute(DEFAULT_PROJECT_NAME, sql);
-        } catch (SQLException e) {
+            ExecAndComp.queryModelWithoutCompute(DEFAULT_PROJECT_NAME, sql);
+        } catch (Exception e) {
             KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_RUNNER_KEY,
                     "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
             KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_ENABLED, "true");
-            pushDownSql(DEFAULT_PROJECT_NAME, sql, 0, 0, e);
+            pushDownSql(DEFAULT_PROJECT_NAME, sql, 0, 0, (SQLException) e);
         }
     }
 
@@ -259,7 +259,7 @@ public class NBadQueryAndPushDownTest extends NLocalWithSparkSessionTest {
     private Pair<List<List<String>>, List<SelectedColumnMeta>> pushDownSql(String prjName, String sql, int limit,
             int offset, SQLException sqlException, boolean isForced) throws Exception {
         populateSSWithCSVData(KylinConfig.getInstanceFromEnv(), prjName, SparderEnv.getSparkSession());
-        String pushdownSql = NExecAndComp.removeDataBaseInSql(sql);
+        String pushdownSql = ExecAndComp.removeDataBaseInSql(sql);
         String massagedSql = QueryUtil.normalMassageSql(KylinConfig.getInstanceFromEnv(), pushdownSql, limit, offset);
         QueryParams queryParams = new QueryParams(prjName, massagedSql, "DEFAULT", BackdoorToggles.getPrepareOnly(),
                 sqlException, isForced, true, limit, offset);

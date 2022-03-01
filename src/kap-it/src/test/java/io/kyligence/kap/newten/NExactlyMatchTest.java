@@ -96,23 +96,23 @@ public class NExactlyMatchTest extends NLocalWithSparkSessionTest {
                 + " or substring(LSTG_FORMAT_NAME, 1, 1) not in ('O','B')";
 
         overwriteSystemProp("calcite.keep-in-clause", "true");
-        Dataset<Row> df1 = NExecAndComp.queryCubeAndSkipCompute(getProject(), in1);
-        Dataset<Row> df2 = NExecAndComp.queryCubeAndSkipCompute(getProject(), in2);
-        Dataset<Row> df3 = NExecAndComp.queryCubeAndSkipCompute(getProject(), not_in2);
-        Dataset<Row> df4 = NExecAndComp.queryCubeAndSkipCompute(getProject(), not_in2);
+        Dataset<Row> df1 = ExecAndComp.queryModelWithoutCompute(getProject(), in1);
+        Dataset<Row> df2 = ExecAndComp.queryModelWithoutCompute(getProject(), in2);
+        Dataset<Row> df3 = ExecAndComp.queryModelWithoutCompute(getProject(), not_in2);
+        Dataset<Row> df4 = ExecAndComp.queryModelWithoutCompute(getProject(), not_in2);
 
         Assert.assertTrue(existsIn(df1));
         Assert.assertTrue(existsIn(df2));
         Assert.assertTrue(existsIn(df3));
         Assert.assertTrue(existsIn(df4));
         ArrayList<String> querys = Lists.newArrayList(in1, in2, not_in1, not_in2);
-        NExecAndComp.execAndCompareQueryList(querys, getProject(), NExecAndComp.CompareLevel.SAME, "left");
+        ExecAndComp.execAndCompareQueryList(querys, getProject(), ExecAndComp.CompareLevel.SAME, "left");
 
         overwriteSystemProp("calcite.keep-in-clause", "false");
-        Dataset<Row> df5 = NExecAndComp.queryCubeAndSkipCompute(getProject(), in1);
-        Dataset<Row> df6 = NExecAndComp.queryCubeAndSkipCompute(getProject(), in2);
-        Dataset<Row> df7 = NExecAndComp.queryCubeAndSkipCompute(getProject(), not_in2);
-        Dataset<Row> df8 = NExecAndComp.queryCubeAndSkipCompute(getProject(), not_in2);
+        Dataset<Row> df5 = ExecAndComp.queryModelWithoutCompute(getProject(), in1);
+        Dataset<Row> df6 = ExecAndComp.queryModelWithoutCompute(getProject(), in2);
+        Dataset<Row> df7 = ExecAndComp.queryModelWithoutCompute(getProject(), not_in2);
+        Dataset<Row> df8 = ExecAndComp.queryModelWithoutCompute(getProject(), not_in2);
 
         Assert.assertFalse(existsIn(df5));
         Assert.assertFalse(existsIn(df6));
@@ -128,15 +128,15 @@ public class NExactlyMatchTest extends NLocalWithSparkSessionTest {
         populateSSWithCSVData(config, getProject(), SparderEnv.getSparkSession());
 
         String exactly_match1 = "select count (distinct price) as a from TEST_KYLIN_FACT group by TRANS_ID, CAL_DT, LSTG_FORMAT_NAME having count (distinct price)  > 0 ";
-        Dataset<Row> m1 = NExecAndComp.queryCubeAndSkipCompute(getProject(), exactly_match1);
+        Dataset<Row> m1 = ExecAndComp.queryModelWithoutCompute(getProject(), exactly_match1);
         Assert.assertFalse(existsAgg(m1));
 
         String exactly_match2 = "select count(*) from TEST_KYLIN_FACT group by TRANS_ID, CAL_DT, LSTG_FORMAT_NAME";
-        Dataset<Row> m2 = NExecAndComp.queryCubeAndSkipCompute(getProject(), exactly_match2);
+        Dataset<Row> m2 = ExecAndComp.queryModelWithoutCompute(getProject(), exactly_match2);
         Assert.assertFalse(existsAgg(m2));
 
         String exactly_match3 = "select LSTG_FORMAT_NAME,sum(price),CAL_DT from TEST_KYLIN_FACT group by TRANS_ID, CAL_DT, LSTG_FORMAT_NAME";
-        Dataset<Row> m3 = NExecAndComp.queryCubeAndSkipCompute(getProject(), exactly_match3);
+        Dataset<Row> m3 = ExecAndComp.queryModelWithoutCompute(getProject(), exactly_match3);
         String[] fieldNames = m3.schema().fieldNames();
         Assert.assertFalse(existsAgg(m3));
         Assert.assertTrue(fieldNames[0].contains("LSTG_FORMAT_NAME"));
@@ -144,16 +144,16 @@ public class NExactlyMatchTest extends NLocalWithSparkSessionTest {
         Assert.assertTrue(fieldNames[2].contains("CAL_DT"));
 
         String exactly_match4 = "select count (distinct price) as a from TEST_KYLIN_FACT group by TRANS_ID, CAL_DT, LSTG_FORMAT_NAME having count (distinct price)  > 0 ";
-        Dataset<Row> m4 = NExecAndComp.queryCubeAndSkipCompute(getProject(), exactly_match1);
+        Dataset<Row> m4 = ExecAndComp.queryModelWithoutCompute(getProject(), exactly_match1);
         Assert.assertFalse(existsAgg(m4));
         // assert results
         List<Pair<String, String>> query = new ArrayList<>();
         query.add(Pair.newPair("", exactly_match3));
         query.add(Pair.newPair("", exactly_match4));
-        NExecAndComp.execAndCompare(query, getProject(), NExecAndComp.CompareLevel.SAME, "left");
+        ExecAndComp.execAndCompare(query, getProject(), ExecAndComp.CompareLevel.SAME, "left");
 
         String not_match1 = "select count(*) from TEST_KYLIN_FACT";
-        Dataset<Row> n1 = NExecAndComp.queryCubeAndSkipCompute(getProject(), not_match1);
+        Dataset<Row> n1 = ExecAndComp.queryModelWithoutCompute(getProject(), not_match1);
         Assert.assertTrue(existsAgg(n1));
     }
 

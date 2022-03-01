@@ -43,7 +43,7 @@ class KapFunctionsTest extends SparderBaseFunSuite with SharedSparkSession {
       KapDateTimeUtils.dayOfWeek(((startTime - endTime) / (3600 * 1000 * 24)).toInt))
   }
 
-  test("kapAddMonths") {
+  ignore("kapAddMonths") {
     Assert.assertEquals(KapDateTimeUtils.subtractMonths(1585411200000L, 1582819200000L), 1)
     Assert.assertEquals(KapDateTimeUtils.subtractMonths(1585497600000L, 1582905600000L), 0)
     Assert.assertEquals(KapDateTimeUtils.subtractMonths(1585584000000L, 1582905600000L), 1)

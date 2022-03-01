@@ -39,7 +39,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
+import io.kyligence.kap.newten.ExecAndComp.CompareLevel;
 
 public class TableIndexTest extends NLocalWithSparkSessionTest {
 
@@ -113,7 +113,7 @@ public class TableIndexTest extends NLocalWithSparkSessionTest {
                         + "      a1.LSTG_FORMAT_NAME\n" + "    from \n" + "      TEST_KYLIN_FACT a1\n" + "  ) \n"
                         + "where \n" + "  order_id > 10 \n" + "group by \n" + "  LSTG_FORMAT_NAME\n"));
 
-        NExecAndComp.execAndCompareNew(query, getProject(), CompareLevel.SAME, "left", null, null);
+        ExecAndComp.execAndCompare(query, getProject(), CompareLevel.SAME, "left");
     }
 
     @Test
@@ -134,7 +134,7 @@ public class TableIndexTest extends NLocalWithSparkSessionTest {
                 + "from (\n"
                 + "select ORDER_ID from TEST_KYLIN_FACT\n"
                 + ") a"));
-        NExecAndComp.execAndCompareNew(query, getProject(), CompareLevel.SAME, "left", null, null);
+        ExecAndComp.execAndCompare(query, getProject(), CompareLevel.SAME, "left");
     }
 
     @Test
@@ -175,6 +175,6 @@ public class TableIndexTest extends NLocalWithSparkSessionTest {
                 + "                      KYLIN_FACT\n" + "                GROUP  BY KYLIN_FACT. lstg_site_id) t0\n"
                 + "             ON KYLIN_FACT.lstg_site_id = t0.x____\n"
                 + "WHERE  KYLIN_FACT.cal_dt = DATE '2012-01-01' "));
-        NExecAndComp.execAndCompareNew(query, getProject(), CompareLevel.SAME, "left", null, null);
+        ExecAndComp.execAndCompare(query, getProject(), CompareLevel.SAME, "left");
     }
 }

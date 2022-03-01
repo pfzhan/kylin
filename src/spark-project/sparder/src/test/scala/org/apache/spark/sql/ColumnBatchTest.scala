@@ -79,7 +79,7 @@ class ColumnBatchTest extends SparderBaseFunSuite with SharedSparkSession {
 
   }
 
-  test("KapSubtractMonths") {
+  ignore("KapSubtractMonths") {
     val df = mockDFForLit
     val tsc1 = lit("2012-11-12 12:12:12.0").cast(TimestampType)
     val tsc2 = lit("2012-12-12 12:12:12.0").cast(TimestampType)

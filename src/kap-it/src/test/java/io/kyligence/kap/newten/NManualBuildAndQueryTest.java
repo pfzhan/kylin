@@ -23,41 +23,29 @@
  */
 package io.kyligence.kap.newten;
 
-import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CompletionService;
-import java.util.concurrent.ExecutorCompletionService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.spark.sql.SparderEnv;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
-import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.sparkproject.guava.collect.Lists;
 import org.sparkproject.guava.collect.Sets;
 
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.engine.spark.job.NSparkMergingJob;
 import io.kyligence.kap.engine.spark.merger.AfterMergeOrRefreshResourceMerger;
@@ -67,7 +55,6 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
 import lombok.val;
 
 @Ignore("see io.kyligence.kap.ut.TestQueryAndBuild")
@@ -75,8 +62,6 @@ import lombok.val;
 public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
 
     private static final Logger logger = LoggerFactory.getLogger(NManualBuildAndQueryTest.class);
-
-    private boolean succeed = true;
 
     @Before
     public void setup() throws Exception {
@@ -88,129 +73,6 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         NDefaultScheduler.destroyInstance();
     }
 
-    @Test
-    @Ignore("for developing")
-    public void testTmp() throws Exception {
-        final KylinConfig config = KylinConfig.getInstanceFromEnv();
-        overwriteSystemProp("noBuild", "true");
-        overwriteSystemProp("isDeveloperMode", "true");
-        buildCubes();
-        populateSSWithCSVData(config, getProject(), SparderEnv.getSparkSession());
-        List<Pair<String, Throwable>> results = execAndGetResults(
-                Lists.newArrayList(new QueryCallable(CompareLevel.SAME, "left", "temp"))); //
-        report(results);
-    }
-
-    @Test
-    @Ignore
-    public void testBasics() throws Exception {
-        final KylinConfig config = KylinConfig.getInstanceFromEnv();
-
-        buildCubes();
-
-        // build is done, start to test query
-        populateSSWithCSVData(config, getProject(), SparderEnv.getSparkSession());
-        List<QueryCallable> tasks = prepareAndGenQueryTasks(config);
-        List<Pair<String, Throwable>> results = execAndGetResults(tasks);
-        Assert.assertEquals(results.size(), tasks.size());
-        report(results);
-    }
-
-    private List<Pair<String, Throwable>> execAndGetResults(List<QueryCallable> tasks)
-            throws InterruptedException, java.util.concurrent.ExecutionException {
-        ThreadPoolExecutor executor = new ThreadPoolExecutor(9, //
-                9, //
-                1, //
-                TimeUnit.DAYS, //
-                new LinkedBlockingQueue<>(100));
-        CompletionService<Pair<String, Throwable>> service = new ExecutorCompletionService<>(executor);
-        for (QueryCallable task : tasks) {
-            service.submit(task);
-        }
-
-        List<Pair<String, Throwable>> results = new ArrayList<>();
-        for (int i = 0; i < tasks.size(); i++) {
-            Pair<String, Throwable> r = service.take().get();
-            failFastIfNeeded(r);
-            results.add(r);
-        }
-        executor.shutdown();
-        return results;
-    }
-
-    private void report(List<Pair<String, Throwable>> results) {
-        for (Pair<String, Throwable> result : results) {
-            if (result.getSecond() != null) {
-                succeed = false;
-                logger.error("CI failed on:" + result.getFirst(), result.getSecond());
-            }
-        }
-        if (!succeed) {
-            Assert.fail();
-        }
-    }
-
-    private void failFastIfNeeded(Pair<String, Throwable> result) {
-        if (Boolean.parseBoolean(System.getProperty("failFast", "false")) && result.getSecond() != null) {
-            logger.error("CI failed on:" + result.getFirst());
-            Assert.fail();
-        }
-    }
-
-    private List<QueryCallable> prepareAndGenQueryTasks(KylinConfig config) throws Exception {
-        String[] joinTypes = new String[] { "left", "inner" };
-        List<QueryCallable> tasks = new ArrayList<>();
-        for (String joinType : joinTypes) {
-            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql"));
-            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_lookup"));
-            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_casewhen"));
-            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_like"));
-            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_cache"));
-            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_derived"));
-            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_datetime"));
-            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_subquery"));
-            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_distinct_dim"));
-            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_timestamp"));
-            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_orderby"));
-            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_snowflake"));
-            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_topn"));
-            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_join"));
-            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_union"));
-            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_hive"));
-            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_distinct_precisely"));
-            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_powerbi"));
-            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_raw"));
-            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_value"));
-            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_magine"));
-            //            tasks.add(new QueryCallable(CompareLevel.SAME, joinType, "sql_cross_join"));
-
-            // same row count
-            tasks.add(new QueryCallable(CompareLevel.SAME_ROWCOUNT, joinType, "sql_tableau"));
-
-            // none
-            tasks.add(new QueryCallable(CompareLevel.NONE, joinType, "sql_window"));
-            tasks.add(new QueryCallable(CompareLevel.NONE, joinType, "sql_h2_uncapable"));
-            tasks.add(new QueryCallable(CompareLevel.NONE, joinType, "sql_grouping"));
-            tasks.add(new QueryCallable(CompareLevel.NONE, joinType, "sql_intersect_count"));
-            tasks.add(new QueryCallable(CompareLevel.NONE, joinType, "sql_percentile"));
-            tasks.add(new QueryCallable(CompareLevel.NONE, joinType, "sql_distinct"));
-
-            //execLimitAndValidate
-            //            tasks.add(new QueryCallable(CompareLevel.SUBSET, joinType, "sql"));
-        }
-
-        // cc tests
-        tasks.add(new QueryCallable(CompareLevel.SAME_SQL_COMPARE, "default", "sql_computedcolumn_common"));
-        tasks.add(new QueryCallable(CompareLevel.SAME_SQL_COMPARE, "default", "sql_computedcolumn_leftjoin"));
-
-        tasks.add(new QueryCallable(CompareLevel.SAME, "inner", "sql_magine_inner"));
-        tasks.add(new QueryCallable(CompareLevel.SAME, "inner", "sql_magine_window"));
-        tasks.add(new QueryCallable(CompareLevel.SAME, "default", "sql_rawtable"));
-        tasks.add(new QueryCallable(CompareLevel.SAME, "default", "sql_multi_model"));
-        logger.info("Total {} tasks.", tasks.size());
-        return tasks;
-    }
-
     public void buildCubes() throws Exception {
         if (Boolean.parseBoolean(System.getProperty("noBuild", "false"))) {
             System.out.println("Direct query");
@@ -220,45 +82,6 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         } else {
             buildAndMergeCube("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
             buildAndMergeCube("741ca86a-1f13-46da-a59f-95fb68615e3a");
-        }
-    }
-
-    class QueryCallable implements Callable<Pair<String, Throwable>> {
-
-        private NExecAndComp.CompareLevel compareLevel;
-        private String joinType;
-        private String sqlFolder;
-
-        QueryCallable(NExecAndComp.CompareLevel compareLevel, String joinType, String sqlFolder) {
-            this.compareLevel = compareLevel;
-            this.joinType = joinType;
-            this.sqlFolder = sqlFolder;
-        }
-
-        @Override
-        public Pair<String, Throwable> call() {
-            String identity = "sqlFolder:" + sqlFolder + ", joinType:" + joinType + ", compareLevel:" + compareLevel;
-            try {
-                if (NExecAndComp.CompareLevel.SUBSET == compareLevel) {
-                    List<Pair<String, String>> queries = NExecAndComp
-                            .fetchQueries(KAP_SQL_BASE_DIR + File.separator + "sql");
-                    NExecAndComp.execLimitAndValidate(queries, getProject(), joinType);
-                } else if (NExecAndComp.CompareLevel.SAME_SQL_COMPARE == compareLevel) {
-                    List<Pair<String, String>> queries = NExecAndComp
-                            .fetchQueries(KAP_SQL_BASE_DIR + File.separator + sqlFolder);
-                    NExecAndComp.execCompareQueryAndCompare(queries, getProject(), joinType);
-
-                } else {
-                    List<Pair<String, String>> queries = NExecAndComp
-                            .fetchQueries(KAP_SQL_BASE_DIR + File.separator + sqlFolder);
-                    NExecAndComp.execAndCompare(queries, getProject(), compareLevel, joinType);
-                }
-            } catch (Throwable th) {
-                logger.error("Query fail on:", identity);
-                return Pair.newPair(identity, th);
-            }
-            logger.info("Query succeed on:", identity);
-            return Pair.newPair(identity, null);
         }
     }
 

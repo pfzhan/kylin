@@ -41,7 +41,7 @@ import io.kyligence.kap.smart.SmartContext;
 import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.smart.query.AbstractQueryRunner;
 import io.kyligence.kap.smart.query.QueryRunnerBuilder;
-import io.kyligence.kap.utils.AccelerationContextUtil;
+import io.kyligence.kap.util.AccelerationContextUtil;
 
 import java.util.Collection;
 import java.util.Locale;

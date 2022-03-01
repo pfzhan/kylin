@@ -114,7 +114,7 @@ public class NPartitionColumnTest extends NLocalWithSparkSessionTest {
         sql.add(base + "where STR_PAR_COL6 >= '2011-01-01 00:00:00.000' and STR_PAR_COL6 < '2013-01-01 00:00:00.000'");
         sql.add(base + "where STR_PAR_COL6 >= '2013-01-01 00:00:00.000' and STR_PAR_COL6 < '2015-01-01 00:00:00.000'");
 
-        NExecAndComp.execAndCompareQueryList(sql, getProject(), NExecAndComp.CompareLevel.SAME, "default");
+        ExecAndComp.execAndCompareQueryList(sql, getProject(), ExecAndComp.CompareLevel.SAME, "default");
     }
 
     @Override

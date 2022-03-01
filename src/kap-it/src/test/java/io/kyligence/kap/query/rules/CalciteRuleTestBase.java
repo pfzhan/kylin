@@ -57,7 +57,7 @@ import com.clearspring.analytics.util.Lists;
 import com.google.common.base.Strings;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.newten.NExecAndComp;
+import io.kyligence.kap.newten.ExecAndComp;
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.query.engine.QueryOptimizer;
 import io.kyligence.kap.query.util.HepUtils;
@@ -111,7 +111,7 @@ public class CalciteRuleTestBase extends NLocalFileMetadataTestCase {
     protected Pair<String, String> readOneSQL(KylinConfig config, String project, String folder, String file)
             throws IOException {
         final String queryFolder = IT_SQL_KAP_DIR + folder;
-        List<Pair<String, String>> queries = NExecAndComp.fetchQueries(queryFolder).stream().filter(e -> {
+        List<Pair<String, String>> queries = ExecAndComp.fetchQueries(queryFolder).stream().filter(e -> {
             if (Strings.isNullOrEmpty(file))
                 return true;
             else
@@ -128,7 +128,7 @@ public class CalciteRuleTestBase extends NLocalFileMetadataTestCase {
     protected List<Pair<String, String>> readALLSQLs(KylinConfig config, String project, String folder)
             throws IOException {
         final String queryFolder = IT_SQL_KAP_DIR + folder;
-        return NExecAndComp.fetchQueries(queryFolder).stream().map(e -> {
+        return ExecAndComp.fetchQueries(queryFolder).stream().map(e -> {
             QueryParams queryParams = new QueryParams(config, e.getSecond(), project, 0, 0, "DEFAULT", false);
             String sql = QueryUtil.massageSql(queryParams).replaceAll(emptyLinePattern, ""); // remove empty line
             return new Pair<>(FilenameUtils.getBaseName(e.getFirst()), sql);

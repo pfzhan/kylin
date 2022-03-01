@@ -71,7 +71,7 @@ public class NBucketDictionary {
         if (absoluteDictMap.containsKey(value)) {
             return;
         }
-        relativeDictMap.put(value, relativeDictMap.size() + 1l);
+        relativeDictMap.put(value, relativeDictMap.size() + 1L);
     }
 
     public void addAbsoluteValue(String value, long encodeValue) {

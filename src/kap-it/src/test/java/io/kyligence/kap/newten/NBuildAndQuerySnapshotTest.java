@@ -75,7 +75,7 @@ public class NBuildAndQuerySnapshotTest extends NLocalWithSparkSessionTest {
         // after build
         String lastSnapshotPath = tableMetadataManager.getTableDesc("DEFAULT.TEST_COUNTRY").getLastSnapshotPath();
         Assert.assertNotNull(lastSnapshotPath);
-        Dataset dataset = NExecAndComp.sql(getProject(), "select NAME from TEST_COUNTRY");
+        Dataset dataset = ExecAndComp.queryModelWithoutCompute(getProject(), "select NAME from TEST_COUNTRY");
         Assert.assertEquals(244, dataset.collectAsList().size());
     }
 

@@ -48,9 +48,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.junit.Assert;
+import org.junit.jupiter.api.Test;
 
 import io.kyligence.kap.junit.annotation.MetadataInfo;
-import org.junit.jupiter.api.Test;
 
 @MetadataInfo(onlyProps = true)
 public class KapConfigTest {

@@ -207,7 +207,7 @@ public class NFilePruningV2Test extends NLocalWithSparkSessionTest {
         query.add(Pair.newPair("pruning0", pruning0));
         query.add(Pair.newPair("pruning1", pruning1));
         query.add(Pair.newPair("pruning2", pruning2));
-        NExecAndComp.execAndCompare(query, getProject(), NExecAndComp.CompareLevel.SAME, "default");
+        ExecAndComp.execAndCompare(query, getProject(), ExecAndComp.CompareLevel.SAME, "default");
     }
 
     @Ignore("Unsupport timestamp")
@@ -267,7 +267,7 @@ public class NFilePruningV2Test extends NLocalWithSparkSessionTest {
         query.add(Pair.newPair("pruning0", pruning0));
         query.add(Pair.newPair("pruning1", pruning1));
         query.add(Pair.newPair("pruning2", pruning2));
-        NExecAndComp.execAndCompare(query, getProject(), NExecAndComp.CompareLevel.SAME, "default");
+        ExecAndComp.execAndCompare(query, getProject(), ExecAndComp.CompareLevel.SAME, "default");
     }
 
     @Test
@@ -312,7 +312,7 @@ public class NFilePruningV2Test extends NLocalWithSparkSessionTest {
         query.add(Pair.newPair("", or));
         query.add(Pair.newPair("", notSupported0));
         query.add(Pair.newPair("", notSupported1));
-        NExecAndComp.execAndCompare(query, getProject(), NExecAndComp.CompareLevel.SAME, "left");
+        ExecAndComp.execAndCompare(query, getProject(), ExecAndComp.CompareLevel.SAME, "left");
     }
 
     @Test
@@ -330,7 +330,7 @@ public class NFilePruningV2Test extends NLocalWithSparkSessionTest {
         List<Pair<String, String>> query = new ArrayList<>();
         query.add(Pair.newPair("", chinese0));
         query.add(Pair.newPair("", chinese1));
-        NExecAndComp.execAndCompare(query, getProject(), NExecAndComp.CompareLevel.SAME, "left");
+        ExecAndComp.execAndCompare(query, getProject(), ExecAndComp.CompareLevel.SAME, "left");
     }
 
     private void pruningWithVariousTypesScenario() throws Exception {
@@ -402,7 +402,7 @@ public class NFilePruningV2Test extends NLocalWithSparkSessionTest {
         // see #11598
         query.add(Pair.newPair("", ts0));
         query.add(Pair.newPair("", ts1));
-        NExecAndComp.execAndCompare(query, getProject(), NExecAndComp.CompareLevel.SAME, "left");
+        ExecAndComp.execAndCompare(query, getProject(), ExecAndComp.CompareLevel.SAME, "left");
     }
 
     private void basicPruningScenario() throws Exception {
@@ -433,7 +433,7 @@ public class NFilePruningV2Test extends NLocalWithSparkSessionTest {
         query.add(Pair.newPair("", or));
         query.add(Pair.newPair("", notSupported0));
         query.add(Pair.newPair("", notSupported1));
-        NExecAndComp.execAndCompare(query, getProject(), NExecAndComp.CompareLevel.SAME, "left");
+        ExecAndComp.execAndCompare(query, getProject(), ExecAndComp.CompareLevel.SAME, "left");
     }
 
     @Override
@@ -442,7 +442,7 @@ public class NFilePruningV2Test extends NLocalWithSparkSessionTest {
     }
 
     private long assertResultsAndScanFiles(String sql, long numScanFiles) throws Exception {
-        val df = NExecAndComp.queryCubeAndSkipCompute(getProject(), sql);
+        val df = ExecAndComp.queryModelWithoutCompute(getProject(), sql);
         df.collect();
         val actualNum = findFileSourceScanExec(df.queryExecution().sparkPlan()).metrics().get("numFiles").get().value();
         Assert.assertEquals(numScanFiles, actualNum);

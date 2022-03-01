@@ -87,7 +87,7 @@ class TimestampAddTest extends SparderBaseFunSuite with SharedSparkSession with 
     verifyResult("select timestampadd('SQL_TSI_FRAC_SECOND', 1 , date'2016-01-31')", Seq("2016-01-31 00:00:00.001"))
   }
 
-  test("test add on timestamp") {
+  ignore("test add on timestamp") {
     // YEAR
     verifyResult("select timestampadd('YEAR', 1 , timestamp'2016-02-29 01:01:01.001')", Seq("2017-02-28 01:01:01.001"))
 

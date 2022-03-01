@@ -73,8 +73,8 @@ public class NCountDistinctWithoutEncodeTest extends NLocalWithSparkSessionTest 
         indexPlanManager.updateIndexPlan("b06eee9f-3e6d-41de-ac96-89dbf170b99b",
                 copyForWrite -> copyForWrite.getOverrideProps().put("kylin.query.skip-encode-integer-enabled", "true"));
         fullBuild("b06eee9f-3e6d-41de-ac96-89dbf170b99b");
-        List<String> results1 = NExecAndComp
-                .queryCube(getProject(),
+        List<String> results1 = ExecAndComp
+                .queryModel(getProject(),
                         "select city, " + "count(distinct string_id), " + "count(distinct tinyint_id), "
                                 + "count(distinct smallint_id), " + "count(distinct int_id), "
                                 + "count(distinct bigint_id) from test_count_distinct group by city order by city")
@@ -84,8 +84,8 @@ public class NCountDistinctWithoutEncodeTest extends NLocalWithSparkSessionTest 
         Assert.assertEquals("北京,3,3,3,3,3", results1.get(1));
         Assert.assertEquals("广州,5,5,5,5,5", results1.get(2));
 
-        List<String> results2 = NExecAndComp
-                .queryCube(getProject(),
+        List<String> results2 = ExecAndComp
+                .queryModel(getProject(),
                         "select " + "count(distinct string_id), " + "count(distinct tinyint_id), "
                                 + "count(distinct smallint_id), " + "count(distinct int_id), "
                                 + "count(distinct bigint_id) from test_count_distinct")

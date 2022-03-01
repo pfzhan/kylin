@@ -93,12 +93,7 @@ public class NKapQueryTest extends KylinTestBase {
 
     @After
     public void tearDown() throws Exception {
-
         logger.info("tearDown in NKapQueryTest");
-        if (cubeConnection != null) {
-            closeConnection(cubeConnection);
-        }
-
         cleanupTestMetadata();
     }
 
@@ -166,7 +161,7 @@ public class NKapQueryTest extends KylinTestBase {
         val query0 = "select {FN WEEK(CEIL( FLOOR(date'2020-11-10' TO week  ) TO DAY    )) }";
         val query1 = "select floor(date'2020-11-10' to week)";
         val query2 = "select ceil(date'2020-11-10' to month)";
-        val query3 = "select 1 union select 4";
+        val query3 = "select 1 union select 4 order by 1";
         val queries = Lists.newArrayList(query0, query1, query2, query3);
         val expectedAnswers = Lists.newArrayList("46", "2020-11-09 00:00:00", "2020-12-01 00:00:00", "1");
 

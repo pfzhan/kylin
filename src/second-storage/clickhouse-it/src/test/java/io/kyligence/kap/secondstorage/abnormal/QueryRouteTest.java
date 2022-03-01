@@ -30,7 +30,7 @@ import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.newten.NExecAndComp;
+import io.kyligence.kap.newten.ExecAndComp;
 import io.kyligence.kap.newten.clickhouse.ClickHouseUtils;
 import static io.kyligence.kap.newten.clickhouse.ClickHouseUtils.columnMapping;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
@@ -128,7 +128,7 @@ public class QueryRouteTest {
 
             //check we get the correct plan
             Dataset<Row> groupPlan =
-                    NExecAndComp.queryCubeAndSkipCompute(project, testSQL);
+                    ExecAndComp.queryModelWithoutCompute(project, testSQL);
             ShardJDBCScan shardJDBCScan = ClickHouseUtils.findShardScan(groupPlan.queryExecution().optimizedPlan());
             Assert.assertEquals(clickhouseNumber, shardJDBCScan.relation().parts().length);
             List<String> expected = ImmutableList.of(columnMapping.get("PRICE"));
@@ -138,14 +138,14 @@ public class QueryRouteTest {
             NLocalWithSparkSessionTest.populateSSWithCSVData(test.getTestConfig(), project, sparkSession);
             List<Pair<String, String>> query = new ArrayList<>();
             query.add(Pair.newPair("query_table_index1", testSQL));
-            NExecAndComp.execAndCompareNew(query, project, NExecAndComp.CompareLevel.SAME, "left", null, null);
+            ExecAndComp.execAndCompare(query, project, ExecAndComp.CompareLevel.SAME, "left");
 
             //close one of clickhouse
             JdbcDatabaseContainer<?> clickhouse0 = clickHouseClassRule.getClickhouse(0);
             clickhouse0.close();
 
             // Now rerun it, using
-            Dataset<Row> groupPlanWithTableIndex = NExecAndComp.queryCube(project, testSQL);
+            Dataset<Row> groupPlanWithTableIndex = ExecAndComp.queryModel(project, testSQL);
             FilePruner filePruner = ClickHouseUtils.findFilePruner(groupPlanWithTableIndex.queryExecution().optimizedPlan());
             Assert.assertEquals(cubeName, filePruner.options().get("dataflowId").get());
 
@@ -180,7 +180,7 @@ public class QueryRouteTest {
                 }
             });
 
-            NExecAndComp.queryCube(project, testSQL);
+            ExecAndComp.queryModel(project, testSQL);
         } finally {
             Unsafe.clearProperty(CONFIG_CLICKHOUSE_QUERY_CATALOG);
         }
@@ -212,7 +212,7 @@ public class QueryRouteTest {
                     "spark.sql.catalog." + queryCatalog + ".driver",
                     clickhouse.getDriverClassName());
 
-            Dataset<Row> groupPlan = NExecAndComp.queryCubeAndSkipCompute(project, testSQL);
+            Dataset<Row> groupPlan = ExecAndComp.queryModelWithoutCompute(project, testSQL);
             FilePruner filePruner = ClickHouseUtils.findFilePruner(groupPlan.queryExecution().optimizedPlan());
             Assert.assertEquals(cubeName, filePruner.options().get("dataflowId").get());
         } finally {

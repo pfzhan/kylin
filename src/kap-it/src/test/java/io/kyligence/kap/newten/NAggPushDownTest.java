@@ -75,13 +75,13 @@ public class NAggPushDownTest extends NLocalWithSparkSessionTest {
     public void testBasic() throws Exception {
         fullBuild("a749e414-c40e-45b7-92e4-bbfe63af705d");
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        NExecAndComp.CompareLevel compareLevel = NExecAndComp.CompareLevel.SAME;
+        ExecAndComp.CompareLevel compareLevel = ExecAndComp.CompareLevel.SAME;
         populateSSWithCSVData(config, getProject(), SparderEnv.getSparkSession());
         String identity = "sqlFolder:" + sqlFolder + ", joinType:" + joinType + ", compareLevel:" + compareLevel;
         try {
-            List<Pair<String, String>> queries = NExecAndComp
+            List<Pair<String, String>> queries = ExecAndComp
                     .fetchQueries(KAP_SQL_BASE_DIR + File.separator + sqlFolder);
-            NExecAndComp.execAndCompare(queries, getProject(), compareLevel, joinType);
+            ExecAndComp.execAndCompare(queries, getProject(), compareLevel, joinType);
         } catch (Throwable th) {
             logger.error("Query fail on: {}", identity);
             Assert.error();
@@ -93,13 +93,13 @@ public class NAggPushDownTest extends NLocalWithSparkSessionTest {
     public void testAggPushDown() throws Exception {
         fullBuild("ce2057da-54c8-4e05-b0bf-d225a6bbb62c");
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        NExecAndComp.CompareLevel compareLevel = NExecAndComp.CompareLevel.SAME;
+        ExecAndComp.CompareLevel compareLevel = ExecAndComp.CompareLevel.SAME;
         populateSSWithCSVData(config, getProject(), SparderEnv.getSparkSession());
         String identity = "sqlFolder:" + "sql_agg_pushdown" + ", joinType:" + joinType + ", compareLevel:" + compareLevel;
         try {
-            List<Pair<String, String>> queries = NExecAndComp
+            List<Pair<String, String>> queries = ExecAndComp
                     .fetchQueries(KAP_SQL_BASE_DIR + File.separator + "sql_agg_pushdown");
-            NExecAndComp.execAndCompare(queries, getProject(), compareLevel, joinType);
+            ExecAndComp.execAndCompare(queries, getProject(), compareLevel, joinType);
         } catch (Throwable th) {
             logger.error("Query fail on: {}", identity);
             Assert.error();

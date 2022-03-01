@@ -25,13 +25,13 @@ package io.kyligence.kap.newten.auto;
 
 import org.junit.Test;
 
-import io.kyligence.kap.newten.NExecAndComp;
+import io.kyligence.kap.newten.ExecAndComp;
 
 public class AutoSinaiPocTest extends AutoTestBase {
 
     @Test
     public void testSinai() throws Exception {
-        new TestScenario(NExecAndComp.CompareLevel.SAME, "sql_sinai_poc").execute();
+        new TestScenario(ExecAndComp.CompareLevel.SAME, "sql_sinai_poc").execute();
     }
 
 }

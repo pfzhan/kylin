@@ -77,7 +77,7 @@ public class NComputedColumnTest extends NLocalWithSparkSessionTest {
         String sqlHitCube = "select (1+2) as c1,(LINEORDER.LO_TAX +1) as c2,(CUSTOMER.C_NAME +'USA') as c3 "
                 + "from SSB.P_LINEORDER as LINEORDER join SSB.CUSTOMER as CUSTOMER on LINEORDER.LO_CUSTKEY = CUSTOMER.C_CUSTKEY "
                 + "group by (1+2),(LINEORDER.LO_TAX +1),(CUSTOMER.C_NAME +'USA') ";
-        List<String> hitCubeResult = NExecAndComp.queryFromCube(getProject(), sqlHitCube).collectAsList().stream()
+        List<String> hitCubeResult = ExecAndComp.queryModelWithoutCompute(getProject(), sqlHitCube).collectAsList().stream()
                 .map(Row::toString).collect(Collectors.toList());
         Assert.assertEquals(9, hitCubeResult.size());
     }

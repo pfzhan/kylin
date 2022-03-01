@@ -176,7 +176,7 @@ public class MultiPartitionPruningTest extends NLocalWithSparkSessionTest implem
         List<Pair<String, String>> query = new ArrayList<>();
         query.add(Pair.newPair("", andSql));
         query.add(Pair.newPair("", notInSql));
-        NExecAndComp.execAndCompare(query, getProject(), NExecAndComp.CompareLevel.SAME, "left");
+        ExecAndComp.execAndCompare(query, getProject(), ExecAndComp.CompareLevel.SAME, "left");
     }
 
     @Test
@@ -245,7 +245,7 @@ public class MultiPartitionPruningTest extends NLocalWithSparkSessionTest implem
         List<Pair<String, String>> query = new ArrayList<>();
         query.add(Pair.newPair("", andSql));
         query.add(Pair.newPair("", notInSql));
-        NExecAndComp.execAndCompare(query, getProject(), NExecAndComp.CompareLevel.SAME, "left");
+        ExecAndComp.execAndCompare(query, getProject(), ExecAndComp.CompareLevel.SAME, "left");
     }
 
     @Test
@@ -332,7 +332,7 @@ public class MultiPartitionPruningTest extends NLocalWithSparkSessionTest implem
         List<Pair<String, String>> query = new ArrayList<>();
         query.add(Pair.newPair("", andSql));
         query.add(Pair.newPair("", inSql));
-        NExecAndComp.execAndCompare(query, getProject(), NExecAndComp.CompareLevel.SAME, "left");
+        ExecAndComp.execAndCompare(query, getProject(), ExecAndComp.CompareLevel.SAME, "left");
     }
 
     @Test
@@ -418,7 +418,7 @@ public class MultiPartitionPruningTest extends NLocalWithSparkSessionTest implem
         List<Pair<String, String>> query = new ArrayList<>();
         query.add(Pair.newPair("", andSql));
         query.add(Pair.newPair("", inSql));
-        NExecAndComp.execAndCompare(query, getProject(), NExecAndComp.CompareLevel.SAME, "left");
+        ExecAndComp.execAndCompare(query, getProject(), ExecAndComp.CompareLevel.SAME, "left");
     }
 
     @Test
@@ -447,7 +447,7 @@ public class MultiPartitionPruningTest extends NLocalWithSparkSessionTest implem
 
         val queries = Lists.<Pair<String, String>> newArrayList();
         queries.add(Pair.newPair("", chineseSql));
-        NExecAndComp.execAndCompare(queries, getProject(), NExecAndComp.CompareLevel.SAME, "left");
+        ExecAndComp.execAndCompare(queries, getProject(), ExecAndComp.CompareLevel.SAME, "left");
     }
 
     @Test
@@ -492,12 +492,12 @@ public class MultiPartitionPruningTest extends NLocalWithSparkSessionTest implem
         val queries = Lists.<Pair<String, String>> newArrayList();
         queries.add(Pair.newPair("", sql1));
         queries.add(Pair.newPair("", sql2));
-        NExecAndComp.execAndCompare(queries, getProject(), NExecAndComp.CompareLevel.SAME, "left");
+        ExecAndComp.execAndCompare(queries, getProject(), ExecAndComp.CompareLevel.SAME, "left");
     }
 
     private long assertResultsAndScanFiles(String modelId, String sql, long numScanFiles, boolean emptyLayout,
             List<Pair<String, String>> expectedRanges, List<List<Long>> expectedPartitions) throws Exception {
-        val df = NExecAndComp.queryCubeAndSkipCompute(getProject(), sql);
+        val df = ExecAndComp.queryModelWithoutCompute(getProject(), sql);
         val context = ContextUtil.listContexts().get(0);
         if (emptyLayout) {
             Assert.assertTrue(context.storageContext.isEmptyLayout());

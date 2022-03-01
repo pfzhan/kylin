@@ -42,11 +42,11 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.newten.NExecAndComp;
+import io.kyligence.kap.newten.ExecAndComp;
 import io.kyligence.kap.newten.auto.AutoTestBase;
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.smart.SmartMaster;
-import io.kyligence.kap.utils.AccelerationContextUtil;
+import io.kyligence.kap.util.AccelerationContextUtil;
 import lombok.val;
 import lombok.var;
 import org.apache.kylin.common.KylinConfig;
@@ -569,7 +569,7 @@ public class QueryLayoutChooserTest extends AutoTestBase {
         List<Pair<String, String>> query = new ArrayList<>();
         query.add(new Pair<>("count_distinct_derived_pk_from_fk", sql2));
         populateSSWithCSVData(getTestConfig(), "newten", SparderEnv.getSparkSession());
-        NExecAndComp.execAndCompare(query, "newten", NExecAndComp.CompareLevel.SAME, "left");
+        ExecAndComp.execAndCompare(query, "newten", ExecAndComp.CompareLevel.SAME, "left");
 
     }
 
@@ -600,7 +600,7 @@ public class QueryLayoutChooserTest extends AutoTestBase {
         List<Pair<String, String>> query = new ArrayList<>();
         query.add(new Pair<>("count_distinct_derived_fk_from_pk", sql2));
         populateSSWithCSVData(getTestConfig(), "newten", SparderEnv.getSparkSession());
-        NExecAndComp.execAndCompare(query, "newten", NExecAndComp.CompareLevel.SAME, "inner");
+        ExecAndComp.execAndCompare(query, "newten", ExecAndComp.CompareLevel.SAME, "inner");
 
     }
 
@@ -629,7 +629,7 @@ public class QueryLayoutChooserTest extends AutoTestBase {
         List<Pair<String, String>> query = new ArrayList<>();
         query.add(new Pair<>("count_distinct_derived_fk_from_pk", sql2));
         populateSSWithCSVData(getTestConfig(), "newten", SparderEnv.getSparkSession());
-        NExecAndComp.execAndCompare(query, "newten", NExecAndComp.CompareLevel.SAME, "left");
+        ExecAndComp.execAndCompare(query, "newten", ExecAndComp.CompareLevel.SAME, "left");
 
     }
 
@@ -654,7 +654,7 @@ public class QueryLayoutChooserTest extends AutoTestBase {
         List<Pair<String, String>> query = new ArrayList<>();
         query.add(new Pair<>("count_distinct_complex_expr", sql2));
         populateSSWithCSVData(getTestConfig(), "newten", SparderEnv.getSparkSession());
-        NExecAndComp.execAndCompare(query, "newten", NExecAndComp.CompareLevel.SAME, "left");
+        ExecAndComp.execAndCompare(query, "newten", ExecAndComp.CompareLevel.SAME, "left");
 
     }
 
@@ -679,7 +679,7 @@ public class QueryLayoutChooserTest extends AutoTestBase {
         List<Pair<String, String>> query = new ArrayList<>();
         query.add(new Pair<>("count_distinct_expr_fallback", sql2));
         populateSSWithCSVData(getTestConfig(), "newten", SparderEnv.getSparkSession());
-        NExecAndComp.execAndCompare(query, "newten", NExecAndComp.CompareLevel.SAME, "left");
+        ExecAndComp.execAndCompare(query, "newten", ExecAndComp.CompareLevel.SAME, "left");
 
     }
 
@@ -798,7 +798,7 @@ public class QueryLayoutChooserTest extends AutoTestBase {
         List<Pair<String, String>> query = new ArrayList<>();
         query.add(new Pair<>("aggPushdownOnSemiJoin", sql2));
         populateSSWithCSVData(getTestConfig(), "newten", SparderEnv.getSparkSession());
-        NExecAndComp.execAndCompare(query, "newten", NExecAndComp.CompareLevel.SAME, "inner");
+        ExecAndComp.execAndCompare(query, "newten", ExecAndComp.CompareLevel.SAME, "inner");
     }
 
     @Test
@@ -826,7 +826,7 @@ public class QueryLayoutChooserTest extends AutoTestBase {
         List<Pair<String, String>> query = new ArrayList<>();
         query.add(new Pair<>("aggPushdownWithMultipleAgg", sql2));
         populateSSWithCSVData(getTestConfig(), "newten", SparderEnv.getSparkSession());
-        NExecAndComp.execAndCompare(query, "newten", NExecAndComp.CompareLevel.SAME, "default");
+        ExecAndComp.execAndCompare(query, "newten", ExecAndComp.CompareLevel.SAME, "default");
     }
 
     @Test

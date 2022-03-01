@@ -112,7 +112,7 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
             SparderEnv.cleanCompute();
             long t = System.currentTimeMillis();
             ResultPlan.getResult(mockDf, null);
-            NExecAndComp.queryCube(getProject(), "select sum(price) from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME");
+            ExecAndComp.queryModel(getProject(), "select sum(price) from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME");
             String error = "TestSparderTimeoutCancelJob fail, query cost:" + (System.currentTimeMillis() - t)
                     + " ms, need compute:" + SparderEnv.needCompute();
             logger.error(error);

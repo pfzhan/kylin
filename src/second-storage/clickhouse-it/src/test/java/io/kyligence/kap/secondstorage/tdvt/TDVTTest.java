@@ -29,7 +29,7 @@ import com.google.common.collect.ImmutableSet;
 import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.newten.NExecAndComp;
+import io.kyligence.kap.newten.ExecAndComp;
 import io.kyligence.kap.newten.clickhouse.ClickHouseUtils;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import io.kyligence.kap.secondstorage.test.ClickHouseClassRule;
@@ -198,7 +198,7 @@ public class TDVTTest {
 
     private String runWithAggPushDown(String sqlStatement) throws Exception {
         QueryContext.current().setForceTableIndex(false);
-        Dataset<Row> plan = NExecAndComp.queryCubeAndSkipCompute(project, sqlStatement);
+        Dataset<Row> plan = ExecAndComp.queryModelWithoutCompute(project, sqlStatement);
         ShardJDBCScan shardJDBCScan = ClickHouseUtils.findShardScan(plan.queryExecution().optimizedPlan());
         Assert.assertNotNull(shardJDBCScan);
         QueryContext.reset();
@@ -214,7 +214,7 @@ public class TDVTTest {
 
     private String runWithTableIndex(String sqlStatement) throws Exception {
         QueryContext.current().setForceTableIndex(true);
-        Dataset<Row> plan = NExecAndComp.queryCubeAndSkipCompute(project, sqlStatement);
+        Dataset<Row> plan = ExecAndComp.queryModelWithoutCompute(project, sqlStatement);
         FilePruner filePruner = ClickHouseUtils.findFilePruner(plan.queryExecution().optimizedPlan());
         Assert.assertNotNull(filePruner);
         return computeResult(plan);

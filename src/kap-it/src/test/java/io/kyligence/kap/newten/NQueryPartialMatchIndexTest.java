@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.newten;
 
-import java.sql.SQLException;
 import java.util.List;
 
 import org.apache.kylin.common.QueryContext;
@@ -77,7 +76,7 @@ public class NQueryPartialMatchIndexTest extends NLocalWithSparkSessionTest {
         expectedRanges.add(segmentRange);
 
         QueryContext.current().setPartialMatchIndex(true);
-        NExecAndComp.queryCubeAndSkipCompute(getProject(), sql);
+        ExecAndComp.queryModelWithoutCompute(getProject(), sql);
         val context = ContextUtil.listContexts().get(0);
         val segmentIds = context.storageContext.getPrunedSegments();
         assertPrunedSegmentRange(df.getModel().getId(), segmentIds, expectedRanges);
@@ -92,8 +91,8 @@ public class NQueryPartialMatchIndexTest extends NLocalWithSparkSessionTest {
 
         QueryContext.current().setPartialMatchIndex(true);
         try {
-            NExecAndComp.queryCubeAndSkipCompute(getProject(), sql);
-        } catch (SQLException e) {
+            ExecAndComp.queryModelWithoutCompute(getProject(), sql);
+        } catch (Exception e) {
             if (e.getCause() instanceof NoRealizationFoundException) {
                 val context = ContextUtil.listContexts().get(0);
                 val segmentIds = context.storageContext.getPrunedSegments();

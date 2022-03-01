@@ -156,6 +156,7 @@
 
         <!-- Maven -->
         <maven.surefire.version>3.0.0-M5</maven.surefire.version>
+        <maven.scalatest.version>2.0.2</maven.scalatest.version>
 
         <!-- container -->
         <jetty.toolchain.test-helper.version>3.1.1</jetty.toolchain.test-helper.version>
@@ -166,6 +167,7 @@
         <protobuf-java.version>3.16.1</protobuf-java.version>
 
         <!-- Sonar -->
+        <sonar.scala.version>${scala.version}</sonar.scala.version>
         <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
         <sonar.dynamicAnalysis>reuseReports</sonar.dynamicAnalysis>
         <sonar.language>java</sonar.language>
@@ -233,7 +235,6 @@
             **/io/kyligence/kap/rest/config/SwaggerCompatibilityConfig.java
         </sonar.coverage.exclusions>
         <sonar.organization>kyligence</sonar.organization>
-        <aggregate.report.dir>src/kap-it/target/site/jacoco-aggregate/jacoco.xml</aggregate.report.dir>
         <sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/../../${aggregate.report.dir}
         </sonar.coverage.jacoco.xmlReportPaths>
 
@@ -252,10 +253,6 @@
         <aws-java-sdk-s3.version>1.11.791</aws-java-sdk-s3.version>
         <hadoop-aws.version>2.8.5-kylin-r3</hadoop-aws.version>
 
-        <!-- Sonar -->
-        <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
-        <sonar.dynamicAnalysis>reuseReports</sonar.dynamicAnalysis>
-        <sonar.language>java</sonar.language>
         <scala.version>2.12.13</scala.version>
 
         <!-- swagger api-->
@@ -314,8 +311,6 @@
         <module>src/spark-project/spark-common</module>
         <module>src/spark-project/sparder</module>
         <module>src/spark-project/engine-spark</module>
-        <module>src/spark-project/kylin-user-session</module>
-        <module>src/spark-project/kylin-user-session-dep</module>
         <module>src/spark-project/source-jdbc</module>
         <module>src/spark-project/spark-it</module>
         <module>src/streaming</module>
@@ -1235,6 +1230,10 @@
                     <exclusion>
                         <groupId>org.eclipse.jetty.aggregate</groupId>
                         <artifactId>jetty-all</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.eclipse.jetty.orbit</groupId>
+                        <artifactId>javax.servlet</artifactId>
                     </exclusion>
                     <exclusion>
                         <groupId>org.apache.thrift</groupId>
@@ -2491,6 +2490,24 @@
                     </executions>
                 </plugin>
                 <plugin>
+                    <groupId>org.scalatest</groupId>
+                    <artifactId>scalatest-maven-plugin</artifactId>
+                    <version>${maven.scalatest.version}</version>
+                    <configuration>
+                        <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
+                        <junitxml>.</junitxml>
+                        <filereports>WDF TestSuite.txt</filereports>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>test</id>
+                            <goals>
+                                <goal>test</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-shade-plugin</artifactId>
                     <version>3.2.4</version>
@@ -2563,7 +2580,51 @@
                 <plugin>
                     <groupId>org.jacoco</groupId>
                     <artifactId>jacoco-maven-plugin</artifactId>
-                    <version>0.8.2</version>
+                    <version>0.8.7</version>
+                    <executions>
+                        <execution>
+                            <id>pre-test</id>
+                            <goals>
+                                <goal>prepare-agent</goal>
+                            </goals>
+                            <configuration>
+                                <propertyName>surefireArgLine</propertyName>
+                            </configuration>
+                        </execution>
+                        <execution>
+                            <id>report</id>
+                            <phase>test</phase>
+                            <goals>
+                                <goal>report</goal>
+                                <goal>report-aggregate</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>org.scoverage</groupId>
+                    <artifactId>scoverage-maven-plugin</artifactId>
+                    <version>1.4.11</version>
+                    <configuration>
+                        <scalaVersion>${scala.version}</scalaVersion>
+                        <highlighting>true</highlighting>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>instrument</id>
+                            <goals>
+                                <goal>pre-compile</goal>
+                                <goal>post-compile</goal>
+                            </goals>
+                        </execution>
+                        <execution>
+                            <id>scoverage-report</id>
+                            <phase>test</phase>
+                            <goals>
+                                <goal>report-only</goal>
+                            </goals>
+                        </execution>
+                    </executions>
                 </plugin>
                 <plugin>
                     <groupId>org.springframework.boot</groupId>
@@ -2925,30 +2986,6 @@
                     <plugin>
                         <groupId>org.jacoco</groupId>
                         <artifactId>jacoco-maven-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>pre-test</id>
-                                <goals>
-                                    <goal>prepare-agent</goal>
-                                </goals>
-                                <configuration>
-                                    <propertyName>surefireArgLine</propertyName>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>it-test</id>
-                                <goals>
-                                    <goal>prepare-agent-integration</goal>
-                                </goals>
-                            </execution>
-                            <execution>
-                                <id>post-test</id>
-                                <phase>test</phase>
-                                <goals>
-                                    <goal>report</goal>
-                                </goals>
-                            </execution>
-                        </executions>
                     </plugin>
 
                     <plugin>

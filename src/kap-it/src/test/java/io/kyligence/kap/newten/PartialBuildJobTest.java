@@ -90,7 +90,7 @@ import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
 import io.kyligence.kap.rest.service.task.QueryHistoryTaskScheduler;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.SmartMaster;
-import io.kyligence.kap.utils.AccelerationContextUtil;
+import io.kyligence.kap.util.AccelerationContextUtil;
 import lombok.val;
 
 public class PartialBuildJobTest extends SemiAutoTestBase {
@@ -397,7 +397,7 @@ public class PartialBuildJobTest extends SemiAutoTestBase {
         List<Pair<String, String>> queryList = Lists.newArrayList();
         queryList.add(Pair.newPair("sql", sql));
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
-        NExecAndComp.execAndCompare(queryList, getProject(), NExecAndComp.CompareLevel.SAME, "default");
+        ExecAndComp.execAndCompare(queryList, getProject(), ExecAndComp.CompareLevel.SAME, "default");
     }
 
     private void testPartialBuildSegments(String modelId) throws Exception {

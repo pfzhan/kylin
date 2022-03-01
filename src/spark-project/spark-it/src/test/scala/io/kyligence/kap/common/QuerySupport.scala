@@ -96,7 +96,6 @@ trait QuerySupport
     }
     var ret = tokens.mkString(" ")
     ret = ret.replaceAll(specialStr, System.getProperty("line.separator"))
-    logInfo("The actual sql executed is: " + ret)
     ret
   }
 

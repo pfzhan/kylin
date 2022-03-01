@@ -33,7 +33,7 @@ import io.kyligence.kap.guava20.shaded.common.base.Preconditions;
 import io.kyligence.kap.newten.SuggestTestBase;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.SmartMaster;
-import io.kyligence.kap.utils.AccelerationContextUtil;
+import io.kyligence.kap.util.AccelerationContextUtil;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

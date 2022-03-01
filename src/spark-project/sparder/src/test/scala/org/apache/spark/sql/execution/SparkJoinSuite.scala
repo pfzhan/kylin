@@ -633,7 +633,7 @@ class SparkJoinSuite extends QueryTest with SharedSparkSession with AdaptiveSpar
         Row(3, 2) :: Nil)
   }
 
-  test("cross join detection") {
+  ignore("cross join detection") {
     withTempView("A", "B", "C", "D") {
       testData.createOrReplaceTempView("A")
       testData.createOrReplaceTempView("B")

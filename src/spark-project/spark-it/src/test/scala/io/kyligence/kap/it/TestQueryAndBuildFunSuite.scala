@@ -63,14 +63,12 @@ class TestQueryAndBuildFunSuite
 
   val queryFolders = List(
     FloderInfo("sql", List("query105.sql", "query131.sql", "query138.sql")),
-    //        FloderInfo("sql_boolean"),
     FloderInfo("sql_cache"),
     FloderInfo("sql_casewhen", List("query08.sql", "query09.sql", "query11.sql", "query12.sql", "query13.sql")),
     FloderInfo("sql_cross_join"),
     FloderInfo("sql_datetime"),
     FloderInfo("sql_derived"),
     FloderInfo("sql_distinct_dim"),
-    //        "sql_distinct_precisel", not exist dir
     FloderInfo("sql_hive"),
     FloderInfo("sql_join",
       List("query_11.sql", "query_12.sql", "query_13.sql", "query_14.sql", "query_15.sql", "query_16.sql",
@@ -87,7 +85,6 @@ class TestQueryAndBuildFunSuite
     FloderInfo("sql_raw"),
     FloderInfo("sql_rawtable", List("query26.sql", "query32.sql", "query33.sql", "query34.sql", "query37.sql", "query38.sql")),
     FloderInfo("sql_tableau", List("query00.sql", "query24.sql", "query25.sql")),
-    //    "sql_timestamp", no exist dir
     FloderInfo("sql_topn"),
     FloderInfo("sql_union", List("query07.sql")),
     FloderInfo("sql_value"),
@@ -114,15 +111,12 @@ class TestQueryAndBuildFunSuite
     FloderInfo("sql_distinct"),
     FloderInfo("sql_grouping", List("query07.sql", "query08.sql")),
     FloderInfo("sql_h2_uncapable"),
-    //    FloderInfo("sql_intersect_count"),
     FloderInfo("sql_percentile"),
-    //    FloderInfo("sql_timestamp"),
     FloderInfo("sql_window")
   )
 
   val tempQuery = List(
     FloderInfo("temp")
-    //      FloderInfo("sql_rawtable", List("query26.sql", "query32.sql", "query33.sql", "query34.sql", "query37.sql"))
   )
 
   val joinTypes = List(

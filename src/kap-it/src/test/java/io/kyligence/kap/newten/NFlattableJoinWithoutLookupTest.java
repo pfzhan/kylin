@@ -83,8 +83,8 @@ public class NFlattableJoinWithoutLookupTest extends NLocalWithSparkSessionTest 
     public void testFlattableWithoutLookup() throws Exception {
         buildSegs("8c670664-8d05-466a-802f-83c023b56c77", 10001L);
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
-        Dataset<Row> cube = NExecAndComp.queryCube(getProject(), sql);
-        Dataset<Row> pushDown = NExecAndComp.querySparkSql(sql);
+        Dataset<Row> cube = ExecAndComp.queryModel(getProject(), sql);
+        Dataset<Row> pushDown = ExecAndComp.querySparkSql(sql);
         String msg = SparderQueryTest.checkAnswer(cube, pushDown, true);
         Assert.assertNull(msg);
     }
@@ -93,8 +93,8 @@ public class NFlattableJoinWithoutLookupTest extends NLocalWithSparkSessionTest 
     public void testFlattableJoinLookup() throws Exception {
         buildSegs("9cde9d25-9334-4b92-b229-a00f49453757", 10001L);
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
-        Dataset<Row> cube = NExecAndComp.queryCube(getProject(), sql);
-        Dataset<Row> pushDown = NExecAndComp.querySparkSql(sql);
+        Dataset<Row> cube = ExecAndComp.queryModel(getProject(), sql);
+        Dataset<Row> pushDown = ExecAndComp.querySparkSql(sql);
         String msg = SparderQueryTest.checkAnswer(cube, pushDown, true);
         Assert.assertNull(msg);
     }

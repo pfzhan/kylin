@@ -48,14 +48,14 @@ import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.recommendation.entity.MeasureRecItemV2;
-import io.kyligence.kap.newten.NExecAndComp;
+import io.kyligence.kap.newten.ExecAndComp;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.ModelOptProposer;
 import io.kyligence.kap.smart.ModelSelectProposer;
 import io.kyligence.kap.smart.ProposerJob;
 import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
-import io.kyligence.kap.utils.AccelerationContextUtil;
+import io.kyligence.kap.util.AccelerationContextUtil;
 import lombok.val;
 
 public class AutoBasicTest extends AutoTestBase {
@@ -106,7 +106,7 @@ public class AutoBasicTest extends AutoTestBase {
         {
             List<Pair<String, String>> queries = fetchQueries("sql_for_automodeling/sql", 0, 3);
             populateSSWithCSVData(kylinConfig, getProject(), SparderEnv.getSparkSession());
-            NExecAndComp.execAndCompare(queries, getProject(), NExecAndComp.CompareLevel.SAME, "default");
+            ExecAndComp.execAndCompare(queries, getProject(), ExecAndComp.CompareLevel.SAME, "default");
         }
 
         // 4. Feed bad queries
@@ -142,7 +142,7 @@ public class AutoBasicTest extends AutoTestBase {
         {
             List<Pair<String, String>> queries = fetchQueries("sql_for_automodeling/sql", 0, 4);
             populateSSWithCSVData(kylinConfig, getProject(), SparderEnv.getSparkSession());
-            NExecAndComp.execAndCompare(queries, getProject(), NExecAndComp.CompareLevel.SAME, "default");
+            ExecAndComp.execAndCompare(queries, getProject(), ExecAndComp.CompareLevel.SAME, "default");
         }
 
         FileUtils.deleteQuietly(new File("../kap-it/metastore_db"));
@@ -290,18 +290,18 @@ public class AutoBasicTest extends AutoTestBase {
      */
     @Test
     public void testCountStar() throws Exception {
-        new TestScenario(NExecAndComp.CompareLevel.SAME, "sql_for_automodeling/sql_count_star").execute();
+        new TestScenario(ExecAndComp.CompareLevel.SAME, "sql_for_automodeling/sql_count_star").execute();
     }
 
     @Test
     public void testSelectTimestamp() throws Exception {
-        new TestScenario(NExecAndComp.CompareLevel.SAME, "sql_for_automodeling/sql_timestamp").execute();
+        new TestScenario(ExecAndComp.CompareLevel.SAME, "sql_for_automodeling/sql_timestamp").execute();
     }
 
     @Test
     public void testLimitCorrectness() throws Exception {
         excludedSqlPatterns.addAll(loadWhiteListPatterns());
-        new TestScenario(NExecAndComp.CompareLevel.SAME, true, "query/sql").execute();
+        new TestScenario(ExecAndComp.CompareLevel.SAME, true, "query/sql").execute();
     }
 
     /**

@@ -75,7 +75,7 @@ public class NTopNWithChineseTest extends NLocalWithSparkSessionTest {
         indexDataConstructor.buildIndex(dfID, SegmentRange.TimePartitionedSegmentRange.createInfinite(), Sets.newLinkedHashSet(layouts),
                 true);
         String sqlHitCube = "select city, sum(int_id) as a from topn_with_chinese group by city order by a desc limit 10";
-        List<String> hitCubeResult = NExecAndComp.queryFromCube(getProject(), sqlHitCube) //
+        List<String> hitCubeResult = ExecAndComp.queryModelWithoutCompute(getProject(), sqlHitCube) //
                 .collectAsList().stream().map(Row::toString).collect(Collectors.toList());
         Assert.assertEquals(3, hitCubeResult.size());
         Assert.assertEquals("[广州,15.0]", hitCubeResult.get(0));

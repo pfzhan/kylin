@@ -41,8 +41,8 @@ import io.kyligence.kap.guava20.shaded.common.collect.Sets;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.newten.NExecAndComp;
-import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
+import io.kyligence.kap.newten.ExecAndComp;
+import io.kyligence.kap.newten.ExecAndComp.CompareLevel;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -300,8 +300,8 @@ public class NAutoBuildAndQueryTest extends AutoTestBase {
         collectQueries(Lists.newArrayList(scenario));
         List<Pair<String, String>> queries = scenario.getQueries();
         populateSSWithCSVData(kylinConfig, getProject(), SparderEnv.getSparkSession());
-        NExecAndComp.execAndCompareNew(queries, getProject(), scenario.getCompareLevel(),
-                scenario.getJoinType().toString(), null, null);
+        ExecAndComp.execAndCompare(queries, getProject(), scenario.getCompareLevel(),
+                scenario.getJoinType().toString());
     }
 
     @Test
@@ -348,7 +348,6 @@ public class NAutoBuildAndQueryTest extends AutoTestBase {
         new TestScenario(CompareLevel.NONE, "query/tableau_probing").execute();
     }
 
-    @Ignore
     @Test
     public void testDynamicQuery() throws Exception {
         TestScenario testScenario = new TestScenario(CompareLevel.SAME, "query/sql_dynamic");

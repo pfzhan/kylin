@@ -41,7 +41,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.math.RandomUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -72,6 +71,7 @@ import org.sparkproject.guava.collect.Sets;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.engine.spark.ExecutableUtils;
+import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.engine.spark.job.NSparkCubingStep;
@@ -208,7 +208,7 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
         }
 
         // Validate results between sparksql and cube
-        NExecAndComp.execAndCompare(fetchTopNQuerySql(), getProject(), NExecAndComp.CompareLevel.SAME, "left");
+        ExecAndComp.execAndCompare(fetchTopNQuerySql(), getProject(), ExecAndComp.CompareLevel.SAME, "left");
     }
 
     @Test
@@ -263,7 +263,7 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
         }
         Pair<String, String> pair = new Pair<>("sql", querySql);
 
-        NExecAndComp.execAndCompare(newArrayList(pair), getProject(), NExecAndComp.CompareLevel.SAME, "left");
+        ExecAndComp.execAndCompare(newArrayList(pair), getProject(), ExecAndComp.CompareLevel.SAME, "left");
     }
 
     @Test
@@ -328,15 +328,15 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
                 "select count(1) from (select count(ID1) from TEST_MEASURE order by count(ID1))");
         Pair<String, String> sqlForSpark9 = new Pair<>("queryForSpark",
                 "select count(1) from (select count(ID1) from TEST_MEASURE order by count(ID1))");
-        Assert.assertTrue(NExecAndComp.execAndCompareQueryResult(sqlForKap1, sqlForSpark1, "left", getProject(), null));
-        Assert.assertTrue(NExecAndComp.execAndCompareQueryResult(sqlForKap2, sqlForSpark2, "left", getProject(), null));
-        Assert.assertTrue(NExecAndComp.execAndCompareQueryResult(sqlForKap3, sqlForSpark3, "left", getProject(), null));
-        Assert.assertTrue(NExecAndComp.execAndCompareQueryResult(sqlForKap4, sqlForSpark4, "left", getProject(), null));
-        Assert.assertTrue(NExecAndComp.execAndCompareQueryResult(sqlForKap5, sqlForSpark5, "left", getProject(), null));
-        Assert.assertTrue(NExecAndComp.execAndCompareQueryResult(sqlForKap6, sqlForSpark6, "left", getProject(), null));
-        Assert.assertTrue(NExecAndComp.execAndCompareQueryResult(sqlForKap7, sqlForSpark7, "left", getProject(), null));
-        Assert.assertTrue(NExecAndComp.execAndCompareQueryResult(sqlForKap8, sqlForSpark8, "left", getProject(), null));
-        Assert.assertTrue(NExecAndComp.execAndCompareQueryResult(sqlForKap9, sqlForSpark9, "left", getProject(), null));
+        Assert.assertTrue(ExecAndComp.execAndCompareQueryResult(sqlForKap1, sqlForSpark1, "left", getProject(), null));
+        Assert.assertTrue(ExecAndComp.execAndCompareQueryResult(sqlForKap2, sqlForSpark2, "left", getProject(), null));
+        Assert.assertTrue(ExecAndComp.execAndCompareQueryResult(sqlForKap3, sqlForSpark3, "left", getProject(), null));
+        Assert.assertTrue(ExecAndComp.execAndCompareQueryResult(sqlForKap4, sqlForSpark4, "left", getProject(), null));
+        Assert.assertTrue(ExecAndComp.execAndCompareQueryResult(sqlForKap5, sqlForSpark5, "left", getProject(), null));
+        Assert.assertTrue(ExecAndComp.execAndCompareQueryResult(sqlForKap6, sqlForSpark6, "left", getProject(), null));
+        Assert.assertTrue(ExecAndComp.execAndCompareQueryResult(sqlForKap7, sqlForSpark7, "left", getProject(), null));
+        Assert.assertTrue(ExecAndComp.execAndCompareQueryResult(sqlForKap8, sqlForSpark8, "left", getProject(), null));
+        Assert.assertTrue(ExecAndComp.execAndCompareQueryResult(sqlForKap9, sqlForSpark9, "left", getProject(), null));
     }
 
     @Test
@@ -407,15 +407,15 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
                 "select count(1) from (select count(ID1) from TEST_MEASURE order by count(ID1))");
         Pair<String, String> sqlForSpark9 = new Pair<>("queryForSpark",
                 "select count(1) from (select count(ID1) from TEST_MEASURE order by count(ID1))");
-        Assert.assertTrue(NExecAndComp.execAndCompareQueryResult(sqlForKap1, sqlForSpark1, "left", getProject(), null));
-        Assert.assertTrue(NExecAndComp.execAndCompareQueryResult(sqlForKap2, sqlForSpark2, "left", getProject(), null));
-        Assert.assertTrue(NExecAndComp.execAndCompareQueryResult(sqlForKap3, sqlForSpark3, "left", getProject(), null));
-        Assert.assertTrue(NExecAndComp.execAndCompareQueryResult(sqlForKap4, sqlForSpark4, "left", getProject(), null));
-        Assert.assertTrue(NExecAndComp.execAndCompareQueryResult(sqlForKap5, sqlForSpark5, "left", getProject(), null));
-        Assert.assertTrue(NExecAndComp.execAndCompareQueryResult(sqlForKap6, sqlForSpark6, "left", getProject(), null));
-        Assert.assertTrue(NExecAndComp.execAndCompareQueryResult(sqlForKap7, sqlForSpark7, "left", getProject(), null));
-        Assert.assertTrue(NExecAndComp.execAndCompareQueryResult(sqlForKap8, sqlForSpark8, "left", getProject(), null));
-        Assert.assertTrue(NExecAndComp.execAndCompareQueryResult(sqlForKap9, sqlForSpark9, "left", getProject(), null));
+        Assert.assertTrue(ExecAndComp.execAndCompareQueryResult(sqlForKap1, sqlForSpark1, "left", getProject(), null));
+        Assert.assertTrue(ExecAndComp.execAndCompareQueryResult(sqlForKap2, sqlForSpark2, "left", getProject(), null));
+        Assert.assertTrue(ExecAndComp.execAndCompareQueryResult(sqlForKap3, sqlForSpark3, "left", getProject(), null));
+        Assert.assertTrue(ExecAndComp.execAndCompareQueryResult(sqlForKap4, sqlForSpark4, "left", getProject(), null));
+        Assert.assertTrue(ExecAndComp.execAndCompareQueryResult(sqlForKap5, sqlForSpark5, "left", getProject(), null));
+        Assert.assertTrue(ExecAndComp.execAndCompareQueryResult(sqlForKap6, sqlForSpark6, "left", getProject(), null));
+        Assert.assertTrue(ExecAndComp.execAndCompareQueryResult(sqlForKap7, sqlForSpark7, "left", getProject(), null));
+        Assert.assertTrue(ExecAndComp.execAndCompareQueryResult(sqlForKap8, sqlForSpark8, "left", getProject(), null));
+        Assert.assertTrue(ExecAndComp.execAndCompareQueryResult(sqlForKap9, sqlForSpark9, "left", getProject(), null));
     }
 
     @Test
@@ -496,10 +496,14 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
 
         // build 2 segment
         List<LayoutEntity> layouts = df.getIndexPlan().getAllLayouts();
-        indexDataConstructor.buildIndex(dfName, new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2010-01-01"),
-                SegmentRange.dateToLong("2012-06-01")), Sets.newLinkedHashSet(layouts), true);
-        indexDataConstructor.buildIndex(dfName, new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2012-06-01"),
-                SegmentRange.dateToLong("2013-01-01")), Sets.newLinkedHashSet(layouts), true);
+        indexDataConstructor.buildIndex(dfName,
+                new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2010-01-01"),
+                        SegmentRange.dateToLong("2012-06-01")),
+                Sets.newLinkedHashSet(layouts), true);
+        indexDataConstructor.buildIndex(dfName,
+                new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2012-06-01"),
+                        SegmentRange.dateToLong("2013-01-01")),
+                Sets.newLinkedHashSet(layouts), true);
 
         // merge segment
         df = dsMgr.getDataflow(dfName);
@@ -525,9 +529,8 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals("WrappedArray(2012-01-05)", rows.get(4).apply(49).toString());
 
         // query merge result
-        Dataset<Row> cubeResult = NExecAndComp.queryWithKap(getProject(), "left",
-                Pair.newPair("", "select SELLER_ID,collect_set(CAL_DT) from test_kylin_fact group by SELLER_ID"));
-        List<Row> rows1 = cubeResult.collectAsList();
+        List<Row> rows1 = ExecAndComp.queryModel(getProject(),
+                "select SELLER_ID,collect_set(CAL_DT) from test_kylin_fact group by SELLER_ID").collectAsList();
         Assert.assertEquals("[10000000,WrappedArray(2012-10-24, 2012-06-09)]", rows1.get(0).toString());
         Assert.assertEquals("[10000001,WrappedArray(2012-04-22, 2012-07-11, 2012-09-17, 2012-04-03, 2012-02-20)]",
                 rows1.get(1).toString());

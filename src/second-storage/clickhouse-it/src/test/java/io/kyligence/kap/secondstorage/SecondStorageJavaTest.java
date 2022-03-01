@@ -44,7 +44,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
-import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
@@ -85,7 +84,7 @@ import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
-import io.kyligence.kap.newten.NExecAndComp;
+import io.kyligence.kap.newten.ExecAndComp;
 import io.kyligence.kap.newten.clickhouse.ClickHouseUtils;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.secondstorage.config.Node;
@@ -327,7 +326,7 @@ public class SecondStorageJavaTest implements JobWaiter {
                 clickhouse1.getDriverClassName());
 
         String sql = "select sum(PRICE) from TEST_KYLIN_FACT group by PRICE";
-        NExecAndComp.queryWithKapWithMeta(project, "left", Pair.newPair("query_table_index1", sql), null);
+        ExecAndComp.queryModel(project, sql);
         Assert.assertTrue(OLAPContext.getNativeRealizations().stream().allMatch(NativeQueryRealization::isSecondStorage));
     }
 
@@ -563,7 +562,7 @@ public class SecondStorageJavaTest implements JobWaiter {
             nodeStatusMap.put(pair, nodeStatus);
             secondStorageEndpoint.updateNodeStatus(nodeStatusMap);
 
-            NExecAndComp.queryWithKapWithMeta(project, "left", Pair.newPair("query_table_index", sql), null);
+            ExecAndComp.queryModel(project, sql);
             Assert.assertTrue(OLAPContext.getNativeRealizations().stream().noneMatch(NativeQueryRealization::isSecondStorage));
 
             nodeStatus.replaceAll((n, v) -> true);

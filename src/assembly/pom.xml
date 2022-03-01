@@ -44,6 +44,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <shadeBase>io.kyligence.kap.job.shaded</shadeBase>
+        <sonar.skip>true</sonar.skip>
     </properties>
 
     <dependencies>

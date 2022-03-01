@@ -38,7 +38,7 @@ class TimestampDiffTest extends SparderBaseFunSuite with SharedSparkSession with
     spark.sessionState.functionRegistry.registerFunction(function.name, function.info, function.builder)
   }
 
-  test("test diff between date and date") {
+  ignore("test diff between date and date") {
     // YEAR
     verifyResult("select timestampdiff('YEAR', date'2016-02-29' , date'2017-02-28')", Seq("1"))
     verifyResult("select timestampdiff('YEAR', date'2016-02-29' , date'2017-02-27')", Seq("0"))
@@ -80,7 +80,7 @@ class TimestampDiffTest extends SparderBaseFunSuite with SharedSparkSession with
     verifyResult("select timestampdiff('FRAC_SECOND', date'2016-02-01' , date'2016-02-02')", Seq("86400000"))
   }
 
-  test("test diff between date and timestamp") {
+  ignore("test diff between date and timestamp") {
     // YEAR
     verifyResult("select timestampdiff('YEAR', date'2016-02-29' , timestamp'2017-02-28 00:00:00.000')", Seq("1"))
     verifyResult("select timestampdiff('YEAR', date'2016-02-29' , timestamp'2017-02-27 00:00:00.000')", Seq("0"))
@@ -114,7 +114,7 @@ class TimestampDiffTest extends SparderBaseFunSuite with SharedSparkSession with
     verifyResult("select timestampdiff('FRAC_SECOND', date'2016-02-01' , timestamp'2016-02-01 00:00:00.001')", Seq("1"))
   }
 
-  test("test diff between timestamp and date") {
+  ignore("test diff between timestamp and date") {
     // YEAR
     verifyResult("select timestampdiff('YEAR', timestamp'2016-02-29 00:00:00.000' , date'2017-02-28')", Seq("1"))
     verifyResult("select timestampdiff('YEAR', timestamp'2016-02-29 00:00:00.000' , date'2017-02-27')", Seq("0"))
@@ -145,7 +145,7 @@ class TimestampDiffTest extends SparderBaseFunSuite with SharedSparkSession with
     verifyResult("select timestampdiff('FRAC_SECOND', timestamp'2016-02-01 00:00:00.001' , date'2016-02-01')", Seq("-1"))
   }
 
-  test("test diff between timestamp and timestamp") {
+  ignore("test diff between timestamp and timestamp") {
     // YEAR
     verifyResult("select timestampdiff('YEAR', timestamp'2016-02-29 00:00:00.000' , timestamp'2017-02-28 00:00:00.000')", Seq("1"))
 

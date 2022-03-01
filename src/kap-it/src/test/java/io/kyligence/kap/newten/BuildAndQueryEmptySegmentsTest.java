@@ -156,20 +156,20 @@ public class BuildAndQueryEmptySegmentsTest extends NLocalWithSparkSessionTest {
     }
 
     private void testQuery(String sqlStr) {
-        Dataset dsFromCube = NExecAndComp.sql(getProject(), sqlStr);
+        Dataset dsFromCube = ExecAndComp.queryModelWithoutCompute(getProject(), sqlStr);
         Assert.assertNotEquals(0L, dsFromCube.count());
         String sql = convertToSparkSQL(sqlStr);
-        Dataset dsFromSpark = NExecAndComp.querySparkSql(sql);
+        Dataset dsFromSpark = ExecAndComp.querySparkSql(sql);
         Assert.assertEquals(dsFromCube.count(), dsFromSpark.count());
     }
 
     private void testQueryUnequal(String sqlStr) {
 
-        Dataset dsFromCube = NExecAndComp.sql(getProject(), sqlStr);
+        Dataset dsFromCube = ExecAndComp.queryModelWithoutCompute(getProject(), sqlStr);
         if (dsFromCube != null) {
             Assert.assertEquals(0L, dsFromCube.count());
             String sql = convertToSparkSQL(sqlStr);
-            Dataset dsFromSpark = NExecAndComp.querySparkSql(sql);
+            Dataset dsFromSpark = ExecAndComp.querySparkSql(sql);
             Assert.assertNotEquals(dsFromCube.count(), dsFromSpark.count());
         }
     }

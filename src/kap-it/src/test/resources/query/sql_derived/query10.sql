@@ -27,9 +27,9 @@ SELECT
  ,test_category_groupings.upd_user 
  ,test_category_groupings.upd_date 
  ,test_kylin_fact.leaf_categ_id 
- ,test_category_groupings.leaf_categ_id 
+ ,test_category_groupings.leaf_categ_id as leaf_categ_id2
  ,test_kylin_fact.lstg_site_id 
- ,test_category_groupings.site_id 
+ ,test_category_groupings.site_id as site_id2
  ,sum(price) as GMV, count(*) as TRANS_CNT 
  FROM test_kylin_fact 
   inner JOIN edw.test_cal_dt as test_cal_dt
