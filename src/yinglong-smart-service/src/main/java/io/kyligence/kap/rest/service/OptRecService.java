@@ -433,7 +433,6 @@ public class OptRecService extends BasicService {
 
                     layout.setColOrder(nColOrder);
                     layout.setShardByColumns(nShardBy);
-                    layout.setSortByColumns(nSortBy);
                     layout.setPartitionByColumns(nPartitionBy);
                     updateHandler.add(layout, rawRecItem.isAgg());
                     try (SetLogCategory logCategory = new SetLogCategory("smart")) {

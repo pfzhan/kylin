@@ -84,7 +84,6 @@ public class LayoutRecItemV2 extends RecItemV2 implements Serializable {
         List<Integer> partitionColsInDB = getColIDInDB(ccMap, dataModel, originPartitionCols, uniqueContentRecMap);
         layout.setColOrder(colOrderInDB);
         layout.setShardByColumns(shardColsInDB);
-        layout.setSortByColumns(sortColsInDB);
         layout.setPartitionByColumns(partitionColsInDB);
         log.debug("Origin colOrder is {}, converted to {}", originColOrder, colOrderInDB);
         log.debug("Origin shardBy columns is {}, converted to {}", originShardCols, shardColsInDB);
