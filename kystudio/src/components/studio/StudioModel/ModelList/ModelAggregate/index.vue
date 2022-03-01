@@ -597,7 +597,7 @@ export default class ModelAggregate extends Vue {
   get isDisableDelBaseIndex () {
     let isHaveBaseTableIndex = false
     for (let i = 0; i < this.checkedList.length; i++) {
-      if (this.checkedList[i].source === 'BASE_TABLE_INDEX') {
+      if (this.checkedList[i].source === 'BASE_TABLE_INDEX' && this.checkedList[i].status !== 'LOCKED') {
         isHaveBaseTableIndex = true
         break
       }
