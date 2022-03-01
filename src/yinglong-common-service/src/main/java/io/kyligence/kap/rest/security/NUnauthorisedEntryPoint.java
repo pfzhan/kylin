@@ -22,16 +22,17 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
-
 package io.kyligence.kap.rest.security;
 
 import static org.apache.kylin.common.exception.ServerErrorCode.LOGIN_FAILED;
+import static org.apache.kylin.common.exception.ServerErrorCode.USER_DATA_SOURCE_CONNECTION_FAILED;
 import static org.apache.kylin.common.exception.ServerErrorCode.USER_LOCKED;
 import static org.apache.kylin.common.exception.ServerErrorCode.USER_UNAUTHORIZED;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.net.ConnectException;
+import java.util.Optional;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -42,6 +43,7 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.response.ErrorResponse;
 import org.springframework.http.MediaType;
+import org.springframework.ldap.CommunicationException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.authentication.LockedException;
@@ -69,6 +71,18 @@ public class NUnauthorisedEntryPoint implements AuthenticationEntryPoint {
                     new KylinException(LOGIN_FAILED, MsgPicker.getMsg().getDISABLED_USER()));
             return;
         }
+        boolean present = Optional.ofNullable(exception).map(Throwable::getCause)
+                .filter(CommunicationException.class::isInstance).map(Throwable::getCause)
+                .filter(javax.naming.CommunicationException.class::isInstance).map(Throwable::getCause)
+                .filter(ConnectException.class::isInstance).isPresent();
+
+        if (present) {
+            setErrorResponse(request, response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                    new KylinException(USER_DATA_SOURCE_CONNECTION_FAILED,
+                            MsgPicker.getMsg().getLDAP_USER_DATA_SOURCE_CONNECTION_FAILED()));
+            return;
+        }
+
         setErrorResponse(request, response, HttpServletResponse.SC_UNAUTHORIZED,
                 new KylinException(LOGIN_FAILED, exception.getMessage()));
     }

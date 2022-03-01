@@ -23,16 +23,26 @@
  */
 package io.kyligence.kap.rest.interceptor;
 
+import java.io.PrintWriter;
+import java.net.ConnectException;
 import java.util.Collections;
+import java.util.Optional;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import io.kyligence.kap.common.util.Unsafe;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.rest.response.ErrorResponse;
 import org.apache.kylin.rest.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.MediaType;
+import org.springframework.ldap.CommunicationException;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -44,6 +54,8 @@ import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
 
 import io.kyligence.kap.metadata.user.ManagedUser;
 import lombok.extern.slf4j.Slf4j;
+
+import static org.apache.kylin.common.exception.ServerErrorCode.USER_DATA_SOURCE_CONNECTION_FAILED;
 
 @Slf4j
 @Component
@@ -71,6 +83,24 @@ public class ReloadAuthoritiesInterceptor extends HandlerInterceptorAdapter {
                 SecurityContextHolder.getContext().setAuthentication(new AnonymousAuthenticationToken("anonymousUser",
                         "anonymousUser", Collections.singletonList(new SimpleGrantedAuthority("ROLE_ANONYMOUS"))));
                 return true;
+            } catch (CommunicationException communicationException) {
+                boolean present = Optional.ofNullable(communicationException).map(Throwable::getCause)
+                        .filter(javax.naming.CommunicationException.class::isInstance).map(Throwable::getCause)
+                        .filter(ConnectException.class::isInstance).isPresent();
+                if (present) {
+                    response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                    response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                    ErrorResponse errorResponse = new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(request),
+                            new KylinException(USER_DATA_SOURCE_CONNECTION_FAILED,
+                                    MsgPicker.getMsg().getLDAP_USER_DATA_SOURCE_CONNECTION_FAILED()));
+                    response.setCharacterEncoding("UTF-8");
+                    PrintWriter writer = response.getWriter();
+                    writer.print(JsonUtil.writeValueAsIndentString(errorResponse));
+                    writer.flush();
+                    writer.close();
+                    return false;
+                }
+                throw communicationException;
             }
 
             if (user != null && auth instanceof UsernamePasswordAuthenticationToken) {

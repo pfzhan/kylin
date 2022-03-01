@@ -1783,4 +1783,8 @@ public class Message {
     public String getINVALID_RANGE() {
         return "%s is not integer in range [%s - %s] ";
     }
+
+    public String getLDAP_USER_DATA_SOURCE_CONNECTION_FAILED() {
+        return "The LDAP server is abnormal. Please check the user data source and try again.";
+    }
 }

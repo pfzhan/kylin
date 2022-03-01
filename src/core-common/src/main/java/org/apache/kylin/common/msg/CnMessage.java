@@ -2017,4 +2017,9 @@ public class CnMessage extends Message {
     public String getINVALID_RANGE() {
         return "%s 不是 [%s - %s] 范围内整数";
     }
+
+    @Override
+    public String getLDAP_USER_DATA_SOURCE_CONNECTION_FAILED() {
+        return "LDAP服务异常，请检查用户数据源。";
+    }
 }
