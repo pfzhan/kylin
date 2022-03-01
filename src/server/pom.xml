@@ -47,10 +47,6 @@
             <groupId>io.kyligence.yinglong</groupId>
             <artifactId>yinglong-common-server</artifactId>
         </dependency>
-        <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-smart-server</artifactId>
-        </dependency>
 
         <!-- https://mvnrepository.com/artifact/org.scala-lang.modules/scala-xml -->
         <dependency>
@@ -155,6 +151,10 @@
         <dependency>
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-server-base</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.yinglong</groupId>
+            <artifactId>yinglong-smart-server</artifactId>
         </dependency>
         <dependency>
             <groupId>io.kyligence.ke</groupId>

@@ -25,10 +25,20 @@
 package io.kyligence.kap.rest;
 
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+import org.springframework.cloud.openfeign.EnableFeignClients;
+import org.springframework.context.annotation.ImportResource;
 
+@ImportResource(locations = { "applicationContext.xml", "kylinSecurity.xml" })
+@SpringBootApplication
+@EnableDiscoveryClient
+@EnableCaching
+@EnableFeignClients
 public class SmartBootstrapServer {
 
     public static void main(String[] args) {
-        SpringApplication.run(BootstrapServerMain.class, args);
+        SpringApplication.run(SmartBootstrapServer.class, args);
     }
 }

@@ -293,6 +293,10 @@
         <netty.version>3.10.6.Final</netty.version>
         <servo-core.version>0.13.2</servo-core.version>
         <apache-api.version>1.0.3</apache-api.version>
+
+        <spring.cloud.alibaba.version>2021.1</spring.cloud.alibaba.version>
+<!--        <spring.cloud.feign.version>1.4.7.RELEASE</spring.cloud.feign.version>-->
+
         <jersey.version>2.35</jersey.version>
     </properties>
 
@@ -336,12 +340,17 @@
         <module>src/yinglong-streaming-service</module>
         <module>src/yinglong-enterprise-service</module>
         <module>src/yinglong-integration-service</module>
-        <!-- yinglong server (starter) -->
+
+        <!-- yinglong controller  -->
+        <module>src/yinglong-smart-server</module>
         <module>src/yinglong-common-server</module>
         <module>src/yinglong-metadata-server</module>
         <module>src/yinglong-data-loading-server</module>
-        <module>src/yinglong-smart-server</module>
         <module>src/yinglong-query-server</module>
+
+        <!-- yinglong server (starter) -->
+        <module>src/yinglong-smart-booter</module>
+
     </modules>
 
     <dependencyManagement>
@@ -476,6 +485,11 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.yinglong</groupId>
+                <artifactId>yinglong-smart-booter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.yinglong</groupId>
                 <artifactId>yinglong-smart-server</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -499,6 +513,23 @@
                 <artifactId>yinglong-integration-service</artifactId>
                 <version>${project.version}</version>
             </dependency>
+
+            <dependency>
+                <groupId>com.alibaba.cloud</groupId>
+                <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+                <version>${spring.cloud.alibaba.version}</version>
+            </dependency>
+<!--            <dependency>-->
+<!--                <groupId>org.springframework.cloud</groupId>-->
+<!--                <artifactId>spring-cloud-starter-netflix-ribbon</artifactId>-->
+<!--                <version>${spring.cloud.feign.version}</version>-->
+<!--            </dependency>-->
+
+<!--            <dependency>-->
+<!--                <groupId>org.springframework.cloud</groupId>-->
+<!--                <artifactId>spring-cloud-starter-feign</artifactId>-->
+<!--                <version>${spring.cloud.feign.version}</version>-->
+<!--            </dependency>-->
 
             <dependency>
                 <groupId>com.microsoft.sqlserver</groupId>
