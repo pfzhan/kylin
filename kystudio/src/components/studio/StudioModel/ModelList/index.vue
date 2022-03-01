@@ -278,8 +278,8 @@
           :label="$t('expansionRate')"
         >
           <template slot-scope="scope">
-              <span v-if="scope.row.storage < 1073741824">-</span>
-              <span v-else-if="scope.row.expansion_rate !== '-1'">{{scope.row.expansion_rate}}%</span>
+              <span v-if="scope.row.storage < 1073741824"><el-tooltip placement="top" :content="$t('expansionTip')"><span>-</span>
+              <span v-if="scope.row.expansion_rate !== '-1'">{{scope.row.expansion_rate}}%</span></el-tooltip></span>
               <el-tooltip  v-else class="item" effect="dark" :content="$t('tentativeTips')" placement="top">
                 <span class="is-disabled">{{$t('tentative')}}</span>
               </el-tooltip>
