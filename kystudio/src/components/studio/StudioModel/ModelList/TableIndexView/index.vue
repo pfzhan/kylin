@@ -149,7 +149,6 @@ export default class TableIndexView extends Vue {
     page_offset: 0,
     page_size: 999,
     key: '',
-    sort_by: '',
     reverse: '',
     sources: ['CUSTOM_TABLE_INDEX'],
     status: []
@@ -245,7 +244,6 @@ export default class TableIndexView extends Vue {
         id: index.detailCurrentCount * index.detailCurrentPage + i + 1,
         column: item.key,
         cardinality: item.cardinality,
-        sort: index.sort_by_columns.indexOf(item.key) + 1 || '',
         shared: index.shard_by_columns.includes(item.key)
       }
       return newitem
