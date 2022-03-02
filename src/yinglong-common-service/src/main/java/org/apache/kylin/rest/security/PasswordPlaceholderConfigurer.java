@@ -55,6 +55,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.StringBuilderWriter;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigBase;
+import org.apache.kylin.rest.exception.PasswordDecryptionException;
 import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
@@ -104,7 +105,14 @@ public class PasswordPlaceholderConfigurer extends PropertyPlaceholderConfigurer
 
     protected String resolvePlaceholder(String placeholder, Properties props) {
         if (placeholder.toLowerCase(Locale.ROOT).contains("password") && !passwordWhiteList.contains(placeholder)) {
-            return EncryptUtil.decrypt(props.getProperty(placeholder));
+            try {
+                return EncryptUtil.decrypt(props.getProperty(placeholder));
+            } catch (Exception e) {
+                throw new PasswordDecryptionException(
+                        String.format("[%s] Encrypted configuration item decryption failed, please check for errors",
+                                placeholder),
+                        e.getCause());
+            }
         } else {
             return props.getProperty(placeholder);
         }
