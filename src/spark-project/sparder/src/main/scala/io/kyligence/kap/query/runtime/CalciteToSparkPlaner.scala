@@ -119,6 +119,8 @@ class CalciteToSparkPlaner(dataContext: DataContext) extends RelVisitor with Log
         logTime("minus") { plan.MinusPlan.minus(Range(0, stack.size() - size).map(a => stack.pop()).reverse, rel, dataContext) }
       case rel: KapValuesRel =>
         logTime("values") { ValuesPlan.values(rel) }
+      case rel: KapModelViewRel =>
+        logTime("modelview") { stack.pop() }
     })
     if (node.isInstanceOf[KapUnionRel]) {
       unionLayer = unionLayer - 1

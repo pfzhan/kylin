@@ -203,6 +203,9 @@ public class RealizationChooser {
 
     @VisibleForTesting
     public static void attemptSelectCandidate(OLAPContext context) {
+        if (context.getModelAlias() != null) {
+            logger.info("context is bound to model {}", context.getModelAlias());
+        }
         context.setHasSelected(true);
         // Step 1. get model through matching fact table with query
         Multimap<NDataModel, IRealization> modelMap = makeOrderedModelMap(context);
@@ -664,6 +667,10 @@ public class RealizationChooser {
                         RealizationCheck.IncapableReason.create(RealizationCheck.IncapableType.CUBE_NOT_READY));
                 logger.warn("Realization {} is not ready for project {} with fact table {}", real, projectName,
                         factTableName);
+                continue;
+            }
+            // context is bound to a certain model (by model view)
+            if (context.getModelAlias() != null && !real.getModel().getAlias().equalsIgnoreCase(context.getModelAlias())) {
                 continue;
             }
             mapModelToRealizations.put(real.getModel(), real);

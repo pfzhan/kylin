@@ -86,7 +86,7 @@ public class QueryContextCutter {
                 reCutContextStrategy = new QueryReCutContextStrategy(
                         new ICutContextStrategy.CutContextImplementor(ctxSeq));
                 for (OLAPContext context : ContextUtil.listContextsHavingScan()) {
-                    if (context.isHasSelected() && context.realization == null && !context.isHasPreCalcJoin()) {
+                    if (context.isHasSelected() && context.realization == null && (!context.isHasPreCalcJoin() || context.getModelAlias() != null)) {
                         throw e;
                     } else if (context.isHasSelected() && context.realization == null) {
                         new QueryContextCutter(reCutContextStrategy).cutContext(context.getTopNode(), root);

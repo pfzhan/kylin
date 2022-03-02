@@ -30,6 +30,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 
+import io.kyligence.kap.query.engine.view.ModelViewExpander;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalcitePrepare;
@@ -60,8 +61,6 @@ import org.apache.calcite.sql2rel.StandardConvertletTable;
 import org.apache.calcite.util.Pair;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.query.schema.KylinSqlValidator;
-
-import io.kyligence.kap.query.engine.view.SimpleViewExpander;
 
 /**
  * converter that parse, validate sql and convert to relNodes
@@ -97,7 +96,7 @@ public class SQLConverter {
             KECalciteConfig connectionConfig, RelOptPlanner planner, Prepare.CatalogReader catalogReader) {
         // this could be a bit awkward that SQLConverter and ViewExpander seem to have a cyclical reference
         SQLConverter sqlConverter = new SQLConverter(connectionConfig, planner, catalogReader);
-        return new SQLConverter(connectionConfig, planner, catalogReader, (SimpleViewExpander) sqlConverter::convertSqlToRelNode);
+        return new SQLConverter(connectionConfig, planner, catalogReader, new ModelViewExpander(sqlConverter::convertSqlToRelNode));
     }
 
     /**
