@@ -140,7 +140,7 @@
             </el-select>
             <span>{{$t('storageGarbageDesc2')}}</span>
             <el-form-item class="setting-input" prop="low_frequency_threshold">
-              <el-input-number size="small" style="width: 100px;" :max="9999" v-number="form.low_frequency_threshold" v-model="form.low_frequency_threshold" :controls="false"></el-input-number>
+              <el-input-number size="small" style="width: 100px;" :max="9999" input-enabled v-number="form.low_frequency_threshold" v-model="form.low_frequency_threshold" :controls="false"></el-input-number>
             </el-form-item>
             <span>{{$store.state.project.isSemiAutomatic ? $t('storageGarbageDesc3ForSemiAutomatic') : $t('storageGarbageDesc3')}}</span>
           </div>
@@ -397,7 +397,7 @@
             <div class="ksd-fs-12 ksd-mt-8">
                 {{$t('timeFrame')}}
                 <el-form-item prop="effective_days" class="inline-form-item">
-                  <el-input-number style="width:100px;" v-model="rulesObj.effective_days" size="small" :min="1" :max="30" ></el-input-number>
+                  <el-input-number style="width:100px;" input-enabled v-model="rulesObj.effective_days" size="small" :min="1" :max="30" ></el-input-number>
                 </el-form-item>
                 {{$t('days')}}
             </div>
@@ -429,7 +429,7 @@
             <div class="ksd-fs-12 ksd-mt-12">
                 {{$t('recommendationFrequency')}}
                 <el-form-item prop="update_frequency" class="inline-form-item">
-                  <el-input-number style="width:100px;" v-model="rulesObj.update_frequency" size="small" :min="1"></el-input-number>
+                  <el-input-number style="width:100px;" input-enabled v-model="rulesObj.update_frequency" size="small" :min="1"></el-input-number>
                 </el-form-item>
                 <span v-html="$t('recommendationFrequencyTips')"></span>
             </div>
