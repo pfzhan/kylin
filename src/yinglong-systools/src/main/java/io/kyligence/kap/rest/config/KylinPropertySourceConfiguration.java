@@ -27,6 +27,7 @@ import java.util.Properties;
 
 import org.apache.kylin.common.KylinConfig;
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.context.config.ConfigDataEnvironmentPostProcessor;
 import org.springframework.boot.env.EnvironmentPostProcessor;
 import org.springframework.core.Ordered;
 import org.springframework.core.env.ConfigurableEnvironment;
@@ -68,6 +69,6 @@ public class KylinPropertySourceConfiguration implements EnvironmentPostProcesso
 
     @Override
     public int getOrder() {
-        return Ordered.HIGHEST_PRECEDENCE + 10;
+        return ConfigDataEnvironmentPostProcessor.ORDER + 1020;
     }
 }
