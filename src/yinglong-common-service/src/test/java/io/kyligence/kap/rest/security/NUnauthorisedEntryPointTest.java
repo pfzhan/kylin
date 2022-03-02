@@ -97,5 +97,11 @@ public class NUnauthorisedEntryPointTest {
         nUnauthorisedEntryPoint.commence(new MockHttpServletRequest(), response, new DisabledException(""));
         Assertions.assertEquals(HttpServletResponse.SC_UNAUTHORIZED, response.getStatus());
 
+        response = new MockHttpServletResponse();
+        nUnauthorisedEntryPoint.commence(new MockHttpServletRequest(), response, new AuthenticationException("",
+                new org.springframework.ldap.AuthenticationException(new javax.naming.AuthenticationException())) {
+        });
+        Assertions.assertEquals(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, response.getStatus());
+
     }
 }
