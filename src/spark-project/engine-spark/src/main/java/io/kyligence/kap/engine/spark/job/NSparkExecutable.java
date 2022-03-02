@@ -802,7 +802,19 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
         sb.append(SPACE).append("-Dspark.driver.local.logDir=").append(KapConfig.getKylinLogDirAtBestEffort()) //
                 .append("/spark");
 
+        if (kapConf.getPlatformZKEnable()) {
+            sb.append(SPACE).append("-Djava.security.auth.login.config=").append(kapConf.getKerberosJaasConfPath());
+        }
+
         sparkConf.put(DRIVER_EXTRA_JAVA_OPTIONS, sb.toString().trim());
+    }
+
+    @VisibleForTesting
+    public String getDriverExtraJavaOptions(KylinConfig kylinConf) {
+        KapConfig kapConf = KapConfig.wrap(kylinConf);
+        Map<String, String> sparkConf = getSparkConfigOverride(kylinConf);
+        rewriteDriverExtraJavaOptions(kylinConf, kapConf, sparkConf);
+        return sparkConf.get(DRIVER_EXTRA_JAVA_OPTIONS);
     }
 
     private void rewriteKerberosConf(KapConfig kapConf, final Map<String, String> sparkConf) {

@@ -27,6 +27,7 @@ package io.kyligence.kap.engine.spark.job;
 import java.util.Objects;
 import java.util.Random;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.RandomUtil;
 import org.junit.After;
@@ -41,6 +42,7 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.val;
+import lombok.var;
 
 public class NSparkExecutableTest extends NLocalFileMetadataTestCase {
 
@@ -144,5 +146,25 @@ public class NSparkExecutableTest extends NLocalFileMetadataTestCase {
                 Assert.assertTrue(iae.getMessage().contains("Not allowed to specify injected command"));
             }
         }
+    }
+
+    @Test
+    public void testPlatformZKEnable() {
+        KylinConfig kylinConfig = getTestConfig();
+        overwriteSystemProp("KYLIN_HOME", "/kylin");
+
+        NSparkExecutable sparkExecutable = new NSparkExecutable();
+        sparkExecutable.setProject("default");
+
+        var driverExtraJavaOptions = sparkExecutable.getDriverExtraJavaOptions(kylinConfig);
+        Assert.assertFalse(StringUtils.contains(driverExtraJavaOptions, "-Djava.security.auth.login.config="));
+
+        kylinConfig.setProperty("kylin.kerberos.enabled", "true");
+        driverExtraJavaOptions = sparkExecutable.getDriverExtraJavaOptions(kylinConfig);
+        Assert.assertTrue(StringUtils.contains(driverExtraJavaOptions, "-Djava.security.auth.login.config="));
+
+        kylinConfig.setProperty("kylin.env.zk-kerberos-enabled", "false");
+        driverExtraJavaOptions = sparkExecutable.getDriverExtraJavaOptions(kylinConfig);
+        Assert.assertFalse(StringUtils.contains(driverExtraJavaOptions, "-Djava.security.auth.login.config="));
     }
 }
