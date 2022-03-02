@@ -617,7 +617,8 @@ public class KapConfig {
     }
 
     public Boolean getPlatformZKEnable() {
-        return Boolean.parseBoolean(config.getOptional("kylin.env.zk-kerberos-enabled", FALSE));
+        return Boolean.parseBoolean(config.getOptional("kylin.env.zk-kerberos-enabled",
+                config.getOptional("kylin.kerberos.enabled", FALSE)));
     }
 
     public String getKerberosKrb5Conf() {
