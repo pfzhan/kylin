@@ -3330,8 +3330,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                     MsgPicker.getMsg().getINVALID_VOLATILE_RANGE_CONFIG());
         }
         if (null != retentionRange && retentionRange.isRetentionRangeEnabled()
-                && (null == autoMergeEnabled || !autoMergeEnabled || retentionRange.getRetentionRangeNumber() < 0
-                        || Collections.max(timeRanges) != retentionRange.getRetentionRangeType())) {
+                && retentionRange.getRetentionRangeNumber() < 0) {
             throw new KylinException(ServerErrorCode.INVALID_PARAMETER,
                     MsgPicker.getMsg().getINVALID_RETENTION_RANGE_CONFIG());
         }
