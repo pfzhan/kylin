@@ -142,7 +142,7 @@ export default class indexDetails extends Vue {
       let newitem = {
         id: this.currentCount * this.currentPage + i + 1,
         column: item.key,
-        sort: this.cuboidData.sort_by_columns.indexOf(item.key) + 1 || '',
+        sort: i + 1,
         shared: this.cuboidData.shard_by_columns.includes(item.key)
       }
       return newitem

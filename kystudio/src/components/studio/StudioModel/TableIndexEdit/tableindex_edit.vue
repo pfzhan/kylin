@@ -64,13 +64,6 @@
                      <i class="el-icon-success" v-if="col.isUsed" :class="{active: col.isShared}"></i>
                   </el-col>
                   <el-col :span="3" class="order-actions">
-                    <!-- <div class="action-list" @click="toggleSort(col)" v-if="!(sortCount >= 9 && getRowIndex(col, 'fullName') + 1 > 9)">
-                      <span class="ky-dot-tag" v-if="col.isUsed" :class="{'no-sorted': !col.isSorted}">{{col.isSorted ? getRowIndex(col, 'fullName') + 1 : sortCount + 1}}</span>
-                      <span class="up-down" :class="{hide: searchColumn}">
-                        <i v-visible="col.isUsed && col.isSorted && !checkIsTopSort(col)" @click.stop="upRow(col)" class="el-icon-ksd-arrow_up"></i>
-                        <i v-visible="col.isUsed && col.isSorted && !checkIsBottomSort(col)" @click.stop="downRow(col)" class="el-icon-ksd-arrow_down"></i>
-                      </span>
-                    </div> -->
                     <template  v-if="col.isUsed">
                       <el-tooltip :content="$t('moveTop')" effect="dark" placement="top">
                         <span :class="['icon', 'el-icon-ksd-move_to_top', {'is-disabled': index === 0 && !searchColumn}]" @click="topRow(col)"></span>
@@ -103,7 +96,7 @@
   import vuex from '../../../../store'
   import { NamedRegex } from 'config'
   import { BuildIndexStatus } from 'config/model'
-  import { handleError, kapMessage, handleSuccess, kapConfirm, postCloudUrlMessage } from 'util/business'
+  import { handleError, handleSuccess, kapConfirm, postCloudUrlMessage } from 'util/business'
   import { objectClone, changeObjectArrProperty, indexOfObjWithSomeKey, filterObjectArray, getQueryString } from 'util/index'
   import locales from './locales'
   import store, { types } from './store'
@@ -149,7 +142,7 @@
     tableIndexMetaStr = JSON.stringify({
       id: '',
       col_order: [],
-      sort_by_columns: [],
+      // sort_by_columns: [],
       shard_by_columns: [],
       load_data: false,
       index_range: ''
@@ -196,70 +189,8 @@
       this.allColumns.splice(i + 2, 0, col)
       this.allColumns.splice(i, 1)
     }
-    tableRowClassName (row) {
-      return row.colorful || row.isSorted ? 'row-colorful' : ''
-    }
     getRowIndex (t, key) {
       return indexOfObjWithSomeKey(this.allColumns, key, t[key])
-    }
-    checkIsTopSort (col) {
-      let i = this.getRowIndex(col, 'fullName')
-      if (i === 0 && col.isSorted) {
-        return true
-      }
-    }
-    checkIsBottomSort (col) {
-      let i = this.getRowIndex(col, 'fullName')
-      let nextCol = this.allColumns[i + 1]
-      if (nextCol && !nextCol.isSorted && col.isSorted) {
-        return true
-      }
-    }
-    get sortCount () {
-      if (!this.isShow) {
-        return
-      }
-      return filterObjectArray(this.allColumns, 'isSorted', true).length
-    }
-    toggleDisplay (t) {
-      let i = this.getRowIndex(t, 'fullName')
-      if (t.isUsed) {
-        if (t.isSorted) {
-          this.toggleSort(t, i)
-        }
-        t.isSorted = false
-        t.isShared = false
-      }
-      t.isUsed = !t.isUsed
-    }
-    // 切换sort状态的列，并带模拟缓动效果
-    lockSortAnimate = false
-    toggleSort (t, index) {
-      if (this.lockSortAnimate) {
-        return
-      }
-      this.lockSortAnimate = true
-      let i = index === undefined ? this.getRowIndex(t, 'fullName') : index
-      let sortedLen = filterObjectArray(this.allColumns, 'isSorted', true).length
-      if (!t.isSorted) {
-        if (sortedLen >= 9) {
-          kapMessage(this.$t('sortLimitTip'), {type: 'warning'})
-          return
-        }
-        this.allColumns.splice(i, 1)
-        this.allColumns.splice(sortedLen, 0, t)
-      } else {
-        let s = indexOfObjWithSomeKey(this.allColumns, 'isSorted', false)
-        if (s === -1) {
-          s = this.allColumns.length
-        }
-        this.allColumns.splice(i, 1)
-        this.allColumns.splice(sortedLen - 1, 0, t)
-      }
-      t.isSorted = !t.isSorted
-      setTimeout(() => {
-        this.lockSortAnimate = false
-      }, 300)
     }
     toggleShard (t) {
       let shardStatus = t.isShared
@@ -322,13 +253,12 @@
       // modelUsedTables.forEach((col) => {
       //   result.push(col.full_colname)
       // })
-      if (this.tableIndexMeta.sort_by_columns) {
-        // result = topArrByArr(result, this.tableIndexMeta.sort_by_columns)
-        const selected = this.tableIndexMeta.sort_by_columns.map(item => {
+      if (this.tableIndexMeta.col_order.length) {
+        const selected = this.tableIndexMeta.col_order.map(item => {
           const index = result.findIndex(it => it.fullName === item)
           return {fullName: item, cardinality: result[index].cardinality, depend_lookup_table: result[index].depend_lookup_table}
         })
-        const unSort = result.filter(item => !this.tableIndexMeta.sort_by_columns.includes(item.fullName))
+        const unSort = result.filter(item => !this.tableIndexMeta.col_order.includes(item.fullName))
         result = [...selected, ...unSort]
       }
       // cc列也要放到这里
@@ -337,10 +267,7 @@
       //   result.push(col.tableAlias + '.' + col.columnName)
       // })
       result.forEach((ctx, index) => {
-        let obj = {fullName: ctx.fullName, cardinality: ctx.cardinality, depend_lookup_table: ctx.depend_lookup_table, isSorted: false, isUsed: false, isShared: false, colorful: false}
-        if (this.tableIndexMeta.sort_by_columns.indexOf(ctx.fullName) >= 0) {
-          obj.isSorted = true
-        }
+        let obj = {fullName: ctx.fullName, cardinality: ctx.cardinality, depend_lookup_table: ctx.depend_lookup_table, isUsed: false, isShared: false, colorful: false}
         if (this.tableIndexMeta.col_order.indexOf(ctx.fullName) >= 0) {
           obj.isUsed = true
         }
@@ -387,7 +314,6 @@
       this.allColumns.forEach((col) => {
         col.isUsed = false
         col.isShared = false
-        col.isSorted = false
       })
     }
     changeTableIndexType () {
@@ -470,7 +396,7 @@
       }
       // 按照sort选中列的顺序对col_order进行重新排序
       this.tableIndexMeta.col_order = []
-      this.tableIndexMeta.sort_by_columns = []
+      // this.tableIndexMeta.sort_by_columns = []
       this.tableIndexMeta.shard_by_columns = []
       this.allColumns.forEach((col) => {
         if (col.isUsed) {
@@ -479,9 +405,9 @@
         if (col.isShared) {
           this.tableIndexMeta.shard_by_columns.push(col.fullName)
         }
-        if (col.isSorted) {
-          this.tableIndexMeta.sort_by_columns.push(col.fullName)
-        }
+        // if (col.isSorted) {
+        //   this.tableIndexMeta.sort_by_columns.push(col.fullName)
+        // }
       })
       this.tableIndexMeta.project = this.currentSelectedProject
       this.tableIndexMeta.model_id = this.isHybridBatch ? this.modelInstance.batch_id : this.modelInstance.uuid
@@ -513,13 +439,13 @@
       this.allColumns.forEach(item => {
         if (v && this.getDisabledTableType(item)) return
         item.isUsed = v
-        item.isSorted = v
+        // item.isSorted = v
       })
     }
     selectTableIndex (status, col) {
       const selectedColumns = this.getSelectedColumns
       const unSelected = this.allColumns.filter(it => !it.isUsed)
-      col.isSorted = status
+      // col.isSorted = status
       this.allColumns = [...selectedColumns, ...unSelected]
       selectedColumns.length === this.allColumns.length && (this.isSelectAllTableIndex = true)
       unSelected.length === this.allColumns.length && (this.isSelectAllTableIndex = false)
