@@ -6415,6 +6415,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
             Assert.assertTrue(e instanceof KylinException);
             Assert.assertTrue(e.getMessage().contains(MsgPicker.getMsg().getINVALID_RETENTION_RANGE_CONFIG()));
         }
+        request.setRetentionRange(new RetentionRange(1, true, AutoMergeTimeEnum.MONTH));
+        modelService.checkModelConfigParameters(request);
         request.setRetentionRange(null);
         checkPropParameter(request);
     }
