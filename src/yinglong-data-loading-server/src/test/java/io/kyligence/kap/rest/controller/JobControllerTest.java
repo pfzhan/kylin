@@ -62,7 +62,7 @@ import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import io.kyligence.kap.rest.service.JobService;
 import lombok.val;
 
-public class NJobControllerTest extends NLocalFileMetadataTestCase {
+public class JobControllerTest extends NLocalFileMetadataTestCase {
 
     private MockMvc mockMvc;
 
@@ -70,14 +70,14 @@ public class NJobControllerTest extends NLocalFileMetadataTestCase {
     private JobService jobService;
 
     @InjectMocks
-    private NJobController nJobController = Mockito.spy(new NJobController());
+    private final JobController jobController = Mockito.spy(new JobController());
 
     private final Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
 
     @Before
     public void setup() {
         MockitoAnnotations.initMocks(this);
-        mockMvc = MockMvcBuilders.standaloneSetup(nJobController).defaultRequest(MockMvcRequestBuilders.get("/"))
+        mockMvc = MockMvcBuilders.standaloneSetup(jobController).defaultRequest(MockMvcRequestBuilders.get("/"))
                 .build();
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -104,7 +104,7 @@ public class NJobControllerTest extends NLocalFileMetadataTestCase {
                 .param("statuses", "NEW,RUNNING").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(nJobController).getJobList(statuses, jobNames, 1, "", "", "default", 0, 10, "last_modified",
+        Mockito.verify(jobController).getJobList(statuses, jobNames, 1, "", "", "default", 0, 10, "last_modified",
                 true);
     }
 
@@ -115,7 +115,7 @@ public class NJobControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(nJobController).getWaitingJobs("default", "test_model", 0, 10);
+        Mockito.verify(jobController).getWaitingJobs("default", "test_model", 0, 10);
     }
 
     @Test
@@ -125,7 +125,7 @@ public class NJobControllerTest extends NLocalFileMetadataTestCase {
                         .param("project", "default").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(nJobController).getWaitingJobsInfoGroupByModel("default");
+        Mockito.verify(jobController).getWaitingJobsInfoGroupByModel("default");
     }
 
     @Test
@@ -136,7 +136,7 @@ public class NJobControllerTest extends NLocalFileMetadataTestCase {
                 .param("job_ids", "e1ad7bb0-522e-456a-859d-2eab1df448de").param("statuses", "")
                 .param("project_all_jobs", "false").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nJobController).dropJob("default", Lists.newArrayList("e1ad7bb0-522e-456a-859d-2eab1df448de"),
+        Mockito.verify(jobController).dropJob("default", Lists.newArrayList("e1ad7bb0-522e-456a-859d-2eab1df448de"),
                 Lists.newArrayList());
     }
 
@@ -148,7 +148,7 @@ public class NJobControllerTest extends NLocalFileMetadataTestCase {
                 .param("job_ids", "e1ad7bb0-522e-456a-859d-2eab1df448de").param("statuses", "")
                 .param("project_all_jobs", "false").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nJobController).dropJob(null, Lists.newArrayList("e1ad7bb0-522e-456a-859d-2eab1df448de"),
+        Mockito.verify(jobController).dropJob(null, Lists.newArrayList("e1ad7bb0-522e-456a-859d-2eab1df448de"),
                 Lists.newArrayList());
     }
 
@@ -158,7 +158,7 @@ public class NJobControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/jobs").param("project", "default").param("job_ids", "")
                 .param("statuses", "").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nJobController).dropJob("default", Lists.newArrayList(), Lists.newArrayList());
+        Mockito.verify(jobController).dropJob("default", Lists.newArrayList(), Lists.newArrayList());
     }
 
     @Test
@@ -170,7 +170,7 @@ public class NJobControllerTest extends NLocalFileMetadataTestCase {
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nJobController).updateJobStatus(Mockito.any(JobUpdateRequest.class));
+        Mockito.verify(jobController).updateJobStatus(Mockito.any(JobUpdateRequest.class));
     }
 
     @Test
@@ -183,7 +183,7 @@ public class NJobControllerTest extends NLocalFileMetadataTestCase {
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nJobController).updateJobStatus(Mockito.any(JobUpdateRequest.class));
+        Mockito.verify(jobController).updateJobStatus(Mockito.any(JobUpdateRequest.class));
     }
 
     @Test
@@ -196,7 +196,7 @@ public class NJobControllerTest extends NLocalFileMetadataTestCase {
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nJobController).updateJobStatus(Mockito.any(JobUpdateRequest.class));
+        Mockito.verify(jobController).updateJobStatus(Mockito.any(JobUpdateRequest.class));
     }
 
     @Test
@@ -209,7 +209,7 @@ public class NJobControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(nJobController).getJobDetail("e1ad7bb0-522e-456a-859d-2eab1df448de", "default");
+        Mockito.verify(jobController).getJobDetail("e1ad7bb0-522e-456a-859d-2eab1df448de", "default");
     }
 
     private List<ExecutableStepResponse> mockStepsResponse() {
@@ -235,7 +235,7 @@ public class NJobControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(nJobController).getJobStats("default", Long.MIN_VALUE, Long.MAX_VALUE);
+        Mockito.verify(jobController).getJobStats("default", Long.MIN_VALUE, Long.MAX_VALUE);
     }
 
     @Test
@@ -246,7 +246,7 @@ public class NJobControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(nJobController).getJobCount("default", Long.MIN_VALUE, Long.MAX_VALUE, "model");
+        Mockito.verify(jobController).getJobCount("default", Long.MIN_VALUE, Long.MAX_VALUE, "model");
     }
 
     @Test
@@ -257,7 +257,7 @@ public class NJobControllerTest extends NLocalFileMetadataTestCase {
                 .param("dimension", "model").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(nJobController).getJobDurationPerByte("default", Long.MIN_VALUE, Long.MAX_VALUE, "model");
+        Mockito.verify(jobController).getJobDurationPerByte("default", Long.MIN_VALUE, Long.MAX_VALUE, "model");
     }
 
     @Test
@@ -270,7 +270,7 @@ public class NJobControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(nJobController).getJobOutput("e1ad7bb0-522e-456a-859d-2eab1df448de",
+        Mockito.verify(jobController).getJobOutput("e1ad7bb0-522e-456a-859d-2eab1df448de",
                 "e1ad7bb0-522e-456a-859d-2eab1df448de", "default");
     }
 
@@ -289,7 +289,7 @@ public class NJobControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(nJobController).updateSparkJobInfo(request);
+        Mockito.verify(jobController).updateSparkJobInfo(request);
     }
 
     @Test
@@ -311,7 +311,7 @@ public class NJobControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(nJobController).updateJobError(request);
+        Mockito.verify(jobController).updateJobError(request);
     }
 
     @Test
@@ -328,7 +328,7 @@ public class NJobControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(nJobController).updateStageStatus(request);
+        Mockito.verify(jobController).updateStageStatus(request);
 
         request = new StageRequest();
         request.setProject("");
@@ -342,7 +342,7 @@ public class NJobControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
-        Mockito.verify(nJobController).updateStageStatus(request);
+        Mockito.verify(jobController).updateStageStatus(request);
     }
 
     @Test
@@ -360,6 +360,6 @@ public class NJobControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(nJobController).updateSparkJobTime(request);
+        Mockito.verify(jobController).updateSparkJobTime(request);
     }
 }

@@ -495,6 +495,11 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.yinglong</groupId>
+                <artifactId>yinglong-data-loading-server</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.yinglong</groupId>
                 <artifactId>yinglong-smart-service</artifactId>
                 <version>${project.version}</version>
             </dependency>

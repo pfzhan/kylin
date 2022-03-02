@@ -55,6 +55,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.google.common.base.CaseFormat;
 
+import io.kyligence.kap.rest.constant.SnapshotStatus;
 import io.kyligence.kap.rest.request.SnapshotRequest;
 import io.kyligence.kap.rest.request.SnapshotTableConfigRequest;
 import io.kyligence.kap.rest.request.TablePartitionsRequest;
@@ -66,18 +67,16 @@ import io.kyligence.kap.rest.response.SnapshotColResponse;
 import io.kyligence.kap.rest.response.SnapshotInfoResponse;
 import io.kyligence.kap.rest.response.SnapshotPartitionsResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
-import io.kyligence.kap.rest.service.ModelSemanticHelper;
 import io.kyligence.kap.rest.service.SnapshotService;
-import io.kyligence.kap.rest.constant.SnapshotStatus;
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
 
 @Controller
 @RequestMapping(value = "/api/snapshots", produces = { HTTP_VND_APACHE_KYLIN_JSON,
         HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
-public class NSnapshotController extends NBasicController {
+public class SnapshotController extends BaseController {
 
-    private static final Logger logger = LoggerFactory.getLogger(ModelSemanticHelper.class);
+    private static final Logger logger = LoggerFactory.getLogger(SnapshotController.class);
 
     @Autowired
     @Qualifier("snapshotService")

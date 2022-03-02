@@ -21,6 +21,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 package io.kyligence.kap.rest.controller.v2;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
@@ -61,7 +62,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.rest.controller.NBasicController;
+import io.kyligence.kap.rest.controller.BaseController;
 import io.kyligence.kap.rest.request.CubeRebuildRequest;
 import io.kyligence.kap.rest.request.SegmentMgmtRequest;
 import io.kyligence.kap.rest.response.JobInfoResponseV2;
@@ -69,7 +70,6 @@ import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse3X;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.service.ModelBuildService;
-import io.kyligence.kap.rest.service.ModelSemanticHelper;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.params.MergeSegmentParams;
 import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
@@ -78,16 +78,13 @@ import lombok.val;
 
 @RestController
 @RequestMapping(value = "/api/cubes", produces = { HTTP_VND_APACHE_KYLIN_V2_JSON })
-public class NCubesControllerV2 extends NBasicController {
+public class SegmentControllerV2 extends BaseController {
 
     private static final String FAILED_CUBE_MSG = "Can not find the cube.";
 
     @Autowired
     @Qualifier("modelService")
     private ModelService modelService;
-
-    @Autowired
-    private ModelSemanticHelper semanticService;
 
     @Autowired
     @Qualifier("modelBuildService")

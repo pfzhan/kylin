@@ -21,7 +21,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.rest.controller;
+package io.kyligence.kap.rest.controller.v2;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
 import static org.mockito.ArgumentMatchers.eq;
@@ -56,7 +56,6 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.rest.controller.v2.NCubesControllerV2;
 import io.kyligence.kap.rest.request.CubeRebuildRequest;
 import io.kyligence.kap.rest.request.SegmentMgmtRequest;
 import io.kyligence.kap.rest.response.JobInfoResponse;
@@ -67,7 +66,7 @@ import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.params.MergeSegmentParams;
 import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
 
-public class NCubesControllerV2Test extends NLocalFileMetadataTestCase {
+public class SegmentControllerV2Test extends NLocalFileMetadataTestCase {
 
     private MockMvc mockMvc;
 
@@ -78,7 +77,7 @@ public class NCubesControllerV2Test extends NLocalFileMetadataTestCase {
     private ModelBuildService modelBuildService;
 
     @InjectMocks
-    private NCubesControllerV2 nCubesControllerV2 = Mockito.spy(new NCubesControllerV2());
+    private final SegmentControllerV2 segmentControllerV2 = Mockito.spy(new SegmentControllerV2());
 
     private final Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
 
@@ -86,7 +85,7 @@ public class NCubesControllerV2Test extends NLocalFileMetadataTestCase {
     public void setup() {
         MockitoAnnotations.initMocks(this);
 
-        mockMvc = MockMvcBuilders.standaloneSetup(nCubesControllerV2).defaultRequest(MockMvcRequestBuilders.get("/"))
+        mockMvc = MockMvcBuilders.standaloneSetup(segmentControllerV2).defaultRequest(MockMvcRequestBuilders.get("/"))
                 .build();
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -170,7 +169,7 @@ public class NCubesControllerV2Test extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(rebuildRequest))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nCubesControllerV2).rebuild(eq("model1"), eq(null), Mockito.any(CubeRebuildRequest.class));
+        Mockito.verify(segmentControllerV2).rebuild(eq("model1"), eq(null), Mockito.any(CubeRebuildRequest.class));
     }
 
     @Test
@@ -188,7 +187,7 @@ public class NCubesControllerV2Test extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(rebuildRequest))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nCubesControllerV2).rebuild(eq("model1"), eq(null), Mockito.any(CubeRebuildRequest.class));
+        Mockito.verify(segmentControllerV2).rebuild(eq("model1"), eq(null), Mockito.any(CubeRebuildRequest.class));
     }
 
     @Test
@@ -206,7 +205,7 @@ public class NCubesControllerV2Test extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nCubesControllerV2).manageSegments(eq("model1"), eq(null),
+        Mockito.verify(segmentControllerV2).manageSegments(eq("model1"), eq(null),
                 Mockito.any(SegmentMgmtRequest.class));
     }
 
@@ -225,7 +224,7 @@ public class NCubesControllerV2Test extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nCubesControllerV2).manageSegments(eq("model1"), eq(null),
+        Mockito.verify(segmentControllerV2).manageSegments(eq("model1"), eq(null),
                 Mockito.any(SegmentMgmtRequest.class));
     }
 
@@ -244,7 +243,7 @@ public class NCubesControllerV2Test extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nCubesControllerV2).manageSegments(eq("model1"), eq(null),
+        Mockito.verify(segmentControllerV2).manageSegments(eq("model1"), eq(null),
                 Mockito.any(SegmentMgmtRequest.class));
     }
 
@@ -256,6 +255,6 @@ public class NCubesControllerV2Test extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nCubesControllerV2).getHoles("model1", null);
+        Mockito.verify(segmentControllerV2).getHoles("model1", null);
     }
 }

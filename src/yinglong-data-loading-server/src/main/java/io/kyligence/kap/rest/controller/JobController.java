@@ -74,7 +74,7 @@ import io.swagger.annotations.ApiOperation;
 
 @Controller
 @RequestMapping(value = "/api/jobs", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
-public class NJobController extends NBasicController {
+public class JobController extends BaseController {
     private static final Logger logger = LoggerFactory.getLogger("schedule");
     private static final String JOB_ID_ARG_NAME = "jobId";
     private static final String STEP_ID_ARG_NAME = "stepId";
@@ -113,28 +113,6 @@ public class NJobController extends NBasicController {
             executables = jobService.listGlobalJobs(jobFilter, pageOffset, pageSize);
         }
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, executables, "");
-    }
-
-    @ApiOperation(value = "getWaitingJobs", tags = { "DW" }, notes = "Update Response: total_size")
-    @GetMapping(value = "/waiting_jobs")
-    @ResponseBody
-    @Deprecated
-    public EnvelopeResponse<DataResult<List<EventResponse>>> getWaitingJobs(
-            @RequestParam(value = "project") String project, @RequestParam(value = "model") String modelId,
-            @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
-            @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
-        checkProjectName(project);
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, DataResult.get(null, offset, limit), "");
-    }
-
-    @Deprecated
-    @ApiOperation(value = "waitingJobsByModel", tags = { "DW" })
-    @GetMapping(value = "/waiting_jobs/models")
-    @ResponseBody
-    public EnvelopeResponse<Map<String, Object>> getWaitingJobsInfoGroupByModel(
-            @RequestParam(value = "project") String project) {
-        checkProjectName(project);
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, jobService.getEventsInfoGroupByModel(project), "");
     }
 
     @ApiOperation(value = "dropJob dropGlobalJob", tags = {
@@ -276,7 +254,7 @@ public class NJobController extends NBasicController {
 
     /**
      * RPC Call
-     * 
+     *
      * @param stageRequest
      * @return
      */
@@ -328,5 +306,27 @@ public class NJobController extends NBasicController {
                 sparkJobTimeRequest.getYarnJobRunTime());
 
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
+    }
+
+    @Deprecated
+    @ApiOperation(value = "getWaitingJobs", tags = { "DW" }, notes = "Update Response: total_size")
+    @GetMapping(value = "/waiting_jobs")
+    @ResponseBody
+    public EnvelopeResponse<DataResult<List<EventResponse>>> getWaitingJobs(
+            @RequestParam(value = "project") String project, @RequestParam(value = "model") String modelId,
+            @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
+            @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
+        checkProjectName(project);
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, DataResult.get(null, offset, limit), "");
+    }
+
+    @Deprecated
+    @ApiOperation(value = "waitingJobsByModel", tags = { "DW" })
+    @GetMapping(value = "/waiting_jobs/models")
+    @ResponseBody
+    public EnvelopeResponse<Map<String, Object>> getWaitingJobsInfoGroupByModel(
+            @RequestParam(value = "project") String project) {
+        checkProjectName(project);
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, jobService.getEventsInfoGroupByModel(project), "");
     }
 }

@@ -54,14 +54,14 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.rest.constant.SnapshotStatus;
 import io.kyligence.kap.rest.request.SnapshotRequest;
 import io.kyligence.kap.rest.request.SnapshotTableConfigRequest;
 import io.kyligence.kap.rest.request.TablePartitionsRequest;
 import io.kyligence.kap.rest.request.TableReloadPartitionColRequest;
 import io.kyligence.kap.rest.service.SnapshotService;
-import io.kyligence.kap.rest.constant.SnapshotStatus;
 
-public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
+public class SnapshotControllerTest extends NLocalFileMetadataTestCase {
 
     private static final String APPLICATION_PUBLIC_JSON = HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
@@ -71,7 +71,7 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
     private SnapshotService snapshotService;
 
     @InjectMocks
-    private NSnapshotController nSnapshotController = Mockito.spy(new NSnapshotController());
+    private final SnapshotController snapshotController = Mockito.spy(new SnapshotController());
 
     private final Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
 
@@ -79,7 +79,7 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
     public void setup() {
         MockitoAnnotations.initMocks(this);
 
-        mockMvc = MockMvcBuilders.standaloneSetup(nSnapshotController).defaultRequest(MockMvcRequestBuilders.get("/"))
+        mockMvc = MockMvcBuilders.standaloneSetup(snapshotController).defaultRequest(MockMvcRequestBuilders.get("/"))
                 .build();
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -105,7 +105,7 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nSnapshotController).buildSnapshotsManually(Mockito.any(SnapshotRequest.class));
+        Mockito.verify(snapshotController).buildSnapshotsManually(Mockito.any(SnapshotRequest.class));
     }
 
     @Test
@@ -123,7 +123,7 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
                         .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
-        Mockito.verify(nSnapshotController).buildSnapshotsManually(Mockito.any(SnapshotRequest.class));
+        Mockito.verify(snapshotController).buildSnapshotsManually(Mockito.any(SnapshotRequest.class));
         String errorMsg = "KE-010000005(Empty Parameter):You should select at least one table or database to load!!";
         Assert.assertEquals(errorMsg, jsonNode.get("exception").textValue());
     }
@@ -141,7 +141,7 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
                         .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                         .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nSnapshotController).getSnapshotPartitionValues(Mockito.any(TablePartitionsRequest.class));
+        Mockito.verify(snapshotController).getSnapshotPartitionValues(Mockito.any(TablePartitionsRequest.class));
     }
 
     @Test
@@ -158,7 +158,7 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nSnapshotController).refreshSnapshotsManually(Mockito.any(SnapshotRequest.class));
+        Mockito.verify(snapshotController).refreshSnapshotsManually(Mockito.any(SnapshotRequest.class));
     }
 
     @Test
@@ -176,7 +176,7 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
                         .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
-        Mockito.verify(nSnapshotController).refreshSnapshotsManually(Mockito.any(SnapshotRequest.class));
+        Mockito.verify(snapshotController).refreshSnapshotsManually(Mockito.any(SnapshotRequest.class));
         String errorMsg = "KE-010000005(Empty Parameter):You should select at least one table or database to load!!";
         Assert.assertEquals(errorMsg, jsonNode.get("exception").textValue());
     }
@@ -194,7 +194,7 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nSnapshotController).checkBeforeDelete(Mockito.any(SnapshotRequest.class));
+        Mockito.verify(snapshotController).checkBeforeDelete(Mockito.any(SnapshotRequest.class));
     }
 
     @Test
@@ -210,7 +210,7 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
                 .param("tables", "TEST_ACCOUNT").contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nSnapshotController).deleteSnapshots(project, deleteSnapshot);
+        Mockito.verify(snapshotController).deleteSnapshots(project, deleteSnapshot);
     }
 
     @Test
@@ -225,7 +225,7 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.get("/api/snapshots").param("project", project)
                 .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nSnapshotController).getSnapshots(project, table, 0, 10, statusFilter, Sets.newHashSet(), sortBy,
+        Mockito.verify(snapshotController).getSnapshots(project, table, 0, 10, statusFilter, Sets.newHashSet(), sortBy,
                 isReversed);
     }
 
@@ -243,7 +243,7 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
-        Mockito.verify(nSnapshotController).getSnapshots(project, table, 0, 10, statusFilter, Sets.newHashSet(), sortBy,
+        Mockito.verify(snapshotController).getSnapshots(project, table, 0, 10, statusFilter, Sets.newHashSet(), sortBy,
                 isReversed);
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
         String errorMsg = "KE-010000003(Invalid Parameter):No field called 'UNKNOWN'.";
@@ -257,7 +257,7 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.get("/api/snapshots/tables").param("project", project)
                 .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nSnapshotController).getTables(project, "", 0, 10);
+        Mockito.verify(snapshotController).getTables(project, "", 0, 10);
     }
 
     @Test
@@ -270,7 +270,7 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
                 .param("database", database).contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nSnapshotController).loadMoreTables(project, table, database, 0, 10);
+        Mockito.verify(snapshotController).loadMoreTables(project, table, database, 0, 10);
     }
 
     @Test
@@ -285,7 +285,7 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nSnapshotController).getSnapshotCols(Mockito.any(TableReloadPartitionColRequest.class));
+        Mockito.verify(snapshotController).getSnapshotCols(Mockito.any(TableReloadPartitionColRequest.class));
     }
 
     @Test
@@ -300,7 +300,7 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        //        Mockito.verify(nSnapshotController).getSnapshotCols(project, databases, tables, tablePattern, true, 0, 10,false);
+        //        Mockito.verify(snapshotController).getSnapshotCols(project, databases, tables, tablePattern, true, 0, 10,false);
     }
 
     @Test
@@ -315,6 +315,6 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
                 .content(JsonUtil.writeValueAsString(configRequest))
                 .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nSnapshotController).configSnapshotPartitionCol(Mockito.any(SnapshotTableConfigRequest.class));
+        Mockito.verify(snapshotController).configSnapshotPartitionCol(Mockito.any(SnapshotTableConfigRequest.class));
     }
 }

@@ -23,6 +23,44 @@
  */
 package io.kyligence.kap.rest.controller.open;
 
+import com.google.common.annotations.VisibleForTesting;
+import io.kyligence.kap.rest.controller.NBasicController;
+import io.kyligence.kap.rest.controller.NTableController;
+import io.kyligence.kap.rest.request.DateRangeRequest;
+import io.kyligence.kap.rest.request.OpenReloadTableRequest;
+import io.kyligence.kap.rest.request.TableLoadRequest;
+import io.kyligence.kap.rest.response.LoadTableResponse;
+import io.kyligence.kap.rest.response.OpenPreReloadTableResponse;
+import io.kyligence.kap.rest.response.OpenReloadTableResponse;
+import io.kyligence.kap.rest.response.PreUnloadTableResponse;
+import io.kyligence.kap.rest.service.ProjectService;
+import io.kyligence.kap.rest.service.TableService;
+import io.swagger.annotations.ApiOperation;
+import lombok.val;
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.metadata.model.ISourceAware;
+import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.rest.response.DataResult;
+import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Locale;
+
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_SAMPLING_RANGE;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_NAME;
@@ -31,56 +69,9 @@ import static org.apache.kylin.common.exception.ServerErrorCode.RELOAD_TABLE_FAI
 import static org.apache.kylin.common.exception.ServerErrorCode.UNSUPPORTED_DATA_SOURCE_TYPE;
 import static org.apache.kylin.common.exception.ServerErrorCode.UNSUPPORTED_STREAMING_OPERATION;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Locale;
-
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.exception.ExceptionUtils;
-import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.metadata.model.ISourceAware;
-import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.rest.request.SamplingRequest;
-import org.apache.kylin.rest.response.DataResult;
-import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.rest.util.AclEvaluate;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
-
-import com.google.common.annotations.VisibleForTesting;
-
-import io.kyligence.kap.rest.controller.NBasicController;
-import io.kyligence.kap.rest.controller.NTableController;
-import io.kyligence.kap.rest.request.DateRangeRequest;
-import io.kyligence.kap.rest.request.OpenReloadTableRequest;
-import io.kyligence.kap.rest.request.RefreshSegmentsRequest;
-import io.kyligence.kap.rest.request.TableLoadRequest;
-import io.kyligence.kap.rest.response.LoadTableResponse;
-import io.kyligence.kap.rest.response.OpenPartitionColumnFormatResponse;
-import io.kyligence.kap.rest.response.OpenPreReloadTableResponse;
-import io.kyligence.kap.rest.response.OpenReloadTableResponse;
-import io.kyligence.kap.rest.response.PreUnloadTableResponse;
-import io.kyligence.kap.rest.service.ProjectService;
-import io.kyligence.kap.rest.service.TableService;
-import io.swagger.annotations.ApiOperation;
-import lombok.val;
-
 @Controller
 @RequestMapping(value = "/api/tables", produces = { HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
 public class OpenTableController extends NBasicController {
-
-    private static final String TABLE = "table";
 
     @Autowired
     private NTableController tableController;
@@ -90,9 +81,6 @@ public class OpenTableController extends NBasicController {
 
     @Autowired
     private ProjectService projectService;
-
-    @Autowired
-    private AclEvaluate aclEvaluate;
 
     private static final Integer MAX_SAMPLING_ROWS = 20_000_000;
     private static final Integer MIN_SAMPLING_ROWS = 10_000;
@@ -179,24 +167,6 @@ public class OpenTableController extends NBasicController {
         return tableController.setDateRanges(request);
     }
 
-    /**
-     * auto mode, refresh data
-     * @param request
-     * @return
-     * @throws IOException
-     */
-    @ApiOperation(value = "refreshSegments", tags = { "DW" })
-    @PutMapping(value = "/data_range")
-    @ResponseBody
-    public EnvelopeResponse<String> refreshSegments(@RequestBody RefreshSegmentsRequest request) throws IOException {
-        String projectName = checkProjectName(request.getProject());
-        request.setProject(projectName);
-        checkRequiredArg("tableName", request.getTable());
-
-        getTable(request.getProject(), request.getTable());
-        return tableController.refreshSegments(request);
-    }
-
     @ApiOperation(value = "preReloadTable", tags = { "AI" })
     @GetMapping(value = "/pre_reload")
     @ResponseBody
@@ -245,34 +215,6 @@ public class OpenTableController extends NBasicController {
             Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);
             throw new KylinException(RELOAD_TABLE_FAILED, root.getMessage());
         }
-    }
-
-    @ApiOperation(value = "samplingJobs", tags = { "AI" })
-    @PostMapping(value = "/sampling_jobs")
-    @ResponseBody
-    public EnvelopeResponse<String> submitSampling(@RequestBody SamplingRequest request) {
-        checkProjectName(request.getProject());
-        checkStreamingOperation(request.getProject(), request.getQualifiedTableName());
-        return tableController.submitSampling(request);
-    }
-
-    @ApiOperation(value = "getPartitionColumnFormat", tags = { "DW" })
-    @GetMapping(value = "/column_format")
-    @ResponseBody
-    public EnvelopeResponse<OpenPartitionColumnFormatResponse> getPartitionColumnFormat(
-            @RequestParam(value = "project") String project, @RequestParam(value = "table") String table,
-            @RequestParam(value = "column_name") String columnName) throws Exception {
-        String projectName = checkProjectName(project);
-        checkRequiredArg(TABLE, table);
-        checkRequiredArg("column_name", columnName);
-
-        String columnFormat = tableService.getPartitionColumnFormat(projectName, table.toUpperCase(Locale.ROOT),
-                columnName);
-        OpenPartitionColumnFormatResponse columnFormatResponse = new OpenPartitionColumnFormatResponse();
-        columnFormatResponse.setColumnName(columnName);
-        columnFormatResponse.setColumnFormat(columnFormat);
-
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, columnFormatResponse, "");
     }
 
     @ApiOperation(value = "prepareUnloadTable", tags = { "AI" })

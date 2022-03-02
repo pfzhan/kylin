@@ -27,8 +27,6 @@ package io.kyligence.kap.rest.controller;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PARAMETER;
-import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_DETECT_DATA_RANGE;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_RANGE;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_SAMPLING_RANGE;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_REFRESH_PARAMETER;
@@ -47,19 +45,16 @@ import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 
-import io.kyligence.kap.rest.service.ModelBuildSupporter;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.exception.KylinTimeoutException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.rest.request.SamplingRequest;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.TableRefresh;
@@ -79,20 +74,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import com.google.common.collect.Sets;
-
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.request.AutoMergeRequest;
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.PartitionKeyRequest;
 import io.kyligence.kap.rest.request.PushDownModeRequest;
-import io.kyligence.kap.rest.request.RefreshSegmentsRequest;
 import io.kyligence.kap.rest.request.ReloadTableRequest;
 import io.kyligence.kap.rest.request.TableLoadRequest;
 import io.kyligence.kap.rest.request.TopTableRequest;
 import io.kyligence.kap.rest.response.AutoMergeConfigResponse;
 import io.kyligence.kap.rest.response.BatchLoadTableResponse;
-import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.LoadTableResponse;
 import io.kyligence.kap.rest.response.NHiveTableNameResponse;
 import io.kyligence.kap.rest.response.NInitTablesResponse;
@@ -101,6 +92,7 @@ import io.kyligence.kap.rest.response.PreUnloadTableResponse;
 import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
+import io.kyligence.kap.rest.service.ModelBuildSupporter;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.TableExtService;
 import io.kyligence.kap.rest.service.TableSamplingService;
@@ -288,59 +280,6 @@ public class NTableController extends NBasicController {
         validateDataRange(dateRangeRequest.getStart(), dateRangeRequest.getEnd());
         tableService.setDataRange(dateRangeRequest.getProject(), dateRangeRequest);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
-    }
-
-    @ApiOperation(value = "refreshSegments", tags = {
-            "AI" }, notes = "Update Body: refresh_start, refresh_end, affected_start, affected_end")
-    @PutMapping(value = "/data_range")
-    @ResponseBody
-    public EnvelopeResponse<String> refreshSegments(@RequestBody RefreshSegmentsRequest request) throws IOException {
-        checkProjectName(request.getProject());
-        checkRequiredArg(TABLE, request.getTable());
-        checkRequiredArg("refresh start", request.getRefreshStart());
-        checkRequiredArg("refresh end", request.getRefreshEnd());
-        checkRequiredArg("affected start", request.getAffectedStart());
-        checkRequiredArg("affected end", request.getAffectedEnd());
-        validateRange(request.getRefreshStart(), request.getRefreshEnd());
-        modelBuildService.refreshSegments(request.getProject(), request.getTable(), request.getRefreshStart(),
-                request.getRefreshEnd(), request.getAffectedStart(), request.getAffectedEnd());
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
-    }
-
-    @ApiOperation(value = "latestData", tags = { "AI" })
-    @GetMapping(value = "/data_range/latest_data", produces = { HTTP_VND_APACHE_KYLIN_JSON,
-            HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
-    @ResponseBody
-    public EnvelopeResponse<ExistedDataRangeResponse> getLatestData(@RequestParam(value = "project") String project,
-            @RequestParam(value = "table") String table) {
-        checkProjectName(project);
-        checkRequiredArg(TABLE, table);
-
-        ExistedDataRangeResponse response;
-        try {
-            response = tableService.getLatestDataRange(project, table);
-        } catch (KylinTimeoutException ke) {
-            logger.error(MsgPicker.getMsg().getPUSHDOWN_DATARANGE_TIMEOUT(), ke);
-            throw new KylinException(FAILED_DETECT_DATA_RANGE, MsgPicker.getMsg().getPUSHDOWN_DATARANGE_TIMEOUT());
-        } catch (Exception e) {
-            logger.error(MsgPicker.getMsg().getPUSHDOWN_DATARANGE_ERROR(), e);
-            throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getPUSHDOWN_DATARANGE_ERROR());
-        }
-
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
-    }
-
-    @ApiOperation(value = "partitionColumnFormat", tags = { "AI" })
-    @GetMapping(value = "/partition_column_format")
-    @ResponseBody
-    public EnvelopeResponse<String> getPartitioinColumnFormat(@RequestParam(value = "project") String project,
-            @RequestParam(value = "table") String table,
-            @RequestParam(value = "partition_column") String partitionColumn) throws Exception {
-        checkProjectName(project);
-        checkRequiredArg(TABLE, table);
-        checkRequiredArg("partitionColumn", partitionColumn);
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
-                tableService.getPartitionColumnFormat(project, table, partitionColumn), "");
     }
 
     @ApiOperation(value = "batchLoad", tags = { "AI" })
@@ -531,32 +470,6 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "samplingJobs", tags = { "AI" })
-    @PostMapping(value = "/sampling_jobs", produces = { HTTP_VND_APACHE_KYLIN_JSON })
-    @ResponseBody
-    public EnvelopeResponse<String> submitSampling(@RequestBody SamplingRequest request) {
-        checkProjectName(request.getProject());
-        checkParamLength("tag", request.getTag(), 1024);
-        checkSamplingRows(request.getRows());
-        checkSamplingTable(request.getQualifiedTableName());
-        validatePriority(request.getPriority());
-
-        tableSamplingService.sampling(Sets.newHashSet(request.getQualifiedTableName()), request.getProject(),
-                request.getRows(), request.getPriority(), request.getYarnQueue(), request.getTag());
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
-    }
-
-    @ApiOperation(value = "hasSamplingJob", tags = { "AI" }, notes = "Update Param: qualified_table_name")
-    @GetMapping(value = "/sampling_check_result")
-    @ResponseBody
-    public EnvelopeResponse<Boolean> hasSamplingJob(@RequestParam(value = "project") String project,
-            @RequestParam(value = "qualified_table_name") String qualifiedTableName) {
-        checkProjectName(project);
-        checkSamplingTable(qualifiedTableName);
-        boolean hasSamplingJob = tableSamplingService.hasSamplingJob(project, qualifiedTableName);
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, hasSamplingJob, "");
-    }
-
     private void checkSamplingRows(int rows) {
         Message msg = MsgPicker.getMsg();
         if (rows > MAX_SAMPLING_ROWS) {
@@ -567,17 +480,6 @@ public class NTableController extends NBasicController {
         if (rows < MIN_SAMPLING_ROWS) {
             throw new KylinException(INVALID_SAMPLING_RANGE,
                     String.format(Locale.ROOT, msg.getBEYOND_MIX_SAMPLING_ROWSHINT(), MIN_SAMPLING_ROWS));
-        }
-    }
-
-    private void checkSamplingTable(String tableName) {
-        Message msg = MsgPicker.getMsg();
-        if (tableName == null || StringUtils.isEmpty(tableName.trim())) {
-            throw new KylinException(INVALID_TABLE_NAME, msg.getFAILED_FOR_NO_SAMPLING_TABLE());
-        }
-
-        if (tableName.contains(" ") || !tableName.contains(".") || tableName.split("\\.").length != 2) {
-            throw new KylinException(INVALID_TABLE_NAME, msg.getSAMPLING_FAILED_FOR_ILLEGAL_TABLE_NAME());
         }
     }
 

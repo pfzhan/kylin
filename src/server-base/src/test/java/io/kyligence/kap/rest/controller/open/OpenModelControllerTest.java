@@ -24,9 +24,6 @@
 package io.kyligence.kap.rest.controller.open;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -38,7 +35,6 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.rest.constant.Constant;
@@ -72,23 +68,15 @@ import io.kyligence.kap.metadata.model.MultiPartitionDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.rest.controller.NModelController;
-import io.kyligence.kap.rest.request.BuildIndexRequest;
-import io.kyligence.kap.rest.request.BuildSegmentsRequest;
-import io.kyligence.kap.rest.request.CheckSegmentRequest;
-import io.kyligence.kap.rest.request.IndexesToSegmentsRequest;
 import io.kyligence.kap.rest.request.ModelParatitionDescRequest;
 import io.kyligence.kap.rest.request.ModelUpdateRequest;
 import io.kyligence.kap.rest.request.MultiPartitionMappingRequest;
 import io.kyligence.kap.rest.request.PartitionColumnRequest;
-import io.kyligence.kap.rest.request.PartitionsBuildRequest;
-import io.kyligence.kap.rest.request.PartitionsRefreshRequest;
-import io.kyligence.kap.rest.request.SegmentsRequest;
 import io.kyligence.kap.rest.request.UpdateMultiPartitionValueRequest;
 import io.kyligence.kap.rest.response.IndexResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.OpenGetIndexResponse;
-import io.kyligence.kap.rest.response.SegmentPartitionResponse;
 import io.kyligence.kap.rest.service.FusionIndexService;
 import io.kyligence.kap.rest.service.FusionModelService;
 import io.kyligence.kap.rest.service.ModelService;
@@ -198,24 +186,6 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testGetSegments() throws Exception {
-        String modelName = "default_model_name";
-        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        String project = "default";
-        mockGetModelName(modelName, project, modelId);
-        Mockito.when(nModelController.getSegments(modelId, project, "", 1, 5, "432", "2234", null, null, false,
-                "end_time", true)).thenReturn(
-                        new EnvelopeResponse<>(KylinException.CODE_SUCCESS, DataResult.get(mockSegments(), 1, 5), ""));
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/{model_name}/segments", modelName)
-                .contentType(MediaType.APPLICATION_JSON).param("page_offset", "1").param("project", project)
-                .param("page_size", "5").param("start", "432").param("end", "2234").param("sort_by", "end_time")
-                .param("reverse", "true").param("status", "")
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(openModelController).getSegments(modelName, project, "", 1, 5, "432", "2234", "end_time", true);
-    }
-
-    @Test
     public void testGetIndexes() throws Exception {
         List<Long> ids = Lists.newArrayList(1L, 20000020001L);
         String project = "default";
@@ -260,191 +230,6 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         index.setId(1L);
         index.setRelatedTables(Lists.newArrayList("table1", "table2"));
         return Lists.newArrayList(index);
-    }
-
-    @Test
-    public void testBuildSegments() throws Exception {
-        String modelName = "default_model_name";
-        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        String project = "default";
-        mockGetModelName(modelName, project, modelId);
-
-        BuildSegmentsRequest request = new BuildSegmentsRequest();
-        request.setProject("default");
-        request.setStart("0");
-        request.setEnd("100");
-        Mockito.doReturn(new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "")).when(nModelController)
-                .buildSegmentsManually(modelId, request);
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/{model_name}/segments", modelName)
-                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(openModelController).buildSegmentsManually(eq(modelName),
-                Mockito.any(BuildSegmentsRequest.class));
-    }
-
-    @Test
-    public void testRefreshSegmentsById() throws Exception {
-        String modelName = "default_model_name";
-        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        String project = "default";
-        mockGetModelName(modelName, project, modelId);
-
-        SegmentsRequest request = new SegmentsRequest();
-        request.setProject(project);
-        request.setType(SegmentsRequest.SegmentsRequestType.REFRESH);
-        request.setIds(new String[] { "1", "2" });
-        Mockito.doReturn(new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "")).when(nModelController)
-                .refreshOrMergeSegments(modelId, request);
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/{model_name}/segments", modelName)
-                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(openModelController).refreshOrMergeSegments(eq(modelName), Mockito.any(SegmentsRequest.class));
-    }
-
-    @Test
-    public void testCompleteSegments() throws Exception {
-        String modelName = "default_model_name";
-        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        String project = "default";
-        String[] ids = { "ef5e0663-feba-4ed2-b71c-21958122bbff" };
-        IndexesToSegmentsRequest req = new IndexesToSegmentsRequest();
-        req.setProject(project);
-        req.setParallelBuildBySegment(false);
-        req.setSegmentIds(Lists.newArrayList(ids));
-        mockGetModelName(modelName, project, modelId);
-        Mockito.doReturn(new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "")).when(nModelController)
-                .addIndexesToSegments(modelId, req);
-        Mockito.doReturn(new Pair("model_id", ids)).when(fusionModelService).convertSegmentIdWithName(modelId, project,
-                ids, null);
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/{model_name}/segments/completion", modelName)
-                .param("project", "default") //
-                .param("parallel", "false") //
-                .param("ids", ids) //
-                .param("names", (String) null) //
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(openModelController).completeSegments(modelName, project, false, ids, null, null, false, 3, null,
-                null);
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/{model_name}/segments/completion", modelName)
-                .param("project", "default") //
-                .param("parallel", "false") //
-                .param("ids", ids) //
-                .param("names", (String) null) //
-                .param("priority", "0").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(openModelController).completeSegments(modelName, project, false, ids, null, null, false, 0, null,
-                null);
-    }
-
-    @Test
-    public void testCompleteSegmentsPartialBuild() throws Exception {
-        String modelName = "default_model_name";
-        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        String project = "default";
-        String[] ids = { "ef5e0663-feba-4ed2-b71c-21958122bbff" };
-        Pair pair = new Pair<>(modelId, ids);
-        List<Long> batchIndexIds = Lists.newArrayList(1L, 2L);
-        IndexesToSegmentsRequest req = new IndexesToSegmentsRequest();
-        req.setProject(project);
-        req.setParallelBuildBySegment(false);
-        req.setSegmentIds(Lists.newArrayList(ids));
-        mockGetModelName(modelName, project, modelId);
-        Mockito.doReturn(new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "")).when(nModelController)
-                .addIndexesToSegments(modelId, req);
-        Mockito.doReturn(pair).when(fusionModelService).convertSegmentIdWithName(modelId, project, ids, null);
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/{model_name}/segments/completion", modelName)
-                .param("project", "default") //
-                .param("parallel", "false") //
-                .param("ids", ids) //
-                .param("names", (String) null) //
-                .param("partial_build", "true") //
-                .param("batch_index_ids", "1,2") //
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(openModelController).completeSegments(modelName, project, false, ids, null, batchIndexIds, true,
-                3, null, null);
-    }
-
-    @Test
-    public void testCompleteSegmentsWithoutIdsAndNames() throws Exception {
-        String modelName = "default_model_name";
-        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        String project = "default";
-        IndexesToSegmentsRequest req = new IndexesToSegmentsRequest();
-        req.setProject(project);
-        req.setParallelBuildBySegment(false);
-        mockGetModelName(modelName, project, modelId);
-        Mockito.doReturn(new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "")).when(nModelController)
-                .addIndexesToSegments(modelId, req);
-        MvcResult result = mockMvc
-                .perform(MockMvcRequestBuilders.post("/api/models/{model_name}/segments/completion", modelName)
-                        .param("project", "default") //
-                        .param("parallel", "false") //
-                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
-        String contentAsString = result.getResponse().getContentAsString();
-        Assert.assertTrue(contentAsString.contains(MsgPicker.getMsg().getEMPTY_SEGMENT_PARAMETER()));
-    }
-
-    @Test
-    public void testCompleteSegmentsWithIdsAndNames() throws Exception {
-        String modelName = "default_model_name";
-        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        String project = "default";
-        String[] ids = { "ef5e0663-feba-4ed2-b71c-21958122bbff" };
-        String[] names = { "ef5e0663-feba-4ed2-b71c-21958122bbff" };
-        IndexesToSegmentsRequest req = new IndexesToSegmentsRequest();
-        req.setProject(project);
-        req.setParallelBuildBySegment(false);
-        mockGetModelName(modelName, project, modelId);
-        Mockito.doReturn(new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "")).when(nModelController)
-                .addIndexesToSegments(modelId, req);
-        MvcResult result = mockMvc
-                .perform(MockMvcRequestBuilders.post("/api/models/{model_name}/segments/completion", modelName)
-                        .param("project", "default") //
-                        .param("parallel", "false") //
-                        .param("ids", ids) //
-                        .param("names", names) //
-                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
-        String contentAsString = result.getResponse().getContentAsString();
-        Assert.assertTrue(contentAsString.contains(MsgPicker.getMsg().getCONFLICT_SEGMENT_PARAMETER()));
-    }
-
-    @Test
-    public void testDeleteSegmentsAll() throws Exception {
-        String modelName = "default_model_name";
-        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        String project = "default";
-        mockGetModelName(modelName, project, modelId);
-
-        Mockito.doReturn(new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "")).when(nModelController)
-                .deleteSegments(modelId, project, true, false, null, null);
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/models/{model_name}/segments", modelName)
-                .param("project", "default").param("purge", "true")
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(openModelController).deleteSegments(modelName, "default", true, false, null, null);
-    }
-
-    @Test
-    public void testDeleteSegmentsByIds() throws Exception {
-        String modelName = "default_model_name";
-        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        String project = "default";
-        mockGetModelName(modelName, project, modelId);
-
-        SegmentsRequest request = new SegmentsRequest();
-        request.setIds(new String[] { "1", "2" });
-        Mockito.doReturn(new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "")).when(nModelController)
-                .deleteSegments(modelId, project, false, false, request.getIds(), null);
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/models/{model_name}/segments", modelName)
-                .param("project", "default").param("purge", "false").param("ids", request.getIds())
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(openModelController).deleteSegments(modelName, "default", false, false, request.getIds(), null);
     }
 
     @Test
@@ -548,54 +333,6 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testBuildIndicesManually() throws Exception {
-        BuildIndexRequest request = new BuildIndexRequest();
-        request.setProject("default");
-        String modelName = "default_model_name";
-        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        mockGetModelName(modelName, request.getProject(), modelId);
-        Mockito.doAnswer(x -> null).when(nModelController).buildIndicesManually(modelId, request);
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/{model}/indexes", modelName)
-                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(openModelController).buildIndicesManually(eq(modelName), Mockito.any(BuildIndexRequest.class));
-    }
-
-    @Test
-    public void testCheckSegments() throws Exception {
-        mockGetModelName("test", "default", "modelId");
-        Mockito.doAnswer(x -> null).when(modelService).checkSegments(Mockito.any(), Mockito.anyString(),
-                Mockito.anyString(), Mockito.anyString());
-        CheckSegmentRequest request = new CheckSegmentRequest();
-        request.setProject("default");
-        request.setStart("0");
-        request.setEnd("1");
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/test/segments/check")
-                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(openModelController).checkSegments(Mockito.anyString(), Mockito.any());
-
-    }
-
-    @Test
-    public void testGetMultiPartitions() throws Exception {
-        String modelName = "default_model_name";
-        String project = "default";
-        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        String segmentId = "73570f31-05a5-448f-973c-44209830dd01";
-        mockGetModelName(modelName, project, modelId);
-        DataResult<List<SegmentPartitionResponse>> result;
-        Mockito.when(nModelController.getMultiPartition(modelId, project, segmentId, Lists.newArrayList(), 0, 10,
-                "last_modify_time", true)).thenReturn(null);
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/{model_name}/segments/multi_partition", modelName)
-                .param("project", project).param("segment_id", segmentId)
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-    }
-
-    @Test
     public void testUpdateMultiPartitionMapping() throws Exception {
         String modelName = "multi_level_partition";
         String project = "multi_level_partition";
@@ -608,54 +345,6 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.put("/api/models/{model_name}/multi_partition/mapping", modelName)
                 .param("project", project).contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-    }
-
-    @Test
-    public void testBuildMultiPartition() throws Exception {
-        String modelName = "multi_level_partition";
-        String project = "multi_level_partition";
-        String modelId = "747f864b-9721-4b97-acde-0aa8e8656cba";
-        mockGetModelName(modelName, project, modelId);
-        PartitionsBuildRequest request = new PartitionsBuildRequest();
-        request.setProject("multi_level_partition");
-        Mockito.doReturn(null).when(nModelController).buildMultiPartition(modelId, request);
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/{model_name}/segments/multi_partition", modelName)
-                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-    }
-
-    @Test
-    public void testRefreshMultiPartition() throws Exception {
-        String modelName = "multi_level_partition";
-        String project = "multi_level_partition";
-        String modelId = "747f864b-9721-4b97-acde-0aa8e8656cba";
-        mockGetModelName(modelName, project, modelId);
-        PartitionsRefreshRequest request = new PartitionsRefreshRequest();
-        request.setProject("multi_level_partition");
-        Mockito.doReturn(null).when(nModelController).refreshMultiPartition(modelId, request);
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/{model_name}/segments/multi_partition", modelName)
-                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-    }
-
-    @Test
-    public void testDeleteMultiPartition() throws Exception {
-        String modelName = "multi_level_partition";
-        String project = "multi_level_partition";
-        String modelId = "747f864b-9721-4b97-acde-0aa8e8656cba";
-        String segmentId = "8892fa3f-f607-4eec-8159-7c5ae2f16942";
-        mockGetModelName(modelName, project, modelId);
-        PartitionsRefreshRequest request = new PartitionsRefreshRequest();
-        request.setProject("multi_level_partition");
-        Mockito.doNothing().when(modelService).deletePartitionsByValues(anyString(), anyString(), anyString(),
-                anyList());
-
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/models/segments/multi_partition").param("model", modelName)
-                .param("project", project).param("segment_id", segmentId).param("sub_partition_values", "1")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
     }

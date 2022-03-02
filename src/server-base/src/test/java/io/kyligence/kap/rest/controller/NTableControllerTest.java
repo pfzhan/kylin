@@ -38,10 +38,8 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.request.SamplingRequest;
 import org.apache.kylin.rest.response.TableRefresh;
 import org.junit.After;
 import org.junit.Assert;
@@ -72,14 +70,12 @@ import io.kyligence.kap.rest.request.AutoMergeRequest;
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.PartitionKeyRequest;
 import io.kyligence.kap.rest.request.PushDownModeRequest;
-import io.kyligence.kap.rest.request.RefreshSegmentsRequest;
 import io.kyligence.kap.rest.request.ReloadTableRequest;
 import io.kyligence.kap.rest.request.TableLoadRequest;
 import io.kyligence.kap.rest.request.TopTableRequest;
 import io.kyligence.kap.rest.response.LoadTableResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
-import io.kyligence.kap.rest.service.ModelBuildService;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.TableExtService;
 import io.kyligence.kap.rest.service.TableSamplingService;
@@ -99,9 +95,6 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
 
     @Mock
     private ModelService modelService;
-
-    @Mock
-    private ModelBuildService modelBuildService;
 
     @Mock
     private TableExtService tableExtService;
@@ -278,29 +271,6 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nTableController).setDateRanges(Mockito.any(DateRangeRequest.class));
-    }
-
-    @Test
-    public void testgetPartitioinColumnFormat() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/partition_column_format") //
-                .contentType(MediaType.APPLICATION_JSON) //
-                .param("project", "default") //
-                .param("table", "DEFAULT.TEST_KYLIN_FACT") //
-                .param("partition_column", "CAL_DT") //
-                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nTableController).getPartitioinColumnFormat("default", "DEFAULT.TEST_KYLIN_FACT", "CAL_DT");
-    }
-
-    @Test
-    public void testGetLatestData() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/data_range/latest_data") //
-                .contentType(MediaType.APPLICATION_JSON) //
-                .param("project", "default") //
-                .param("table", "DEFAULT.TEST_KYLIN_FACT") //
-                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nTableController).getLatestData("default", "DEFAULT.TEST_KYLIN_FACT");
     }
 
     @Test
@@ -577,25 +547,6 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testRefreshSegments() throws Exception {
-        Mockito.doNothing().when(modelBuildService).refreshSegments("default", "TEST_KYLIN_FACT", "0", "100", "0",
-                "100");
-        RefreshSegmentsRequest refreshSegmentsRequest = new RefreshSegmentsRequest();
-        refreshSegmentsRequest.setProject("default");
-        refreshSegmentsRequest.setRefreshStart("0");
-        refreshSegmentsRequest.setRefreshEnd("100");
-        refreshSegmentsRequest.setAffectedStart("0");
-        refreshSegmentsRequest.setAffectedEnd("100");
-        refreshSegmentsRequest.setTable("TEST_KYLIN_FACT");
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/tables/data_range") //
-                .contentType(MediaType.APPLICATION_JSON) //
-                .content(JsonUtil.writeValueAsString(refreshSegmentsRequest)) //
-                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nTableController).refreshSegments(Mockito.any(RefreshSegmentsRequest.class));
-    }
-
-    @Test
     public void testUpdateAutoMergeConfigException() throws Exception {
         String errorMsg = "You should specify at least one autoMerge range!";
         AutoMergeRequest autoMergeRequest = mockAutoMergeRequest();
@@ -666,23 +617,6 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testSubmitSampling() throws Exception {
-        final SamplingRequest request = new SamplingRequest();
-        request.setProject("default");
-        request.setRows(20000);
-        request.setQualifiedTableName("default.test_kylin_fact");
-        Mockito.doReturn(Lists.newArrayList()).when(tableSamplingService) //
-                .sampling(Sets.newHashSet(request.getQualifiedTableName()), request.getProject(), request.getRows(),
-                        ExecutablePO.DEFAULT_PRIORITY, null, null);
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/sampling_jobs") //
-                .contentType(MediaType.APPLICATION_JSON) //
-                .content(JsonUtil.writeValueAsString(request)) //
-                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
-                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nTableController).submitSampling(Mockito.any(SamplingRequest.class));
-    }
-
-    @Test
     public void testLoadTablesWithSampling() throws Exception {
         Set<String> loaded = Sets.newHashSet("default.test_kylin_fact", "default.test_account");
         Set<String> failed = Sets.newHashSet("default.test_country");
@@ -693,6 +627,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
         tableLoadRequest.setNeedSampling(true);
         tableLoadRequest.setSamplingRows(20000);
         initMockito(loadTableResponse, tableLoadRequest);
+        Assert.assertNotNull(tableSamplingService);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/tables") //
                 .contentType(MediaType.APPLICATION_JSON) //
                 .content(JsonUtil.writeValueAsString(tableLoadRequest)) //
@@ -740,47 +675,6 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
         Mockito.verify(nTableController).loadTables(Mockito.any(TableLoadRequest.class));
-        final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
-        Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(), errorMsg));
-    }
-
-    @Test
-    public void testSubmitSamplingFailedForNoTable() throws Exception {
-        final SamplingRequest request = new SamplingRequest();
-        request.setProject("default");
-        request.setRows(20000);
-
-        String errorMsg = "Can’t perform table sampling. Please select at least one table.";
-        Mockito.doReturn(Lists.newArrayList()).when(tableSamplingService) //
-                .sampling(Sets.newHashSet(request.getQualifiedTableName()), request.getProject(), request.getRows(),
-                        ExecutablePO.DEFAULT_PRIORITY, null, null);
-        final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/sampling_jobs") //
-                .contentType(MediaType.APPLICATION_JSON) //
-                .content(JsonUtil.writeValueAsString(request)) //
-                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
-                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
-        Mockito.verify(nTableController).submitSampling(Mockito.any(SamplingRequest.class));
-        final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
-        Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(), errorMsg));
-    }
-
-    @Test
-    public void testSubmitSamplingFailedForIllegalTableName() throws Exception {
-        final SamplingRequest request = new SamplingRequest();
-        request.setProject("default");
-        request.setRows(20000);
-        request.setQualifiedTableName("test_kylin_fact");
-
-        String errorMsg = "The name of table for sampling is invalid. Please enter a table name like “database.table”.";
-        Mockito.doReturn(Lists.newArrayList()).when(tableSamplingService) //
-                .sampling(Sets.newHashSet(request.getQualifiedTableName()), request.getProject(), request.getRows(),
-                        ExecutablePO.DEFAULT_PRIORITY, null, null);
-        final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/sampling_jobs") //
-                .contentType(MediaType.APPLICATION_JSON) //
-                .content(JsonUtil.writeValueAsString(request)) //
-                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
-                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
-        Mockito.verify(nTableController).submitSampling(Mockito.any(SamplingRequest.class));
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
         Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(), errorMsg));
     }

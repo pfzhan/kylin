@@ -21,6 +21,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 package io.kyligence.kap.rest.controller.v2;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
@@ -47,7 +48,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.rest.controller.NBasicController;
+import io.kyligence.kap.rest.controller.BaseController;
 import io.kyligence.kap.rest.request.JobFilter;
 import io.kyligence.kap.rest.response.ExecutableResponse;
 import io.kyligence.kap.rest.service.JobService;
@@ -55,7 +56,7 @@ import io.swagger.annotations.ApiOperation;
 
 @Controller
 @RequestMapping(value = "/api/jobs", produces = { HTTP_VND_APACHE_KYLIN_V2_JSON })
-public class NJobControllerV2 extends NBasicController {
+public class JobControllerV2 extends BaseController {
 
     private static final String JOB_ID_ARG_NAME = "jobId";
 

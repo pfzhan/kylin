@@ -21,17 +21,18 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.rest.controller;
+
+package io.kyligence.kap.rest.controller.v2;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.kylin.job.constant.JobActionEnum;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -50,13 +51,11 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.rest.controller.v2.NJobControllerV2;
-import org.apache.kylin.job.constant.JobActionEnum;
 import io.kyligence.kap.rest.request.JobFilter;
 import io.kyligence.kap.rest.response.ExecutableResponse;
 import io.kyligence.kap.rest.service.JobService;
 
-public class NJobControllerV2Test {
+public class JobControllerV2Test {
 
     private MockMvc mockMvc;
 
@@ -64,29 +63,25 @@ public class NJobControllerV2Test {
     private JobService jobService;
 
     @InjectMocks
-    private NJobControllerV2 nJobControllerV2 = Mockito.spy(new NJobControllerV2());
+    private final JobControllerV2 jobControllerV2 = Mockito.spy(new JobControllerV2());
 
     @Mock
-    private AclUtil aclUtil = Mockito.spy(AclUtil.class);
+    private final AclUtil aclUtil = Mockito.spy(AclUtil.class);
 
     @Mock
-    private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
+    private final AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
 
     private final Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
 
     @Before
     public void setup() {
         MockitoAnnotations.initMocks(this);
-        mockMvc = MockMvcBuilders.standaloneSetup(nJobControllerV2).defaultRequest(MockMvcRequestBuilders.get("/"))
+        mockMvc = MockMvcBuilders.standaloneSetup(jobControllerV2).defaultRequest(MockMvcRequestBuilders.get("/"))
                 .build();
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
         ReflectionTestUtils.setField(jobService, "aclEvaluate", aclEvaluate);
-    }
-
-    @After
-    public void tearDown() {
     }
 
     @Test
@@ -102,7 +97,7 @@ public class NJobControllerV2Test {
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(nJobControllerV2).resume(jobId);
+        Mockito.verify(jobControllerV2).resume(jobId);
     }
 
     @Test
@@ -118,7 +113,7 @@ public class NJobControllerV2Test {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(nJobControllerV2).getJobList(new Integer[] { 0 }, 1, "", "default", null, 0, 10, "last_modified",
+        Mockito.verify(jobControllerV2).getJobList(new Integer[] { 0 }, 1, "", "default", null, 0, 10, "last_modified",
                 true);
     }
 

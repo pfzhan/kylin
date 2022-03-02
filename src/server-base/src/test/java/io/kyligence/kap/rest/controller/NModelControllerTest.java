@@ -36,12 +36,10 @@ import java.util.List;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.RandomUtil;
-import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -67,9 +65,6 @@ import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.rest.constant.ModelAttributeEnum;
-import io.kyligence.kap.rest.request.BuildIndexRequest;
-import io.kyligence.kap.rest.request.BuildSegmentsRequest;
-import io.kyligence.kap.rest.request.IncrementBuildSegmentsRequest;
 import io.kyligence.kap.rest.request.ModelCheckRequest;
 import io.kyligence.kap.rest.request.ModelCloneRequest;
 import io.kyligence.kap.rest.request.ModelConfigRequest;
@@ -77,27 +72,16 @@ import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.ModelUpdateRequest;
 import io.kyligence.kap.rest.request.MultiPartitionMappingRequest;
 import io.kyligence.kap.rest.request.OwnerChangeRequest;
-import io.kyligence.kap.rest.request.PartitionsBuildRequest;
-import io.kyligence.kap.rest.request.PartitionsRefreshRequest;
-import io.kyligence.kap.rest.request.SegmentFixRequest;
-import io.kyligence.kap.rest.request.SegmentTimeRequest;
-import io.kyligence.kap.rest.request.SegmentsRequest;
 import io.kyligence.kap.rest.request.UnlinkModelRequest;
 import io.kyligence.kap.rest.request.UpdateMultiPartitionValueRequest;
 import io.kyligence.kap.rest.response.IndicesResponse;
-import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.response.ModelConfigResponse;
 import io.kyligence.kap.rest.response.ModelSaveCheckResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.RelatedModelResponse;
-import io.kyligence.kap.rest.response.SegmentPartitionResponse;
 import io.kyligence.kap.rest.service.FusionModelService;
-import io.kyligence.kap.rest.service.ModelBuildService;
 import io.kyligence.kap.rest.service.ModelService;
-import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
-import io.kyligence.kap.rest.service.params.MergeSegmentParams;
-import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
 import lombok.val;
 
 public class NModelControllerTest extends NLocalFileMetadataTestCase {
@@ -106,9 +90,6 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Mock
     private ModelService modelService;
-
-    @Mock
-    private ModelBuildService modelBuildService;
 
     @Mock
     private FusionModelService fusionModelService;
@@ -203,21 +184,6 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
         Mockito.verify(nModelController).getAggIndices("model1", "default", 432323L, null, false, 0, 10,
                 "last_modify_time", true);
-    }
-
-    @Test
-    public void testGetSegments() throws Exception {
-        when(modelService.getSegmentsResponse("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", "432", "2234", "",
-                "end_time", true)).thenReturn(mockSegments());
-        mockMvc.perform(
-                MockMvcRequestBuilders.get("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                        .contentType(MediaType.APPLICATION_JSON).param("offset", "0").param("project", "default")
-                        .param("limit", "10").param("start", "432").param("end", "2234").param("sort_by", "end_time")
-                        .param("reverse", "true").param("status", "")
-                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nModelController).getSegments("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", "", 0, 10,
-                "432", "2234", null, null, false, "end_time", true);
     }
 
     @Test
@@ -335,112 +301,6 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .param("project", "default").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nModelController).deleteModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default");
-    }
-
-    @Test
-    public void testDeleteSegmentsAll() throws Exception {
-        Mockito.doNothing().when(modelService).purgeModelManually("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default");
-        mockMvc.perform(
-                MockMvcRequestBuilders.delete("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                        .param("project", "default").param("purge", "true")
-                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nModelController).deleteSegments("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", true, false,
-                null, null);
-    }
-
-    @Test
-    public void testDeleteSegmentsByIds() throws Exception {
-        SegmentsRequest request = mockSegmentRequest();
-        Mockito.doNothing().when(modelService).deleteSegmentById("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default",
-                request.getIds(), false);
-        Mockito.doReturn(request.getIds()).when(modelService).convertSegmentIdWithName(
-                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", request.getProject(), request.getIds(), null);
-        mockMvc.perform(
-                MockMvcRequestBuilders.delete("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                        .param("project", "default").param("purge", "false")
-                        .param("ids", "ef5e0663-feba-4ed2-b71c-21958122bbff")
-                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nModelController).deleteSegments("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", false, false,
-                request.getIds(), null);
-    }
-
-    @Test
-    public void testRefreshSegmentsById() throws Exception {
-        List<JobInfoResponse.JobInfo> jobInfos = new ArrayList<>();
-        jobInfos.add(new JobInfoResponse.JobInfo("78847556-2cdb-4b07-b39e-4c29856309aa",
-                "89af4ee2-2cdb-4b07-b39e-4c29856309aa"));
-        SegmentsRequest request = mockSegmentRequest();
-        Mockito.doAnswer(x -> jobInfos).when(modelBuildService).refreshSegmentById(Mockito.any());
-        Mockito.doReturn(request.getIds()).when(modelService).convertSegmentIdWithName(
-                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", request.getProject(), request.getIds(), null);
-        String mvcResult = mockMvc
-                .perform(MockMvcRequestBuilders
-                        .put("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn().getResponse().getContentAsString();
-        Assert.assertTrue(mvcResult.contains("89af4ee2-2cdb-4b07-b39e-4c29856309aa"));
-        Mockito.verify(nModelController).refreshOrMergeSegments(eq("89af4ee2-2cdb-4b07-b39e-4c29856309aa"),
-                Mockito.any(SegmentsRequest.class));
-    }
-
-    @Test
-    public void testMergeSegments() throws Exception {
-        SegmentsRequest request = mockSegmentRequest();
-        request.setType(SegmentsRequest.SegmentsRequestType.MERGE);
-        request.setIds(new String[] { "0", "1" });
-        Mockito.doAnswer(x -> new JobInfoResponse.JobInfo("0312bcc1-092e-42b1-ab0e-27807cf54f16",
-                "79c27a68-343c-4b73-b406-dd5af0add951")).when(modelBuildService).mergeSegmentsManually(Mockito.any());
-        Mockito.doReturn(request.getIds()).when(modelService).convertSegmentIdWithName(
-                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", request.getProject(), request.getIds(), null);
-        val mvcResult = mockMvc
-                .perform(MockMvcRequestBuilders
-                        .put("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn().getResponse().getContentAsString();
-        Assert.assertTrue(mvcResult.contains("79c27a68-343c-4b73-b406-dd5af0add951"));
-        Mockito.verify(nModelController).refreshOrMergeSegments(eq("89af4ee2-2cdb-4b07-b39e-4c29856309aa"),
-                Mockito.any(SegmentsRequest.class));
-    }
-
-    @Test
-    public void testMergeSegmentsException() throws Exception {
-        SegmentsRequest request = mockSegmentRequest();
-        request.setType(SegmentsRequest.SegmentsRequestType.MERGE);
-        Mockito.doReturn(new JobInfoResponse.JobInfo()).when(modelBuildService).mergeSegmentsManually(
-                new MergeSegmentParams("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", request.getIds()));
-        mockMvc.perform(
-                MockMvcRequestBuilders.put("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
-        Mockito.verify(nModelController).refreshOrMergeSegments(eq("89af4ee2-2cdb-4b07-b39e-4c29856309aa"),
-                Mockito.any(SegmentsRequest.class));
-    }
-
-    @Test
-    public void testRefreshSegmentsByIdException() throws Exception {
-        SegmentsRequest request = mockSegmentRequest();
-        request.setIds(null);
-        Mockito.doAnswer(x -> null).when(modelBuildService).refreshSegmentById(
-                new RefreshSegmentParams("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", request.getIds()));
-        mockMvc.perform(
-                MockMvcRequestBuilders.put("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
-        Mockito.verify(nModelController).refreshOrMergeSegments(eq("89af4ee2-2cdb-4b07-b39e-4c29856309aa"),
-                Mockito.any(SegmentsRequest.class));
-    }
-
-    private SegmentsRequest mockSegmentRequest() {
-        SegmentsRequest segmentsRequest = new SegmentsRequest();
-        segmentsRequest.setIds(new String[] { "ef5e0663-feba-4ed2-b71c-21958122bbff" });
-        segmentsRequest.setProject("default");
-        return segmentsRequest;
     }
 
     @Test
@@ -571,71 +431,6 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testBuildSegments() throws Exception {
-        BuildSegmentsRequest request1 = new BuildSegmentsRequest();
-        request1.setProject("default");
-        Mockito.doAnswer(x -> null).when(modelBuildService).buildSegmentsManually("default",
-                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "");
-        mockMvc.perform(
-                MockMvcRequestBuilders.post("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request1))
-                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nModelController).buildSegmentsManually(eq("89af4ee2-2cdb-4b07-b39e-4c29856309aa"),
-                Mockito.any(BuildSegmentsRequest.class));
-
-        IncrementBuildSegmentsRequest request2 = new IncrementBuildSegmentsRequest();
-        request2.setProject("default");
-        request2.setStart("100");
-        request2.setEnd("200");
-        request2.setPartitionDesc(new PartitionDesc());
-        IncrementBuildSegmentParams incrParams = new IncrementBuildSegmentParams("default",
-                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", request2.getStart(), request2.getEnd(),
-                request2.getPartitionDesc(), null, request2.getSegmentHoles(), true, null);
-        Mockito.doAnswer(x -> null).when(fusionModelService).incrementBuildSegmentsManually(incrParams);
-        mockMvc.perform(
-                MockMvcRequestBuilders.put("/api/models/{model}/model_segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request2))
-                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nModelController).incrementBuildSegmentsManually(eq("89af4ee2-2cdb-4b07-b39e-4c29856309aa"),
-                Mockito.any(IncrementBuildSegmentsRequest.class));
-    }
-
-    @Test
-    public void testBuildSegments_DataRangeEndLessThanStart() throws Exception {
-        BuildSegmentsRequest request = new BuildSegmentsRequest();
-        request.setProject("default");
-        request.setStart("100");
-        request.setEnd("1");
-        Mockito.doAnswer(x -> null).when(modelBuildService).buildSegmentsManually("default", "nmodel_basci", "100",
-                "1");
-        mockMvc.perform(
-                MockMvcRequestBuilders.post("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
-        Mockito.verify(nModelController).buildSegmentsManually(eq("89af4ee2-2cdb-4b07-b39e-4c29856309aa"),
-                Mockito.any(BuildSegmentsRequest.class));
-    }
-
-    @Test
-    public void testBuildSegments_DataRangeLessThan0() throws Exception {
-        BuildSegmentsRequest request = new BuildSegmentsRequest();
-        request.setProject("default");
-        request.setStart("-1");
-        request.setEnd("1");
-        Mockito.doAnswer(x -> null).when(modelBuildService).buildSegmentsManually("default", "nmodel_basci", "-1", "1");
-        mockMvc.perform(
-                MockMvcRequestBuilders.post("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
-        Mockito.verify(nModelController).buildSegmentsManually(eq("89af4ee2-2cdb-4b07-b39e-4c29856309aa"),
-                Mockito.any(BuildSegmentsRequest.class));
-    }
-
-    @Test
     public void testUpdateModelSemantics_DataRangeEndLessThanStart() throws Exception {
         ModelRequest request = new ModelRequest();
         request.setProject("default");
@@ -659,21 +454,6 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError());
         Mockito.verify(nModelController).updateSemantic(Mockito.any(ModelRequest.class));
-    }
-
-    @Test
-    public void testBuildIndex() throws Exception {
-        BuildIndexRequest request = new BuildIndexRequest();
-        request.setProject("default");
-        Mockito.doAnswer(x -> null).when(modelBuildService).buildSegmentsManually("default", "nmodel_basci", "0",
-                "100");
-        mockMvc.perform(
-                MockMvcRequestBuilders.post("/api/models/{model}/indices", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nModelController).buildIndicesManually(eq("89af4ee2-2cdb-4b07-b39e-4c29856309aa"),
-                Mockito.any(BuildIndexRequest.class));
     }
 
     @Test
@@ -743,37 +523,6 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nModelController).batchSaveModels(eq("gc_test"), Mockito.anyList());
-    }
-
-    @Test
-    public void testFixSegmentHole() throws Exception {
-        SegmentFixRequest request = new SegmentFixRequest();
-        request.setProject("default");
-        SegmentTimeRequest timeRequest = new SegmentTimeRequest();
-        timeRequest.setEnd("2");
-        timeRequest.setStart("1");
-        request.setSegmentHoles(Lists.newArrayList(timeRequest));
-        mockMvc.perform(
-                MockMvcRequestBuilders.post("/api/models/{model}/segment_holes", "e0e90065-e7c3-49a0-a801-20465ca64799")
-                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nModelController).fixSegHoles(eq("e0e90065-e7c3-49a0-a801-20465ca64799"), eq(request));
-    }
-
-    @Test
-    public void testCheckSegmentHoles() throws Exception {
-        BuildSegmentsRequest request = new BuildSegmentsRequest();
-        request.setProject("default");
-        request.setStart("0");
-        request.setEnd("1");
-        mockMvc.perform(MockMvcRequestBuilders
-                .post("/api/models/{model}/segment/validation", "e0e90065-e7c3-49a0-a801-20465ca64799")
-                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nModelController).checkSegment(eq("e0e90065-e7c3-49a0-a801-20465ca64799"), eq(request));
-
     }
 
     private IndicesResponse mockIndicesResponse() {
@@ -853,79 +602,6 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         Mockito.doNothing().when(modelService).updateModelOwner(project, modelId, ownerChangeRequest);
         nModelController.updateModelOwner(modelId, ownerChangeRequest);
         Mockito.verify(nModelController).updateModelOwner(modelId, ownerChangeRequest);
-    }
-
-    @Test
-    public void testBuildMultiPartition() throws Exception {
-        List<JobInfoResponse.JobInfo> jobInfos = new ArrayList<>();
-        jobInfos.add(new JobInfoResponse.JobInfo(JobTypeEnum.SUB_PARTITION_BUILD.toString(),
-                "89af4ee2-2cdb-4b07-b39e-4c29856309aa"));
-        JobInfoResponse response = new JobInfoResponse();
-        response.setJobs(jobInfos);
-        PartitionsBuildRequest param = new PartitionsBuildRequest();
-        param.setProject("default");
-        param.setSegmentId("73570f31-05a5-448f-973c-44209830dd01");
-        param.setSubPartitionValues(Lists.newArrayList());
-        param.setBuildAllSubPartitions(false);
-        Mockito.doReturn(new ModelSaveCheckResponse()).when(modelService).checkBeforeModelSave(Mockito.any());
-        Mockito.doReturn(new JobInfoResponse()).when(modelBuildService).buildSegmentPartitionByValue(param.getProject(),
-                "", param.getSegmentId(), param.getSubPartitionValues(), param.isParallelBuildBySegment(),
-                param.isBuildAllSubPartitions(), param.getPriority(), param.getYarnQueue(), param.getTag());
-        Mockito.doNothing().when(modelService).validateCCType(Mockito.any(), Mockito.any());
-        mockMvc.perform(MockMvcRequestBuilders
-                .post("/api/models/{model}/model_segments/multi_partition", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(param))
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-    }
-
-    @Test
-    public void testRefreshMultiPartition() throws Exception {
-        List<JobInfoResponse.JobInfo> jobInfos = new ArrayList<>();
-        jobInfos.add(new JobInfoResponse.JobInfo(JobTypeEnum.SUB_PARTITION_REFRESH.toString(),
-                "89af4ee2-2cdb-4b07-b39e-4c29856309aa"));
-        JobInfoResponse response = new JobInfoResponse();
-        response.setJobs(jobInfos);
-
-        PartitionsRefreshRequest param = new PartitionsRefreshRequest();
-        param.setProject("default");
-        param.setSegmentId("73570f31-05a5-448f-973c-44209830dd01");
-
-        Mockito.doReturn(response).when(modelBuildService).refreshSegmentPartition(Mockito.any(), Mockito.any());
-        mockMvc.perform(MockMvcRequestBuilders
-                .put("/api/models/{model}/model_segments/multi_partition", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(param))
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-    }
-
-    @Test
-    public void testDeleteMultiPartition() throws Exception {
-        List<JobInfoResponse.JobInfo> jobInfos = new ArrayList<>();
-        jobInfos.add(new JobInfoResponse.JobInfo(JobTypeEnum.SUB_PARTITION_REFRESH.toString(),
-                "89af4ee2-2cdb-4b07-b39e-4c29856309aa"));
-        JobInfoResponse response = new JobInfoResponse();
-        response.setJobs(jobInfos);
-        Mockito.doReturn(response).when(modelBuildService).refreshSegmentPartition(Mockito.any(), Mockito.any());
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/models/model_segments/multi_partition")
-                .param("model", "89af4ee2-2cdb-4b07-b39e-4c29856309aa").param("project", "default")
-                .param("segment", "73570f31-05a5-448f-973c-44209830dd01").param("ids", new String[] { "1", "2" })
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-    }
-
-    @Test
-    public void testGetMultiPartition() throws Exception {
-        List<SegmentPartitionResponse> responses = Lists.newArrayList();
-        Mockito.doReturn(responses).when(modelService).getSegmentPartitions("default",
-                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "73570f31-05a5-448f-973c-44209830dd01", Lists.newArrayList(),
-                "last_modify_time", true);
-        mockMvc.perform(MockMvcRequestBuilders
-                .get("/api/models/{model}/model_segments/multi_partition", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                .param("project", "default").param("model", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                .param("segment_id", "73570f31-05a5-448f-973c-44209830dd01")
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
     }
 
     @Test

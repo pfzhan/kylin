@@ -157,6 +157,10 @@
             <artifactId>yinglong-smart-server</artifactId>
         </dependency>
         <dependency>
+            <groupId>io.kyligence.yinglong</groupId>
+            <artifactId>yinglong-data-loading-server</artifactId>
+        </dependency>
+        <dependency>
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-license-service</artifactId>
         </dependency>
