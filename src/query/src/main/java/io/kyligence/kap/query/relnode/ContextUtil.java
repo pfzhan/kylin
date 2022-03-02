@@ -37,6 +37,7 @@ import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexSlot;
 import org.apache.calcite.sql.fun.SqlCountAggFunction;
@@ -135,11 +136,15 @@ public class ContextUtil {
                     hasCountConstant);
 
         } else if (currentNode instanceof KapProjectRel) {
+            Set<RexNode> rexLiterals = indexOfInputCols.stream()
+                    .map(index -> ((KapProjectRel) currentNode).rewriteProjects.get(index))
+                    .filter(RexLiteral.class::isInstance)
+                    .collect(Collectors.toSet());
             Set<Integer> indexOfInputRel = indexOfInputCols.stream()
                     .map(index -> ((KapProjectRel) currentNode).rewriteProjects.get(index))
                     .flatMap(rex -> RexUtils.getAllInputRefs(rex).stream()).map(RexSlot::getIndex)
                     .collect(Collectors.toSet());
-            if (!indexOfInputCols.isEmpty() && indexOfInputRel.isEmpty()) {
+            if (!indexOfInputCols.isEmpty() && indexOfInputRel.isEmpty() && rexLiterals.isEmpty()) {
                 throw new IllegalStateException(
                         "Error on collection index, index " + indexOfInputCols + " child index " + indexOfInputRel);
             }
