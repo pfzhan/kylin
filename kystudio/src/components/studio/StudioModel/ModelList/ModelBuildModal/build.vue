@@ -797,6 +797,7 @@
       this.filterCondition = ''
       this.isLoadingSave = false
       this.isLoadingFormat = false
+      this.secondStoragePartitionTips = false
     }
     async handleLoadNewestRange () {
       this.$refs.buildForm && this.$refs.buildForm.clearValidate()

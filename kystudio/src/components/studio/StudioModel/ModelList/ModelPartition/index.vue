@@ -339,6 +339,7 @@ export default class ModelPartition extends Vue {
     this.isLoadingSave = false
     this.isLoadingFormat = false
     this.isShowWarning = false
+    this.secondStoragePartitionTips = false
   }
   get partitionTables () {
     let result = []
