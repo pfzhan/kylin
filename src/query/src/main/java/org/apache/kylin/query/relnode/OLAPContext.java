@@ -259,6 +259,10 @@ public class OLAPContext {
 
     protected boolean isExactlyFastBitmap = false;
 
+    @Setter
+    @Getter
+    private String modelAlias;
+
     public boolean isExactlyAggregate() {
         return isExactlyAggregate;
     }

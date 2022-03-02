@@ -29,7 +29,7 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 import io.kyligence.kap.query.optrule.CorrReduceFunctionRule;
-
+import io.kyligence.kap.query.optrule.KapModelViewRule;
 import org.apache.calcite.adapter.enumerable.EnumerableInterpreterRule;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.config.CalciteConnectionConfig;
@@ -201,6 +201,7 @@ public class PlannerFactory {
         planner.addRule(KapWindowRule.INSTANCE);
         planner.addRule(KAPValuesRule.INSTANCE);
         planner.addRule(KapMinusRule.INSTANCE);
+        planner.addRule(KapModelViewRule.INSTANCE);
         planner.removeRule(ProjectMergeRule.INSTANCE);
         planner.addRule(KapProjectMergeRule.INSTANCE);
 

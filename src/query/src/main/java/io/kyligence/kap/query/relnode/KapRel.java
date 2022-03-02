@@ -141,6 +141,7 @@ public interface KapRel extends OLAPRel {
         private boolean hasFreeTable; // free table (not in any context) exists in the child
         private boolean hasIncrementalTable;
         private boolean hasFirstTable;
+        private boolean hasModelView;
 
         public boolean hasFirstTable() {
             return hasFirstTable;
@@ -156,6 +157,10 @@ public interface KapRel extends OLAPRel {
 
         public boolean hasFreeTable() {
             return this.hasFreeTable;
+        }
+
+        public boolean hasModelView() {
+            return this.hasModelView;
         }
 
         public ContextVisitorState(boolean hasFilter, boolean hasFreeTable, boolean hasIncrementalTable) {
@@ -182,6 +187,7 @@ public interface KapRel extends OLAPRel {
             this.hasFreeTable = that.hasFreeTable || this.hasFreeTable;
             this.hasIncrementalTable = that.hasIncrementalTable || this.hasIncrementalTable;
             this.hasFirstTable = that.hasFirstTable || this.hasFirstTable;
+            this.hasModelView = that.hasModelView || this.hasModelView;
 
             return this;
         }
