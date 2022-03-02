@@ -238,7 +238,6 @@
         <el-table-column
           width="120"
           prop="input_records_count"
-          sortable="custom"
           :label="$t('rowCount')">
           <template slot-scope="scope">
             <div>{{sliceNumber(scope.row.input_records_count)}}</div>
@@ -270,7 +269,6 @@
         </el-table-column>
         <el-table-column
           align="right"
-          sortable="custom"
           prop="expansionrate"
           show-overflow-tooltip
           width="150"

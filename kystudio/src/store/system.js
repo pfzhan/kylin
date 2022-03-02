@@ -1,6 +1,8 @@
 import api from './../service/api'
 import * as types from './types'
 import { getProperty } from '../util/business'
+import { handleError } from 'util/business'
+import Vue from 'vue'
 export default {
   state: {
     messageDirectives: [],
@@ -127,8 +129,10 @@ export default {
           commit(types.SAVE_AUTHENTICATION, { authentication: response.data })
           commit(types.INIT_SPEC)
           resolve(response.data)
-        }, () => {
+        }, (res) => {
           reject()
+          Vue.config.lang = localStorage.getItem('kystudio_lang') ? localStorage.getItem('kystudio_lang') : 'en'
+          handleError(res)
         })
       })
     },
