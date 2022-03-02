@@ -1787,4 +1787,8 @@ public class Message {
     public String getLDAP_USER_DATA_SOURCE_CONNECTION_FAILED() {
         return "The LDAP server is abnormal. Please check the user data source and try again.";
     }
+
+    public String getLDAP_USER_DATA_SOURCE_CONFIG_ERROR() {
+        return "LDAP connection error, please check LDAP configuration!";
+    }
 }

@@ -2022,4 +2022,9 @@ public class CnMessage extends Message {
     public String getLDAP_USER_DATA_SOURCE_CONNECTION_FAILED() {
         return "LDAP服务异常，请检查用户数据源。";
     }
+
+    @Override
+    public String getLDAP_USER_DATA_SOURCE_CONFIG_ERROR() {
+        return "LDAP 连接错误，请检查 LDAP 配置信息！";
+    }
 }

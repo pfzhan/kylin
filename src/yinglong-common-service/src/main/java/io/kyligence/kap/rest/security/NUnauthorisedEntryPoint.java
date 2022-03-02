@@ -83,6 +83,16 @@ public class NUnauthorisedEntryPoint implements AuthenticationEntryPoint {
             return;
         }
 
+        present = Optional.ofNullable(exception).map(Throwable::getCause)
+                .filter(org.springframework.ldap.AuthenticationException.class::isInstance).map(Throwable::getCause)
+                .filter(javax.naming.AuthenticationException.class::isInstance).isPresent();
+
+        if (present) {
+            setErrorResponse(request, response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, new KylinException(
+                    USER_DATA_SOURCE_CONNECTION_FAILED, MsgPicker.getMsg().getLDAP_USER_DATA_SOURCE_CONFIG_ERROR()));
+            return;
+        }
+
         setErrorResponse(request, response, HttpServletResponse.SC_UNAUTHORIZED,
                 new KylinException(LOGIN_FAILED, exception.getMessage()));
     }
