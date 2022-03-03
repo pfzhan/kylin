@@ -3353,7 +3353,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         Pair<String, String> pushdownResult = getMaxAndMinTimeInPartitionColumnByPushdown(project, table,
                 model.getPartitionDesc());
         pushdownResult.setFirst(PushDownUtil.calcStart(pushdownResult.getFirst(), df.getCoveredRange()));
-        if (pushdownResult.getFirst().compareTo(pushdownResult.getSecond()) > 0) {
+        if (Long.parseLong(pushdownResult.getFirst()) > Long.parseLong(pushdownResult.getSecond())) {
             pushdownResult.setSecond(pushdownResult.getFirst());
         }
         return new ExistedDataRangeResponse(pushdownResult.getFirst(), pushdownResult.getSecond());
