@@ -2762,6 +2762,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
         ExistedDataRangeResponse response = modelService.getLatestDataRange("default",
                 "89af4ee2-2cdb-4b07-b39e-4c29856309aa", null);
         Assert.assertEquals(String.valueOf(Long.MAX_VALUE), response.getEndTime());
+        ExistedDataRangeResponse response1 = modelService.getLatestDataRange("default",
+                "82fa7671-a935-45f5-8779-85703601f49a", null);
+        Assert.assertTrue(Long.parseLong(response1.getStartTime()) < Long.parseLong(response1.getEndTime()));
     }
 
     private void addModelInfo(ModelRequest modelRequest) {
