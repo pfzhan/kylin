@@ -131,7 +131,12 @@ abstract class BuildStage(private val jobContext: SegmentJob,
             failQueue.offer(None)
           } catch {
             // Offer 'Throwable' if unexpected things happened.
-            case t: Throwable => failQueue.offer(Some(t))
+            case t: Throwable =>
+              failQueue.offer(Some(t))
+              if (config.isUTEnv) {
+                log.debug(s"count of flatTable: ${flatTableDS.count()}," +
+                  s"count of factTable: ${buildParam.getFactTableDS.count()}")
+              }
           })
         }
         logInfo(s"Segment $segment add layout tasks: ${tasks.size}")
