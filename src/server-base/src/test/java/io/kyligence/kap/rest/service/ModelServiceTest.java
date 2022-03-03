@@ -68,6 +68,7 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.rest.response.OpenModelRecResponse;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
@@ -2587,8 +2588,39 @@ public class ModelServiceTest extends CSVSourceTestCase {
         //acc again, due to model online, so have no impact
         normalResponse = modelSmartService.suggestAndOptimizeModels(request2);
         Assert.assertEquals(0, normalResponse.getCreatedModels().size());
-        Assert.assertEquals(2, normalResponse.getOptimizedModels().size());
+        Assert.assertEquals(0, normalResponse.getOptimizedModels().size());
         Assert.assertEquals(2, normalResponse.getErrorSqlList().size());
+
+        // acc again, due to model online and withOptimalModel=true, so have optimalModels and no error sql
+        request2.setWithOptimalModel(true);
+        normalResponse = modelSmartService.suggestAndOptimizeModels(request2);
+        Assert.assertEquals(0, normalResponse.getCreatedModels().size());
+        Assert.assertEquals(0, normalResponse.getErrorSqlList().size());
+        Assert.assertEquals(2, normalResponse.getOptimalModels().size());
+    }
+
+    @Test
+    public void testErrorAndConstantOptimalModelResponse() {
+        String project = "newten";
+        val projectMgr = NProjectManager.getInstance(getTestConfig());
+        projectMgr.updateProject(project,
+                copyForWrite -> copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN));
+        String sql1 = "select test_order.order_id,buyer_id from test_order "
+                + " join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
+                + "group by test_order.order_id,buyer_id";
+        String sql2 = "select 1";
+        String sql3 = "select select";
+        val request = smartRequest(project, sql1);
+        request.setForce2CreateNewModel(false);
+        request.setWithOptimalModel(true);
+        request.getSqls().add(sql2);
+        request.getSqls().add(sql3);
+        OpenAccSqlResponse normalResponse = modelSmartService.suggestAndOptimizeModels(request);
+        Assert.assertEquals(1, normalResponse.getCreatedModels().size());
+        Assert.assertEquals(1, normalResponse.getErrorSqlList().size());
+        Assert.assertEquals(1, normalResponse.getOptimalModels().size());
+        OpenModelRecResponse openModelRecResponse = normalResponse.getOptimalModels().get(0);
+        Assert.assertEquals("CONSTANT", openModelRecResponse.getAlias());
     }
 
     @Test

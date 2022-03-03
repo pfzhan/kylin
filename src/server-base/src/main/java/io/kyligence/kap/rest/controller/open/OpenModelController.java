@@ -567,13 +567,14 @@ public class OpenModelController extends NBasicController {
     }
 
     @ApiOperation(value = "/accelerateSql", tags = { "AI" })
-    @PostMapping(value = "/accelerate_sqls")
+    @PostMapping(value = {"/accelerate_sqls", "/sql_acceleration"})
     @ResponseBody
     public EnvelopeResponse<OpenAccSqlResponse> accelerateSqls(@RequestBody OpenSqlAccelerateRequest request) {
         String projectName = checkProjectName(request.getProject());
         checkSqlIsNotNull(request.getSqls());
         request.setProject(projectName);
         request.setForce2CreateNewModel(false);
+        request.setWithOptimalModel(true);
         checkProjectNotSemiAuto(request.getProject());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, modelSmartService.suggestAndOptimizeModels(request), "");
     }
