@@ -158,7 +158,7 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testDeleteByQueryIdNoProjectPermission() throws Exception {
         Mockito.doThrow(new KylinException(ACCESS_DENIED, "Access is denied")).when(aclEvaluate)
-                .checkProjectReadPermission(PROJECT);
+                .checkProjectAdminPermission(PROJECT);
 
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/async_query/{query_id}", "123")
                 .contentType(MediaType.APPLICATION_JSON)
