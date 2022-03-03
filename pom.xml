@@ -66,7 +66,7 @@
         <kafka.version>2.1.1</kafka.version>
 
         <!-- Spark versions -->
-        <spark.version>3.2.0-kylin-4.x-r53</spark.version>
+        <spark.version>3.2.0-kylin-4.x-r55</spark.version>
 
         <roaring.version>0.9.2-kylin-r3</roaring.version>
 
@@ -1675,11 +1675,6 @@
                 <version>${slf4j.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.slf4j</groupId>
-                <artifactId>log4j-over-slf4j</artifactId>
-                <version>${slf4j.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>com.lmax</groupId>
                 <artifactId>disruptor</artifactId>
                 <version>${lmax.disruptor.versoin}</version>
@@ -1688,12 +1683,6 @@
                 <groupId>org.apache.logging.log4j</groupId>
                 <artifactId>log4j-api</artifactId>
                 <version>${log4j2.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>org.apache.logging.log4j</groupId>
-                        <artifactId>log4j-1.2-api</artifactId>
-                    </exclusion>
-                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.apache.logging.log4j</groupId>
@@ -1703,6 +1692,11 @@
             <dependency>
                 <groupId>org.apache.logging.log4j</groupId>
                 <artifactId>log4j-web</artifactId>
+                <version>${log4j2.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-1.2-api</artifactId>
                 <version>${log4j2.version}</version>
             </dependency>
             <dependency>

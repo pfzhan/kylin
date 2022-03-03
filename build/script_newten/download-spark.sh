@@ -31,9 +31,9 @@ source build/script_newten/functions.sh
 
 rm -rf build/spark
 
-spark_pkg_name="spark-newten-3.2.0-4.x-r53"
+spark_pkg_name="spark-newten-3.2.0-4.x-r55"
 spark_pkg_file_name="${spark_pkg_name}.tgz"
-spark_pkg_md5="66b065655e2f49309fe6abd3f44e54e1"
+spark_pkg_md5="a7cf30c6b05ee64343e0c631ca132ddf"
 
 checkDownloadSparkVersion ${spark_pkg_name}
 
@@ -59,4 +59,3 @@ rm -rf build/spark/lib/spark-examples-*
 rm -rf build/spark/examples
 rm -rf build/spark/data
 rm -rf build/spark/R
-rm -rf build/spark/jars/slf4j-log4j12*.jar
