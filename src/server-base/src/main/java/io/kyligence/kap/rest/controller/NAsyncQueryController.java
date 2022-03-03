@@ -219,11 +219,11 @@ public class NAsyncQueryController extends NBasicController {
             }
             project = sqlRequest.getProject();
         }
-        aclEvaluate.checkProjectReadPermission(project);
+        aclEvaluate.checkProjectAdminPermission(project);
         checkProjectName(project);
         if (!asyncQueryService.hasPermission(queryId, project)) {
             return new EnvelopeResponse<>(KylinException.CODE_UNAUTHORIZED, false,
-                    "Access denied. Only task submitters or admin users can delete the query results");
+                    "Access denied. Only admin users can delete the query results");
         }
         boolean result = asyncQueryService.deleteByQueryId(project, queryId);
         if (result)
