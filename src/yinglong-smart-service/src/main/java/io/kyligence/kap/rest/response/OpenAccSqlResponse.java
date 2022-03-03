@@ -34,6 +34,7 @@ import com.google.common.collect.Sets;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.commons.collections.CollectionUtils;
 
 @Setter
 @Getter
@@ -48,14 +49,21 @@ public class OpenAccSqlResponse implements Serializable {
     @JsonProperty("created_models")
     private List<OpenModelRecResponse> createdModels = Lists.newArrayList();
 
+    @JsonProperty("optimal_models")
+    private List<OpenModelRecResponse> optimalModels = Lists.newArrayList();
+
     public static List<OpenModelRecResponse> convert(List<SuggestionResponse.ModelRecResponse> response) {
         return response.stream().map(OpenModelRecResponse::convert).collect(Collectors.toList());
     }
 
     public static OpenAccSqlResponse from(SuggestionResponse innerResponse, List<String> sqls) {
         OpenAccSqlResponse result = new OpenAccSqlResponse();
-        result.getOptimizedModels().addAll(OpenSuggestionResponse.convert(innerResponse.getReusedModels()));
+        result.getOptimizedModels().addAll(OpenSuggestionResponse.convert(innerResponse.getReusedModels().stream()
+                .filter(e -> CollectionUtils.isNotEmpty(e.getIndexes())).collect(Collectors.toList())));
         result.getCreatedModels().addAll(OpenSuggestionResponse.convert(innerResponse.getNewModels()));
+        if (CollectionUtils.isNotEmpty(innerResponse.getOptimalModels())) {
+            result.getOptimalModels().addAll(OpenSuggestionResponse.convert(innerResponse.getOptimalModels()));
+        }
         result.fillErrorSqlList(sqls);
         return result;
     }
@@ -70,6 +78,13 @@ public class OpenAccSqlResponse implements Serializable {
         }
 
         for (OpenModelRecResponse modelResponse : createdModels) {
+            modelResponse.getIndexes().forEach(layoutRecDetailResponse -> {
+                List<String> sqlList = layoutRecDetailResponse.getSqlList();
+                normalRecommendedSqlSet.addAll(sqlList);
+            });
+        }
+
+        for (OpenModelRecResponse modelResponse : optimalModels) {
             modelResponse.getIndexes().forEach(layoutRecDetailResponse -> {
                 List<String> sqlList = layoutRecDetailResponse.getSqlList();
                 normalRecommendedSqlSet.addAll(sqlList);

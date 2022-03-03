@@ -38,6 +38,7 @@ import java.util.Locale;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Maps;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang.StringUtils;
@@ -51,8 +52,6 @@ import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.rest.request.OpenSqlAccelerateRequest;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -86,8 +85,8 @@ import io.kyligence.kap.smart.model.AbstractJoinRule;
 import lombok.val;
 
 @Component("modelSmartService")
+@Slf4j
 public class ModelSmartService extends BasicService {
-    private static final Logger logger = LoggerFactory.getLogger(ModelSmartService.class);
     @Autowired
     private RawRecService rawRecService;
 
@@ -229,7 +228,7 @@ public class ModelSmartService extends BasicService {
                 collectResponseOfOptimalModels(modelContext, errorOrOptimalAccelerateInfoMap, responseOfOptimalModels);
                 finishedModelSets.add(modelContext.getOriginModel().getUuid());
             } catch (Exception e) {
-                logger.error(e.getMessage(), e);
+                log.error("Error occurs when collecting optimal models ", e);
             }
         }
     }
@@ -247,63 +246,71 @@ public class ModelSmartService extends BasicService {
     }
 
     private void collectResponseOfOptimalModels(ModelContext modelContext, Map<String, AccelerateInfo> errorOrOptimalAccelerateInfoMap,
-                                                List<ModelRecResponse> responseOfOptimalModels) {
-        Map<Long, Set<String>> layoutId2SqlSetsMap = mapLayoutToErrorOrOptimalSqlSet(modelContext, errorOrOptimalAccelerateInfoMap);
-        if (MapUtils.isEmpty(layoutId2SqlSetsMap)) {
+            List<ModelRecResponse> responseOfOptimalModels) {
+        Map<Long, Set<String>> layoutIdToSqlSetMap = mapLayoutToErrorOrOptimalSqlSet(modelContext,
+                errorOrOptimalAccelerateInfoMap);
+        if (MapUtils.isEmpty(layoutIdToSqlSetMap)) {
             return;
         }
 
-        IndexPlan targetIndexPlan = modelContext.getTargetIndexPlan();
         NDataModel originModel = modelContext.getOriginModel();
-        Map<String, ComputedColumnDesc> oriComputedColumnMap = originModel.getComputedColumnDescs()
-                .stream().collect(Collectors.toMap(ComputedColumnDesc::getFullName, v -> v));
-        Map<Integer, NDataModel.NamedColumn> colsOfTargetModelMap = originModel.getAllNamedColumns()
-                .stream().collect(Collectors.toMap(NDataModel.NamedColumn::getId, v -> v));
+        Map<String, ComputedColumnDesc> oriComputedColumnMap = originModel.getComputedColumnDescs().stream()
+                .collect(Collectors.toMap(ComputedColumnDesc::getFullName, v -> v));
+        Map<Integer, NDataModel.NamedColumn> colsOfOriginModelMap = originModel.getAllNamedColumns().stream()
+                .collect(Collectors.toMap(NDataModel.NamedColumn::getId, v -> v));
+        IndexPlan indexPlan = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), originModel.getProject())
+                .getIndexPlan(originModel.getUuid());
         List<LayoutRecDetailResponse> indexRecItems = Lists.newArrayList();
-        for (Map.Entry<Long, Set<String>> layoutId2SqlSetsEntry : layoutId2SqlSetsMap.entrySet()) {
-            Long layoutId = layoutId2SqlSetsEntry.getKey();
-            Set<String> optimalSqlSets = layoutId2SqlSetsEntry.getValue();
-            LayoutEntity layout = targetIndexPlan.getLayoutEntity(layoutId);
+        layoutIdToSqlSetMap.forEach(((layoutId, optimalSqlSet) -> {
+            LayoutEntity layoutEntity = indexPlan.getLayoutEntity(layoutId);
             LayoutRecDetailResponse response = new LayoutRecDetailResponse();
-            ImmutableList<Integer> colOrder = layout.getColOrder();
+            ImmutableList<Integer> colOrder = layoutEntity.getColOrder();
             Map<String, ComputedColumnDesc> computedColumnsMap = Maps.newHashMap();
             colOrder.forEach(idx -> {
                 if (idx < NDataModel.MEASURE_ID_BASE) {
-                    NDataModel.NamedColumn col = colsOfTargetModelMap.get(idx);
-                    String dataType = originModel.getEffectiveDimensions().get(idx).getDatatype();
+                    ImmutableBiMap<Integer, TblColRef> effectiveDimensions = originModel.getEffectiveDimensions();
+                    NDataModel.NamedColumn col = colsOfOriginModelMap.get(idx);
                     TblColRef tblColRef = originModel.getEffectiveCols().get(idx);
-                    response.getDimensions().add(new LayoutRecDetailResponse.RecDimension(col, false, dataType));
-                    if (tblColRef.getColumnDesc().isComputedColumn()) {
-                        computedColumnsMap.put(tblColRef.getAliasDotName(), oriComputedColumnMap.get(tblColRef.getAliasDotName()));
+                    if (!effectiveDimensions.containsKey(idx) || null == col || null == tblColRef) {
+                        return;
                     }
-                } else {
+                    String dataType = effectiveDimensions.get(idx).getDatatype();
+                    response.getDimensions().add(new LayoutRecDetailResponse.RecDimension(col, false, dataType));
+                    if (tblColRef.getColumnDesc().isComputedColumn()
+                            && oriComputedColumnMap.containsKey(tblColRef.getAliasDotName())) {
+                        computedColumnsMap.put(tblColRef.getAliasDotName(),
+                                oriComputedColumnMap.get(tblColRef.getAliasDotName()));
+                    }
+                } else if (originModel.getEffectiveMeasures().containsKey(idx)) {
                     NDataModel.Measure measure = originModel.getEffectiveMeasures().get(idx);
                     response.getMeasures().add(new LayoutRecDetailResponse.RecMeasure(measure, false));
                     List<TblColRef> colRefs = measure.getFunction().getColRefs();
                     colRefs.forEach(colRef -> {
-                        if (colRef.getColumnDesc().isComputedColumn()) {
-                            computedColumnsMap.put(colRef.getAliasDotName(), oriComputedColumnMap.get(colRef.getAliasDotName()));
+                        if (colRef.getColumnDesc().isComputedColumn()
+                                && oriComputedColumnMap.containsKey(colRef.getAliasDotName())) {
+                            computedColumnsMap.put(colRef.getAliasDotName(),
+                                    oriComputedColumnMap.get(colRef.getAliasDotName()));
                         }
                     });
                 }
             });
-            List<LayoutRecDetailResponse.RecComputedColumn> computedColumnDescList = computedColumnsMap
-                    .values().stream().map(e -> new LayoutRecDetailResponse.RecComputedColumn(e, false)).collect(Collectors.toList());
+            List<LayoutRecDetailResponse.RecComputedColumn> computedColumnDescList = computedColumnsMap.values()
+                    .stream().map(e -> new LayoutRecDetailResponse.RecComputedColumn(e, false))
+                    .collect(Collectors.toList());
             response.setComputedColumns(computedColumnDescList);
-            response.setIndexId(layout.getId());
-            if (CollectionUtils.isNotEmpty(optimalSqlSets)) {
-                response.setSqlList(Lists.newArrayList(optimalSqlSets));
-            }
+            response.setIndexId(layoutEntity.getId());
+            response.setSqlList(Lists.newArrayList(optimalSqlSet));
             indexRecItems.add(response);
-        }
+        }));
 
         ModelRecResponse response = new ModelRecResponse(originModel);
-        response.setIndexPlan(modelContext.getTargetIndexPlan());
+        response.setIndexPlan(indexPlan);
         response.setIndexes(indexRecItems);
         responseOfOptimalModels.add(response);
     }
 
-    private Map<Long, Set<String>> mapLayoutToErrorOrOptimalSqlSet(ModelContext modelContext, Map<String, AccelerateInfo> errorOrOptimalAccelerateInfoMap) {
+    private Map<Long, Set<String>> mapLayoutToErrorOrOptimalSqlSet(ModelContext modelContext,
+            Map<String, AccelerateInfo> errorOrOptimalAccelerateInfoMap) {
         if (modelContext == null || MapUtils.isEmpty(errorOrOptimalAccelerateInfoMap)) {
             return Maps.newHashMap();
         }
