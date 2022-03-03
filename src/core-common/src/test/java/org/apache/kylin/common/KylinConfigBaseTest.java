@@ -1079,6 +1079,15 @@ public class KylinConfigBaseTest {
     }
 
     @Test
+    public void testMetadataUrlContainsComma() {
+        String url = "ke_metadata@jdbc,driverClassName=com.mysql.jdbc.Driver,"
+                + "url=\"jdbc:mysql:replication://10.1.3.12:3306,10.1.3.11:3306/kylin_test?useUnicode=true&characterEncoding=utf8\","
+                + "username=kylin,password=test,maxTotal=20,maxIdle=20";
+        StorageURL storageURL = StorageURL.valueOf(url);
+        Assert.assertEquals(url, storageURL.toString());
+    }
+
+    @Test
     public void getIsMetadataKeyCaseInSensitiveEnabled() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         boolean metadataKeyCaseInSensitiveEnabled = config.isMetadataKeyCaseInSensitiveEnabled();
