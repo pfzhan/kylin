@@ -1166,6 +1166,33 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testExpandModelRequestWithBrokenModel() throws Exception {
+        String brokenModelId = "4b93b131-824e-6966-c4dd-5a4268d27095";
+        String project = "test_broken_project";
+        NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), project);
+        NDataModel brokenModel = modelManager.getDataModelDesc(brokenModelId);
+        Assert.assertTrue(brokenModel.isBroken());
+        val request = new ModelRequest(JsonUtil.deepCopy(brokenModel, NDataModel.class));
+        request.setPartitionDesc(null);
+        request.setProject(project);
+        request.setUuid(brokenModelId);
+        NDataModel srcModel =
+                NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                        .getDataModelDescWithoutInit(brokenModelId);
+        List<SimplifiedMeasure> simpleMeasureList = Lists.newArrayList();
+        for (NDataModel.Measure measure : srcModel.getAllMeasures()) {
+            if (measure.getType() == NDataModel.MeasureType.INTERNAL)
+                continue;
+            SimplifiedMeasure simplifiedMeasure = SimplifiedMeasure.fromMeasure(measure);
+            simpleMeasureList.add(simplifiedMeasure);
+        }
+        request.setSimplifiedMeasures(simpleMeasureList);
+        Assert.assertEquals(10, request.getSimplifiedMeasures().size());
+        semanticService.expandModelRequest(request);
+        Assert.assertEquals(13, request.getSimplifiedMeasures().size());
+    }
+
+    @Test
     public void testGetModelJson() throws IOException {
         String modelJson = modelService.getModelJson("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default");
         Assert.assertTrue(JsonUtil.readValue(modelJson, NDataModel.class).getUuid()

@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -38,6 +39,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableBiMap;
 import io.kyligence.kap.secondstorage.SecondStorageUpdater;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import org.apache.calcite.sql.SqlNode;
@@ -180,19 +182,48 @@ public class ModelSemanticHelper extends BasicService {
             NDataModel existingModel =
                     NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), modelRequest.getProject())
                             .getDataModelDesc(modelRequest.getUuid());
+
+            Map<Integer, Collection<Integer>> effectiveExpandedMeasures = null;
+            ImmutableBiMap<Integer, Measure> effectiveMeasures = null;
+            if (existingModel.isBroken()) {
+                effectiveExpandedMeasures = new HashMap<>();
+                effectiveMeasures = loadModelMeasureWithoutInit(modelRequest, effectiveExpandedMeasures);
+            } else {
+                effectiveExpandedMeasures = existingModel.getEffectiveExpandedMeasures();
+                effectiveMeasures = existingModel.getEffectiveMeasures();
+            }
+
             Set<Integer> internalIds = new HashSet<>();
             for (SimplifiedMeasure measure : modelRequest.getSimplifiedMeasures()) {
-                if (existingModel.getEffectiveExpandedMeasures().containsKey(measure.getId())) {
-                    internalIds.addAll(existingModel.getEffectiveExpandedMeasures().get(measure.getId()));
+                if (effectiveExpandedMeasures.containsKey(measure.getId())) {
+                    internalIds.addAll(effectiveExpandedMeasures.get(measure.getId()));
                 }
             }
             Set<Integer> requestMeasureIds = modelRequest.getSimplifiedMeasures().stream().map(SimplifiedMeasure::getId).collect(Collectors.toSet());
             for (Integer internalId : internalIds) {
                 if (!requestMeasureIds.contains(internalId)) {
-                    modelRequest.getSimplifiedMeasures().add(SimplifiedMeasure.fromMeasure(existingModel.getEffectiveMeasures().get(internalId)));
+                    modelRequest.getSimplifiedMeasures().add(SimplifiedMeasure.fromMeasure(effectiveMeasures.get(internalId)));
                 }
             }
         }
+    }
+
+    private ImmutableBiMap<Integer, Measure> loadModelMeasureWithoutInit(ModelRequest modelRequest,
+             Map<Integer, Collection<Integer>> effectiveExpandedMeasures) {
+        NDataModel srcModel =
+                NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), modelRequest.getProject())
+                        .getDataModelDescWithoutInit(modelRequest.getUuid());
+        ImmutableBiMap.Builder<Integer, Measure> mapBuilder = ImmutableBiMap.builder();
+        for (Measure measure : srcModel.getAllMeasures()) {
+            measure.setName(measure.getName());
+            if (!measure.isTomb()) {
+                mapBuilder.put(measure.getId(), measure);
+                if (measure.getType() == NDataModel.MeasureType.EXPANDABLE) {
+                    effectiveExpandedMeasures.put(measure.getId(), measure.getInternalIds());
+                }
+            }
+        }
+        return mapBuilder.build();
     }
 
     public void deleteExpandableMeasureInternalMeasures(NDataModel model) {

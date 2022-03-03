@@ -3105,6 +3105,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
 
     public NDataModel repairBrokenModel(String project, ModelRequest modelRequest) throws Exception {
         aclEvaluate.checkProjectWritePermission(project);
+        semanticUpdater.expandModelRequest(modelRequest);
         val modelManager = getDataModelManager(project);
         val origin = modelManager.getDataModelDesc(modelRequest.getId());
         val broken = modelQuerySupporter.getBrokenModel(project, origin.getId());
