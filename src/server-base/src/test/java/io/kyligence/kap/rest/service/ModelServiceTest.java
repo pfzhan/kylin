@@ -6686,8 +6686,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(5, modelList6.getValue().size());
         getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "false");
 
+        // used for getModels without sortBy field
         val modelList7 = modelService.getModels(null, null, true, project, "ADMIN", Lists.newArrayList(), "", 0, 6,
-                "input_records_count", true, null,
+                "", true, null,
                 Arrays.asList(ModelAttributeEnum.BATCH, ModelAttributeEnum.STREAMING, ModelAttributeEnum.HYBRID), null,
                 null, false);
         Assert.assertEquals(6, modelList7.getValue().size());
