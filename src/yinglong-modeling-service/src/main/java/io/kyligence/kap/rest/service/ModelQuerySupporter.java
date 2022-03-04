@@ -33,8 +33,6 @@ import java.util.List;
 
 public interface ModelQuerySupporter {
 
-    boolean matchQuery(String table, String sortBy);
-
     List<ModelTriple> getModels(ModelQueryParams queryParam);
 
     NDataModel getBrokenModel(String project, String modelId);

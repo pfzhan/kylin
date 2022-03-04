@@ -619,7 +619,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
             Long lastModifyTo, boolean onlyNormalDim) {
         List<NDataModel> models = new ArrayList<>();
         DataResult<List<NDataModel>> filterModels;
-        if (modelQuerySupporter.matchQuery(table, sortBy)) {
+        if (StringUtils.isEmpty(table)) {
             val modelQueryParams = new ModelQueryParams(modelId, modelAlias, exactMatch, project, owner, status, offset,
                     limit, sortBy, reverse, modelAliasOrOwner, modelAttributes, lastModifyFrom, lastModifyTo,
                     onlyNormalDim);
@@ -633,14 +633,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
             filterModels.setValue(updateReponseAcl(filterModels.getValue(), project));
             return filterModels;
         }
-
-        if (StringUtils.isNotEmpty(table)) {
-            models.addAll(getRelateModels(project, table, modelAlias));
-        } else {
-            models.addAll(getModels(modelAlias, project, exactMatch, owner, status, sortBy, reverse, modelAliasOrOwner,
-                    lastModifyFrom, lastModifyTo, onlyNormalDim));
-        }
-
+        models.addAll(getRelateModels(project, table, modelAlias));
         Set<NDataModel> filteredModels = ModelUtils.getFilteredModels(project, modelAttributes, models);
 
         if (CollectionUtils.isNotEmpty(modelAttributes)) {

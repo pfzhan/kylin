@@ -71,14 +71,6 @@ public class ModelQueryService extends BasicService implements ModelQuerySupport
     @Autowired
     public AclEvaluate aclEvaluate;
 
-    public boolean matchQuery(String table, String sortBy) {
-        /**
-         * input_records_count needs to calculate all the layout of each segment,
-         * It will cost too much time when has too much record, so keep the original logic
-         */
-        return StringUtils.isEmpty(table) && !"input_records_count".equals(sortBy);
-    }
-
     public List<ModelTriple> getModels(ModelQueryParams queryParam) {
         val projectName = queryParam.getProjectName();
         List<ModelTriple> modelTripleList = matchFirstModels(queryParam);
