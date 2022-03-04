@@ -948,6 +948,7 @@ export default class ModelSegment extends Vue {
         refresh_all_indexes
       })
       if (isSubmit) {
+        this.resetSelectedSegments()
         await this.loadSegments()
         // this.$emit('loadModels')
         this.$message({
