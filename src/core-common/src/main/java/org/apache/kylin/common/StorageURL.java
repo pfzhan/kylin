@@ -56,9 +56,9 @@ import com.google.common.collect.ImmutableMap;
 
 /**
  * The object form of metadata/storage URL: IDENTIFIER@SCHEME[,PARAM=VALUE,PARAM=VALUE...]
- *  
+ *
  * It is not standard URL, but a string of specific format that shares some similar parts with URL.
- * 
+ *
  * Immutable by design.
  */
 public class StorageURL {
@@ -169,16 +169,21 @@ public class StorageURL {
 
     @Override
     public String toString() {
-        String str = identifier;
-        if (!scheme.isEmpty())
-            str += "@" + scheme;
-
-        for (Entry<String, String> kv : params.entrySet()) {
-            str += "," + kv.getKey();
-            if (!kv.getValue().isEmpty())
-                str += "=" + kv.getValue();
+        StringBuilder str = new StringBuilder(identifier);
+        if (!scheme.isEmpty()) {
+            str.append("@").append(scheme);
         }
-        return str;
+        for (Entry<String, String> kv : params.entrySet()) {
+            str.append(",").append(kv.getKey());
+            if (!kv.getValue().isEmpty()) {
+                String value = kv.getValue();
+                if (value.contains(",")) {
+                    value = "\"" + value + "\"";
+                }
+                str.append("=").append(value);
+            }
+        }
+        return str.toString();
     }
 
     @Override
