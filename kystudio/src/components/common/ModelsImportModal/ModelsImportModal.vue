@@ -508,7 +508,7 @@ export default class ModelsImportModal extends Vue {
     const defaultValue = this.getCurrentDefaultStatus(row)
     if (defaultValue === 'noImport') {
       return 'el-icon-ksd-error_01 is-error'
-    } else if (defaultValue === 'new') {
+    } else if (defaultValue === 'new' && row.has_same_name) {
       return 'el-icon-ksd-alert is-warning'
     } else {
       return 'el-icon-ksd-good_health is-success'
