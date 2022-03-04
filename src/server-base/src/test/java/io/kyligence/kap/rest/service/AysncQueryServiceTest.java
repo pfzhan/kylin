@@ -44,12 +44,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Exchanger;
+import java.util.concurrent.TimeUnit;
 
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
 
-import io.kyligence.kap.query.pushdown.SparkSqlClient;
-import lombok.val;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -66,6 +65,7 @@ import org.apache.kylin.rest.service.ServiceTestBase;
 import org.apache.parquet.Strings;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
+import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -79,6 +79,9 @@ import org.supercsv.io.ICsvListWriter;
 import org.supercsv.prefs.CsvPreference;
 
 import com.google.common.collect.Lists;
+
+import io.kyligence.kap.query.pushdown.SparkSqlClient;
+import lombok.val;
 
 public class AysncQueryServiceTest extends ServiceTestBase {
 
@@ -135,6 +138,51 @@ public class AysncQueryServiceTest extends ServiceTestBase {
     public void testCreateErrorFlagWhenMessageIsNull() throws IOException {
         String queryId = RandomUtil.randomUUIDStr();
         AsyncQueryUtil.createErrorFlag(PROJECT, queryId, null);
+    }
+
+    @Test
+    public void testAsyncQueryWithParquetSpecialCharacters() throws IOException {
+        QueryContext queryContext = QueryContext.current();
+        String queryId = queryContext.getQueryId();
+        mockMetadata(queryId, true);
+        queryContext.getQueryTagInfo().setAsyncQuery(true);
+        queryContext.getQueryTagInfo().setFileFormat("CSV");
+        queryContext.getQueryTagInfo().setFileEncode("utf-8");
+        String sql = "select '\\(123\\)','123'";
+        queryContext.setProject(PROJECT);
+
+        ss.sqlContext().setConf("spark.sql.parquet.columnNameCheck.enabled", "false");
+        SparkSqlClient.executeSql(ss, sql, UUID.fromString(queryId), PROJECT);
+
+        Awaitility.await().atMost(60000, TimeUnit.MILLISECONDS).until(
+                () -> AsyncQueryService.QueryStatus.SUCCESS.equals(asyncQueryService.queryStatus(PROJECT, queryId)));
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        ServletOutputStream servletOutputStream = mock(ServletOutputStream.class);
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        when(response.getOutputStream()).thenReturn(servletOutputStream);
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
+                Object[] arguments = invocationOnMock.getArguments();
+                baos.write((byte[]) arguments[0], (int) arguments[1], (int) arguments[2]);
+                return null;
+            }
+        }).when(servletOutputStream).write(any(byte[].class), anyInt(), anyInt());
+
+        SparderEnv.getSparkSession().sqlContext().setConf("spark.sql.parquet.columnNameCheck.enabled", "false");
+        asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, false, response, "csv", encodeDefault);
+        List<org.apache.spark.sql.Row> rowList = ss.read()
+                .parquet(asyncQueryService.getAsyncQueryResultDir(PROJECT, queryId).toString()).collectAsList();
+        List<String> result = Lists.newArrayList();
+        rowList.stream().forEach(row -> {
+            val list = row.toSeq().toList();
+            for (int i = 0; i < list.size(); i++) {
+                Object cell = list.apply(i);
+                String column = cell == null ? "" : cell.toString();
+                result.add(column);
+            }
+        });
+        assertEquals("(123)" + "123", result.get(0) + result.get(1));
     }
 
     @Test

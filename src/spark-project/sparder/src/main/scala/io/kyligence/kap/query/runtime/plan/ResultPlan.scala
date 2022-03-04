@@ -208,13 +208,14 @@ object ResultPlan extends LogEx {
         sqlContext.setConf("spark.sql.parquet.writeLegacyFormat", "true")
         if (rowType != null) {
           val newDf = wrapAlias(df, rowType)
-          newDf.write.mode(SaveMode.Overwrite).option("encoding", encode).option("charset", "utf-8").parquet(path)
+          normalizeSchema(newDf).write.mode(SaveMode.Overwrite).option("encoding", encode).option("charset", "utf-8").parquet(path)
         } else {
-          df.write.mode(SaveMode.Overwrite).option("encoding", encode).option("charset", "utf-8").parquet(path)
+          normalizeSchema(df).write.mode(SaveMode.Overwrite).option("encoding", encode).option("charset", "utf-8").parquet(path)
         }
         sqlContext.setConf("spark.sql.parquet.writeLegacyFormat", "false")
-      case _ => df.write.option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZ").option("encoding", encode)
-        .option("charset", "utf-8").mode(SaveMode.Append).parquet(path)
+      case _ =>
+        normalizeSchema(df).write.option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZ").option("encoding", encode)
+          .option("charset", "utf-8").mode(SaveMode.Append).parquet(path)
     }
     AsyncQueryUtil.createSuccessFlag(QueryContext.current().getProject, QueryContext.current().getQueryId)
     if (kapConfig.isQuerySparkJobTraceEnabled) {
@@ -231,6 +232,31 @@ object ResultPlan extends LogEx {
     }
   }
 
+  /**
+   * Normalize column name by replacing invalid characters with underscore
+   * and strips accents
+   *
+   * @param columns dataframe column names list
+   * @return the list of normalized column names
+   */
+  def normalize(columns: Seq[String]): Seq[String] = {
+    columns.map { c =>
+      c.replace(" ", "_")
+        .replace(",", "_")
+        .replace(";", "_")
+        .replace("{", "_")
+        .replace("}", "_")
+        .replace("(", "_")
+        .replace(")", "_")
+        .replace("\\n", "_")
+        .replace("\\t", "_")
+        .replace("=", "_")
+    }
+  }
+
+  def normalizeSchema(originDS: DataFrame): DataFrame = {
+    originDS.toDF(normalize(originDS.columns): _*)
+  }
 }
 
 object QueryToExecutionIDCache extends LogEx {
