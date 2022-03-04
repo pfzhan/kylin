@@ -58,7 +58,8 @@ export default {
     resourceGroupEnabled: 'false',
     queryDownloadMaxSize: 100000,
     isShowSecondStorage: false,
-    isNonAdminGenQueryDiagPackage: 'true'
+    isNonAdminGenQueryDiagPackage: 'true',
+    streamingEnabled: 'false'
   },
   mutations: {
     [types.COLLECT_MESSAGE_DIRECTIVES]: (state, directive) => {
@@ -180,6 +181,7 @@ export default {
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.sso.cookie-name', key: 'cookieNames'})
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.sso.sso-login-enabled', key: 'ssoLoginEnabled'})
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.model.measure-name-check-enabled', key: 'enableCheckName', defaultValue: 'true'})
+          commit(types.GET_CONF_BY_NAME, {name: 'kylin.streaming.enabled', key: 'streamingEnabled', defaultValue: 'false'})
           resolve(response)
         }, () => {
           reject()
@@ -282,6 +284,9 @@ export default {
     },
     isNonAdminGenQueryDiagPackage: (state) => {
       return state.isNonAdminGenQueryDiagPackage === 'true'
+    },
+    isStreamingEnabled: (state) => {
+      return state.streamingEnabled === 'true'
     }
   }
 }

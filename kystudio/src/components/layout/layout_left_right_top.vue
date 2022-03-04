@@ -688,10 +688,14 @@ export default class LayoutLeftRightTop extends Vue {
   }
   showMenuByRole (menuName) {
     let isShowSnapshot = true
+    let isShowStreamingJob = true
     if (menuName === 'snapshot') {
       isShowSnapshot = this.$store.state.project.snapshot_manual_management_enabled
     }
-    return this.availableMenus.includes(menuName.toLowerCase()) && isShowSnapshot
+    if (menuName === 'streamingjob') {
+      isShowStreamingJob = this.$store.state.system.streamingEnabled === 'true'
+    }
+    return this.availableMenus.includes(menuName.toLowerCase()) && isShowSnapshot && isShowStreamingJob
   }
   getLicense () {
     location.href = 'mailto:g-ent-lic@kyligence.io'
