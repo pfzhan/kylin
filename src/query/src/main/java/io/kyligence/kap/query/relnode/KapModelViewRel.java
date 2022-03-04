@@ -35,9 +35,12 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.query.exception.QueryErrorCode;
 import org.apache.kylin.query.relnode.ColumnRowType;
 import org.apache.kylin.query.relnode.OLAPContext;
 
@@ -131,22 +134,30 @@ public class KapModelViewRel extends SingleRel implements KapRel, EnumerableRel 
 
     @Override
     public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
-        throw new RuntimeException("Not Implemented");
+        throw new KylinException(QueryErrorCode.UNSUPPORTED_OPERATION, "Not Implemented");
     }
 
     @Override
     public EnumerableRel implementEnumerable(List<EnumerableRel> inputs) {
-        throw new RuntimeException("Not Implemented");
+        throw new KylinException(QueryErrorCode.UNSUPPORTED_OPERATION, "Not Implemented");
     }
 
     @Override
     public void implementCutContext(ICutContextStrategy.CutContextImplementor implementor) {
-        throw new RuntimeException("KapStarTableRel should not be re-cut from outside");
+        throw new KylinException(QueryErrorCode.UNSUPPORTED_OPERATION, "KapStarTableRel should not be re-cut from outside");
     }
 
     @Override
     public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
         // cost nothing
         return planner.getCostFactory().makeCost(0, 0, 0);
+    }
+
+    @Override
+    public RelWriter explainTerms(RelWriter pw) {
+        pw.input("input", getInput());
+        pw.item("model", modelAlias);
+        pw.item("ctx", context == null ? "" : context.id + "@" + context.realization);
+        return pw;
     }
 }

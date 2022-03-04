@@ -63,6 +63,7 @@ public enum QueryErrorCode implements ErrorCodeSupplier {
 
     // 20008XXX general query errors
     UNSUPPORTED_EXPRESSION("KE-020008001"),
+    UNSUPPORTED_OPERATION("KE-020008002"),
 
     // 20029XXX optimization rule
     UNSUPPORTED_SUM_CASE_WHEN("KE-020029001"), //
