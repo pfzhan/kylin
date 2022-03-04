@@ -908,6 +908,7 @@ export default class ModelSegment extends Vue {
       const startTime = startDate && transToUTCMs(startDate)
       const endTime = endDate && transToUTCMs(endDate)
       this.isSegmentLoading = true
+      this.resetSelectedSegments()
       const res = await this.fetchSegments({ projectName, modelName, startTime, endTime, sortBy, reverse, ...this.pagination })
       const { total_size, value } = await handleSuccessAsync(res)
       const formatedSegments = formatSegments(this, value)

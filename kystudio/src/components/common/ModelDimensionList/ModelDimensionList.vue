@@ -28,6 +28,7 @@
         :refTag="pageRefTags.modelDimensionPager"
         layout="total, prev, pager, next"
         :totalSize="dimensions.totalCount"
+        :perPageSize="dimensions.pageSize"
         :curPage="dimensions.pageOffset + 1"
         @handleCurrentChange="value => pageOffset = value">
       </kap-pager>

@@ -10,8 +10,12 @@
     :close-on-press-escape="false"
     :close-on-click-modal="false"
     @close="handleHide(false)">
-    <!-- <el-button @click="handleSyncComment" :disabled="forbidenSync">sync</el-button> -->
     <el-form :model="measure" class="add-measure" label-position="top" :rules="rules"  ref="measureForm">
+      <el-form-item :label="$t('name')" prop="name">
+        <div>
+          <el-input v-guide.measureNameInput class="measures-width measure-name-input" size="medium" v-model.trim="measure.name" :placeholder="$t('kylinLang.common.nameFormatValidTip2')"></el-input>
+        </div>
+      </el-form-item>
       <el-form-item :label="$t('expression')" prop="expression">
         <el-select v-guide.measureExpressionSelect :popper-append-to-body="false" class="measures-width measure-expression-select" popper-class="js_measure-expression" size="medium" v-model="measure.expression" @change="changeExpression">
           <el-option
@@ -91,7 +95,7 @@
           </div>
           <el-button type="primary" size="mini" icon="el-icon-ksd-add_2" plain circle v-if="measure.expression === 'COUNT_DISTINCT'&&measure.return_type!=='bitmap'" class="ksd-ml-10" @click="addNewProperty"></el-button>
         </div>
-        <p class="sync-comment-tip" v-if="!forbidenSync">{{$t('syncCommentTip1', {comment: measure.comment})}}<span class="sync-content" @click="handleSyncComment">{{$t('syncContent')}}</span></p>
+        <p class="sync-comment-tip" v-if="showSync">{{$t('syncCommentTip1', {comment: columnComment(measure.parameterValue.value)})}}<span class="sync-content" @click="handleSyncComment">{{$t('syncContent')}}</span></p>
       </el-form-item>
       <CCEditForm ref="ccEditForm" class="ksd-mb-8" :class="{'error-tips': corrColumnError}" key="ccEditForm" v-if="ccVisible" @checkSuccess="saveCC" @delSuccess="delCC" :hideCancel="isEditMeasure" :isEditMeasureCC="!isEdit" source="createMeasure" :ccDesc="ccObject" :modelInstance="modelInstance" @resetSubmitLoading="resetSubmitType" @saveError="resetSubmitType"></CCEditForm>
       <div class="error-tips" v-if="corrColumnError">{{$t('corrColDatatypeError')}}</div>
@@ -163,9 +167,9 @@
       </el-form-item>
       <CCEditForm class="ksd-mb-8" :class="{'error-tips': corrColumnError}" key="corrEditForm" ref="corrEditForm" v-if="corrCCVisible" @checkSuccess="saveCorrCC" @delSuccess="delCorrCC" :hideCancel="isEditMeasure" :isEditMeasureCC="!isCorrCCEdit" source="createMeasure" :ccDesc="corrCCObject" :modelInstance="modelInstance" @resetSubmitLoading="resetSubmitType" @saveError="resetSubmitType"></CCEditForm>
       <div class="error-tips" v-if="corrColumnError">{{$t('corrColDatatypeError')}}</div>
-      <el-form-item :label="$t('name')" :prop="enableCheckName === 'true' ? 'name' : null">
+      <el-form-item :label="$t('comment')" prop="comment">
         <div>
-          <el-input v-guide.measureNameInput class="measures-width measure-name-input" size="medium" v-model.trim="measure.name" :placeholder="enableCheckName === 'true' ? $t('nameValid') : ''"></el-input>
+          <el-input v-guide.measureNameInput class="measures-width measure-comment-input" size="medium" v-model.trim="measure.comment" :placeholder="$t('kylinLang.common.pleaseInput')"></el-input>
         </div>
       </el-form-item>
     </el-form>
@@ -226,6 +230,7 @@ import $ from 'jquery'
     'en': {
       requiredName: 'The measure name is required.',
       name: 'Name',
+      comment: 'Comment',
       expression: 'Function',
       return_type: 'Function Parameter',
       paramValue: 'Column',
@@ -245,7 +250,7 @@ import $ from 'jquery'
       duplicateColumns: 'Same Statement',
       noProvideDecimalType: 'PERCENTILE function does not support columns with {datatype} data type.',
       syncCommentTip1: 'This column’s comment is "{comment}", ',
-      syncContent: 'sync to the name',
+      syncContent: 'sync to the comment',
       corrTips: '* The supported column data types are: bigint, integer, tinyint, smallint, decimal, double and float.<br/>* If the data type of one of the columns is decimal, the other one\'s also needs to be decimal.',
       corrColDatatypeError: 'The data type of one of the columns is decimal, the other one\'s also needs to be decimal.',
       nameValid: 'Only supports Chinese or English characters, numbers, spaces and symbol（_ -()%?.）'
@@ -253,6 +258,7 @@ import $ from 'jquery'
     'zh-cn': {
       requiredName: '请输入度量名称',
       name: '名称',
+      comment: '注释',
       expression: '函数',
       return_type: '函数参数',
       paramValue: '列',
@@ -272,7 +278,7 @@ import $ from 'jquery'
       duplicateColumns: '重复定义',
       noProvideDecimalType: 'PERCENTILE 函数不支持 {datatype} 类型的列。',
       syncCommentTip1: '检测当前列注释名称为“{comment}”，您可以',
-      syncContent: '同步至名称',
+      syncContent: '同步至注释',
       corrTips: '* 所支持列的数据类型为：bigint，integer，tinyint，smallint，decimal，double 和  float。日期类型暂不支持计算。<br/>* 如果其中一个列的数据类型为 decimal 时，则另外一个列的的数据类型也需要为 decimal。其他数据类型组合则不受影响。',
       corrColDatatypeError: '一个列的数据类型为 decimal 时，另一个列的数据类型也需要为 decimal。',
       nameValid: '支持中文、英文、数字、空格、特殊字符（_ -()%?.）'
@@ -408,8 +414,9 @@ export default class AddMeasure extends Vue {
     return this.modelInstance.anti_flatten_lookups
   }
 
-  get forbidenSync () {
-    return !this.measure.parameterValue.value || this.ccVisible || ['SUM(constant)', 'COUNT_DISTINCT', 'CORR'].includes(this.measure.expression) || !this.measure.comment
+  get showSync () {
+    if (!this.measure.parameterValue.value || this.ccVisible || ['SUM(constant)', 'COUNT_DISTINCT'].includes(this.measure.expression)) return false
+    return this.columnComment(this.measure.parameterValue.value)
   }
 
   // 获取列的注释
@@ -477,6 +484,7 @@ export default class AddMeasure extends Vue {
   changeExpression () {
     this.measure.return_type = ''
     this.measure.parameterValue.value = ''
+    this.measure.comment = ''
     this.corrCCVisible = false
     this.ccVisible = false
     this.corrCCVisible = false
@@ -541,7 +549,7 @@ export default class AddMeasure extends Vue {
     const alias = value.split('.')[0]
     const nTable = this.modelInstance.getTableByAlias(alias)
     measure.parameterValue.table_guid = nTable && nTable.guid
-    const currentColumnInfo = nTable.columns.filter(item => item.full_colname === value)
+    // const currentColumnInfo = nTable.columns.filter(item => item.full_colname === value)
     const ccObj = this.getCCObj(value)
     if (ccObj) {
       this.ccObject = ccObj
@@ -551,7 +559,7 @@ export default class AddMeasure extends Vue {
       this.ccVisible = false
       this.isEdit = false
     }
-    measure.comment = currentColumnInfo.length ? currentColumnInfo[0].comment || '' : ''
+    // measure.comment = currentColumnInfo.length ? currentColumnInfo[0].comment || '' : ''
     measure.expression === 'SUM(column)' && (measure.return_type = '')
     this.syncComment = false
     this.corrColumnError = false
@@ -902,7 +910,7 @@ export default class AddMeasure extends Vue {
     if (measureObj.expression === 'SUM' || measureObj.expression === 'COUNT') {
       measureObj.expression = `${measureObj.expression}(${measureObj.parameterValue.type})`
     }
-    this.measure = { ...measureObj, comment: measureObj.parameterValue && measureObj.parameterValue.value && measureObj.expression !== 'SUM(constant)' ? this.columnComment(measureObj.parameterValue.value) : '' }
+    this.measure = { ...measureObj }
     if (!this.isEditMeasure) {
       this.measure.guid = sampleGuid()
     }
@@ -949,13 +957,16 @@ export default class AddMeasure extends Vue {
 
   handleSyncComment () {
     // if (!this.measure.parameterValue.table_guid) return
-    const expr = this.measure.expression.replace(/\(\w+\)$/, '')
-    if (!this.syncComment) {
-      this.measure.nameBackUp = this.measure.name
-      this.measure.name = `${this.measure.comment.slice(0, 100)}${expr.toLocaleUpperCase() === 'SUM' ? '' : '_' + expr}`
-    } else {
-      this.measure.name = this.measure.nameBackUp
-    }
+    // const expr = this.measure.expression.replace(/\(\w+\)$/, '')
+    // if (!this.syncComment) {
+    this.$set(this.measure, 'comment', this.columnComment(this.measure.parameterValue.value))
+    // this.measure.comment = this.columnComment(this.measure.parameterValue.value)
+    //   this.measure.nameBackUp = this.measure.name
+    //   this.measure.name = `${this.measure.comment.slice(0, 100)}${expr.toLocaleUpperCase() === 'SUM' ? '' : '_' + expr}`
+    // }
+    // else {
+    //   this.measure.name = this.measure.nameBackUp
+    // }
     // this.syncComment = !this.syncComment
   }
 }

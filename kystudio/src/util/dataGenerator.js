@@ -156,7 +156,8 @@ export function generateModel (modelData) {
       name: measureData.name,
       expression: measureData.expression,
       returnType: measureData.return_type,
-      parameters: measureData.parameter_value
+      parameters: measureData.parameter_value,
+      comment: measureData.comment
     })),
     joints: jointsData.map(jointData => ({
       guid: jointData.guid,

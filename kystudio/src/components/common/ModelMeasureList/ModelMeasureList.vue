@@ -16,9 +16,10 @@
         </div>
       </div>
       <el-table class="model-measure-table" :data="measures.data" style="width: 100%">
-        <el-table-column prop="name" :label="$t('kylinLang.cube.measure')">
+        <el-table-column prop="name" :label="$t('kylinLang.cube.measure')" width="150px">
           <span slot-scope="scope" class="text">{{scope.row.name}}</span>
         </el-table-column>
+        <el-table-column prop="comment" :label="$t('kylinLang.dataSource.comment')" show-overflow-tooltip width="150px"></el-table-column>
         <el-table-column prop="expression" :label="$t('kylinLang.dataSource.expression')" width="170px" />
         <el-table-column prop="parameters" :label="$t('kylinLang.model.parameters')">
           <template slot-scope="scope">
@@ -46,6 +47,7 @@
         :refTag="pageRefTags.modelMeasurePager"
         layout="total, prev, pager, next"
         :totalSize="measures.totalCount"
+        :perPageSize="measures.pageSize"
         :curPage="measures.pageOffset + 1"
         @handleCurrentChange="value => pageOffset = value">
       </kap-pager>

@@ -13,7 +13,7 @@
     <template v-if="isFormShow">
       <div class="batch-des">{{$t('batchMeasureDes')}}</div>
       <div class="ksd-mb-10 ksd-right">
-        <el-button @click="changeSyncName">{{!syncComment ? $t('syncName') : $t('resetSyncName')}}</el-button>
+        <el-button @click="changeSyncName" class="sync-btn">{{!syncComment ? $t('syncName') : $t('resetSyncName')}}</el-button>
         <el-input :placeholder="$t('searchColumn')" style="width:230px;" @input="changeSearchVal" v-model="searchChar">
           <i slot="prefix" class="el-input__icon el-ksd-icon-search_22"></i>
         </el-input>
@@ -33,7 +33,7 @@
             v-if="table.show || isGuideMode"
             :data="table.columns"
             :ref="table.guid">
-            <el-table-column show-overflow-tooltip prop="name" :label="$t('name')"></el-table-column>
+            <!-- <el-table-column show-overflow-tooltip prop="name" :label="$t('name')"></el-table-column> -->
             <el-table-column show-overflow-tooltip prop="column" :label="$t('column')"></el-table-column>
             <el-table-column show-overflow-tooltip prop="datatype" width="110px" :label="$t('dataType')"></el-table-column>
             <el-table-column prop="SUM" :renderHeader="(h, obj) => {return renderColumn(h, obj, table)}" align="center">
@@ -281,6 +281,14 @@ export default class BatchMeasureModal extends Vue {
       columns.push(...t.columns)
     })
     columns.push(...this.ccTable.columns)
+    if (this.syncComment) {
+      allMeasureArr.forEach(item => {
+        if (item.parameter_value.length > 0) {
+          const column = columns.filter(it => it.full_colname === item.parameter_value[0].value)
+          column.length > 0 && column[0].comment && (item.comment = column[0].comment)
+        }
+      })
+    }
     columns.forEach((column) => {
       if (column.isMeasureCol) {
         if (column.SUM.value && !column.SUM.isShouldDisable) {
@@ -290,7 +298,8 @@ export default class BatchMeasureModal extends Vue {
             guid: sampleGuid(),
             expression: 'SUM',
             parameter_value: [{type: 'column', value: column.table_alias + '.' + (column.column ?? column.columnName)}],
-            table_guid: column.table_guid
+            table_guid: column.table_guid,
+            comment: this.syncComment ? column.comment : ''
           }
           allMeasureArr.push(measure)
         }
@@ -300,7 +309,8 @@ export default class BatchMeasureModal extends Vue {
             guid: sampleGuid(),
             expression: 'MIN',
             parameter_value: [{type: 'column', value: column.table_alias + '.' + (column.column ?? column.columnName)}],
-            table_guid: column.table_guid
+            table_guid: column.table_guid,
+            comment: this.syncComment ? column.comment : ''
           }
           allMeasureArr.push(measure)
         }
@@ -310,7 +320,8 @@ export default class BatchMeasureModal extends Vue {
             guid: sampleGuid(),
             expression: 'MAX',
             parameter_value: [{type: 'column', value: column.table_alias + '.' + (column.column ?? column.columnName)}],
-            table_guid: column.table_guid
+            table_guid: column.table_guid,
+            comment: this.syncComment ? column.comment : ''
           }
           allMeasureArr.push(measure)
         }
@@ -320,7 +331,8 @@ export default class BatchMeasureModal extends Vue {
             guid: sampleGuid(),
             expression: 'COUNT',
             parameter_value: [{type: 'column', value: column.table_alias + '.' + (column.column ?? column.columnName)}],
-            table_guid: column.table_guid
+            table_guid: column.table_guid,
+            comment: this.syncComment ? column.comment : ''
           }
           allMeasureArr.push(measure)
         }
@@ -328,7 +340,7 @@ export default class BatchMeasureModal extends Vue {
     })
     this.$set(this.modelDesc, 'all_measures', allMeasureArr)
     this.$emit('betchMeasures', allMeasureArr)
-    this.collectOtherColumns(this.getOtherColumns(columns))
+    // this.collectOtherColumns(this.getOtherColumns(columns))
     this.handleClose(true)
   }
 
@@ -677,26 +689,26 @@ export default class BatchMeasureModal extends Vue {
   }
   // 同步注释到名称
   changeSyncName () {
-    this.factTable.forEach((item, index) => {
-      item.columns.forEach((it, idx) => {
-        if (!this.syncComment) {
-          it.name = it.comment && it.comment.trim() ? it.comment.slice(0, 100) : it.name
-        } else {
-          this.usedColumns.filter(useColumn => this.expressions.indexOf(useColumn.expression) !== -1 && useColumn.parameter_value[0].value === item.alias + '.' + it.column).length === 0 && (it.name = it.column || '')
-        }
-        this.$set(this.factTable[index].columns[idx], 'name', it.name)
-      })
-    })
-    this.lookupTable.forEach((item, index) => {
-      item.columns.forEach((it, idx) => {
-        if (!this.syncComment) {
-          it.name = it.comment && it.comment.trim() ? it.comment.slice(0, 100) : it.name
-        } else {
-          this.usedColumns.filter(useColumn => this.expressions.indexOf(useColumn.expression) !== -1 && useColumn.parameter_value[0].value === item.alias + '.' + it.column).length === 0 && (it.name = it.column || '')
-        }
-        this.$set(this.lookupTable[index].columns[idx], 'name', it.name)
-      })
-    })
+    // this.factTable.forEach((item, index) => {
+    //   item.columns.forEach((it, idx) => {
+    //     if (!this.syncComment) {
+    //       it.name = it.comment && it.comment.trim() ? it.comment.slice(0, 100) : it.name
+    //     } else {
+    //       this.usedColumns.filter(useColumn => this.expressions.indexOf(useColumn.expression) !== -1 && useColumn.parameter_value[0].value === item.alias + '.' + it.column).length === 0 && (it.name = it.column || '')
+    //     }
+    //     this.$set(this.factTable[index].columns[idx], 'name', it.name)
+    //   })
+    // })
+    // this.lookupTable.forEach((item, index) => {
+    //   item.columns.forEach((it, idx) => {
+    //     if (!this.syncComment) {
+    //       it.name = it.comment && it.comment.trim() ? it.comment.slice(0, 100) : it.name
+    //     } else {
+    //       this.usedColumns.filter(useColumn => this.expressions.indexOf(useColumn.expression) !== -1 && useColumn.parameter_value[0].value === item.alias + '.' + it.column).length === 0 && (it.name = it.column || '')
+    //     }
+    //     this.$set(this.lookupTable[index].columns[idx], 'name', it.name)
+    //   })
+    // })
     this.syncComment = !this.syncComment
   }
 }
@@ -730,6 +742,9 @@ export default class BatchMeasureModal extends Vue {
     .batch-des {
       color: @text-title-color;
       font-size: 14px;
+    }
+    .sync-btn {
+      vertical-align: top;
     }
     .table-title {
       font-size: 14px;
