@@ -61,7 +61,7 @@ class UDAFFunSuite extends SparderBaseFunSuite {
     }
   }
 
-  ignore("dser and ser bitmap") {
+  test("dser and ser bitmap") {
     val value = BoundReference(0, LongType, nullable = true)
     val distinct = EncodePreciseCountDistinct(value)
     val state = distinct.createAggregationBuffer()
@@ -88,7 +88,9 @@ class UDAFFunSuite extends SparderBaseFunSuite {
 
     val afterMerge = distinct.merge(buffer, state)
     assert(afterMerge.getLongCardinality == 100L)
-    assert(distinct.merge(afterMerge, state2).getLongCardinality == 200L)
+    val merge = distinct.merge(afterMerge, state2)
+    merge.repairAfterLazy()
+    assert(merge.getLongCardinality == 200L)
   }
 
   test("hllc null value") {
