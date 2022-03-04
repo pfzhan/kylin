@@ -55,6 +55,7 @@ public class NOptIntersectCountTest extends NLocalWithSparkSessionTest {
     @Before
     public void setup() throws Exception {
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
+        overwriteSystemProp("kylin.engine.persist-flattable-enabled", "false");
         this.createTestMetadata("src/test/resources/ut_meta/opt_intersect_count");
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
@@ -122,23 +123,23 @@ public class NOptIntersectCountTest extends NLocalWithSparkSessionTest {
         /*
         Source table: USER_ID, AGE, CITY, TAG
         TAG value split by "|"
-        
+
         group by key: 20,Shanghai
-        
+
         rich, 2
         tall, 1
         handsome, 2
         ====================================
-        
+
         group by key: 19,Beijing
-        
+
         rich, 1
         tall, 2
         handsome, 1
         ====================================
-        
+
         group by key: 18,Shenzhen
-        
+
         rich, 1
         tall, 1
         handsome, 1
