@@ -29,7 +29,7 @@
       <!-- </li> -->
 
       <el-tooltip :content="$t('disabledHiveOrKafkaTips', {jdbcName: jdbcSourceName})" placement="top" :disabled="!disabledSelectDataSource([sourceTypes.KAFKA])">
-        <li class="datasouce ksd-center" :class="getSourceClass([sourceTypes.KAFKA])" @click="!disabledSelectDataSource([sourceTypes.KAFKA]) && clickHandler(sourceTypes.KAFKA)">
+        <li class="datasouce ksd-center" v-if="isStreamingEnabled" :class="getSourceClass([sourceTypes.KAFKA])" @click="!disabledSelectDataSource([sourceTypes.KAFKA]) && clickHandler(sourceTypes.KAFKA)">
           <div class="datasource-icon">
             <!-- <i class="el-icon-ksd-kafka"></i> -->
             <img src="../../../../assets/img/Kafka_logo.png" alt="">
@@ -91,7 +91,8 @@ import * as config from '../../../../config'
   props: [ 'sourceType' ],
   computed: {
     ...mapGetters([
-      'globalDefaultDatasource'
+      'globalDefaultDatasource',
+      'isStreamingEnabled'
     ]),
     ...mapState({
       allProject: state => state.project.allProject,
