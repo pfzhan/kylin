@@ -944,7 +944,7 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
         QueryContext.current().setAclInfo(getExecuteAclInfo(project));
         ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(project);
-        SchemaMetaData schemaMetaData = new SchemaMetaData(project, KylinConfig.getInstanceFromEnv());
+        SchemaMetaData schemaMetaData = new SchemaMetaData(project, projectInstance.getConfig());
 
         List<TableMeta> tableMetas = new LinkedList<>();
         SetMultimap<String, String> tbl2ccNames = collectComputedColumns(project);
@@ -1035,7 +1035,9 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
         List<String> targetModelColumns = getTargetModelColumns(targetModelName, models);
 
         QueryContext.current().setAclInfo(getExecuteAclInfo(project));
-        SchemaMetaData schemaMetaData = new SchemaMetaData(project, KylinConfig.getInstanceFromEnv());
+        ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+                .getProject(project);
+        SchemaMetaData schemaMetaData = new SchemaMetaData(project, projectInstance.getConfig());
         Map<String, TableMetaWithType> tableMap = constructTableMeta(schemaMetaData, targetModelTables);
         Map<String, ColumnMetaWithType> columnMap = constructTblColMeta(schemaMetaData, project, targetModelColumns);
         addColsToTblMeta(tableMap, columnMap);
