@@ -52,7 +52,6 @@
         <dependency>
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-external-swagger</artifactId>
-            <version>${project.version}</version>
         </dependency>
 
         <!-- spring aop -->
@@ -105,11 +104,6 @@
         <dependency>
             <groupId>io.springfox</groupId>
             <artifactId>springfox-boot-starter</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.springfox</groupId>
-            <artifactId>springfox-boot-starter</artifactId>
-            <version>3.0.0</version>
         </dependency>
 
         <dependency>

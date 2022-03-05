@@ -31,22 +31,21 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>kap-external-swagger</artifactId>
     <packaging>jar</packaging>
-    <name>KAP-External-Swagger</name>
+    <name>KAP - External Swagger</name>
     <url>http://kyligence.io</url>
     <description>Swagger for KAP</description>
 
     <parent>
         <groupId>io.kyligence.ke</groupId>
-        <artifactId>ke</artifactId>
-        <version>4.0.0-SNAPSHOT</version>
-        <relativePath>../../../pom.xml</relativePath>
+        <artifactId>kap-external</artifactId>
+        <version>4.5.9</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <swagger.version>3.0.0</swagger.version>
     </properties>
-
 
     <dependencies>
         <dependency>
@@ -57,6 +56,10 @@
                 <exclusion>
                     <groupId>org.springframework</groupId>
                     <artifactId>*</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>net.bytebuddy</groupId>
+                    <artifactId>byte-buddy</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
