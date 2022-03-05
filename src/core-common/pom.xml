@@ -123,17 +123,14 @@
         <dependency>
             <groupId>io.dropwizard.metrics</groupId>
             <artifactId>metrics-jvm</artifactId>
-            <version>${dropwizard.version}</version>
         </dependency>
         <dependency>
             <groupId>io.dropwizard.metrics</groupId>
             <artifactId>metrics-json</artifactId>
-            <version>${dropwizard.version}</version>
         </dependency>
         <dependency>
             <groupId>io.dropwizard.metrics</groupId>
             <artifactId>metrics-jmx</artifactId>
-            <version>${dropwizard.version}</version>
         </dependency>
 
         <!-- micrometer -->
@@ -154,7 +151,6 @@
         <dependency>
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-external-influxdb</artifactId>
-            <version>${project.version}</version>
         </dependency>
 
         <dependency>

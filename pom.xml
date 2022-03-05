@@ -282,7 +282,7 @@
         <clickhouse.group>ru.yandex.clickhouse</clickhouse.group>
         <clickhouse.artifact>clickhouse-jdbc</clickhouse.artifact>
 
-        <external.version>4.5.8</external.version>
+        <external.version>4.5.9</external.version>
 
         <json-smart.version>2.4.7</json-smart.version>
         <xmlsec.version>2.1.7</xmlsec.version>
@@ -296,7 +296,7 @@
     </properties>
 
     <modules>
-        <module>src/external</module>
+        <!--<module>src/external</module>-->
         <module>src/core-job</module>
         <module>src/core-storage</module>
         <module>src/query</module>
@@ -349,7 +349,7 @@
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-external</artifactId>
-                <version>${project.version}</version>
+                <version>${external.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
@@ -404,18 +404,28 @@
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-external-curator</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-external-guava20</artifactId>
-                <version>${project.version}</version>
+                <version>${external.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-external-curator-test</artifactId>
-                <version>${project.version}</version>
+                <version>${external.version}</version>
                 <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.ke</groupId>
+                <artifactId>kap-external-guava20</artifactId>
+                <version>${external.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.ke</groupId>
+                <artifactId>kap-external-influxdb</artifactId>
+                <version>${external.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.ke</groupId>
+                <artifactId>kap-external-swagger</artifactId>
+                <version>${external.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
@@ -596,6 +606,21 @@
             <dependency>
                 <groupId>io.dropwizard.metrics</groupId>
                 <artifactId>metrics-core</artifactId>
+                <version>${dropwizard.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.dropwizard.metrics</groupId>
+                <artifactId>metrics-jvm</artifactId>
+                <version>${dropwizard.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.dropwizard.metrics</groupId>
+                <artifactId>metrics-json</artifactId>
+                <version>${dropwizard.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.dropwizard.metrics</groupId>
+                <artifactId>metrics-jmx</artifactId>
                 <version>${dropwizard.version}</version>
             </dependency>
 
@@ -2560,6 +2585,36 @@
                     <configuration>
                         <includePom>true</includePom>
                     </configuration>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-source-plugin</artifactId>
+                    <executions>
+                        <execution>
+                            <id>attach-sources</id>
+                            <phase>deploy</phase>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-javadoc-plugin</artifactId>
+                    <executions>
+                        <execution>
+                            <id>attach-javadocs</id>
+                            <phase>deploy</phase>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-deploy-plugin</artifactId>
+                    <executions>
+                        <execution>
+                            <id>deploy</id>
+                            <phase>deploy</phase>
+                            <goals>
+                                <goal>deploy</goal>
+                            </goals>
+                        </execution>
+                    </executions>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
