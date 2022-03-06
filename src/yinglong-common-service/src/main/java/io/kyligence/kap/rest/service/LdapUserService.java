@@ -40,6 +40,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import javax.naming.directory.SearchControls;
 
@@ -47,6 +48,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.UserService;
 import org.slf4j.Logger;
@@ -55,18 +57,21 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.ldap.control.PagedResultsDirContextProcessor;
-import org.springframework.ldap.core.AttributesMapper;
+import org.springframework.ldap.core.ContextMapper;
+import org.springframework.ldap.core.DirContextAdapter;
+import org.springframework.ldap.core.support.SingleContextSource;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.ldap.SpringSecurityLdapTemplate;
 import org.springframework.security.ldap.userdetails.LdapUserDetailsService;
+import org.springframework.util.CollectionUtils;
 
 import com.google.common.base.Preconditions;
 import com.google.common.cache.CacheBuilder;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.user.ManagedUser;
-import org.springframework.util.CollectionUtils;
 
 public class LdapUserService implements UserService {
 
@@ -76,12 +81,20 @@ public class LdapUserService implements UserService {
 
     private static final String SKIPPED_LDAP = "skipped-ldap";
 
+    private static final String LDAP_VALID_DN_MAP_KEY = "ldap_valid_dn_map_key";
+
     private static final AtomicBoolean LOAD_TASK_STATUS = new AtomicBoolean(Boolean.FALSE);
 
     private static final ThreadPoolExecutor LOAD_TASK_POOL = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS,
-            new ArrayBlockingQueue<>(1), Executors.defaultThreadFactory(), (r, e) -> { });
+            new ArrayBlockingQueue<>(1), Executors.defaultThreadFactory(), (r, e) -> {
+            });
 
     private static final com.google.common.cache.Cache<String, Map<String, ManagedUser>> ldapUsersCache = CacheBuilder
+            .newBuilder().maximumSize(KylinConfig.getInstanceFromEnv().getServerUserCacheMaxEntries())
+            .expireAfterWrite(KylinConfig.getInstanceFromEnv().getServerUserCacheExpireSeconds(), TimeUnit.SECONDS)
+            .build();
+
+    private static final com.google.common.cache.Cache<String, Map<String, String>> LDAP_VALID_DN_MAP_CACHE = CacheBuilder
             .newBuilder().maximumSize(KylinConfig.getInstanceFromEnv().getServerUserCacheMaxEntries())
             .expireAfterWrite(KylinConfig.getInstanceFromEnv().getServerUserCacheExpireSeconds(), TimeUnit.SECONDS)
             .build();
@@ -197,7 +210,7 @@ public class LdapUserService implements UserService {
         for (Map.Entry<String, List<String>> entry : userAndUserGroup.entrySet()) {
             String groupName = entry.getKey();
             Set<String> userSet = new HashSet<>(entry.getValue());
-            if(!userSet.contains(user.getUsername())){
+            if (!userSet.contains(user.getUsername())) {
                 continue;
             }
             if (groupName.equals(KylinConfig.getInstanceFromEnv().getLDAPAdminRole())) {
@@ -217,6 +230,21 @@ public class LdapUserService implements UserService {
     }
 
     private Set<String> getAllUsers() {
+        Map<String, String> userDnMap = getAllValidUserDnMap();
+        LDAP_VALID_DN_MAP_CACHE.put(LDAP_VALID_DN_MAP_KEY, ImmutableMap.copyOf(userDnMap));
+        return new HashSet<>(userDnMap.values());
+    }
+
+    public Map<String, String> getDnMapperMap() {
+        Map<String, String> map = LDAP_VALID_DN_MAP_CACHE.getIfPresent(LDAP_VALID_DN_MAP_KEY);
+        if (null == map) {
+            map = ImmutableMap.copyOf(getAllValidUserDnMap());
+            LDAP_VALID_DN_MAP_CACHE.put(LDAP_VALID_DN_MAP_KEY, map);
+        }
+        return map;
+    }
+
+    private Map<String, String> getAllValidUserDnMap() {
         String ldapUserSearchBase = KylinConfig.getInstanceFromEnv().getLDAPUserSearchBase();
         String ldapUserSearchFilter = KapConfig.getInstanceFromEnv().getLDAPUserSearchFilter();
         String ldapUserIDAttr = KapConfig.getInstanceFromEnv().getLDAPUserIDAttr();
@@ -226,15 +254,28 @@ public class LdapUserService implements UserService {
 
         final PagedResultsDirContextProcessor processor = new PagedResultsDirContextProcessor(maxPageSize);
 
-        AttributesMapper<String> attributesMapper = attributes -> attributes.get(ldapUserIDAttr).get().toString();
+        ContextMapper<Pair<String, String>> contextMapper = ctx -> {
+            DirContextAdapter adapter = (DirContextAdapter) ctx;
+            return Pair.newPair(adapter.getNameInNamespace(),
+                    adapter.getAttributes().get(ldapUserIDAttr).get().toString());
+        };
 
-        Set<String> result = new HashSet<>();
-        do {
-            result.addAll(ldapTemplate.search(ldapUserSearchBase, ldapUserSearchFilter, searchControls,
-                    attributesMapper, processor));
-        } while (processor.hasMore());
+        List<Pair<String, String>> pairs = SingleContextSource.doWithSingleContext(ldapTemplate.getContextSource(),
+                operations -> {
+                    List<Pair<String, String>> pairList = new ArrayList<>();
+                    do {
+                        pairList.addAll(operations.search(ldapUserSearchBase, ldapUserSearchFilter, searchControls,
+                                contextMapper, processor));
+                    } while (processor.hasMore());
+                    return pairList;
+                });
+
+        Map<String, String> resultMap = pairs
+                .stream().collect(Collectors.groupingBy(Pair::getSecond)).entrySet()
+                .stream().filter(e -> 1 == e.getValue().size()).map(Map.Entry::getValue).map(list -> list.get(0))
+                .collect(Collectors.toMap(Pair::getKey, Pair::getValue));
         logger.info("LDAP user info load success");
-        return result;
+        return resultMap;
     }
 
     private Map<String, ManagedUser> getLDAPUsersCache() {

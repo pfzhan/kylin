@@ -22,8 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
-
 package io.kyligence.kap.rest.service;
 
 import static java.util.stream.Collectors.toMap;
@@ -35,13 +33,13 @@ import static org.springframework.security.test.web.servlet.setup.SecurityMockMv
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.rest.response.UserGroupResponseKI;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -62,7 +60,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.ldap.test.unboundid.LdapTestUtils;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestBuilders;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
@@ -74,6 +74,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
+import com.google.common.cache.Cache;
+import com.google.common.collect.ImmutableMap;
 import com.unboundid.ldap.listener.InMemoryDirectoryServer;
 import com.unboundid.ldap.listener.InMemoryDirectoryServerConfig;
 import com.unboundid.ldap.listener.InMemoryListenerConfig;
@@ -81,6 +83,7 @@ import com.unboundid.ldap.listener.InMemoryListenerConfig;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.usergroup.UserGroup;
+import io.kyligence.kap.rest.response.UserGroupResponseKI;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -211,7 +214,7 @@ public class LdapUserServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testListUsers() throws Exception {
         Set<String> users = ldapUserService.listUsers().stream().map(x -> x.getUsername()).collect(toSet());
-        Assert.assertEquals(3, users.size());
+        Assert.assertEquals(4, users.size());
         List<ManagedUser> managedUserList = ldapUserService.listUsers();
         for (val user : managedUserList) {
             Assert.assertTrue(user.getAuthorities().size() > 1);
@@ -350,6 +353,31 @@ public class LdapUserServiceTest extends NLocalFileMetadataTestCase {
             Assert.assertEquals(uuid, groupNameByUuid);
         });
 
+    }
+
+    @Test
+    public void testGetDnMapperMap() throws Exception {
+        String cacheKey = ReflectionTestUtils.getField(LdapUserService.class, "LDAP_VALID_DN_MAP_KEY").toString();
+        Cache cache = (Cache) ReflectionTestUtils.getField(LdapUserService.class, "LDAP_VALID_DN_MAP_CACHE");
+        cache.invalidate(cacheKey);
+        Map<String, String> dnMapperMap = ldapUserService.getDnMapperMap();
+        Assert.assertTrue(dnMapperMap instanceof ImmutableMap);
+    }
+
+    @Test
+    public void testSameNameUserInvalidation() {
+        Assert.assertFalse(
+                ldapUserService.listUsers().stream().map(ManagedUser::getUsername).collect(toSet()).contains("user"));
+        Assert.assertFalse(userGroupService.getUserAndUserGroup().entrySet().stream().map(Map.Entry::getValue)
+                .map(HashSet::new).map(set -> set.contains("user")).reduce(Boolean::logicalOr).get().booleanValue());
+    }
+
+    @Test
+    public void testMultipleCNs() {
+        UserDetails user = ldapUserService.loadUserByUsername("user1");
+
+        Assert.assertTrue(user.getAuthorities().stream().map(GrantedAuthority::getAuthority).collect(Collectors.toSet())
+                .contains("itpeople"));
     }
 
 }

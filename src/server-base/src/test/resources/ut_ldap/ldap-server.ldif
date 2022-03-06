@@ -17,6 +17,13 @@ cn: People
 objectClass: organizationalRole
 objectClass: top
 
+# test, People, example.com
+dn: cn=test,ou=People,dc=example,dc=com
+ou: test
+cn: test
+objectClass: organizationalRole
+objectClass: top
+
 # johnny, People, example.com
 dn: cn=johnny,ou=People,dc=example,dc=com
 mail: johnny@example.io
@@ -53,6 +60,43 @@ mail: oliver@example.io
 ou: Modeler
 userPassword:: ZXhhbXBsZTEyMw==
 
+
+# user, test, People, example.com
+dn: cn=user,cn=test,ou=People,dc=example,dc=com
+mail: user@example.io
+ou: Manager
+cn: user
+sn: user
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+userPassword:: ZXhhbXBsZTEyMw==
+
+# user, People, example.com
+dn: cn=user,ou=People,dc=example,dc=com
+mail: user@example.io
+ou: Manager
+cn: user
+sn: user
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+userPassword:: ZXhhbXBsZTEyMw==
+
+# user1, test, People, example.com
+dn: cn=user1,cn=test,ou=People,dc=example,dc=com
+mail: user1@example.io
+ou: Manager
+cn: user1
+sn: user1
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+userPassword:: ZXhhbXBsZTEyMw==
+
 # Groups, example.com
 dn: ou=Groups,dc=example,dc=com
 ou: Groups
@@ -66,6 +110,8 @@ objectClass: groupOfNames
 objectClass: top
 member: cn=johnny,ou=People,dc=example,dc=com
 member: cn=oliver,ou=People,dc=example,dc=com
+member: cn=user1,cn=test,ou=People,dc=example,dc=com
+member: cn=user,ou=People,dc=example,dc=com
 
 # admin, Groups, example.com
 dn: cn=admin,ou=Groups,dc=example,dc=com

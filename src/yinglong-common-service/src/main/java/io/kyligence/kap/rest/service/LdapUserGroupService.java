@@ -31,15 +31,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import javax.naming.directory.SearchControls;
-import javax.naming.ldap.LdapName;
 
-import io.kyligence.kap.rest.response.UserGroupResponseKI;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
@@ -48,10 +47,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.ldap.NameNotFoundException;
 import org.springframework.ldap.control.PagedResultsDirContextProcessor;
-import org.springframework.ldap.core.AttributesMapper;
-import org.springframework.ldap.support.LdapUtils;
+import org.springframework.ldap.core.ContextMapper;
+import org.springframework.ldap.core.DirContextAdapter;
+import org.springframework.ldap.core.support.SingleContextSource;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.ldap.SpringSecurityLdapTemplate;
 
@@ -61,6 +60,7 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.usergroup.UserGroup;
+import io.kyligence.kap.rest.response.UserGroupResponseKI;
 
 public class LdapUserGroupService extends NUserGroupService {
 
@@ -115,7 +115,6 @@ public class LdapUserGroupService extends NUserGroupService {
     public List<String> getAllUserGroups() {
         Set<String> allGroups = ldapGroupsCache.getIfPresent(LDAP_GROUPS);
         if (allGroups == null || allGroups.isEmpty()) {
-            allGroups = new HashSet<>();
             logger.info("Can not get groups from cache, ask ldap instead.");
             String ldapGroupSearchBase = KylinConfig.getInstanceFromEnv().getLDAPGroupSearchBase();
             String ldapGroupSearchFilter = KapConfig.getInstanceFromEnv().getLDAPGroupSearchFilter();
@@ -129,12 +128,20 @@ public class LdapUserGroupService extends NUserGroupService {
 
             final PagedResultsDirContextProcessor processor = new PagedResultsDirContextProcessor(maxPageSize);
 
-            AttributesMapper<String> attributesMapper = attributes -> attributes.get(ldapGroupIDAttr).get().toString();
+            ContextMapper<String> contextMapper = ctx -> {
+                DirContextAdapter adapter = (DirContextAdapter) ctx;
+                return adapter.getAttributes().get(ldapGroupIDAttr).get().toString();
+            };
 
-            do {
-                allGroups.addAll(ldapTemplate.search(ldapGroupSearchBase, ldapGroupSearchFilter, searchControls,
-                        attributesMapper, processor));
-            } while (processor.hasMore());
+            allGroups = SingleContextSource.doWithSingleContext(ldapTemplate.getContextSource(), operations -> {
+                Set<String> set = new HashSet<>();
+                do {
+                    set.addAll(operations.search(ldapGroupSearchBase, ldapGroupSearchFilter, searchControls,
+                            contextMapper, processor));
+                } while (processor.hasMore());
+                return set;
+            });
+
             ldapGroupsCache.put(LDAP_GROUPS, allGroups);
         }
         logger.info("Get all groups size: {}", allGroups.size());
@@ -175,7 +182,7 @@ public class LdapUserGroupService extends NUserGroupService {
                 boolean userExists = userService.userExists(username);
                 if (userExists) {//guard groups may have ou or groups
                     ManagedUser ldapUser = new ManagedUser(username, SKIPPED_LDAP, false,
-                            Lists.<GrantedAuthority>newArrayList());
+                            Lists.<GrantedAuthority> newArrayList());
                     ldapUserService.completeUserInfoInternal(ldapUser);
                     members.add(ldapUser);
                 }
@@ -199,28 +206,13 @@ public class LdapUserGroupService extends NUserGroupService {
         List<String> users = ldapGroupsAndMembersCache.getIfPresent(name);
         if (null == users) {
             users = new ArrayList<>();
-            String ldapUserIDAttr = KapConfig.getInstanceFromEnv().getLDAPUserIDAttr();
-            Set<String> ldapUserDNs = getAllGroupMembers(name)
-                    .stream()
-                    .filter(StringUtils::isNotBlank)
+            Set<String> ldapUserDNs = getAllGroupMembers(name).stream().filter(StringUtils::isNotBlank)
                     .collect(Collectors.toSet());
 
+            Map<String, String> dnMapperMap = ldapUserService.getDnMapperMap();
+
             for (String u : ldapUserDNs) {
-                String username = null;
-                try {
-                    username = LdapUtils.getStringValue(new LdapName(u), ldapUserIDAttr);
-                } catch (Exception e) {
-                    logger.warn("Can not get username from dn {} by user id attr {}", u, ldapUserIDAttr);
-                    try {
-                        AttributesMapper<String> attributesMapper = attributes -> attributes.get(ldapUserIDAttr).get().toString();
-                        username = ldapTemplate.lookup(u, attributesMapper);
-                        logger.info("Get dn {} username {} by ldap lookup", u, username);
-                    } catch (NameNotFoundException ex) {
-                        logger.info("Can not find user by dn {}", u, ex);
-                        continue;
-                    }
-                }
-                users.add(username);
+                Optional.ofNullable(dnMapperMap.get(u)).ifPresent(users::add);
             }
             ldapGroupsAndMembersCache.put(name, Collections.unmodifiableList(users));
         }
@@ -243,14 +235,15 @@ public class LdapUserGroupService extends NUserGroupService {
             while (true) {
                 String ldapGroupMemberRangeAttr = String.format(Locale.ROOT, "%s;range=%s-%s", ldapGroupMemberAttr,
                         left, left + (maxValRange - 1));
-                logger.info("Ldap group members search config, base: {},member search filter: {}, member identifier: {}",
+                logger.info(
+                        "Ldap group members search config, base: {},member search filter: {}, member identifier: {}",
                         ldapGroupSearchBase, ldapGroupMemberSearchFilter, ldapGroupMemberRangeAttr);
                 Set<String> rangeResults = ldapTemplate.searchForSingleAttributeValues(ldapGroupSearchBase,
                         ldapGroupMemberSearchFilter, new String[] { name }, ldapGroupMemberRangeAttr);
                 if (rangeResults.isEmpty()) {
                     // maybe the last page
-                    ldapGroupMemberRangeAttr = String.format(Locale.ROOT, "%s;range=%s-%s", ldapGroupMemberAttr,
-                            left, "*");
+                    ldapGroupMemberRangeAttr = String.format(Locale.ROOT, "%s;range=%s-%s", ldapGroupMemberAttr, left,
+                            "*");
                     logger.info(
                             "Last page, ldap group members search config, base: {},member search filter: {}, member identifier: {}",
                             ldapGroupSearchBase, ldapGroupMemberSearchFilter, ldapGroupMemberRangeAttr);
