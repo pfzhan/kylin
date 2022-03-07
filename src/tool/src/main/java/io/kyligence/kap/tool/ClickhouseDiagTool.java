@@ -23,16 +23,11 @@
  */
 package io.kyligence.kap.tool;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Locale;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.zip.GZIPInputStream;
-
+import com.google.common.base.Preconditions;
+import io.kyligence.kap.secondstorage.SecondStorage;
+import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
+import lombok.NoArgsConstructor;
+import lombok.val;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.ArrayUtils;
@@ -44,12 +39,15 @@ import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
-
-import io.kyligence.kap.secondstorage.SecondStorage;
-import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
-import lombok.NoArgsConstructor;
-import lombok.val;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Locale;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.zip.GZIPInputStream;
 
 @NoArgsConstructor
 public class ClickhouseDiagTool {
@@ -128,7 +126,7 @@ public class ClickhouseDiagTool {
         }
 
         allNodes.forEach(node -> {
-            val cliCommandExecutor = new CliCommandExecutor(node.getIp(), cluster.getUserName(), cluster.getPassword(), kylinConfig.getSecondStorageSshIdentityPath());
+            val cliCommandExecutor = new CliCommandExecutor(node.getIp(), cluster.getUserName(), cluster.getPassword(), kylinConfig.getSecondStorageSshIdentityPath(), node.getSSHPort());
             val nodeTargetPath = new File(exportDir, String.format(Locale.ROOT, CK_NODE_PATH_FORMAT, node.getName(), node.getIp(), node.getPort()));
             val nodeTargetTmpPath = new File(exportDir, nodeTargetPath.getName() + "_tmp");
 

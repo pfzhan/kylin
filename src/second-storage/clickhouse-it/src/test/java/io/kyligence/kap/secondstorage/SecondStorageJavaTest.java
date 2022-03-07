@@ -24,49 +24,10 @@
 
 package io.kyligence.kap.secondstorage;
 
-import static io.kyligence.kap.clickhouse.ClickHouseConstants.CONFIG_CLICKHOUSE_QUERY_CATALOG;
-import static io.kyligence.kap.secondstorage.SecondStorageConcurrentTestUtil.registerWaitPoint;
-import static org.apache.kylin.common.exception.JobErrorCode.SECOND_STORAGE_JOB_EXISTS;
-import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JOB;
-import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_NODE_NOT_AVAILABLE;
-import static org.awaitility.Awaitility.await;
-
-import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.QueryContext;
-import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.exception.ServerErrorCode;
-import org.apache.kylin.common.util.RandomUtil;
-import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.query.relnode.OLAPContext;
-import org.apache.kylin.rest.util.AclEvaluate;
-import org.apache.spark.sql.SparkSession;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
-import org.mockito.Mockito;
-import org.testcontainers.containers.JdbcDatabaseContainer;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-
 import io.kyligence.kap.clickhouse.database.ClickHouseOperator;
 import io.kyligence.kap.clickhouse.ddl.ClickHouseCreateTable;
 import io.kyligence.kap.clickhouse.ddl.ClickHouseRender;
@@ -87,6 +48,7 @@ import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.newten.ExecAndComp;
 import io.kyligence.kap.newten.clickhouse.ClickHouseUtils;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
+import io.kyligence.kap.secondstorage.config.ClusterInfo;
 import io.kyligence.kap.secondstorage.config.Node;
 import io.kyligence.kap.secondstorage.ddl.exp.ColumnWithType;
 import io.kyligence.kap.secondstorage.management.SecondStorageEndpoint;
@@ -101,6 +63,44 @@ import io.kyligence.kap.secondstorage.test.EnableTestUser;
 import io.kyligence.kap.secondstorage.test.SharedSparkSession;
 import io.kyligence.kap.secondstorage.test.utils.JobWaiter;
 import lombok.val;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.ServerErrorCode;
+import org.apache.kylin.common.util.CliCommandExecutor;
+import org.apache.kylin.common.util.RandomUtil;
+import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
+import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.query.relnode.OLAPContext;
+import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.spark.sql.SparkSession;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
+import org.mockito.Mockito;
+import org.testcontainers.containers.JdbcDatabaseContainer;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+import static io.kyligence.kap.clickhouse.ClickHouseConstants.CONFIG_CLICKHOUSE_QUERY_CATALOG;
+import static io.kyligence.kap.secondstorage.SecondStorageConcurrentTestUtil.registerWaitPoint;
+import static org.apache.kylin.common.exception.JobErrorCode.SECOND_STORAGE_JOB_EXISTS;
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JOB;
+import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_NODE_NOT_AVAILABLE;
+import static org.awaitility.Awaitility.await;
 
 public class SecondStorageJavaTest implements JobWaiter {
     private static final String modelName = "test_table_index";
@@ -530,7 +530,7 @@ public class SecondStorageJavaTest implements JobWaiter {
         JdbcDatabaseContainer<?> clickhouse3 = ClickHouseUtils.startClickHouse();
         JdbcDatabaseContainer<?> clickhouse4 = ClickHouseUtils.startClickHouse();
 
-        internalConfigClickHouse(2, clickhouse1, clickhouse2, clickhouse3, clickhouse4);
+        internalConfigClickHouse(2, 0, clickhouse1, clickhouse2, clickhouse3, clickhouse4);
 
         //build
         new IndexDataConstructor(project).buildDataflow(modelId);
@@ -571,8 +571,34 @@ public class SecondStorageJavaTest implements JobWaiter {
         }
     }
 
-    public static void internalConfigClickHouse(int replica, JdbcDatabaseContainer<?>... clickhouse) throws IOException {
-        ClickHouseUtils.internalConfigClickHouse(clickhouse, replica);
+    @Test
+    public void testSshPort() throws Exception {
+        final String queryCatalog = "testQueryWithClickHouseHASuccess";
+        Unsafe.setProperty(CONFIG_CLICKHOUSE_QUERY_CATALOG, queryCatalog);
+
+        JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse();
+        JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse();
+
+        internalConfigClickHouse(2, 22, clickhouse1, clickhouse2);
+
+        ClusterInfo cluster = ClickHouseConfigLoader.getInstance().getCluster();
+        List<Node> nodes = cluster.getNodes();
+        nodes.forEach(node -> {
+            Assert.assertEquals(22, node.getSSHPort());
+        });
+
+        Node node = nodes.get(0);
+
+        val cliCommandExecutor = new CliCommandExecutor(node.getIp(),
+                cluster.getUserName(),
+                cluster.getPassword(),
+                KylinConfig.getInstanceFromEnv().getSecondStorageSshIdentityPath(),
+                node.getSSHPort());
+        cliCommandExecutor.getSshClient().toString();
+    }
+
+    public static void internalConfigClickHouse(int replica, int sshPort, JdbcDatabaseContainer<?>... clickhouse) throws IOException {
+        ClickHouseUtils.internalConfigClickHouse(clickhouse, replica, sshPort);
     }
 
 }

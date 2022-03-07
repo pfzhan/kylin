@@ -32,6 +32,7 @@ public class Node {
     private int port;
     private String user;
     private String password;
+    private int sshPort;
 
 
     public Node(String name, String ip, int port, String user, String password) {
@@ -40,6 +41,15 @@ public class Node {
         this.port = port;
         this.user = user;
         this.password = password;
+    }
+
+    public Node(String name, String ip, int port, String user, String password, int sshPort) {
+        this.name = name;
+        this.ip = ip;
+        this.port = port;
+        this.user = user;
+        this.password = password;
+        this.sshPort = sshPort;
     }
 
     public Node(Node node) {
@@ -91,6 +101,15 @@ public class Node {
 
     public Node setPassword(String password) {
         this.password = password;
+        return this;
+    }
+
+    public int getSSHPort() {
+        return sshPort;
+    }
+
+    public Node setSSHPort(int sshPort) {
+        this.sshPort = sshPort;
         return this;
     }
 }

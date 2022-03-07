@@ -86,6 +86,14 @@ public class CliCommandExecutor {
         this.port = 22;
     }
 
+    public CliCommandExecutor(String remoteHost, String remoteUser, String remotePwd, String localIdentityPath, int port) {
+        this.remoteHost = remoteHost;
+        this.remoteUser = remoteUser;
+        this.remotePwd = remotePwd;
+        this.localIdentityPath = localIdentityPath;
+        this.port = port;
+    }
+
     public CliCommandExecutor(String remoteHost, String remoteUser, String remotePwd, String localIdentityPath) {
         this(remoteHost, remoteUser, remotePwd);
         this.localIdentityPath = localIdentityPath;

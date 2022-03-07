@@ -23,9 +23,15 @@
  */
 package io.kyligence.kap.secondstorage.config;
 
+import com.google.common.collect.Lists;
 import io.kyligence.kap.common.util.EncryptUtil;
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class ClusterTest {
     @Test
@@ -42,7 +48,27 @@ public class ClusterTest {
         node.setPassword(password);
         Assert.assertEquals(password, node.getPassword());
 
+        node = new Node("node01", "127.0.0.1", 9000, "default", "123456", 222);
+        Assert.assertEquals("node01", node.getName());
+        Assert.assertEquals(222, node.getSSHPort());
+        node.setSSHPort(22);
+        Assert.assertEquals(22, node.getSSHPort());
+
         node.setPassword(EncryptUtil.encryptWithPrefix(password));
         Assert.assertEquals(password, node.getPassword());
+    }
+
+    @Test
+    public void testTransformNode() {
+        ClusterInfo cluster = new ClusterInfo();
+        Map<String, List<Node>> clusterNode = new HashMap<>();
+        clusterNode.put("pair0", Lists.newArrayList(new Node("node01", "127.0.0.1", 9000, "default", "123456", 222)));
+        clusterNode.put("pair1", Lists.newArrayList(new Node("node01", "127.0.0.1", 9000, "default", "123456")));
+        cluster.setCluster(clusterNode);
+        cluster.transformNode();
+        int size = cluster.getNodes().stream().filter(node -> {
+            return node.getSSHPort() == 22;
+        }).collect(Collectors.toList()).size();
+        Assert.assertEquals(1, size);
     }
 }

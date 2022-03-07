@@ -74,7 +74,11 @@ public class ClusterInfo {
                             JsonUtil.writeValueAsStringQuietly(node).getBytes(StandardCharsets.UTF_8),
                             Node.class));
                 } else {
-                    transformedNodes.add((Node) node);
+                    Node n = (Node) node;
+                    if (n.getSSHPort() == 0) {
+                        n.setSSHPort(22);
+                    }
+                    transformedNodes.add(n);
                 }
             }
             cluster.put(pair.getKey(), transformedNodes);
