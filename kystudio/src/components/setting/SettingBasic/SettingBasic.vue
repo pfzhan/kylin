@@ -447,7 +447,8 @@ import { Component, Watch } from 'vue-property-decorator'
 
 import locales from './locales'
 import { handleError, handleSuccess, handleSuccessAsync, objectClone, ArrayFlat } from '../../../util'
-import { projectTypeIcons, lowUsageStorageTypes, autoMergeTypes, volatileTypes, validate, retentionTypes, initialFormValue, _getProjectGeneralInfo, _getSegmentSettings, _getPushdownConfig, _getStorageQuota, _getIndexOptimization, _getRetentionRangeScale } from './handler'
+import { projectTypeIcons, lowUsageStorageTypes, autoMergeTypes, volatileTypes, validate, initialFormValue, _getProjectGeneralInfo, _getSegmentSettings, _getPushdownConfig, _getStorageQuota, _getIndexOptimization, _getRetentionRangeScale } from './handler'
+import { retentionTypes } from '../handler'
 import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
 import SourceAuthorityForm from '../../common/DataSourceModal/SourceJDBC/SourceAuthorityForm/SourceAuthorityForm.vue'
 

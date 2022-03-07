@@ -23,12 +23,6 @@ export const volatileTypes = [
   'QUARTER',
   'YEAR'
 ]
-export const retentionTypes = [
-  'DAY',
-  'WEEK',
-  'MONTH',
-  'YEAR'
-]
 export const initialFormValue = {
   push_down_enabled: true,
   push_down_range_limited: true,
