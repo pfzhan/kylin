@@ -1141,6 +1141,7 @@ export default class ModelEdit extends Vue {
   // 拖动画布
   dragBox (x, y) {
     this.$nextTick(() => {
+      this.modelInstance.getSysInfo()
       this.modelInstance.moveModelPosition(x, y)
     })
   }
@@ -1744,6 +1745,13 @@ export default class ModelEdit extends Vue {
     })
   }
 
+  setModelBoundStyle () {
+    const { left, top } = this.modelRender.marginClient ?? {left: 0, top: 0}
+    const dom = this.$el.querySelector('.model-edit')
+    if (!dom) return
+    dom.style.cssText += `margin-left: ${left}px; margin-top: ${top}px`
+  }
+
   async mounted () {
     this.globalLoading.show()
     this.$el.onselectstart = function (e) {
@@ -1817,6 +1825,7 @@ export default class ModelEdit extends Vue {
         })
       }
     })
+    this.setModelBoundStyle()
     if (localStorage.getItem('isFirstAddModel') === 'true') {
       await this.showGuide()
     }

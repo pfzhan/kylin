@@ -382,7 +382,7 @@ export default class DimensionsModal extends Vue {
   }
 
   get flattenLookupTables () {
-    return this.modelDesc.anti_flatten_lookups || []
+    return this.modelDesc?.anti_flatten_lookups ?? []
   }
 
   get unflattenComputedColumns () {
