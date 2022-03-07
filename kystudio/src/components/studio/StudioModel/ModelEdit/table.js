@@ -88,8 +88,9 @@ class NTable {
   checkIsOutOfView (_parent, dragInfo, sw, sh) {
     clearTimeout(this.ST)
     this.ST = setTimeout(() => {
-      let left = dragInfo.left * (_parent.zoom / 10) + _parent.zoomXSpace
-      let top = dragInfo.top * (_parent.zoom / 10) + _parent.zoomYSpace
+      const { left: mL, top: mT } = _parent.marginClient ?? { left: 0, top: 0 }
+      let left = (dragInfo.left + mL) * (_parent.zoom / 10) + _parent.zoomXSpace
+      let top = (dragInfo.top + mT) * (_parent.zoom / 10) + _parent.zoomYSpace
       let offset = 20
       if (left - offset > sw || left + dragInfo.width + offset < 0 || top + dragInfo.height + offset < 0 || top - offset > sh) {
         dragInfo.isOutOfView = true

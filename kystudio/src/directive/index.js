@@ -506,7 +506,15 @@ Vue.directive('drag', {
         if ([...oDiv.classList].includes('drag-bar')) {
           parent = parent.parentElement
         }
+        if ([...oDiv.classList].includes('model-edit-outer')) {
+          const child = oDiv.querySelector('.model-edit')
+          if (!child) return
+          const mL = child.offsetLeft ?? 0
+          const mT = child.offsetTop ?? 0
+          child.style.cssText += `margin-left: ${mL + x}px; margin-top: ${mT + y}px`
+        }
         parent && (parent.style.cssText = `width: ${width}px; height: ${height}px; right: ${right ? right + 'px' : null}; left: ${left ? left + 'px' : null}; top: ${top}px; z-index: ${zIndex}`)
+
         callback && callback(x, y, boxW, boxH, info)
       }
       document.onmouseup = function () {
