@@ -52,7 +52,6 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.query.AccelerateRatioManager;
 import io.kyligence.kap.rest.response.ImportSqlResponse;
 import io.kyligence.kap.rest.response.SQLParserResponse;
 import lombok.val;
@@ -132,7 +131,8 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
                 "text/plain", new FileInputStream(new File("./src/test/resources/ut_sqls_file/sqls5.sql"))), PROJECT);
         Assert.assertEquals(3, sqls1.size());
         Assert.assertEquals("select CAL_DT from TEST_KYLIN_FACT", sqls1.get(0));
-        Assert.assertEquals("select concat(';', LSTG_FORMAT_NAME), '123', 234, 'abc' from TEST_KYLIN_FACT", sqls1.get(1));
+        Assert.assertEquals("select concat(';', LSTG_FORMAT_NAME), '123', 234, 'abc' from TEST_KYLIN_FACT",
+                sqls1.get(1));
         Assert.assertEquals("select '456', 456, 'dgf' from TEST_KYLIN_FACT", sqls1.get(2));
 
         List<String> sqls2 = favoriteRuleService.transformFileToSqls(new MockMultipartFile("sqls6.sql", "sqls6.sql",
@@ -144,21 +144,12 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
                 "text/plain", new FileInputStream(new File("./src/test/resources/ut_sqls_file/sqls7.sql"))), PROJECT);
         Assert.assertEquals(2, sqls3.size());
         Assert.assertEquals("select CAL_DT from TEST_KYLIN_FACT", sqls3.get(0));
-        Assert.assertEquals("select concat(';', LSTG_FORMAT_NAME), '123', 234, 'abc' from TEST_KYLIN_FACT", sqls3.get(1));
+        Assert.assertEquals("select concat(';', LSTG_FORMAT_NAME), '123', 234, 'abc' from TEST_KYLIN_FACT",
+                sqls3.get(1));
 
         List<String> sqls4 = favoriteRuleService.transformFileToSqls(new MockMultipartFile("sqls8.sql", "sqls8.sql",
                 "text/plain", new FileInputStream(new File("./src/test/resources/ut_sqls_file/sqls8.sql"))), PROJECT);
         Assert.assertEquals(360, sqls4.size());
-    }
-
-    @Test
-    public void testGetAccelerateRatio() {
-        double ratio = favoriteRuleService.getAccelerateRatio(PROJECT);
-        Assert.assertEquals(0, ratio, 0.1);
-        AccelerateRatioManager ratioManager = AccelerateRatioManager.getInstance(getTestConfig(), PROJECT);
-        ratioManager.increment(100, 1000);
-        ratio = favoriteRuleService.getAccelerateRatio(PROJECT);
-        Assert.assertEquals(0.1, ratio, 0.1);
     }
 
     @Test
@@ -228,7 +219,7 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
                 new FileInputStream(new File("./src/test/resources/ut_sqls_file/sqls9.sql")));
         MockMultipartFile file2 = new MockMultipartFile("sqls10.sql", "sqls10.sql", "text/plain",
                 new FileInputStream(new File("./src/test/resources/ut_sqls_file/sqls10.sql")));
-        val response = favoriteRuleService.importSqls(new MultipartFile[] { file1, file2}, "streaming_test");
+        val response = favoriteRuleService.importSqls(new MultipartFile[] { file1, file2 }, "streaming_test");
         Assert.assertEquals(2, response.getSize());
         Assert.assertEquals(1, response.getCapableSqlNum());
 

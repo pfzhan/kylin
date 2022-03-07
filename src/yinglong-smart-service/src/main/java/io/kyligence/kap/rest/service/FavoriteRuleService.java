@@ -46,8 +46,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.metadata.query.AccelerateRatio;
-import io.kyligence.kap.metadata.query.AccelerateRatioManager;
 import io.kyligence.kap.rest.response.ImportSqlResponse;
 import io.kyligence.kap.rest.response.SQLParserResponse;
 import io.kyligence.kap.rest.response.SQLValidateResponse;
@@ -186,15 +184,5 @@ public class FavoriteRuleService extends BasicService {
         SQLValidateResult result = map.get(correctedSql);
 
         return new SQLValidateResponse(result.isCapable(), result.getSqlAdvices());
-    }
-
-    public double getAccelerateRatio(String project) {
-        aclEvaluate.checkProjectReadPermission(project);
-        AccelerateRatioManager ratioManager = getAccelerateRatioManager(project);
-        AccelerateRatio accelerateRatio = ratioManager.get();
-        if (accelerateRatio == null || accelerateRatio.getOverallQueryNum() == 0)
-            return 0;
-
-        return accelerateRatio.getNumOfQueryHitIndex() / (double) accelerateRatio.getOverallQueryNum();
     }
 }

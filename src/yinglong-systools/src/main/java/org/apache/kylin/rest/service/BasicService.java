@@ -83,7 +83,6 @@ import io.kyligence.kap.metadata.model.FusionModelManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.query.AccelerateRatioManager;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
@@ -191,10 +190,6 @@ public abstract class BasicService {
 
     public MonitorDao getMonitorDao() {
         return MonitorDao.getInstance();
-    }
-
-    public AccelerateRatioManager getAccelerateRatioManager(String project) {
-        return AccelerateRatioManager.getInstance(getConfig(), project);
     }
 
     public JobStatisticsManager getJobStatisticsManager(String project) {

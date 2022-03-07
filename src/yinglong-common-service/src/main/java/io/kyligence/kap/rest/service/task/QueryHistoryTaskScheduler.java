@@ -28,7 +28,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -63,7 +62,6 @@ import io.kyligence.kap.metadata.favorite.QueryHistoryIdOffsetManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.query.AccelerateRatioManager;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryInfo;
@@ -191,21 +189,12 @@ public class QueryHistoryTaskScheduler {
         }
 
         private void updateStatMeta(List<QueryHistory> queryHistories) {
-
-            int numOfQueryHitIndex = 0;
-            int overallQueryNum = 0;
             long maxId = 0;
-
             Map<String, Long> modelsLastQueryTime = Maps.newHashMap();
             val dfHitCountMap = collectDataflowHitCount(queryHistories);
             for (QueryHistory queryHistory : queryHistories) {
-                overallQueryNum++;
                 collectModelLastQueryTime(queryHistory, modelsLastQueryTime);
 
-                String engineType = queryHistory.getEngineType();
-                if (Objects.nonNull(engineType) && engineType.equals(QueryHistory.EngineType.NATIVE.name())) {
-                    numOfQueryHitIndex++;
-                }
                 if (queryHistory.getId() > maxId) {
                     maxId = queryHistory.getId();
                 }
@@ -214,13 +203,11 @@ public class QueryHistoryTaskScheduler {
             val hitSnapshotCountMap = collectSnapshotHitCount(queryHistories);
 
             // update metadata
-            updateMetadata(numOfQueryHitIndex, overallQueryNum, dfHitCountMap, modelsLastQueryTime, maxId,
-                    hitSnapshotCountMap);
+            updateMetadata(dfHitCountMap, modelsLastQueryTime, maxId, hitSnapshotCountMap);
         }
 
-        private void updateMetadata(int numOfQueryHitIndex, int overallQueryNum,
-                Map<String, DataflowHitCount> dfHitCountMap, Map<String, Long> modelsLastQueryTime, Long maxId,
-                Map<TableDesc, Integer> hitSnapshotCountMap) {
+        private void updateMetadata(Map<String, DataflowHitCount> dfHitCountMap, Map<String, Long> modelsLastQueryTime,
+                Long maxId, Map<TableDesc, Integer> hitSnapshotCountMap) {
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 KylinConfig config = KylinConfig.getInstanceFromEnv();
 
@@ -229,12 +216,6 @@ public class QueryHistoryTaskScheduler {
 
                 // update model last query time
                 updateLastQueryTime(modelsLastQueryTime, project);
-
-                // update accelerate ratio
-                if (numOfQueryHitIndex != 0 || overallQueryNum != 0) {
-                    AccelerateRatioManager accelerateRatioManager = AccelerateRatioManager.getInstance(config, project);
-                    accelerateRatioManager.increment(numOfQueryHitIndex, overallQueryNum);
-                }
 
                 // update id offset
                 QueryHistoryIdOffset queryHistoryIdOffset = QueryHistoryIdOffsetManager
