@@ -50,7 +50,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-hdfs</artifactId>
+            <artifactId>hadoop-common</artifactId>
         </dependency>
         <dependency>
             <groupId>io.kyligence.ke</groupId>
