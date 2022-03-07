@@ -25,16 +25,13 @@ package io.kyligence.kap.newten.clickhouse;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
-import static io.kyligence.kap.clickhouse.ClickHouseConstants.CONFIG_CLICKHOUSE_QUERY_CATALOG;
 import io.kyligence.kap.clickhouse.ddl.ClickHouseCreateTable;
 import io.kyligence.kap.clickhouse.ddl.ClickHouseRender;
 import io.kyligence.kap.clickhouse.management.ClickHouseConfigLoader;
 import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.engine.spark.utils.RichOption;
-import static io.kyligence.kap.newten.clickhouse.SonarFixUtils.jdbcClassesArePresent;
 import io.kyligence.kap.secondstorage.SecondStorage;
 import io.kyligence.kap.secondstorage.SecondStorageConstants;
-import static io.kyligence.kap.secondstorage.SecondStorageConstants.CONFIG_SECOND_STORAGE_CLUSTER;
 import io.kyligence.kap.secondstorage.config.ClusterInfo;
 import io.kyligence.kap.secondstorage.config.Node;
 import io.kyligence.kap.secondstorage.ddl.InsertInto;
@@ -53,7 +50,6 @@ import org.apache.spark.sql.execution.datasources.v2.V1ScanWrapper;
 import org.apache.spark.sql.execution.datasources.v2.jdbc.ShardJDBCScan;
 import org.apache.spark.sql.execution.datasources.v2.jdbc.ShardJDBCTable;
 import org.apache.spark.sql.execution.datasources.v2.pushdown.sql.SingleSQLStatement;
-import static org.awaitility.Awaitility.await;
 import org.junit.Assert;
 import org.testcontainers.containers.ClickHouseContainer;
 import org.testcontainers.containers.JdbcDatabaseContainer;
@@ -86,6 +82,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
+import static io.kyligence.kap.clickhouse.ClickHouseConstants.CONFIG_CLICKHOUSE_QUERY_CATALOG;
+import static io.kyligence.kap.newten.clickhouse.SonarFixUtils.jdbcClassesArePresent;
+import static io.kyligence.kap.secondstorage.SecondStorageConstants.CONFIG_SECOND_STORAGE_CLUSTER;
+import static org.awaitility.Awaitility.await;
 
 @Slf4j
 public class ClickHouseUtils {
@@ -304,6 +305,35 @@ public class ClickHouseUtils {
             node.setIp(uri.getHost());
             node.setPort(uri.getPort());
             node.setUser("default");
+            clusterNode.get("pair" + i % pairNum).add(node);
+            i += 1;
+        }
+        File file = File.createTempFile("clickhouse", ".yaml");
+        ClickHouseConfigLoader.getConfigYaml().dump(JsonUtil.readValue(JsonUtil.writeValueAsString(cluster),
+                Map.class), new PrintWriter(file, Charset.defaultCharset().name()));
+        Unsafe.setProperty(CONFIG_SECOND_STORAGE_CLUSTER, file.getAbsolutePath());
+        Unsafe.setProperty(SecondStorageConstants.NODE_REPLICA, String.valueOf(replica));
+        SecondStorage.init(true);
+    }
+
+    public static void internalConfigClickHouse(JdbcDatabaseContainer<?>[] clickhouse, int replica, int sshPort) throws IOException {
+        Preconditions.checkArgument(clickhouse.length % replica == 0);
+        Map<String, List<Node>> clusterNode = new HashMap<>();
+        int pairNum = clickhouse.length / replica;
+        IntStream.range(0, pairNum).forEach(idx -> clusterNode.put("pair" + idx, new ArrayList<>()));
+        ClusterInfo cluster = new ClusterInfo()
+                .setKeepAliveTimeout("600000")
+                .setSocketTimeout("600000")
+                .setCluster(clusterNode);
+        int i = 0;
+        for (JdbcDatabaseContainer<?> jdbcDatabaseContainer : clickhouse) {
+            Node node = new Node();
+            node.setName(String.format(Locale.ROOT, "node%02d", i));
+            URI uri = URI.create(jdbcDatabaseContainer.getJdbcUrl().replace("jdbc:", ""));
+            node.setIp(uri.getHost());
+            node.setPort(uri.getPort());
+            node.setUser("default");
+            node.setSSHPort(sshPort);
             clusterNode.get("pair" + i % pairNum).add(node);
             i += 1;
         }

@@ -83,6 +83,7 @@ public class ClickHouseConfigLoader implements SecondStorageConfigLoader {
         nodeDesc.addPropertyParameters("port", Integer.class);
         nodeDesc.addPropertyParameters("user", String.class);
         nodeDesc.addPropertyParameters("password", String.class);
+        nodeDesc.addPropertyParameters("sshPort", String.class);
         constructor.addTypeDescription(nodeDesc);
         return new Yaml(constructor);
     }
