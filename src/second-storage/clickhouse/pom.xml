@@ -43,6 +43,12 @@
             <artifactId>hadoop-common</artifactId>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>com.github.sakserv</groupId>
+            <artifactId>hadoop-mini-clusters-hdfs</artifactId>
+            <scope>test</scope>
+            <version>0.1.16</version>
+        </dependency>
 
 
         <!-- spark -->
