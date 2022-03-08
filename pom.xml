@@ -297,7 +297,6 @@
     </properties>
 
     <modules>
-        <!--<module>src/external</module>-->
         <module>src/core-job</module>
         <module>src/core-storage</module>
         <module>src/query</module>
@@ -441,7 +440,7 @@
             <!-- second storage -->
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
-                <artifactId>second-storage-clickhouse</artifactId>
+                <artifactId>kap-second-storage-clickhouse</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
