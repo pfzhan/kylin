@@ -148,7 +148,7 @@
 
         <spring.cloud.version>2021.0.0</spring.cloud.version>
         <spring.boot.version>2.6.3</spring.boot.version>
-        <spring-session.version>2.6.1-kylin-r1</spring-session.version>
+        <spring-session.version>2.6.1-kylin-r2</spring-session.version>
         <spring.framework.security.extensions.version>1.0.10.RELEASE</spring.framework.security.extensions.version>
         <opensaml.version>2.6.6</opensaml.version>
         <aspectj.version>1.8.9</aspectj.version>
