@@ -10,20 +10,19 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <name>YingLong - Smart Booter</name>
+    <name>YingLong - Query Booter</name>
     <groupId>io.kyligence.yinglong</groupId>
-    <artifactId>yinglong-smart-booter</artifactId>
+    <artifactId>yinglong-query-booter</artifactId>
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
     </properties>
 
-
     <dependencies>
         <dependency>
             <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-smart-server</artifactId>
+            <artifactId>yinglong-query-server</artifactId>
         </dependency>
 
         <dependency>
@@ -44,16 +43,6 @@
             <groupId>io.kyligence.yinglong</groupId>
             <artifactId>yinglong-enterprise-service</artifactId>
         </dependency>
-        <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-build-service</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-job-service</artifactId>
-        </dependency>
-
-
 
         <!-- mysql -->
         <dependency>
@@ -91,7 +80,6 @@
             <scope>provided</scope>
         </dependency>
 
-
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
@@ -105,6 +93,16 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-log4j2</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-logging</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -158,6 +156,5 @@
             </dependencies>
         </profile>
     </profiles>
-
 
 </project>

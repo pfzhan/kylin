@@ -351,6 +351,7 @@
         <!-- yinglong server (starter) -->
         <module>src/yinglong-smart-booter</module>
         <module>src/yinglong-data-loading-booter</module>
+        <module>src/yinglong-query-booter</module>
 
     </modules>
 
@@ -501,6 +502,16 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.yinglong</groupId>
+                <artifactId>yinglong-query-server</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.yinglong</groupId>
+                <artifactId>yinglong-query-booter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.yinglong</groupId>
                 <artifactId>yinglong-smart-service</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -525,17 +536,6 @@
                 <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
                 <version>${spring.cloud.alibaba.version}</version>
             </dependency>
-<!--            <dependency>-->
-<!--                <groupId>org.springframework.cloud</groupId>-->
-<!--                <artifactId>spring-cloud-starter-netflix-ribbon</artifactId>-->
-<!--                <version>${spring.cloud.feign.version}</version>-->
-<!--            </dependency>-->
-
-<!--            <dependency>-->
-<!--                <groupId>org.springframework.cloud</groupId>-->
-<!--                <artifactId>spring-cloud-starter-feign</artifactId>-->
-<!--                <version>${spring.cloud.feign.version}</version>-->
-<!--            </dependency>-->
 
             <dependency>
                 <groupId>com.microsoft.sqlserver</groupId>

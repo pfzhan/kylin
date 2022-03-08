@@ -74,6 +74,10 @@
             <groupId>io.kyligence.yinglong</groupId>
             <artifactId>yinglong-smart-server</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.kyligence.yinglong</groupId>
+            <artifactId>yinglong-query-server</artifactId>
+        </dependency>
         <!--KAP-->
         <dependency>
             <groupId>io.kyligence.ke</groupId>
