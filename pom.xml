@@ -341,6 +341,7 @@
         <module>src/yinglong-integration-service</module>
 
         <!-- yinglong controller  -->
+        <module>src/yinglong-common-server</module>
         <module>src/yinglong-smart-server</module>
         <module>src/yinglong-metadata-server</module>
         <module>src/yinglong-data-loading-server</module>
@@ -350,6 +351,7 @@
         <module>src/yinglong-smart-booter</module>
         <module>src/yinglong-data-loading-booter</module>
         <module>src/yinglong-query-booter</module>
+        <module>src/yinglong-common-booter</module>
 
     </modules>
 
@@ -485,6 +487,11 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.yinglong</groupId>
+                <artifactId>yinglong-common-booter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.yinglong</groupId>
                 <artifactId>yinglong-smart-server</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -501,6 +508,15 @@
             <dependency>
                 <groupId>io.kyligence.yinglong</groupId>
                 <artifactId>yinglong-query-booter</artifactId>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.yinglong</groupId>
+                <artifactId>yinglong-common-server</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.yinglong</groupId>
+                <artifactId>yinglong-metadata-server</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -728,6 +744,12 @@
             <dependency>
                 <groupId>io.kyligence.yinglong</groupId>
                 <artifactId>yinglong-common-service</artifactId>
+                <version>${project.version}</version>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.yinglong</groupId>
+                <artifactId>yinglong-systools</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
             </dependency>
