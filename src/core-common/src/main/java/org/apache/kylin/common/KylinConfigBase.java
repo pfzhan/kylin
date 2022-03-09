@@ -1063,6 +1063,10 @@ public abstract class KylinConfigBase implements Serializable {
     // SOURCE.HIVE
     // ============================================================================
 
+    public boolean isAddBacktickToHiveColumnName() {
+        return Boolean.parseBoolean(getOptional("kylin.source.hive.add-backtick-to-hive-column-name", TRUE));
+    }
+
     public int getDefaultSource() {
         return Integer.parseInt(getOptional("kylin.source.default", "0"));
     }
