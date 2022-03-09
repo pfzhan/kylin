@@ -6776,11 +6776,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertNull(model.getMeasures().get(0).getColumn());
         Assert.assertNull(model.getMeasures().get(0).getComment());
         Assert.assertEquals("GMV_SUM", model.getMeasures().get(1).getName());
-        Assert.assertEquals("PRICE", model.getMeasures().get(1).getColumn());
-        Assert.assertEquals("PRICE", model.getMeasures().get(1).getComment());
-        Assert.assertEquals("TOP_SELLER", model.getMeasures().get(8).getName());
-        Assert.assertEquals("PRICE", model.getMeasures().get(8).getColumn());
-        Assert.assertEquals("PRICE", model.getMeasures().get(8).getComment());
+        Assert.assertNull(model.getMeasures().get(1).getColumn());
+        Assert.assertNull(model.getMeasures().get(1).getComment());
     }
 
     @Test

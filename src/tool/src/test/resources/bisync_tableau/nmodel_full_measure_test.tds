@@ -109,7 +109,7 @@
   <column caption="COUNT_STAR" datatype="integer" name="[COUNT_STAR]" role="measure" type="quantitative">
     <calculation class="tableau" formula="COUNT(*)"/>
   </column>
-  <column caption="SUM_1" datatype="integer" name="[SUM_1]" role="measure" type="quantitative">
+  <column caption="求和" datatype="integer" name="[SUM_1]" role="measure" type="quantitative">
     <calculation class="tableau" formula="SUM(1)"/>
   </column>
   <column caption="SUM_2" datatype="real" name="[SUM_2]" role="measure" type="quantitative">

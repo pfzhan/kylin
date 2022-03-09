@@ -573,7 +573,11 @@ public class ModelSemanticHelper extends BasicService {
         compareAndUpdateColumns(toMeasureMap.apply(originModel.getAllMeasures()),
                 toMeasureMap.apply(expectedModel.getAllMeasures()), newMeasures::add,
                 oldMeasure -> oldMeasure.setTomb(true),
-                (oldMeasure, newMeasure) -> oldMeasure.setName(newMeasure.getName()));
+                (oldMeasure, newMeasure) -> {
+                    oldMeasure.setName(newMeasure.getName());
+                    oldMeasure.setComment(newMeasure.getComment());
+                }
+        );
         updateMeasureStatus(newMeasures, originModel, updateImpact);
 
         // compare originModel and expectedModel's existing allNamedColumn
