@@ -204,6 +204,8 @@ public class LdapUserServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testUserExists() {
         Assert.assertTrue(ldapUserService.userExists("johnny"));
+        //Ignore case
+        Assert.assertTrue(ldapUserService.userExists("JOHNNY"));
     }
 
     @Test

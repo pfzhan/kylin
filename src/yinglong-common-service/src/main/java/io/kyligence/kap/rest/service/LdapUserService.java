@@ -27,7 +27,6 @@ package io.kyligence.kap.rest.service;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -48,6 +47,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.util.CaseInsensitiveStringMap;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.UserService;
@@ -172,7 +172,7 @@ public class LdapUserService implements UserService {
         Map<String, ManagedUser> allUsers = ldapUsersCache.getIfPresent(LDAP_USERS);
         if (CollectionUtils.isEmpty(allUsers)) {
             logger.info("Failed to read users from cache, reload from ldap server.");
-            allUsers = new HashMap<>();
+            allUsers = new CaseInsensitiveStringMap<>();
             Set<String> ldapUsers = getAllUsers();
             for (String user : ldapUsers) {
                 ManagedUser ldapUser = new ManagedUser(user, SKIPPED_LDAP, false, Lists.newArrayList());
@@ -270,8 +270,7 @@ public class LdapUserService implements UserService {
                     return pairList;
                 });
 
-        Map<String, String> resultMap = pairs
-                .stream().collect(Collectors.groupingBy(Pair::getSecond)).entrySet()
+        Map<String, String> resultMap = pairs.stream().collect(Collectors.groupingBy(Pair::getSecond)).entrySet()
                 .stream().filter(e -> 1 == e.getValue().size()).map(Map.Entry::getValue).map(list -> list.get(0))
                 .collect(Collectors.toMap(Pair::getKey, Pair::getValue));
         logger.info("LDAP user info load success");
