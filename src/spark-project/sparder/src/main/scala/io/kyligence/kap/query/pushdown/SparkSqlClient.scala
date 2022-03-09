@@ -80,7 +80,7 @@ object SparkSqlClient {
       ss.sessionState.conf.setLocalProperty(DEFAULT_DB, db)
       val df = QueryResultMasks.maskResult(ss.sql(sql))
 
-      autoSetShufflePartitions(ss, df)
+      autoSetShufflePartitions(df)
 
       val msg = "SparkSQL returned result DataFrame"
       logger.info(msg)
@@ -91,13 +91,14 @@ object SparkSqlClient {
     }
   }
 
-  private def autoSetShufflePartitions(ss: SparkSession, df: DataFrame) = {
+  private def autoSetShufflePartitions(df: DataFrame) = {
     val config = KylinConfig.getInstanceFromEnv
     if (config.isAutoSetPushDownPartitions) {
       try {
         val basePartitionSize = config.getBaseShufflePartitionSize
         val paths = ResourceDetectUtils.getPaths(df.queryExecution.sparkPlan)
-        val sourceTableSize = ResourceDetectUtils.getResourceSize(paths: _*) + "b"
+        val sourceTableSize = ResourceDetectUtils.getResourceSize(config.isConcurrencyFetchDataSourceSize,
+          paths: _*) + "b"
         val partitions = Math.max(1, JavaUtils.byteStringAsMb(sourceTableSize) / basePartitionSize).toString
         df.sparkSession.sessionState.conf.setLocalProperty("spark.sql.shuffle.partitions", partitions)
         QueryContext.current().setShufflePartitions(partitions.toInt)
