@@ -9,7 +9,7 @@
       v-on:openIndexDialog="openIndexDialog"
       v-on:loadFilterList="loadFilterList"
       v-on:exportHistory="exportHistory"></query_history_table>
-    <kap-pager ref="queryHistoryPager" :refTag="pageRefTags.queryHistoryPager" class="ksd-center ksd-mtb-16" :curPage="queryCurrentPage" :perPageSize="20" :totalSize="queryHistoryData.size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
+    <kap-pager ref="queryHistoryPager" :refTag="pageRefTags.queryHistoryPager" class="ksd-center ksd-mtb-16" :curPage="queryCurrentPage" :totalSize="queryHistoryData.size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
     <el-dialog
       :title="$t('indexOverview')"
       top="10vh"
@@ -78,7 +78,7 @@ import { handleError, handleSuccessAsync } from '../../util/index'
 import queryHistoryTable from './query_history_table'
 import ModelAggregate from '../studio/StudioModel/ModelList/ModelAggregate/index.vue'
 import TableIndex from '../studio/StudioModel/TableIndex/index.vue'
-import { pageRefTags, apiUrl } from 'config'
+import { pageRefTags, apiUrl, bigPageCount } from 'config'
 @Component({
   beforeRouteEnter (to, from, next) {
     next(vm => {
@@ -162,7 +162,7 @@ export default class QueryHistory extends Vue {
     uuid: ''
   }
   queryNodes = []
-  pageSize = +localStorage.getItem(this.pageRefTags.queryHistoryPager) || 20
+  pageSize = +localStorage.getItem(this.pageRefTags.queryHistoryPager) || bigPageCount
   isExportSqlOnly = false
   exportSqlDialogVisible = false
   isLoadingHistory = false

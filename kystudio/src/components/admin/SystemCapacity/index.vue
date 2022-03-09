@@ -158,7 +158,7 @@
               </el-table-column>
             </el-table>
           </div>
-          <kap-pager class="ksd-center ksd-mtb-10" :refTag="pageRefTags.capacityPager" layout="total, prev, pager, next, jumper" :curPage="projectCapacity.currentPage + 1" :totalSize="projectCapacity.totalSize"  @handleCurrentChange='pageCurrentChange'></kap-pager>
+          <kap-pager class="ksd-center ksd-mtb-10" :perPageSize="projectCapacity.pageSize" :refTag="pageRefTags.capacityPager" layout="total, prev, pager, next, jumper" :curPage="projectCapacity.currentPage + 1" :totalSize="projectCapacity.totalSize"  @handleCurrentChange='pageCurrentChange'></kap-pager>
         </div>
       </div>
     </div>
@@ -243,7 +243,7 @@
             </template>
           </el-table-column>
         </el-table>
-        <kap-pager class="ksd-center ksd-mtb-10" :refTag="pageRefTags.projectDetail" layout="total, prev, pager, next, jumper" :curPage="projectDetail.currentPage + 1" :totalSize="projectDetail.totalSize"  @handleCurrentChange='pageCurrentChangeByDetail'></kap-pager>
+        <kap-pager class="ksd-center ksd-mtb-10" :perPageSize="projectDetail.pageSize" :refTag="pageRefTags.projectDetail" layout="total, prev, pager, next, jumper" :curPage="projectDetail.currentPage + 1" :totalSize="projectDetail.totalSize"  @handleCurrentChange='pageCurrentChangeByDetail'></kap-pager>
       </div>
       <span slot="footer" class="dialog-footer">
         <el-button type="primary" plain @click="showProjectChargedDetails = false">{{$t('kylinLang.common.close')}}</el-button>
@@ -263,7 +263,7 @@ import EmptyData from '../../common/EmptyData/EmptyData'
 import { mapActions, mapState } from 'vuex'
 import { transToUtcDateFormat } from '../../../util/business'
 import filterElements from '../../../filter/index'
-import { pageRefTags } from 'config'
+import { pageRefTags, pageCount } from 'config'
 
 @Component({
   methods: {
@@ -313,7 +313,7 @@ export default class SystemCapacity extends Vue {
   projectStatusFilter = ['success', 'fail']
   projectCapacity = {
     list: [],
-    pageSize: +localStorage.getItem(this.pageRefTags.capacityPager) || 10,
+    pageSize: +localStorage.getItem(this.pageRefTags.capacityPager) || pageCount,
     currentPage: 0,
     totalSize: 10,
     sort_by: '',
@@ -325,7 +325,7 @@ export default class SystemCapacity extends Vue {
   currentProjectName = ''
   projectDetail = {
     list: [],
-    pageSize: +localStorage.getItem(this.pageRefTags.projectDetail) || 10,
+    pageSize: +localStorage.getItem(this.pageRefTags.projectDetail) || pageCount,
     currentPage: 0,
     totalSize: 10,
     sort_by: '',

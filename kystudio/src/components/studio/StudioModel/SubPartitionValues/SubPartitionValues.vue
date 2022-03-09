@@ -42,7 +42,7 @@
         </template>
       </el-table-column>
     </el-table>
-    <kap-pager :totalSize="subPartitionValuesTotal" :curPage="filter.page_offset+1"  v-on:handleCurrentChange='pageSizeChange' ref="subPartitionValuesPager" :refTag="pageRefTags.subPartitionValuesPager" :perPageSize="filter.page_size" class="ksd-mtb-10 ksd-center" ></kap-pager>
+    <kap-pager :totalSize="subPartitionValuesTotal" :curPage="filter.page_offset+1"  v-on:handleCurrentChange='pageSizeChange' ref="subPartitionValuesPager" :refTag="pageRefTags.subPartitionValuesPager" class="ksd-mtb-10 ksd-center" ></kap-pager>
     <el-dialog
       :visible.sync="addSubParValueVisible"
       width="480px"
@@ -123,7 +123,7 @@
 import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
 import { mapActions, mapGetters } from 'vuex'
-import { pageRefTags } from '../../../../config'
+import { pageRefTags, bigPageCount } from '../../../../config'
 import locales from './locales'
 import arealabel from '../../../common/area_label.vue'
 import { handleSuccessAsync, handleError, split_array } from '../../../../util'
@@ -159,7 +159,7 @@ export default class subPartitionValues extends Vue {
   subPartitionValuesTotal = 0
   filter = {
     page_offset: 0,
-    page_size: +localStorage.getItem(this.pageRefTags.subPartitionValuesPager) || 20,
+    page_size: +localStorage.getItem(this.pageRefTags.subPartitionValuesPager) || bigPageCount,
     sort_by: '',
     reverse: false
   }

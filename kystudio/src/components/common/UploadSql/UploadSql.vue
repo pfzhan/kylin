@@ -213,7 +213,7 @@ import store, { types } from './store'
 import { handleSuccessAsync, handleError, ArrayFlat } from '../../../util/index'
 import { handleSuccess, kapConfirm, kapWarn } from '../../../util/business'
 import SuggestModel from './SuggestModel.vue'
-import { pageRefTags } from 'config'
+import { pageRefTags, pageCount } from 'config'
 
 vuex.registerModule(['modals', 'UploadSqlModel'], store)
 @Component({
@@ -280,7 +280,7 @@ export default class UploadSqlModel extends Vue {
   filteredDataSize = 0
   whiteCurrentPage = 0
   timer = null
-  whitePageSize = 10
+  whitePageSize = pageCount
   isShowEditor = true
   sqlFormatterObj = {}
   generateLoading = false
@@ -476,7 +476,7 @@ export default class UploadSqlModel extends Vue {
     }
   }
   whiteSqlDatasPageChange (currentPage, pageSize) {
-    const size = pageSize || +localStorage.getItem(this.pageRefTags.sqlListsPager) || 10
+    const size = pageSize || +localStorage.getItem(this.pageRefTags.sqlListsPager) || pageCount
     this.whiteCurrentPage = currentPage
     this.whitePageSize = size
     const filteredData = this.whiteFilter(this.whiteSqlData.data)
