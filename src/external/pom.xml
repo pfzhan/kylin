@@ -50,6 +50,11 @@
         <module>guava20</module>
         <module>influxdb</module>
         <module>swagger</module>
+        <module>commons-httpclient</module>
+        <module>guava14</module>
+        <module>jackson-xc</module>
+        <module>libfb303</module>
+        <module>kafka-clients</module>
     </modules>
 
     <distributionManagement>
