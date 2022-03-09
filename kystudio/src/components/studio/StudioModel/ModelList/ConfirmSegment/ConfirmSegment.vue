@@ -71,6 +71,7 @@
         :refTag="pageRefTags.confirmSegmentPager"
         :background="false"
         :curPage="pagination.page_offset+1"
+        :perPageSize="pagination.pageSize"
         :totalSize="totalSegmentCount"
         @handleCurrentChange="handleCurrentChange">
       </kap-pager>

@@ -58,7 +58,7 @@
 <script>
 import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
-import { pageRefTags } from 'config'
+import { pageRefTags, pageCount } from 'config'
 import { dataHelper } from '../../../util'
 
 @Component({
@@ -71,7 +71,7 @@ import { dataHelper } from '../../../util'
 export default class ModelMeasureList extends Vue {
   pageRefTags = pageRefTags
   pageOffset = 0
-  pageSize = +localStorage.getItem(this.pageRefTags.modelMeasurePager) || 10
+  pageSize = +localStorage.getItem(this.pageRefTags.modelMeasurePager) || pageCount
   filters = [
     { name: '' }
   ]

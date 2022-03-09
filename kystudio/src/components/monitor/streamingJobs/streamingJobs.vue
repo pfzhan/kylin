@@ -162,7 +162,7 @@
               </template>
             </el-table-column>
           </el-table>
-          <kap-pager :totalSize="jobTotal" :curPage="filter.page_offset+1"  v-on:handleCurrentChange='currentChange' ref="jobPager" :refTag="pageRefTags.streamingJobPager" :perPageSize="20" class="ksd-mtb-16 ksd-center" ></kap-pager>
+          <kap-pager :totalSize="jobTotal" :curPage="filter.page_offset+1"  v-on:handleCurrentChange='currentChange' ref="jobPager" :refTag="pageRefTags.streamingJobPager" class="ksd-mtb-16 ksd-center" ></kap-pager>
         </el-col>
         <el-col :span="6" v-if="showStep" id="rightDetail" :class="{'is-admin-tips': $store.state.user.isShowAdminTips&&isAdminRole}">
           <el-tabs v-model="jobDetailTab" @tab-click="handleChangeTab">
@@ -273,7 +273,7 @@ import { Component, Watch } from 'vue-property-decorator'
 import { mapActions, mapGetters, mapMutations } from 'vuex'
 import { cacheLocalStorage, getQueryString, objectClone, indexOfObjWithSomeKey, countObjWithSomeKey } from 'util/index'
 import { handleError, handleSuccess, postCloudUrlMessage, transToGmtTime, kapConfirm } from 'util/business'
-import { pageRefTags } from 'config'
+import { pageRefTags, bigPageCount } from 'config'
 import $ from 'jquery'
 import locales from './locales'
 import { handleSuccessAsync } from 'util'
@@ -317,7 +317,7 @@ export default class StreamingJobsList extends Vue {
   transToGmtTime = transToGmtTime
   filter = {
     page_offset: 0,
-    page_size: +localStorage.getItem(this.pageRefTags.streamingJobPager) || 20,
+    page_size: +localStorage.getItem(this.pageRefTags.streamingJobPager) || bigPageCount,
     job_types: [],
     model_names: [],
     sort_by: 'create_time',

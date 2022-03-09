@@ -91,7 +91,7 @@
           </template>
       </el-table-column>
     </el-table>
-    <kap-pager :totalSize="modelListSize" :curPage="filter.page_offset+1" v-on:handleCurrentChange='currentChange' ref="modleConfigPager" :refTag="pageRefTags.modleConfigPager" class="ksd-mtb-10 ksd-center" ></kap-pager>
+    <kap-pager :totalSize="modelListSize" :perPageSize="filter.page_size" :curPage="filter.page_offset+1" v-on:handleCurrentChange='currentChange' ref="modleConfigPager" :refTag="pageRefTags.modleConfigPager" class="ksd-mtb-10 ksd-center" ></kap-pager>
     <el-dialog :title="modelSettingTitle" :visible.sync="editModelSetting" width="480px" class="model-setting-dialog" @closed="handleClosed" :close-on-press-escape="false" :close-on-click-modal="false">
       <el-form ref="form" label-position="top" size="medium" label-width="80px" :model="modelSettingForm" :rules="rules">
         <el-form-item :label="modelTableTitle">

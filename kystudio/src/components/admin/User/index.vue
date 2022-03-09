@@ -108,7 +108,7 @@ import { mapState, mapGetters, mapActions } from 'vuex'
 import { Component } from 'vue-property-decorator'
 
 import locales from './locales'
-import { pageRefTags } from 'config'
+import { pageRefTags, bigPageCount } from 'config'
 import { handleError, kapConfirm } from '../../../util'
 
 @Component({
@@ -153,7 +153,7 @@ export default class SecurityUser extends Vue {
   filterTimer = null
   filterName = ''
   pagination = {
-    page_size: +localStorage.getItem(this.pageRefTags.userPager) || 20,
+    page_size: +localStorage.getItem(this.pageRefTags.userPager) || bigPageCount,
     page_offset: 0
   }
   isLoadingUsers = false

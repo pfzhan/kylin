@@ -183,7 +183,7 @@
             </template>
           </el-table-column>
         </el-table>
-        <kap-pager :totalSize="jobTotal" :curPage="filter.page_offset+1"  v-on:handleCurrentChange='currentChange' ref="jobPager" :refTag="pageRefTags.jobPager" :perPageSize="20" class="ksd-mtb-16 ksd-center" ></kap-pager>
+        <kap-pager :totalSize="jobTotal" :curPage="filter.page_offset+1"  v-on:handleCurrentChange='currentChange' ref="jobPager" :refTag="pageRefTags.jobPager" class="ksd-mtb-16 ksd-center" ></kap-pager>
       </el-col>
       <el-col :span="5" v-if="showStep" id="rightDetail">
         <el-card v-show="showStep" class="card-width job-step" :class="{'is-admin-tips': $store.state.user.isShowAdminTips&&isAdminRole}" id="stepList">
@@ -435,7 +435,7 @@ import locales from './locales'
 import jobDialog from '../job_dialog'
 import TWEEN from '@tweenjs/tween.js'
 import $ from 'jquery'
-import { pageRefTags } from '../../../config'
+import { pageRefTags, bigPageCount } from '../../../config'
 import { transToGmtTime, handleError, handleSuccess, postCloudUrlMessage } from '../../../util/business'
 import { cacheLocalStorage, indexOfObjWithSomeKey, objectClone, transToServerGmtTime, getQueryString } from '../../../util/index'
 import Diagnostic from 'components/admin/Diagnostic/index'
@@ -510,7 +510,7 @@ export default class JobsList extends Vue {
   idsArrCopy = []
   filter = {
     page_offset: 0,
-    page_size: +localStorage.getItem(this.pageRefTags.jobPager) || 20,
+    page_size: +localStorage.getItem(this.pageRefTags.jobPager) || bigPageCount,
     time_filter: 4,
     job_names: [],
     sort_by: 'create_time',

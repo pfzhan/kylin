@@ -90,6 +90,7 @@
       :refTag="pageRefTags.tableColumnsPager"
       :totalSize="columns.length"
       :curPage="pagination.page_offset + 1"
+      :perPageSize="pagination.pageSize"
       @handleCurrentChange="handleCurrentChange">
     </kap-pager>
   </div>

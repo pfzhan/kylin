@@ -14,7 +14,7 @@
   </div>
 </template>
 <script>
-import { pageCount, pageSizes } from '../../config'
+import { bigPageCount, pageSizes } from '../../config'
 import { cacheLocalStorage } from '../../util'
 export default {
   name: 'pager',
@@ -46,7 +46,7 @@ export default {
   },
   data () {
     return {
-      pageSize: +localStorage.getItem(this.refTag) || this.perPageSize || pageCount,
+      pageSize: +localStorage.getItem(this.refTag) || this.perPageSize || bigPageCount,
       pageSizes: pageSizes,
       currentPage: this.curPage
     }

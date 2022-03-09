@@ -73,6 +73,7 @@
       class="ksd-center ksd-mtb-10" ref="pager"
       :refTag="pageRefTags.statisticsPager"
       :totalSize="columns.length"
+      :perPageSize="pagination.pageSize"
       @handleCurrentChange="handleCurrentChange">
     </kap-pager>
   </div>
@@ -81,7 +82,7 @@
 <script>
 import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
-import { pageRefTags } from 'config'
+import { pageRefTags, pageCount } from 'config'
 import locales from './locales'
 
 @Component({
@@ -97,7 +98,7 @@ export default class TableStatistics extends Vue {
   filterText = ''
   pagination = {
     page_offset: 0,
-    pageSize: +localStorage.getItem(this.pageRefTags.statisticsPager) || 10
+    pageSize: +localStorage.getItem(this.pageRefTags.statisticsPager) || pageCount
   }
   get emptyText () {
     return this.filterText ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')

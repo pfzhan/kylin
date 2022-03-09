@@ -179,7 +179,7 @@
             </el-table-column>
           </el-table>
         </div>
-        <kap-pager class="ksd-center ksd-mtb-10" ref="pager" :refTag="pageRefTags.batchMeasurePager" :curPage="filterArgs.pageOffset+1" :totalSize="searchTotalSize"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
+        <kap-pager class="ksd-center ksd-mtb-10" ref="pager" :perPageSize="filterArgs.pageSize" :refTag="pageRefTags.batchMeasurePager" :curPage="filterArgs.pageOffset+1" :totalSize="searchTotalSize"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
       </div>
     </template>
     <div slot="footer" class="dialog-footer ky-no-br-space">

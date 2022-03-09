@@ -110,7 +110,7 @@ import { isToday, isThisWeek, isLastWeek } from 'util/index'
 import { BuildIndexStatus } from 'config/model'
 import TableIndexEdit from '../TableIndexEdit/tableindex_edit'
 import NModel from '../ModelEdit/model.js'
-import { pageRefTags } from 'config'
+import { pageRefTags, pageCount } from 'config'
 @Component({
   props: ['modelDesc', 'isHideEdit', 'layoutId', 'isShowTableIndexActions', 'isShowBulidIndex'],
   computed: {
@@ -210,7 +210,7 @@ export default class TableIndex extends Vue {
   shardbyColumn = ''
   totalRawTable = 10
   currentPage = 0
-  currentCount = +localStorage.getItem(this.pageRefTags.tableIndexDetailPager) || 10
+  currentCount = +localStorage.getItem(this.pageRefTags.tableIndexDetailPager) || pageCount
   searchLoading = false
   transToGmtTime = transToGmtTime
   tableIndexFilter = this.layoutId || ''
