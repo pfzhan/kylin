@@ -349,7 +349,7 @@ public class QueryUtilTest extends NLocalFileMetadataTestCase {
 
         config.setProperty("kylin.query.transformers", DefaultQueryTransformer.class.getCanonicalName());
         String sql = "select sum(cast(CC1 as double)) from test_kylin_fact";
-        String expected = "select SUM(TEST_KYLIN_FACT.PRICE + 1) from test_kylin_fact";
+        String expected = "select SUM(\"TEST_KYLIN_FACT\".\"PRICE\" + 1) from test_kylin_fact";
         QueryParams queryParams = new QueryParams(config, sql, "default", 0, 0, "DEFAULT", true);
         Assert.assertEquals(expected, QueryUtil.massageSqlAndExpandCC(queryParams));
     }
@@ -428,8 +428,7 @@ public class QueryUtilTest extends NLocalFileMetadataTestCase {
             String massagedSql = QueryUtil.massagePushDownSql(queryParams);
             String expectedSql = "SELECT `Z_PROVDASH_UM_ED`.`GENDER` AS `GENDER`, "
                     + "SUM(CAST(0 AS BIGINT)) AS `sum_Calculation_336925569152049156_ok`\n"
-                    + "FROM `POPHEALTH_ANALYTICS`.`Z_PROVDASH_UM_ED` AS `Z_PROVDASH_UM_ED`\n"
-                    + "LIMIT 1";
+                    + "FROM `POPHEALTH_ANALYTICS`.`Z_PROVDASH_UM_ED` AS `Z_PROVDASH_UM_ED`\n" + "LIMIT 1";
             Assert.assertEquals(expectedSql, massagedSql);
         }
     }
