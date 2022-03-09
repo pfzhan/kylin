@@ -1168,6 +1168,10 @@ public abstract class KylinConfigBase implements Serializable {
         }
     }
 
+    public boolean isAddBacktickToHiveTableName() {
+        return Boolean.parseBoolean(getOptional("kylin.source.hive.add-backtick-to-hive-table-name", TRUE));
+    }
+
     // ============================================================================
     // SOURCE.KAFKA
     // ============================================================================

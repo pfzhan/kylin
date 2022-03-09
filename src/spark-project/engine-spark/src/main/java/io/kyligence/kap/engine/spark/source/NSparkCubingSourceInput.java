@@ -73,7 +73,11 @@ public class NSparkCubingSourceInput implements NSparkCubingEngine.NSparkCubingS
                 kylinConfig.isReadTransactionalTableEnabled())) {
             sql = HiveTransactionTableHelper.doGetQueryHiveTemporaryTableSql(table, params, colString, KylinBuildEnv.get());
         } else {
-            sql = String.format(Locale.ROOT, "select %s from %s", colString, table.getIdentity());
+            String tableIdentify = table.getIdentity();
+            if (kylinConfig.isAddBacktickToHiveTableName()) {
+                tableIdentify = table.getIdentityWithBacktick();
+            }
+            sql = String.format(Locale.ROOT, "select %s from %s", colString, tableIdentify);
         }
         Dataset<Row> df = ss.sql(sql);
         StructType sparkSchema = df.schema();
