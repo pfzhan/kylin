@@ -81,7 +81,8 @@ public class TempMetadataBuilder {
                     FileUtils.copyFile(new File(metaSrc, "kylin.properties"),
                             new File(tempTestMetadataDir, "kylin.properties"));
                 } else {
-                    FileUtils.copyDirectory(new File(metaSrc), new File(tempTestMetadataDir), pathname -> {
+                    FileUtils.copyDirectory(new File(metaSrc),
+                            new File(tempTestMetadataDir), pathname -> {
                         if (pathname.isDirectory()) {
                             return true;
                         }

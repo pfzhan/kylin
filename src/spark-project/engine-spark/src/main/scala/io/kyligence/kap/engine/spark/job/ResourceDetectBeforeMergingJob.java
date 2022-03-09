@@ -72,8 +72,9 @@ public class ResourceDetectBeforeMergingJob extends SparkApplication implements 
             infos.recordSparkPlan(afterMerge.queryExecution().sparkPlan());
             List<Path> paths = JavaConversions
                     .seqAsJavaList(ResourceDetectUtils.getPaths(afterMerge.queryExecution().sparkPlan()));
-            resourceSize.put(String.valueOf(entry.getKey()), ResourceDetectUtils
-                    .getResourceSize(JavaConverters.asScalaIteratorConverter(paths.iterator()).asScala().toSeq()));
+            resourceSize.put(String.valueOf(entry.getKey()),
+                    ResourceDetectUtils.getResourceSize(config.isConcurrencyFetchDataSourceSize(),
+                            JavaConverters.asScalaIteratorConverter(paths.iterator()).asScala().toSeq()));
         }
         ResourceDetectUtils.write(new Path(config.getJobTmpShareDir(project, jobId),
                 mergedSeg.getId() + "_" + ResourceDetectUtils.fileName()), resourceSize);
