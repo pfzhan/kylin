@@ -23,14 +23,33 @@
  */
 package io.kyligence.kap.tool.bisync.tableau;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.reflect.Field;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+
+import org.apache.commons.io.input.XmlStreamReader;
+import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.metadata.model.JoinDesc;
+import org.apache.kylin.metadata.model.JoinTableDesc;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModel.Measure;
 import io.kyligence.kap.tool.bisync.BISyncModelConverter;
 import io.kyligence.kap.tool.bisync.SyncContext;
 import io.kyligence.kap.tool.bisync.model.ColumnDef;
-import io.kyligence.kap.tool.bisync.model.SyncModel;
 import io.kyligence.kap.tool.bisync.model.JoinTreeNode;
 import io.kyligence.kap.tool.bisync.model.MeasureDef;
+import io.kyligence.kap.tool.bisync.model.SyncModel;
 import io.kyligence.kap.tool.bisync.tableau.datasource.DrillPath;
 import io.kyligence.kap.tool.bisync.tableau.datasource.DrillPaths;
 import io.kyligence.kap.tool.bisync.tableau.datasource.TableauDatasource;
@@ -46,22 +65,6 @@ import io.kyligence.kap.tool.bisync.tableau.datasource.connection.relation.Relat
 import io.kyligence.kap.tool.bisync.tableau.mapping.FunctionMapping;
 import io.kyligence.kap.tool.bisync.tableau.mapping.Mappings;
 import io.kyligence.kap.tool.bisync.tableau.mapping.TypeMapping;
-import org.apache.commons.io.input.XmlStreamReader;
-import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.metadata.model.JoinDesc;
-import org.apache.kylin.metadata.model.JoinTableDesc;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.lang.reflect.Field;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
 
 public class TableauDataSourceConverter implements BISyncModelConverter {
 
@@ -145,7 +148,7 @@ public class TableauDataSourceConverter implements BISyncModelConverter {
             String dataType = TypeConverter.convertKylinType(measure.getFunction().getReturnType());
             String kylinFuncName = measure.getFunction().getExpression();
             String aggregationFunc = TypeConverter.convertKylinFunction(kylinFuncName);
-            String caption = measure.getName();
+            String caption = getCaption(measure);
             if (aggregationFunc == null) {
                 logger.debug("tableau can not support function : {}", kylinFuncName);
                 continue;
@@ -166,6 +169,10 @@ public class TableauDataSourceConverter implements BISyncModelConverter {
             columns.add(column);
         }
 
+    }
+
+    private String getCaption(Measure measure) {
+        return measure.getComment() != null ? measure.getComment() : measure.getName();
     }
 
     private void fillHierarchies(TableauDatasource tds, Set<String[]> hierarchies,
