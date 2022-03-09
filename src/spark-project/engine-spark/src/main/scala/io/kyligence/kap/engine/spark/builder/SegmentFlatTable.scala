@@ -23,9 +23,11 @@
 package io.kyligence.kap.engine.spark.builder
 
 import java.util.{Locale, Objects}
+
 import com.google.common.collect.Sets
 import io.kyligence.kap.engine.spark.builder.DFBuilderHelper._
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil._
+import io.kyligence.kap.engine.spark.job.stage.build.FlatTableAndDictBase.buildColumns
 import io.kyligence.kap.engine.spark.job.{FiltersUtil, TableMetaManager}
 import io.kyligence.kap.engine.spark.model.SegmentFlatTableDesc
 import io.kyligence.kap.engine.spark.utils.LogEx
@@ -528,20 +530,8 @@ object SegmentFlatTable extends LogEx {
                        ss: SparkSession): Dataset[Row] = {
     var afterJoin = rootFactDataset
     val join = lookupDesc.getJoin
-    if (join != null && !StringUtils.isEmpty(join.getType)) {
-      val joinType = join.getType.toUpperCase(Locale.ROOT)
-      val pk = join.getPrimaryKeyColumns
-      val fk = join.getForeignKeyColumns
-      if (pk.length != fk.length) {
-        throw new RuntimeException(
-          s"Invalid join condition of fact table: $rootFactDesc,fk: ${fk.mkString(",")}," +
-            s" lookup table:$lookupDesc, pk: ${pk.mkString(",")}")
-      }
-      val equiConditionColPairs = fk.zip(pk).map(joinKey =>
-        col(convertFromDot(joinKey._1.getIdentity))
-          .equalTo(col(convertFromDot(joinKey._2.getIdentity))))
-      logInfo(s"Lookup table schema ${lookupDataset.schema.treeString}")
 
+    def buildAfterJoin(joinType: String, pk: Array[TblColRef], equiConditionColPairs: Array[Column]) = {
       if (join.getNonEquiJoinCondition != null) {
         var condition = NonEquiJoinConditionBuilder.convert(join.getNonEquiJoinCondition)
         if (!equiConditionColPairs.isEmpty) {
@@ -559,7 +549,28 @@ object SegmentFlatTable extends LogEx {
         }
       }
     }
+
+    if (join != null && !StringUtils.isEmpty(join.getType)) {
+      val joinType = join.getType.toUpperCase(Locale.ROOT)
+      val pk = join.getPrimaryKeyColumns
+      val fk = join.getForeignKeyColumns
+      checkLength(rootFactDesc, lookupDesc, pk, fk)
+      val equiConditionColPairs = fk.zip(pk).map(joinKey =>
+        col(convertFromDot(joinKey._1.getIdentity))
+          .equalTo(col(convertFromDot(joinKey._2.getIdentity))))
+      logInfo(s"Lookup table schema ${lookupDataset.schema.treeString}")
+
+      buildAfterJoin(joinType, pk, equiConditionColPairs)
+    }
     afterJoin
+  }
+
+  def checkLength(rootFactDesc: TableDesc, lookupDesc: JoinTableDesc, pk: Array[TblColRef], fk: Array[TblColRef]): Unit = {
+    if (pk.length != fk.length) {
+      throw new RuntimeException(
+        s"Invalid join condition of fact table: $rootFactDesc,fk: ${fk.mkString(",")}," +
+          s" lookup table:$lookupDesc, pk: ${pk.mkString(",")}")
+    }
   }
 
   def changeSchemeToColumnId(ds: Dataset[Row], tableDesc: SegmentFlatTableDesc): Dataset[Row] = {
@@ -576,7 +587,7 @@ object SegmentFlatTable extends LogEx {
         val columnId = columnName2IdMap.apply(columnName)
         col(tp.name).alias(columnId.toString + ENCODE_SUFFIX)
     }
-    val columns = columnName2Id.map(tp => expr(tp._1).alias(tp._2.toString))
+    val columns = buildColumns(columnName2Id)
     logInfo(s"Select model column is ${columns.mkString(",")}")
     logInfo(s"Select model encoding column is ${encodeSeq.mkString(",")}")
     val selectedColumns = columns ++ encodeSeq
