@@ -660,6 +660,25 @@ export function sliceNumber (number, len) {
   return `${number}`.replace(reg, (v) => `${v},`)
 }
 
+// 复写 closest 方法兼容 IE
+export function closestElm (element, parentElm) {
+  if (!element || !parentElm) return
+  let flag = false
+  const getParent = (dom) => {
+    if (!dom) return
+    if (/^./.test(parentElm) && [...dom.classList].includes(parentElm.replace(/^./, ''))) {
+      flag = true
+    } else if (dom.getAttribute('id') && dom.getAttribute('id') === parentElm) {
+      flag = true
+    }
+    if (dom.parentElement) {
+      getParent(dom.parentElement)
+    }
+  }
+  getParent(element)
+  return flag
+}
+
 export { set, get, push } from './object'
 export { handleError, handleSuccess, hasRole, hasPermission, kapConfirm, transToGmtTime, transToServerGmtTime, isDatePartitionType, isTimePartitionType, isSubPartitionType, isStreamingPartitionType, transToUTCMs, getGmtDateFromUtcLike } from './business'
 export { validate, validateTypes }
