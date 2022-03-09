@@ -128,7 +128,7 @@
                 <el-button type="primary" text iconr="el-ksd-icon-arrow_down_22"><span class="limit-user-name">{{currentUserInfo && currentUserInfo.username}}</span></el-button>
                 <el-dropdown-menu slot="dropdown">
                   <div class="user-name">{{ currentUserInfo && currentUserInfo.username }}</div>
-                  <el-dropdown-item command="setting">{{$t('kylinLang.common.changePassword')}}</el-dropdown-item>
+                  <el-dropdown-item :disabled="!isTestingSecurityProfile" command="setting">{{$t('kylinLang.common.changePassword')}}</el-dropdown-item>
                   <el-dropdown-item command="loginout">{{$t('kylinLang.common.logout')}}</el-dropdown-item>
                 </el-dropdown-menu>
               </el-dropdown>
@@ -316,7 +316,8 @@ let MessageBox = ElementUI.MessageBox
       'isAutoProject',
       'isGuideMode',
       'isOnlyQueryNode',
-      'dashboardActions'
+      'dashboardActions',
+      'isTestingSecurityProfile'
     ]),
     modelSpeedEvents () {
       return this.$store.state.model.modelSpeedEvents

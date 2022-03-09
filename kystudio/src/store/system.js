@@ -132,8 +132,10 @@ export default {
           resolve(response.data)
         }, (res) => {
           reject()
-          Vue.config.lang = localStorage.getItem('kystudio_lang') ? localStorage.getItem('kystudio_lang') : 'en'
-          handleError(res)
+          if (res.status !== 401) {
+            Vue.config.lang = localStorage.getItem('kystudio_lang') ? localStorage.getItem('kystudio_lang') : 'en'
+            handleError(res)
+          }
         })
       })
     },
