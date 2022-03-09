@@ -1177,9 +1177,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         request.setPartitionDesc(null);
         request.setProject(project);
         request.setUuid(brokenModelId);
-        NDataModel srcModel =
-                NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                        .getDataModelDescWithoutInit(brokenModelId);
+        NDataModel srcModel = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .getDataModelDescWithoutInit(brokenModelId);
         List<SimplifiedMeasure> simpleMeasureList = Lists.newArrayList();
         for (NDataModel.Measure measure : srcModel.getAllMeasures()) {
             if (measure.getType() == NDataModel.MeasureType.INTERNAL)
@@ -2989,13 +2988,14 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 }
                 BadModelException ccException = (BadModelException) item;
                 return BadModelException.CauseType.SAME_NAME_DIFF_EXPR == ccException.getCauseType()
-                        && ccException.getAdvise().equals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT")
+                        && ccException.getAdvise()
+                                .equals("\"TEST_KYLIN_FACT\".\"PRICE\" * \"TEST_KYLIN_FACT\".\"ITEM_COUNT\"")
                         && ccException.getConflictingModel().equals("nmodel_basic_inner")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
                         && ccException.getMessage().equals(
                                 "The name of computed column 'TEST_KYLIN_FACT.DEAL_AMOUNT' has already been used in "
                                         + "model 'nmodel_basic_inner', and the expression is "
-                                        + "'TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT'. "
+                                        + "'\"TEST_KYLIN_FACT\".\"PRICE\" * \"TEST_KYLIN_FACT\".\"ITEM_COUNT\"'. "
                                         + "Please modify the expression to keep consistent, or use a different name.");
 
             }
@@ -3231,12 +3231,12 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 BadModelException ccException = (BadModelException) item;
                 return BadModelException.CauseType.SAME_NAME_DIFF_EXPR == ccException.getCauseType()
                         && ccException.getConflictingModel().equals("nmodel_cc_test")
-                        && "UPPER(BUYER_ACCOUNT.ACCOUNT_COUNTRY)".equals(ccException.getAdvise())
+                        && "UPPER(\"BUYER_ACCOUNT\".\"ACCOUNT_COUNTRY\")".equals(ccException.getAdvise())
                         && ccException.getBadCC().equals("BUYER_ACCOUNT.COUNTRY_UPPER")
                         && ccException.getMessage().equals(
                                 "The name of computed column 'BUYER_ACCOUNT.COUNTRY_UPPER' has already been used "
                                         + "in model 'nmodel_cc_test', and the expression is "
-                                        + "'UPPER(BUYER_ACCOUNT.ACCOUNT_COUNTRY)'. "
+                                        + "'UPPER(\"BUYER_ACCOUNT\".\"ACCOUNT_COUNTRY\")'. "
                                         + "Please modify the expression to keep consistent, or use a different name.");
             }
         });
@@ -3375,13 +3375,13 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 }
                 BadModelException ccException = (BadModelException) item;
                 return ccException.getCauseType() == BadModelException.CauseType.SAME_NAME_DIFF_EXPR
-                        && ccException.getAdvise().equals("SUBSTR(SELLER_ACCOUNT.ACCOUNT_COUNTRY,0,1)")
+                        && ccException.getAdvise().equals("SUBSTR(\"SELLER_ACCOUNT\".\"ACCOUNT_COUNTRY\",0,1)")
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_SELLER_COUNTRY_ABBR")
                         && ccException.getMessage()
                                 .equals("The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_SELLER_COUNTRY_ABBR' "
                                         + "has already been used in model 'nmodel_basic', and the expression is "
-                                        + "'SUBSTR(SELLER_ACCOUNT.ACCOUNT_COUNTRY,0,1)'. "
+                                        + "'SUBSTR(\"SELLER_ACCOUNT\".\"ACCOUNT_COUNTRY\",0,1)'. "
                                         + "Please modify the expression to keep consistent, or use a different name.");
             }
         });
@@ -3416,13 +3416,14 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 }
                 BadModelException ccException = (BadModelException) item;
                 return ccException.getCauseType() == BadModelException.CauseType.SAME_NAME_DIFF_EXPR
-                        && ccException.getAdvise().equals("CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)")
+                        && ccException.getAdvise()
+                                .equals("CONCAT(\"SELLER_ACCOUNT\".\"ACCOUNT_ID\", \"SELLER_COUNTRY\".\"NAME\")")
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME")
                         && ccException.getMessage().equals(
                                 "The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME' "
                                         + "has already been used in model 'nmodel_basic', and the expression is "
-                                        + "'CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)'. "
+                                        + "'CONCAT(\"SELLER_ACCOUNT\".\"ACCOUNT_ID\", \"SELLER_COUNTRY\".\"NAME\")'. "
                                         + "Please modify the expression to keep consistent, or use a different name.");
             }
         });
@@ -3531,13 +3532,14 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 }
                 BadModelException ccException = (BadModelException) item;
                 return BadModelException.CauseType.SAME_NAME_DIFF_EXPR == ccException.getCauseType()
-                        && ccException.getAdvise().equals("CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)")
+                        && ccException.getAdvise()
+                                .equals("CONCAT(\"SELLER_ACCOUNT\".\"ACCOUNT_ID\", \"SELLER_COUNTRY\".\"NAME\")")
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME")
                         && ccException.getMessage().equals(
                                 "The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME' "
                                         + "has already been used in model 'nmodel_basic', and the expression is "
-                                        + "'CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)'. "
+                                        + "'CONCAT(\"SELLER_ACCOUNT\".\"ACCOUNT_ID\", \"SELLER_COUNTRY\".\"NAME\")'. "
                                         + "Please modify the expression to keep consistent, or use a different name.");
             }
         });
@@ -3662,14 +3664,15 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 }
                 BadModelException ccException = (BadModelException) item;
                 return BadModelException.CauseType.SAME_NAME_DIFF_EXPR == ccException.getCauseType()
-                        && ccException.getAdvise().equals("CONCAT(BUYER_ACCOUNT.ACCOUNT_ID, BUYER_COUNTRY.NAME)")
+                        && ccException.getAdvise()
+                                .equals("CONCAT(\"BUYER_ACCOUNT\".\"ACCOUNT_ID\", \"BUYER_COUNTRY\".\"NAME\")")
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME")
 
                         && ccException.getMessage().equals(
                                 "The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME' "
                                         + "has already been used in model 'nmodel_basic', and the expression is "
-                                        + "'CONCAT(BUYER_ACCOUNT.ACCOUNT_ID, BUYER_COUNTRY.NAME)'. "
+                                        + "'CONCAT(\"BUYER_ACCOUNT\".\"ACCOUNT_ID\", \"BUYER_COUNTRY\".\"NAME\")'. "
                                         + "Please modify the expression to keep consistent, or use a different name.");
             }
         });
@@ -6688,8 +6691,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "false");
 
         // used for getModels without sortBy field
-        val modelList7 = modelService.getModels(null, null, true, project, "ADMIN", Lists.newArrayList(), "", 0, 6,
-                "", true, null,
+        val modelList7 = modelService.getModels(null, null, true, project, "ADMIN", Lists.newArrayList(), "", 0, 6, "",
+                true, null,
                 Arrays.asList(ModelAttributeEnum.BATCH, ModelAttributeEnum.STREAMING, ModelAttributeEnum.HYBRID), null,
                 null, false);
         Assert.assertEquals(6, modelList7.getValue().size());
