@@ -878,6 +878,10 @@
                 <artifactId>hadoop-yarn-common</artifactId>
                 <exclusions>
                     <exclusion>
+                        <groupId>org.codehaus.jackson</groupId>
+                        <artifactId>jackson-xc</artifactId>
+                    </exclusion>
+                    <exclusion>
                         <groupId>com.sun.jersey</groupId>
                         <artifactId>*</artifactId>
                     </exclusion>
@@ -1133,6 +1137,10 @@
                 <artifactId>hive-jdbc</artifactId>
                 <exclusions>
                     <exclusion>
+                        <groupId>org.codehaus.jackson</groupId>
+                        <artifactId>jackson-xc</artifactId>
+                    </exclusion>
+                    <exclusion>
                         <groupId>com.sun.jersey</groupId>
                         <artifactId>*</artifactId>
                     </exclusion>
@@ -1209,6 +1217,10 @@
                 <artifactId>hive-hcatalog-core</artifactId>
                 <version>${hive-hcatalog.version}</version>
                 <exclusions>
+                    <exclusion>
+                        <groupId>org.codehaus.jackson</groupId>
+                        <artifactId>jackson-xc</artifactId>
+                    </exclusion>
                     <exclusion>
                         <groupId>com.twitter</groupId>
                         <artifactId>parquet-hadoop-bundle</artifactId>
