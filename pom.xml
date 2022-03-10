@@ -343,13 +343,14 @@
 
         <!-- yinglong controller  -->
         <module>src/yinglong-smart-server</module>
-        <module>src/yinglong-common-server</module>
+<!--        <module>src/yinglong-common-server</module>-->
         <module>src/yinglong-metadata-server</module>
         <module>src/yinglong-data-loading-server</module>
         <module>src/yinglong-query-server</module>
 
         <!-- yinglong server (starter) -->
         <module>src/yinglong-smart-booter</module>
+        <module>src/yinglong-data-loading-booter</module>
 
     </modules>
 
@@ -443,11 +444,11 @@
                 <artifactId>kap-second-storage-ui</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            <dependency>
-                <groupId>io.kyligence.yinglong</groupId>
-                <artifactId>yinglong-common-server</artifactId>
-                <version>${project.version}</version>
-            </dependency>
+<!--            <dependency>-->
+<!--                <groupId>io.kyligence.yinglong</groupId>-->
+<!--                <artifactId>yinglong-common-server</artifactId>-->
+<!--                <version>${project.version}</version>-->
+<!--            </dependency>-->
             <dependency>
                 <groupId>io.kyligence.yinglong</groupId>
                 <artifactId>yinglong-common-service</artifactId>
