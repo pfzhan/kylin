@@ -299,7 +299,7 @@ export default {
         })
         this.loadProjects(this.filterData)
       } catch (e) {
-        this.$message({ message: e.body.msg, type: 'error' })
+        this.$message({ message: e.body.msg ?? e.body.message, type: 'error' })
         this.changeLoading = false
         this.changeOwnerVisible = false
       }
