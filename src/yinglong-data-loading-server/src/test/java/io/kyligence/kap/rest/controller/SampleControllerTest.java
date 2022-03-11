@@ -63,6 +63,8 @@ import io.kyligence.kap.rest.service.ModelBuildService;
 import io.kyligence.kap.rest.service.TableSamplingService;
 import io.kyligence.kap.rest.service.TableService;
 
+import java.nio.charset.StandardCharsets;
+
 public class SampleControllerTest extends NLocalFileMetadataTestCase {
 
     private static final String APPLICATION_JSON = HTTP_VND_APACHE_KYLIN_JSON;
@@ -91,7 +93,7 @@ public class SampleControllerTest extends NLocalFileMetadataTestCase {
         MockitoAnnotations.initMocks(this);
 
         mockMvc = MockMvcBuilders.standaloneSetup(sampleController).defaultRequest(MockMvcRequestBuilders.get("/"))
-                .build();
+                .defaultResponseCharacterEncoding(StandardCharsets.UTF_8).build();
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
         createTestMetadata();

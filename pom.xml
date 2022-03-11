@@ -295,7 +295,6 @@
         <apache-api.version>1.0.3</apache-api.version>
 
         <spring.cloud.alibaba.version>2021.1</spring.cloud.alibaba.version>
-<!--        <spring.cloud.feign.version>1.4.7.RELEASE</spring.cloud.feign.version>-->
 
         <jersey.version>2.35</jersey.version>
     </properties>
@@ -343,7 +342,6 @@
 
         <!-- yinglong controller  -->
         <module>src/yinglong-smart-server</module>
-<!--        <module>src/yinglong-common-server</module>-->
         <module>src/yinglong-metadata-server</module>
         <module>src/yinglong-data-loading-server</module>
         <module>src/yinglong-query-server</module>
@@ -445,11 +443,6 @@
                 <artifactId>kap-second-storage-ui</artifactId>
                 <version>${project.version}</version>
             </dependency>
-<!--            <dependency>-->
-<!--                <groupId>io.kyligence.yinglong</groupId>-->
-<!--                <artifactId>yinglong-common-server</artifactId>-->
-<!--                <version>${project.version}</version>-->
-<!--            </dependency>-->
             <dependency>
                 <groupId>io.kyligence.yinglong</groupId>
                 <artifactId>yinglong-common-service</artifactId>

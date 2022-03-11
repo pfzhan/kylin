@@ -63,6 +63,8 @@ import io.kyligence.kap.rest.controller.SampleController;
 import io.kyligence.kap.rest.request.RefreshSegmentsRequest;
 import io.kyligence.kap.rest.service.ProjectService;
 
+import java.nio.charset.StandardCharsets;
+
 public class OpenSampleControllerTest extends NLocalFileMetadataTestCase {
 
     private MockMvc mockMvc;
@@ -89,7 +91,7 @@ public class OpenSampleControllerTest extends NLocalFileMetadataTestCase {
         MockitoAnnotations.initMocks(this);
 
         mockMvc = MockMvcBuilders.standaloneSetup(openSampleController).defaultRequest(MockMvcRequestBuilders.get("/"))
-                .build();
+                .defaultResponseCharacterEncoding(StandardCharsets.UTF_8).build();
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
 

@@ -29,6 +29,7 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -105,7 +106,7 @@ public class OpenSegmentControllerTest extends NLocalFileMetadataTestCase {
         MockitoAnnotations.initMocks(this);
 
         mockMvc = MockMvcBuilders.standaloneSetup(openSegmentController).defaultRequest(MockMvcRequestBuilders.get("/"))
-                .build();
+                .defaultResponseCharacterEncoding(StandardCharsets.UTF_8).build();
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
