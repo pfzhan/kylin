@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -49,13 +50,15 @@ public class SecondStorageNodeHelper {
     private static final ConcurrentMap<String, String> NODE2PAIR_INDEX = new ConcurrentHashMap<>();
     private static final Map<String, List<Node>> CLUSTER = new ConcurrentHashMap<>();
     private static Function<Node, String> node2url;
+    private static Function<List<Node>, String> shard2url;
 
-    public static void initFromCluster(ClusterInfo cluster, Function<Node, String> node2url) {
+    public static void initFromCluster(ClusterInfo cluster, Function<Node, String> node2url, Function<List<Node>, String> shard2url) {
         synchronized (SecondStorageNodeHelper.class) {
             NODE2PAIR_INDEX.clear();
             cluster.getNodes().forEach(node -> NODE_MAP.put(node.getName(), node));
             CLUSTER.putAll(cluster.getCluster());
             SecondStorageNodeHelper.node2url = node2url;
+            SecondStorageNodeHelper.shard2url = shard2url;
 
             // build lookup table for node to pair
             CLUSTER.forEach((pair, nodes) -> {
@@ -65,6 +68,9 @@ public class SecondStorageNodeHelper {
             });
             initialized.set(true);
         }
+    }
+    public static void initFromCluster(ClusterInfo cluster, Function<Node, String> node2url) {
+        initFromCluster(cluster, node2url, null);
     }
 
     public static List<String> resolve(List<String> names) {
@@ -82,6 +88,18 @@ public class SecondStorageNodeHelper {
 
     public static List<String> resolveToJDBC(List<String> names) {
         return resolve(names);
+    }
+
+    public static List<String> resolveShardToJDBC(List<Set<String>> shardNames) {
+        Preconditions.checkState(initialized.get());
+        return shardNames.stream().map(replicaNames -> {
+            List<Node> replicas = replicaNames.stream().map(replicaName -> {
+                Preconditions.checkState(NODE_MAP.containsKey(replicaName));
+                return NODE_MAP.get(replicaName);
+            }).collect(Collectors.toList());
+
+            return shard2url.apply(replicas);
+        }).collect(Collectors.toList());
     }
 
     public static String resolve(String name) {

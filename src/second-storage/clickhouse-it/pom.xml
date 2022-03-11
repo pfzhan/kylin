@@ -33,7 +33,7 @@
         </dependency>
         <dependency>
             <groupId>io.kyligence.ke</groupId>
-            <artifactId>second-storage-clickhouse</artifactId>
+            <artifactId>kap-second-storage-clickhouse</artifactId>
         </dependency>
 
         <dependency>

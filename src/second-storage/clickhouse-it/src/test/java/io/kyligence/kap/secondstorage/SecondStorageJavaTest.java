@@ -25,8 +25,6 @@
 package io.kyligence.kap.secondstorage;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import io.kyligence.kap.clickhouse.database.ClickHouseOperator;
 import io.kyligence.kap.clickhouse.ddl.ClickHouseCreateTable;
@@ -56,7 +54,6 @@ import io.kyligence.kap.secondstorage.management.SecondStorageScheduleService;
 import io.kyligence.kap.secondstorage.management.SecondStorageService;
 import io.kyligence.kap.secondstorage.management.request.RecoverRequest;
 import io.kyligence.kap.secondstorage.management.request.StorageRequest;
-import io.kyligence.kap.secondstorage.metadata.TablePartition;
 import io.kyligence.kap.secondstorage.test.ClickHouseClassRule;
 import io.kyligence.kap.secondstorage.test.EnableClickHouseJob;
 import io.kyligence.kap.secondstorage.test.EnableTestUser;
@@ -64,7 +61,6 @@ import io.kyligence.kap.secondstorage.test.SharedSparkSession;
 import io.kyligence.kap.secondstorage.test.utils.JobWaiter;
 import lombok.val;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.util.CliCommandExecutor;
@@ -88,10 +84,7 @@ import org.testcontainers.containers.JdbcDatabaseContainer;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -480,95 +473,6 @@ public class SecondStorageJavaTest implements JobWaiter {
         Assert.assertEquals(jobCnt, manager.getAllExecutables().stream()
                 .filter(ClickHouseModelCleanJob.class::isInstance)
                 .filter(job -> modelId.equals(job.getTargetModelId())).count());
-    }
-
-
-
-    @Test
-    public void updateNodeStatus() throws Exception {
-
-        TablePartition tablePartition1 = TablePartition.builder().setShardNodes(Collections.singletonList("node1")).build();
-        TablePartition tablePartition2 = TablePartition.builder().setShardNodes(Collections.singletonList("node2")).build();
-        List<TablePartition> tablePartitions = Lists.newArrayList(tablePartition1, tablePartition2);
-        val partition1 = SecondStorageQueryRouteUtil.getNextPartition(tablePartitions);
-        QueryContext.current().setLastFailed(true);
-        val partition2 = SecondStorageQueryRouteUtil.getNextPartition(tablePartitions);
-        Set<String> allNodes = org.glassfish.jersey.internal.guava.Sets.newHashSet();
-        allNodes.addAll(partition1.getShardNodes());
-        allNodes.addAll(partition2.getShardNodes());
-        Assert.assertEquals(2, allNodes.size());
-
-        Map<String, Map<String, Boolean>> nodeStatusMap = new HashMap<>();
-        Map<String, Boolean> nodeStatus = Maps.newHashMap();
-        nodeStatus.put("node1", false);
-        nodeStatus.put("node2", true);
-        nodeStatusMap.put("pair1", nodeStatus);
-        secondStorageEndpoint.updateNodeStatus(nodeStatusMap);
-        QueryContext.current().getUsedPartitionIndexes().clear();
-        QueryContext.current().setLastFailed(false);
-        val partition3 = SecondStorageQueryRouteUtil.getNextPartition(tablePartitions);
-        allNodes.addAll(partition3.getShardNodes());
-        Assert.assertTrue(partition3.getShardNodes().contains("node2"));
-
-        try {
-            QueryContext.current().setLastFailed(true);
-            val partition4 = SecondStorageQueryRouteUtil.getNextPartition(tablePartitions);
-        } catch (IllegalStateException e) {
-            Assert.assertEquals("All cluster failed, no candidate found.", e.getMessage());
-            return;
-        }
-        Assert.fail();
-    }
-
-    @Test
-    public void testQueryWithClickHouseHADown() throws Exception {
-        final String queryCatalog = "testQueryWithClickHouseHASuccess";
-        Unsafe.setProperty(CONFIG_CLICKHOUSE_QUERY_CATALOG, queryCatalog);
-
-        JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse();
-        JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse();
-        JdbcDatabaseContainer<?> clickhouse3 = ClickHouseUtils.startClickHouse();
-        JdbcDatabaseContainer<?> clickhouse4 = ClickHouseUtils.startClickHouse();
-
-        internalConfigClickHouse(2, 0, clickhouse1, clickhouse2, clickhouse3, clickhouse4);
-
-        //build
-        new IndexDataConstructor(project).buildDataflow(modelId);
-        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        Assert.assertEquals(3, SecondStorageUtil.setSecondStorageSizeInfo(modelManager.listAllModels()).size());
-
-        // check
-        test.checkHttpServer();
-        test.overwriteSystemProp("kylin.query.use-tableindex-answer-non-raw-query", "true");
-
-        sparkSession.sessionState().conf().setConfString(
-                "spark.sql.catalog." + queryCatalog,
-                "org.apache.spark.sql.execution.datasources.jdbc.v2.SecondStorageCatalog");
-        sparkSession.sessionState().conf().setConfString(
-                "spark.sql.catalog." + queryCatalog + ".url",
-                clickhouse1.getJdbcUrl());
-        sparkSession.sessionState().conf().setConfString(
-                "spark.sql.catalog." + queryCatalog + ".driver",
-                clickhouse1.getDriverClassName());
-
-        String sql = "select sum(PRICE) from TEST_KYLIN_FACT group by PRICE";
-
-        Map<String, List<Node>> cluster = ClickHouseConfigLoader.getInstance().getCluster().getCluster();
-
-        for (String pair : cluster.keySet()) {
-            Map<String, Map<String, Boolean>> nodeStatusMap = new HashMap<>();
-            Map<String, Boolean> nodeStatus = Maps.newHashMap();
-            cluster.get(pair).forEach(n -> nodeStatus.put(n.getName(), false));
-            nodeStatusMap.put(pair, nodeStatus);
-            secondStorageEndpoint.updateNodeStatus(nodeStatusMap);
-
-            ExecAndComp.queryModel(project, sql);
-            Assert.assertTrue(OLAPContext.getNativeRealizations().stream().noneMatch(NativeQueryRealization::isSecondStorage));
-
-            nodeStatus.replaceAll((n, v) -> true);
-            secondStorageEndpoint.updateNodeStatus(nodeStatusMap);
-            return;
-        }
     }
 
     @Test

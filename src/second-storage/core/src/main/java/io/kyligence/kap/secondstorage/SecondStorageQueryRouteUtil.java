@@ -30,9 +30,7 @@ import io.kyligence.kap.secondstorage.metadata.TablePartition;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 
-import java.security.SecureRandom;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -40,10 +38,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 public class SecondStorageQueryRouteUtil {
-    private static final SecureRandom replicaRandom = new SecureRandom();
     private static final Map<String, Boolean> NODE_STATUS = new ConcurrentHashMap<>();
 
     private SecondStorageQueryRouteUtil() {
@@ -57,38 +53,7 @@ public class SecondStorageQueryRouteUtil {
         return NODE_STATUS.getOrDefault(node, true);
     }
 
-    public static TablePartition getNextPartition(List<TablePartition> partitions) {
-        if (!QueryContext.current().getUsedPartitionIndexes().isEmpty() && !QueryContext.current().isLastFailed())
-            return getCurrentPartition(partitions);
-        int[] candidates = IntStream.range(0, partitions.size())
-                .filter(i -> !QueryContext.current().getUsedPartitionIndexes().contains(i))
-                .filter(i -> partitions.get(i).getShardNodes().stream().allMatch(SecondStorageQueryRouteUtil::getNodeStatus))
-                .toArray();
-        if (partitions.size() == 1) {
-            QueryContext.current().setRetrySecondStorage(false);
-            QueryContext.current().getUsedPartitionIndexes().add(candidates[0]);
-            return partitions.get(candidates[0]);
-        } else if (candidates.length == 0){
-            QueryContext.current().setRetrySecondStorage(false);
-            throw new IllegalStateException("All cluster failed, no candidate found.");
-        } else {
-            int nextPartition = candidates[replicaRandom.nextInt(candidates.length)];
-            QueryContext.current().getUsedPartitionIndexes().add(nextPartition);
-            return partitions.get(nextPartition);
-        }
-    }
-
-    public static TablePartition getCurrentPartition(List<TablePartition> partitions) {
-        List<Integer> used = QueryContext.current().getUsedPartitionIndexes();
-        return partitions.get(used.get(used.size() - 1));
-    }
-
-    public static List<String> getCurrentAliveShardReplica() {
-        List<List<String>> used = QueryContext.current().getUsedSecondStorageNodes();
-        return used.get(used.size() - 1);
-    }
-
-    public static List<String> getAliveShardReplica(List<TablePartition> partitions, String project, Set<String> allSegIds) {
+    public static List<Set<String>> getUsedShard(List<TablePartition> partitions, String project, Set<String> allSegIds) {
         // collect all node which partition used
         Set<String> allSegmentUsedNode = Sets.newHashSet();
         for (TablePartition partition : partitions) {
@@ -109,17 +74,10 @@ public class SecondStorageQueryRouteUtil {
         }
 
         List<Set<String>> shards = groupsToShards(nodeGroups);
-        Set<String> usedNodes = getUsedNodes();
         List<Set<String>> segmentUsedShard = getSegmentUsedShard(shards, allSegmentUsedNode);
-        List<String> availableShardReplica = getAvailableShardReplica(usedNodes, segmentUsedShard);
+        filterAvailableReplica(segmentUsedShard);
 
-        if (availableShardReplica.size() != segmentUsedShard.size()) {
-            QueryContext.current().setRetrySecondStorage(false);
-            throw new IllegalStateException("One shard all replica has down");
-        }
-
-        QueryContext.current().getUsedSecondStorageNodes().add(availableShardReplica);
-        return availableShardReplica;
+        return segmentUsedShard;
     }
 
     /**
@@ -145,16 +103,6 @@ public class SecondStorageQueryRouteUtil {
     }
 
     /**
-     * Get used node in last try
-     *
-     * @return used nodes
-     */
-    private static Set<String> getUsedNodes() {
-        return QueryContext.current().getUsedSecondStorageNodes()
-                .stream().flatMap(Collection::stream).collect(Collectors.toSet());
-    }
-
-    /**
      * Get segment used nodes
      *
      * @param shards             shards
@@ -174,31 +122,19 @@ public class SecondStorageQueryRouteUtil {
     }
 
     /**
-     * Get available shard replica to group
+     * filter available replica
      *
-     * @param usedNodes        last retry used nodes
      * @param segmentUsedShard segments used shard
-     * @return group
      */
-    private static List<String> getAvailableShardReplica(Set<String> usedNodes, List<Set<String>> segmentUsedShard) {
-        List<String> availableShardReplica = new ArrayList<>(segmentUsedShard.size());
-
+    private static void filterAvailableReplica(List<Set<String>> segmentUsedShard) {
         for (Set<String> replicas : segmentUsedShard) {
-            List<String> available = replicas.stream().filter(SecondStorageQueryRouteUtil::getNodeStatus).filter(nodeName -> !usedNodes.contains(nodeName)).collect(Collectors.toList());
+            replicas.removeIf(replica -> !SecondStorageQueryRouteUtil.getNodeStatus(replica));
 
-            if (available.isEmpty()) {
+            if (replicas.isEmpty()) {
                 QueryContext.current().setRetrySecondStorage(false);
                 throw new IllegalStateException("One shard all replica has down");
             }
-
-            if (available.size() == 1) {
-                QueryContext.current().setRetrySecondStorage(false);
-            }
-
-            availableShardReplica.add(available.get(0));
         }
-
-        return availableShardReplica;
     }
 
 }
