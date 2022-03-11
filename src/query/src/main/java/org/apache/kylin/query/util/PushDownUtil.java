@@ -45,6 +45,7 @@ package org.apache.kylin.query.util;
 import static org.apache.kylin.query.exception.QueryErrorCode.EMPTY_TABLE;
 
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
@@ -52,10 +53,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 import javax.ws.rs.BadRequestException;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -82,6 +83,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -187,8 +189,7 @@ public class PushDownUtil {
 
     public static Pair<String, String> getMaxAndMinTime(String partitionColumn, String table, String project)
             throws Exception {
-        String sql = String.format(Locale.ROOT, "select min(%s), max(%s) from %s", partitionColumn, partitionColumn,
-                table);
+        String sql = buildMaxAndMinSql(partitionColumn, table);
         Pair<String, String> result = new Pair<>();
         // pushdown
         List<List<String>> returnRows = PushDownUtil.selectPartitionColumn(sql, project).getFirst();
@@ -200,6 +201,18 @@ public class PushDownUtil {
         result.setSecond(returnRows.get(0).get(1));
 
         return result;
+    }
+
+    protected static String buildMaxAndMinSql(String partitionColumn, String table) {
+        String tableName = table;
+        String partitionColumnName = partitionColumn;
+        if (KylinConfig.getInstanceFromEnv().isAddBacktickToHiveTableName()) {
+            tableName = Arrays.stream(table.split("\\.")).map(s -> "`" + s + "`").collect(Collectors.joining("."));
+            partitionColumnName = Arrays.stream(partitionColumn.split("\\.")).map(s -> "`" + s + "`").collect(Collectors.joining("."));
+        }
+        String sql = String.format(Locale.ROOT, "select min(%s), max(%s) from %s", partitionColumnName, partitionColumnName,
+                tableName);
+        return sql;
     }
 
     public static boolean needPushdown(String start, String end) {
@@ -239,8 +252,7 @@ public class PushDownUtil {
     }
 
     public static String getFormatIfNotExist(String table, String partitionColumn, String project) throws Exception {
-        String sql = String.format(Locale.ROOT, "select %s from %s where %s is not null limit 1", partitionColumn,
-                table, partitionColumn);
+        String sql = buildSql(table, partitionColumn);
 
         // push down
         List<List<String>> returnRows = PushDownUtil.selectPartitionColumn(sql, project).getFirst();
@@ -249,6 +261,19 @@ public class PushDownUtil {
                     String.format(Locale.ROOT, MsgPicker.getMsg().getNO_DATA_IN_TABLE(), table));
 
         return returnRows.get(0).get(0);
+    }
+
+    protected static String buildSql(String table, String partitionColumn) {
+        String tableName = table;
+        String partitionColumnName = partitionColumn;
+        if (KylinConfig.getInstanceFromEnv().isAddBacktickToHiveTableName()) {
+            tableName = Arrays.stream(table.split("\\.")).map(s -> "`" + s + "`").collect(Collectors.joining("."));
+            partitionColumnName = Arrays.stream(partitionColumn.split("\\.")).map(s -> "`" + s + "`").collect(Collectors.joining("."));
+        }
+
+        String sql = String.format(Locale.ROOT, "select %s from %s where %s is not null limit 1", partitionColumnName,
+                tableName, partitionColumnName);
+        return sql;
     }
 
     private static boolean isExpectedCause(SQLException sqlException) {
