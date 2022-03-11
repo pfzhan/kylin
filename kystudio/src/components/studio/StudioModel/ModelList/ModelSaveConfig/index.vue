@@ -825,7 +825,7 @@ export default class ModelPartitionModal extends Vue {
           }
         })
       }, (errorRes) => {
-        this.filterErrorMsg = errorRes.data.msg
+        this.filterErrorMsg = errorRes.data.msg ?? errorRes.data.message
         this.isLoadingSave = false
         this.$nextTick(() => {
           this.$el.querySelector('.error-msg-box') && this.$el.querySelector('.error-msg-box').scrollIntoView()
