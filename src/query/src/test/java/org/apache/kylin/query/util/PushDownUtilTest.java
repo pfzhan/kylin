@@ -73,4 +73,30 @@ public class PushDownUtilTest extends NLocalFileMetadataTestCase {
             Assert.assertFalse(e instanceof IllegalArgumentException);
         }
     }
+
+    @Test
+    public void testGetFormatIfNotExist() {
+        try {
+            Assert.assertEquals("select `table`.`column` from `db`.`table` where `table`.`column` is not null limit 1",
+                    PushDownUtil.buildSql("db.table", "table.column"));
+            getTestConfig().setProperty("kylin.source.hive.add-backtick-to-hive-table-name", "false");
+            Assert.assertEquals("select table.column from db.table where table.column is not null limit 1",
+                    PushDownUtil.buildSql("db.table", "table.column"));
+        } finally {
+            getTestConfig().setProperty("kylin.source.hive.add-backtick-to-hive-table-name", "true");
+        }
+    }
+
+    @Test
+    public void testBuildMaxAndMinSql() {
+        try {
+            Assert.assertEquals("select min(`db`.`table`), max(`db`.`table`) from `table`.`column`",
+                    PushDownUtil.buildMaxAndMinSql("db.table", "table.column"));
+            getTestConfig().setProperty("kylin.source.hive.add-backtick-to-hive-table-name", "false");
+            Assert.assertEquals("select min(db.table), max(db.table) from table.column",
+                    PushDownUtil.buildMaxAndMinSql("db.table", "table.column"));
+        } finally {
+            getTestConfig().setProperty("kylin.source.hive.add-backtick-to-hive-table-name", "true");
+        }
+    }
 }
