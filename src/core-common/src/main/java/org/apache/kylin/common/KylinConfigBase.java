@@ -1458,6 +1458,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Double.parseDouble(getOptional("kylin.engine.resource-request-over-limit-proportion", "1.0"));
     }
 
+    public boolean streamingEnabled() {
+        return Boolean.valueOf(getOptional("kylin.streaming.enabled", FALSE));
+    }
+
     public Map<String, String> getStreamingSparkConfigOverride() {
         return getPropertiesByPrefix("kylin.streaming.spark-conf.");
     }

@@ -68,6 +68,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigBase;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.DateFormat;
@@ -360,7 +361,7 @@ public class NBasicController {
         return data;
     }
 
-    public List<?> getDataNoEnvelopeResponse(List<?> result, int offset, int limit){
+    public List<?> getDataNoEnvelopeResponse(List<?> result, int offset, int limit) {
         return PagingUtil.cutPage(result, offset, limit);
     }
 
@@ -596,4 +597,11 @@ public class NBasicController {
         }
     }
 
+    public void checkStreamingEnabled() {
+        val conf = KylinConfig.getInstanceFromEnv();
+        if (!conf.streamingEnabled()) {
+            throw new KylinException(ServerErrorCode.UNSUPPORTED_STREAMING_OPERATION,
+                    MsgPicker.getMsg().getStreamingDisabled());
+        }
+    }
 }

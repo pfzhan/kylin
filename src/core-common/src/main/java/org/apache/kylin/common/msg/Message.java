@@ -1707,6 +1707,11 @@ public class Message {
         return "Can’t fix segment in streaming model.";
     }
 
+    public String getStreamingDisabled() {
+        return "The Real-time functions can only be used under Kyligence Premium Version, "
+                + "please contact Kyligence customer manager to upgrade your license.";
+    }
+
     public String getNO_STREAMING_MODEL_FOUND() {
         return "Can't be queried. As streaming data must be queried through indexes, please ensure there is an index for the query. ";
     }

@@ -24,15 +24,12 @@
 
 package io.kyligence.kap.query.engine;
 
-
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import io.kyligence.kap.query.engine.view.ViewAnalyzer;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.schema.Function;
 import org.apache.calcite.schema.Schema;
@@ -41,6 +38,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.model.DatabaseDesc;
+import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.constant.Constant;
 
@@ -48,8 +46,10 @@ import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.query.engine.view.ViewAnalyzer;
 import io.kyligence.kap.query.engine.view.ViewSchema;
 import io.kyligence.kap.query.schema.KapOLAPSchema;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * factory that create and construct schemas within a project
@@ -73,6 +73,7 @@ class ProjectSchemaFactory {
         Set<String> groups = Objects.nonNull(aclInfo) ? aclInfo.getGroups() : null;
         schemasMap = AclTCRManager.getInstance(kylinConfig, projectName).getAuthorizedTablesAndColumns(user, groups,
                 aclDisabledOrIsAdmin(aclInfo));
+        removeStreamingTables(schemasMap);
         modelsMap = NDataflowManager.getInstance(kylinConfig, projectName).getModelsGroupbyTable();
 
         // "database" in TableDesc correspond to our schema
@@ -85,6 +86,17 @@ class ProjectSchemaFactory {
             majoritySchemaName = DatabaseDesc.getDefaultDatabaseByMaxTables(schemasMap);
         }
         defaultSchemaName = majoritySchemaName;
+    }
+
+    /**
+     * remove streaming tables when streaming function is disabled
+     */
+    private void removeStreamingTables(Map<String, List<TableDesc>> schemasMap) {
+        schemasMap.values().stream()
+                .forEach(tableDescList -> tableDescList
+                        .removeIf(tableDesc -> !KylinConfig.getInstanceFromEnv().streamingEnabled()
+                                && tableDesc.getSourceType() == ISourceAware.ID_STREAMING));
+        schemasMap.keySet().removeIf(key -> CollectionUtils.isEmpty(schemasMap.get(key)));
     }
 
     private boolean aclDisabledOrIsAdmin(QueryContext.AclInfo aclInfo) {
@@ -129,8 +141,8 @@ class ProjectSchemaFactory {
             if (schema.getTable(model.getAlias(), false) == null) {
                 viewSchema.addModel(plus, model);
             } else {
-                log.warn("Auto model view creation for {}.{} failed, name collision with source tables",
-                        viewSchemaName, viewSchemaName);
+                log.warn("Auto model view creation for {}.{} failed, name collision with source tables", viewSchemaName,
+                        viewSchemaName);
             }
         }
     }

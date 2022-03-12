@@ -35,6 +35,7 @@ import java.util.Locale;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.rest.exception.ForbiddenException;
 import org.apache.kylin.rest.exception.NotFoundException;
@@ -228,4 +229,11 @@ public class NBasicControllerTest extends NLocalFileMetadataTestCase {
         nBasicController.checkParamLength("tag", param, 1000);
     }
 
+    @Test
+    public void testCheckStreamingEnabled() {
+        thrown.expect(KylinException.class);
+        thrown.expectMessage(MsgPicker.getMsg().getStreamingDisabled());
+        getTestConfig().setProperty("kylin.streaming.enabled", "false");
+        nBasicController.checkStreamingEnabled();
+    }
 }

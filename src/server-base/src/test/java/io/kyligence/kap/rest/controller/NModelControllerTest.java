@@ -77,6 +77,7 @@ import io.kyligence.kap.rest.request.ModelCloneRequest;
 import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.ModelUpdateRequest;
+import io.kyligence.kap.rest.request.ModelValidationRequest;
 import io.kyligence.kap.rest.request.MultiPartitionMappingRequest;
 import io.kyligence.kap.rest.request.OwnerChangeRequest;
 import io.kyligence.kap.rest.request.PartitionsBuildRequest;
@@ -143,6 +144,18 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     @After
     public void tearDown() {
         cleanupTestMetadata();
+    }
+
+    @Test
+    public void testValidateNewModelAlias() throws Exception {
+        when(fusionModelService.modelExists("model1", "default")).thenReturn(true);
+        val request = new ModelValidationRequest("model1", "default");
+        MvcResult mvcResult = mockMvc
+                .perform(MockMvcRequestBuilders.post("/api/models/name/validation", "model1")
+                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+        Mockito.verify(nModelController).validateNewModelAlias(request);
     }
 
     @Test

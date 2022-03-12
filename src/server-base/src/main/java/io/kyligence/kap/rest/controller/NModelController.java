@@ -52,7 +52,6 @@ import java.util.regex.Pattern;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import io.kyligence.kap.rest.service.ModelBuildService;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -101,6 +100,7 @@ import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.ModelSuggestionRequest;
 import io.kyligence.kap.rest.request.ModelUpdateRequest;
+import io.kyligence.kap.rest.request.ModelValidationRequest;
 import io.kyligence.kap.rest.request.MultiPartitionMappingRequest;
 import io.kyligence.kap.rest.request.OwnerChangeRequest;
 import io.kyligence.kap.rest.request.PartitionColumnRequest;
@@ -133,6 +133,7 @@ import io.kyligence.kap.rest.response.SuggestionResponse;
 import io.kyligence.kap.rest.service.FusionIndexService;
 import io.kyligence.kap.rest.service.FusionModelService;
 import io.kyligence.kap.rest.service.IndexPlanService;
+import io.kyligence.kap.rest.service.ModelBuildService;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.ModelSmartService;
 import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
@@ -206,6 +207,16 @@ public class NModelController extends NBasicController {
                 lastModifyFrom, lastModifyTo, onlyNormalDim);
         fusionModelService.setModelUpdateEnabled(filterModels);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, filterModels, "");
+    }
+
+    @ApiOperation(value = "validateNewModelAlias", tags = { "AI" })
+    @PostMapping(value = "/name/validation")
+    @ResponseBody
+    public EnvelopeResponse<Boolean> validateNewModelAlias(@RequestBody ModelValidationRequest modelRequest) {
+        checkRequiredArg("model_name", modelRequest.getModelName());
+        checkProjectName(modelRequest.getProject());
+        val exists = fusionModelService.modelExists(modelRequest.getModelName(), modelRequest.getProject());
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, exists, "");
     }
 
     @ApiOperation(value = "offlineAllModelsInProject", tags = {

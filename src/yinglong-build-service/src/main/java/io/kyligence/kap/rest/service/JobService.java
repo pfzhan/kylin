@@ -186,6 +186,7 @@ public class JobService extends BasicService implements JobSupporter {
                 .collect(Collectors.toSet());
         Set<ExecutableState> matchedExecutableStates = matchedJobStatusEnums.stream().map(this::parseToExecutableState)
                 .collect(Collectors.toSet());
+        val conf = KylinConfig.getInstanceFromEnv();
         return jobs.stream().filter(((Predicate<ExecutablePO>) (executablePO -> {
             if (CollectionUtils.isEmpty(jobFilter.getStatuses())) {
                 return true;
@@ -212,6 +213,14 @@ public class JobService extends BasicService implements JobSupporter {
             }
             //if filter on uuid, then it must be accurate
             return executablePO.getTargetModel().equals(jobFilter.getSubject().trim());
+        }).and(executablePO -> {
+            if (conf.streamingEnabled()) {
+                return true;
+            }
+            //filter out batch job of fusion model
+            val mgr = modelService.getDataModelManager(executablePO.getProject());
+            val model = mgr.getDataModelDesc(executablePO.getTargetModel());
+            return model == null || !model.isFusionModel();
         })).map(this::createExecutablePOSortBean).sorted(comparator).collect(Collectors.toList());
     }
 

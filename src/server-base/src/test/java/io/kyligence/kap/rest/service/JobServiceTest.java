@@ -216,7 +216,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
             AbstractExecutable exe = executableManager.fromPO(po);
             Mockito.when(executableManager.getJob(po.getId())).thenReturn(exe);
         }
-
+        getTestConfig().setProperty("kylin.streaming.enabled", "false");
         // test size
         List<String> jobNames = Lists.newArrayList();
         JobFilter jobFilter = new JobFilter(Lists.newArrayList(), jobNames, 4, "", "", "default", "", true);
@@ -310,7 +310,6 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(executableManager, "executableDao", executableDao);
         val mockJobs = mockDetailJobs(true);
         Mockito.when(executableDao.getJobs(Mockito.anyLong(), Mockito.anyLong())).thenReturn(mockJobs);
-
         {
             List<String> jobNames = Lists.newArrayList();
             JobFilter jobFilter = new JobFilter(Lists.newArrayList(), jobNames, 0, "", "", "default", "total_duration",
@@ -325,6 +324,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
             Assert.assertEquals(totalDurationArrays, copyDurationList);
         }
     }
+
 
     private List<ProjectInstance> mockProjects() {
         ProjectInstance defaultProject = new ProjectInstance();
