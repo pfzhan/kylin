@@ -254,4 +254,7 @@ public class FusionModelService extends BasicService implements TableFusionModel
             }
         });
     }
+    public boolean modelExists(String modelAlias, String project) {
+        return getDataModelManager(project).listAllModelAlias().contains(modelAlias);
+    }
 }

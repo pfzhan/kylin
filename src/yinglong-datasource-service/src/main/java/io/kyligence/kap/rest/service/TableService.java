@@ -179,6 +179,7 @@ import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
 import io.kyligence.kap.rest.security.KerberosLoginManager;
 import io.kyligence.kap.rest.source.DataSourceState;
+import io.kyligence.kap.rest.util.TableUtils;
 import lombok.val;
 import lombok.var;
 
@@ -239,7 +240,7 @@ public class TableService extends BasicService {
         //get table not fuzzy,can use getTableDesc(tableName)
         if (StringUtils.isNotEmpty(tableName) && !isFuzzy) {
             val tableDesc = nTableMetadataManager.getTableDesc(database + "." + tableName);
-            if (tableDesc != null)
+            if (tableDesc != null && TableUtils.tableAccessible(tableDesc))
                 tables.add(tableDesc);
         } else {
             tables.addAll(nTableMetadataManager.listAllTables().stream().filter(tableDesc -> {
@@ -252,7 +253,7 @@ public class TableService extends BasicService {
                     return true;
                 }
                 return tableDesc.getName().toLowerCase(Locale.ROOT).contains(tableName.toLowerCase(Locale.ROOT));
-            }).sorted(this::compareTableDesc).collect(Collectors.toList()));
+            }).filter(TableUtils::tableAccessible).sorted(this::compareTableDesc).collect(Collectors.toList()));
         }
         return getTablesResponse(tables, project, withExt);
     }
@@ -326,6 +327,7 @@ public class TableService extends BasicService {
         String[] result = saved.toArray(new String[saved.size()]);
         return result;
     }
+
     public List<Pair<TableDesc, TableExtDesc>> extractTableMeta(String[] tables, String project) {
         // de-dup
         SetMultimap<String, String> databaseTables = LinkedHashMultimap.create();
@@ -1420,8 +1422,8 @@ public class TableService extends BasicService {
         getOptRecManagerV2(projectName).discardAll(model.getId());
 
         try {
-            modelService.onUpdateDataModel(model, removeAffected, changeTypeAffected,
-                    projectName, context.getTableDesc());
+            modelService.onUpdateDataModel(model, removeAffected, changeTypeAffected, projectName,
+                    context.getTableDesc());
         } catch (TransactionException e) {
             Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);
             String tableName = context.getTableDesc().getName();

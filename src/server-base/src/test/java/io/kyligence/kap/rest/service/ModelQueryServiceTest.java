@@ -27,6 +27,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
 import org.junit.Assert;
@@ -55,19 +56,24 @@ import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import lombok.val;
 
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({ SecondStorageUtil.class })
+@PrepareForTest({ SecondStorageUtil.class, UserGroupInformation.class })
 public class ModelQueryServiceTest extends NLocalFileMetadataTestCase {
     private final Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
     private ModelQueryService modelQueryService = Mockito.spy(new ModelQueryService());
 
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
+        PowerMockito.mockStatic(UserGroupInformation.class);
+        UserGroupInformation userGroupInformation = Mockito.mock(UserGroupInformation.class);
+        PowerMockito.when(UserGroupInformation.getCurrentUser()).thenReturn(userGroupInformation);
         SecurityContextHolder.getContext().setAuthentication(authentication);
         overwriteSystemProp("HADOOP_USER_NAME", "root");
+        createTestMetadata();
     }
 
     @After
     public void teardown() {
+        cleanupTestMetadata();
     }
 
     @Test
@@ -84,7 +90,28 @@ public class ModelQueryServiceTest extends NLocalFileMetadataTestCase {
 
         List<ModelTriple> filteredModels1 = modelQueryService.filterModels(models, modelQueryParams);
         Assert.assertEquals(1, filteredModels1.size());
+    }
 
+    @Test
+    public void testFilterModelOfStreaming() {
+        val mt1 = new ModelTriple(new NDataflow(), new NDataModelResponse());
+        mt1.getDataModel().setModelType(NDataModel.ModelType.STREAMING);
+        val mt2 = new ModelTriple(new NDataflow(), new NDataModelResponse());
+        mt2.getDataModel().setModelType(NDataModel.ModelType.HYBRID);
+        List models = Arrays.asList(mt1, mt2);
+
+        List<ModelAttributeEnum> modelAttributeSet1 = Lists.newArrayList(ModelAttributeEnum.STREAMING,
+                ModelAttributeEnum.HYBRID);
+        ModelQueryParams modelQueryParams = new ModelQueryParams("", null, true, "streaming_test", null, null, 0, 10,
+                "", true, null, modelAttributeSet1, null, null, true);
+        PowerMockito.stub(PowerMockito.method(SecondStorageUtil.class, "isProjectEnable")).toReturn(Boolean.TRUE);
+        PowerMockito.stub(PowerMockito.method(SecondStorageUtil.class, "isModelEnable")).toReturn(Boolean.FALSE);
+
+        List<ModelTriple> filteredModels1 = modelQueryService.filterModels(models, modelQueryParams);
+        Assert.assertEquals(2, filteredModels1.size());
+        getTestConfig().setProperty("kylin.streaming.enabled", "false");
+        List<ModelTriple> filteredModels2 = modelQueryService.filterModels(models, modelQueryParams);
+        Assert.assertEquals(0, filteredModels2.size());
     }
 
     @Test

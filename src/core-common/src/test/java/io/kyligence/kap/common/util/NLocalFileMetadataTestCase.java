@@ -156,6 +156,7 @@ public class NLocalFileMetadataTestCase extends AbstractTestCase {
                 new File(kylinHomePath, "../../../assembly/target/").getAbsolutePath(), "kap-assembly(.?)\\.jar");
         getTestConfig().setProperty("kylin.engine.spark.job-jar", jobJar == null ? "" : jobJar.getAbsolutePath());
         getTestConfig().setProperty("kylin.query.security.acl-tcr-enabled", "false");
+        getTestConfig().setProperty("kylin.streaming.enabled", "true");
     }
 
     public void cleanupTestMetadata() {

@@ -1934,6 +1934,11 @@ public class CnMessage extends Message {
     }
 
     @Override
+    public String getStreamingDisabled() {
+        return "只有 Kyligence 高级版才能使用批流一体功能，请联系 Kyligence 客户经理升级 License。";
+    }
+
+    @Override
     public String getNO_STREAMING_MODEL_FOUND() {
         return "无法查询。由于流数据必须通过索引查询，请确保有相应的索引。";
     }

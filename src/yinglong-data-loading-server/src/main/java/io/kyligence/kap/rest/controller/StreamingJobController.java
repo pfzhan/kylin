@@ -95,6 +95,7 @@ public class StreamingJobController extends NBasicController {
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize,
             @RequestParam(value = "sort_by", required = false, defaultValue = "last_modified") String sortBy,
             @RequestParam(value = "reverse", required = false, defaultValue = "true") boolean reverse) {
+        checkStreamingEnabled();
         StreamingJobFilter jobFilter = new StreamingJobFilter(modelName, modelNames, jobTypes, statuses, project,
                 sortBy, reverse);
         val data = streamingJobService.getStreamingJobList(jobFilter, pageOffset, pageSize);
@@ -107,6 +108,7 @@ public class StreamingJobController extends NBasicController {
             @RequestParam(value = "model_name", required = false, defaultValue = "") String modelName,
             @RequestParam(value = "project", required = false, defaultValue = "") String project,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize) {
+        checkStreamingEnabled();
         StreamingJobFilter jobFilter = new StreamingJobFilter(modelName, Collections.EMPTY_LIST,
                 Arrays.asList("STREAMING_BUILD"), Collections.EMPTY_LIST, project, "last_modified", true);
         List<String> data;
@@ -124,6 +126,7 @@ public class StreamingJobController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> updateStreamingJobStatus(
             @RequestBody StreamingJobExecuteRequest streamingJobExecuteRequest) {
+        checkStreamingEnabled();
         checkRequiredArg("action", streamingJobExecuteRequest.getAction());
         streamingJobService.updateStreamingJobStatus(streamingJobExecuteRequest.getProject(),
                 streamingJobExecuteRequest.getJobIds(), streamingJobExecuteRequest.getAction());
@@ -134,6 +137,7 @@ public class StreamingJobController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> updateStreamingJobParams(
             @RequestBody StreamingJobParamsRequest streamingJobParamsRequest) {
+        checkStreamingEnabled();
         checkProjectName(streamingJobParamsRequest.getProject());
         streamingJobService.updateStreamingJobParams(streamingJobParamsRequest.getProject(),
                 streamingJobParamsRequest.getJobId(), streamingJobParamsRequest.getParams());
@@ -145,6 +149,7 @@ public class StreamingJobController extends NBasicController {
     public EnvelopeResponse<StreamingJobDataStatsResponse> getStreamingJobDataStats(
             @PathVariable(value = "jobId") String jobId, @RequestParam(value = "project") String project,
             @RequestParam(value = "time_filter", required = false, defaultValue = "-1") Integer timeFilter) {
+        checkStreamingEnabled();
         val response = streamingJobService.getStreamingJobDataStats(jobId, timeFilter);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
@@ -158,6 +163,7 @@ public class StreamingJobController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> collectStreamingJobStats(
             @RequestBody StreamingJobStatsRequest streamingJobStatsRequest) {
+        checkStreamingEnabled();
         checkProjectName(streamingJobStatsRequest.getProject());
         val jobId = streamingJobStatsRequest.getJobId();
         checkToken(streamingJobStatsRequest.getProject(), jobId.substring(0, jobId.lastIndexOf("_")),
@@ -175,6 +181,7 @@ public class StreamingJobController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> updateStreamingJobInfo(
             @RequestBody StreamingJobUpdateRequest streamingJobUpdateRequest) {
+        checkStreamingEnabled();
         checkProjectName(streamingJobUpdateRequest.getProject());
         val meta = streamingJobService.updateStreamingJobInfo(streamingJobUpdateRequest);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, Objects.toString(meta.getJobExecutionId(), null),
@@ -185,6 +192,7 @@ public class StreamingJobController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<List<StreamingJobRecord>> getStreamingJobRecordList(
             @RequestParam(value = "project") String project, @RequestParam(value = "job_id") String jobId) {
+        checkStreamingEnabled();
         checkProjectName(project);
         val data = streamingJobService.getStreamingJobRecordList(jobId);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, data, "");
@@ -198,6 +206,7 @@ public class StreamingJobController extends NBasicController {
     @PostMapping(value = "/dataflow/segment")
     @ResponseBody
     public RestResponse addSegment(@RequestBody StreamingSegmentRequest request) {
+        checkStreamingEnabled();
         String project = request.getProject();
         String dataflowId = request.getDataflowId();
         SegmentRange segRange = request.getSegmentRange();
@@ -216,6 +225,7 @@ public class StreamingJobController extends NBasicController {
     @PutMapping(value = "/dataflow/segment")
     @ResponseBody
     public RestResponse updateSegment(@RequestBody StreamingSegmentRequest request) {
+        checkStreamingEnabled();
         String project = request.getProject();
         String dataflowId = request.getDataflowId();
         String segId = request.getNewSegId();
@@ -236,6 +246,7 @@ public class StreamingJobController extends NBasicController {
     @PostMapping(value = "/dataflow/segment/deletion")
     @ResponseBody
     public RestResponse deleteSegment(@RequestBody StreamingSegmentRequest request) {
+        checkStreamingEnabled();
         String project = request.getProject();
         String dataflowId = request.getDataflowId();
         List<NDataSegment> removeSegmentList = request.getRemoveSegment();
@@ -253,6 +264,7 @@ public class StreamingJobController extends NBasicController {
     @PutMapping(value = "/dataflow/layout")
     @ResponseBody
     public RestResponse updateLayout(@RequestBody LayoutUpdateRequest request) {
+        checkStreamingEnabled();
         String project = request.getProject();
         String dataflowId = request.getDataflowId();
         List<NDataLayout> layouts = request.getLayouts();
@@ -278,6 +290,7 @@ public class StreamingJobController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<Map<String, String>> getStreamingJobDriverLogSimple(@PathVariable("job_id") String jobId,
             @RequestParam("project") String project) {
+        checkStreamingEnabled();
         String projectName = checkProjectName(project);
 
         Map<String, String> result = new HashMap<>();
@@ -289,6 +302,7 @@ public class StreamingJobController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> downloadStreamingJobDriverLog(@PathVariable("job_id") String jobId,
             @RequestParam("project") String project, HttpServletResponse response) {
+        checkStreamingEnabled();
         String projectName = checkProjectName(project);
 
         String downloadFilename = String.format(Locale.ROOT, "%s_%s.log", projectName, jobId);

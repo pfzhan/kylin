@@ -70,7 +70,16 @@ public class StreamingSchedulerTest extends StreamingTestCase {
     @Test
     public void testInit() {
         val streamingScheduler = new StreamingScheduler(PROJECT);
-        streamingScheduler.init();
+        Assert.assertTrue(streamingScheduler.getInitialized().get());
+        Assert.assertTrue(streamingScheduler.getHasStarted().get());
+    }
+
+    @Test
+    public void testInitWithStreamingDisabled() {
+        getTestConfig().setProperty("kylin.streaming.enabled", "false");
+        val streamingScheduler = new StreamingScheduler(PROJECT);
+        val jobPool = ReflectionUtils.getField(streamingScheduler, "jobPool");
+        Assert.assertNull(jobPool);
         Assert.assertEquals(true, streamingScheduler.getInitialized().get());
         Assert.assertEquals(true, streamingScheduler.getHasStarted().get());
     }
@@ -171,6 +180,12 @@ public class StreamingSchedulerTest extends StreamingTestCase {
 
         var mgr = StreamingJobManager.getInstance(testConfig, PROJECT);
         var jobMeta = mgr.getStreamingJobByUuid(jobId);
+        Assert.assertEquals(JobStatusEnum.STOPPED, jobMeta.getCurrentStatus());
+        testConfig.setProperty("kylin.streaming.enabled", "false");
+        streamingScheduler.submitJob(PROJECT, modelId, JobTypeEnum.STREAMING_MERGE);
+        Assert.assertEquals(JobStatusEnum.STOPPED, jobMeta.getCurrentStatus());
+        testConfig.setProperty("kylin.streaming.enabled", "true");
+
         mgr.updateStreamingJob(jobId, updater -> updater.setCurrentStatus(JobStatusEnum.LAUNCHING_ERROR));
         streamingScheduler.submitJob(PROJECT, modelId, JobTypeEnum.STREAMING_MERGE);
         jobMeta = mgr.getStreamingJobByUuid(jobId);
