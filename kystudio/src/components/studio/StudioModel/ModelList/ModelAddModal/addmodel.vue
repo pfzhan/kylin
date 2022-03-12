@@ -43,7 +43,7 @@ vuex.registerModule(['modals', 'ModelAddModal'], store)
   },
   methods: {
     ...mapActions({
-      getModelByModelName: 'LOAD_MODEL_INFO'
+      modelNameValidate: 'NEW_MODEL_NAME_VALIDATE'
     }),
     ...mapMutations('ModelAddModal', {
       setModal: types.SET_MODAL,
@@ -69,9 +69,9 @@ export default class ModelAddModal extends Vue {
     } else if (value.length > 50) {
       callback(new Error(this.$t('kylinLang.common.overLengthTip')))
     } else {
-      this.getModelByModelName({model_name: value, project: this.currentSelectedProject}).then((response) => {
+      this.modelNameValidate({model_name: value, project: this.currentSelectedProject}).then((response) => {
         handleSuccess(response, (data) => {
-          if (data && data.value && data.value.length) {
+          if (data) {
             callback(new Error(this.$t('kylinLang.model.sameModelName')))
           } else {
             callback()

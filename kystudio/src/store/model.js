@@ -135,6 +135,9 @@ export default {
     [types.LOAD_MODEL_INFO]: function ({ commit }, para) {
       return api.model.getModelByModelName(para)
     },
+    [types.NEW_MODEL_NAME_VALIDATE]: function ({ commit }, para) {
+      return api.model.newModelNameValidate(para)
+    },
     [types.DELETE_MODEL]: function ({ commit }, para) {
       return api.model.deleteModel(para)
     },
