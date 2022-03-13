@@ -77,7 +77,7 @@ spring:
   session:
     store-type: NONE
     jdbc:
-      table-name: ${kylin.metadata.url.identifier}_session
+      table-name: ${kylin.metadata.url.identifier}_session_v2
   main:
     # userGroupService accessService
     allow-circular-references: true
