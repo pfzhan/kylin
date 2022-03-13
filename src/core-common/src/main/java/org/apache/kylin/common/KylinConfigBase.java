@@ -2722,10 +2722,6 @@ public abstract class KylinConfigBase implements Serializable {
         return getOptional("spring.session.store-type", "");
     }
 
-    public boolean isUpdateSessionTableAutomatically() {
-        return Boolean.parseBoolean(getOptional("kylin.web.session.table.auto-upgrade", TRUE));
-    }
-
     public int getCapacitySampleRows() {
         return Integer.parseInt(getOptional("kylin.capacity.sample-rows", "1000"));
     }

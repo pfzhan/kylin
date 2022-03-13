@@ -23,23 +23,31 @@
  */
 package io.kyligence.kap.rest;
 
+import static io.kyligence.kap.common.util.TestUtils.getTestConfig;
+
 import javax.sql.DataSource;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.apache.kylin.common.KylinConfig;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
 import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.autoconfigure.session.SessionProperties;
 import org.springframework.boot.autoconfigure.session.StoreType;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.junit.annotation.MetadataInfo;
+import io.kyligence.kap.junit.annotation.OverwriteProp;
+import io.kyligence.kap.tool.util.MetadataUtil;
 
-public class HAConfigurationTest extends NLocalFileMetadataTestCase {
+@ExtendWith(MockitoExtension.class)
+@MetadataInfo(onlyProps = true)
+class HAConfigurationTest {
 
     @InjectMocks
     HAConfiguration configuration = Mockito.spy(new HAConfiguration());
@@ -47,59 +55,24 @@ public class HAConfigurationTest extends NLocalFileMetadataTestCase {
     @Mock
     SessionProperties sessionProperties;
 
-    @Mock
     DataSource dataSource;
 
-    @Before
-    public void setup() {
-        MockitoAnnotations.openMocks(this);
-        createTestMetadata();
-    }
-
-    @After
-    public void teardown() {
-        cleanupTestMetadata();
+    @BeforeEach
+    public void setup() throws Exception {
+        dataSource = Mockito.spy(MetadataUtil.getDataSource(getTestConfig()));
+        ReflectionTestUtils.setField(configuration, "dataSource", dataSource);
     }
 
     @Test
-    public void testInitSessionTablesWithTableNonExists() throws Exception {
+    @OverwriteProp(key = "kylin.metadata.url", value = "haconfigurationtest@jdbc")
+    void testInitSessionTablesWithTableNonExists() throws Exception {
         Mockito.when(sessionProperties.getStoreType()).thenReturn(StoreType.JDBC);
-        Mockito.doNothing().when(configuration).initSessionTable(Mockito.anyString(), Mockito.anyString());
-        try (MockedStatic<JdbcUtil> utilities = Mockito.mockStatic(JdbcUtil.class)) {
-            utilities.when(() -> JdbcUtil.isTableExists(Mockito.any(), Mockito.any())).thenReturn(false);
-            utilities.when(() -> JdbcUtil.isColumnExists(Mockito.any(), Mockito.any(), Mockito.any()))
-                    .thenReturn(false);
-            configuration.initSessionTables();
-            Mockito.verify(configuration, Mockito.never()).dropSessionTable(Mockito.any(), Mockito.anyString());
-            Mockito.verify(configuration, Mockito.times(2)).initSessionTable(Mockito.anyString(), Mockito.anyString());
-        }
+        KylinConfig config = getTestConfig();
+
+        String tableName = config.getMetadataUrlPrefix() + "_session_v2";
+        Assertions.assertEquals("haconfigurationtest_session_v2", tableName);
+        configuration.initSessionTables();
+        Assertions.assertTrue(JdbcUtil.isTableExists(dataSource.getConnection(), tableName));
     }
 
-    @Test
-    public void testInitSessionTablesWithTableExists() throws Exception {
-        Mockito.when(sessionProperties.getStoreType()).thenReturn(StoreType.JDBC);
-        try (MockedStatic<JdbcUtil> utilities = Mockito.mockStatic(JdbcUtil.class)) {
-            utilities.when(() -> JdbcUtil.isTableExists(Mockito.any(), Mockito.any())).thenReturn(true);
-            utilities.when(() -> JdbcUtil.isColumnExists(Mockito.any(), Mockito.any(), Mockito.any())).thenReturn(true);
-            configuration.initSessionTables();
-            Mockito.verify(configuration, Mockito.never()).dropSessionTable(Mockito.any(), Mockito.anyString());
-            Mockito.verify(configuration, Mockito.never()).initSessionTable(Mockito.anyString(), Mockito.anyString());
-        }
-    }
-
-    @Test
-    public void testInitSessionTablesWithPrimaryNonExists() throws Exception {
-        Mockito.when(sessionProperties.getStoreType()).thenReturn(StoreType.JDBC);
-        Mockito.doNothing().when(configuration).dropSessionTable(Mockito.any(), Mockito.anyString());
-        Mockito.doNothing().when(configuration).initSessionTable(Mockito.anyString(), Mockito.anyString());
-        try (MockedStatic<JdbcUtil> utilities = Mockito.mockStatic(JdbcUtil.class)) {
-            utilities.when(() -> JdbcUtil.isTableExists(Mockito.any(), Mockito.any())).thenReturn(true)
-                    .thenReturn(false);
-            utilities.when(() -> JdbcUtil.isColumnExists(Mockito.any(), Mockito.any(), Mockito.any()))
-                    .thenReturn(false);
-            configuration.initSessionTables();
-            Mockito.verify(configuration, Mockito.times(2)).dropSessionTable(Mockito.any(), Mockito.anyString());
-            Mockito.verify(configuration, Mockito.times(2)).initSessionTable(Mockito.anyString(), Mockito.anyString());
-        }
-    }
 }
