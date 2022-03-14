@@ -4257,6 +4257,19 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void tesGetStreamingModelConfig() {
+        val project = "streaming_test";
+        val modelConfigRequest = new ModelConfigRequest();
+        modelConfigRequest.setProject(project);
+
+        var modelConfigResponses = modelService.getModelConfig(project, "");
+        Assert.assertEquals(10, modelConfigResponses.size());
+        getTestConfig().setProperty("kylin.streaming.enabled", "false");
+        modelConfigResponses = modelService.getModelConfig(project, "");
+        Assert.assertEquals(1, modelConfigResponses.size());
+    }
+
+    @Test
     public void testUpdateAndGetModelConfig() {
         val project = "default";
         val model = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";

@@ -179,7 +179,6 @@ import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
 import io.kyligence.kap.rest.security.KerberosLoginManager;
 import io.kyligence.kap.rest.source.DataSourceState;
-import io.kyligence.kap.rest.util.TableUtils;
 import lombok.val;
 import lombok.var;
 
@@ -240,7 +239,7 @@ public class TableService extends BasicService {
         //get table not fuzzy,can use getTableDesc(tableName)
         if (StringUtils.isNotEmpty(tableName) && !isFuzzy) {
             val tableDesc = nTableMetadataManager.getTableDesc(database + "." + tableName);
-            if (tableDesc != null && TableUtils.tableAccessible(tableDesc))
+            if (tableDesc != null && NTableMetadataManager.isTableAccessible(tableDesc))
                 tables.add(tableDesc);
         } else {
             tables.addAll(nTableMetadataManager.listAllTables().stream().filter(tableDesc -> {
@@ -253,7 +252,7 @@ public class TableService extends BasicService {
                     return true;
                 }
                 return tableDesc.getName().toLowerCase(Locale.ROOT).contains(tableName.toLowerCase(Locale.ROOT));
-            }).filter(TableUtils::tableAccessible).sorted(this::compareTableDesc).collect(Collectors.toList()));
+            }).filter(NTableMetadataManager::isTableAccessible).sorted(this::compareTableDesc).collect(Collectors.toList()));
         }
         return getTablesResponse(tables, project, withExt);
     }
@@ -1790,7 +1789,9 @@ public class TableService extends BasicService {
         List<TableDesc> tables = tableManager.listAllTables();
         Set<String> loadedDatabases = new HashSet<>();
         for (TableDesc table : tables) {
-            loadedDatabases.add(table.getDatabase());
+            if (NTableMetadataManager.isTableAccessible(table)) {
+                loadedDatabases.add(table.getDatabase());
+            }
         }
         return loadedDatabases;
     }
