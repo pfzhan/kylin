@@ -142,7 +142,7 @@
     tableIndexMetaStr = JSON.stringify({
       id: '',
       col_order: [],
-      // sort_by_columns: [],
+      sort_by_columns: [],
       shard_by_columns: [],
       load_data: false,
       index_range: ''
