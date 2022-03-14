@@ -360,6 +360,10 @@ public class NDataModelManager {
         return dataModelDesc == null ? "NotFoundModel(" + modelId + ")" : dataModelDesc.toString();
     }
 
+    public static boolean isModelAccessible(NDataModel model) {
+        return KylinConfig.getInstanceFromEnv().streamingEnabled() || !model.isStreaming();
+    }
+
     private NProjectManager getProjectManager() {
         return NProjectManager.getInstance(config);
     }

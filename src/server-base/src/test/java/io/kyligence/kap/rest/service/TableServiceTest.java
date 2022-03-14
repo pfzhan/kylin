@@ -121,7 +121,6 @@ import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
 import io.kyligence.kap.rest.source.DataSourceState;
 import io.kyligence.kap.rest.source.NHiveSourceInfo;
-import io.kyligence.kap.rest.util.TableUtils;
 import io.kyligence.kap.streaming.jobs.StreamingJobListener;
 import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import lombok.val;
@@ -235,16 +234,16 @@ public class TableServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(2, tableDesc.size());
         val tableMetadataManager = getInstance(getTestConfig(), "streaming_test");
         var tableDesc1 = tableMetadataManager.getTableDesc("DEFAULT.SSB_TOPIC");
-        Assert.assertTrue(TableUtils.tableAccessible(tableDesc1));
+        Assert.assertTrue(NTableMetadataManager.isTableAccessible(tableDesc1));
         getTestConfig().setProperty("kylin.streaming.enabled", "false");
         tableDesc = tableService.getTableDesc("streaming_test", true, "", "DEFAULT", true);
         Assert.assertEquals(0, tableDesc.size());
         // check kafka table
-        Assert.assertFalse(TableUtils.tableAccessible(tableDesc1));
+        Assert.assertFalse(NTableMetadataManager.isTableAccessible(tableDesc1));
 
         // check batch table
         tableDesc1 = tableMetadataManager.getTableDesc("SSB.CUSTOMER");
-        Assert.assertTrue(TableUtils.tableAccessible(tableDesc1));
+        Assert.assertTrue(NTableMetadataManager.isTableAccessible(tableDesc1));
     }
 
     @Test

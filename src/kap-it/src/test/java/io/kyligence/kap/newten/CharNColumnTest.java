@@ -37,6 +37,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.util.ExecAndComp;
 
 public class CharNColumnTest extends NLocalWithSparkSessionTest {
 

@@ -68,7 +68,6 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.rest.controller.NModelController;
 import io.kyligence.kap.rest.response.OpenModelRecResponse;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.commons.collections.CollectionUtils;
@@ -1160,10 +1159,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         partition.setPartitionDateColumn("DEFAULT.TEST_KYLIN_FACT.TRANS_ID000");
         partition.setPartitionDateFormat("yyyy-MM-dd");
         modelRequest.setPartitionDesc(partition);
-        val modelController = new NModelController();
-        ReflectionTestUtils.setField(modelController, "modelService", modelService);
-        val resp = modelController.detectInvalidIndexes(modelRequest);
-        Assert.assertEquals("000", resp.getCode());
+        val resp = modelService.detectInvalidIndexes(modelRequest);
+        Assert.assertNotNull(resp);
     }
 
     @Test
@@ -4255,6 +4252,19 @@ public class ModelServiceTest extends CSVSourceTestCase {
         thrown.expectMessage(
                 "Can not set table 'DEFAULT.TEST_KYLIN_FACT' incremental loading, due to another incremental loading table existed in model 'nmodel_basic'!");
         modelService.checkSingleIncrementingLoadingTable("default", "DEFAULT.TEST_KYLIN_FACT");
+    }
+
+    @Test
+    public void tesGetStreamingModelConfig() {
+        val project = "streaming_test";
+        val modelConfigRequest = new ModelConfigRequest();
+        modelConfigRequest.setProject(project);
+
+        var modelConfigResponses = modelService.getModelConfig(project, "");
+        Assert.assertEquals(10, modelConfigResponses.size());
+        getTestConfig().setProperty("kylin.streaming.enabled", "false");
+        modelConfigResponses = modelService.getModelConfig(project, "");
+        Assert.assertEquals(1, modelConfigResponses.size());
     }
 
     @Test

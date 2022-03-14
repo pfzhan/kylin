@@ -482,7 +482,6 @@ public class NModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<InvalidIndexesResponse> detectInvalidIndexes(@RequestBody ModelRequest request) {
         checkProjectName(request.getProject());
-        request.setPartitionDesc(null);
         InvalidIndexesResponse response = modelService.detectInvalidIndexes(request);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }

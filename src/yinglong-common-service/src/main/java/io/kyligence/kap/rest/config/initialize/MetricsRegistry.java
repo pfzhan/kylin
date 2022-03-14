@@ -246,7 +246,8 @@ public class MetricsRegistry {
 
         final NDataflowManager dataflowManager = NDataflowManager.getInstance(config, project);
         MetricsGroup.newGauge(MetricsName.HEALTHY_MODEL_GAUGE, MetricsCategory.PROJECT, project, () -> {
-            List<NDataModel> list = dataflowManager.listUnderliningDataModels();
+            List<NDataModel> list = dataflowManager.listUnderliningDataModels()
+                    .stream().filter(NDataModelManager::isModelAccessible).collect(Collectors.toList());
             return list == null ? 0 : list.size();
         });
 
@@ -255,12 +256,14 @@ public class MetricsRegistry {
 
         final NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(config, project);
         MetricsGroup.newGauge(MetricsName.TABLE_GAUGE, MetricsCategory.PROJECT, project, () -> {
-            final List<TableDesc> list = tableMetadataManager.listAllTables();
+            final List<TableDesc> list = tableMetadataManager.listAllTables().stream()
+                    .filter(NTableMetadataManager::isTableAccessible).collect(Collectors.toList());
             return list == null ? 0 : list.size();
         });
         MetricsGroup.newGauge(MetricsName.DB_GAUGE, MetricsCategory.PROJECT, project, () -> {
             final List<TableDesc> list = tableMetadataManager.listAllTables();
-            return list == null ? 0 : list.stream().map(TableDesc::getCaseSensitiveDatabase).collect(toSet()).size();
+            return list == null ? 0 : list.stream().filter(NTableMetadataManager::isTableAccessible)
+                    .map(TableDesc::getCaseSensitiveDatabase).collect(toSet()).size();
         });
 
         registerModelMetrics(config, project);
@@ -269,7 +272,8 @@ public class MetricsRegistry {
 
     static void registerModelMetrics(KylinConfig config, String project) {
         NDataModelManager modelManager = NDataModelManager.getInstance(config, project);
-        modelManager.listAllModels().forEach(model -> registerModelMetrics(project, model.getId(), model.getAlias()));
+        modelManager.listAllModels().stream().filter(NDataModelManager::isModelAccessible).forEach(model ->
+                registerModelMetrics(project, model.getId(), model.getAlias()));
     }
 
     static void registerModelMetrics(String project, String modelId, String modelAlias) {

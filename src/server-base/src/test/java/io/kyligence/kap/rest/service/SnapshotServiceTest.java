@@ -419,6 +419,10 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("SSB", database.getDbname());
         Assert.assertEquals("CUSTOMER", ((TableNameResponse) database.getTables().get(0)).getTableName());
         Assert.assertEquals(false, ((TableNameResponse) database.getTables().get(0)).isLoaded());
+        getTestConfig().setProperty("kylin.streaming.enabled", "false");
+        response = snapshotService.getTables("streaming_test", "", 0, Integer.MAX_VALUE);
+        Assert.assertEquals(1, response.getDatabases().size());
+        Assert.assertEquals(1, database.getTables().size());
     }
 
     @Test
@@ -619,5 +623,6 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         SnapshotConfigRequest request = new SnapshotConfigRequest();
         request.setSnapshotManualManagementEnabled(true);
         projectService.updateSnapshotConfig(PROJECT, request);
+        projectService.updateSnapshotConfig("streaming_test", request);
     }
 }

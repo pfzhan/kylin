@@ -3192,7 +3192,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         aclEvaluate.checkProjectReadPermission(project);
         val responseList = Lists.<ModelConfigResponse> newArrayList();
         getDataflowManager(project).listUnderliningDataModels().stream()
-                .filter(model -> StringUtils.isEmpty(modelName) || model.getAlias().contains(modelName))
+                .filter(model -> (StringUtils.isEmpty(modelName) || model.getAlias().contains(modelName)))
+                .filter(model -> NDataModelManager.isModelAccessible(model) && !model.fusionModelBatchPart())
                 .forEach(dataModel -> {
                     val response = new ModelConfigResponse();
                     response.setModel(dataModel.getUuid());
@@ -3975,6 +3976,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         String project = request.getProject();
         aclEvaluate.checkProjectReadPermission(project);
 
+        request.setPartitionDesc(null);
         NDataModel model = convertAndInitDataModel(request, project);
 
         String uuid = model.getUuid();

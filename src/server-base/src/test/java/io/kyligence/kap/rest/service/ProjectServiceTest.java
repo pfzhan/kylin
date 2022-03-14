@@ -1187,6 +1187,14 @@ public class ProjectServiceTest extends ServiceTestBase {
         Assert.assertEquals(-1, statisticsOfProjectDefault.getAcceptableRecSize());
         Assert.assertFalse(statisticsOfProjectDefault.isRefreshed());
         Assert.assertEquals(-1, statisticsOfProjectDefault.getMaxRecShowSize());
+
+        ProjectStatisticsResponse statsOfPrjStreamingTest = projectSmartService.getProjectStatistics("streaming_test");
+        Assert.assertEquals(2, statsOfPrjStreamingTest.getDatabaseSize());
+        Assert.assertEquals(11, statsOfPrjStreamingTest.getTableSize());
+        getTestConfig().setProperty("kylin.streaming.enabled", "false");
+        statsOfPrjStreamingTest = projectSmartService.getProjectStatistics("streaming_test");
+        Assert.assertEquals(1, statsOfPrjStreamingTest.getDatabaseSize());
+        Assert.assertEquals(6, statsOfPrjStreamingTest.getTableSize());
         recommendationTopNUpdateScheduler.close();
     }
 

@@ -324,9 +324,12 @@ public class ProjectSmartService extends BasicService implements ProjectSmartSer
         aclEvaluate.checkProjectReadPermission(project);
         int[] arr = new int[2];
         NTableMetadataManager tblMgr = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        List<TableDesc> tables = tblMgr.listAllTables();
         Set<String> databaseSet = Sets.newHashSet();
-        tables.forEach(tableDesc -> databaseSet.add(tableDesc.getDatabase()));
+        List<TableDesc> tables = tblMgr.listAllTables().stream()
+                .filter(NTableMetadataManager::isTableAccessible).map(tableDesc -> {
+                    databaseSet.add(tableDesc.getDatabase());
+                    return tableDesc;
+                }).collect(Collectors.toList());
         arr[0] = databaseSet.size();
         arr[1] = tables.size();
         return arr;
@@ -377,7 +380,8 @@ public class ProjectSmartService extends BasicService implements ProjectSmartSer
         aclEvaluate.checkProjectReadPermission(project);
 
         List<NDataModel> dataModels = getDataModelManager(project).listAllModels().stream()
-                .filter(model -> model.isBroken() || !model.fusionModelBatchPart()).collect(Collectors.toList());
+                .filter(model -> model.isBroken() || !model.fusionModelBatchPart())
+                .filter(NDataModelManager::isModelAccessible).collect(Collectors.toList());
         Map<String, Set<Integer>> map = Maps.newHashMap();
         dataModels.forEach(model -> map.putIfAbsent(model.getId(), Sets.newHashSet()));
         if (getProjectManager().getProject(project).isSemiAutoMode()) {

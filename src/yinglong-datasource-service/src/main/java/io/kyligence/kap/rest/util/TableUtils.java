@@ -25,11 +25,9 @@
 package io.kyligence.kap.rest.util;
 
 import lombok.val;
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.datatype.DataType;
-import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.TableDesc;
 
 import java.util.Arrays;
@@ -49,8 +47,4 @@ public class TableUtils {
         }
     }
 
-    public static boolean tableAccessible(TableDesc tableDesc) {
-        return KylinConfig.getInstanceFromEnv().streamingEnabled()
-                || tableDesc.getSourceType() != ISourceAware.ID_STREAMING;
-    }
 }

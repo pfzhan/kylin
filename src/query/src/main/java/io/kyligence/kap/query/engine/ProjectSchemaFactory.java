@@ -38,13 +38,13 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.model.DatabaseDesc;
-import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.constant.Constant;
 
 import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.query.engine.view.ViewAnalyzer;
 import io.kyligence.kap.query.engine.view.ViewSchema;
@@ -92,10 +92,8 @@ class ProjectSchemaFactory {
      * remove streaming tables when streaming function is disabled
      */
     private void removeStreamingTables(Map<String, List<TableDesc>> schemasMap) {
-        schemasMap.values().stream()
-                .forEach(tableDescList -> tableDescList
-                        .removeIf(tableDesc -> !KylinConfig.getInstanceFromEnv().streamingEnabled()
-                                && tableDesc.getSourceType() == ISourceAware.ID_STREAMING));
+        schemasMap.values().stream().forEach(tableDescList -> tableDescList
+                .removeIf(tableDesc -> !NTableMetadataManager.isTableAccessible(tableDesc)));
         schemasMap.keySet().removeIf(key -> CollectionUtils.isEmpty(schemasMap.get(key)));
     }
 

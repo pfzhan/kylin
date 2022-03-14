@@ -633,7 +633,7 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
         val execManager = NExecutableManager.getInstance(getConfig(), project);
         List<AbstractExecutable> executables = execManager.listExecByJobTypeAndStatus(ExecutableState::isRunning,
                 JobTypeEnum.SNAPSHOT_BUILD, JobTypeEnum.SNAPSHOT_REFRESH);
-        Set<String> databases = nTableMetadataManager.listDatabases();
+        Set<String> databases = nTableMetadataManager.listDatabases(true);
 
         String expectedDatabase = null;
         if (tablePattern.contains(".")) {
@@ -653,7 +653,9 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
                 }
                 return tableDesc.getDatabase().equalsIgnoreCase(database);
             }).filter(tableDesc -> matchTablePattern(tableDesc, finalTable, finalDatabase, database))
-                    .filter(this::isAuthorizedTableAndColumn).sorted(tableService::compareTableDesc)
+                    .filter(this::isAuthorizedTableAndColumn)
+                    .filter(NTableMetadataManager::isTableAccessible)
+                    .sorted(tableService::compareTableDesc)
                     .collect(Collectors.toList());
 
             int tableSize = tables.size();
