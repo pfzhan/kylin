@@ -29,7 +29,6 @@ import java.math.BigDecimal
 import java.sql.{Date, Timestamp, Types}
 import java.time.ZoneId
 import java.util.{GregorianCalendar, Locale, TimeZone}
-
 import org.apache.calcite.avatica.util.TimeUnitRange
 import org.apache.calcite.rel.`type`.RelDataType
 import org.apache.calcite.rex.RexLiteral
@@ -40,12 +39,13 @@ import org.apache.kylin.common.util.DateFormat
 import org.apache.kylin.metadata.datatype.DataType
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.Column
-import org.apache.spark.sql.catalyst.expressions.Cast
+import org.apache.spark.sql.catalyst.expressions.{Base64, Cast}
 import org.apache.spark.sql.catalyst.parser.ParserUtils
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
+import org.springframework.util.Base64Utils
 
 import scala.collection.{immutable, mutable}
 
@@ -282,6 +282,7 @@ object SparderTypeUtil extends Logging {
         value
           .map(v => convertToStringWithCalciteType(v._1, relType, true) + ":" + convertToStringWithCalciteType(v._2, relType, true))
           .mkString("{", ",", "}")
+      case (value: Array[Byte], _) => Base64Utils.encodeToString(value)
       case (other, _) => other.toString
     }
   }

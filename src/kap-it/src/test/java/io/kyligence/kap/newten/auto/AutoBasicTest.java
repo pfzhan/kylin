@@ -48,7 +48,7 @@ import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.recommendation.entity.MeasureRecItemV2;
-import io.kyligence.kap.newten.ExecAndComp;
+import io.kyligence.kap.util.ExecAndComp;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.ModelOptProposer;
 import io.kyligence.kap.smart.ModelSelectProposer;

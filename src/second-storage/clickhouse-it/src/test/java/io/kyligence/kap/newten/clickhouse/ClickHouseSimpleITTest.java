@@ -126,7 +126,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
-import io.kyligence.kap.newten.ExecAndComp;
+import io.kyligence.kap.util.ExecAndComp;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.service.JobService;
 import io.kyligence.kap.rest.service.ModelService;

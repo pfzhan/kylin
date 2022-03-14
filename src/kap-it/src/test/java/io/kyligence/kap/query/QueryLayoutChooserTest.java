@@ -42,7 +42,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.newten.ExecAndComp;
+import io.kyligence.kap.util.ExecAndComp;
 import io.kyligence.kap.newten.auto.AutoTestBase;
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.smart.SmartMaster;

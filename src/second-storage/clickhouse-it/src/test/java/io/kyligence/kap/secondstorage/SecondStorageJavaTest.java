@@ -43,7 +43,7 @@ import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
-import io.kyligence.kap.newten.ExecAndComp;
+import io.kyligence.kap.util.ExecAndComp;
 import io.kyligence.kap.newten.clickhouse.ClickHouseUtils;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.secondstorage.config.ClusterInfo;

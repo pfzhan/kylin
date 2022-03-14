@@ -39,7 +39,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.newten.ExecAndComp.CompareLevel;
+import io.kyligence.kap.util.ExecAndComp.CompareLevel;
 import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 

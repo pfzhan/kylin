@@ -209,7 +209,7 @@ object SparderQueryTest extends Logging {
     false
   }
 
-  private def isSameDataType(cubeStructField: StructField, sparkStructField: StructField): Boolean = {
+  def isSameDataType(cubeStructField: StructField, sparkStructField: StructField): Boolean = {
     if (cubeStructField.getDataType() == sparkStructField.getDataType()) {
       return true
     }
@@ -227,18 +227,6 @@ object SparderQueryTest extends Logging {
       return true
     }
     false
-  }
-
-  def compareColumnTypeWithCalcite(cubeSchema: util.List[StructField], sparkSchema: StructType): Unit = {
-    val cubeSize = cubeSchema.size
-    val sparkSize = sparkSchema.size
-    assert(cubeSize == sparkSize, s"$cubeSize did not equal $sparkSize")
-    for (i <- 0 until cubeSize) {
-      val cubeStructField = cubeSchema.get(i)
-      val sparkStructField = SparderTypeUtil.convertSparkFieldToJavaField(sparkSchema.apply(i))
-      assert(isSameDataType(cubeStructField, sparkStructField),
-        s"${cubeStructField.getDataTypeName} did not equal ${sparkSchema.apply(i).dataType.toString}")
-    }
   }
 
   def castDataType(sparkResult: DataFrame, cubeResult: DataFrame): DataFrame = {

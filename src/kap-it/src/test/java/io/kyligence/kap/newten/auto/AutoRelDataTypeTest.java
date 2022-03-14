@@ -26,7 +26,7 @@ package io.kyligence.kap.newten.auto;
 
 import org.junit.Test;
 
-import io.kyligence.kap.newten.ExecAndComp.CompareLevel;
+import io.kyligence.kap.util.ExecAndComp.CompareLevel;
 import lombok.extern.slf4j.Slf4j;
 
 /**

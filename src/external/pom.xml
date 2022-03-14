@@ -37,13 +37,6 @@
     <url>http://kyligence.io</url>
     <description>Tailored Dependencies for KAP</description>
 
-<!--    <parent>-->
-<!--        <groupId>io.kyligence.ke</groupId>-->
-<!--        <artifactId>ke</artifactId>-->
-<!--        <version>4.0.0-SNAPSHOT</version>-->
-<!--        <relativePath>../../pom.xml</relativePath>-->
-<!--    </parent>-->
-
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <guava20.shade>io.kyligence.kap.guava20.shaded</guava20.shade>

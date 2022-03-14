@@ -60,7 +60,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.LogManager;
 
-import io.kyligence.kap.newten.ExecAndComp;
+import io.kyligence.kap.util.ExecAndComp;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.debug.BackdoorToggles;

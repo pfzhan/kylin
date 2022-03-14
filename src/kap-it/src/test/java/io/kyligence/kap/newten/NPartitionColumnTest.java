@@ -27,6 +27,7 @@ package io.kyligence.kap.newten;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.kyligence.kap.util.ExecAndComp;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;

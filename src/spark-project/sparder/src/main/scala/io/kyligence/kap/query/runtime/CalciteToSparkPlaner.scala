@@ -138,7 +138,7 @@ class CalciteToSparkPlaner(dataContext: DataContext) extends RelVisitor with Log
       layoutId = layoutEntity.getId
       modelId = layoutEntity.getModel.getId
     } catch {
-      case e: Throwable => logWarning("Calculate layoutId modelId failed", e)
+      case e: Throwable => logWarning(s"Calculate layoutId modelId failed ${e.getMessage}")
     }
     rel.recomputeDigest()
     val digestWithoutId = KapRelUtil.getDigestWithoutRelNodeId(rel.getDigest, layoutId, modelId)

@@ -29,7 +29,7 @@ import com.google.common.collect.ImmutableSet;
 import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.newten.ExecAndComp;
+import io.kyligence.kap.util.ExecAndComp;
 import io.kyligence.kap.newten.clickhouse.ClickHouseUtils;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import io.kyligence.kap.secondstorage.test.ClickHouseClassRule;

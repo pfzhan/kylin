@@ -26,6 +26,7 @@ package io.kyligence.kap.newten;
 
 import java.util.List;
 
+import io.kyligence.kap.util.ExecAndComp;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.Pair;

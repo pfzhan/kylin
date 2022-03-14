@@ -24,11 +24,10 @@
 
 package io.kyligence.kap.newten.auto;
 
-import org.apache.kylin.common.KylinConfig;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import io.kyligence.kap.newten.ExecAndComp.CompareLevel;
+import io.kyligence.kap.util.ExecAndComp.CompareLevel;
 
 public class AutoTdvtTest extends AutoTestBase {
 
@@ -50,8 +49,8 @@ public class AutoTdvtTest extends AutoTestBase {
     @Ignore("blocked by KE-30323")
     @Test
     public void testDateFamily() throws Exception {
-        KylinConfig.getInstanceFromEnv().setProperty("kylin.query.calcite.extras-props.conformance", "LENIENT");
-        new TestScenario(CompareLevel.SAME_WITH_DEVIATION_ALLOWED, "sql_tdvt/sql_datefamily").execute();
+        overwriteSystemProp("kylin.query.calcite.extras-props.conformance", "LENIENT");
+        new TestScenario(CompareLevel.SAME, "sql_tdvt/sql_datefamily").execute();
     }
 
     @Test

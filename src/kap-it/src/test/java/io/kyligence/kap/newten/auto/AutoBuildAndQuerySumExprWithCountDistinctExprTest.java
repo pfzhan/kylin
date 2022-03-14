@@ -39,7 +39,7 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import io.kyligence.kap.newten.ExecAndComp.CompareLevel;
+import io.kyligence.kap.util.ExecAndComp.CompareLevel;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

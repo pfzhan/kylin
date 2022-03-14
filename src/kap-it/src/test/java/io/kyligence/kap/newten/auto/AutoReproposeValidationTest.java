@@ -36,7 +36,7 @@ import org.junit.Test;
 
 import io.kyligence.kap.guava20.shaded.common.collect.Lists;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.newten.ExecAndComp.CompareLevel;
+import io.kyligence.kap.util.ExecAndComp.CompareLevel;
 import lombok.val;
 
 public class AutoReproposeValidationTest extends AutoTestBase {

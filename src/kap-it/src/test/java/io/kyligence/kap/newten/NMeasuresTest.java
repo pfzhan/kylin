@@ -41,6 +41,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.util.ExecAndComp;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.math.RandomUtils;
 import org.apache.kylin.common.KylinConfig;

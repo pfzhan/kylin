@@ -28,15 +28,13 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 
+import io.kyligence.kap.util.QueryResultComparator;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.util.Pair;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparderEnv;
-import org.apache.spark.sql.common.SparderQueryTest;
 import org.junit.Test;
 
-import io.kyligence.kap.newten.ExecAndComp;
+import io.kyligence.kap.util.ExecAndComp;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -75,45 +73,36 @@ public class EscapedTest extends AutoTestBase {
     }
 
     public void execAndCompareEscaped(List<Pair<String, String>> queries, String prj,
-                                      ExecAndComp.CompareLevel compareLevel, String joinType) {
+            ExecAndComp.CompareLevel compareLevel, String joinType) {
         for (Pair<String, String> query : queries) {
             log.info("Exec and compare query ({}) :{}", joinType, query.getFirst());
             String sql = ExecAndComp.changeJoinType(query.getSecond(), joinType);
 
             // query not escaped sql from cube and spark
             long startTime = System.currentTimeMillis();
-            Dataset<Row> cubeResult = ExecAndComp.queryModelWithoutCompute(prj, sql);
+            val cubeResult = ExecAndComp.queryModelWithOlapContext(prj, joinType, sql);
             ExecAndComp.addQueryPath(null, query, sql);
-            Dataset<Row> sparkResult = ExecAndComp.queryWithSpark(prj, sql, query.getFirst(), query.getFirst());
+            val sparkResult = ExecAndComp.queryWithSpark(prj, sql, query.getFirst(), query.getFirst());
 
             // make ke not escape sql and escape sql manually
             overwriteSystemProp("kylin.query.parser.escaped-string-literals", "true");
             val eSql = sql.replace("\\\\", "\\");
 
             // query escaped sql from cube and spark
-            Dataset<Row> cubeResult2 = ExecAndComp.queryModelWithoutCompute(prj, eSql);
+            val cubeResult2 = ExecAndComp.queryModelWithOlapContext(prj, joinType, eSql);
             SparderEnv.getSparkSession().conf().set("spark.sql.parser.escapedStringLiterals", true);
-            Dataset<Row> sparkResult2 = ExecAndComp.queryWithSpark(prj, eSql, query.getFirst(), query.getFirst());
+            val sparkResult2 = ExecAndComp.queryWithSpark(prj, eSql, query.getFirst(), query.getFirst());
             if ((compareLevel == ExecAndComp.CompareLevel.SAME || compareLevel == ExecAndComp.CompareLevel.SAME_ORDER)
-                    && sparkResult.schema().fields().length != cubeResult.schema().fields().length) {
+                    && sparkResult.getColumns().size() != cubeResult.getColumns().size()) {
                 log.error("Failed on compare query ({}) :{} \n cube schema: {} \n, spark schema: {}", joinType, query,
-                        cubeResult.schema().fieldNames(), sparkResult.schema().fieldNames());
+                        cubeResult.getColumns(), sparkResult.getColumns());
                 throw new IllegalStateException("query (" + joinType + ") :" + query + " schema not match");
             }
 
-            List<Row> sparkRows = sparkResult.collectAsList();
-            List<Row> kapRows = SparderQueryTest.castDataType(cubeResult, sparkResult).collectAsList();
-
-            List<Row> sparkRows2 = sparkResult2.collectAsList();
-            List<Row> kapRows2 = SparderQueryTest.castDataType(cubeResult2, sparkResult).collectAsList();
-
             // compare all result set
-            if (!ExecAndComp.compareResults(ExecAndComp.normRows(sparkRows), ExecAndComp.normRows(kapRows),
-                    compareLevel)
-                    || !ExecAndComp.compareResults(ExecAndComp.normRows(sparkRows), ExecAndComp.normRows(sparkRows2),
-                            compareLevel)
-                    || !ExecAndComp.compareResults(ExecAndComp.normRows(kapRows), ExecAndComp.normRows(kapRows2),
-                            compareLevel)) {
+            if (!QueryResultComparator.compareResults(sparkResult, cubeResult.getQueryResult(), compareLevel)
+                    || !QueryResultComparator.compareResults(sparkResult, sparkResult2, compareLevel)
+                    || !QueryResultComparator.compareResults(sparkResult2, cubeResult2.getQueryResult(), compareLevel)) {
                 log.error("Failed on compare query ({}) :{}", joinType, query);
                 throw new IllegalArgumentException("query (" + joinType + ") :" + query + " result not match");
             }

@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import io.kyligence.kap.engine.spark.IndexDataConstructor;
+import io.kyligence.kap.util.ExecAndComp;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
