@@ -84,6 +84,14 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <dependency>
+            <groupId>io.kyligence.yinglong</groupId>
+            <artifactId>yinglong-metadata-server</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.yinglong</groupId>
+            <artifactId>yinglong-common-server</artifactId>
+        </dependency>
         <!--KAP-->
         <dependency>
             <groupId>io.kyligence.ke</groupId>
