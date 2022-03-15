@@ -74,7 +74,8 @@ import java.util.Map;
 import java.util.Objects;
 
 @RestController
-@RequestMapping(value = "/api/storage", produces = {HTTP_VND_APACHE_KYLIN_JSON})
+@RequestMapping(value = "/api/storage", produces = {HTTP_VND_APACHE_KYLIN_JSON,
+        HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
 @Slf4j
 @ConditionalOnProperty({"kylin.second-storage.class"})
 public class SecondStorageEndpoint extends NBasicController {
