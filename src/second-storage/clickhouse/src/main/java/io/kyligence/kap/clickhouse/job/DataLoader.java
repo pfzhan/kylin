@@ -32,6 +32,7 @@ import io.kyligence.kap.secondstorage.SecondStorageConcurrentTestUtil;
 import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
 import io.kyligence.kap.secondstorage.ddl.exp.ColumnWithType;
 import io.kyligence.kap.secondstorage.util.SecondStorageDateUtils;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.util.NamedThreadFactory;
@@ -54,6 +55,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
+@Slf4j
 public class DataLoader {
 
     static String clickHouseType(DataType dt) {
@@ -181,6 +183,7 @@ public class DataLoader {
             Future<?> future = executorService.submit(() -> {
                 String replicaName = shardLoader.getClickHouse().getShardName();
                 try (SetThreadName ignored = new SetThreadName("Shard %s", replicaName)) {
+                    log.info("Load parquet files into {}", replicaName);
                     shardLoader.setup(loadContext.isNewJob());
                     val files = shardLoader.loadDataIntoTempTable(loadContext.getHistory(replicaName), stopFlag);
                     files.forEach(file -> loadContext.finishSingleFile(replicaName, file));
