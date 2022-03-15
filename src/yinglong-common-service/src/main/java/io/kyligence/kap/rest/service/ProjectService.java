@@ -163,8 +163,8 @@ import io.kyligence.kap.rest.service.task.QueryHistoryTaskScheduler;
 import io.kyligence.kap.rest.service.task.RecommendationTopNUpdateScheduler;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import io.kyligence.kap.tool.garbage.GarbageCleaner;
-import lombok.val;
 import lombok.Setter;
+import lombok.val;
 
 @Component("projectService")
 public class ProjectService extends BasicService {
@@ -1419,7 +1419,7 @@ public class ProjectService extends BasicService {
         if (null == principal || principal.isEmpty()) {
             throw new KylinException(EMPTY_PARAMETER, msg.getPRINCIPAL_EMPTY());
         }
-        if (!keytabFile.getOriginalFilename().endsWith(".keytab")) {
+        if (keytabFile.getOriginalFilename() == null || !keytabFile.getOriginalFilename().endsWith(".keytab")) {
             throw new KylinException(FILE_TYPE_MISMATCH, msg.getKEYTAB_FILE_TYPE_MISMATCH());
         }
         String kylinConfHome = KapConfig.getKylinConfDirAtBestEffort();
