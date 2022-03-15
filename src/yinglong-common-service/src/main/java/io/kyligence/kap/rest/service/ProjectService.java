@@ -1016,7 +1016,7 @@ public class ProjectService extends BasicService {
         if (null == principal || principal.isEmpty()) {
             throw new KylinException(EMPTY_PARAMETER, msg.getPRINCIPAL_EMPTY());
         }
-        if (!keytabFile.getOriginalFilename().endsWith(".keytab")) {
+        if (keytabFile.getOriginalFilename() == null || !keytabFile.getOriginalFilename().endsWith(".keytab")) {
             throw new KylinException(FILE_TYPE_MISMATCH, msg.getKEYTAB_FILE_TYPE_MISMATCH());
         }
         String kylinConfHome = KapConfig.getKylinConfDirAtBestEffort();
