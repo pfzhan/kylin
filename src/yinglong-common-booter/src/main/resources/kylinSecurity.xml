@@ -29,11 +29,11 @@
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xmlns:context="http://www.springframework.org/schema/context"
        xmlns:util="http://www.springframework.org/schema/util" xsi:schemaLocation="http://www.springframework.org/schema/beans
-	http://www.springframework.org/schema/beans/spring-beans-4.3.xsd
+	http://www.springframework.org/schema/beans/spring-beans.xsd
 	http://www.springframework.org/schema/security
-	http://www.springframework.org/schema/security/spring-security-4.2.xsd
+	http://www.springframework.org/schema/security/spring-security.xsd
 	http://www.springframework.org/schema/util
-	http://www.springframework.org/schema/util/spring-util-4.3.xsd
+	http://www.springframework.org/schema/util/spring-util.xsd
     http://www.springframework.org/schema/context
     http://www.springframework.org/schema/context/spring-context.xsd">
 
@@ -230,7 +230,6 @@
         <!-- user auth -->
         <bean id="userService" class="org.apache.kylin.rest.service.KylinUserService"/>
         <bean id="userGroupService" class="io.kyligence.kap.rest.service.NUserGroupService"/>
-        <bean id="passwordEncoder" class="${kylin.security.user-password-encoder}"/>
         <bean id="authProvider" class="io.kyligence.kap.rest.security.LimitLoginAuthenticationProvider">
             <property name="userDetailsService" ref="userService"/>
             <property name="passwordEncoder" ref="passwordEncoder"/>
@@ -300,8 +299,6 @@
                         success-handler-ref="logoutSuccessHandler"/>
             <scr:session-management session-fixation-protection="newSession"/>
         </scr:http>
-        <!-- this config only for custom now -->
-        <bean id="logoutSuccessHandler" class="${kylin.security.custom.logout-success-handler}"/>
     </beans>
 
     <beans profile="saml">

@@ -76,6 +76,10 @@ spring:
     jdbc:
       table-name: ${kylin.metadata.url.identifier}_session
 
+logging:
+  level:
+    root: INFO
+
 ---
 spring:
   config:
