@@ -104,15 +104,16 @@ public class CalciteQueryPlanExec implements QueryPlanExec {
         dataContext.putContextVar(DataContext.Variable.LOCAL_TIMESTAMP.camelName, time + localOffset);
     }
 
+    // may induce some puzzle result
     private String rawQueryResultToString(Object object, RelDataType dataType) {
         String value = String.valueOf(object);
         switch (dataType.getSqlTypeName()) {
-            case DATE:
-                return DateFormat.formatDayToEpchoToDateStr(Long.parseLong(value), TimeZone.getTimeZone("GMT"));
-            case TIMESTAMP:
-                return DateFormat.castTimestampToString(Long.parseLong(value), TimeZone.getTimeZone("GMT"));
-            default:
-                return value;
+        case DATE:
+            return DateFormat.formatDayToEpochToDateStr(Long.parseLong(value), TimeZone.getTimeZone("GMT"));
+        case TIMESTAMP:
+            return DateFormat.castTimestampToString(Long.parseLong(value), TimeZone.getTimeZone("GMT"));
+        default:
+            return value;
         }
     }
 

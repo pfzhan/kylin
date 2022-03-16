@@ -42,20 +42,17 @@
 
 package org.apache.kylin.query.routing;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.model.MultiPartitionDesc;
-import io.kyligence.kap.metadata.model.MultiPartitionKeyMapping;
-import io.kyligence.kap.metadata.model.MultiPartitionKeyMappingProvider;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
-import lombok.var;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.TimeZone;
+import java.util.stream.Collectors;
+
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -86,16 +83,28 @@ import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPTableScan;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.model.MultiPartitionDesc;
+import io.kyligence.kap.metadata.model.MultiPartitionKeyMapping;
+import io.kyligence.kap.metadata.model.MultiPartitionKeyMappingProvider;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.val;
+import lombok.var;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class RealizationPruner {
+
+    private RealizationPruner() {
+    }
 
     private static final String DATE = "date";
     private static final String TIMESTAMP = "timestamp";
@@ -103,6 +112,12 @@ public class RealizationPruner {
     private static final String STRING = "string";
     private static final String INTEGER = "integer";
     private static final String BIGINT = "bigint";
+    private static final TimeZone UTC_ZONE = TimeZone.getTimeZone("UTC");
+    private static final Set<SqlKind> COMPARISON_OP_KIND_SET = ImmutableSet.of(SqlKind.GREATER_THAN,
+            SqlKind.GREATER_THAN_OR_EQUAL, //
+            SqlKind.LESS_THAN, SqlKind.LESS_THAN_OR_EQUAL, //
+            SqlKind.IN, SqlKind.NOT_IN, //
+            SqlKind.EQUALS, SqlKind.NOT_EQUALS);
 
     public static List<NDataSegment> pruneSegments(NDataflow dataflow, OLAPContext olapContext) {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
@@ -113,10 +128,12 @@ public class RealizationPruner {
         if (!projectInstance.getConfig().isHeterogeneousSegmentEnabled()) {
             return allReadySegments;
         }
-        val isStreamingFactTable = olapContext.firstTableScan.getOlapTable().getSourceTable().getSourceType() == ISourceAware.ID_STREAMING;
+        val isStreamingFactTable = olapContext.firstTableScan.getOlapTable().getSourceTable()
+                .getSourceType() == ISourceAware.ID_STREAMING;
         val isBatchFusionModel = isStreamingFactTable && dataflow.getModel().isFusionModel() && !dataflow.isStreaming();
-        val partitionDesc = isBatchFusionModel ? getStreamingPartitionDesc(dataflow.getModel(), kylinConfig, projectName)
-                :dataflow.getModel().getPartitionDesc();
+        val partitionDesc = isBatchFusionModel
+                ? getStreamingPartitionDesc(dataflow.getModel(), kylinConfig, projectName)
+                : dataflow.getModel().getPartitionDesc();
         // no partition column
         if (PartitionDesc.isEmptyPartitionDesc(partitionDesc)) {
             log.info("No partition column");
@@ -141,15 +158,12 @@ public class RealizationPruner {
 
         val partitionColInputRef = transformColumn2RexInputRef(partitionColumn, olapContext.allTableScans);
         if (allReadySegments.size() > 0 && dateFormat != null) {
-            val firstSegmentRanges = transformSegment2RexCall(allReadySegments.get(0), dateFormat, rexBuilder, partitionColInputRef,
-                    partitionColumn.getType(), dataflow.isStreaming());
+            val firstSegmentRanges = transformSegment2RexCall(allReadySegments.get(0), dateFormat, rexBuilder,
+                    partitionColInputRef, partitionColumn.getType(), dataflow.isStreaming());
             RelDataTypeFamily segmentLiteralTypeFamily = getSegmentLiteralTypeFamily(firstSegmentRanges.getFirst());
-            List<RexNode> newFilterConditions = new ArrayList<>();
-            for (RexNode filterCondition : filterConditions) {
-                newFilterConditions.add(rewriteRexCall(filterCondition, rexBuilder,
-                        segmentLiteralTypeFamily, partitionColInputRef, dateFormat));
-            }
-            filterConditions = newFilterConditions;
+            filterConditions = filterConditions.stream().map(filterCondition -> rewriteRexCall(filterCondition,
+                    rexBuilder, segmentLiteralTypeFamily, partitionColInputRef, dateFormat))
+                    .collect(Collectors.toList());
         }
         var simplifiedSqlFilter = rexSimplify.simplifyAnds(filterConditions);
 
@@ -193,90 +207,96 @@ public class RealizationPruner {
         return selectedSegments;
     }
 
-    public static RexNode rewriteRexCall(RexNode rexNode, RexBuilder rexBuilder,
-                                         RelDataTypeFamily relDataTypeFamily, RexInputRef partitionColInputRef, String dateFormat) {
-        if (rexNode instanceof RexCall) {
-            RexCall rewriteRexCall = (RexCall) rexNode;
-            if (rewriteRexCall.getOperator().kind == SqlKind.GREATER_THAN
-                    || rewriteRexCall.getOperator().kind == SqlKind.GREATER_THAN_OR_EQUAL
-                    || rewriteRexCall.getOperator().kind == SqlKind.LESS_THAN
-                    || rewriteRexCall.getOperator().kind == SqlKind.LESS_THAN_OR_EQUAL
-                    || rewriteRexCall.getOperator().kind == SqlKind.IN
-                    || rewriteRexCall.getOperator().kind == SqlKind.NOT_IN
-                    || rewriteRexCall.getOperator().kind == SqlKind.EQUALS
-                    || rewriteRexCall.getOperator().kind == SqlKind.NOT_EQUALS) {
-                boolean isContainsPartitionColumn = false;
-                boolean isContainsLiteral = false;
-                for (RexNode sonRexNode : rewriteRexCall.getOperands()) {
-                    if (sonRexNode instanceof RexInputRef) {
-                        RexInputRef rexInputRef = (RexInputRef) sonRexNode;
-                        String columnName = rexInputRef.getName();
-                        if (partitionColInputRef.getName().contains(columnName)) {
-                            isContainsPartitionColumn = true;
-                        }
-                    } else if (sonRexNode instanceof RexLiteral) {
-                        isContainsLiteral = true;
-                    }
+    public static RexNode rewriteRexCall(RexNode rexNode, RexBuilder rexBuilder, RelDataTypeFamily relDataTypeFamily,
+            RexInputRef partitionColInputRef, String dateFormat) {
+        if (!(rexNode instanceof RexCall)) {
+            return rexNode;
+        }
+
+        RexCall rewriteRexCall = (RexCall) rexNode;
+
+        if (COMPARISON_OP_KIND_SET.contains(rewriteRexCall.getOperator().kind)) {
+            return needRewrite(partitionColInputRef, rewriteRexCall)
+                    ? rewriteRexNodeLiteral(rexNode, rexBuilder, relDataTypeFamily, dateFormat)
+                    : rexNode;
+        } else {
+            List<RexNode> opList = rewriteRexCall.getOperands().stream()
+                    .map(rex -> rewriteRexCall(rex, rexBuilder, relDataTypeFamily, partitionColInputRef, dateFormat))
+                    .collect(Collectors.toList());
+            return rexBuilder.makeCall(rewriteRexCall.getOperator(), opList);
+        }
+    }
+
+    private static boolean needRewrite(RexInputRef partitionColInputRef, RexCall rewriteRexCall) {
+        boolean isContainsPartitionColumn = false;
+        boolean isContainsLiteral = false;
+        for (RexNode sonRexNode : rewriteRexCall.getOperands()) {
+            if (sonRexNode instanceof RexInputRef) {
+                RexInputRef rexInputRef = (RexInputRef) sonRexNode;
+                String columnName = rexInputRef.getName();
+                if (partitionColInputRef.getName().contains(columnName)) {
+                    isContainsPartitionColumn = true;
                 }
-                if (isContainsPartitionColumn && isContainsLiteral) {
-                    return rewriteRexNodeLiteral(rexNode, rexBuilder, relDataTypeFamily, dateFormat);
-                } else {
-                    return rexNode;
-                }
-            } else {
-                List<RexNode> opList = new ArrayList<>();
-                for (RexNode sonRexNode : rewriteRexCall.getOperands()) {
-                    opList.add(rewriteRexCall(sonRexNode, rexBuilder,
-                            relDataTypeFamily, partitionColInputRef, dateFormat));
-                }
-                return rexBuilder.makeCall(rewriteRexCall.getOperator(), opList);
+            } else if (sonRexNode instanceof RexLiteral) {
+                isContainsLiteral = true;
             }
         }
-        return rexNode;
+        return isContainsPartitionColumn && isContainsLiteral;
     }
 
     public static RexNode rewriteRexNodeLiteral(RexNode rexNodeLiteral, RexBuilder rexBuilder,
-                                                RelDataTypeFamily relDataTypeFamily, String dateFormat) {
+            RelDataTypeFamily relDataTypeFamily, String dateFormat) {
         if (rexNodeLiteral instanceof RexCall) {
             try {
                 RexCall rexCall = (RexCall) rexNodeLiteral;
                 List<RexNode> oldRexNodes = rexCall.getOperands();
                 List<RexNode> newRexNodes = new ArrayList<>();
                 for (RexNode rexNode : oldRexNodes) {
-                    if (rexNode instanceof RexLiteral) {
-                        RexLiteral rexLiteral = (RexLiteral) rexNode;
-                        String dateStr;
-                        if (rexLiteral.getType().getFamily() == SqlTypeFamily.DATE) {
-                            dateStr = dateIntToDateStr((Integer) rexLiteral.getValue2(), dateFormat);
-                        } else {
-                            dateStr = rexLiteral.getValue2().toString();
-                        }
-                        if (relDataTypeFamily == SqlTypeFamily.DATE) {
-                            newRexNodes.add(rexBuilder.makeLiteral(new DateString(dateStr),
-                                    new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.DATE), true));
-                        } else if (relDataTypeFamily == SqlTypeFamily.CHARACTER) {
-                            newRexNodes.add(rexBuilder.makeLiteral(new NlsString(dateStr, "UTF-16LE", SqlCollation.IMPLICIT),
-                                    new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.CHAR), true));
-                        } else {
-                            newRexNodes.add(rexNode);
-                        }
-                    } else {
-                        newRexNodes.add(rexNode);
-                    }
+                    newRexNodes.add(transform(rexNode, rexBuilder, relDataTypeFamily, dateFormat));
                 }
                 rexNodeLiteral = rexBuilder.makeCall(rexCall.getOperator(), newRexNodes);
             } catch (Exception e) {
                 log.warn("RewriteRexNodeLiteral failed rexNodeLiteral:{} relDataTypeFamily:{} dateFormat:{}",
-                        rexNodeLiteral.toString(), relDataTypeFamily.toString(), dateFormat);
+                        rexNodeLiteral, relDataTypeFamily.toString(), dateFormat, e);
             }
         }
         return rexNodeLiteral;
     }
 
-    private static String dateIntToDateStr(Integer dateInt, String dateFormat) {
-        Long timestamp = dateInt.longValue() * 24 * 3600000;
-        String date = new java.text.SimpleDateFormat(dateFormat).format(timestamp);
-        return date;
+    private static RexNode transform(RexNode rexNode, RexBuilder rexBuilder, RelDataTypeFamily relDataTypeFamily,
+            String dateFormat) {
+        if (!(rexNode instanceof RexLiteral)) {
+            return rexNode;
+        }
+
+        RexLiteral rexLiteral = (RexLiteral) rexNode;
+        RexNode newLiteral;
+        if (SqlTypeFamily.DATE == relDataTypeFamily) {
+            String dateStr = normalization(dateFormat, rexLiteral);
+            newLiteral = rexBuilder.makeLiteral(new DateString(dateStr),
+                    new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.DATE), true);
+        } else if (SqlTypeFamily.CHARACTER == relDataTypeFamily) {
+            String dateStr = normalization(dateFormat, rexLiteral);
+            newLiteral = rexBuilder.makeLiteral(new NlsString(dateStr, "UTF-16LE", SqlCollation.IMPLICIT),
+                    new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.CHAR), true);
+        } else {
+            newLiteral = rexLiteral;
+        }
+        return newLiteral;
+    }
+
+    private static String normalization(String dateFormat, RexLiteral rexLiteral) {
+        RelDataTypeFamily typeFamily = rexLiteral.getType().getFamily();
+        if (SqlTypeFamily.DATE == typeFamily) {
+            // Calendar uses UTC timezone, just to keep RexLiteral's value(an instanceof DateString)
+            long timeInMillis = ((Calendar) rexLiteral.getValue()).getTimeInMillis();
+            String dateStr = DateFormat.formatToDateStr(timeInMillis, dateFormat, RealizationPruner.UTC_ZONE);
+            if (!rexLiteral.toString().equals(dateStr)) {
+                log.warn("Normalize RexLiteral({}) to {}", rexLiteral, dateStr);
+            }
+            return dateStr;
+        }
+        return rexLiteral.getValue2().toString();
     }
 
     public static RelDataTypeFamily getSegmentLiteralTypeFamily(RexNode rangeRexNode) {
@@ -316,7 +336,7 @@ public class RealizationPruner {
                 Lists.newArrayList(partitionColInputRef, startRexLiteral));
 
         // the right side of streaming segments is closed, like [start, end], while batch segment is [start, end)
-        val sqlOperator = isStreaming ? SqlStdOperatorTable.LESS_THAN_OR_EQUAL:SqlStdOperatorTable.LESS_THAN;
+        val sqlOperator = isStreaming ? SqlStdOperatorTable.LESS_THAN_OR_EQUAL : SqlStdOperatorTable.LESS_THAN;
         val lessCall = rexBuilder.makeCall(sqlOperator, Lists.newArrayList(partitionColInputRef, endRexLiteral));
         return Pair.newPair(greaterThanOrEqualCall, lessCall);
     }
@@ -369,7 +389,7 @@ public class RealizationPruner {
         val partitionColRefs = multiPartitionDesc.getColumnRefs();
         val mapping = getMapping(model.getProject(), model.getId());
         Map<String, List<Long>> segPartitionMap = dataSegments.stream()
-                .collect(Collectors.toMap(NDataSegment::getId, dataSegment -> dataSegment.getMultiPartitionIds()));
+                .collect(Collectors.toMap(NDataSegment::getId, NDataSegment::getMultiPartitionIds));
         if (!filterCols.containsAll(partitionColRefs) && !containsMappingColumns(mapping, filterCols)) {
             return segPartitionMap;
         }
@@ -402,9 +422,7 @@ public class RealizationPruner {
 
                 if (isAlwaysFalse(simplifiedSqlFilter, partitionCall, mappingColumnRexCall, rexSimplify, rexBuilder)) {
                     // prune this partition
-                    segPartitionMap.forEach((dataSegment, partitionIds) -> {
-                        partitionIds.remove(partition.getId());
-                    });
+                    segPartitionMap.forEach((dataSegment, partitionIds) -> partitionIds.remove(partition.getId()));
                     continue;
                 }
             } catch (Exception ex) {
@@ -465,8 +483,8 @@ public class RealizationPruner {
 
     private static RexNode transformPartition2RexCall(List<TblColRef> partitionCols, String[] partitionValues,
             RexBuilder rexBuilder, Set<OLAPTableScan> tableScans) {
-        return transformColumns2RexCall(partitionCols,
-                Lists.<List<String>> newArrayList(Lists.newArrayList(partitionValues)), rexBuilder, tableScans);
+        return transformColumns2RexCall(partitionCols, Collections.singletonList(Lists.newArrayList(partitionValues)),
+                rexBuilder, tableScans);
     }
 
     private static RexNode transformPartitionMapping2RexCall(String[] partitionValues, MultiPartitionKeyMapping mapping,

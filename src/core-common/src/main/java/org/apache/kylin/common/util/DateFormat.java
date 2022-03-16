@@ -188,7 +188,7 @@ public class DateFormat {
         return getDateFormat(pattern).format(new Date(millis));
     }
 
-    public static String formatDayToEpchoToDateStr(long daysToEpoch, TimeZone timeZone) {
+    public static String formatDayToEpochToDateStr(long daysToEpoch, TimeZone timeZone) {
         return formatToDateStr(daysToEpoch * 24 * 60 * 60 * 1000, DEFAULT_DATE_PATTERN, timeZone);
     }
 
