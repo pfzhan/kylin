@@ -2493,6 +2493,7 @@
                         <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
                         <junitxml>.</junitxml>
                         <filereports>WDF TestSuite.txt</filereports>
+                        <argLine>${surefireArgLine}</argLine>
                     </configuration>
                     <executions>
                         <execution>
@@ -2554,7 +2555,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-source-plugin</artifactId>
-                    <version>3.0.1</version>
+                    <version>3.2.1</version>
                     <executions>
                         <execution>
                             <id>attach-sources</id>
@@ -2563,22 +2564,19 @@
                                 <goal>jar-no-fork</goal>
                             </goals>
                         </execution>
+                        <execution>
+                            <id>attach-sources-deploy</id>
+                            <phase>deploy</phase>
+                        </execution>
                     </executions>
                     <configuration>
                         <includePom>true</includePom>
                     </configuration>
                 </plugin>
                 <plugin>
-                    <artifactId>maven-source-plugin</artifactId>
-                    <executions>
-                        <execution>
-                            <id>attach-sources</id>
-                            <phase>deploy</phase>
-                        </execution>
-                    </executions>
-                </plugin>
-                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-javadoc-plugin</artifactId>
+                    <version>3.3.2</version>
                     <executions>
                         <execution>
                             <id>attach-javadocs</id>
@@ -2587,7 +2585,9 @@
                     </executions>
                 </plugin>
                 <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-deploy-plugin</artifactId>
+                    <version>3.0.0-M2</version>
                     <executions>
                         <execution>
                             <id>deploy</id>
@@ -2622,32 +2622,6 @@
                             <phase>test</phase>
                             <goals>
                                 <goal>report</goal>
-                                <goal>report-aggregate</goal>
-                            </goals>
-                        </execution>
-                    </executions>
-                </plugin>
-                <plugin>
-                    <groupId>org.scoverage</groupId>
-                    <artifactId>scoverage-maven-plugin</artifactId>
-                    <version>1.4.11</version>
-                    <configuration>
-                        <scalaVersion>${scala.version}</scalaVersion>
-                        <highlighting>true</highlighting>
-                    </configuration>
-                    <executions>
-                        <execution>
-                            <id>instrument</id>
-                            <goals>
-                                <goal>pre-compile</goal>
-                                <goal>post-compile</goal>
-                            </goals>
-                        </execution>
-                        <execution>
-                            <id>scoverage-report</id>
-                            <phase>test</phase>
-                            <goals>
-                                <goal>report-only</goal>
                             </goals>
                         </execution>
                     </executions>

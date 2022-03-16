@@ -28,8 +28,10 @@ dir=$(dirname ${0})
 cd ${dir}/../..
 
 export PACKAGE_TIMESTAMP=1
-export PACKAGE_SPARK=1
-export SKIP_FRONT=0
+export WITH_SPARK=1
+export WITH_HIVE1=1
+export WITH_THIRDPARTY=1
+export WITH_FRONT=1
 
 for PARAM in $@; do
     if [[ "$PARAM" == "-noTimestamp" ]]; then
@@ -40,13 +42,25 @@ for PARAM in $@; do
 
     if [[ "$PARAM" == "-noSpark" ]]; then
         echo "Skip packaging Spark..."
-        export PACKAGE_SPARK=0
+        export WITH_SPARK=0
+        shift
+    fi
+
+    if [[ "$PARAM" == "-noHive1" ]]; then
+        echo "Package without Hive 1.2.2..."
+        export WITH_HIVE1=0
+        shift
+    fi
+
+    if [[ "$PARAM" == "-noThirdParty" ]]; then
+        echo "Package without Third Party..."
+        export WITH_THIRDPARTY=0
         shift
     fi
 
     if [[ "$PARAM" == "-skipFront" ]]; then
         echo 'Skip install front-end dependencies...'
-        export SKIP_FRONT=1
+        export WITH_FRONT=0
         shift
     fi
 done

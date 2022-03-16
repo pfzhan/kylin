@@ -53,3 +53,7 @@ mv build/grafana-${grafana_version} build/grafana
 test -d 'build/grafana/conf/provisioning' && rm -rf build/grafana/conf/provisioning
 
 test -d 'build/grafana/public/test' && rm -rf build/grafana/public/test
+
+cp -rf build/deploy/grafana/dashboards build/grafana/
+cp -rf build/deploy/grafana/provisioning build/grafana/conf/
+cp -rf build/deploy/grafana/custom.ini build/grafana/conf/

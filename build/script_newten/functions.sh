@@ -66,20 +66,6 @@ function calMd5() {
     fi
 }
 
-function removeKAPPlusConfigs() {
-    file=$1
-    startline=`cat -n ${file} | sed -n '/==========KAP PLUS ONLY START==========/p' | awk '{print $1}'`
-    endline=`cat -n ${file} | sed -n '/==========KAP PLUS ONLY END==========/p' | awk '{print $1}'`
-    sed -i.plusbak "${startline},${endline}d" ${file}
-}
-
-function restoreKAPPlusConfigs() { 
-    file=$1
-    if [ -f ${file}.plusbak ]; then
-        mv ${file}.plusbak ${file}
-    fi
-}
-
 function checkDownloadSparkVersion() {
     if [[ -z $1 ]];
     then
@@ -88,8 +74,7 @@ function checkDownloadSparkVersion() {
     fi
 
     download_spark_release_version=$1
-    spark_version_pom=`mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=spark.version | grep -E '^[0-9]+\.[0-9]+\.[0-9]+' `
-    #convert 2.4.1-kylin-rXX to spark-newten-2.4.1-rXX
+    spark_version_pom=`mvn help:evaluate -Dexpression=spark.version | grep -E '^[0-9]+\.[0-9]+\.[0-9]+' `
     pom_spark_release_version=spark-newten-"`echo ${spark_version_pom}| sed "s/-kylin//g"`"
 
     if [[ $download_spark_release_version != $pom_spark_release_version ]];
