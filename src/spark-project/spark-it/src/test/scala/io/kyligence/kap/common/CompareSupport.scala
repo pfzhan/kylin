@@ -22,25 +22,39 @@
 
 package io.kyligence.kap.common
 
+import io.kyligence.kap.query.engine.data.QueryResult
+import io.kyligence.kap.util.ExecAndComp.EnhancedQueryResult
+import io.kyligence.kap.util.{ExecAndComp, QueryResultComparator}
 import io.netty.util.internal.ThrowableUtil
-import org.apache.spark.sql.common.SparderQueryTest
 import org.scalatest.Suite
 
 trait CompareSupport extends QuerySupport {
   self: Suite =>
 
   def runAndCompare(querySql: String,
-                    sparkSql: String,
                     project: String,
+                    joinType: String,
+                    filename: String,
                     checkOrder: Boolean,
-                    errorMsg: String): String = {
+                    sparkSql: Option[String] = None,
+                    extraComparator: (EnhancedQueryResult, QueryResult) => Boolean = (_, _) => true): String = {
     try {
-      val maybeString = SparderQueryTest.checkAnswer(
-        sql(sparkSql),
-        singleQuery(querySql, project),
-        checkOrder)
-      if (maybeString != null) {
-        val queryErrorMsg = errorMsg + maybeString
+      val modelResult = ExecAndComp.queryModelWithOlapContext(project, joinType, querySql)
+
+      var startTs = System.currentTimeMillis
+      val sparkResult = ExecAndComp.queryWithSpark(project,
+        ExecAndComp.removeDataBaseInSql(sparkSql.getOrElse(querySql)),
+        joinType, filename)
+      log.info("Query with Spark Duration(ms): {}", System.currentTimeMillis - startTs)
+
+      startTs = System.currentTimeMillis
+      var result = QueryResultComparator.compareResults(sparkResult, modelResult.getQueryResult,
+        if (checkOrder) ExecAndComp.CompareLevel.SAME_ORDER else ExecAndComp.CompareLevel.SAME)
+      result = result && extraComparator.apply(modelResult, sparkResult)
+      log.info("Compare Duration(ms): {}", System.currentTimeMillis - startTs)
+
+      if (!result) {
+        val queryErrorMsg = s"$joinType\n$filename\n $querySql\n"
         if ("true".equals(System.getProperty("Failfast"))) {
           throw new RuntimeException(queryErrorMsg)
         }
@@ -53,7 +67,7 @@ trait CompareSupport extends QuerySupport {
         if ("true".equals(System.getProperty("Failfast"))) {
           throw exception
         } else {
-          errorMsg + "\n" + ThrowableUtil.stackTraceToString(exception)
+          s"$joinType\n$filename\n $querySql\n" + ThrowableUtil.stackTraceToString(exception)
         }
     }
   }

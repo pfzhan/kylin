@@ -48,7 +48,7 @@ trait QuerySupport
     super.beforeAll()
     Unsafe.setProperty("kylin.query.engine.sparder-enabled", "true")
     UdfManager.create(spark)
-
+    SparderEnv.setSparkSession(spark)
   }
 
   override def afterAll(): Unit = {

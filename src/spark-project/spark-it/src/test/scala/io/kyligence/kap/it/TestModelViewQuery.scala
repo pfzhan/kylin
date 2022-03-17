@@ -22,12 +22,6 @@
 
 package io.kyligence.kap.it
 
-import java.io.{DataInputStream, File}
-import java.nio.charset.Charset
-import java.nio.file.Files
-import java.sql.SQLException
-import java.util.TimeZone
-
 import io.kyligence.kap.common.util.Unsafe
 import io.kyligence.kap.common.{CompareSupport, JobSupport, QuerySupport, SSSource}
 import io.kyligence.kap.engine.spark.utils.LogEx
@@ -39,11 +33,15 @@ import org.apache.commons.lang.StringUtils
 import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.common.persistence.{JsonSerializer, RootPersistentEntity}
 import org.apache.kylin.metadata.realization.NoRealizationFoundException
-import org.apache.kylin.query.relnode.OLAPContext
+import org.apache.spark.sql._
 import org.apache.spark.sql.common.{LocalMetadata, SparderBaseFunSuite}
 import org.apache.spark.sql.execution.adaptive.AdaptiveSparkPlanHelper
-import org.apache.spark.sql._
 
+import java.io.{DataInputStream, File}
+import java.nio.charset.Charset
+import java.nio.file.Files
+import java.sql.SQLException
+import java.util.TimeZone
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
 // scalastyle:off
@@ -67,6 +65,8 @@ class TestModelViewQuery
 
   implicit val ec: ExecutionContextExecutor = ExecutionContext.global
 
+  import scala.collection.JavaConverters._
+
   // opt memory
   conf.set("spark.shuffle.detectCorrupt", "false")
 
@@ -84,7 +84,6 @@ class TestModelViewQuery
 
     addModels()
 
-    SparderEnv.skipCompute()
     build()
   }
 
@@ -120,7 +119,7 @@ class TestModelViewQuery
 
 
   def build(): Unit = logTime("Build Time: ", debug = true) {
-    modelIds.foreach { id => fullBuildCube(id)}
+    modelIds.foreach { id => fullBuildCube(id) }
     // replace metadata with new one after build
     dumpMetadata()
   }
@@ -129,22 +128,21 @@ class TestModelViewQuery
     overwriteSystemProp("kylin.query.auto-model-view-enabled", "true")
     val sqls = QueryFetcher
       .fetchQueries("src/test/resources/view/sqls").toSeq
-    val modelSqls = sqls.zipWithIndex.filter { case (_, idx) => idx % 2 == 0}.map { p => p._1}
-    val sparkSqls = sqls.zipWithIndex.filter { case (_, idx) => idx % 2 == 1}.map { p => p._1}
+    val modelSqls = sqls.zipWithIndex.filter { case (_, idx) => idx % 2 == 0 }.map { p => p._1 }
+    val sparkSqls = sqls.zipWithIndex.filter { case (_, idx) => idx % 2 == 1 }.map { p => p._1 }
 
     val errMsg = modelSqls.zip(sparkSqls).map {
-      case ((modelSqlPath, modelSql), (_, sparkSql)) =>
-        val errMsg = runAndCompare(modelSql, removeDataBaseInSql(sparkSql), getProject,
-          false, s"$modelSqlPath\n$modelSql")
-        if (errMsg == null) {
-          // check model matching
-          val expected_models = modelSql.split(';')(0).substring(21).split(",")
-          expected_models.zipWithIndex.foreach { case (model_alias, idx) =>
-            assert(OLAPContext.getThreadLocalContextById(idx).getModelAlias == model_alias, s"$modelSqlPath, view model fails to match")
+      case ((modelSqlPath, modelSql), (sparkSqlPath, sparkSql)) =>
+        runAndCompare(modelSql, getProject, "DEFAULT", sparkSqlPath,
+          checkOrder = false, Some(sparkSql),
+          (modelResult, _) => {
+            val expectedModels = modelSql.split(';')(0).substring(21).split(",")
+            expectedModels.zip(modelResult.getOlapContexts.asScala).foreach { case (modelAlias, idx) =>
+              assert(idx.getModelAlias == modelAlias, s"$modelSqlPath, view model fails to match")
+            }
+            true
           }
-        }
-
-        errMsg
+        )
     }.filter(_ != null)
 
     if (errMsg.nonEmpty) {

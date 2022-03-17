@@ -119,7 +119,7 @@ public class ExecAndComp {
                 entity.setOlapContexts(modelResult.olapContexts);
             }
             addQueryPath(recAndQueryResult, query, sql);
-            val sparkResult = queryWithSpark(prj, sql, query.getFirst(), query.getFirst());
+            val sparkResult = queryWithSpark(prj, sql, joinType, query.getFirst());
             if (!QueryResultComparator.compareResults(sparkResult, modelResult.getQueryResult(), CompareLevel.SUBSET)) {
                 throw new IllegalArgumentException("Result not match");
             }
@@ -300,9 +300,6 @@ public class ExecAndComp {
                             val node = tree.get(structField.getName());
                             if (node == null) {
                                 result.add(null);
-                                //                            } else if (structField.getDataTypeName().equals("TIMESTAMP")) {
-                                //                                val millis = DateFormat.stringToMillis(node.asText());
-                                //                                result.add(DateFormat.castTimestampToString(millis));
                             } else if (structField.getDataTypeName().startsWith("ARRAY")) {
                                 result.add(node.toString());
                             } else {
@@ -321,7 +318,7 @@ public class ExecAndComp {
         }
         String compareSql = getCompareSql(sqlPath);
         if (StringUtils.isEmpty(compareSql))
-            compareSql = originSql;
+            compareSql = changeJoinType(originSql, joinType);
 
         QueryParams queryParams = new QueryParams(prj, compareSql, "default", false);
         queryParams.setKylinConfig(QueryUtil.getKylinConfig(prj));
@@ -349,8 +346,6 @@ public class ExecAndComp {
                 val node = r.get(i);
                 if (node == null) {
                     result.add(null);
-                    //                } else if (structField.getDataTypeName().equals("TIMESTAMP")) {
-                    //                    result.add(DateFormat.castTimestampToString(((Timestamp) node).getTime()));
                 } else {
                     result.add(node.toString());
                 }
@@ -495,7 +490,6 @@ public class ExecAndComp {
         try {
             long startTs = System.currentTimeMillis();
             QueryResult queryResult = queryModelWithMeta(prj, sqlText, parameters);
-            log.info("Cool! This sql hits cube...");
             log.info("Query with Model Duration(ms): {}", (System.currentTimeMillis() - startTs));
             return queryResult;
         } catch (Throwable e) {
@@ -569,6 +563,10 @@ public class ExecAndComp {
         QueryResult queryResult;
 
         Collection<OLAPContext> olapContexts;
+
+        public QueryResult getQueryResult() {
+            return queryResult;
+        }
 
     }
 

@@ -655,6 +655,12 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
+                <artifactId>kap-query</artifactId>
+                <version>${project.version}</version>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-spark-common</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
@@ -668,6 +674,12 @@
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-sparder</artifactId>
+                <version>${project.version}</version>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.ke</groupId>
+                <artifactId>kap-it</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
             </dependency>

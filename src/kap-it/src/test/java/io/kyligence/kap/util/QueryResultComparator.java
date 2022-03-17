@@ -77,7 +77,6 @@ public class QueryResultComparator {
         }
         default:
             break;
-
         }
 
         if (!good) {

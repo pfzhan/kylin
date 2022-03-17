@@ -224,7 +224,6 @@
         <dependency>
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-query</artifactId>
-            <version>${project.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>

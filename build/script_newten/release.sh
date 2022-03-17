@@ -79,17 +79,6 @@ sh build/script_newten/package.sh $@ || { echo "package failed!"; exit 1; }
 echo "Kyligence Enterprise Release Version: ${release_version}"
 
 package_name="Kyligence-Enterprise-${release_version}.tar.gz"
-if [[ -f LICENSE ]]; then
-    kap_dir=`tar -tf dist/${package_name}|head -1`
-    rm -rf $kap_dir
-    mkdir $kap_dir
-    cp LICENSE $kap_dir
-    gzip -d dist/${package_name}
-    tar_name=`ls dist/Kyligence-Enterprise*.tar`
-    tar -uf ${tar_name} ${kap_dir%/}/LICENSE
-    gzip ${tar_name}
-    rm -rf $kap_dir
-fi
-
 sha256sum dist/$package_name > dist/${package_name}.sha256sum
+
 echo "sha256: `cat dist/${package_name}.sha256sum`"
