@@ -25,6 +25,7 @@
 package io.kyligence.kap.secondstorage.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.kyligence.kap.secondstorage.config.Node;
 
 import java.io.Serializable;
 
@@ -37,6 +38,12 @@ public class SecondStorageNode implements Serializable {
     private String ip;
     @JsonProperty("port")
     private long port;
+
+    public SecondStorageNode(Node node) {
+        this.ip = node.getIp();
+        this.port = node.getPort();
+        this.name = node.getName();
+    }
 
     public String getName() {
         return name;

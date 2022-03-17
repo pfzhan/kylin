@@ -131,6 +131,29 @@ public class SecondStorageUtilTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testConvertNodesToPairs() throws NoSuchFieldException {
+        ClusterInfo cluster = new ClusterInfo();
+        Map<String, List<Node>> clusterNodes = new HashMap<>();
+        clusterNodes.put("pair1",
+                ImmutableList.of(new Node().setName("node01").setIp("127.0.0.1").setPort(9000),
+                        new Node().setName("node02").setIp("127.0.0.1").setPort(9000)));
+        clusterNodes.put("pair2",
+                ImmutableList.of(new Node().setName("node03").setIp("127.0.0.1").setPort(9000),
+                        new Node().setName("node04").setIp("127.0.0.1").setPort(9000)));
+        cluster.setCluster(clusterNodes);
+        SecondStorageNodeHelper.initFromCluster(cluster, null);
+        List<String> nodes1 = Arrays.asList("node01", "node02");
+        Map<String, List<SecondStorageNode>> pairs1 = SecondStorageUtil.convertNodesToPairs(nodes1);
+        Assert.assertEquals(1, pairs1.size());
+        Assert.assertEquals(2, pairs1.get("pair1").size());
+
+        List<String> nodes2 = Arrays.asList("node01", "node03");
+        Map<String, List<SecondStorageNode>> pairs2 = SecondStorageUtil.convertNodesToPairs(nodes2);
+        Assert.assertEquals(2, pairs2.size());
+        Assert.assertEquals(1, pairs2.get("pair1").size());
+    }
+
+    @Test
     public void setSecondStorageSizeInfo() throws Exception {
         prepareManger();
         NDataModel model = new NDataModel();
@@ -160,7 +183,7 @@ public class SecondStorageUtilTest extends NLocalFileMetadataTestCase {
         List<SecondStorageInfo> newModels = SecondStorageUtil.setSecondStorageSizeInfo(models, tableFlowManager);
         Assert.assertEquals(2, newModels.size());
         Assert.assertEquals(0, (newModels.get(0)).getSecondStorageSize());
-        Assert.assertEquals(2, (newModels.get(0)).getSecondStorageNodes().size());
+        Assert.assertEquals(2, (newModels.get(0)).getSecondStorageNodes().get("pair1").size());
     }
 
     @Test

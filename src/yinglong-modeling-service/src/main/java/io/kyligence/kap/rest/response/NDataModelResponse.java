@@ -137,7 +137,7 @@ public class NDataModelResponse extends NDataModel {
     private long secondStorageSize;
 
     @JsonProperty("second_storage_nodes")
-    private List<SecondStorageNode> secondStorageNodes;
+    private Map<String, List<SecondStorageNode>> secondStorageNodes;
 
     @JsonProperty("second_storage_enabled")
     private boolean secondStorageEnabled;

@@ -26,10 +26,11 @@ package io.kyligence.kap.secondstorage.response;
 
 
 import java.util.List;
+import java.util.Map;
 
 public class SecondStorageInfo {
     private long secondStorageSize;
-    private List<SecondStorageNode> secondStorageNodes;
+    private Map<String, List<SecondStorageNode>> secondStorageNodes;
     private boolean secondStorageEnabled;
 
     public long getSecondStorageSize() {
@@ -41,11 +42,11 @@ public class SecondStorageInfo {
         return this;
     }
 
-    public List<SecondStorageNode> getSecondStorageNodes() {
+    public Map<String, List<SecondStorageNode>> getSecondStorageNodes() {
         return secondStorageNodes;
     }
 
-    public SecondStorageInfo setSecondStorageNodes(List<SecondStorageNode> secondStorageNodes) {
+    public SecondStorageInfo setSecondStorageNodes(Map<String, List<SecondStorageNode>> secondStorageNodes) {
         this.secondStorageNodes = secondStorageNodes;
         return this;
     }
