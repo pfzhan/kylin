@@ -517,7 +517,7 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
         QueryMetricsContext.start(queryContext.getQueryId(), getDefaultServer());
 
         // Keep original sql for query history storage
-        String originSql = sqlRequest.getSql();
+        String originSql = sqlRequest.getSql().trim();
 
         SQLResponse sqlResponse = null;
         try {
@@ -556,10 +556,14 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
             QueryUtils.updateQueryContextSQLMetrics();
             QueryContext.currentTrace().amendLast(QueryTrace.PREPARE_AND_SUBMIT_JOB, System.currentTimeMillis());
             QueryContext.currentTrace().endLastSpan();
-            // Saving true original sql if no params exists
-            if (!QueryUtils.isPrepareStatementWithParams(sqlRequest)) {
-                QueryContext.currentMetrics().setOriginSql(originSql);
+            // Get current original sql for those sql with params
+            if (QueryUtils.isPrepareStatementWithParams(sqlRequest)
+                && StringUtils.isNotBlank(QueryContext.currentMetrics().getOriginSql())) {
+                originSql = QueryContext.currentMetrics().getOriginSql();
             }
+            // Auto append limit / offset for original sql
+            QueryContext.currentMetrics().setOriginSql(QueryUtil.autoAppendLimitOffset(originSql));
+
             QueryContext.currentMetrics().setQueryEndTime(System.currentTimeMillis());
 
             sqlResponse.setServer(clusterManager.getLocalServer());
