@@ -351,7 +351,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
             ModelService ms = new ModelService();
 
             ms.addSecondStorageResponse(cubeName, getProject(), mockSegments, df);
-            Assert.assertEquals(2, (mockSegments.get(0)).getSecondStorageNodes().size());
+            Assert.assertEquals(2, (mockSegments.get(0)).getSecondStorageNodes().get("pair0").size());
 
         }
     }

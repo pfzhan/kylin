@@ -990,13 +990,11 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                             }));
             segmentResponseList.forEach(segment -> {
                 if (tablePartitions.containsKey(segment.getId())) {
-                    val nodes = new ArrayList<SecondStorageNode>();
+                    val nodes = new ArrayList<String>();
                     Long sizes = 0L;
                     var partitions = tablePartitions.get(segment.getId());
                     for (TablePartition partition : partitions) {
-                        var ns = partition.getShardNodes().stream().map(SecondStorageUtil::transformNode)
-                                .collect(Collectors.toList());
-                        nodes.addAll(ns);
+                        nodes.addAll(partition.getShardNodes());
                         var size = partition.getSizeInNode().values().stream().reduce(Long::sum).orElse(0L);
                         sizes += size;
                     }
@@ -1005,9 +1003,10 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                     } catch (Exception e) {
                         log.error("setSecondStorageSize failed", e);
                     }
-                    segment.setSecondStorageNodes(nodes);
+                    Map<String, List<SecondStorageNode>> pairs = SecondStorageUtil.convertNodesToPairs(nodes);
+                    segment.setSecondStorageNodes(pairs);
                 } else {
-                    segment.setSecondStorageNodes(Collections.emptyList());
+                    segment.setSecondStorageNodes(Collections.emptyMap());
                     segment.setSecondStorageSize(0L);
                 }
             });

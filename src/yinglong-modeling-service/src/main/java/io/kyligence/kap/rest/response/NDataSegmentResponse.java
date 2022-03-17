@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.response;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.kylin.job.common.SegmentUtil;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -82,7 +83,7 @@ public class NDataSegmentResponse extends NDataSegment {
     private long rowCount;
 
     @JsonProperty("second_storage_nodes")
-    private List<SecondStorageNode> secondStorageNodes;
+    private Map<String, List<SecondStorageNode>> secondStorageNodes;
 
     // byte
     @JsonProperty("second_storage_size")
