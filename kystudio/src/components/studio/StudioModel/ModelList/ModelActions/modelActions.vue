@@ -270,12 +270,20 @@
           </common-tip>
         </span>
       </div>
-      <div v-if="currentModel.second_storage_nodes.length">
+      <div v-if="Object.keys(currentModel.second_storage_nodes).length">
         <div class="font-medium">{{$t('node')}}</div>
-        <ul>
-          <li v-for="n in currentModel.second_storage_nodes" :key="n.name">
+        <ul  v-if="Object.keys(currentModel.second_storage_nodes).length === 1">
+          <li v-for="n in currentModel.second_storage_nodes[Object.keys(currentModel.second_storage_nodes)[0]]" :key="n.name">
             <span>{{n.name}}</span>
             <span class="ip-span">{{n.ip}}:{{n.port}}</span>
+          </li>
+        </ul>
+        <ul v-else>
+          <li v-for="(gn, j) in Object.values(currentModel.second_storage_nodes)" :key="j">
+            (<span v-for="(n, i) in gn" :key="n.name">
+              <span>{{n.name}}</span>
+              <span class="ip-span">{{n.ip}}:{{n.port}}</span><span v-if="i !== gn.length -1" >, </span>
+            </span>)
           </li>
         </ul>
       </div>
