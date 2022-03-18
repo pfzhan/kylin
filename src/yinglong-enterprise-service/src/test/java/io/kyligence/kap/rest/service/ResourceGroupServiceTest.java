@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.service;
 import java.io.IOException;
 import java.util.Map;
 
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
@@ -51,7 +52,7 @@ import io.kyligence.kap.rest.request.resourecegroup.ResourceGroupRequest;
 import io.kyligence.kap.rest.service.resourcegroup.ResourceGroupService;
 import lombok.val;
 
-public class ResourceGroupServiceTest extends CSVSourceTestCase {
+public class ResourceGroupServiceTest extends NLocalFileMetadataTestCase {
     @InjectMocks
     private final ResourceGroupService resourceGroupService = Mockito.spy(ResourceGroupService.class);
 
@@ -63,9 +64,8 @@ public class ResourceGroupServiceTest extends CSVSourceTestCase {
 
     @Before
     public void setup() {
-        super.setup();
         overwriteSystemProp("HADOOP_USER_NAME", "root");
-
+        createTestMetadata();
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
         ReflectionTestUtils.setField(resourceGroupService, "aclEvaluate", aclEvaluate);
     }

@@ -30,13 +30,21 @@ import static org.apache.kylin.rest.security.AclEntityType.PROJECT_INSTANCE;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.rest.request.AccessRequest;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.AclEntity;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.metadata.MetadataConstants;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.response.AccessEntryResponse;
+import org.apache.kylin.rest.security.AclEntityFactory;
+import org.apache.kylin.rest.security.AclEntityType;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.UserService;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -212,5 +220,26 @@ public class OpenAccessControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
         Mockito.verify(openAccessController).getUserOrGroupAclPermissions("error", "test", "");
+    }
+
+    @Test
+    public void testConvertAccessRequests() {
+        ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+                .getProject("default");
+        AclEntity ae = AclEntityFactory.createAclEntity(AclEntityType.PROJECT_INSTANCE, projectInstance.getUuid());
+        BatchProjectPermissionRequest request = new BatchProjectPermissionRequest();
+        request.setNames(Lists.newArrayList("U5", "newUser"));
+        request.setPermission("ADMIN");
+        request.setProject("default");
+        request.setType(MetadataConstants.TYPE_USER);
+        List<AccessRequest> accessRequests = openAccessController.convertBatchPermissionRequestToAccessRequests(ae,
+                request);
+        Assert.assertEquals("U5", accessRequests.get(0).getSid());
+        Assert.assertEquals("newUser", accessRequests.get(1).getSid());
+
+        request.setType(MetadataConstants.TYPE_GROUP);
+        request.setNames(Lists.newArrayList("newGroup"));
+        accessRequests = openAccessController.convertBatchPermissionRequestToAccessRequests(ae, request);
+        Assert.assertEquals("newGroup", accessRequests.get(0).getSid());
     }
 }

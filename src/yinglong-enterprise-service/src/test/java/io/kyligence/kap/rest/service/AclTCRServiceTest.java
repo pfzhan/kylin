@@ -42,7 +42,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.persistence.AclEntity;
-import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.security.AclEntityFactory;
@@ -97,10 +96,8 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
-import io.kyligence.kap.rest.controller.open.OpenAccessController;
 import io.kyligence.kap.rest.request.AccessRequest;
 import io.kyligence.kap.rest.request.AclTCRRequest;
-import io.kyligence.kap.rest.request.BatchProjectPermissionRequest;
 import io.kyligence.kap.rest.response.AclTCRResponse;
 import lombok.val;
 import lombok.var;
@@ -152,9 +149,6 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
     private AclService aclService = Mockito.spy(AclService.class);
 
     @Mock
-    private OpenAccessController accessController = Mockito.spy(OpenAccessController.class);
-
-    @Mock
     private ProjectService projectService = Mockito.spy(ProjectService.class);
 
     @Before
@@ -174,7 +168,6 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(aclTCRService, "userService", userService);
         ReflectionTestUtils.setField(accessService, "userService", userService);
         ReflectionTestUtils.setField(accessService, "aclService", aclService);
-        ReflectionTestUtils.setField(accessController, "accessService", accessService);
         ReflectionTestUtils.setField(aclTCRService, "projectService", projectService);
         initUsers();
 
@@ -1170,27 +1163,6 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
             }
         });
         aclTCRService.mergeAclTCR(projectDefault, user1, true, Collections.singletonList(request));
-    }
-
-    @Test
-    public void testConvertAccessRequests() {
-        ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
-                .getProject(projectDefault);
-        AclEntity ae = AclEntityFactory.createAclEntity(AclEntityType.PROJECT_INSTANCE, projectInstance.getUuid());
-        BatchProjectPermissionRequest request = new BatchProjectPermissionRequest();
-        request.setNames(Lists.newArrayList("U5", "newUser"));
-        request.setPermission("ADMIN");
-        request.setProject(projectDefault);
-        request.setType(MetadataConstants.TYPE_USER);
-        List<AccessRequest> accessRequests = accessController.convertBatchPermissionRequestToAccessRequests(ae,
-                request);
-        Assert.assertEquals(user5, accessRequests.get(0).getSid());
-        Assert.assertEquals("newUser", accessRequests.get(1).getSid());
-
-        request.setType(MetadataConstants.TYPE_GROUP);
-        request.setNames(Lists.newArrayList("newGroup"));
-        accessRequests = accessController.convertBatchPermissionRequestToAccessRequests(ae, request);
-        Assert.assertEquals("newGroup", accessRequests.get(0).getSid());
     }
 
     @Test
