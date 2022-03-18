@@ -63,6 +63,7 @@ import org.apache.spark.ui.SparkUI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sparkproject.jetty.http.HttpHeader;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.ClientHttpResponse;
@@ -150,7 +151,7 @@ public class SparderUIUtil {
                 HttpMethod.GET)) {
             if (response.getStatusCode().is3xxRedirection()) {
                 URI uri = response.getHeaders().getLocation();
-                amSQLBase = uri.getPath();
+                amSQLBase = Objects.requireNonNull(uri).getPath();
                 webUrl = uri.getScheme() + "://" + uri.getHost() + ":" + uri.getPort();
                 appId = ui.appId();
                 return;
@@ -175,8 +176,9 @@ public class SparderUIUtil {
             return;
         }
 
+        HttpHeaders headers = response.getHeaders();
         if (response.getStatusCode().is3xxRedirection()) {
-            try (ClientHttpResponse r = execute(response.getHeaders().getLocation(), originMethod)) {
+            try (ClientHttpResponse r = execute(headers.getLocation(), originMethod)) {
                 rewrite(r, servletResponse, originMethod, originUrlStr, depth - 1);
             }
             return;
@@ -185,9 +187,9 @@ public class SparderUIUtil {
         servletResponse.setStatus(response.getRawStatusCode());
 
         servletResponse.setHeader(HttpHeader.CONTENT_TYPE.toString(),
-                response.getHeaders().getContentType().toString());
+                Objects.requireNonNull(headers.getContentType()).toString());
 
-        if (response.getHeaders().getContentType().includes(MediaType.IMAGE_PNG)) {
+        if (Objects.requireNonNull(headers.getContentType()).includes(MediaType.IMAGE_PNG)) {
             IOUtils.copy(response.getBody(), servletResponse.getOutputStream());
             return;
         }

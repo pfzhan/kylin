@@ -80,10 +80,11 @@ public class PasswordPlaceholderConfigurer extends PropertyPlaceholderConfigurer
         Resource[] resources = new Resource[1];
         //Properties prop = KylinConfig.getKylinProperties();
         Properties prop = getAllKylinProperties();
-        StringBuilderWriter writer = new StringBuilderWriter();
-        prop.store(new PrintWriter(writer), "kylin properties");
-        String propString = writer.getBuilder().toString();
-        IOUtils.closeQuietly(writer);
+        String propString = null;
+        try(StringBuilderWriter writer = new StringBuilderWriter()){
+            prop.store(new PrintWriter(writer), "kylin properties");
+            propString = writer.getBuilder().toString();
+        }
         InputStream is = IOUtils.toInputStream(propString, Charset.defaultCharset());
         resources[0] = new InputStreamResource(is);
         this.setLocations(resources);

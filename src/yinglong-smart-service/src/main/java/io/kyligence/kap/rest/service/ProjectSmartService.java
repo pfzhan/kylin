@@ -234,6 +234,9 @@ public class ProjectSmartService extends BasicService implements ProjectSmartSer
                 if (projectSmartSupporter != null) {
                     projectSmartSupporter.onUpdateCost(project);
                 }
+            } catch (InterruptedException e) {
+                log.warn("Interrupted!", e);
+                Thread.currentThread().interrupt();
             } catch (Throwable e) {
                 log.error("Accelerate failed", e);
                 EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
@@ -271,6 +274,9 @@ public class ProjectSmartService extends BasicService implements ProjectSmartSer
             Future future = scheduler.scheduleImmediately(scheduler.new QueryHistoryAccelerateRunner(false));
             try {
                 future.get();
+            } catch (InterruptedException e) {
+                log.warn("Interrupted!", e);
+                Thread.currentThread().interrupt();
             } catch (Exception e) {
                 log.error("Accelerate failed", e);
             }
@@ -283,6 +289,9 @@ public class ProjectSmartService extends BasicService implements ProjectSmartSer
             Future future = scheduler.scheduleImmediately(scheduler.new QueryHistoryMetaUpdateRunner());
             try {
                 future.get();
+            } catch (InterruptedException e) {
+                log.warn("Interrupted!", e);
+                Thread.currentThread().interrupt();
             } catch (Exception e) {
                 log.error("updateStatMeta failed", e);
             }
