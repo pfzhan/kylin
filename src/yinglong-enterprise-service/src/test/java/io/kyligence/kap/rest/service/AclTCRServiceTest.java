@@ -727,8 +727,6 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testACLTCRDatabaseNotExist() throws IOException {
-        thrown.expect(KylinException.class);
-        thrown.expectMessage("Can’t find database \"NOTEXIST\". Please check and try again.");
         val requests = getFillRequest();
         AclTCRRequest request = new AclTCRRequest();
         request.setDatabaseName("notexist");
@@ -742,19 +740,19 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         u1t1.setRows(new ArrayList<>());
         request.setTables(Collections.singletonList(u1t1));
         requests.add(request);
-        aclTCRService.updateAclTCR(projectDefault, user1, true, requests);
+        Assert.assertThrows("Can’t find database \"NOTEXIST\". Please check and try again.", KylinException.class,
+                () -> aclTCRService.updateAclTCR(projectDefault, user1, true, requests));
     }
 
     @Test
     public void testACLTCREmptyColumns() throws IOException {
-        thrown.expect(KylinException.class);
-        thrown.expectMessage("Invalid value for parameter ‘columns’ which should not be empty");
         val requests = getFillRequest();
         val any = requests.stream().filter(aclTCRRequest -> aclTCRRequest.getTables().stream()
                 .noneMatch(table -> table.getColumns().isEmpty())).findAny();
         Assert.assertTrue(any.isPresent());
         any.get().getTables().get(0).setColumns(null);
-        aclTCRService.updateAclTCR(projectDefault, user1, true, requests);
+        Assert.assertThrows("Invalid value for parameter ‘columns’ which should not be empty", KylinException.class,
+                () -> aclTCRService.updateAclTCR(projectDefault, user1, true, requests));
     }
 
     @Test
@@ -768,14 +766,13 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testACLTCREmptyColumnName() throws IOException {
-        thrown.expect(KylinException.class);
-        thrown.expectMessage("Invalid value for parameter ‘column_name’ which should not be empty");
         val requests = getFillRequest();
         val any = requests.stream().filter(aclTCRRequest -> aclTCRRequest.getTables().stream()
                 .noneMatch(table -> table.getColumns().isEmpty())).findAny();
         Assert.assertTrue(any.isPresent());
         any.get().getTables().get(0).getColumns().get(0).setColumnName(null);
-        aclTCRService.updateAclTCR(projectDefault, user1, true, requests);
+        Assert.assertThrows("Invalid value for parameter ‘column_name’ which should not be empty", KylinException.class,
+                () -> aclTCRService.updateAclTCR(projectDefault, user1, true, requests));
     }
 
     @Test
