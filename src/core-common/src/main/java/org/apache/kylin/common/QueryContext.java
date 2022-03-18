@@ -111,7 +111,13 @@ public class QueryContext implements Closeable {
     private Integer limit = 0;
     @Getter
     @Setter
+    private boolean limitAutoAppend = false;
+    @Getter
+    @Setter
     private Integer offset = 0;
+    @Getter
+    @Setter
+    private boolean offsetAutoAppend = false;
 
     @Getter
     @Setter

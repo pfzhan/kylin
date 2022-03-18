@@ -48,6 +48,7 @@ import java.util.Properties;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfig.SetAndUnsetThreadLocalConfig;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.query.security.AccessDeniedException;
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
 import org.junit.After;
@@ -91,6 +92,27 @@ public class QueryUtilTest extends NLocalFileMetadataTestCase {
             String newSql2 = QueryUtil.massageSql(queryParams2);
             Assert.assertEquals("SELECT SUM({fn convert(0, INT)}) from TABLE", newSql2);
         }
+    }
+
+    @Test
+    public void testAutoAppendLimitOffset() {
+        final String originSql = "SELECT LO_CUSTKEY, LO_PHONE FROM LINEORDER";
+        QueryContext qc = QueryContext.current();
+        qc.setLimit(20);
+        qc.setLimitAutoAppend(true);
+        qc.setOffset(10);
+        qc.setOffsetAutoAppend(true);
+
+        String result = QueryUtil.autoAppendLimitOffset(originSql);
+        Assert.assertEquals("SELECT LO_CUSTKEY, LO_PHONE FROM LINEORDER\nLIMIT 20\nOFFSET 10", result);
+
+        qc.setOffsetAutoAppend(false);
+        result = QueryUtil.autoAppendLimitOffset(originSql);
+        Assert.assertEquals("SELECT LO_CUSTKEY, LO_PHONE FROM LINEORDER\nLIMIT 20", result);
+
+        qc.setLimitAutoAppend(false);
+        result = QueryUtil.autoAppendLimitOffset(originSql);
+        Assert.assertEquals("SELECT LO_CUSTKEY, LO_PHONE FROM LINEORDER", result);
     }
 
     @Test
