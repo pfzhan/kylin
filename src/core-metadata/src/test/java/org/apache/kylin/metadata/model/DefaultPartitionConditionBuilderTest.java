@@ -42,7 +42,6 @@
 
 package org.apache.kylin.metadata.model;
 
-import static io.kyligence.kap.common.util.TestUtils.getTestConfig;
 import static org.junit.Assert.assertThrows;
 
 import org.apache.kylin.common.util.CleanMetadataHelper;
@@ -97,7 +96,7 @@ public class DefaultPartitionConditionBuilderTest {
         SegmentRange.TimePartitionedSegmentRange range = new SegmentRange.TimePartitionedSegmentRange(
                 DateFormat.stringToMillis("2016-02-22"), DateFormat.stringToMillis("2016-02-23"));
         String condition = partitionConditionBuilder.buildDateRangeCondition(partitionDesc, null, range);
-        Assert.assertEquals("`UNKNOWN_ALIAS`.`DATE_COLUMN` >= '2016-02-22' AND `UNKNOWN_ALIAS`.`DATE_COLUMN` < '2016-02-23'",
+        Assert.assertEquals("UNKNOWN_ALIAS.DATE_COLUMN >= '2016-02-22' AND UNKNOWN_ALIAS.DATE_COLUMN < '2016-02-23'",
                 condition);
 
         range = new SegmentRange.TimePartitionedSegmentRange(0L, 0L);
@@ -115,7 +114,7 @@ public class DefaultPartitionConditionBuilderTest {
         SegmentRange.TimePartitionedSegmentRange range = new SegmentRange.TimePartitionedSegmentRange(
                 DateFormat.stringToMillis("2016-02-22 00:00:00"), DateFormat.stringToMillis("2016-02-23 01:00:00"));
         String condition = partitionConditionBuilder.buildDateRangeCondition(partitionDesc, null, range);
-        Assert.assertEquals("`UNKNOWN_ALIAS`.`HOUR_COLUMN` >= '00' AND `UNKNOWN_ALIAS`.`HOUR_COLUMN` < '01'", condition);
+        Assert.assertEquals("UNKNOWN_ALIAS.HOUR_COLUMN >= '00' AND UNKNOWN_ALIAS.HOUR_COLUMN < '01'", condition);
     }
 
     public void testDatePartitionHelper(String dataType, String dataFormat, String startTime, String endTime,
@@ -134,20 +133,20 @@ public class DefaultPartitionConditionBuilderTest {
     @Test
     public void testDatePartition_BigInt_yyyy_MM_timestamp_disable() {
         assertThrows(RuntimeException.class, () -> testDatePartitionHelper("bigint", "yyyy-MM", "2016-02-22", "2016-03-23",
-                "`UNKNOWN_ALIAS`.`DATE_COLUMN` >= 201602 AND `UNKNOWN_ALIAS`.`DATE_COLUMN` < 201603"));
+                "UNKNOWN_ALIAS.DATE_COLUMN >= 201602 AND UNKNOWN_ALIAS.DATE_COLUMN < 201603"));
     }
 
     @Test
     public void testDatePartition_BigInt_yyyy_timestamp_disable() {
         assertThrows(RuntimeException.class, () -> testDatePartitionHelper("bigint", "yyyy", "2016-02-22", "2016-03-23",
-                "`UNKNOWN_ALIAS`.`DATE_COLUMN` >= 201602 AND `UNKNOWN_ALIAS`.`DATE_COLUMN`< 201603"));
+                "UNKNOWN_ALIAS.DATE_COLUMN >= 201602 AND UNKNOWN_ALIAS.DATE_COLUMN < 201603"));
     }
 
     @Test
     public void testDatePartition_BigInt_yyyy_MM_timestamp_enable() {
         partitionConditionBuilder.setUseBigintAsTimestamp(true);
         testDatePartitionHelper("bigint", "yyyy-MM", "2016-02-22", "2016-02-23",
-                "`UNKNOWN_ALIAS`.`DATE_COLUMN` >= 1456070400000 AND `UNKNOWN_ALIAS`.`DATE_COLUMN` < 1456156800000");
+                "UNKNOWN_ALIAS.DATE_COLUMN >= 1456070400000 AND UNKNOWN_ALIAS.DATE_COLUMN < 1456156800000");
         partitionConditionBuilder.setUseBigintAsTimestamp(false);
     }
 
@@ -155,46 +154,46 @@ public class DefaultPartitionConditionBuilderTest {
     public void testDatePartition_BigInt_yyyy_MM_dd_timestamp_enable() {
         partitionConditionBuilder.setUseBigintAsTimestamp(true);
         testDatePartitionHelper("bigint", "yyyy-MM-dd", "2016-02-22", "2016-02-23",
-                "`UNKNOWN_ALIAS`.`DATE_COLUMN` >= 20160222 AND `UNKNOWN_ALIAS`.`DATE_COLUMN` < 20160223");
+                "UNKNOWN_ALIAS.DATE_COLUMN >= 20160222 AND UNKNOWN_ALIAS.DATE_COLUMN < 20160223");
         partitionConditionBuilder.setUseBigintAsTimestamp(false);
     }
 
     @Test
     public void testDatePartition_BigInt() {
         assertThrows(RuntimeException.class, () -> testDatePartitionHelper("bigint", "yyyy-MM-dd", "2016-02-22",
-                "2016-02-23", "`UNKNOWN_ALIAS`.`DATE_COLUMN` >= 20160222 AND `UNKNOWN_ALIAS`.`DATE_COLUMN` < 20160223"));
+                "2016-02-23", "UNKNOWN_ALIAS.DATE_COLUMN >= 20160222 AND UNKNOWN_ALIAS.DATE_COLUMN < 20160223"));
     }
 
     @Test
     public void testDatePartition_Date() {
         testDatePartitionHelper("date", "yyyy/MM/dd", "2016-02-22", "2016-02-23",
-                "`UNKNOWN_ALIAS`.`DATE_COLUMN` >= to_date('2016/02/22', 'yyyy/MM/dd') AND "
-                        + "`UNKNOWN_ALIAS`.`DATE_COLUMN` < to_date('2016/02/23', 'yyyy/MM/dd')");
+                "UNKNOWN_ALIAS.DATE_COLUMN >= to_date('2016/02/22', 'yyyy/MM/dd') AND "
+                        + "UNKNOWN_ALIAS.DATE_COLUMN < to_date('2016/02/23', 'yyyy/MM/dd')");
 
     }
 
     @Test
     public void testDatePartition_Long() {
         testDatePartitionHelper("long", "yyyyMMdd", "2016-02-22", "2016-02-23",
-                "`UNKNOWN_ALIAS`.`DATE_COLUMN` >= 20160222 AND `UNKNOWN_ALIAS`.`DATE_COLUMN` < 20160223");
+                "UNKNOWN_ALIAS.DATE_COLUMN >= 20160222 AND UNKNOWN_ALIAS.DATE_COLUMN < 20160223");
     }
 
     @Test
     public void testDatePartition_yyyymm_Long() {
         testDatePartitionHelper("long", "yyyyMM", "2016-02-22", "2016-04-23",
-                "`UNKNOWN_ALIAS`.`DATE_COLUMN` >= 201602 AND `UNKNOWN_ALIAS`.`DATE_COLUMN` < 201604");
+                "UNKNOWN_ALIAS.DATE_COLUMN >= 201602 AND UNKNOWN_ALIAS.DATE_COLUMN < 201604");
     }
 
     @Test
     public void testDatePartition_Int() {
         assertThrows(RuntimeException.class, () -> testDatePartitionHelper("int", "yyyy-MM-dd", "2016-02-22",
-                "2016-02-23", "`UNKNOWN_ALIAS`.`DATE_COLUMN` >= 20160222 AND `UNKNOWN_ALIAS`.`DATE_COLUMN` < 20160223"));
+                "2016-02-23", "UNKNOWN_ALIAS.DATE_COLUMN >= 20160222 AND UNKNOWN_ALIAS.DATE_COLUMN < 20160223"));
     }
 
     @Test
     public void testDatePartition_Timestamp() {
         testDatePartitionHelper("timestamp", "yyyy-MM-dd HH:mm:ss", "2016-02-22", "2016-02-23",
-                "`UNKNOWN_ALIAS`.`DATE_COLUMN` >= '2016-02-22 00:00:00' AND `UNKNOWN_ALIAS`.`DATE_COLUMN` < '2016-02-23 00:00:00'");
+                "UNKNOWN_ALIAS.DATE_COLUMN >= '2016-02-22 00:00:00' AND UNKNOWN_ALIAS.DATE_COLUMN < '2016-02-23 00:00:00'");
     }
 
     @Test
@@ -226,8 +225,8 @@ public class DefaultPartitionConditionBuilderTest {
                     endLong);
             String condition = partitionConditionBuilder.buildDateRangeCondition(partitionDesc, null, range);
             Assert.assertEquals(
-                    "`UNKNOWN_ALIAS`.`DATE_COLUMN` >= " + startLong / timestampType.millisecondRatio
-                            + " AND `UNKNOWN_ALIAS`.`DATE_COLUMN` < " + endLong / timestampType.millisecondRatio,
+                    "UNKNOWN_ALIAS.DATE_COLUMN >= " + startLong / timestampType.millisecondRatio
+                            + " AND UNKNOWN_ALIAS.DATE_COLUMN < " + endLong / timestampType.millisecondRatio,
                     condition);
         }
     }
@@ -243,27 +242,7 @@ public class DefaultPartitionConditionBuilderTest {
                 DateFormat.stringToMillis("2016-02-22"), DateFormat.stringToMillis("2016-02-23"));
         String condition = partitionConditionBuilder.buildDateRangeCondition(partitionDesc, null, range);
         Assert.assertEquals(
-                "`UNKNOWN_ALIAS`.`DATE_COLUMN` >= '2016-02-22@:00800:00:00' AND `UNKNOWN_ALIAS`.`DATE_COLUMN` < '2016-02-23@:00800:00:00'",
+                "UNKNOWN_ALIAS.DATE_COLUMN >= '2016-02-22@:00800:00:00' AND UNKNOWN_ALIAS.DATE_COLUMN < '2016-02-23@:00800:00:00'",
                 condition);
-    }
-
-    @Test
-    public void testDatePartition_customizeFormat_withAddBackQuateDisabled() {
-        try {
-            getTestConfig().setProperty("kylin.source.hive.add-backtick-to-hive-table-name", "false");
-            PartitionDesc partitionDesc = new PartitionDesc();
-            TblColRef col = TblColRef.mockup(TableDesc.mockup("DEFAULT.TABLE_NAME"), 1, "DATE_COLUMN", "string");
-            partitionDesc.setPartitionDateColumnRef(col);
-            partitionDesc.setPartitionDateColumn(col.getCanonicalName());
-            partitionDesc.setPartitionDateFormat("yyyy-MM-dd'@:008'HH:mm:ss");
-            SegmentRange.TimePartitionedSegmentRange range = new SegmentRange.TimePartitionedSegmentRange(
-                    DateFormat.stringToMillis("2016-02-22"), DateFormat.stringToMillis("2016-02-23"));
-            String condition = partitionConditionBuilder.buildDateRangeCondition(partitionDesc, null, range);
-            Assert.assertEquals(
-                    "UNKNOWN_ALIAS.DATE_COLUMN >= '2016-02-22@:00800:00:00' AND UNKNOWN_ALIAS.DATE_COLUMN < '2016-02-23@:00800:00:00'",
-                    condition);
-        } finally {
-            getTestConfig().setProperty("kylin.source.hive.add-backtick-to-hive-table-name", "true");
-        }
     }
 }

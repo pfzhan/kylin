@@ -343,14 +343,6 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
         return originIdentity.toUpperCase(Locale.ROOT);
     }
 
-    private static String addBacktick(String identity) {
-        return Arrays.stream(identity.split("\\.")).map(s -> "`" + s + "`").collect(Collectors.joining("."));
-    }
-
-    public String getIdentityWithBacktick() {
-        return addBacktick(getIdentity());
-    }
-
     public String getCaseSensitiveIdentity() {
         if (identity == null) {
             if (this.getCaseSensitiveDatabase().equals("null")) {
@@ -495,11 +487,7 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
     }
 
     public String getTransactionalTableIdentity() {
-        if (KylinConfig.getInstanceFromEnv().isAddBacktickToHiveTableName()) {
-            return addBacktick(getIdentity() + TRANSACTIONAL_TABLE_NAME_SUFFIX).toUpperCase(Locale.ROOT);
-        } else {
-            return (getIdentity() + TRANSACTIONAL_TABLE_NAME_SUFFIX).toUpperCase(Locale.ROOT);
-        }
+        return (getIdentity() + TRANSACTIONAL_TABLE_NAME_SUFFIX).toUpperCase(Locale.ROOT);
     }
 
     public String getTransactionalTableName() {
