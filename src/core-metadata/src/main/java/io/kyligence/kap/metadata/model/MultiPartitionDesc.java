@@ -38,7 +38,6 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.ISegment;
@@ -203,11 +202,7 @@ public class MultiPartitionDesc implements Serializable {
             List<String> conditions = Lists.newArrayList();
             for (int i = 0; i < columnRefs.size(); i++) {
                 final int x = i;
-                String columnName = columnRefs.get(x).getExpressionInSourceDB();
-                if (KylinConfig.getInstanceFromEnv().isAddBacktickToHiveTableName()) {
-                    columnName = columnRefs.get(x).getExpressionInSourceDBWithBackQuote();
-                }
-                String item = columnName + " in (" + //
+                String item = columnRefs.get(x).getExpressionInSourceDB() + " in (" + //
                         values.stream().map(a -> generateFormattedValue(columnRefs.get(x).getType(), a[x]))
                                 .collect(Collectors.joining(", "))
                         + ")";
