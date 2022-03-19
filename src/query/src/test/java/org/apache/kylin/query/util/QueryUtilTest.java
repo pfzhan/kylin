@@ -96,7 +96,7 @@ public class QueryUtilTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testAutoAppendLimitOffset() {
-        final String originSql = "SELECT LO_CUSTKEY, LO_PHONE FROM LINEORDER";
+        final String originSql = "SELECT LO_CUSTKEY, LO_PHONE FROM LINEORDER;";
         QueryContext qc = QueryContext.current();
         qc.setLimit(20);
         qc.setLimitAutoAppend(true);
