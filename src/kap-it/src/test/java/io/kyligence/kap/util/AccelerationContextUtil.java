@@ -38,8 +38,8 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.smart.AbstractContext;
-import io.kyligence.kap.smart.AbstractSemiContextV2;
-import io.kyligence.kap.smart.ModelReuseContextOfSemiV2;
+import io.kyligence.kap.smart.AbstractSemiContext;
+import io.kyligence.kap.smart.ModelReuseContext;
 import io.kyligence.kap.smart.SmartContext;
 import lombok.val;
 import lombok.var;
@@ -54,18 +54,18 @@ public class AccelerationContextUtil {
         return new SmartContext(config, project, sqlArray);
     }
 
-    public static AbstractSemiContextV2 newModelReuseContextOfSemiAutoMode(KylinConfig kylinConfig, String project,
+    public static AbstractSemiContext newModelReuseContextOfSemiAutoMode(KylinConfig kylinConfig, String project,
             String[] sqlArray) {
         KylinConfigExt config = NProjectManager.getInstance(kylinConfig).getProject(project).getConfig();
-        ModelReuseContextOfSemiV2 context = new ModelReuseContextOfSemiV2(config, project, sqlArray);
+        ModelReuseContext context = new ModelReuseContext(config, project, sqlArray);
         context.getExtraMeta().setOnlineModelIds(getOnlineModelIds(project));
         return context;
     }
 
-    public static AbstractSemiContextV2 newModelReuseContextOfSemiAutoMode(KylinConfig kylinConfig, String project,
+    public static AbstractSemiContext newModelReuseContextOfSemiAutoMode(KylinConfig kylinConfig, String project,
             String[] sqlArray, boolean canCreateNewModel) {
         KylinConfigExt config = NProjectManager.getInstance(kylinConfig).getProject(project).getConfig();
-        ModelReuseContextOfSemiV2 context = new ModelReuseContextOfSemiV2(config, project, sqlArray, canCreateNewModel);
+        ModelReuseContext context = new ModelReuseContext(config, project, sqlArray, canCreateNewModel);
         context.getExtraMeta().setOnlineModelIds(getOnlineModelIds(project));
         return context;
     }

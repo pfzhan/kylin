@@ -26,31 +26,24 @@ package io.kyligence.kap.smart;
 
 import org.apache.kylin.common.KylinConfig;
 
-import com.google.common.collect.ImmutableList;
-
+import io.kyligence.kap.guava20.shaded.common.collect.ImmutableList;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 
-public class ModelReuseContextOfSemiV2 extends AbstractSemiContextV2 {
+public class ModelReuseContext extends AbstractSemiContext {
 
-    public ModelReuseContextOfSemiV2(KylinConfig kylinConfig, String project, String[] sqlArray) {
+    public ModelReuseContext(KylinConfig kylinConfig, String project, String[] sqlArray) {
         super(kylinConfig, project, sqlArray);
         this.partialMatch = getSmartConfig().getKylinConfig().isQueryMatchPartialInnerJoinModel();
         this.partialMatchNonEqui = getSmartConfig().getKylinConfig().partialMatchNonEquiJoins();
     }
 
-    public ModelReuseContextOfSemiV2(KylinConfig kylinConfig, String project, String[] sqlArray,
-            boolean canCreateNewModel) {
+    public ModelReuseContext(KylinConfig kylinConfig, String project, String[] sqlArray, boolean canCreateNewModel) {
         this(kylinConfig, project, sqlArray);
         this.canCreateNewModel = canCreateNewModel;
     }
 
     @Override
-    public ChainedProposer createTransactionProposers() {
-        return new ChainedProposer(this, ImmutableList.of());
-    }
-
-    @Override
-    public ChainedProposer createPreProcessProposers() {
+    public ChainedProposer createProposers() {
         return new ChainedProposer(this, ImmutableList.of(//
                 new SQLAnalysisProposer(this), //
                 new ModelSelectProposer(this), //
@@ -61,11 +54,6 @@ public class ModelReuseContextOfSemiV2 extends AbstractSemiContextV2 {
                 new IndexPlanOptProposer(this), //
                 new IndexPlanShrinkProposer(this) //
         ));
-    }
-
-    @Override
-    public void saveMetadata() {
-        // do nothing
     }
 
     @Override

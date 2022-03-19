@@ -27,7 +27,6 @@ package io.kyligence.kap.smart.query.mockup;
 import org.apache.kylin.common.KylinConfig;
 
 import io.kyligence.kap.smart.query.QueryRecord;
-import io.kyligence.kap.smart.query.SQLResult;
 
 public abstract class AbstractQueryExecutor {
 
@@ -49,19 +48,6 @@ public abstract class AbstractQueryExecutor {
     /**
      * Execute the given SQL statement under a certain project name,
      * which returns a <code>QueryRecord</code> object.
-     *
-     * @param projectName project name
-     * @param sql any SQL statement, but only <code>SELECT</code> statement
-     *            gives what you want.
-     * @return a <code>QueryRecord</code> object that contains the data
-     * produced by the given query; never null
      */
-    public abstract QueryRecord execute(String projectName, KylinConfig kylinConfig, String sql);
-
-    /**
-     * if stack trace elements contains LookupTableEnumerator, update the status of SQLResult and return true
-     */
-    boolean isSqlResultStatusModifiedByExceptionCause(SQLResult sqlResult, StackTraceElement[] stackTraceElements) {
-        return false;
-    }
+    public abstract QueryRecord execute(String project, KylinConfig kylinConfig, String sql);
 }

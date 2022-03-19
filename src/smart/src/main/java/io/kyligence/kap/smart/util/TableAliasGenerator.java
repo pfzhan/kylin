@@ -24,93 +24,74 @@
 
 package io.kyligence.kap.smart.util;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
+import java.util.Set;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TblColRef;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Maps;
-
+import io.kyligence.kap.guava20.shaded.common.collect.Lists;
+import io.kyligence.kap.guava20.shaded.common.collect.Maps;
+import io.kyligence.kap.guava20.shaded.common.collect.Sets;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import lombok.extern.slf4j.Slf4j;
 
-// Utility to generate shortest readable table alias
+// Utility to generate the shortest readable table alias
+@Slf4j
 public class TableAliasGenerator {
 
-    private static final Logger logger = LoggerFactory.getLogger(TableAliasGenerator.class);
+    private static final String UNKNOWN_SCHEMA = "N/A";
     private static final String KEY = "_KEY_";
     private static final String TO = "__TO__";
 
     public static TableAliasDict generateNewDict(String[] tableNames) {
-        String[] sortedNames = new HashSet<>(Arrays.asList(tableNames)).toArray(new String[0]);
-        Arrays.sort(sortedNames);
-        Map<String, List<String>> schemaMap = new HashMap<>();
-        for (String tableIdentity : sortedNames) {
-            if (StringUtils.isEmpty(tableIdentity)) {
-                continue;
-            }
 
-            String schema = "N/A";
-            int spliterIndex = tableIdentity.indexOf('.');
-            if (spliterIndex >= 0) {
-                schema = tableIdentity.substring(0, spliterIndex);
-            }
-            String table = tableIdentity.substring(spliterIndex + 1);
+        Map<String, List<String>> schemaMap = Maps.newLinkedHashMap();
+        Set<String> unsortedNameSet = Sets.newHashSet(tableNames);
 
-            if (!schemaMap.containsKey(schema)) {
-                schemaMap.put(schema, new ArrayList<>());
-            }
-            schemaMap.get(schema).add(table);
-        }
+        unsortedNameSet.stream().sorted().filter(StringUtils::isNotEmpty) //
+                .forEach(tableIdentity -> {
+                    String[] splits = tableIdentity.split("\\.");
+                    int lastIndex = splits.length - 1;
+                    String table = splits[lastIndex];
+                    String schema = lastIndex == 0 ? UNKNOWN_SCHEMA : splits[lastIndex - 1];
+                    schemaMap.putIfAbsent(schema, Lists.newArrayList());
+                    schemaMap.get(schema).add(table);
+                });
 
-        Map<String, String> schemaDict = schemaMap.size() > 1 ? quickDict(schemaMap.keySet().toArray(new String[0]))
+        Map<String, String> schemaDict = schemaMap.size() > 1
+                ? quickDict(schemaMap.keySet().toArray(new String[0]), true)
                 : null;
-        Map<String, String> dict = new HashMap<>();
-        for (Entry<String, List<String>> tables : schemaMap.entrySet()) {
-            String schema = tables.getKey();
-            Map<String, String> tableDict = quickDict(tables.getValue().toArray(new String[0]));
-            for (Entry<String, String> tableAlias : tableDict.entrySet()) {
-                String table = tableAlias.getKey();
-                String alias = tableAlias.getValue();
-                if (schemaDict != null) {
-                    alias = schemaDict.get(schema) + "_" + alias;
-                }
-                if (!schema.equals("N/A")) {
-                    table = schema + "." + table;
-                }
+        Map<String, String> dict = Maps.newLinkedHashMap();
+        schemaMap.forEach((schema, tableList) -> {
+            Map<String, String> tableDict = quickDict(tableList.toArray(new String[0]), false);
+            tableDict.forEach((table, alias) -> {
+                alias = schemaDict == null ? alias : schemaDict.get(schema) + "_" + alias;
+                table = schema.equals(UNKNOWN_SCHEMA) ? table : schema + "." + table;
                 dict.put(table, alias);
-            }
-        }
+            });
+        });
 
         return new TableAliasDict(dict);
     }
 
-    public static TableAliasDict generateCommonDictForSpecificModel(KylinConfig config, String project) {
+    public static TableAliasDict generateCommonDictForSpecificModel(String project) {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
         Map<String, TableDesc> allTablesMap = NTableMetadataManager.getInstance(config, project).getAllTablesMap();
         return generateNewDict(allTablesMap.keySet().toArray(new String[0]));
     }
 
-    private static Map<String, String> quickDict(String[] sourceNames) {
-        Map<String, String> dict = new HashMap<>();
-        for (String name : sourceNames) {
-            for (int i = 1; i <= name.length(); i++) {
-                // TODO refine logic later
-                String aliasCandidate = name.substring(0, i);
-                if (!dict.containsValue(aliasCandidate)) {
-                    dict.put(name, aliasCandidate);
-                    break;
-                }
-            }
+    private static Map<String, String> quickDict(String[] sourceNames, boolean isSchema) {
+        String prefix = isSchema ? "D" : "T";
+        Map<String, String> dict = Maps.newHashMap();
+        for (int i = 0; i < sourceNames.length; i++) {
+            dict.put(sourceNames[i], prefix + i);
         }
         return dict;
     }
@@ -120,27 +101,10 @@ public class TableAliasGenerator {
         private final Map<String, String> tblName2Alias = Maps.newHashMap();
 
         public TableAliasDict(Map<String, String> dict) {
-            for (Entry<String, String> pair : dict.entrySet()) {
-                addPair(pair.getKey(), pair.getValue());
-            }
-        }
-
-        public void addPair(String tableName, String alias) {
-            if (alias2TblName.containsKey(alias)) {
-                if (alias2TblName.get(alias).equals(tableName)) {
-                    logger.debug("Table alias pair already defined: {} => {}", tableName, alias);
-                    return;
-                } else {
-                    logger.debug("Alias {} is used by another table", alias);
-                    return;
-                }
-            }
-            if (tblName2Alias.containsKey(tableName)) {
-                logger.debug("Table {} has been assigned another alias", tableName);
-                return;
-            }
-            alias2TblName.put(alias, tableName);
-            tblName2Alias.put(tableName, alias);
+            dict.forEach((tableName, alias) -> {
+                alias2TblName.putIfAbsent(alias, tableName);
+                tblName2Alias.put(tableName, alias);
+            });
         }
 
         public String getAlias(String tableName) {
@@ -151,25 +115,25 @@ public class TableAliasGenerator {
             return alias2TblName.get(alias);
         }
 
-        public String getHierachyAliasFromJoins(JoinDesc[] joinDescs) {
-            if (joinDescs == null || joinDescs.length == 0)
+        public String getHierarchyAliasFromJoins(JoinDesc[] joins) {
+            if (ArrayUtils.isEmpty(joins)) {
                 return "";
+            }
 
-            StringBuilder alias = new StringBuilder(getAlias(joinDescs[0].getFKSide().getTableIdentity()));
-            for (JoinDesc joinDesc : joinDescs) {
-                if (joinDesc.getPrimaryKeyColumns() == null
-                        || joinDesc.getPrimaryKeyColumns().length == 0 && joinDesc.getNonEquiJoinCondition() == null) {
+            StringBuilder alias = new StringBuilder(getAlias(joins[0].getFKSide().getTableIdentity()));
+            for (JoinDesc join : joins) {
+                if (join.getPrimaryKeyColumns() == null
+                        || join.getPrimaryKeyColumns().length == 0 && join.getNonEquiJoinCondition() == null) {
                     break;
-                } else if (joinDesc.getNonEquiJoinCondition() != null) {
-                    alias.append(KEY).append(joinDesc.getNonEquiJoinCondition().toString());
-                    alias.append(TO).append(getAlias(joinDesc.getPKSide().getTableIdentity()));
+                } else if (join.getNonEquiJoinCondition() != null) {
+                    alias.append(KEY).append(join.getNonEquiJoinCondition().toString());
+                    alias.append(TO).append(getAlias(join.getPKSide().getTableIdentity()));
                 } else {
-                    alias.append(KEY).append(Arrays.toString(
-                            Arrays.stream(joinDesc.getForeignKeyColumns()).map(TblColRef::getName).toArray()));
-                    alias.append(TO)
-                            .append(getAlias(joinDesc.getPrimaryKeyColumns()[0].getTableRef().getTableIdentity()));
-                    alias.append(KEY).append(Arrays.toString(
-                            Arrays.stream(joinDesc.getPrimaryKeyColumns()).map(TblColRef::getName).toArray()));
+                    alias.append(KEY).append(Arrays
+                            .toString(Arrays.stream(join.getForeignKeyColumns()).map(TblColRef::getName).toArray()));
+                    alias.append(TO).append(getAlias(join.getPrimaryKeyColumns()[0].getTableRef().getTableIdentity()));
+                    alias.append(KEY).append(Arrays
+                            .toString(Arrays.stream(join.getPrimaryKeyColumns()).map(TblColRef::getName).toArray()));
                 }
             }
             return alias.toString();

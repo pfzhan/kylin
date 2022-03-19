@@ -35,9 +35,9 @@ import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 
-public abstract class AbstractSemiContextV2 extends AbstractContext {
+public abstract class AbstractSemiContext extends AbstractContext {
 
-    protected AbstractSemiContextV2(KylinConfig kylinConfig, String project, String[] sqlArray) {
+    protected AbstractSemiContext(KylinConfig kylinConfig, String project, String[] sqlArray) {
         super(kylinConfig, project, sqlArray);
         getExistingNonLayoutRecItemMap().putAll(RawRecManager.getInstance(project).queryNonLayoutRecItems(null));
     }
@@ -57,6 +57,11 @@ public abstract class AbstractSemiContextV2 extends AbstractContext {
     @Override
     public void changeModelMainType(NDataModel model) {
         model.setManagementType(ManagementType.MODEL_BASED);
+    }
+
+    @Override
+    public void saveMetadata() {
+        // do nothing
     }
 
     @Override

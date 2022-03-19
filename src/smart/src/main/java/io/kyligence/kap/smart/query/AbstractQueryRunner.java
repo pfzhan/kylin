@@ -27,8 +27,8 @@ package io.kyligence.kap.smart.query;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.List;
-import java.util.concurrent.ConcurrentNavigableMap;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -36,14 +36,13 @@ import java.util.concurrent.Executors;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfig.SetAndUnsetThreadLocalConfig;
-import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.NamedThreadFactory;
 import org.apache.kylin.query.relnode.OLAPContext;
 
-import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
@@ -54,48 +53,35 @@ import io.kyligence.kap.smart.query.SQLResult.Status;
 import io.kyligence.kap.smart.query.mockup.AbstractQueryExecutor;
 import io.kyligence.kap.smart.query.mockup.MockupQueryExecutor;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public abstract class AbstractQueryRunner implements Closeable {
 
-    @Getter
     private final String[] sqls;
     protected KylinConfig kylinConfig;
     protected final String project;
-    @Setter
-    protected boolean needCollectOlapContext;
 
     private final Cache<String, QueryRecord> queryCache = CacheBuilder.newBuilder().maximumSize(20).build();
     @Getter
-    private final ConcurrentNavigableMap<Integer, SQLResult> queryResults = new ConcurrentSkipListMap<>();
+    private final Map<String, SQLResult> queryResults = new ConcurrentSkipListMap<>();
     @Getter
-    private final ConcurrentNavigableMap<Integer, Collection<OLAPContext>> olapContexts = new ConcurrentSkipListMap<>();
+    private final Map<String, Collection<OLAPContext>> olapContexts = Maps.newLinkedHashMap();
 
     private static final ExecutorService SUGGESTION_EXECUTOR_POOL = Executors.newFixedThreadPool(
             KylinConfig.getInstanceFromEnv().getProposingThreadNum(), new NamedThreadFactory("SuggestRunner"));
 
     AbstractQueryRunner(String project, String[] sqls) {
-        this.project = project;
-        this.sqls = sqls;
-        this.needCollectOlapContext = true;
+        this.project = Objects.requireNonNull(project);
+        this.sqls = Objects.requireNonNull(sqls);
     }
 
     private void submitQueryExecute(final CountDownLatch counter, final AbstractQueryExecutor executor,
-                                    final KylinConfig kylinConfig, final String project, final String sql, final int index) {
+            final KylinConfig kylinConfig, final String project, final String sql) {
 
-        Preconditions.checkNotNull(sql, "SQL Statement cannot be null.");
         SUGGESTION_EXECUTOR_POOL.execute(() -> {
             try {
-                long begin = System.currentTimeMillis();
-                boolean isCacheValid = false;
-                QueryRecord record = queryCache.getIfPresent(sql);
-                if (record != null && record.getSqlResult() != null
-                        && record.getSqlResult().getStatus() == Status.SUCCESS) {
-                    isCacheValid = true;
-                }
-                if (!isCacheValid) {
+                if (!isQueryCached(sql)) {
                     try (SetAndUnsetThreadLocalConfig autoUnset = KylinConfig
                             .setAndUnsetThreadLocalConfig(kylinConfig)) {
                         NTableMetadataManager.getInstance(autoUnset.get(), project);
@@ -103,25 +89,11 @@ public abstract class AbstractQueryRunner implements Closeable {
                         NDataflowManager.getInstance(autoUnset.get(), project);
                         NIndexPlanManager.getInstance(autoUnset.get(), project);
                         NProjectLoader.updateCache(project);
-                        record = executor.execute(project, autoUnset.get(), sql);
+                        QueryRecord record = executor.execute(project, autoUnset.get(), sql);
+                        queryCache.put(sql, record);
                     }
-                    queryCache.put(sql, record);
                 }
-                long end = System.currentTimeMillis();
-
-                SQLResult result = record.getSqlResult();
-                if (result != null) {
-                    ResultDetails details = result.getDetails();
-                    // TODO get an empty query context
-                    QueryContext queryContext = QueryContext.current();
-                    details.enrich(queryContext);
-                    details.enrich(sql, this.project, end - begin);
-                }
-                Collection<OLAPContext> olapCtxs = record.getOLAPContexts();
-                queryResults.put(index, result == null ? SQLResult.failedSQL(null) : result);
-                if (needCollectOlapContext) {
-                    olapContexts.put(index, olapCtxs == null ? Lists.newArrayList() : olapCtxs);
-                }
+                recordExecuteResult(sql);
             } finally {
                 NProjectLoader.removeCache();
                 OLAPContext.clearThreadLocalContexts();
@@ -130,29 +102,30 @@ public abstract class AbstractQueryRunner implements Closeable {
         });
     }
 
+    private void recordExecuteResult(String sql) {
+        QueryRecord record = queryCache.getIfPresent(sql);
+        if (record == null) {
+            log.error("The analysis result missing for sql: {}", sql);
+        } else {
+            queryResults.put(sql, record.getSqlResult());
+            olapContexts.get(sql).addAll(record.getOlapContexts());
+        }
+    }
+
+    private boolean isQueryCached(String sql) {
+        QueryRecord record = queryCache.getIfPresent(sql);
+        return record != null && record.getSqlResult() != null && record.getSqlResult().getStatus() == Status.SUCCESS;
+    }
+
     public void execute() throws IOException, InterruptedException {
         log.info("Mock query to generate OLAPContexts applied to auto-modeling.");
         KylinConfig config = prepareConfig();
         try {
             AbstractQueryExecutor queryExecutor = new MockupQueryExecutor();
             CountDownLatch latch = new CountDownLatch(sqls.length);
-            for (int i = 0; i < sqls.length; i++) {
-                submitQueryExecute(latch, queryExecutor, config, project, sqls[i], i);
-            }
-            latch.await();
-        } finally {
-            cleanupConfig(config);
-        }
-    }
-
-    public void execute(AbstractQueryExecutor queryExecutor) throws IOException, InterruptedException {
-
-        KylinConfig config = prepareConfig();
-        try {
-            CountDownLatch latch = new CountDownLatch(sqls.length);
-            setNeedCollectOlapContext(false);
-            for (int i = 0; i < sqls.length; i++) {
-                submitQueryExecute(latch, queryExecutor, config, project, sqls[i], i);
+            for (String sql : sqls) {
+                olapContexts.put(sql, Lists.newArrayList());
+                submitQueryExecute(latch, queryExecutor, config, project, sql);
             }
             latch.await();
         } finally {
@@ -163,14 +136,6 @@ public abstract class AbstractQueryRunner implements Closeable {
     public abstract KylinConfig prepareConfig() throws IOException;
 
     public abstract void cleanupConfig(KylinConfig config) throws IOException;
-
-    public List<SQLResult> getQueryResultList() {
-        return Lists.newArrayList(queryResults.values());
-    }
-
-    public List<Collection<OLAPContext>> getAllOLAPContexts() {
-        return Lists.newArrayList(olapContexts.values());
-    }
 
     @Override
     public void close() {

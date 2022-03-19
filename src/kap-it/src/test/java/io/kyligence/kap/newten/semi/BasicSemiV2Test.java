@@ -73,7 +73,7 @@ import io.kyligence.kap.rest.service.NUserGroupService;
 import io.kyligence.kap.rest.service.OptRecService;
 import io.kyligence.kap.rest.service.RawRecService;
 import io.kyligence.kap.smart.AbstractContext;
-import io.kyligence.kap.smart.ModelReuseContextOfSemiV2;
+import io.kyligence.kap.smart.ModelReuseContext;
 import io.kyligence.kap.smart.ProposerJob;
 import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.util.AccelerationContextUtil;
@@ -868,7 +868,7 @@ public class BasicSemiV2Test extends SemiAutoTestBase {
         // suggest model
         String[] sqls = new String[] { "SELECT min(LO_CUSTKEY) FROM LINEORDER limit 10",
                 "SELECT max(LO_CUSTKEY) FROM SSB.LINEORDER limit 10" };
-        AbstractContext proposeContext = new ModelReuseContextOfSemiV2(getTestConfig(), project, sqls, true);
+        AbstractContext proposeContext = new ModelReuseContext(getTestConfig(), project, sqls, true);
         val smartMaster = new SmartMaster(proposeContext);
         smartMaster.executePropose();
 

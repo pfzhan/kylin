@@ -29,13 +29,12 @@ import java.util.List;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.kylin.common.KylinConfig;
 
-import com.google.common.collect.ImmutableList;
-
+import io.kyligence.kap.guava20.shaded.common.collect.ImmutableList;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.model.AbstractJoinRule;
 
-public class SqlValidateContext extends AbstractSemiContextV2 {
+public class SqlValidateContext extends AbstractSemiContext {
 
     public SqlValidateContext(KylinConfig kylinConfig, String project, String[] sqls) {
         super(kylinConfig, project, sqls);
@@ -44,17 +43,8 @@ public class SqlValidateContext extends AbstractSemiContextV2 {
     }
 
     @Override
-    public ChainedProposer createPreProcessProposers() {
+    public ChainedProposer createProposers() {
         return new ChainedProposer(this, ImmutableList.of());
-    }
-
-    @Override
-    public ChainedProposer createTransactionProposers() {
-        return new ChainedProposer(this, ImmutableList.of());
-    }
-
-    @Override
-    public void saveMetadata() {
     }
 
     @Override

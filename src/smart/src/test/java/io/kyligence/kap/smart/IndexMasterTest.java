@@ -29,8 +29,7 @@ import java.util.List;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableList;
-
+import io.kyligence.kap.guava20.shaded.common.collect.ImmutableList;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
@@ -134,7 +133,7 @@ public class IndexMasterTest extends AutoTestOnLearnKylinData {
 
         SmartContext context = new SmartContext(getTestConfig(), proj, sqls) {
             @Override
-            public ChainedProposer createTransactionProposers() {
+            public ChainedProposer createProposers() {
                 ImmutableList<AbstractProposer> proposers = ImmutableList.of(//
                         new SQLAnalysisProposer(this), //
                         new ModelOptProposer(this));

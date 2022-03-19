@@ -24,11 +24,10 @@
 
 package io.kyligence.kap.query.validator;
 
-import java.util.Arrays;
 import java.util.Map;
 
 import io.kyligence.kap.smart.common.AutoTestOnLearnKylinData;
-import io.kyligence.kap.smart.query.ResultDetails;
+import io.kyligence.kap.smart.query.SQLResult;
 import io.kyligence.kap.smart.query.validator.SQLValidateResult;
 
 class SqlValidateTestBase extends AutoTestOnLearnKylinData {
@@ -43,18 +42,11 @@ class SqlValidateTestBase extends AutoTestOnLearnKylinData {
                 sb.append("suggest:").append(sqlAdvice.getSuggestion()).append("\n\t");
             });
 
-            ResultDetails details = sqlValidateResult.getResult().getDetails();
-            sb.append("cuboidIds: ").append(details.getCuboidIds()).append("\n\t");
-            sb.append("realizations: ").append(Arrays.toString(details.getRealizationNames().toArray(new String[0])))
-                    .append("\n\t");
-            sb.append("total scanned bytes: ").append(details.getScannedBytes()).append("\n\t");
-            sb.append("total scanned rows: ").append(details.getScannedRows()).append("\n\t");
-            sb.append("result row count: ").append(details.getResultRowCount()).append("\n\t");
-            sb.append("project: ").append(details.getProject()).append("\n\t");
-            sb.append("duration: ").append(details.getDuration()).append("\n\t");
-            sb.append("query id: ").append(details.getQueryId()).append("\n\t");
-
-            System.out.println(sb.toString());
+            SQLResult sqlResult = sqlValidateResult.getResult();
+            sb.append("project: ").append(sqlResult.getProject()).append("\n\t");
+            sb.append("duration: ").append(sqlResult.getDuration()).append("\n\t");
+            sb.append("query id: ").append(sqlResult.getQueryId()).append("\n\t");
+            System.out.println(sb);
         });
     }
 }

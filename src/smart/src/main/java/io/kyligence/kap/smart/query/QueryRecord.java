@@ -25,47 +25,50 @@
 package io.kyligence.kap.smart.query;
 
 import java.util.Collection;
+import java.util.List;
 
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.query.relnode.OLAPContext;
-import org.apache.kylin.storage.StorageContext;
 
-import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.guava20.shaded.common.collect.Lists;
+import io.kyligence.kap.smart.common.SmartConfig;
+import lombok.Getter;
 
+@Getter
 public class QueryRecord {
-    private NDataflow dataflow;
-    private SQLResult sqlResult;
-    private StorageContext storageContext;
-    private Collection<OLAPContext> olapContexts;
 
-    public StorageContext getStorageContext() {
-        return storageContext;
+    private final SQLResult sqlResult = new SQLResult();
+    private final List<OLAPContext> olapContexts = Lists.newArrayList();
+
+    public void noteNonQueryException(String project, String sql, long elapsed) {
+        sqlResult.writeNonQueryException(project, sql, elapsed);
     }
 
-    public void setStorageContext(StorageContext storageContext) {
-        this.storageContext = storageContext;
+    public void noteException(String message, Throwable e) {
+        sqlResult.writeExceptionInfo(message, e);
     }
 
-    public NDataflow getCubeInstance() {
-        return dataflow;
+    public void noteNormal(String project, String sql, long elapsed, String queryId) {
+        sqlResult.writeNormalInfo(project, sql, elapsed, queryId);
     }
 
-    public void setCubeInstance(NDataflow cubeInstance) {
-        this.dataflow = cubeInstance;
+    public void noteOlapContexts(KylinConfig config) {
+        refineOlapContext(config, sqlResult.getSql());
+        Collection<OLAPContext> localContexts = OLAPContext.getThreadLocalContexts();
+        if (CollectionUtils.isNotEmpty(localContexts)) {
+            olapContexts.addAll(localContexts);
+        }
     }
 
-    public SQLResult getSqlResult() {
-        return sqlResult;
-    }
-
-    public void setSqlResult(SQLResult sqlResult) {
-        this.sqlResult = sqlResult;
-    }
-
-    public Collection<OLAPContext> getOLAPContexts() {
-        return olapContexts;
-    }
-
-    public void setOLAPContexts(Collection<OLAPContext> olapContexts) {
-        this.olapContexts = olapContexts;
+    private void refineOlapContext(KylinConfig kylinConfig, String sql) {
+        Collection<OLAPContext> ctxList = OLAPContext.getThreadLocalContexts();
+        if (ctxList != null) {
+            ctxList.forEach(OLAPContext::clean);
+            ctxList.forEach(ctx -> ctx.sql = sql);
+            if (SmartConfig.wrap(kylinConfig).startMemoryTuning()) {
+                ctxList.forEach(OLAPContext::simplify);
+            }
+        }
     }
 }

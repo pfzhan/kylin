@@ -29,7 +29,7 @@ import org.junit.Test;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.smart.AbstractContext;
-import io.kyligence.kap.smart.ModelCreateContextOfSemiV2;
+import io.kyligence.kap.smart.ModelCreateContext;
 import io.kyligence.kap.smart.ProposerJob;
 import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.smart.util.AccelerationContextUtil;
@@ -55,22 +55,21 @@ public class ModelRenameProposerTest extends NLocalWithSparkSessionTest {
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
 
         // offline model
-        AbstractContext context = ProposerJob
-                .propose(new ModelCreateContextOfSemiV2(getTestConfig(), getProject(), accSql1));
+        AbstractContext context = ProposerJob.propose(new ModelCreateContext(getTestConfig(), getProject(), accSql1));
         AbstractContext.ModelContext modelContext = context.getModelContexts().get(0);
         Assert.assertEquals(modelContext.getTargetModel().getAlias(), "AUTO_MODEL_TEST_ORDER_2");
 
         //online model
         AccelerationContextUtil.onlineModel(smartContext);
-        context = ProposerJob.propose(new ModelCreateContextOfSemiV2(getTestConfig(), getProject(), accSql1));
+        context = ProposerJob.propose(new ModelCreateContext(getTestConfig(), getProject(), accSql1));
         modelContext = context.getModelContexts().get(0);
         Assert.assertEquals(modelContext.getTargetModel().getAlias(), "AUTO_MODEL_TEST_ORDER_2");
 
         // broken model
         NTableMetadataManager.getInstance(getTestConfig(), getProject()).removeSourceTable("DEFAULT.TEST_KYLIN_FACT");
-       String[] accSql2 = { "select count(*)  FROM TEST_ORDER" };
+        String[] accSql2 = { "select count(*)  FROM TEST_ORDER" };
 
-        context = ProposerJob.propose(new ModelCreateContextOfSemiV2(getTestConfig(), getProject(), accSql2));
+        context = ProposerJob.propose(new ModelCreateContext(getTestConfig(), getProject(), accSql2));
         modelContext = context.getModelContexts().get(0);
         Assert.assertEquals(modelContext.getTargetModel().getAlias(), "AUTO_MODEL_TEST_ORDER_2");
 

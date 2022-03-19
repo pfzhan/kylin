@@ -39,10 +39,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.ImmutableBiMap;
-import io.kyligence.kap.secondstorage.SecondStorageUpdater;
-import io.kyligence.kap.secondstorage.SecondStorageUtil;
-import lombok.Setter;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.dialect.HiveSqlDialect;
 import org.apache.calcite.sql.util.SqlVisitor;
@@ -86,6 +82,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -116,7 +113,10 @@ import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import io.kyligence.kap.rest.util.SCD2SimplificationConvertUtil;
+import io.kyligence.kap.secondstorage.SecondStorageUpdater;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
+import lombok.Setter;
 import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
@@ -130,13 +130,12 @@ public class ModelSemanticHelper extends BasicService {
     private ModelSmartSupporter modelSmartSupporter;
 
     private static final Logger logger = LoggerFactory.getLogger(ModelSemanticHelper.class);
-    private ExpandableMeasureUtil expandableMeasureUtil =
-            new ExpandableMeasureUtil((model, ccDesc) -> {
-                String ccExpression = KapQueryUtil.massageComputedColumn(model, model.getProject(), ccDesc,
-                        AclPermissionUtil.prepareQueryContextACLInfo(model.getProject(), getCurrentUserGroups()));
-                ccDesc.setInnerExpression(ccExpression);
-                ComputedColumnEvalUtil.evaluateExprAndType(model, ccDesc);
-            });
+    private ExpandableMeasureUtil expandableMeasureUtil = new ExpandableMeasureUtil((model, ccDesc) -> {
+        String ccExpression = KapQueryUtil.massageComputedColumn(model, model.getProject(), ccDesc,
+                AclPermissionUtil.prepareQueryContextACLInfo(model.getProject(), getCurrentUserGroups()));
+        ccDesc.setInnerExpression(ccExpression);
+        ComputedColumnEvalUtil.evaluateExprAndType(model, ccDesc);
+    });
 
     public NDataModel deepCopyModel(NDataModel originModel) {
         NDataModel nDataModel;
@@ -178,9 +177,9 @@ public class ModelSemanticHelper extends BasicService {
      */
     public void expandModelRequest(ModelRequest modelRequest) {
         if (modelRequest.getUuid() != null) {
-            NDataModel existingModel =
-                    NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), modelRequest.getProject())
-                            .getDataModelDesc(modelRequest.getUuid());
+            NDataModel existingModel = NDataModelManager
+                    .getInstance(KylinConfig.getInstanceFromEnv(), modelRequest.getProject())
+                    .getDataModelDesc(modelRequest.getUuid());
 
             Map<Integer, Collection<Integer>> effectiveExpandedMeasures = null;
             ImmutableBiMap<Integer, Measure> effectiveMeasures = null;
@@ -198,20 +197,21 @@ public class ModelSemanticHelper extends BasicService {
                     internalIds.addAll(effectiveExpandedMeasures.get(measure.getId()));
                 }
             }
-            Set<Integer> requestMeasureIds = modelRequest.getSimplifiedMeasures().stream().map(SimplifiedMeasure::getId).collect(Collectors.toSet());
+            Set<Integer> requestMeasureIds = modelRequest.getSimplifiedMeasures().stream().map(SimplifiedMeasure::getId)
+                    .collect(Collectors.toSet());
             for (Integer internalId : internalIds) {
                 if (!requestMeasureIds.contains(internalId)) {
-                    modelRequest.getSimplifiedMeasures().add(SimplifiedMeasure.fromMeasure(effectiveMeasures.get(internalId)));
+                    modelRequest.getSimplifiedMeasures()
+                            .add(SimplifiedMeasure.fromMeasure(effectiveMeasures.get(internalId)));
                 }
             }
         }
     }
 
     private ImmutableBiMap<Integer, Measure> loadModelMeasureWithoutInit(ModelRequest modelRequest,
-             Map<Integer, Collection<Integer>> effectiveExpandedMeasures) {
-        NDataModel srcModel =
-                NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), modelRequest.getProject())
-                        .getDataModelDescWithoutInit(modelRequest.getUuid());
+            Map<Integer, Collection<Integer>> effectiveExpandedMeasures) {
+        NDataModel srcModel = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), modelRequest.getProject())
+                .getDataModelDescWithoutInit(modelRequest.getUuid());
         ImmutableBiMap.Builder<Integer, Measure> mapBuilder = ImmutableBiMap.builder();
         for (Measure measure : srcModel.getAllMeasures()) {
             measure.setName(measure.getName());
@@ -267,8 +267,8 @@ public class ModelSemanticHelper extends BasicService {
             checkRequestNonEquiJoinConds(requestJoinDesc);
 
             //3. suggest nonEquiModel
-            final JoinDesc suggModelJoin = modelSmartSupporter.suggNonEquiJoinModel(projectKylinConfig, dataModel.getProject(),
-                    modelJoinDesc, requestJoinDesc);
+            final JoinDesc suggModelJoin = modelSmartSupporter.suggNonEquiJoinModel(projectKylinConfig,
+                    dataModel.getProject(), modelJoinDesc, requestJoinDesc);
             // restore table alias in non-equi conditions
             final NonEquiJoinCondition nonEquiCondWithAliasRestored = new NonEquiJoinConditionVisitor() {
                 @Override
@@ -757,12 +757,12 @@ public class ModelSemanticHelper extends BasicService {
     }
 
     public boolean doHandleSemanticUpdate(String project, String model, NDataModel originModel, String start,
-                                          String end){
+            String end) {
         return doHandleSemanticUpdate(project, model, originModel, start, end, true).getFirst();
     }
 
-    public Pair<Boolean, Boolean> doHandleSemanticUpdate(String project, String model, NDataModel originModel, String start,
-                                                         String end, boolean needCleanSecondStorage) {
+    public Pair<Boolean, Boolean> doHandleSemanticUpdate(String project, String model, NDataModel originModel,
+            String start, String end, boolean needCleanSecondStorage) {
         val config = KylinConfig.getInstanceFromEnv();
         val indePlanManager = NIndexPlanManager.getInstance(config, project);
         val modelMgr = NDataModelManager.getInstance(config, project);
@@ -916,7 +916,7 @@ public class ModelSemanticHelper extends BasicService {
     }
 
     private boolean handleReloadData(NDataModel newModel, NDataModel oriModel, String project, String start, String end,
-                                     boolean needCleanSecondStorage) {
+            boolean needCleanSecondStorage) {
         val config = KylinConfig.getInstanceFromEnv();
         val dataflowManager = NDataflowManager.getInstance(config, project);
         var df = dataflowManager.getDataflow(newModel.getUuid());

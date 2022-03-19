@@ -28,16 +28,15 @@ import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-
+import io.kyligence.kap.guava20.shaded.common.collect.ImmutableList;
+import io.kyligence.kap.guava20.shaded.common.collect.Lists;
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class ModelCreateContextOfSemiV2 extends AbstractSemiContextV2 {
+public class ModelCreateContext extends AbstractSemiContext {
 
-    public ModelCreateContextOfSemiV2(KylinConfig kylinConfig, String project, String[] sqlArray) {
+    public ModelCreateContext(KylinConfig kylinConfig, String project, String[] sqlArray) {
         super(kylinConfig, project, sqlArray);
         this.canCreateNewModel = true;
     }
@@ -48,7 +47,7 @@ public class ModelCreateContextOfSemiV2 extends AbstractSemiContextV2 {
     }
 
     @Override
-    public ChainedProposer createPreProcessProposers() {
+    public ChainedProposer createProposers() {
         ImmutableList<AbstractProposer> proposers = ImmutableList.of(//
                 new SQLAnalysisProposer(this), //
                 new ModelOptProposer(this), //
@@ -59,15 +58,5 @@ public class ModelCreateContextOfSemiV2 extends AbstractSemiContextV2 {
                 new IndexPlanShrinkProposer(this) //
         );
         return new ChainedProposer(this, proposers);
-    }
-
-    @Override
-    public ChainedProposer createTransactionProposers() {
-        return new ChainedProposer(this, ImmutableList.of());
-    }
-
-    @Override
-    public void saveMetadata() {
-        // no need to save
     }
 }

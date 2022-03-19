@@ -25,10 +25,10 @@
 package io.kyligence.kap.smart.query.validator;
 
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
 
 import com.google.common.collect.Lists;
@@ -38,7 +38,6 @@ import io.kyligence.kap.smart.query.AbstractQueryRunner;
 import io.kyligence.kap.smart.query.SQLResult;
 import io.kyligence.kap.smart.query.advisor.ISqlAdvisor;
 import io.kyligence.kap.smart.query.advisor.SQLAdvice;
-import io.kyligence.kap.smart.query.mockup.AbstractQueryExecutor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -48,51 +47,41 @@ public abstract class AbstractSQLValidator {
     @Getter
     protected final String project;
     protected KylinConfig kylinConfig;
-    private final AbstractQueryExecutor queryExecutor;
     ISqlAdvisor sqlAdvisor;
 
-    AbstractSQLValidator(String project, KylinConfig kylinConfig, AbstractQueryExecutor queryExecutor) {
+    AbstractSQLValidator(String project, KylinConfig kylinConfig) {
         this.project = project;
         this.kylinConfig = kylinConfig;
-        this.queryExecutor = queryExecutor;
     }
 
     abstract AbstractQueryRunner createQueryRunner(String[] sqls);
 
     public Map<String, SQLValidateResult> batchValidate(String[] sqls) {
-
-        if (sqls == null || sqls.length == 0) {
+        if (ArrayUtils.isEmpty(sqls)) {
             return Maps.newHashMap();
         }
         Map<String, SQLValidateResult> resultMap;
         try (AbstractQueryRunner queryRunner = createQueryRunner(sqls)) {
             try {
-                queryRunner.execute(queryExecutor);
+                queryRunner.execute();
             } catch (Exception e) {
                 log.error("batch validate sql error" + Arrays.toString(sqls), e);
             }
-            List<SQLResult> queryResults = queryRunner.getQueryResultList();
-            resultMap = doBatchValidate(sqls, queryResults);
+            resultMap = advice(queryRunner.getQueryResults());
         }
         return resultMap;
     }
 
-    private Map<String, SQLValidateResult> doBatchValidate(String[] sqls, List<SQLResult> queryResults) {
+    private Map<String, SQLValidateResult> advice(Map<String, SQLResult> queryResultMap) {
 
         Map<String, SQLValidateResult> validateStatsMap = Maps.newHashMap();
-        for (int i = 0; i < sqls.length; i++) {
-            SQLResult sqlResult = queryResults.get(i);
-            validateStatsMap.put(sqls[i], doValidate(sqlResult));
-        }
+        queryResultMap.forEach((sql, sqlResult) -> {
+            SQLAdvice advice = sqlAdvisor.propose(sqlResult);
+            SQLValidateResult result = Objects.isNull(advice) //
+                    ? SQLValidateResult.successStats(sqlResult)
+                    : SQLValidateResult.failedStats(Lists.newArrayList(advice), sqlResult);
+            validateStatsMap.put(sql, result);
+        });
         return validateStatsMap;
-    }
-
-    private SQLValidateResult doValidate(SQLResult sqlResult) {
-
-        SQLAdvice sqlAdvice = sqlAdvisor.propose(sqlResult);
-        if (Objects.isNull(sqlAdvice)) {
-            return SQLValidateResult.successStats(sqlResult);
-        }
-        return SQLValidateResult.failedStats(Lists.newArrayList(sqlAdvice), sqlResult);
     }
 }

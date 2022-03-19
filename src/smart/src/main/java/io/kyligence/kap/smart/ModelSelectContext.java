@@ -33,17 +33,16 @@ import org.apache.commons.lang3.NotImplementedException;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.query.relnode.OLAPContext;
 
-import com.google.common.collect.ImmutableList;
-
+import io.kyligence.kap.guava20.shaded.common.collect.ImmutableList;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.model.AbstractJoinRule;
 import io.kyligence.kap.smart.model.ModelTree;
 
-public class ModelSelectContextOfSemiV2 extends AbstractSemiContextV2 {
+public class ModelSelectContext extends AbstractSemiContext {
 
-    public ModelSelectContextOfSemiV2(KylinConfig kylinConfig, String project, String[] sqls) {
+    public ModelSelectContext(KylinConfig kylinConfig, String project, String[] sqls) {
         super(kylinConfig, project, sqls);
         this.canCreateNewModel = getSmartConfig().getModelOptRule().equalsIgnoreCase(AbstractJoinRule.APPEND);
         this.partialMatch = getSmartConfig().getKylinConfig().isQueryMatchPartialInnerJoinModel();
@@ -51,21 +50,11 @@ public class ModelSelectContextOfSemiV2 extends AbstractSemiContextV2 {
     }
 
     @Override
-    public ChainedProposer createPreProcessProposers() {
+    public ChainedProposer createProposers() {
         ImmutableList<AbstractProposer> proposers = ImmutableList.of(//
                 new SQLAnalysisProposer(this), //
                 new ModelSelectProposer(this));
         return new ChainedProposer(this, proposers);
-    }
-
-    @Override
-    public ChainedProposer createTransactionProposers() {
-        return new ChainedProposer(this, ImmutableList.of());
-    }
-
-    @Override
-    public void saveMetadata() {
-        // Just implement it
     }
 
     @Override

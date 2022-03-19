@@ -29,12 +29,11 @@ import org.apache.kylin.common.KylinConfig;
 import io.kyligence.kap.smart.query.AbstractQueryRunner;
 import io.kyligence.kap.smart.query.QueryRunnerBuilder;
 import io.kyligence.kap.smart.query.advisor.SqlSyntaxAdvisor;
-import io.kyligence.kap.smart.query.mockup.AbstractQueryExecutor;
 
 public class SqlSyntaxValidator extends AbstractSQLValidator {
 
-    public SqlSyntaxValidator(String project, KylinConfig kylinConfig, AbstractQueryExecutor queryExecutor) {
-        super(project, kylinConfig, queryExecutor);
+    public SqlSyntaxValidator(String project, KylinConfig kylinConfig) {
+        super(project, kylinConfig);
         this.sqlAdvisor = new SqlSyntaxAdvisor();
     }
 

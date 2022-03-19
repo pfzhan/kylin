@@ -24,26 +24,23 @@
 
 package io.kyligence.kap.query.validator;
 
-import io.kyligence.kap.smart.query.advisor.SQLAdvice;
-import io.kyligence.kap.smart.query.mockup.MockupQueryExecutor;
-import io.kyligence.kap.smart.query.validator.SQLValidateResult;
-import io.kyligence.kap.smart.query.validator.SqlSyntaxValidator;
-import org.apache.kylin.common.msg.MsgPicker;
-import org.junit.Assert;
-import org.junit.Test;
-
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-public class SqlSyntaxValidatorTest extends SqlValidateTestBase {
+import org.apache.kylin.common.msg.MsgPicker;
+import org.junit.Assert;
+import org.junit.Test;
 
-    private MockupQueryExecutor queryExecutor;
+import io.kyligence.kap.smart.query.advisor.SQLAdvice;
+import io.kyligence.kap.smart.query.validator.SQLValidateResult;
+import io.kyligence.kap.smart.query.validator.SqlSyntaxValidator;
+
+public class SqlSyntaxValidatorTest extends SqlValidateTestBase {
 
     @Test
     public void setUp() throws Exception {
         super.setUp();
-        queryExecutor = new MockupQueryExecutor();
     }
 
     @Test
@@ -58,7 +55,7 @@ public class SqlSyntaxValidatorTest extends SqlValidateTestBase {
                 "select part_dt, sum(item_count), count(*) from kylin_sales group by part_dt",
                 "select part_dt, sum(item_count) from kylin_sales group by part_dt" };
 
-        SqlSyntaxValidator validator = new SqlSyntaxValidator(proj, getTestConfig(), queryExecutor);
+        SqlSyntaxValidator validator = new SqlSyntaxValidator(proj, getTestConfig());
         final Map<String, SQLValidateResult> goodResults = validator.batchValidate(goodSqls);
         printSqlValidateResults(goodResults);
         goodResults.forEach((key, sqlValidateResult) -> Assert.assertTrue(sqlValidateResult.isCapable()));
@@ -74,7 +71,7 @@ public class SqlSyntaxValidatorTest extends SqlValidateTestBase {
                 "select sum(lstg_format_name) from kylin_sales" // can not apply sum to 'lstg_format_name'
         };
 
-        SqlSyntaxValidator validator = new SqlSyntaxValidator(proj, getTestConfig(), queryExecutor);
+        SqlSyntaxValidator validator = new SqlSyntaxValidator(proj, getTestConfig());
         final Map<String, SQLValidateResult> badResults = validator.batchValidate(badSqls);
         printSqlValidateResults(badResults);
         badResults.forEach((key, sqlValidateResult) -> Assert.assertFalse(sqlValidateResult.isCapable()));

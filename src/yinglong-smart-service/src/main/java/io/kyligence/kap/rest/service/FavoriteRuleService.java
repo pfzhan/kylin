@@ -49,7 +49,6 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.rest.response.ImportSqlResponse;
 import io.kyligence.kap.rest.response.SQLParserResponse;
 import io.kyligence.kap.rest.response.SQLValidateResponse;
-import io.kyligence.kap.smart.query.mockup.MockupQueryExecutor;
 import io.kyligence.kap.smart.query.validator.AbstractSQLValidator;
 import io.kyligence.kap.smart.query.validator.SQLValidateResult;
 import io.kyligence.kap.smart.query.validator.SqlSyntaxValidator;
@@ -65,7 +64,7 @@ public class FavoriteRuleService extends BasicService {
 
     public Map<String, SQLValidateResult> batchSqlValidate(List<String> sqls, String project) {
         KylinConfig kylinConfig = getProjectManager().getProject(project).getConfig();
-        AbstractSQLValidator sqlValidator = new SqlSyntaxValidator(project, kylinConfig, new MockupQueryExecutor());
+        AbstractSQLValidator sqlValidator = new SqlSyntaxValidator(project, kylinConfig);
         return sqlValidator.batchValidate(sqls.toArray(new String[0]));
     }
 

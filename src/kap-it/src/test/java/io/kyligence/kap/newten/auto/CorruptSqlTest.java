@@ -36,6 +36,7 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
+import io.kyligence.kap.smart.query.SQLResult;
 
 public class CorruptSqlTest extends AutoTestBase {
 
@@ -49,7 +50,7 @@ public class CorruptSqlTest extends AutoTestBase {
         final Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         accelerateInfoMap.forEach((key, value) -> {
             final String blockMessage = value.getFailedCause().getMessage();
-            Assert.assertTrue(blockMessage.contains("Not Supported SQL"));
+            Assert.assertTrue(blockMessage.contains(SQLResult.NON_SELECT_CLAUSE));
         });
     }
 

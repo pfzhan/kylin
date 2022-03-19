@@ -53,12 +53,7 @@ public class SmartMaster {
     }
 
     public AbstractProposer getProposer(String name) {
-        for (AbstractProposer proposer : getContext().getProcessProposers().getProposerList()) {
-            if (proposer.getIdentifierName().equalsIgnoreCase(name)) {
-                return proposer;
-            }
-        }
-        for (AbstractProposer proposer : getContext().getProcessProposers().getProposerList()) {
+        for (AbstractProposer proposer : getContext().getProposers().getProposerList()) {
             if (proposer.getIdentifierName().equalsIgnoreCase(name)) {
                 return proposer;
             }
@@ -70,8 +65,7 @@ public class SmartMaster {
      * This method will invoke when there is no need transaction.
      */
     public void executePropose() {
-        getContext().getPreProcessProposers().execute();
-        getContext().getProcessProposers().execute();
+        getContext().getProposers().execute();
     }
 
     /**
@@ -85,8 +79,7 @@ public class SmartMaster {
     void runWithContext(Consumer<AbstractContext> hook) {
         long start = System.currentTimeMillis();
         try {
-            getContext().getPreProcessProposers().execute();
-            getContext().getProcessProposers().execute();
+            getContext().getProposers().execute();
             getContext().saveMetadata();
             if (hook != null) {
                 hook.accept(getContext());

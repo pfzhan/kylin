@@ -99,7 +99,7 @@ public class ProposerJob extends ExecutableApplication {
 
     @VisibleForTesting
     public static AbstractContext genOptRec(KylinConfig config, String project, String[] sqls) {
-        val context = new ModelReuseContextOfSemiV2(config, project, sqls);
+        val context = new ModelReuseContext(config, project, sqls);
         return propose(context);
     }
 
