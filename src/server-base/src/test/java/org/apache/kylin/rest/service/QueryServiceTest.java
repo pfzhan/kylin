@@ -1408,33 +1408,6 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testQueryWithComment() {
-        final String sql = "-- This is comment1\n/* This is comment 2 */\nselect * from test where col = 'value1';";
-        final String sqlText = "-- This is comment1\n/* This is comment 2 */\nselect * from test where col = 'value1'";
-        final String correctSql = "select * from test where col = 'value1'";
-        final String project = "default";
-        final PrepareSqlRequest request = new PrepareSqlRequest();
-        request.setProject(project);
-        request.setSql(sql);
-
-        final QueryContext queryContext = QueryContext.current();
-
-        queryService.doQueryWithCache(request);
-        Assert.assertEquals(sql, queryContext.getUserSQL());
-        Assert.assertEquals(correctSql, queryContext.getMetrics().getCorrectedSql());
-
-        queryContext.getMetrics().setCorrectedSql(correctSql);
-        QueryMetricsContext.start(queryContext.getQueryId(), "localhost:7070");
-        Assert.assertTrue(QueryMetricsContext.isStarted());
-
-        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(queryContext);
-
-        final Map<String, Object> influxdbFields = getInfluxdbFields(metricsContext);
-        Assert.assertEquals(sqlText, influxdbFields.get(QueryHistory.SQL_TEXT));
-        QueryMetricsContext.reset();
-    }
-
-    @Test
     public void testQueryWithParam() {
         final String sql = "select * from test where col1 = ?;";
         String filledSql = "select * from test where col1 = 'value1'";
@@ -1470,7 +1443,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         final QueryMetricsContext metricsContext = QueryMetricsContext.collect(queryContext);
 
         final Map<String, Object> influxdbFields = getInfluxdbFields(metricsContext);
-        Assert.assertEquals("select * from test where col1 = 'value1'", influxdbFields.get(QueryHistory.SQL_TEXT));
+        Assert.assertEquals(filledSql, influxdbFields.get(QueryHistory.SQL_TEXT));
         QueryMetricsContext.reset();
     }
 
@@ -2007,15 +1980,14 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             Assert.assertEquals(filledSql, QueryMetricsContext.collect(queryContext).getSql());
         } else {
             Assert.assertEquals(transformedFilledSql, queryContext.getMetrics().getCorrectedSql());
-            Assert.assertEquals(originSql, QueryMetricsContext.collect(queryContext).getSql());
+            Assert.assertEquals(transformedFilledSql, QueryMetricsContext.collect(queryContext).getSql());
         }
         QueryMetricsContext.reset();
         // validate sql Metrics for query history(model)
         queryContext.getMetrics().setCorrectedSql(transformedFilledSql);
         QueryMetricsContext.start(queryContext.getQueryId(), "");
         Assert.assertTrue(QueryMetricsContext.isStarted());
-        Assert.assertEquals(filledSql, QueryMetricsContext.collect(queryContext).getSql());
-        Assert.assertEquals(transformedFilledSql, queryContext.getMetrics().getCorrectedSql());
+        Assert.assertEquals(transformedFilledSql, QueryMetricsContext.collect(queryContext).getSql());
         QueryMetricsContext.reset();
 
         // 2. validate transform with to sub query when replace-dynamic-params close

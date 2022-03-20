@@ -111,13 +111,7 @@ public class QueryContext implements Closeable {
     private Integer limit = 0;
     @Getter
     @Setter
-    private boolean limitAutoAppend = false;
-    @Getter
-    @Setter
     private Integer offset = 0;
-    @Getter
-    @Setter
-    private boolean offsetAutoAppend = false;
 
     @Getter
     @Setter
@@ -244,7 +238,6 @@ public class QueryContext implements Closeable {
     @Getter
     @Setter
     public static class Metrics {
-        private String originSql;
         private String correctedSql;
         private String sqlPattern;
         private Throwable finalCause;

@@ -242,8 +242,6 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
                 queryParams.setPrepareSql(PrepareSQLUtils.fillInParams(queryParams.getSql(),
                         ((PrepareSqlRequest) sqlRequest).getParams()));
                 queryParams.setParams(((PrepareSqlRequest) sqlRequest).getParams());
-                // Saving prepared sql as original for those sql with params
-                QueryContext.current().getMetrics().setOriginSql(queryParams.getPrepareSql());
             }
             queryParams.setAclInfo(getExecuteAclInfo(queryParams.getProject(), queryParams.getExecuteAs()));
             queryParams.setACLDisabledOrAdmin(isACLDisabledOrAdmin(queryParams.getProject(), queryParams.getAclInfo()));
@@ -516,9 +514,6 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
         QueryContext queryContext = QueryContext.current();
         QueryMetricsContext.start(queryContext.getQueryId(), getDefaultServer());
 
-        // Keep original sql for query history storage
-        String originSql = sqlRequest.getSql().trim();
-
         SQLResponse sqlResponse = null;
         try {
             QueryContext.currentTrace().startSpan(GET_ACL_INFO);
@@ -556,14 +551,6 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
             QueryUtils.updateQueryContextSQLMetrics();
             QueryContext.currentTrace().amendLast(QueryTrace.PREPARE_AND_SUBMIT_JOB, System.currentTimeMillis());
             QueryContext.currentTrace().endLastSpan();
-            // Get current original sql for those sql with params
-            if (QueryUtils.isPrepareStatementWithParams(sqlRequest)
-                && StringUtils.isNotBlank(QueryContext.currentMetrics().getOriginSql())) {
-                originSql = QueryContext.currentMetrics().getOriginSql();
-            }
-            // Auto append limit / offset for original sql
-            QueryContext.currentMetrics().setOriginSql(QueryUtil.autoAppendLimitOffset(originSql));
-
             QueryContext.currentMetrics().setQueryEndTime(System.currentTimeMillis());
 
             sqlResponse.setServer(clusterManager.getLocalServer());

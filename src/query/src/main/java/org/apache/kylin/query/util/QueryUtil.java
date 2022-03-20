@@ -50,7 +50,7 @@ import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.commons.lang3.StringUtils;
+import io.kyligence.kap.query.engine.QueryExec;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exception.KylinTimeoutException;
@@ -66,7 +66,6 @@ import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.query.util.CommentParser;
 import io.kyligence.kap.query.util.RestoreFromComputedColumn;
 import lombok.extern.slf4j.Slf4j;
@@ -150,37 +149,18 @@ public class QueryUtil {
         //Split keywords and variables from sql by punctuation and whitespace character
         List<String> sqlElements = Lists.newArrayList(sql.toLowerCase(Locale.ROOT).split("(?![\\._])\\p{P}|\\s+"));
         if (limit > 0 && !sqlElements.contains("limit")) {
-            QueryContext.current().setLimitAutoAppend(true);
             sql += ("\nLIMIT " + limit);
         }
 
         if (offset > 0 && !sqlElements.contains("offset")) {
-            QueryContext.current().setOffsetAutoAppend(true);
             sql += ("\nOFFSET " + offset);
         }
 
         // https://issues.apache.org/jira/browse/KYLIN-2649
         if (kylinConfig.getForceLimit() > 0 && !sql.toLowerCase(Locale.ROOT).contains("limit")
                 && sql.toLowerCase(Locale.ROOT).matches("^select\\s+\\*\\p{all}*")) {
-            QueryContext.current().setLimitAutoAppend(true);
-            QueryContext.current().setLimit(kylinConfig.getForceLimit());
             sql += ("\nLIMIT " + kylinConfig.getForceLimit());
         }
-        return sql;
-    }
-
-    public static String autoAppendLimitOffset(String originSql) {
-        String sql = StringUtils.replace(originSql, ";", "");
-        QueryContext qc = QueryContext.current();
-
-        if (qc.isLimitAutoAppend()) {
-            sql += ("\nLIMIT " + qc.getLimit());
-        }
-
-        if (qc.isOffsetAutoAppend()) {
-            sql += ("\nOFFSET " + qc.getOffset());
-        }
-
         return sql;
     }
 
