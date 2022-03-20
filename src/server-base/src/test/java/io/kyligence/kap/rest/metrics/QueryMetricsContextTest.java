@@ -215,7 +215,6 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
 
         queryContext.setProject("default");
         queryContext.setUserSQL(sql);
-        queryContext.getMetrics().setOriginSql(sql);
         queryContext.getMetrics().setSqlPattern(sqlPattern);
         queryContext.getMetrics().setQueryStartTime(System.currentTimeMillis());
         queryContext.setAclInfo(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("g1"), true));
@@ -256,7 +255,6 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
 
         queryContext.setProject("default");
         queryContext.setUserSQL(sql);
-        queryContext.getMetrics().setOriginSql(sql);
         queryContext.getMetrics().setSqlPattern(sqlPattern);
         queryContext.getQueryTagInfo().setConstantQuery(true);
         queryContext.setAclInfo(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("g1"), true));
@@ -337,7 +335,6 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(QueryMetricsContext.isStarted());
 
         queryContext.setProject("default");
-        queryContext.getMetrics().setOriginSql(origSql);
         queryContext.getMetrics().setSqlPattern(sqlPattern);
         queryContext.setAclInfo(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("g1"), true));
         queryContext.getQueryTagInfo().setHitExceptionCache(true);
@@ -348,7 +345,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         final QueryMetricsContext metricsContext = QueryMetricsContext.collect(queryContext);
 
         final Map<String, Object> influxdbFields = getInfluxdbFields(metricsContext);
-        Assert.assertEquals(origSql, influxdbFields.get(QueryHistory.SQL_TEXT));
+        Assert.assertEquals(massagedSql, influxdbFields.get(QueryHistory.SQL_TEXT));
         Assert.assertEquals(sqlPattern, influxdbFields.get(QueryHistory.SQL_PATTERN));
     }
 
@@ -363,7 +360,6 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(QueryMetricsContext.isStarted());
 
         queryContext.setProject("default");
-        queryContext.getMetrics().setOriginSql(origSql);
         queryContext.getMetrics().setSqlPattern(sqlPattern);
         queryContext.setAclInfo(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("g1"), true));
         queryContext.getQueryTagInfo().setHitExceptionCache(true);
@@ -375,7 +371,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         final QueryMetricsContext metricsContext = QueryMetricsContext.collect(queryContext);
 
         final Map<String, Object> influxdbFields = getInfluxdbFields(metricsContext);
-        Assert.assertEquals(origSql, influxdbFields.get(QueryHistory.SQL_TEXT));
+        Assert.assertEquals(massagedSql, influxdbFields.get(QueryHistory.SQL_TEXT));
         Assert.assertEquals(sqlPattern, influxdbFields.get(QueryHistory.SQL_PATTERN));
     }
 
@@ -388,7 +384,6 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(QueryMetricsContext.isStarted());
 
         queryContext.setProject("default");
-        queryContext.getMetrics().setOriginSql(origSql);
         queryContext.getMetrics().setCorrectedSql(origSql);
         queryContext.getMetrics().setSqlPattern(origSql);
         queryContext.setAclInfo(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("g1"), true));
@@ -423,7 +418,6 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(QueryMetricsContext.isStarted());
 
         queryContext.setProject("default");
-        queryContext.getMetrics().setOriginSql(origSql);
         queryContext.getMetrics().setCorrectedSql(origSql);
         queryContext.getMetrics().setSqlPattern(origSql);
         queryContext.setAclInfo(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("g1"), true));

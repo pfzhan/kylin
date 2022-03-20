@@ -90,7 +90,7 @@ public class QueryMetricsContext extends QueryMetrics {
 
     private void doCollect(final QueryContext context) {
         // set sql
-        this.sql = context.getMetrics().getOriginSql();
+        this.sql = context.getMetrics().getCorrectedSql();
         this.sqlPattern = context.getMetrics().getSqlPattern();
         this.queryTime = context.getMetrics().getQueryStartTime();
 

@@ -239,7 +239,6 @@ public class QueryContext implements Closeable {
     @Getter
     @Setter
     public static class Metrics {
-        private String originSql;
         private String correctedSql;
         private String sqlPattern;
         private Throwable finalCause;
