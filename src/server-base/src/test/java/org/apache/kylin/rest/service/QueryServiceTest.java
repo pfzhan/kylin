@@ -1410,7 +1410,6 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testQueryWithComment() {
         final String sql = "-- This is comment1\n/* This is comment 2 */\nselect * from test where col = 'value1';";
-        final String sqlText = "-- This is comment1\n/* This is comment 2 */\nselect * from test where col = 'value1'";
         final String correctSql = "select * from test where col = 'value1'";
         final String project = "default";
         final PrepareSqlRequest request = new PrepareSqlRequest();
@@ -1430,7 +1429,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         final QueryMetricsContext metricsContext = QueryMetricsContext.collect(queryContext);
 
         final Map<String, Object> influxdbFields = getInfluxdbFields(metricsContext);
-        Assert.assertEquals(sqlText, influxdbFields.get(QueryHistory.SQL_TEXT));
+        Assert.assertEquals(sql, influxdbFields.get(QueryHistory.SQL_TEXT));
         QueryMetricsContext.reset();
     }
 
@@ -1470,7 +1469,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         final QueryMetricsContext metricsContext = QueryMetricsContext.collect(queryContext);
 
         final Map<String, Object> influxdbFields = getInfluxdbFields(metricsContext);
-        Assert.assertEquals("select * from test where col1 = 'value1'", influxdbFields.get(QueryHistory.SQL_TEXT));
+        Assert.assertEquals("select * from test where col1 = 'value1';", influxdbFields.get(QueryHistory.SQL_TEXT));
         QueryMetricsContext.reset();
     }
 
