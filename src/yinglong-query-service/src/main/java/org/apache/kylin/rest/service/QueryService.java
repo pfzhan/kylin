@@ -242,8 +242,6 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
                 queryParams.setPrepareSql(PrepareSQLUtils.fillInParams(queryParams.getSql(),
                         ((PrepareSqlRequest) sqlRequest).getParams()));
                 queryParams.setParams(((PrepareSqlRequest) sqlRequest).getParams());
-                // Saving prepared sql as original for those sql with params
-                QueryContext.current().getMetrics().setOriginSql(queryParams.getPrepareSql());
             }
             queryParams.setAclInfo(getExecuteAclInfo(queryParams.getProject(), queryParams.getExecuteAs()));
             queryParams.setACLDisabledOrAdmin(isACLDisabledOrAdmin(queryParams.getProject(), queryParams.getAclInfo()));
@@ -516,9 +514,6 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
         QueryContext queryContext = QueryContext.current();
         QueryMetricsContext.start(queryContext.getQueryId(), getDefaultServer());
 
-        // Keep original sql for query history storage
-        String originSql = sqlRequest.getSql();
-
         SQLResponse sqlResponse = null;
         try {
             QueryContext.currentTrace().startSpan(GET_ACL_INFO);
@@ -556,10 +551,6 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
             QueryUtils.updateQueryContextSQLMetrics();
             QueryContext.currentTrace().amendLast(QueryTrace.PREPARE_AND_SUBMIT_JOB, System.currentTimeMillis());
             QueryContext.currentTrace().endLastSpan();
-            // Saving true original sql if no params exists
-            if (!QueryUtils.isPrepareStatementWithParams(sqlRequest)) {
-                QueryContext.currentMetrics().setOriginSql(originSql);
-            }
             QueryContext.currentMetrics().setQueryEndTime(System.currentTimeMillis());
 
             sqlResponse.setServer(clusterManager.getLocalServer());
