@@ -50,7 +50,6 @@ import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exception.KylinTimeoutException;
@@ -170,18 +169,17 @@ public class QueryUtil {
     }
 
     public static String autoAppendLimitOffset(String originSql) {
-        String sql = StringUtils.replace(originSql, ";", "");
         QueryContext qc = QueryContext.current();
 
         if (qc.isLimitAutoAppend()) {
-            sql += ("\nLIMIT " + qc.getLimit());
+            originSql += ("\nLIMIT " + qc.getLimit());
         }
 
         if (qc.isOffsetAutoAppend()) {
-            sql += ("\nOFFSET " + qc.getOffset());
+            originSql += ("\nOFFSET " + qc.getOffset());
         }
 
-        return sql;
+        return originSql;
     }
 
     static void initQueryTransformersIfNeeded(KylinConfig kylinConfig, boolean isCCNeeded) {
