@@ -263,16 +263,15 @@ class TestQueryAndBuildFunSuite
       .flatMap {
         case (fileName: String, query: String) =>
           joinType.map { joinType =>
-//            Future[String] {
+            Future[String] {
               runAndCompare(query, DEFAULT_PROJECT, joinType.toUpperCase, fileName, folderInfo.checkOrder)
-//            }
+            }
           }
       }
     // scalastyle:off
-//    val result = Await.result(Future.sequence(futures.toList), Duration.Inf)
+    val result = Await.result(Future.sequence(futures.toList), Duration.Inf)
     // scalastyle:on
-//    result
-    List()
+    result
   }
 
   private def queryFolderWithoutCompare(folderInfo: FolderInfo) = {
