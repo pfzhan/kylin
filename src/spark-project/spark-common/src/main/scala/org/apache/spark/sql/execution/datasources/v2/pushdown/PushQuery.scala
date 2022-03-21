@@ -408,7 +408,7 @@ object PushQuery extends Logging {
         }
       case globalLimit @ Limit(_, child) =>
         unapply(child).flatMap {
-          case p @ PushScanQuery(_, _, _, _, Some(_: Sort), _, _) if !subqueryPlan(child) &&
+          case p @ PushScanQuery(_, _, _, _, _, _, _) if !subqueryPlan(child) &&
             !containNonSupportProjects(p.project) =>
             Some(p.copy(limitOpt = Some(globalLimit)))
           case _ => None
