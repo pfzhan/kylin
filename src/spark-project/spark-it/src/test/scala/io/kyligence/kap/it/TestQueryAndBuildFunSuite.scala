@@ -59,37 +59,35 @@ class TestQueryAndBuildFunSuite
 
   val defaultTimeZone: TimeZone = TimeZone.getDefault
 
-  implicit val ec: ExecutionContextExecutor = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(3))
-
   val queryFolders = List(
-//    FolderInfo("sql", List("query105.sql", "query131.sql", "query138.sql")),
-//    FolderInfo("sql_cache"),
-//    FolderInfo("sql_casewhen", List("query08.sql", "query09.sql", "query11.sql", "query12.sql", "query13.sql")),
-//    FolderInfo("sql_cross_join"),
-//    FolderInfo("sql_datetime"),
-//    FolderInfo("sql_derived"),
-//    FolderInfo("sql_distinct_dim"),
-//    FolderInfo("sql_hive"),
+    FolderInfo("sql", List("query105.sql", "query131.sql", "query138.sql")),
+    FolderInfo("sql_cache"),
+    FolderInfo("sql_casewhen", List("query08.sql", "query09.sql", "query11.sql", "query12.sql", "query13.sql")),
+    FolderInfo("sql_cross_join"),
+    FolderInfo("sql_datetime"),
+    FolderInfo("sql_derived"),
+    FolderInfo("sql_distinct_dim"),
+    FolderInfo("sql_hive"),
     FolderInfo("sql_join",
       List("query_11.sql", "query_12.sql", "query_13.sql", "query_14.sql", "query_15.sql", "query_16.sql",
         "query_17.sql", "query_18.sql", "query_19.sql", "query_20.sql", "query_25.sql")),
-//    FolderInfo("sql_join/sql_right_join"),
-//    FolderInfo("sql_kap", List("query03.sql")),
-//    FolderInfo("sql_like", List("query25.sql", "query26.sql")),
-//    FolderInfo("sql_lookup"),
-//    FolderInfo("sql_magine", List("query13.sql")),
-//    FolderInfo("sql_magine_left"),
-//    FolderInfo("sql_subquery", List("query19.sql", "query25.sql")),
-//    FolderInfo("sql_orderby", List(), checkOrder = true),
-//    FolderInfo("sql_powerbi"),
-//    FolderInfo("sql_raw"),
-//    FolderInfo("sql_rawtable", List("query26.sql", "query32.sql", "query33.sql", "query34.sql", "query37.sql", "query38.sql")),
-//    FolderInfo("sql_tableau", List("query00.sql", "query24.sql", "query25.sql")),
-//    FolderInfo("sql_topn"),
-//    FolderInfo("sql_union", List("query07.sql")),
-//    FolderInfo("sql_value"),
-//    FolderInfo("sql_udf", List("query02.sql")),
-//    FolderInfo("sql_tableau", List("query00.sql", "query24.sql", "query25.sql"))
+    FolderInfo("sql_join/sql_right_join"),
+    FolderInfo("sql_kap", List("query03.sql")),
+    FolderInfo("sql_like", List("query25.sql", "query26.sql")),
+    FolderInfo("sql_lookup"),
+    FolderInfo("sql_magine", List("query13.sql")),
+    FolderInfo("sql_magine_left"),
+    FolderInfo("sql_subquery", List("query19.sql", "query25.sql")),
+    FolderInfo("sql_orderby", List(), checkOrder = true),
+    FolderInfo("sql_powerbi"),
+    FolderInfo("sql_raw"),
+    FolderInfo("sql_rawtable", List("query26.sql", "query32.sql", "query33.sql", "query34.sql", "query37.sql", "query38.sql")),
+    FolderInfo("sql_tableau", List("query00.sql", "query24.sql", "query25.sql")),
+    FolderInfo("sql_topn"),
+    FolderInfo("sql_union", List("query07.sql")),
+    FolderInfo("sql_value"),
+    FolderInfo("sql_udf", List("query02.sql")),
+    FolderInfo("sql_tableau", List("query00.sql", "query24.sql", "query25.sql"))
   )
 
   val onlyLeft = List(
@@ -133,15 +131,13 @@ class TestQueryAndBuildFunSuite
   }
 
   override def beforeAll(): Unit = {
-    Unsafe.setProperty("calcite.keep-in-clause", "true")
-    Unsafe.setProperty("kylin.dictionary.null-encoding-opt-threshold", "1")
-    //    val timeZones = Array("GMT", "GMT+8", "CST")
-    //    val timeZoneStr = timeZones.apply((System.currentTimeMillis() % 3).toInt)
+    super.beforeAll()
+    overwriteSystemProp("calcite.keep-in-clause", "true")
+    overwriteSystemProp("kylin.dictionary.null-encoding-opt-threshold", "1")
+    overwriteSystemProp("kylin.query.spark-job-trace-enabled", "false")
     val timeZoneStr = "GMT+8"
     TimeZone.setDefault(TimeZone.getTimeZone(timeZoneStr))
     logInfo(s"Current time zone set to $timeZoneStr")
-
-    super.beforeAll()
     NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv, DEFAULT_PROJECT)
       .updateDataflow(DF_NAME, Updater(RealizationStatusEnum.OFFLINE))
     KylinConfig.getInstanceFromEnv.setProperty("kylin.query.pushdown.runner-class-name", "")
@@ -158,7 +154,6 @@ class TestQueryAndBuildFunSuite
       .updateDataflow(DF_NAME, Updater(RealizationStatusEnum.ONLINE))
     SparderEnv.cleanCompute()
     TimeZone.setDefault(defaultTimeZone)
-    Unsafe.clearProperty("calcite.keep-in-clause")
   }
 
   test("buildKylinFact") {
@@ -172,34 +167,34 @@ class TestQueryAndBuildFunSuite
     }
     assert(result.isEmpty)
 
-//    result = onlyLeft
-//      .flatMap { folder =>
-//        queryFolder(folder, List("left"))
-//      }
-//      .filter(_ != null)
-//    if (result.nonEmpty) {
-//      print(result)
-//    }
-//    assert(result.isEmpty)
-//
-//    result = noneCompare
-//      .flatMap { folder =>
-//        queryFolderWithoutCompare(folder)
-//      }
-//      .filter(_ != null)
-//    assert(result.isEmpty)
-//
-//    try {
-//      changeCubeStatus("89af4ee2-2cdb-4b07-b39e-4c29856309aa", RealizationStatusEnum.OFFLINE)
-//      result = onlyInner
-//        .flatMap { folder =>
-//          queryFolder(folder, List("inner"))
-//        }
-//        .filter(_ != null)
-//      assert(result.isEmpty)
-//    } finally {
-//      changeCubeStatus("89af4ee2-2cdb-4b07-b39e-4c29856309aa", RealizationStatusEnum.ONLINE)
-//    }
+    result = onlyLeft
+      .flatMap { folder =>
+        queryFolder(folder, List("left"))
+      }
+      .filter(_ != null)
+    if (result.nonEmpty) {
+      print(result)
+    }
+    assert(result.isEmpty)
+
+    result = noneCompare
+      .flatMap { folder =>
+        queryFolderWithoutCompare(folder)
+      }
+      .filter(_ != null)
+    assert(result.isEmpty)
+
+    try {
+      changeCubeStatus("89af4ee2-2cdb-4b07-b39e-4c29856309aa", RealizationStatusEnum.OFFLINE)
+      result = onlyInner
+        .flatMap { folder =>
+          queryFolder(folder, List("inner"))
+        }
+        .filter(_ != null)
+      assert(result.isEmpty)
+    } finally {
+      changeCubeStatus("89af4ee2-2cdb-4b07-b39e-4c29856309aa", RealizationStatusEnum.ONLINE)
+    }
   }
 
   // for test scenario in timestamp type , see NSegPruningTest.testSegPruningWithTimeStamp()
