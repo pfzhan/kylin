@@ -25,6 +25,8 @@
 
 package io.kyligence.kap.rest.util;
 
+import static org.awaitility.Awaitility.await;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -72,11 +74,8 @@ public class TimestampedRollingFileOutputDirTest {
     }
 
     private File newFile(TimestampedRollingFileOutputDir rollingFileOutputDir) throws IOException {
-        try {
-            Thread.sleep(1);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        long start = System.currentTimeMillis();
+        await().until(() -> start != System.currentTimeMillis());
         return rollingFileOutputDir.newOutputFile();
     }
 
