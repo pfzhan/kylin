@@ -22,8 +22,6 @@
 
 package io.kyligence.kap.it
 
-import java.io.File
-import java.util.TimeZone
 import io.kyligence.kap.common.util.{TestUtils, Unsafe}
 import io.kyligence.kap.common.{CompareSupport, JobSupport, QuerySupport, SSSource}
 import io.kyligence.kap.engine.spark.IndexDataWarehouse
@@ -40,9 +38,10 @@ import org.apache.spark.sql.execution.utils.SchemaProcessor
 import org.apache.spark.sql.execution.{KylinFileSourceScanExec, LayoutFileSourceScanExec}
 import org.apache.spark.sql.{DataFrame, SparderEnv}
 
+import java.io.File
+import java.util.TimeZone
 import java.util.concurrent.Executors
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor, Future}
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
 class TestQueryAndBuildFunSuite
   extends SparderBaseFunSuite
@@ -63,34 +62,34 @@ class TestQueryAndBuildFunSuite
   implicit val ec: ExecutionContextExecutor = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(3))
 
   val queryFolders = List(
-    FolderInfo("sql", List("query105.sql", "query131.sql", "query138.sql")),
-    FolderInfo("sql_cache"),
-    FolderInfo("sql_casewhen", List("query08.sql", "query09.sql", "query11.sql", "query12.sql", "query13.sql")),
-    FolderInfo("sql_cross_join"),
-    FolderInfo("sql_datetime"),
-    FolderInfo("sql_derived"),
-    FolderInfo("sql_distinct_dim"),
-    FolderInfo("sql_hive"),
+//    FolderInfo("sql", List("query105.sql", "query131.sql", "query138.sql")),
+//    FolderInfo("sql_cache"),
+//    FolderInfo("sql_casewhen", List("query08.sql", "query09.sql", "query11.sql", "query12.sql", "query13.sql")),
+//    FolderInfo("sql_cross_join"),
+//    FolderInfo("sql_datetime"),
+//    FolderInfo("sql_derived"),
+//    FolderInfo("sql_distinct_dim"),
+//    FolderInfo("sql_hive"),
     FolderInfo("sql_join",
       List("query_11.sql", "query_12.sql", "query_13.sql", "query_14.sql", "query_15.sql", "query_16.sql",
         "query_17.sql", "query_18.sql", "query_19.sql", "query_20.sql", "query_25.sql")),
-    FolderInfo("sql_join/sql_right_join"),
-    FolderInfo("sql_kap", List("query03.sql")),
-    FolderInfo("sql_like", List("query25.sql", "query26.sql")),
-    FolderInfo("sql_lookup"),
-    FolderInfo("sql_magine", List("query13.sql")),
-    FolderInfo("sql_magine_left"),
-    FolderInfo("sql_subquery", List("query19.sql", "query25.sql")),
-    FolderInfo("sql_orderby", List(), checkOrder = true),
-    FolderInfo("sql_powerbi"),
-    FolderInfo("sql_raw"),
-    FolderInfo("sql_rawtable", List("query26.sql", "query32.sql", "query33.sql", "query34.sql", "query37.sql", "query38.sql")),
-    FolderInfo("sql_tableau", List("query00.sql", "query24.sql", "query25.sql")),
-    FolderInfo("sql_topn"),
-    FolderInfo("sql_union", List("query07.sql")),
-    FolderInfo("sql_value"),
-    FolderInfo("sql_udf", List("query02.sql")),
-    FolderInfo("sql_tableau", List("query00.sql", "query24.sql", "query25.sql"))
+//    FolderInfo("sql_join/sql_right_join"),
+//    FolderInfo("sql_kap", List("query03.sql")),
+//    FolderInfo("sql_like", List("query25.sql", "query26.sql")),
+//    FolderInfo("sql_lookup"),
+//    FolderInfo("sql_magine", List("query13.sql")),
+//    FolderInfo("sql_magine_left"),
+//    FolderInfo("sql_subquery", List("query19.sql", "query25.sql")),
+//    FolderInfo("sql_orderby", List(), checkOrder = true),
+//    FolderInfo("sql_powerbi"),
+//    FolderInfo("sql_raw"),
+//    FolderInfo("sql_rawtable", List("query26.sql", "query32.sql", "query33.sql", "query34.sql", "query37.sql", "query38.sql")),
+//    FolderInfo("sql_tableau", List("query00.sql", "query24.sql", "query25.sql")),
+//    FolderInfo("sql_topn"),
+//    FolderInfo("sql_union", List("query07.sql")),
+//    FolderInfo("sql_value"),
+//    FolderInfo("sql_udf", List("query02.sql")),
+//    FolderInfo("sql_tableau", List("query00.sql", "query24.sql", "query25.sql"))
   )
 
   val onlyLeft = List(
@@ -136,8 +135,8 @@ class TestQueryAndBuildFunSuite
   override def beforeAll(): Unit = {
     Unsafe.setProperty("calcite.keep-in-clause", "true")
     Unsafe.setProperty("kylin.dictionary.null-encoding-opt-threshold", "1")
-//    val timeZones = Array("GMT", "GMT+8", "CST")
-//    val timeZoneStr = timeZones.apply((System.currentTimeMillis() % 3).toInt)
+    //    val timeZones = Array("GMT", "GMT+8", "CST")
+    //    val timeZoneStr = timeZones.apply((System.currentTimeMillis() % 3).toInt)
     val timeZoneStr = "GMT+8"
     TimeZone.setDefault(TimeZone.getTimeZone(timeZoneStr))
     logInfo(s"Current time zone set to $timeZoneStr")
@@ -173,34 +172,34 @@ class TestQueryAndBuildFunSuite
     }
     assert(result.isEmpty)
 
-    result = onlyLeft
-      .flatMap { folder =>
-        queryFolder(folder, List("left"))
-      }
-      .filter(_ != null)
-    if (result.nonEmpty) {
-      print(result)
-    }
-    assert(result.isEmpty)
-
-    result = noneCompare
-      .flatMap { folder =>
-        queryFolderWithoutCompare(folder)
-      }
-      .filter(_ != null)
-    assert(result.isEmpty)
-
-    try {
-      changeCubeStatus("89af4ee2-2cdb-4b07-b39e-4c29856309aa", RealizationStatusEnum.OFFLINE)
-      result = onlyInner
-        .flatMap { folder =>
-          queryFolder(folder, List("inner"))
-        }
-        .filter(_ != null)
-      assert(result.isEmpty)
-    } finally {
-      changeCubeStatus("89af4ee2-2cdb-4b07-b39e-4c29856309aa", RealizationStatusEnum.ONLINE)
-    }
+//    result = onlyLeft
+//      .flatMap { folder =>
+//        queryFolder(folder, List("left"))
+//      }
+//      .filter(_ != null)
+//    if (result.nonEmpty) {
+//      print(result)
+//    }
+//    assert(result.isEmpty)
+//
+//    result = noneCompare
+//      .flatMap { folder =>
+//        queryFolderWithoutCompare(folder)
+//      }
+//      .filter(_ != null)
+//    assert(result.isEmpty)
+//
+//    try {
+//      changeCubeStatus("89af4ee2-2cdb-4b07-b39e-4c29856309aa", RealizationStatusEnum.OFFLINE)
+//      result = onlyInner
+//        .flatMap { folder =>
+//          queryFolder(folder, List("inner"))
+//        }
+//        .filter(_ != null)
+//      assert(result.isEmpty)
+//    } finally {
+//      changeCubeStatus("89af4ee2-2cdb-4b07-b39e-4c29856309aa", RealizationStatusEnum.ONLINE)
+//    }
   }
 
   // for test scenario in timestamp type , see NSegPruningTest.testSegPruningWithTimeStamp()
@@ -229,10 +228,10 @@ class TestQueryAndBuildFunSuite
 
   test("non-equal join with is not distinct from condition") {
     val result = isNotDistinctFrom
-            .flatMap { folder =>
-              queryFolder(folder, List("left"))
-            }
-            .filter(_ != null)
+      .flatMap { folder =>
+        queryFolder(folder, List("left"))
+      }
+      .filter(_ != null)
     if (result.nonEmpty) {
       print(result)
     }
@@ -255,7 +254,7 @@ class TestQueryAndBuildFunSuite
   }
 
   private def queryFolder(folderInfo: FolderInfo, joinType: List[String]): List[String] = {
-    val futures = QueryFetcher
+    QueryFetcher
       .fetchQueries(QueryConstants.KAP_SQL_BASE_DIR + folderInfo.folder)
       .filter { tp =>
         !folderInfo.filter.contains(new File(tp._1).getName)
@@ -263,19 +262,15 @@ class TestQueryAndBuildFunSuite
       .flatMap {
         case (fileName: String, query: String) =>
           joinType.map { joinType =>
-            Future[String] {
-              runAndCompare(query, DEFAULT_PROJECT, joinType.toUpperCase, fileName, folderInfo.checkOrder)
-            }
+            runAndCompare(query, DEFAULT_PROJECT, joinType.toUpperCase, fileName, folderInfo.checkOrder)
           }
       }
-    // scalastyle:off
-    val result = Await.result(Future.sequence(futures.toList), Duration.Inf)
-    // scalastyle:on
-    result
+      .filter(_ != null)
+      .toList
   }
 
   private def queryFolderWithoutCompare(folderInfo: FolderInfo) = {
-    val futures = QueryFetcher
+    QueryFetcher
       .fetchQueries(QueryConstants.KAP_SQL_BASE_DIR + folderInfo.folder)
       .filter { tp =>
         !folderInfo.filter.contains(new File(tp._1).getName)
@@ -284,22 +279,17 @@ class TestQueryAndBuildFunSuite
         case (fileName: String, query: String) =>
           joinTypes.map { joinType =>
             val afterChangeJoin = changeJoinType(query, joinType)
-
-            Future[String] {
-              try {
-                singleQuery(afterChangeJoin, DEFAULT_PROJECT).collect()
-                null
-              } catch {
-                case exception: Throwable =>
-                  s"$fileName \n$query \n${ThrowableUtil.stackTraceToString(exception)} "
-              }
+            try {
+              singleQuery(afterChangeJoin, DEFAULT_PROJECT).collect()
+              null
+            } catch {
+              case exception: Throwable =>
+                s"$fileName \n$query \n${ThrowableUtil.stackTraceToString(exception)} "
             }
           }
       }
-    // scalastyle:off
-    val result = Await.result(Future.sequence(futures.toList), Duration.Inf)
-    // scalastyle:on
-    result
+      .filter(_ != null)
+      .toList
   }
 
   def build(): Unit = {
@@ -307,7 +297,7 @@ class TestQueryAndBuildFunSuite
       logInfo("Direct query")
       val config = KylinConfig.getInstanceFromEnv
       new IndexDataWarehouse(config, getProject, "")
-        .reuseBuildData(new File( "../examples/buildKylinFact"))
+        .reuseBuildData(new File("../examples/buildKylinFact"))
     } else {
       buildFourSegementAndMerge("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
       buildFourSegementAndMerge("741ca86a-1f13-46da-a59f-95fb68615e3a")
