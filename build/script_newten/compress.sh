@@ -42,7 +42,7 @@ cd build/
 rm -rf ${package_name}
 mkdir ${package_name}
 
-cp -rf CHANGELOG.md VERSION commit_SHA1 ${package_name}/
+cp -rf CHANGELOG.md VERSION commit_SHA1 lib ${package_name}/
 
 mkdir -p ${package_name}/lib/ext
 
