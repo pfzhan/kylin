@@ -42,6 +42,7 @@ import org.apache.kylin.job.execution.ChainedStageExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.execution.StageBase;
+import org.apache.kylin.job.execution.SucceedChainedTestExecutable;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
@@ -67,7 +68,6 @@ import io.kyligence.kap.engine.spark.job.step.NStageForBuild;
 import io.kyligence.kap.engine.spark.job.step.NStageForMerge;
 import io.kyligence.kap.engine.spark.job.step.NStageForSnapshot;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
-import io.kyligence.kap.rest.execution.SucceedChainedTestExecutable;
 import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import lombok.val;
 import lombok.var;
@@ -78,9 +78,6 @@ public class StageTest extends NLocalFileMetadataTestCase {
 
     @Mock
     private final ModelService modelService = Mockito.spy(ModelService.class);
-
-//    @Mock
-//    private final TableExtService tableExtService = Mockito.spy(TableExtService.class);
 
     @Mock
     private final AclUtil aclUtil = Mockito.spy(AclUtil.class);
@@ -102,7 +99,6 @@ public class StageTest extends NLocalFileMetadataTestCase {
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
         ReflectionTestUtils.setField(jobService, "aclEvaluate", aclEvaluate);
-        //ReflectionTestUtils.setField(jobService, "tableExtService", tableExtService);
         ReflectionTestUtils.setField(jobService, "projectService", projectService);
         ReflectionTestUtils.setField(jobService, "modelService", modelService);
     }

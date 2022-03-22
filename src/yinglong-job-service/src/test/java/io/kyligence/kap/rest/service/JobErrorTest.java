@@ -24,10 +24,7 @@
 
 package io.kyligence.kap.rest.service;
 
-import static io.kyligence.kap.rest.service.JobService.EXCEPTION_CODE_DEFAULT;
-import static io.kyligence.kap.rest.service.JobService.EXCEPTION_CODE_PATH;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_JOB_STATUS;
-import static org.awaitility.Awaitility.await;
 
 import java.io.IOException;
 import java.util.List;
@@ -52,11 +49,13 @@ import org.apache.kylin.job.execution.DefaultOutput;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.execution.StageBase;
+import org.apache.kylin.job.execution.SucceedChainedTestExecutable;
 import org.apache.kylin.job.execution.SucceedTestExecutable;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
 import org.apache.spark.application.NoRetryException;
+import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -79,7 +78,6 @@ import io.kyligence.kap.engine.spark.job.step.NStageForBuild;
 import io.kyligence.kap.engine.spark.job.step.NStageForMerge;
 import io.kyligence.kap.engine.spark.job.step.NStageForSnapshot;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
-import io.kyligence.kap.rest.execution.SucceedChainedTestExecutable;
 import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import lombok.val;
 import lombok.var;
@@ -90,9 +88,6 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
 
     @Mock
     private final ModelService modelService = Mockito.spy(ModelService.class);
-
-//    @Mock
-//    private final TableExtService tableExtService = Mockito.spy(TableExtService.class);
 
     @Mock
     private final AclUtil aclUtil = Mockito.spy(AclUtil.class);
@@ -114,7 +109,6 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
         ReflectionTestUtils.setField(jobService, "aclEvaluate", aclEvaluate);
-        //ReflectionTestUtils.setField(jobService, "tableExtService", tableExtService);
         ReflectionTestUtils.setField(jobService, "projectService", projectService);
         ReflectionTestUtils.setField(jobService, "modelService", modelService);
     }
@@ -170,9 +164,9 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
         executable.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         manager.addJob(executable);
 
-        val exceptionCodeStream = getClass().getClassLoader().getResource(EXCEPTION_CODE_PATH).openStream();
+        val exceptionCodeStream = getClass().getClassLoader().getResource(JobService.EXCEPTION_CODE_PATH).openStream();
         val map = JsonUtil.readValue(exceptionCodeStream, Map.class);
-        var expectedCode = EXCEPTION_CODE_DEFAULT;
+        var expectedCode = JobService.EXCEPTION_CODE_DEFAULT;
 
         var exceptionCode = jobService.getExceptionCode(executable.getOutput());
         Assert.assertEquals(expectedCode, exceptionCode);
@@ -406,7 +400,7 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
 
         ((DefaultOutput) output).setStartTime(System.currentTimeMillis());
         org.apache.kylin.job.execution.Output finalOutput = output;
-        await().atMost(1000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
+        Awaitility.await().atMost(1000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
             duration[0] = AbstractExecutable.getDuration(finalOutput);
             Assert.assertTrue(duration[0] >= 10);
         });
@@ -506,7 +500,7 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
 
         val stagesMap = ((ChainedStageExecutable) ((ChainedExecutable) executable).getTasks().get(0)).getStagesMap();
 
-        await().atMost(1000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
+        Awaitility.await().atMost(1000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
             var sumDuration = 0L;
             for (Map.Entry<String, List<StageBase>> entry : stagesMap.entrySet()) {
                 sumDuration = entry.getValue().stream().map(stage -> stage.getOutput(entry.getKey()))

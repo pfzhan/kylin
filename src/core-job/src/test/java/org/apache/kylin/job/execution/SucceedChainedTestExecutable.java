@@ -22,15 +22,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.execution;
+package org.apache.kylin.job.execution;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.kylin.job.exception.ExecuteException;
-import org.apache.kylin.job.execution.DefaultChainedExecutable;
-import org.apache.kylin.job.execution.ExecutableContext;
-import org.apache.kylin.job.execution.ExecuteResult;
 
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
@@ -52,9 +49,12 @@ public class SucceedChainedTestExecutable extends DefaultChainedExecutable {
     @Override
     protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
         try {
-            Thread.sleep(1000);
+            Object o = new Object();
+            synchronized (o) {
+                o.wait(1000);
+            }
             this.retry++;
-        } catch (InterruptedException e) {
+        } catch (InterruptedException ignored) {
         }
         return ExecuteResult.createSucceed();
     }
