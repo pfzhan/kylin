@@ -27,7 +27,7 @@ package io.kyligence.kap.newten.semi;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
-import io.kyligence.kap.metadata.model.ComputedColumnDesc;
+
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.constant.Constant;
@@ -44,7 +44,8 @@ import org.mockito.Mockito;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
@@ -68,7 +69,6 @@ public class ComputedColumnRestoreTest extends SemiAutoTestBase {
     private NDataModelManager modelManager;
     private ProjectService projectService;
     private JdbcRawRecStore jdbcRawRecStore;
-    private NIndexPlanManager indexPlanManager;
     private RDBMSQueryHistoryDAO queryHistoryDAO;
 
     @Mock
@@ -97,7 +97,6 @@ public class ComputedColumnRestoreTest extends SemiAutoTestBase {
         rawRecService = new RawRecService();
         projectService = new ProjectService();
         modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
-        indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
         modelService.setSemanticUpdater(semanticService);
         queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance();
         prepareACL();
@@ -117,7 +116,6 @@ public class ComputedColumnRestoreTest extends SemiAutoTestBase {
         ReflectionTestUtils.setField(projectService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(projectService, "userGroupService", userGroupService);
         ReflectionTestUtils.setField(projectService, "projectModelSupporter", modelService);
-        ReflectionTestUtils.setField(projectService, "projectSmartSupporter", rawRecService);
         TestingAuthenticationToken auth = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
         SecurityContextHolder.getContext().setAuthentication(auth);
     }
