@@ -29,6 +29,7 @@ import static org.apache.kylin.metadata.model.FunctionDesc.FUNC_COUNT;
 
 import java.util.List;
 
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
@@ -41,9 +42,8 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.rest.service.CSVSourceTestCase;
 
-public class NDataModelResponseTest extends CSVSourceTestCase {
+public class NDataModelResponseTest extends NLocalFileMetadataTestCase {
 
     private static final String PROJECT = "default";
 

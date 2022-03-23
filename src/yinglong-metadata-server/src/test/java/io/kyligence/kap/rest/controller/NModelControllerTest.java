@@ -33,15 +33,20 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -96,6 +101,12 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
 
     @InjectMocks
     private NModelController nModelController = Mockito.spy(new NModelController());
+
+    @InjectMocks
+    private NBasicController nBasicController = Mockito.spy(new NBasicController());
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
 
     private final Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
 
@@ -655,4 +666,17 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
     }
+
+    @Test
+    public void testFormatStatus() {
+        List<String> status = Lists.newArrayList("OFFLINE", null, "broken");
+        Assert.assertEquals(nBasicController.formatStatus(status, ModelStatusToDisplayEnum.class),
+                Lists.newArrayList("OFFLINE", "BROKEN"));
+
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("is not a valid value");
+        status = Lists.newArrayList("OFF", null, "broken");
+        nBasicController.formatStatus(status, ModelStatusToDisplayEnum.class);
+    }
+
 }

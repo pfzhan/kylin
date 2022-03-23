@@ -25,97 +25,84 @@
 package io.kyligence.kap.rest.interceptor;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.nio.charset.Charset;
 
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 
-import org.apache.kylin.rest.service.ServiceTestBase;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.sparkproject.jetty.servlet.DefaultServlet;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.test.util.ReflectionTestUtils;
 
-import io.kyligence.kap.metadata.resourcegroup.ResourceGroupManager;
+import io.kyligence.kap.metadata.project.NProjectLoader;
 import lombok.val;
 
-public class ResourceGroupCheckerFilterTest extends ServiceTestBase {
+public class RepeatableRequestBodyFilterTest extends NLocalFileMetadataTestCase {
+
+    @Before
+    public void setup() {
+        createTestMetadata();
+    }
+
+    @After
+    public void tearDown() {
+        cleanupTestMetadata();
+    }
+
     @Test
-    public void testResourceGroupDisabled() throws IOException, ServletException {
-        val filter = new ResourceGroupCheckerFilter();
+    public void testHitTheCache() throws IOException, ServletException {
+        val filter = new RepeatableRequestBodyFilter();
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setRequestURI("/api/test");
         request.setContentType("application/json");
-        request.setContent(("" + "{\n" + "    \"project\": \"a\"" + "}").getBytes(StandardCharsets.UTF_8));
+        request.setContent(("" + "{\n" + "    \"project\": \"default\",\n" + "    \"hello\": \"world\"\n" + "}")
+                .getBytes(Charset.defaultCharset()));
 
         MockHttpServletResponse response = new MockHttpServletResponse();
         MockFilterChain chain = new MockFilterChain(new DefaultServlet() {
             @Override
             public void service(ServletRequest req, ServletResponse res) throws ServletException, IOException {
-                val manager = ResourceGroupManager.getInstance(getTestConfig());
-                Assert.assertFalse(manager.isResourceGroupEnabled());
+                Assert.assertNotNull(getCache());
             }
         });
 
         filter.doFilter(request, response, chain);
-        Assert.assertNull(request.getAttribute("error"));
+        Assert.assertNull(getCache());
     }
 
     @Test
-    public void testProjectWithoutResourceGroupException() throws IOException, ServletException {
-        setResourceGroupEnabled();
-
-        val filter = new ResourceGroupCheckerFilter();
+    public void testCleanupCacheAfterException() {
+        val filter = new RepeatableRequestBodyFilter();
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setRequestURI("/api/test");
         request.setContentType("application/json");
-        request.setContent(("" + "{\n" + "    \"project\": \"a\"" + "}").getBytes(StandardCharsets.UTF_8));
+        request.setContent(("" + "{\n" + "    \"project\": \"default\",\n" + "    \"hello\": \"world\"\n" + "}")
+                .getBytes(Charset.defaultCharset()));
 
         MockHttpServletResponse response = new MockHttpServletResponse();
         MockFilterChain chain = new MockFilterChain(new DefaultServlet() {
             @Override
             public void service(ServletRequest req, ServletResponse res) throws ServletException, IOException {
-                val manager = ResourceGroupManager.getInstance(getTestConfig());
-                Assert.assertTrue(manager.isResourceGroupEnabled());
+                throw new RuntimeException("error");
             }
         });
 
-        filter.doFilter(request, response, chain);
-        Assert.assertNotNull(request.getAttribute("error"));
+        try {
+            filter.doFilter(request, response, chain);
+        } catch (Exception ignore) {
+        }
+        Assert.assertNull(getCache());
     }
 
-    @Test
-    public void testWhitelistApi() throws IOException, ServletException {
-        setResourceGroupEnabled();
-
-        val filter = new ResourceGroupCheckerFilter();
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setMethod("GET");
-        request.setRequestURI("/kylin/api/projects");
-        request.setContentType("application/json");
-        request.setContent(("" + "{\n" + "    \"project\": \"a\"" + "}").getBytes(StandardCharsets.UTF_8));
-
-        MockHttpServletResponse response = new MockHttpServletResponse();
-        MockFilterChain chain = new MockFilterChain(new DefaultServlet() {
-            @Override
-            public void service(ServletRequest req, ServletResponse res) throws ServletException, IOException {
-                val manager = ResourceGroupManager.getInstance(getTestConfig());
-                Assert.assertTrue(manager.isResourceGroupEnabled());
-            }
-        });
-
-        filter.doFilter(request, response, chain);
-        Assert.assertNull(request.getAttribute("error"));
-    }
-
-    private void setResourceGroupEnabled() {
-        val manager = ResourceGroupManager.getInstance(getTestConfig());
-        manager.getResourceGroup();
-        manager.updateResourceGroup(copyForWrite -> {
-            copyForWrite.setResourceGroupEnabled(true);
-        });
+    private Object getCache() {
+        return ((ThreadLocal) ReflectionTestUtils.getField(NProjectLoader.class, "cache")).get();
     }
 }

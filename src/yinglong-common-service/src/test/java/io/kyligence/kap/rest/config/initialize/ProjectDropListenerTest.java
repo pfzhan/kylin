@@ -25,7 +25,6 @@ package io.kyligence.kap.rest.config.initialize;
 
 import java.io.IOException;
 
-import io.micrometer.core.instrument.MeterRegistry;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -47,6 +46,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import io.kyligence.kap.common.metrics.MetricsGroup;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import lombok.val;
 

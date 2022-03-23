@@ -33,6 +33,12 @@
             <scope>provided</scope>
         </dependency>
 
+        <!-- test -->
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-smart</artifactId>
+            <scope>test</scope>
+        </dependency>
         <!-- Spark dependency -->
         <dependency>
             <groupId>org.apache.spark</groupId>
@@ -87,6 +93,11 @@
         <dependency>
             <groupId>org.junit.vintage</groupId>
             <artifactId>junit-vintage-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

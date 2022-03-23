@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.config.initialize;
 
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -34,13 +35,12 @@ import org.junit.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.rest.service.LocalFileMetadataTestCase;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.SmartContext;
 import io.kyligence.kap.smart.SmartMaster;
 import lombok.val;
 
-public class SourceUsageUpdateListenerMetaTest extends LocalFileMetadataTestCase {
+public class SourceUsageUpdateListenerMetaTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setUp() {

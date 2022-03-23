@@ -23,15 +23,20 @@
  */
 package io.kyligence.kap.rest.monitor;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.common.metrics.service.MonitorMetric;
-import io.kyligence.kap.common.metrics.service.QueryMonitorMetric;
-import io.kyligence.kap.common.util.ClusterConstant;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.common.metrics.service.MonitorMetric;
+import io.kyligence.kap.common.metrics.service.QueryMonitorMetric;
+import io.kyligence.kap.common.util.ClusterConstant;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+
+import java.util.concurrent.TimeUnit;
 
 public class MonitorReporterTest extends NLocalFileMetadataTestCase {
 
@@ -60,14 +65,6 @@ public class MonitorReporterTest extends NLocalFileMetadataTestCase {
         return monitorMetric;
     }
 
-    private void wait(int seconds) {
-        try {
-            Thread.sleep(seconds * 1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
-
     @Test
     public void testBasic() {
         MonitorReporter monitorReporter = MonitorReporter.getInstance();
@@ -82,13 +79,11 @@ public class MonitorReporterTest extends NLocalFileMetadataTestCase {
             }
         });
 
-        wait(3);
+        Awaitility.await().atMost(3, TimeUnit.SECONDS)
+                .untilAsserted(() -> Assert.assertEquals(Integer.valueOf(1), monitorReporter.getQueueSize()));
 
-        Assert.assertEquals(Integer.valueOf(1), monitorReporter.getQueueSize());
-
-        wait(5);
-
-        Assert.assertEquals(Integer.valueOf(0), monitorReporter.getQueueSize());
+        Awaitility.await().atMost(5, TimeUnit.SECONDS)
+                .untilAsserted(() -> Assert.assertEquals(Integer.valueOf(0), monitorReporter.getQueueSize()));
 
         monitorReporter.stopReporter();
     }
