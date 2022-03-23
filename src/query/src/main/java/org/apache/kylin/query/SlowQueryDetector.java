@@ -106,6 +106,7 @@ public class SlowQueryDetector extends Thread {
     @Override
     public void run() {
         while (true) {
+            checkStopByUser();
             checkTimeout();
             try {
                 Thread.sleep(detectionIntervalMs);
@@ -129,6 +130,16 @@ public class SlowQueryDetector extends Thread {
     @VisibleForTesting
     public static void clearCanceledSlowQueriesStatus() {
         canceledSlowQueriesStatus.clear();
+    }
+
+    private void checkStopByUser() {
+        // interrupt query thread if Stop By User but running
+        for (QueryEntry e : runningQueries.values()) {
+            if (e.isStopByUser) {
+                e.getThread().interrupt();
+                logger.error("Trying to cancel query: {}", e.getThread().getName());
+            }
+        }
     }
 
     private void checkTimeout() {
