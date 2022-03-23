@@ -22,8 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
-
 package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
@@ -106,7 +104,7 @@ public class TableExtServiceTest extends NLocalFileMetadataTestCase {
         Mockito.doReturn(Lists.newArrayList(tableNames)).when(tableService).getSourceTableNames("default", "EDW", "");
         Mockito.doReturn(loadTableResponse).when(tableExtService).loadTables(tableIdentities, "default");
         LoadTableResponse response = tableExtService.loadTablesByDatabase("default", new String[] { "EDW" });
-        Assert.assertTrue(response.getLoaded().size() == 0);
+        Assert.assertEquals(0, response.getLoaded().size());
     }
 
     @Test
@@ -120,7 +118,7 @@ public class TableExtServiceTest extends NLocalFileMetadataTestCase {
         NTableMetadataManager tableManager = NTableMetadataManager.getInstance(getTestConfig(), "default");
         tableManager.removeSourceTable("EDW.TEST_CAL_DT");
         LoadTableResponse response = tableExtService.loadTablesByDatabase("default", new String[]{"EDW"});
-        Assert.assertTrue(response.getLoaded().size() == 1);
+        Assert.assertEquals(1, response.getLoaded().size());
     }
 
     @Test

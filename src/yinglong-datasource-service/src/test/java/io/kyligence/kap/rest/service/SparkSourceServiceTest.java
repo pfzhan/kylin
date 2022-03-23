@@ -35,7 +35,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.curator.test.TestingServer;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.rest.service.ServiceTestBase;
 import org.apache.spark.sql.AnalysisException;
 import org.apache.spark.sql.DDLDesc;
 import org.apache.spark.sql.SaveMode;
@@ -44,19 +43,19 @@ import org.apache.spark.sql.SparkSession;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mockito;
 
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.request.DDLRequest;
 import io.kyligence.kap.rest.response.DDLResponse;
 
-public class SparkSourceServiceTest extends ServiceTestBase {
+public class SparkSourceServiceTest extends NLocalFileMetadataTestCase {
 
     protected static SparkSession ss;
     private NProjectManager projectManager;
@@ -66,6 +65,7 @@ public class SparkSourceServiceTest extends ServiceTestBase {
 
     @Before
     public void setUp() throws Exception {
+        createTestMetadata();
         ss = SparkSession.builder().appName("local").master("local[1]").enableHiveSupport().getOrCreate();
         ss.sparkContext().hadoopConfiguration().set("javax.jdo.option.ConnectionURL",
                 "jdbc:derby:memory:db;create=true");
@@ -121,7 +121,11 @@ public class SparkSourceServiceTest extends ServiceTestBase {
 
     @Test
     public void testGetTableDesc() {
-        sparkSourceService.getTableDesc("default", "COUNTRY");
+        try {
+            sparkSourceService.getTableDesc("default", "COUNTRY");
+        } catch (Exception e) {
+            Assert.fail(e.getMessage());
+        }
     }
 
     @Test
@@ -132,9 +136,9 @@ public class SparkSourceServiceTest extends ServiceTestBase {
 
     }
 
-    @Ignore
+    @Test
     public void testListTables() throws Exception {
-        Assert.assertEquals(9, sparkSourceService.listTables("DEFAULT", "default").size());
+        Assert.assertEquals(11, sparkSourceService.listTables("DEFAULT", "default").size());
     }
 
     @Test

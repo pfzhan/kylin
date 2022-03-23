@@ -26,7 +26,6 @@ package io.kyligence.kap.rest.service;
 import java.util.Arrays;
 import java.util.Locale;
 
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -34,6 +33,7 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
@@ -46,20 +46,25 @@ import org.junit.rules.TemporaryFolder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.springframework.security.authentication.TestingAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import io.kyligence.kap.common.scheduler.EventBusFactory;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.junit.rule.TransactionExceptedException;
 import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.metadata.streaming.KafkaConfig;
 import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
-import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
 import io.kyligence.kap.rest.request.StreamingRequest;
 import lombok.val;
 
-public class StreamingTableServiceTest extends CSVSourceTestCase {
+public class StreamingTableServiceTest extends NLocalFileMetadataTestCase {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
@@ -84,13 +89,20 @@ public class StreamingTableServiceTest extends CSVSourceTestCase {
     @Mock
     protected IUserGroupService userGroupService = Mockito.spy(NUserGroupService.class);
 
-    private final ModelBrokenListener modelBrokenListener = new ModelBrokenListener();
 
     private static String PROJECT = "streaming_test";
 
     @Before
     public void setup() {
-        super.setup();
+        ExecutableUtils.initJobFactory();
+        createTestMetadata();
+        Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+        projectManager.forceDropProject("broken_test");
+        projectManager.forceDropProject("bad_query_test");
+
         System.setProperty("HADOOP_USER_NAME", "root");
 
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
@@ -113,14 +125,11 @@ public class StreamingTableServiceTest extends CSVSourceTestCase {
         } catch (Exception e) {
             //
         }
-
-        EventBusFactory.getInstance().register(modelBrokenListener, false);
     }
 
     @After
     public void tearDown() {
         getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "false");
-        EventBusFactory.getInstance().unregister(modelBrokenListener);
         EventBusFactory.getInstance().restart();
         cleanupTestMetadata();
     }

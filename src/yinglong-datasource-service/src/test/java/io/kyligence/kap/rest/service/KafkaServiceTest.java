@@ -46,7 +46,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.streaming.KafkaConfig;
-import io.kyligence.kap.metadata.streaming.ReflectionUtils;
 import io.kyligence.kap.source.kafka.CollectKafkaStats;
 import lombok.val;
 
@@ -78,14 +77,14 @@ public class KafkaServiceTest extends NLocalFileMetadataTestCase {
     }
 
     public void init() {
-        ReflectionUtils.setField(kafkaConfig, "database", "SSB");
-        ReflectionUtils.setField(kafkaConfig, "name", "P_LINEORDER");
-        ReflectionUtils.setField(kafkaConfig, "project", "streaming_test");
-        ReflectionUtils.setField(kafkaConfig, "kafkaBootstrapServers", brokerServer);
-        ReflectionUtils.setField(kafkaConfig, "subscribe", "ssb-topic1");
-        ReflectionUtils.setField(kafkaConfig, "startingOffsets", "latest");
-        ReflectionUtils.setField(kafkaConfig, "batchTable", "");
-        ReflectionUtils.setField(kafkaConfig, "parserName", "io.kyligence.kap.parser.TimedJsonStreamParser");
+        ReflectionTestUtils.setField(kafkaConfig, "database", "SSB");
+        ReflectionTestUtils.setField(kafkaConfig, "name", "P_LINEORDER");
+        ReflectionTestUtils.setField(kafkaConfig, "project", "streaming_test");
+        ReflectionTestUtils.setField(kafkaConfig, "kafkaBootstrapServers", brokerServer);
+        ReflectionTestUtils.setField(kafkaConfig, "subscribe", "ssb-topic1");
+        ReflectionTestUtils.setField(kafkaConfig, "startingOffsets", "latest");
+        ReflectionTestUtils.setField(kafkaConfig, "batchTable", "");
+        ReflectionTestUtils.setField(kafkaConfig, "parserName", "io.kyligence.kap.parser.TimedJsonStreamParser");
     }
 
     @Test
