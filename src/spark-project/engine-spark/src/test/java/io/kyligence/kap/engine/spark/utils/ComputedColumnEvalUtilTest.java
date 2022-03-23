@@ -24,7 +24,7 @@
 
 package io.kyligence.kap.engine.spark.utils;
 
-import static org.apache.kylin.query.exception.QueryErrorCode.CC_EXPRESSION_ILLEGAL;
+import static org.apache.kylin.common.exception.QueryErrorCode.CC_EXPRESSION_ILLEGAL;
 
 import java.util.Arrays;
 import java.util.List;

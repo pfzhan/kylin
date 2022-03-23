@@ -42,12 +42,12 @@
 
 package org.apache.kylin.query.udf.dateUdf;
 
+import java.sql.Date;
+import java.sql.Timestamp;
+
 import org.apache.calcite.linq4j.function.Parameter;
 import org.apache.calcite.sql.type.NotConstant;
-import org.apache.kylin.query.udf.CalciteNotSupportException;
-
-import java.sql.Timestamp;
-import java.sql.Date;
+import org.apache.kylin.common.exception.CalciteNotSupportException;
 
 public class DateTruncUDF implements NotConstant {
 

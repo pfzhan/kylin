@@ -48,7 +48,6 @@ import org.apache.commons.lang3.NotImplementedException;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.query.util.QueryParams;
-import org.apache.kylin.query.util.QueryUtil;
 import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,6 +60,7 @@ import io.kyligence.kap.util.ExecAndComp;
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.query.engine.QueryOptimizer;
 import io.kyligence.kap.query.util.HepUtils;
+import io.kyligence.kap.query.util.KapQueryUtil;
 
 public class CalciteRuleTestBase extends NLocalFileMetadataTestCase {
     private static final Logger logger = LoggerFactory.getLogger(CalciteRuleTestBase.class);
@@ -118,7 +118,7 @@ public class CalciteRuleTestBase extends NLocalFileMetadataTestCase {
                 return e.getFirst().contains(file);
         }).map(e -> {
             QueryParams queryParams = new QueryParams(config, e.getSecond(), project, 0, 0, "DEFAULT", false);
-            String sql = QueryUtil.massageSql(queryParams).replaceAll(emptyLinePattern, ""); // remove empty line
+            String sql = KapQueryUtil.massageSql(queryParams).replaceAll(emptyLinePattern, ""); // remove empty line
             return new Pair<>(FilenameUtils.getBaseName(e.getFirst()), sql);
         }).collect(Collectors.toList());
         Assert.assertEquals(1, queries.size());
@@ -130,7 +130,7 @@ public class CalciteRuleTestBase extends NLocalFileMetadataTestCase {
         final String queryFolder = IT_SQL_KAP_DIR + folder;
         return ExecAndComp.fetchQueries(queryFolder).stream().map(e -> {
             QueryParams queryParams = new QueryParams(config, e.getSecond(), project, 0, 0, "DEFAULT", false);
-            String sql = QueryUtil.massageSql(queryParams).replaceAll(emptyLinePattern, ""); // remove empty line
+            String sql = KapQueryUtil.massageSql(queryParams).replaceAll(emptyLinePattern, ""); // remove empty line
             return new Pair<>(FilenameUtils.getBaseName(e.getFirst()), sql);
         }).collect(Collectors.toList());
     }

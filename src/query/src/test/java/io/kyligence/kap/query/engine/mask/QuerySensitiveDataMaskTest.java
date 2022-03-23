@@ -24,11 +24,6 @@
 
 package io.kyligence.kap.query.engine.mask;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.acl.SensitiveDataMask;
-import io.kyligence.kap.metadata.acl.SensitiveDataMaskInfo;
-import io.kyligence.kap.query.engine.QueryExec;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.parser.SqlParseException;
@@ -40,6 +35,14 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.acl.SensitiveDataMask;
+import io.kyligence.kap.metadata.acl.SensitiveDataMaskInfo;
+import io.kyligence.kap.query.engine.QueryExec;
+import io.kyligence.kap.query.mask.QuerySensitiveDataMask;
 
 public class QuerySensitiveDataMaskTest extends NLocalFileMetadataTestCase {
 

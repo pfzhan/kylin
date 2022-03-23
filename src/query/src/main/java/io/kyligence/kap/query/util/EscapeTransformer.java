@@ -25,11 +25,10 @@
 package io.kyligence.kap.query.util;
 
 import org.apache.kylin.common.KapConfig;
-import org.apache.kylin.query.util.QueryUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class EscapeTransformer implements QueryUtil.IQueryTransformer {
+public class EscapeTransformer implements KapQueryUtil.IQueryTransformer {
 
 
     private static final Logger logger = LoggerFactory.getLogger(EscapeDialect.class);

@@ -24,8 +24,9 @@
 
 package io.kyligence.kap.query.exception;
 
+import static org.apache.kylin.common.exception.QueryErrorCode.UNSUPPORTED_SUM_CASE_WHEN;
+
 import org.apache.kylin.common.exception.KylinException;
-import static org.apache.kylin.query.exception.QueryErrorCode.UNSUPPORTED_SUM_CASE_WHEN;
 
 public class SumExprUnSupportException extends KylinException {
 

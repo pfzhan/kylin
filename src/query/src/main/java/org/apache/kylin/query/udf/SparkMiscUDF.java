@@ -44,6 +44,7 @@ package org.apache.kylin.query.udf;
 
 import org.apache.calcite.linq4j.function.Parameter;
 import org.apache.calcite.sql.type.NotConstant;
+import org.apache.kylin.common.exception.CalciteNotSupportException;
 
 public class SparkMiscUDF implements NotConstant {
     public Long CRC32(@Parameter(name = "str1") String exp) throws CalciteNotSupportException {

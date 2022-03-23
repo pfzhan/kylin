@@ -106,7 +106,6 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.query.util.QueryParams;
-import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.security.MutableAclRecord;
 import org.apache.kylin.rest.service.AccessService;
@@ -1603,7 +1602,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                 queryParams.setKylinConfig(projectInstance.getConfig());
                 queryParams.setAclInfo(
                         AclPermissionUtil.prepareQueryContextACLInfo(dataModel.getProject(), getCurrentUserGroups()));
-                String pushdownSql = QueryUtil.massagePushDownSql(queryParams);
+                String pushdownSql = KapQueryUtil.massagePushDownSql(queryParams);
                 ss.sql(pushdownSql);
             }
         } catch (Exception e) {

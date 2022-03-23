@@ -39,6 +39,7 @@ import org.apache.kylin.query.util.QueryUtil;
 import com.google.common.cache.CacheLoader.InvalidCacheLoadException;
 
 import io.kyligence.kap.query.engine.QueryExec;
+import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.smart.common.SmartConfig;
 import io.kyligence.kap.smart.query.QueryRecord;
 import io.kyligence.kap.smart.query.SQLResult;
@@ -80,7 +81,7 @@ public class MockupQueryExecutor extends AbstractQueryExecutor {
             // execute and discard the result data
             QueryExec queryExec = new QueryExec(projectName, kylinConfig);
             QueryParams queryParams = new QueryParams(kylinConfig, sql, projectName, 0, 0, queryExec.getDefaultSchemaName(), true);
-            queryExec.executeQuery(QueryUtil.massageSql(queryParams));
+            queryExec.executeQuery(KapQueryUtil.massageSql(queryParams));
 
             sqlResult.setStatus(SQLResult.Status.SUCCESS);
         } catch (Throwable e) { // cannot replace with Exception, e may a instance of Error

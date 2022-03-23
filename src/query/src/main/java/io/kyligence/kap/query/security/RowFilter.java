@@ -50,7 +50,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
-import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.source.adhocquery.IPushDownConverter;
 import org.slf4j.Logger;
@@ -59,8 +58,9 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.metadata.acl.AclTCRManager;
+import io.kyligence.kap.query.util.KapQueryUtil;
 
-public class RowFilter implements QueryUtil.IQueryTransformer, IPushDownConverter {
+public class RowFilter implements KapQueryUtil.IQueryTransformer, IPushDownConverter {
     private static final Logger logger = LoggerFactory.getLogger(RowFilter.class);
 
     @Override

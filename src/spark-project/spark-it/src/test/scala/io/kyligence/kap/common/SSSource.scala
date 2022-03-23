@@ -22,16 +22,17 @@
 
 package io.kyligence.kap.common
 
+import java.util.Locale
+
 import com.google.common.base.Preconditions
 import io.kyligence.kap.common.util.TempMetadataBuilder
 import io.kyligence.kap.metadata.model.NTableMetadataManager
+import io.kyligence.kap.query.util.KapQueryUtil
 import org.apache.kylin.common.KylinConfig
-import org.apache.kylin.query.util.{QueryParams, QueryUtil}
+import org.apache.kylin.query.util.QueryParams
 import org.apache.spark.sql.common.{LocalMetadata, SharedSparkSession}
 import org.apache.spark.sql.execution.utils.SchemaProcessor
 import org.scalatest.Suite
-
-import java.util.Locale
 
 trait SSSource extends SharedSparkSession with LocalMetadata {
   self: Suite =>
@@ -81,7 +82,7 @@ trait SSSource extends SharedSparkSession with LocalMetadata {
       .replaceAll("DEFAULT\\.", "")
       .replaceAll("\"DEFAULT\"\\.", "")
     val queryParams = new QueryParams("default", sqlForSpark, "DEFAULT", false)
-    queryParams.setKylinConfig(QueryUtil.getKylinConfig("default"))
-    QueryUtil.massagePushDownSql(queryParams)
+    queryParams.setKylinConfig(KapQueryUtil.getKylinConfig("default"))
+    KapQueryUtil.massagePushDownSql(queryParams)
   }
 }

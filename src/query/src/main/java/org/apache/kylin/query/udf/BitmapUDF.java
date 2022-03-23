@@ -42,9 +42,10 @@
 
 package org.apache.kylin.query.udf;
 
-import org.apache.calcite.linq4j.function.Parameter;
-
 import java.util.List;
+
+import org.apache.calcite.linq4j.function.Parameter;
+import org.apache.kylin.common.exception.CalciteNotSupportException;
 
 public class BitmapUDF {
     public Long INTERSECT_COUNT_BY_COL(List maps) throws CalciteNotSupportException {

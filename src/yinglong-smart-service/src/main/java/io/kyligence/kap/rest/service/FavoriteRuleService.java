@@ -47,6 +47,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.rest.response.ImportSqlResponse;
 import io.kyligence.kap.rest.response.SQLParserResponse;
 import io.kyligence.kap.rest.response.SQLValidateResponse;
@@ -167,7 +168,7 @@ public class FavoriteRuleService extends BasicService {
             QueryParams queryParams = new QueryParams(kylinConfig, sql, project, 0, 0, DEFAULT_SCHEMA, false);
             queryParams.setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(project, getCurrentUserGroups()));
             // massage sql and expand CC columns
-            String correctedSql = QueryUtil.massageSqlAndExpandCC(queryParams);
+            String correctedSql = KapQueryUtil.massageSqlAndExpandCC(queryParams);
             sqls.add(correctedSql);
         }
 
@@ -179,7 +180,7 @@ public class FavoriteRuleService extends BasicService {
         KylinConfig kylinConfig = getManager(NProjectManager.class).getProject(project).getConfig();
         QueryParams queryParams = new QueryParams(kylinConfig, sql, project, 0, 0, DEFAULT_SCHEMA, false);
         queryParams.setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(project, getCurrentUserGroups()));
-        String correctedSql = QueryUtil.massageSql(queryParams);
+        String correctedSql = KapQueryUtil.massageSql(queryParams);
         // sql validation
         Map<String, SQLValidateResult> map = batchSqlValidate(Lists.newArrayList(correctedSql), project);
         SQLValidateResult result = map.get(correctedSql);

@@ -303,6 +303,7 @@
     <modules>
         <module>src/core-job</module>
         <module>src/core-storage</module>
+        <module>src/query-common</module>
         <module>src/query</module>
         <module>src/kap-it</module>
         <module>src/smart</module>
@@ -624,6 +625,11 @@
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-source-hive</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.ke</groupId>
+                <artifactId>kap-query-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -2877,6 +2883,11 @@
                         <failIfWarning>true</failIfWarning>
                         <includeOptional>true</includeOptional>
                     </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>javacc-maven-plugin</artifactId>
+                    <version>2.6</version>
                 </plugin>
             </plugins>
         </pluginManagement>

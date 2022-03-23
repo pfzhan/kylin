@@ -42,9 +42,10 @@
 
 package org.apache.kylin.query.udf;
 
-import org.apache.calcite.sql.type.NotConstant;
-
 import java.sql.Timestamp;
+
+import org.apache.calcite.sql.type.NotConstant;
+import org.apache.kylin.common.exception.CalciteNotSupportException;
 
 public class SparkLeafUDF implements NotConstant {
     public String UUID() throws CalciteNotSupportException {

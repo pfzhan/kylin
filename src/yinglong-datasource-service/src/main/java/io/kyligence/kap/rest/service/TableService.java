@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.service;
 
+import static org.apache.kylin.common.exception.QueryErrorCode.EMPTY_TABLE;
 import static org.apache.kylin.common.exception.ServerErrorCode.COLUMN_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATED_COLUMN_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_IMPORT_SSB_DATA;
@@ -38,7 +39,6 @@ import static org.apache.kylin.common.exception.ServerErrorCode.RELOAD_TABLE_FAI
 import static org.apache.kylin.common.exception.ServerErrorCode.TABLE_NOT_EXIST;
 import static org.apache.kylin.job.execution.JobTypeEnum.SNAPSHOT_BUILD;
 import static org.apache.kylin.job.execution.JobTypeEnum.SNAPSHOT_REFRESH;
-import static org.apache.kylin.query.exception.QueryErrorCode.EMPTY_TABLE;
 
 import java.io.File;
 import java.io.IOException;
@@ -78,6 +78,7 @@ import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigBase;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.QueryErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.BufferedLogger;
 import org.apache.kylin.common.util.CliCommandExecutor;
@@ -107,7 +108,6 @@ import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-import org.apache.kylin.query.exception.QueryErrorCode;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.TableRefresh;

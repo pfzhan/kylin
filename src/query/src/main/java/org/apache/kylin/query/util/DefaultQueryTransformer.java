@@ -46,12 +46,13 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.query.util.QueryUtil.IQueryTransformer;
+
+import io.kyligence.kap.query.util.KapQueryUtil;
 
 /**
  * DefaultQueryTransformer only used for query from IndexPlan.
  */
-public class DefaultQueryTransformer implements IQueryTransformer {
+public class DefaultQueryTransformer implements KapQueryUtil.IQueryTransformer {
 
     private static final String S0 = "\\s*";
     private static final String SM = "\\s+";

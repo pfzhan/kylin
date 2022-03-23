@@ -85,7 +85,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.ThreadUtil;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
-import org.apache.kylin.query.util.QueryUtil;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
@@ -105,7 +104,7 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer {
+public class ConvertToComputedColumn implements KapQueryUtil.IQueryTransformer {
 
     private static final String CONVERT_TO_CC_ERROR_MSG = "Something unexpected while ConvertToComputedColumn transforming the query, return original query.";
 

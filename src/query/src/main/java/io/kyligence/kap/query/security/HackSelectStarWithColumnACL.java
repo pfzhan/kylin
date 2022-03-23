@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-import io.kyligence.kap.query.exception.NoAuthorizedColsError;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlExplain;
@@ -46,8 +45,8 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
-import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.source.adhocquery.IPushDownConverter;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -55,9 +54,10 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.acl.AclTCR;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import org.apache.kylin.source.adhocquery.IPushDownConverter;
+import io.kyligence.kap.query.exception.NoAuthorizedColsError;
+import io.kyligence.kap.query.util.KapQueryUtil;
 
-public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer, IPushDownConverter {
+public class HackSelectStarWithColumnACL implements KapQueryUtil.IQueryTransformer, IPushDownConverter {
 
     private static final String SELECT_STAR = "*";
 

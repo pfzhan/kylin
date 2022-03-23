@@ -31,9 +31,8 @@ import java.util.concurrent.{CountDownLatch, TimeUnit}
 
 import org.apache.commons.io.FileUtils
 import org.apache.kylin.common.KylinConfig
-import org.apache.kylin.common.exception.KylinException
+import org.apache.kylin.common.exception.{KylinException, QueryErrorCode}
 import org.apache.kylin.common.util.ZipFileUtils
-import org.apache.kylin.query.exception.QueryErrorCode
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SparderEnv
 

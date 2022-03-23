@@ -41,6 +41,7 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.acl.DependentColumn;
 import io.kyligence.kap.metadata.acl.DependentColumnInfo;
 import io.kyligence.kap.query.engine.QueryExec;
+import io.kyligence.kap.query.mask.QueryDependentColumnMask;
 
 public class QueryDependentColumnMaskTest extends NLocalFileMetadataTestCase {
 

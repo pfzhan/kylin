@@ -69,7 +69,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.query.util.CommentParser;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -97,7 +96,6 @@ import org.apache.kylin.query.blacklist.SQLBlacklistItem;
 import org.apache.kylin.query.blacklist.SQLBlacklistManager;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.util.QueryParams;
-import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.model.Query;
@@ -154,6 +152,8 @@ import io.kyligence.kap.query.engine.PrepareSqlStateParam;
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.query.engine.QueryRoutingEngine;
 import io.kyligence.kap.query.engine.data.QueryResult;
+import io.kyligence.kap.query.util.CommentParser;
+import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.cluster.DefaultClusterManager;
 import io.kyligence.kap.rest.config.AppConfig;
@@ -265,10 +265,10 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         sqlRequest.setProject(project);
         sqlRequest.setForcedToPushDown(true);
 
-        QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(sqlRequest.getProject()),
+        QueryParams queryParams = new QueryParams(KapQueryUtil.getKylinConfig(sqlRequest.getProject()),
                 sqlRequest.getSql(), sqlRequest.getProject(), sqlRequest.getLimit(), sqlRequest.getOffset(),
                 queryExec.getDefaultSchemaName(), true);
-        String correctedSql = QueryUtil.massageSql(queryParams);
+        String correctedSql = KapQueryUtil.massageSql(queryParams);
 
         Mockito.when(queryExec.executeQuery(correctedSql))
                 .thenThrow(new RuntimeException("shouldnt execute queryexec"));
@@ -295,10 +295,10 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         sqlRequest.setProject(project);
         sqlRequest.setForcedToIndex(true);
 
-        QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(sqlRequest.getProject()),
+        QueryParams queryParams = new QueryParams(KapQueryUtil.getKylinConfig(sqlRequest.getProject()),
                 sqlRequest.getSql(), sqlRequest.getProject(), sqlRequest.getLimit(), sqlRequest.getOffset(),
                 queryExec.getDefaultSchemaName(), true);
-        String correctedSql = QueryUtil.massageSql(queryParams);
+        String correctedSql = KapQueryUtil.massageSql(queryParams);
 
         Mockito.when(queryExec.executeQuery(correctedSql))
                 .thenThrow(new RuntimeException("shouldnt execute queryexec"));

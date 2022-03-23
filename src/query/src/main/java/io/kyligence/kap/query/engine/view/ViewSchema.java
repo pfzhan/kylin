@@ -35,7 +35,7 @@ import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.ViewTableMacro;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.query.exception.QueryErrorCode;
+import org.apache.kylin.common.exception.QueryErrorCode;
 
 import java.util.HashMap;
 import java.util.List;

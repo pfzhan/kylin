@@ -23,9 +23,30 @@
  */
 package io.kyligence.kap.newten;
 
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.RandomUtil;
+import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.parquet.Strings;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.SparderEnv;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+
 import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.engine.spark.job.NSparkSnapshotJob;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -34,18 +55,9 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.util.ExecAndComp;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.SparderEnv;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
+import lombok.val;
 
 public class NBuildAndQuerySnapshotTest extends NLocalWithSparkSessionTest {
 
@@ -103,6 +115,38 @@ public class NBuildAndQuerySnapshotTest extends NLocalWithSparkSessionTest {
         NDataflow df = dsMgr.getDataflow(dfName);
         List<LayoutEntity> layouts = df.getIndexPlan().getAllLayouts();
         indexDataConstructor.buildIndex(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts), true);
+    }
+
+    @Test
+    public void testQueryPartitionSnapshot() throws Exception {
+        String tableName = "EDW.TEST_SELLER_TYPE_DIM";
+        String partitionCol = "SELLER_TYPE_CD";
+        Set<String> partitions = ImmutableSet.of("5", "16");
+        NTableMetadataManager tableManager = NTableMetadataManager.getInstance(config, getProject());
+        TableDesc table = tableManager.getTableDesc(tableName);
+        table.setSelectedSnapshotPartitionCol(partitionCol);
+        table.setPartitionColumn(partitionCol);
+        tableManager.updateTableDesc(table);
+
+        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+        NSparkSnapshotJob job = NSparkSnapshotJob.create(tableManager.getTableDesc(tableName), "ADMIN",
+                JobTypeEnum.SNAPSHOT_BUILD, RandomUtil.randomUUIDStr(), partitionCol, false, null, null, null);
+        setPartitions(job, partitions);
+        execMgr.addJob(job);
+
+        // wait job done
+        ExecutableState status = IndexDataConstructor.wait(job);
+        Assert.assertEquals(ExecutableState.SUCCEED, status);
+
+        String sql = "select * from EDW.TEST_SELLER_TYPE_DIM";
+        QueryExec queryExec = new QueryExec(getProject(), KylinConfig.getInstanceFromEnv());
+        val resultSet = queryExec.executeQuery(sql);
+        Assert.assertEquals(2, resultSet.getRows().size());
+    }
+
+    private void setPartitions(NSparkSnapshotJob job, Set<String> partitions) {
+        job.setParam("partitions", Strings.join(partitions, ","));
+        job.getSnapshotBuildingStep().setParam("partitions", Strings.join(partitions, ","));
     }
 
 }

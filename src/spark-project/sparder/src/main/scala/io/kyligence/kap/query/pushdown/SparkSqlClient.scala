@@ -27,7 +27,7 @@ package io.kyligence.kap.query.pushdown
 import io.kyligence.kap.guava20.shaded.common.collect.Lists
 import io.kyligence.kap.metadata.project.NProjectManager
 import io.kyligence.kap.metadata.query.StructField
-import io.kyligence.kap.query.engine.mask.QueryResultMasks
+import io.kyligence.kap.query.mask.QueryResultMasks
 import io.kyligence.kap.query.runtime.plan.QueryToExecutionIDCache
 import io.kyligence.kap.query.runtime.plan.ResultPlan.saveAsyncQueryResult
 import io.kyligence.kap.query.util.SparkJobTrace

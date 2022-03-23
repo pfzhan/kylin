@@ -46,7 +46,9 @@ import java.util.regex.Pattern;
 
 import org.apache.kylin.source.adhocquery.IPushDownConverter;
 
-public class PowerBIConverter implements QueryUtil.IQueryTransformer, IPushDownConverter {
+import io.kyligence.kap.query.util.KapQueryUtil;
+
+public class PowerBIConverter implements KapQueryUtil.IQueryTransformer, IPushDownConverter {
 
     private static final String S0 = "\\s*";
     private static final String SM = "\\s+";

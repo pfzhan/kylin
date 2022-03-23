@@ -47,6 +47,7 @@ import java.sql.Timestamp;
 
 import org.apache.calcite.linq4j.function.Parameter;
 import org.apache.calcite.sql.type.NotConstant;
+import org.apache.kylin.common.exception.CalciteNotSupportException;
 
 public class SparkTimeUDF implements NotConstant {
     public Date TRUNC(@Parameter(name = "date") Object exp1, @Parameter(name = "str2") String exp2)

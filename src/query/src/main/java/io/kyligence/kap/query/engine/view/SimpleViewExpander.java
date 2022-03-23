@@ -24,15 +24,15 @@
 
 package io.kyligence.kap.query.engine.view;
 
+import static org.apache.kylin.common.exception.QueryErrorCode.FAILED_PARSE_ERROR;
+
+import java.util.List;
+
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.kylin.common.exception.KylinException;
-
-import java.util.List;
-
-import static org.apache.kylin.query.exception.QueryErrorCode.FAILED_PARSE_ERROR;
 
 /**
  * A thin wrapper of ViewExpander

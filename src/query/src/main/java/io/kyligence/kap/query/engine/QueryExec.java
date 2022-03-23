@@ -24,19 +24,13 @@
 
 package io.kyligence.kap.query.engine;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Lists;
-import io.kyligence.kap.metadata.query.StructField;
-import io.kyligence.kap.query.engine.data.QueryResult;
-import io.kyligence.kap.query.engine.exec.ExecuteResult;
-import io.kyligence.kap.query.engine.exec.calcite.CalciteQueryPlanExec;
-import io.kyligence.kap.query.engine.exec.sparder.SparderQueryPlanExec;
-import io.kyligence.kap.query.engine.mask.QueryResultMasks;
-import io.kyligence.kap.query.engine.meta.SimpleDataContext;
-import io.kyligence.kap.query.relnode.KapAggregateRel;
-import io.kyligence.kap.query.util.CalcitePlanRouterVisitor;
-import io.kyligence.kap.query.util.HepUtils;
-import io.kyligence.kap.query.engine.view.ViewAnalyzer;
+import java.sql.SQLException;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.function.Function;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteConnectionConfig;
@@ -68,13 +62,20 @@ import org.apache.kylin.query.util.AsyncQueryUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.SQLException;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.function.Function;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.metadata.query.StructField;
+import io.kyligence.kap.query.engine.data.QueryResult;
+import io.kyligence.kap.query.engine.exec.ExecuteResult;
+import io.kyligence.kap.query.engine.exec.calcite.CalciteQueryPlanExec;
+import io.kyligence.kap.query.engine.exec.sparder.SparderQueryPlanExec;
+import io.kyligence.kap.query.engine.meta.SimpleDataContext;
+import io.kyligence.kap.query.engine.view.ViewAnalyzer;
+import io.kyligence.kap.query.mask.QueryResultMasks;
+import io.kyligence.kap.query.relnode.KapAggregateRel;
+import io.kyligence.kap.query.util.CalcitePlanRouterVisitor;
+import io.kyligence.kap.query.util.HepUtils;
 
 /**
  * Entrance for query execution

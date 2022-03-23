@@ -33,12 +33,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.source.adhocquery.IPushDownConverter;
 
 import com.google.common.collect.Lists;
 
-public class CognosParenthesesEscapeTransformer implements QueryUtil.IQueryTransformer, IPushDownConverter {
+public class CognosParenthesesEscapeTransformer implements KapQueryUtil.IQueryTransformer, IPushDownConverter {
     private static final Pattern FROM_PATTERN = Pattern.compile("\\bfrom(\\s*\\()+(?!\\s*select\\s)",
             Pattern.CASE_INSENSITIVE);
 

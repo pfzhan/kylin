@@ -48,7 +48,6 @@ import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
-import org.apache.kylin.query.util.QueryUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,7 +66,7 @@ import org.slf4j.LoggerFactory;
  * So the preparedStatement parameters should also be transformed
  *
  */
-public class WithToSubQueryTransformer implements QueryUtil.IQueryTransformer {
+public class WithToSubQueryTransformer implements KapQueryUtil.IQueryTransformer {
     private static final Logger logger = LoggerFactory.getLogger(WithToSubQueryTransformer.class);
 
     @Override

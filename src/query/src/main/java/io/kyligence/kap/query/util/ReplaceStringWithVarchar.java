@@ -32,11 +32,10 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
-import org.apache.kylin.query.util.QueryUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ReplaceStringWithVarchar implements QueryUtil.IQueryTransformer {
+public class ReplaceStringWithVarchar implements KapQueryUtil.IQueryTransformer {
     private static final Logger logger = LoggerFactory.getLogger(ReplaceStringWithVarchar.class);
     private static final String REPLACED = "STRING";
     private static final String REPLACER = "VARCHAR";
