@@ -198,7 +198,6 @@ import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinTableDesc;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.QueryTimesResponse;
-import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
 import io.kyligence.kap.metadata.user.ManagedUser;
@@ -356,8 +355,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val result1 = new QueryTimesResponse();
         result1.setModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         result1.setQueryTimes(10);
-        RDBMSQueryHistoryDAO rdbmsQueryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
-        Mockito.doReturn(rdbmsQueryHistoryDAO).when(modelService).getQueryHistoryDao();
         val prjManager = NProjectManager.getInstance(getTestConfig());
         val prj = prjManager.getProject("default");
         val copy = prjManager.copyForWrite(prj);
@@ -1597,7 +1594,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testGetRelatedModels_HasNoErrorJobs() {
         NExecutableManager executableManager = Mockito.mock(NExecutableManager.class);
-        Mockito.when(modelService.getExecutableManager("default")).thenReturn(executableManager);
+        Mockito.when(modelService.getManager(NExecutableManager.class, "default")).thenReturn(executableManager);
         Mockito.when(executableManager.getExecutablesByStatus(ExecutableState.ERROR)).thenReturn(Lists.newArrayList());
         List<RelatedModelResponse> responses = modelService.getRelateModels("default", "DEFAULT.TEST_KYLIN_FACT",
                 "nmodel_basic");
@@ -1608,7 +1605,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testGetRelatedModels_HasErrorJobs() {
         NExecutableManager executableManager = Mockito.mock(NExecutableManager.class);
-        Mockito.when(modelService.getExecutableManager("default")).thenReturn(executableManager);
+        Mockito.when(modelService.getManager(NExecutableManager.class, "default")).thenReturn(executableManager);
         Mockito.when(executableManager.getExecutablesByStatus(ExecutableState.ERROR)).thenReturn(mockJobs());
         List<RelatedModelResponse> responses = modelService.getRelateModels("default", "DEFAULT.TEST_KYLIN_FACT",
                 "nmodel_basic_inner");
@@ -3001,7 +2998,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
             }
         });
 
-        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
 
         List<NDataModelResponse> dataModelDescs = modelService.getModels("nmodel_basic", "default", true, null, null,
                 "", false);
@@ -3016,7 +3013,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Field field = ComputedColumnDesc.class.getDeclaredField("expression");
         Unsafe.changeAccessibleObject(field, true);
         field.set(deserialized.getComputedColumnDescs().get(0), "1+1");
-        modelService.getDataModelManager("default").updateDataModelDesc(deserialized);
+        modelService.getManager(NDataModelManager.class, "default").updateDataModelDesc(deserialized);
         // TODO should use modelService.updateModelAndDesc("default", deserialized);
     }
 
@@ -3027,7 +3024,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         expectedEx.expectMessage("There is already a column named CAL_DT on table DEFAULT.TEST_KYLIN_FACT,"
                 + " please change your computed column name");
 
-        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
         List<NDataModelResponse> dataModelDescs = modelService.getModels("nmodel_basic", "default", true, null, null,
                 "", false);
         Assert.assertEquals(1, dataModelDescs.size());
@@ -3041,7 +3038,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Field field = ComputedColumnDesc.class.getDeclaredField("columnName");
         Unsafe.changeAccessibleObject(field, true);
         field.set(deserialized.getComputedColumnDescs().get(0), "cal_dt");
-        modelService.getDataModelManager("default").updateDataModelDesc(deserialized);
+        modelService.getManager(NDataModelManager.class, "default").updateDataModelDesc(deserialized);
         // TODO should use modelService.updateModelAndDesc("default", deserialized);
     }
 
@@ -3056,7 +3053,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         expectedEx.expectMessage(
                 "A computed column should be defined on root fact table if its expression is not referring its hosting alias table,"
                         + " cc: BUYER_ACCOUNT.LEFTJOIN_SELLER_COUNTRY_ABBR");
-        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -3069,7 +3066,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
         NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
         deserialized.setProject("default");
-        modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
+        modelService.getManager(NDataModelManager.class, "default").createDataModelDesc(deserialized, "ADMIN");
         //TODO modelService.updateModelToResourceStore(deserialized, "default");
     }
 
@@ -3079,7 +3076,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         expectedEx.expectMessage(
                 "A computed column should be defined on root fact table if its expression is not referring its hosting alias table,"
                         + " cc: BUYER_ACCOUNT.DEAL_AMOUNT");
-        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -3093,14 +3090,14 @@ public class ModelServiceTest extends CSVSourceTestCase {
         InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
         NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
         deserialized.setProject("default");
-        modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
+        modelService.getManager(NDataModelManager.class, "default").createDataModelDesc(deserialized, "ADMIN");
         //TODO modelService.updateModelToResourceStore(deserialized, "default");
     }
 
     @Test
     public void testNewModelAddSameExprSameNameNormal() throws IOException {
 
-        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -3108,7 +3105,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
         NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
         deserialized.setProject("default");
-        modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
+        modelService.getManager(NDataModelManager.class, "default").createDataModelDesc(deserialized, "ADMIN");
         //TODO modelService.updateModelToResourceStore(deserialized, "default");
     }
 
@@ -3137,7 +3134,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
             }
         });
 
-        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -3159,7 +3156,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
         NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
         deserialized.setProject("default");
-        modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
+        modelService.getManager(NDataModelManager.class, "default").createDataModelDesc(deserialized, "ADMIN");
         //TODO modelService.updateModelToResourceStore(deserialized, "default");
     }
 
@@ -3186,7 +3183,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         });
 
         //save ut_left_join_cc_model, which is a model defining cc on lookup table
-        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -3211,7 +3208,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
         deserialized = serializer.deserialize(new DataInputStream(bais));
         deserialized.setProject("default");
-        modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
+        modelService.getManager(NDataModelManager.class, "default").createDataModelDesc(deserialized, "ADMIN");
         //TODO modelService.updateModelToResourceStore(deserialized, "default");
     }
 
@@ -3242,13 +3239,13 @@ public class ModelServiceTest extends CSVSourceTestCase {
         });
 
         //save nmodel_cc_test, which is a model defining cc on lookup table
-        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
         InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
         NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
-        //        modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
+        //        modelService.getManager(NDataModelManager.class, "default").createDataModelDesc(deserialized, "ADMIN");
         val request = new ModelRequest(deserialized);
         request.setProject("default");
         request.getPartitionDesc().setPartitionDateFormat("yyyy-MM-dd");
@@ -3278,7 +3275,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testAddEquivalentCcConflict() throws IOException {
 
-        NDataModelManager dataModelManager = modelService.getDataModelManager("default");
+        NDataModelManager dataModelManager = modelService.getManager(NDataModelManager.class, "default");
         Serializer<NDataModel> serializer = dataModelManager.getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
@@ -3334,7 +3331,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
             }
         });
 
-        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -3356,7 +3353,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
         NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
         deserialized.setProject("default");
-        modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
+        modelService.getManager(NDataModelManager.class, "default").createDataModelDesc(deserialized, "ADMIN");
         //TODO modelService.updateModelToResourceStore(deserialized, "default");
     }
 
@@ -3386,7 +3383,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
             }
         });
 
-        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -3397,7 +3394,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
         NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
         deserialized.setProject("default");
-        modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
+        modelService.getManager(NDataModelManager.class, "default").createDataModelDesc(deserialized, "ADMIN");
         //TODO modelService.updateModelToResourceStore(deserialized, "default");
     }
 
@@ -3427,7 +3424,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
             }
         });
 
-        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -3438,7 +3435,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
         NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
         deserialized.setProject("default");
-        modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
+        modelService.getManager(NDataModelManager.class, "default").createDataModelDesc(deserialized, "ADMIN");
         //TODO modelService.updateModelToResourceStore(deserialized, "default");
     }
 
@@ -3467,7 +3464,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
             }
         });
 
-        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -3477,13 +3474,13 @@ public class ModelServiceTest extends CSVSourceTestCase {
         InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
         NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
         deserialized.setProject("default");
-        modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
+        modelService.getManager(NDataModelManager.class, "default").createDataModelDesc(deserialized, "ADMIN");
         //TODO modelService.updateModelToResourceStore(deserialized, "default");
     }
 
     @Test
     public void testNewModelAddSameNameDiffExprModelToNonDefaultProject() throws IOException {
-        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -3495,13 +3492,13 @@ public class ModelServiceTest extends CSVSourceTestCase {
         NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
         deserialized.setProject("newten");
         //it's adding to non-default project, should be okay because cc conflict check is by project
-        modelService.getDataModelManager("newten").createDataModelDesc(deserialized, "ADMIN");
+        modelService.getManager(NDataModelManager.class, "newten").createDataModelDesc(deserialized, "ADMIN");
         //TODO modelService.updateModelToResourceStore(deserialized, "non-default");
     }
 
     @Test
     public void testNewModelAddDiffNameSameExprModelToNonDefaultProject() throws IOException {
-        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -3512,7 +3509,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
         deserialized.setProject("newten");
         //it's adding to non-default project, should be okay because cc conflict check is by project
-        modelService.getDataModelManager("newten").createDataModelDesc(deserialized, "ADMIN");
+        modelService.getManager(NDataModelManager.class, "newten").createDataModelDesc(deserialized, "ADMIN");
         //TODO modelService.updateModelToResourceStore(deserialized, "non-default");
     }
 
@@ -3542,7 +3539,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
             }
         });
 
-        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -3563,7 +3560,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         expectedEx.expect(RuntimeException.class);
         expectedEx.expectMessage("No advice could be provided");
 
-        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -3629,7 +3626,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
             }
         });
 
-        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -3674,7 +3671,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
             }
         });
 
-        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -3732,7 +3729,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
             }
         });
 
-        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -3747,7 +3744,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
         NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
         deserialized.setProject("default");
-        modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
+        modelService.getManager(NDataModelManager.class, "default").createDataModelDesc(deserialized, "ADMIN");
         //TODO modelService.updateModelToResourceStore(deserialized, "default");
     }
 
@@ -3773,7 +3770,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
             }
         });
 
-        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -3788,7 +3785,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
         NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
         deserialized.setProject("default");
-        modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
+        modelService.getManager(NDataModelManager.class, "default").createDataModelDesc(deserialized, "ADMIN");
         //TODO modelService.updateModelToResourceStore(deserialized, "default");
     }
 
@@ -3815,7 +3812,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
             }
         });
 
-        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -3831,7 +3828,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
         NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
         deserialized.setProject("default");
-        modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
+        modelService.getManager(NDataModelManager.class, "default").createDataModelDesc(deserialized, "ADMIN");
         //TODO modelService.updateModelToResourceStore(deserialized, "default");
     }
 
@@ -3848,7 +3845,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     public void testCreateBadModelWontAffectTableDesc() throws IOException {
 
         try {
-            Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+            Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
             String contents = StringUtils.join(Files.readAllLines(
                     new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                     Charset.defaultCharset()), "\n");
@@ -3867,11 +3864,11 @@ public class ModelServiceTest extends CSVSourceTestCase {
             InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
             NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
             deserialized.setProject("default");
-            modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
+            modelService.getManager(NDataModelManager.class, "default").createDataModelDesc(deserialized, "ADMIN");
             //TODO modelService.updateModelToResourceStore(deserialized, "default");
         } catch (BadModelException e) {
-            modelService.getTableManager("default").resetProjectSpecificTableDesc();
-            TableDesc aDefault = modelService.getTableManager("default").getTableDesc("DEFAULT.TEST_KYLIN_FACT");
+            modelService.getManager(NTableMetadataManager.class, "default").resetProjectSpecificTableDesc();
+            TableDesc aDefault = modelService.getManager(NTableMetadataManager.class, "default").getTableDesc("DEFAULT.TEST_KYLIN_FACT");
             Set<String> allColumnNames = Arrays.stream(aDefault.getColumns()).map(ColumnDesc::getName)
                     .collect(Collectors.toSet());
             Assert.assertFalse(allColumnNames.contains("DEAL_AMOUNT_2"));
@@ -3886,7 +3883,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         try {
             //save nmodel_cc_test, which is a model defining cc on lookup table
-            Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+            Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
             String contents = StringUtils.join(Files.readAllLines(
                     new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                     Charset.defaultCharset()), "\n");
@@ -3918,15 +3915,15 @@ public class ModelServiceTest extends CSVSourceTestCase {
             modelService.checkComputedColumn(deserialized, "default", null);
 
         } catch (BadModelException e) {
-            modelService.getTableManager("default").resetProjectSpecificTableDesc();
-            TableDesc aDefault = modelService.getTableManager("default").getTableDesc("DEFAULT.TEST_ACCOUNT");
+            modelService.getManager(NTableMetadataManager.class, "default").resetProjectSpecificTableDesc();
+            TableDesc aDefault = modelService.getManager(NTableMetadataManager.class, "default").getTableDesc("DEFAULT.TEST_ACCOUNT");
             Assert.assertEquals(5, aDefault.getColumns().length);
         }
     }
 
     @Test
     public void testPreProcessBeforeModelSave() throws IOException {
-        NDataModelManager modelManager = modelService.getDataModelManager("default");
+        NDataModelManager modelManager = modelService.getManager(NDataModelManager.class, "default");
         Serializer<NDataModel> serializer = modelManager.getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
@@ -5136,7 +5133,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         ccDesc.setDatatype(dataType);
 
         String project = "default";
-        NDataModelManager dataModelManager = modelService.getDataModelManager("default");
+        NDataModelManager dataModelManager = modelService.getManager(NDataModelManager.class, "default");
         NDataModel model = dataModelManager.getDataModelDesc("741ca86a-1f13-46da-a59f-95fb68615e3a");
         model.getComputedColumnDescs().add(ccDesc);
 
@@ -5156,7 +5153,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         ccDesc.setDatatype(dataType);
 
         String project = "default";
-        NDataModelManager dataModelManager = modelService.getDataModelManager("default");
+        NDataModelManager dataModelManager = modelService.getManager(NDataModelManager.class, "default");
         NDataModel model = dataModelManager.getDataModelDesc("741ca86a-1f13-46da-a59f-95fb68615e3a");
         model.getComputedColumnDescs().add(ccDesc);
 
@@ -5180,7 +5177,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         ccDesc.setDatatype(dataType);
 
         String project = "default";
-        NDataModelManager dataModelManager = modelService.getDataModelManager("default");
+        NDataModelManager dataModelManager = modelService.getManager(NDataModelManager.class, "default");
         NDataModel model = dataModelManager.getDataModelDesc("741ca86a-1f13-46da-a59f-95fb68615e3a");
         model.getComputedColumnDescs().add(ccDesc);
 

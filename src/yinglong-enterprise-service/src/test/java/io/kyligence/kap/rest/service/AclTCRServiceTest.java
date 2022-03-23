@@ -229,8 +229,8 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGrantProjectPermission() {
-        AclTCRManager manager = aclTCRService.getAclTCRManager(projectDefault);
-        final String uuid = aclTCRService.getProjectManager().getProject(projectDefault).getUuid();
+        AclTCRManager manager = aclTCRService.getManager(AclTCRManager.class, projectDefault);
+        final String uuid = aclTCRService.getManager(NProjectManager.class).getProject(projectDefault).getUuid();
 
         List<AccessRequest> ars = Lists.newArrayList();
         AccessRequest u1ar = new AccessRequest();
@@ -361,8 +361,8 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testUpdateAclTCRRequest() throws IOException {
-        AclTCRManager manager = aclTCRService.getAclTCRManager(projectDefault);
-        final String uuid = aclTCRService.getProjectManager().getProject(projectDefault).getUuid();
+        AclTCRManager manager = aclTCRService.getManager(AclTCRManager.class, projectDefault);
+        final String uuid = aclTCRService.getManager(NProjectManager.class).getProject(projectDefault).getUuid();
 
         List<AccessRequest> ars = Lists.newArrayList();
         AccessRequest u1ar = new AccessRequest();
@@ -491,7 +491,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
     public void testGetAclTCRResponse() throws IOException {
         Mockito.doReturn(false).when(accessService).hasGlobalAdminGroup(user1);
         Assert.assertEquals(0, aclTCRService.getAclTCRResponse(projectDefault, user1, true, true).size());
-        AclTCRManager manager = aclTCRService.getAclTCRManager(projectDefault);
+        AclTCRManager manager = aclTCRService.getManager(AclTCRManager.class, projectDefault);
         manager.updateAclTCR(new AclTCR(), user1, true);
         Assert.assertTrue(aclTCRService.getAclTCRResponse(projectDefault, user1, true, true).stream()
                 .anyMatch(resp -> resp.getTables().stream().anyMatch(t -> "TEST_ORDER".equals(t.getTableName()))));
@@ -592,7 +592,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
 
         Mockito.reset(aclTCRService);
         AclTCRManager aclTCRManager = Mockito.mock(AclTCRManager.class);
-        Mockito.doReturn(aclTCRManager).when(aclTCRService).getAclTCRManager("default");
+        Mockito.doReturn(aclTCRManager).when(aclTCRService).getManager(AclTCRManager.class, "default");
         Mockito.doReturn(Lists.newArrayList()).when(aclTCRManager).getAclTCRs(userName, groups);
 
         NTableMetadataManager nTableMetadataManager = Mockito.mock(NTableMetadataManager.class);
@@ -814,7 +814,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         // grant acl tcr
         Mockito.doReturn(false).when(accessService).hasGlobalAdminGroup(user1);
         Assert.assertEquals(0, aclTCRService.getAclTCRResponse(projectDefault, user1, true, true).size());
-        AclTCRManager manager = aclTCRService.getAclTCRManager(projectDefault);
+        AclTCRManager manager = aclTCRService.getManager(AclTCRManager.class, projectDefault);
         manager.updateAclTCR(new AclTCR(), user1, true);
 
         List<AclTCRResponse> response = aclTCRService.getAclTCRResponse(projectDefault, user1, true, false);
@@ -887,7 +887,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         // grant acl tcr
         Mockito.doReturn(false).when(accessService).hasGlobalAdminGroup(user1);
         Assert.assertEquals(0, aclTCRService.getAclTCRResponse(projectDefault, user1, true, true).size());
-        AclTCRManager manager = aclTCRService.getAclTCRManager(projectDefault);
+        AclTCRManager manager = aclTCRService.getManager(AclTCRManager.class, projectDefault);
         manager.updateAclTCR(new AclTCR(), user1, true);
 
         AtomicInteger totalTableNum = new AtomicInteger();
@@ -945,7 +945,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         // grant acl tcr
         Mockito.doReturn(false).when(accessService).hasGlobalAdminGroup(user1);
         Assert.assertEquals(0, aclTCRService.getAclTCRResponse(projectDefault, user1, true, true).size());
-        AclTCRManager manager = aclTCRService.getAclTCRManager(projectDefault);
+        AclTCRManager manager = aclTCRService.getManager(AclTCRManager.class, projectDefault);
         manager.updateAclTCR(new AclTCR(), user1, true);
 
         // revoke columnRequest
@@ -1021,7 +1021,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         // grant acl tcr
         Mockito.doReturn(false).when(accessService).hasGlobalAdminGroup(user1);
         Assert.assertEquals(0, aclTCRService.getAclTCRResponse(projectDefault, user1, true, true).size());
-        AclTCRManager manager = aclTCRService.getAclTCRManager(projectDefault);
+        AclTCRManager manager = aclTCRService.getManager(AclTCRManager.class, projectDefault);
         manager.updateAclTCR(new AclTCR(), user1, true);
 
         // revoke column
@@ -1069,7 +1069,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         // grant acl tcr
         Mockito.doReturn(false).when(accessService).hasGlobalAdminGroup(user1);
         Assert.assertEquals(0, aclTCRService.getAclTCRResponse(projectDefault, user1, true, true).size());
-        AclTCRManager manager = aclTCRService.getAclTCRManager(projectDefault);
+        AclTCRManager manager = aclTCRService.getManager(AclTCRManager.class, projectDefault);
         manager.updateAclTCR(new AclTCR(), user1, true);
 
         // revoke column
@@ -1128,7 +1128,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         // Boolean, Map, and Array data types do not support data masking.
         Mockito.doReturn(false).when(accessService).hasGlobalAdminGroup(user1);
         Assert.assertEquals(0, aclTCRService.getAclTCRResponse(projectDefault, user1, true, true).size());
-        AclTCRManager manager = aclTCRService.getAclTCRManager(projectDefault);
+        AclTCRManager manager = aclTCRService.getManager(AclTCRManager.class, projectDefault);
         manager.updateAclTCR(new AclTCR(), user1, true);
 
         //  column

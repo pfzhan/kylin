@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
@@ -64,7 +65,7 @@ public class FavoriteRuleService extends BasicService {
     private AclEvaluate aclEvaluate;
 
     public Map<String, SQLValidateResult> batchSqlValidate(List<String> sqls, String project) {
-        KylinConfig kylinConfig = getProjectManager().getProject(project).getConfig();
+        KylinConfig kylinConfig = getManager(NProjectManager.class).getProject(project).getConfig();
         AbstractSQLValidator sqlValidator = new SqlSyntaxValidator(project, kylinConfig, new MockupQueryExecutor());
         return sqlValidator.batchValidate(sqls.toArray(new String[0]));
     }
@@ -94,7 +95,7 @@ public class FavoriteRuleService extends BasicService {
             }
         }
         SQLParserResponse result = new SQLParserResponse();
-        KylinConfig kylinConfig = getProjectManager().getProject(project).getConfig();
+        KylinConfig kylinConfig = getManager(NProjectManager.class).getProject(project).getConfig();
         if (sqls.size() > kylinConfig.getFavoriteImportSqlMaxSize()) {
             result.setSize(sqls.size());
             result.setWrongFormatFile(wrongFormatFiles);
@@ -158,7 +159,7 @@ public class FavoriteRuleService extends BasicService {
         if (sqlLists.isEmpty()) {
             return sqls;
         }
-        KylinConfig kylinConfig = getProjectManager().getProject(project).getConfig();
+        KylinConfig kylinConfig = getManager(NProjectManager.class).getProject(project).getConfig();
         for (String sql : sqlLists) {
             if (sql == null || sql.length() == 0 || sql.replace('\n', ' ').trim().length() == 0) {
                 continue;
@@ -175,7 +176,7 @@ public class FavoriteRuleService extends BasicService {
 
     public SQLValidateResponse sqlValidate(String project, String sql) {
         aclEvaluate.checkProjectWritePermission(project);
-        KylinConfig kylinConfig = getProjectManager().getProject(project).getConfig();
+        KylinConfig kylinConfig = getManager(NProjectManager.class).getProject(project).getConfig();
         QueryParams queryParams = new QueryParams(kylinConfig, sql, project, 0, 0, DEFAULT_SCHEMA, false);
         queryParams.setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(project, getCurrentUserGroups()));
         String correctedSql = QueryUtil.massageSql(queryParams);

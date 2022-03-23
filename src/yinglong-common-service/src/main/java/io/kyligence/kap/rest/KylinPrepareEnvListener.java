@@ -29,8 +29,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.TimeZoneUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.context.config.ConfigDataEnvironmentPostProcessor;
 import org.springframework.boot.env.EnvironmentPostProcessor;
@@ -46,7 +44,6 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class KylinPrepareEnvListener implements EnvironmentPostProcessor, Ordered {
-    private static final Logger logger = LoggerFactory.getLogger(KylinPrepareEnvListener.class);
 
     @Override
     public int getOrder() {

@@ -46,6 +46,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.regex.Matcher;
@@ -120,13 +121,13 @@ public class RestClient {
         if (!m.matches())
             throw new IllegalArgumentException("URI: " + uri + " -- does not match pattern " + fullRestPattern);
 
-        String user = m.group(1);
-        String pwd = m.group(2);
-        String host = m.group(3);
-        String portStr = m.group(4);
-        int port = Integer.parseInt(portStr == null ? "7070" : portStr);
+        String mUser = m.group(1);
+        String mPwd = m.group(2);
+        String mHost = m.group(3);
+        String mPortStr = m.group(4);
+        int mPort = Integer.parseInt(mPortStr == null ? "7070" : mPortStr);
 
-        init(host, port, user, pwd);
+        init(mHost, mPort, mUser, mPwd);
     }
 
     public RestClient(String host, int port, String userName, String password) {
@@ -162,13 +163,12 @@ public class RestClient {
     public HttpResponse query(String sql, String project) throws IOException {
         String url = baseUrl + "/query";
         HttpPost post = newPost(url);
-        HashMap<String, String> paraMap = new HashMap<String, String>();
+        HashMap<String, String> paraMap = new HashMap<>();
         paraMap.put("sql", sql);
         paraMap.put("project", project);
         String jsonMsg = new ObjectMapper().writeValueAsString(paraMap);
         post.setEntity(new StringEntity(jsonMsg, "UTF-8"));
-        HttpResponse response = client.execute(post);
-        return response;
+        return client.execute(post);
     }
 
     public HttpResponse updateUser(Object object) throws IOException {
@@ -182,8 +182,7 @@ public class RestClient {
             response = client.execute(post);
             if (response.getStatusLine().getStatusCode() != 200) {
                 String msg = EntityUtils.toString(response.getEntity());
-                logger.error("Invalid response " + response.getStatusLine().getStatusCode() + " with update user " + url
-                        + "\n" + msg);
+                logger.error("Invalid response {} with update user {}\n{}", response.getStatusLine().getStatusCode(), url, msg);
             }
         } finally {
             cleanup(post, response);
@@ -268,7 +267,7 @@ public class RestClient {
         request.releaseConnection();
     }
 
-    public <T> T getKapHealthStatus(TypeReference<T> clz, byte[] encryptedToken) throws Exception {
+    public <T> T getKapHealthStatus(TypeReference<T> clz, byte[] encryptedToken) throws IOException, URISyntaxException {
         String url = baseUrl + "/health/instance_info";
 
         HttpPost httpPost = new HttpPost(url);
@@ -289,7 +288,7 @@ public class RestClient {
         }
     }
 
-    public void downOrUpGradeKE(String status, byte[] encryptedToken) throws Exception {
+    public void downOrUpGradeKE(String status, byte[] encryptedToken) throws IOException, URISyntaxException {
         String url = baseUrl + "/health/instance_service/" + status;
 
         HttpPost httpPost = new HttpPost(url);

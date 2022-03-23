@@ -91,6 +91,7 @@ import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.MultiPartitionDesc;
 import io.kyligence.kap.metadata.model.MultiPartitionKeyMappingImpl;
@@ -162,10 +163,10 @@ public class MetaStoreServiceTest extends ServiceTestBase {
         Assert.assertTrue(
                 modelPreviewResponseList.stream().anyMatch(ModelPreviewResponse::isHasMultiplePartitionValues));
 
-        val dfMgr = modelService.getDataflowManager("default");
+        val dfMgr = modelService.getManager(NDataflowManager.class, "default");
         val id = "7212bf0c-0716-4cef-b623-69c161981262";
         val dataflow = dfMgr.getDataflow(id);
-        val idxPlanMgr = modelService.getIndexPlanManager("default");
+        val idxPlanMgr = modelService.getManager(NIndexPlanManager.class, "default");
         val indexPlan = idxPlanMgr.getIndexPlan(id);
 
         idxPlanMgr.updateIndexPlan(id, updater -> {
@@ -181,7 +182,7 @@ public class MetaStoreServiceTest extends ServiceTestBase {
 
     @Test
     public void testGetCompressedModelMetadata() throws Exception {
-        List<NDataflow> dataflowList = modelService.getDataflowManager(getProject()).listAllDataflows();
+        List<NDataflow> dataflowList = modelService.getManager(NDataflowManager.class, getProject()).listAllDataflows();
         List<NDataModel> dataModelList = dataflowList.stream().filter(df -> !df.checkBrokenWithRelatedInfo())
                 .map(NDataflow::getModel).collect(Collectors.toList());
         List<String> modelIdList = dataModelList.stream().map(NDataModel::getId).collect(Collectors.toList());
@@ -345,7 +346,7 @@ public class MetaStoreServiceTest extends ServiceTestBase {
 
     @Test
     public void testGetCompressedModelMetadataWithVersionFile() throws Exception {
-        List<NDataflow> dataflowList = modelService.getDataflowManager(getProject()).listAllDataflows();
+        List<NDataflow> dataflowList = modelService.getManager(NDataflowManager.class, getProject()).listAllDataflows();
         List<NDataModel> dataModelList = dataflowList.stream().filter(df -> !df.checkBrokenWithRelatedInfo())
                 .map(NDataflow::getModel).collect(Collectors.toList());
         List<String> modelIdList = dataModelList.stream().map(NDataModel::getId).collect(Collectors.toList());

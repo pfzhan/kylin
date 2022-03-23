@@ -46,6 +46,7 @@ import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletResponse;
 
+import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.time.DateUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -105,6 +106,10 @@ public class QueryHistoryService extends BasicService implements AsyncTaskQueryH
 
     public static final String WEEK = "week";
     public static final String DAY = "day";
+
+    public QueryHistoryDAO getQueryHistoryDao() {
+        return RDBMSQueryHistoryDAO.getInstance();
+    }
 
     public void downloadQueryHistories(QueryHistoryRequest request, HttpServletResponse response, ZoneOffset zoneOffset,
             Integer timeZoneOffsetHour, boolean onlySql) throws Exception {
@@ -338,7 +343,7 @@ public class QueryHistoryService extends BasicService implements AsyncTaskQueryH
     private Map<String, Object> transformQueryStatisticsByModel(String project, List<QueryStatistics> statistics,
             String fieldName) {
         Map<String, Object> result = Maps.newHashMap();
-        NDataModelManager modelManager = getDataModelManager(project);
+        NDataModelManager modelManager = getManager(NDataModelManager.class, project);
 
         statistics.forEach(singleStatistics -> {
             NDataModel model = modelManager.getDataModelDesc(singleStatistics.getModel());
@@ -386,7 +391,7 @@ public class QueryHistoryService extends BasicService implements AsyncTaskQueryH
     }
 
     public Map<String, String> getQueryHistoryTableMap(List<String> projects) {
-        List<String> filterProjects = getProjectManager().listAllProjects().stream().map(ProjectInstance::getName)
+        List<String> filterProjects = getManager(NProjectManager.class).listAllProjects().stream().map(ProjectInstance::getName)
                 .filter(s -> projects == null || projects.stream().map(str -> str.toLowerCase(Locale.ROOT))
                         .collect(Collectors.toList()).contains(s.toLowerCase(Locale.ROOT)))
                 .collect(Collectors.toList());
@@ -395,7 +400,7 @@ public class QueryHistoryService extends BasicService implements AsyncTaskQueryH
         for (String project : filterProjects) {
             aclEvaluate.checkProjectReadPermission(project);
             Preconditions.checkArgument(StringUtils.isNotEmpty(project));
-            ProjectInstance projectInstance = getProjectManager().getProject(project);
+            ProjectInstance projectInstance = getManager(NProjectManager.class).getProject(project);
             if (projectInstance == null)
                 throw new KylinException(PROJECT_NOT_EXIST,
                         String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));

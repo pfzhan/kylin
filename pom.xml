@@ -422,6 +422,12 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
+                <artifactId>kap-external-curator-test</artifactId>
+                <version>${external.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-sparder</artifactId>
                 <version>${project.version}</version>
             </dependency>

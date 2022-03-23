@@ -450,7 +450,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         updateRequest.setUuid(newModel.getUuid());
         modelService.updateDataModelSemantic(getProject(), updateRequest);
 
-        var model = modelService.getDataModelManager(getProject()).getDataModelDesc(updateRequest.getUuid());
+        var model = modelService.getManager(NDataModelManager.class, getProject()).getDataModelDesc(updateRequest.getUuid());
         Assert.assertThat(
                 model.getAllMeasures().stream().filter(m -> !m.isTomb()).sorted(Comparator.comparing(Measure::getId))
                         .map(MeasureDesc::getName).collect(Collectors.toList()),
@@ -463,7 +463,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         updateRequest2.setUuid(newModel.getUuid());
         updateRequest2.setAlias("model_with_measure_change_alias_twice");
         modelService.updateDataModelSemantic(getProject(), updateRequest2);
-        model = modelService.getDataModelManager(getProject()).getDataModelDesc(updateRequest.getUuid());
+        model = modelService.getManager(NDataModelManager.class, getProject()).getDataModelDesc(updateRequest.getUuid());
         Assert.assertThat(
                 model.getAllMeasures().stream().filter(m -> !m.isTomb()).sorted(Comparator.comparing(Measure::getId))
                         .map(MeasureDesc::getName).collect(Collectors.toList()),

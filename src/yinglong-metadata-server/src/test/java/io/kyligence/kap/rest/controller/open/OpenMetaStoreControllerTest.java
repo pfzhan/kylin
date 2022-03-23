@@ -123,7 +123,7 @@ public class OpenMetaStoreControllerTest extends NLocalFileMetadataTestCase {
         NDataModelManager dataModelManager = Mockito.mock(NDataModelManager.class);
         Mockito.doReturn(Mockito.mock(NDataModel.class)).when(dataModelManager)
                 .getDataModelDescByAlias("warningmodel1");
-        Mockito.doReturn(dataModelManager).when(modelService).getDataModelManager(defaultProjectName);
+        Mockito.doReturn(dataModelManager).when(modelService).getManager(NDataModelManager.class, defaultProjectName);
 
         final OpenModelPreviewRequest request = mockOpenModelPreviewRequest();
         mockMvc.perform(MockMvcRequestBuilders.post("/api/metastore/backup/models")
@@ -153,7 +153,7 @@ public class OpenMetaStoreControllerTest extends NLocalFileMetadataTestCase {
     public void testExportModelMetadataModelNotExistException() throws Exception {
         NDataModelManager dataModelManager = Mockito.mock(NDataModelManager.class);
         Mockito.doReturn(Mockito.mock(NDataModel.class)).when(dataModelManager).getDataModelDescByAlias(null);
-        Mockito.doReturn(dataModelManager).when(modelService).getDataModelManager(defaultProjectName);
+        Mockito.doReturn(dataModelManager).when(modelService).getManager(NDataModelManager.class, defaultProjectName);
 
         final OpenModelPreviewRequest request = mockOpenModelPreviewRequest();
         mockMvc.perform(MockMvcRequestBuilders.post("/api/metastore/backup/models")
@@ -172,7 +172,7 @@ public class OpenMetaStoreControllerTest extends NLocalFileMetadataTestCase {
         NDataModel dataModel = Mockito.mock(NDataModel.class);
         Mockito.doReturn(true).when(dataModel).isBroken();
         Mockito.doReturn(dataModel).when(dataModelManager).getDataModelDescByAlias("warningmodel1");
-        Mockito.doReturn(dataModelManager).when(modelService).getDataModelManager(defaultProjectName);
+        Mockito.doReturn(dataModelManager).when(modelService).getManager(NDataModelManager.class, defaultProjectName);
 
         final OpenModelPreviewRequest request = mockOpenModelPreviewRequest();
         mockMvc.perform(MockMvcRequestBuilders.post("/api/metastore/backup/models")
@@ -243,7 +243,7 @@ public class OpenMetaStoreControllerTest extends NLocalFileMetadataTestCase {
         Mockito.doReturn("1").when(dataModel).getUuid();
         Mockito.doReturn(dataModel).when(dataModelManager).getDataModelDescByAlias(anyString());
 
-        Mockito.doReturn(dataModelManager).when(modelService).getDataModelManager(defaultProjectName);
+        Mockito.doReturn(dataModelManager).when(modelService).getManager(NDataModelManager.class, defaultProjectName);
 
         ModelPreviewRequest request = Whitebox.invokeMethod(openMetaStoreController, "convertToModelPreviewRequest",
                 defaultProjectName, openModelPreviewRequest);

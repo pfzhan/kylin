@@ -202,12 +202,12 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
         val modelManager = Mockito.mock(NDataModelManager.class);
 
-        Mockito.when(modelService.getDataModelManager(Mockito.anyString())).thenReturn(modelManager);
+        Mockito.when(modelService.getManager(NDataModelManager.class, "default")).thenReturn(modelManager);
         NDataModel nDataModel = Mockito.mock(NDataModel.class);
         Mockito.when(modelManager.getDataModelDesc(Mockito.anyString())).thenReturn(nDataModel);
 
         NExecutableManager executableManager = Mockito.spy(NExecutableManager.getInstance(getTestConfig(), "default"));
-        Mockito.when(jobService.getExecutableManager("default")).thenReturn(executableManager);
+        Mockito.when(jobService.getManager(NExecutableManager.class, "default")).thenReturn(executableManager);
         val mockJobs = mockDetailJobs(false);
         Mockito.when(executableManager.getAllJobs(Mockito.anyLong(), Mockito.anyLong())).thenReturn(mockJobs);
         for (ExecutablePO po : mockJobs) {
@@ -304,7 +304,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testFilterJob() throws Exception {
         NExecutableManager executableManager = NExecutableManager.getInstance(getTestConfig(), "default");
-        Mockito.when(jobService.getExecutableManager("default")).thenReturn(executableManager);
+        Mockito.when(jobService.getManager(NExecutableManager.class, "default")).thenReturn(executableManager);
         ReflectionTestUtils.setField(executableManager, "executableDao", executableDao);
         val mockJobs = mockDetailJobs(true);
         Mockito.when(executableDao.getJobs(Mockito.anyLong(), Mockito.anyLong())).thenReturn(mockJobs);
@@ -357,12 +357,12 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         Mockito.doReturn(mockProjects()).when(jobService).getReadableProjects();
 
         NExecutableManager executableManager = Mockito.mock(NExecutableManager.class);
-        Mockito.when(jobService.getExecutableManager("default")).thenReturn(executableManager);
+        Mockito.when(jobService.getManager(NExecutableManager.class, "default")).thenReturn(executableManager);
         val mockJobs = mockJobs(executableManager);
         Mockito.when(executableManager.getAllExecutables(Mockito.anyLong(), Mockito.anyLong())).thenReturn(mockJobs);
 
         NExecutableManager executableManager1 = Mockito.mock(NExecutableManager.class);
-        Mockito.when(jobService.getExecutableManager("default1")).thenReturn(executableManager1);
+        Mockito.when(jobService.getManager(NExecutableManager.class, "default1")).thenReturn(executableManager1);
         val mockJobs1 = mockJobs1(executableManager1);
         Mockito.when(executableManager1.getAllExecutables(Mockito.anyLong(), Mockito.anyLong())).thenReturn(mockJobs1);
 
@@ -1277,7 +1277,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         Mockito.doReturn(mockProjects()).when(jobService).getReadableProjects();
         NExecutableManager manager = Mockito.mock(NExecutableManager.class);
         Mockito.when(manager.getJob(jobId)).thenReturn(job);
-        Mockito.doReturn(manager).when(jobService).getExecutableManager("default");
+        Mockito.doReturn(manager).when(jobService).getManager(NExecutableManager.class, "default");
         Assert.assertEquals("default", jobService.getProjectByJobId(jobId));
 
         Mockito.doReturn("default").when(jobService).getProjectByJobId(jobId);

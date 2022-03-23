@@ -497,7 +497,6 @@ public class AclTCRManager {
         return joint;
     }
 
-    @Deprecated
     public AclTCR.ColumnRealRows getAuthorizedRows(String dbTblName, String colName, List<AclTCR> aclTCRS) {
         AclTCR.RealRow authEqualRows = new AclTCR.RealRow();
         AclTCR.RealRow authLikeRows = new AclTCR.RealRow();

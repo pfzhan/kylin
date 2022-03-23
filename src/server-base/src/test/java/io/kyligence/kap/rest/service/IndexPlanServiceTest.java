@@ -572,10 +572,10 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
                         .sortByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID")).build());
 
         Assert.assertFalse(
-                indexPlanService.getIndexPlanManager("default").getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                indexPlanService.getManager(NIndexPlanManager.class, "default").getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getAllLayouts().stream().anyMatch(l -> l.getId() == 20000040000L));
         Assert.assertTrue(
-                indexPlanService.getIndexPlanManager("default").getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                indexPlanService.getManager(NIndexPlanManager.class, "default").getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getAllLayouts().stream().anyMatch(l -> l.getId() == 20000040000L + IndexEntity.INDEX_ID_STEP));
     }
 
@@ -637,7 +637,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         indexPlanService.removeTableIndex("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", 20000040001L);
 
         Assert.assertFalse(
-                indexPlanService.getIndexPlanManager("default").getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                indexPlanService.getManager(NIndexPlanManager.class, "default").getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getAllLayouts().stream().anyMatch(l -> l.getId() == 20000040001L));
     }
 
@@ -670,10 +670,10 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
                         .sortByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID")).build());
 
         Assert.assertFalse(
-                indexPlanService.getIndexPlanManager("default").getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                indexPlanService.getManager(NIndexPlanManager.class, "default").getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getAllLayouts().stream().anyMatch(l -> l.getId() == prevMaxId));
         Assert.assertTrue(
-                indexPlanService.getIndexPlanManager("default").getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                indexPlanService.getManager(NIndexPlanManager.class, "default").getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getAllLayouts().stream().anyMatch(l -> l.getId() == prevMaxId + IndexEntity.INDEX_ID_STEP));
         executables = getRunningExecutables("default", modelId);
         Assert.assertEquals(1, executables.size());
@@ -685,7 +685,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         val project = "default";
         long existLayoutId = 20000010001L;
-        long maxTableLayoutId = indexPlanService.getIndexPlanManager(project).getIndexPlan(modelId)
+        long maxTableLayoutId = indexPlanService.getManager(NIndexPlanManager.class, project).getIndexPlan(modelId)
                 .getWhitelistLayouts().stream().map(LayoutEntity::getId).max(Long::compare).get();
         indexPlanService.updateTableIndex(project,
                 CreateTableIndexRequest.builder().id(existLayoutId).project(project).modelId(modelId)
@@ -694,11 +694,11 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
                         .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT"))
                         .sortByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID")).isLoadData(false).build());
 
-        Assert.assertTrue(indexPlanService.getIndexPlanManager(project).getIndexPlan(modelId).getAllLayouts().stream()
+        Assert.assertTrue(indexPlanService.getManager(NIndexPlanManager.class, project).getIndexPlan(modelId).getAllLayouts().stream()
                 .anyMatch(l -> l.getId() == existLayoutId));
-        Assert.assertTrue(indexPlanService.getIndexPlanManager(project).getIndexPlan(modelId).getToBeDeletedIndexes()
+        Assert.assertTrue(indexPlanService.getManager(NIndexPlanManager.class, project).getIndexPlan(modelId).getToBeDeletedIndexes()
                 .stream().map(IndexEntity::getLayouts).flatMap(List::stream).anyMatch(l -> l.getId() == existLayoutId));
-        Assert.assertTrue(indexPlanService.getIndexPlanManager(project).getIndexPlan(modelId).getAllLayouts().stream()
+        Assert.assertTrue(indexPlanService.getManager(NIndexPlanManager.class, project).getIndexPlan(modelId).getAllLayouts().stream()
                 .anyMatch(l -> l.getId() == maxTableLayoutId + IndexEntity.INDEX_ID_STEP));
         NDataflow df = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getDataflow(modelId);
         NDataSegment segment = df.getLatestReadySegment();

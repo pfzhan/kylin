@@ -430,7 +430,7 @@ public class TableServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testLoadCaseSensitiveTableToProject() throws IOException {
-        NTableMetadataManager tableManager = tableService.getTableManager("case_sensitive");
+        NTableMetadataManager tableManager = tableService.getManager(NTableMetadataManager.class, "case_sensitive");
         Serializer<TableDesc> serializer = tableManager.getTableMetadataSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/case_sensitive/table_desc/CASE_SENSITIVE.TEST_KYLIN_FACT.json")

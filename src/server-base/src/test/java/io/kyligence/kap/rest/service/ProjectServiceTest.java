@@ -715,7 +715,7 @@ public class ProjectServiceTest extends ServiceTestBase {
                 val mgr = Mockito.spy(StreamingJobManager.getInstance(getTestConfig(), PROJECT));
                 val meta1 = new StreamingJobMeta();
                 meta1.setCurrentStatus(JobStatusEnum.RUNNING);
-                Mockito.when(projectService.getStreamingJobManager(Mockito.anyString())).thenReturn(mgr);
+                Mockito.when(projectService.getManager(StreamingJobManager.class, project)).thenReturn(mgr);
                 Mockito.when(mgr.listAllStreamingJobMeta()).thenReturn(Arrays.asList(meta1));
                 projectService.dropProject(project);
             } catch (Exception e) {
@@ -729,7 +729,7 @@ public class ProjectServiceTest extends ServiceTestBase {
                 val mgr = Mockito.spy(StreamingJobManager.getInstance(getTestConfig(), PROJECT));
                 val meta1 = new StreamingJobMeta();
                 meta1.setCurrentStatus(JobStatusEnum.STARTING);
-                Mockito.when(projectService.getStreamingJobManager(Mockito.anyString())).thenReturn(mgr);
+                Mockito.when(projectService.getManager(StreamingJobManager.class, project)).thenReturn(mgr);
                 Mockito.when(mgr.listAllStreamingJobMeta()).thenReturn(Arrays.asList(meta1));
                 projectService.dropProject(project);
             } catch (Exception e) {
@@ -743,7 +743,7 @@ public class ProjectServiceTest extends ServiceTestBase {
                 val mgr = Mockito.spy(StreamingJobManager.getInstance(getTestConfig(), PROJECT));
                 val meta1 = new StreamingJobMeta();
                 meta1.setCurrentStatus(JobStatusEnum.STARTING);
-                Mockito.when(projectService.getStreamingJobManager(Mockito.anyString())).thenReturn(mgr);
+                Mockito.when(projectService.getManager(StreamingJobManager.class, project)).thenReturn(mgr);
                 Mockito.when(mgr.listAllStreamingJobMeta()).thenReturn(Arrays.asList(meta1));
                 projectService.dropProject(project);
             } catch (Exception e) {
@@ -756,7 +756,7 @@ public class ProjectServiceTest extends ServiceTestBase {
             val mgr = Mockito.spy(StreamingJobManager.getInstance(getTestConfig(), PROJECT));
             val meta1 = new StreamingJobMeta();
             meta1.setCurrentStatus(JobStatusEnum.STOPPED);
-            Mockito.when(projectService.getStreamingJobManager(Mockito.anyString())).thenReturn(mgr);
+            Mockito.when(projectService.getManager(StreamingJobManager.class, project)).thenReturn(mgr);
             Mockito.when(mgr.listAllStreamingJobMeta()).thenReturn(Arrays.asList(meta1));
             projectService.dropProject(project);
             return null;

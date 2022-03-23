@@ -36,6 +36,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
@@ -250,7 +251,7 @@ public class OpenModelSmartController extends NBasicController {
 
     @VisibleForTesting
     public NDataModel getModel(String modelAlias, String project) {
-        NDataModel model = modelService.getDataModelManager(project).listAllModels().stream() //
+        NDataModel model = modelService.getManager(NDataModelManager.class, project).listAllModels().stream() //
                 .filter(dataModel -> dataModel.getUuid().equals(modelAlias) //
                         || dataModel.getAlias().equalsIgnoreCase(modelAlias))
                 .findFirst().orElse(null);

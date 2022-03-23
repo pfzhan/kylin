@@ -28,8 +28,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -80,7 +82,7 @@ public class SegmentHelper extends BasicService implements SegmentHelperSupporte
 
         if (CollectionUtils.isNotEmpty(models)) {
 
-            val jobManager = getJobManager(project);
+            val jobManager = getManager(JobManager.class, project);
             for (val model : models) {
                 val modelId = model.getUuid();
                 IndexPlan indexPlan = NIndexPlanManager.getInstance(kylinConfig, project).getIndexPlan(modelId);
@@ -126,7 +128,7 @@ public class SegmentHelper extends BasicService implements SegmentHelperSupporte
             JobManager jobManager, String project) {
         for (NDataSegment seg : segments) {
             NDataSegment newSeg = dfMgr.refreshSegment(df, seg.getSegRange());
-            getSourceUsageManager().licenseCheckWrap(project, () -> {
+            getManager(SourceUsageManager.class).licenseCheckWrap(project, () -> {
                 jobManager.refreshSegmentJob(new JobParam(newSeg, modelId, getUsername()));
                 return null;
             });
@@ -134,14 +136,14 @@ public class SegmentHelper extends BasicService implements SegmentHelperSupporte
     }
 
     private void buildFullSegment(String model, String project) {
-        val jobManager = getJobManager(project);
-        val dataflowManager = getDataflowManager(project);
-        val indexPlanManager = getIndexPlanManager(project);
+        val jobManager = getManager(JobManager.class, project);
+        val dataflowManager = getManager(NDataflowManager.class, project);
+        val indexPlanManager = getManager(NIndexPlanManager.class, project);
         val indexPlan = indexPlanManager.getIndexPlan(model);
         val dataflow = dataflowManager.getDataflow(indexPlan.getUuid());
         val newSegment = dataflowManager.appendSegment(dataflow,
                 new SegmentRange.TimePartitionedSegmentRange(0L, Long.MAX_VALUE));
-        getSourceUsageManager().licenseCheckWrap(project,
+        getManager(SourceUsageManager.class).licenseCheckWrap(project,
                 () -> jobManager.addSegmentJob(new JobParam(newSegment, model, getUsername())));
     }
 
@@ -152,14 +154,14 @@ public class SegmentHelper extends BasicService implements SegmentHelperSupporte
             handleJobAndOldSeg(project, seg, df, dfMgr);
             df = dfMgr.getDataflow(modelId);
             val newSeg = dfMgr.appendSegment(df, seg.getSegRange());
-            getSourceUsageManager().licenseCheckWrap(project,
+            getManager(SourceUsageManager.class).licenseCheckWrap(project,
                     () -> jobManager.addSegmentJob(new JobParam(newSeg, modelId, getUsername())));
         }
     }
 
     private void handleJobAndOldSeg(String project, NDataSegment seg, NDataflow df, NDataflowManager dfMgr)
             throws IOException {
-        val jobManager = getExecutableManager(project);
+        val jobManager = getManager(NExecutableManager.class, project);
         val jobs = jobManager.getAllExecutables();
         var segmentDeleted = false;
         for (val job : jobs) {

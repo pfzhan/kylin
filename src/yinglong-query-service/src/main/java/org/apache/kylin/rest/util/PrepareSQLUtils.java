@@ -45,6 +45,9 @@ public class PrepareSQLUtils {
     private static final char LITERAL_QUOTE = '\'';
     private static final char PARAM_PLACEHOLDER = '?';
 
+    private PrepareSQLUtils() {
+    }
+
     public static String fillInParams(String prepareSQL, PrepareSqlStateParam[] params) {
 
         int startOffset = 0;
@@ -54,8 +57,7 @@ public class PrepareSQLUtils {
         placeHolderIdx = findNextPlaceHolder(prepareSQL, startOffset);
         while (placeHolderIdx != -1 && paramIdx < params.length) {
             String paramLiteral = convertToLiteralString(params[paramIdx]);
-            prepareSQL = prepareSQL.substring(0, placeHolderIdx) + paramLiteral
-                    + prepareSQL.substring(placeHolderIdx + 1);
+            prepareSQL = prepareSQL.substring(0, placeHolderIdx) + paramLiteral + prepareSQL.substring(placeHolderIdx + 1);
 
             paramIdx += 1;
             startOffset = placeHolderIdx + paramLiteral.length();
@@ -84,60 +86,100 @@ public class PrepareSQLUtils {
         } else if (value instanceof java.sql.Date) {
             return String.format(Locale.ROOT, "date'%s'", DateFormat.formatToDateStr(((Date) value).getTime()));
         } else if (value instanceof Timestamp) {
-            return String.format(Locale.ROOT, "timestamp'%s'",
-                    DateFormat.formatToTimeStr(((Timestamp) value).getTime()));
+            return String.format(Locale.ROOT, "timestamp'%s'", DateFormat.formatToTimeStr(((Timestamp) value).getTime()));
         } else {
             return String.valueOf(value); // numbers
         }
     }
 
     private static Object getValue(PrepareSqlStateParam param) {
-        boolean isNull = (null == param.getValue());
-
         Class<?> clazz;
         try {
             clazz = Class.forName(param.getClassName());
         } catch (ClassNotFoundException e) {
             throw new InternalErrorException(e);
         }
+        ColumnMetaData.Rep type = ColumnMetaData.Rep.of(clazz);
 
-        ColumnMetaData.Rep rep = ColumnMetaData.Rep.of(clazz);
+        String value = param.getValue();
+        boolean isNull = (null == value);
+        if (isNull || value.isEmpty()) {
+            return getEmptyValue(type, isNull);
+        }
+        return getTypedValue(type, value);
+    }
 
-        switch (rep) {
+    private static Object getEmptyValue(ColumnMetaData.Rep type, boolean isNull) {
+        switch (type) {
         case PRIMITIVE_CHAR:
         case CHARACTER:
         case STRING:
-            return isNull ? null : param.getValue();
+            return isNull ? null : "";
         case PRIMITIVE_INT:
         case INTEGER:
-            return isNull ? 0 : Integer.parseInt(param.getValue());
+            return 0;
         case PRIMITIVE_SHORT:
         case SHORT:
-            return isNull ? 0 : Short.parseShort(param.getValue());
+            return (short) 0;
         case PRIMITIVE_LONG:
         case LONG:
-            return isNull ? 0 : Long.parseLong(param.getValue());
+            return (long) 0;
         case PRIMITIVE_FLOAT:
         case FLOAT:
-            return isNull ? 0 : Float.parseFloat(param.getValue());
+            return (float) 0;
         case PRIMITIVE_DOUBLE:
         case DOUBLE:
-            return isNull ? 0 : Double.parseDouble(param.getValue());
+            return (double) 0;
         case PRIMITIVE_BOOLEAN:
         case BOOLEAN:
-            return !isNull && Boolean.parseBoolean(param.getValue());
+            return false;
         case PRIMITIVE_BYTE:
         case BYTE:
-            return isNull ? 0 : Byte.parseByte(param.getValue());
+            return (byte) 0;
         case JAVA_UTIL_DATE:
         case JAVA_SQL_DATE:
-            return isNull ? null : java.sql.Date.valueOf(param.getValue());
         case JAVA_SQL_TIME:
-            return isNull ? null : Time.valueOf(param.getValue());
         case JAVA_SQL_TIMESTAMP:
-            return isNull ? null : Timestamp.valueOf(param.getValue());
         default:
-            return isNull ? null : param.getValue();
+            return null;
+        }
+    }
+
+    private static Object getTypedValue(ColumnMetaData.Rep type, String value) {
+        switch (type) {
+        case PRIMITIVE_INT:
+        case INTEGER:
+            return Integer.parseInt(value);
+        case PRIMITIVE_SHORT:
+        case SHORT:
+            return Short.parseShort(value);
+        case PRIMITIVE_LONG:
+        case LONG:
+            return Long.parseLong(value);
+        case PRIMITIVE_FLOAT:
+        case FLOAT:
+            return Float.parseFloat(value);
+        case PRIMITIVE_DOUBLE:
+        case DOUBLE:
+            return Double.parseDouble(value);
+        case PRIMITIVE_BOOLEAN:
+        case BOOLEAN:
+            return Boolean.parseBoolean(value);
+        case PRIMITIVE_BYTE:
+        case BYTE:
+            return Byte.parseByte(value);
+        case JAVA_UTIL_DATE:
+        case JAVA_SQL_DATE:
+            return java.sql.Date.valueOf(value);
+        case JAVA_SQL_TIME:
+            return Time.valueOf(value);
+        case JAVA_SQL_TIMESTAMP:
+            return Timestamp.valueOf(value);
+        case PRIMITIVE_CHAR:
+        case CHARACTER:
+        case STRING:
+        default:
+            return value;
         }
     }
 
@@ -145,20 +187,14 @@ public class PrepareSQLUtils {
         boolean openingIdentQuote = false;
         boolean openingLiteralQuote = false;
         while (start < prepareSQL.length()) {
-            // skip quoted literal
             if (prepareSQL.charAt(start) == LITERAL_QUOTE) {
+                // skip quoted literal
                 openingLiteralQuote = !openingLiteralQuote;
-            }
-            if (openingLiteralQuote) {
-                start++;
-                continue;
-            }
-
-            // skip quoted identifier
-            if (prepareSQL.charAt(start) == identQuoting()) {
+            } else if (!openingLiteralQuote && prepareSQL.charAt(start) == identQuoting()) {
+                // skip quoted identifier
                 openingIdentQuote = !openingIdentQuote;
             }
-            if (openingIdentQuote) {
+            if (openingLiteralQuote || openingIdentQuote) {
                 start++;
                 continue;
             }

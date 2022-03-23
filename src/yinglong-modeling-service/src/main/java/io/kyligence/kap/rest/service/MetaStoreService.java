@@ -49,6 +49,7 @@ import java.util.zip.ZipOutputStream;
 import javax.xml.bind.DatatypeConverter;
 
 import io.kyligence.kap.common.constant.Constants;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -138,10 +139,10 @@ public class MetaStoreService extends BasicService {
 
     public List<ModelPreviewResponse> getPreviewModels(String project, List<String> ids) {
         aclEvaluate.checkProjectWritePermission(project);
-        return modelService.getDataflowManager(project).listAllDataflows(true).stream()
+        return modelService.getManager(NDataflowManager.class, project).listAllDataflows(true).stream()
                 .filter(df -> ids.isEmpty() || ids.contains(df.getUuid())).map(df -> {
                     if (df.checkBrokenWithRelatedInfo()) {
-                        NDataModel dataModel = getDataModelManager(project).getDataModelDescWithoutInit(df.getUuid());
+                        NDataModel dataModel = getManager(NDataModelManager.class, project).getDataModelDescWithoutInit(df.getUuid());
                         dataModel.setBroken(true);
                         return dataModel;
                     } else {
@@ -152,7 +153,7 @@ public class MetaStoreService extends BasicService {
     }
 
     private ModelPreviewResponse getSimplifiedModelResponse(String project, NDataModel modelDesc) {
-        val projectManager = getProjectManager();
+        val projectManager = getManager(NProjectManager.class);
         val projectInstance = projectManager.getProject(project);
         ModelPreviewResponse modelPreviewResponse = new ModelPreviewResponse();
         modelPreviewResponse.setName(modelDesc.getAlias());
@@ -182,7 +183,7 @@ public class MetaStoreService extends BasicService {
                     .setHasMultiplePartitionValues(!modelDesc.getMultiPartitionDesc().getPartitions().isEmpty());
         }
 
-        NIndexPlanManager indexPlanManager = getIndexPlanManager(modelDesc.getProject());
+        NIndexPlanManager indexPlanManager = getManager(NIndexPlanManager.class, modelDesc.getProject());
         IndexPlan indexPlan = indexPlanManager.getIndexPlan(modelDesc.getUuid());
         if (!isEmptyAfterExcludeBlockData(indexPlan)
                 || (modelDesc.getSegmentConfig() != null && modelDesc.getSegmentConfig().getAutoMergeEnabled() != null
@@ -216,8 +217,8 @@ public class MetaStoreService extends BasicService {
     public ByteArrayOutputStream getCompressedModelMetadata(String project, List<String> modelList,
             boolean exportRecommendations, boolean exportOverProps, boolean exportMultiplePartition) throws Exception {
         aclEvaluate.checkProjectWritePermission(project);
-        NDataModelManager modelManager = modelService.getDataModelManager(project);
-        NIndexPlanManager indexPlanManager = modelService.getIndexPlanManager(project);
+        NDataModelManager modelManager = modelService.getManager(NDataModelManager.class, project);
+        NIndexPlanManager indexPlanManager = modelService.getManager(NIndexPlanManager.class, project);
 
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         try (ZipOutputStream zipOutputStream = new ZipOutputStream(byteArrayOutputStream)) {
@@ -295,7 +296,7 @@ public class MetaStoreService extends BasicService {
     }
 
     private void exportRecommendations(String project, String modelId, ResourceStore resourceStore) throws Exception {
-        val projectManager = getProjectManager();
+        val projectManager = getManager(NProjectManager.class);
         val projectInstance = projectManager.getProject(project);
         if (projectInstance.isExpertMode()) {
             logger.info("Skip export recommendations because project {} is expert mode.", project);
@@ -436,7 +437,7 @@ public class MetaStoreService extends BasicService {
      */
     private void createNewModel(NDataModel nDataModel, ModelImportRequest.ModelImport modelImport, String project,
             NIndexPlanManager importIndexPlanManager) {
-        NDataModelManager dataModelManager = getDataModelManager(project);
+        NDataModelManager dataModelManager = getManager(NDataModelManager.class, project);
 
         nDataModel.setProject(project);
         nDataModel.setAlias(modelImport.getTargetName());
@@ -445,8 +446,8 @@ public class MetaStoreService extends BasicService {
         nDataModel.setMvcc(-1);
         dataModelManager.createDataModelDesc(nDataModel, AclPermissionUtil.getCurrentUsername());
 
-        NIndexPlanManager indexPlanManager = getIndexPlanManager(project);
-        NDataflowManager dataflowManager = getDataflowManager(project);
+        NIndexPlanManager indexPlanManager = getManager(NIndexPlanManager.class, project);
+        NDataflowManager dataflowManager = getManager(NDataflowManager.class, project);
         var indexPlan = importIndexPlanManager.getIndexPlanByModelAlias(modelImport.getTargetName()).copy();
         indexPlan.setUuid(nDataModel.getUuid());
         indexPlan = indexPlanManager.copy(indexPlan);
@@ -465,7 +466,7 @@ public class MetaStoreService extends BasicService {
      */
     private void updateModel(String project, NDataModel nDataModel, ModelImportRequest.ModelImport modelImport,
             boolean hasModelOverrideProps) {
-        NDataModelManager dataModelManager = getDataModelManager(project);
+        NDataModelManager dataModelManager = getManager(NDataModelManager.class, project);
         NDataModel originalDataModel = dataModelManager.getDataModelDescByAlias(modelImport.getOriginalName());
         nDataModel.setProject(project);
         nDataModel.setUuid(originalDataModel.getUuid());
@@ -510,7 +511,7 @@ public class MetaStoreService extends BasicService {
                     nDataModel.getUuid(), false, new RuleBasedIndex()));
         }
 
-        NIndexPlanManager indexPlanManager = getIndexPlanManager(project);
+        NIndexPlanManager indexPlanManager = getManager(NIndexPlanManager.class, project);
         indexPlanManager.updateIndexPlan(nDataModel.getUuid(), copyForWrite -> {
             List<IndexEntity> toBeDeletedIndexes = copyForWrite.getToBeDeletedIndexes();
             toBeDeletedIndexes.clear();
@@ -703,7 +704,7 @@ public class MetaStoreService extends BasicService {
      */
     private void importRecommendations(String project, String targetModelId, String srcModelId, KylinConfig kylinConfig)
             throws IOException {
-        val projectManager = getProjectManager();
+        val projectManager = getManager(NProjectManager.class);
         val projectInstance = projectManager.getProject(project);
         if (projectInstance.isExpertMode()) {
             modelChangeSupporters.forEach(listener -> listener.onUpdateSingle(project, targetModelId));

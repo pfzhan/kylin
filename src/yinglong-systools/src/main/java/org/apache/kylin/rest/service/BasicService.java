@@ -54,9 +54,6 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.job.dao.JobStatisticsManager;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,26 +68,9 @@ import org.springframework.web.client.RestTemplate;
 
 import com.google.common.base.CaseFormat;
 
-import io.kyligence.kap.common.metrics.service.MonitorDao;
 import io.kyligence.kap.common.persistence.transaction.BroadcastEventReadyNotifier;
-import io.kyligence.kap.metadata.acl.AclTCRManager;
-import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.epoch.EpochManager;
-import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
-import io.kyligence.kap.metadata.model.FusionModelManager;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.query.QueryHistoryDAO;
-import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
-import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
-import io.kyligence.kap.metadata.resourcegroup.ResourceGroupManager;
-import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
-import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
-import io.kyligence.kap.metadata.streaming.StreamingJobStatsManager;
-import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import io.kyligence.kap.tool.restclient.RestClient;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -116,56 +96,12 @@ public abstract class BasicService {
         return kylinConfig;
     }
 
-    public NTableMetadataManager getTableManager(String project) {
-        return NTableMetadataManager.getInstance(getConfig(), project);
+    public <T> T getManager(Class<T> clz) {
+        return getConfig().getManager(clz);
     }
 
-    public NDataModelManager getDataModelManager(String project) {
-        return NDataModelManager.getInstance(getConfig(), project);
-    }
-
-    public OptRecManagerV2 getOptRecManagerV2(String project) {
-        return OptRecManagerV2.getInstance(project);
-    }
-
-    public NDataflowManager getDataflowManager(String project) {
-        return NDataflowManager.getInstance(getConfig(), project);
-    }
-
-    public FusionModelManager getFusionModelManager(String project) {
-        return FusionModelManager.getInstance(getConfig(), project);
-    }
-
-    public NIndexPlanManager getIndexPlanManager(String project) {
-        return NIndexPlanManager.getInstance(getConfig(), project);
-    }
-
-    public NDataLoadingRangeManager getDataLoadingRangeManager(String project) {
-        return NDataLoadingRangeManager.getInstance(getConfig(), project);
-    }
-
-    public JobManager getJobManager(String project) {
-        return JobManager.getInstance(getConfig(), project);
-    }
-
-    public NProjectManager getProjectManager() {
-        return NProjectManager.getInstance(getConfig());
-    }
-
-    public NExecutableManager getExecutableManager(String project) {
-        return NExecutableManager.getInstance(getConfig(), project);
-    }
-
-    public FavoriteRuleManager getFavoriteRuleManager(String project) {
-        return FavoriteRuleManager.getInstance(getConfig(), project);
-    }
-
-    public SourceUsageManager getSourceUsageManager() {
-        return SourceUsageManager.getInstance(getConfig());
-    }
-
-    public KafkaConfigManager getKafkaConfigManager(String project) {
-        return KafkaConfigManager.getInstance(getConfig(), project);
+    public <T> T getManager(Class<T> clz, String project) {
+        return getConfig().getManager(project, clz);
     }
 
     protected static String getUsername() {
@@ -174,30 +110,6 @@ public abstract class BasicService {
             username = "";
         }
         return username;
-    }
-
-    public QueryHistoryDAO getQueryHistoryDao() {
-        return RDBMSQueryHistoryDAO.getInstance();
-    }
-
-    public StreamingJobManager getStreamingJobManager(String project) {
-        return StreamingJobManager.getInstance(getConfig(), project);
-    }
-
-    public StreamingJobStatsManager getStreamingJobStatsManager() {
-        return StreamingJobStatsManager.getInstance();
-    }
-
-    public MonitorDao getMonitorDao() {
-        return MonitorDao.getInstance();
-    }
-
-    public JobStatisticsManager getJobStatisticsManager(String project) {
-        return JobStatisticsManager.getInstance(getConfig(), project);
-    }
-
-    public AclTCRManager getAclTCRManager(String project) {
-        return AclTCRManager.getInstance(getConfig(), project);
     }
 
     protected static <T> Comparator<T> propertyComparator(String property, boolean ascending) {
@@ -227,16 +139,12 @@ public abstract class BasicService {
         return userGroupService.listUserGroups(AclPermissionUtil.getCurrentUsername());
     }
 
-    public ResourceGroupManager getResourceGroupManager() {
-        return ResourceGroupManager.getInstance(getConfig());
-    }
-
     public boolean remoteRequest(BroadcastEventReadyNotifier notifier, String projectId) {
         try {
             String projectName = notifier.getProject();
             EpochManager epochManager = EpochManager.getInstance();
             if (StringUtils.isNotBlank(projectId)) {
-                projectName = getProjectManager().getProjectById(projectId).getName();
+                projectName = getManager(NProjectManager.class).getProjectById(projectId).getName();
             }
             String owner = epochManager.getEpochOwner(projectName).split("\\|")[0];
             new RestClient(owner).notify(notifier);

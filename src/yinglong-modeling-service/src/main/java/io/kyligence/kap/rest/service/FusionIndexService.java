@@ -31,6 +31,8 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.model.FusionModelManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -82,9 +84,9 @@ public class FusionIndexService extends BasicService {
     @Transaction(project = 0)
     public Pair<IndexPlan, BuildIndexResponse> updateRuleBasedCuboid(String project,
             final UpdateRuleBasedCuboidRequest request) {
-        val model = getDataModelManager(project).getDataModelDesc(request.getModelId());
+        val model = getManager(NDataModelManager.class, project).getDataModelDesc(request.getModelId());
         if (model.fusionModelStreamingPart()) {
-            FusionModel fusionModel = getFusionModelManager(project).getFusionModel(request.getModelId());
+            FusionModel fusionModel = getManager(FusionModelManager.class, project).getFusionModel(request.getModelId());
             String batchId = fusionModel.getBatchModel().getUuid();
             UpdateRuleBasedCuboidRequest batchCopy = JsonUtil.deepCopyQuietly(request,
                     UpdateRuleBasedCuboidRequest.class);
@@ -101,7 +103,7 @@ public class FusionIndexService extends BasicService {
     }
 
     public RuleBasedIndex getRule(String project, String modelId) {
-        val model = getDataModelManager(project).getDataModelDesc(modelId);
+        val model = getManager(NDataModelManager.class, project).getDataModelDesc(modelId);
         val modelRule = indexPlanService.getRule(project, modelId);
         val newRuleBasedIndex = new RuleBasedIndex();
         if (!checkUpdateIndexEnabled(project, modelId)) {
@@ -113,7 +115,7 @@ public class FusionIndexService extends BasicService {
         }
 
         if (model.fusionModelStreamingPart()) {
-            FusionModel fusionModel = getFusionModelManager(project).getFusionModel(modelId);
+            FusionModel fusionModel = getManager(FusionModelManager.class, project).getFusionModel(modelId);
             String batchId = fusionModel.getBatchModel().getUuid();
             val batchRule = indexPlanService.getRule(project, batchId);
             if (batchRule != null) {
@@ -126,7 +128,7 @@ public class FusionIndexService extends BasicService {
 
     @Transaction(project = 0)
     public BuildIndexResponse createTableIndex(String project, CreateTableIndexRequest request) {
-        NDataModel model = getDataModelManager(project).getDataModelDesc(request.getModelId());
+        NDataModel model = getManager(NDataModelManager.class, project).getDataModelDesc(request.getModelId());
         checkStreamingIndexEnabled(project, model);
 
         if (model.fusionModelStreamingPart()) {
@@ -135,13 +137,13 @@ public class FusionIndexService extends BasicService {
                 throw new KylinException(ServerErrorCode.STREAMING_INDEX_UPDATE_DISABLE,
                         String.format(Locale.ROOT, MsgPicker.getMsg().getSTREAMING_INDEXES_ADD()));
             }
-            FusionModel fusionModel = getFusionModelManager(project).getFusionModel(request.getModelId());
+            FusionModel fusionModel = getManager(FusionModelManager.class, project).getFusionModel(request.getModelId());
             String batchId = fusionModel.getBatchModel().getUuid();
             CreateTableIndexRequest copy = convertTableIndexRequest(request, model, batchId);
             if (IndexEntity.Range.BATCH == request.getIndexRange()) {
                 return indexPlanService.createTableIndex(project, copy);
             } else if (IndexEntity.Range.HYBRID == request.getIndexRange()) {
-                val indexPlanManager = getIndexPlanManager(project);
+                val indexPlanManager = getManager(NIndexPlanManager.class, project);
                 val streamingIndexPlan = indexPlanManager.getIndexPlan(request.getModelId());
                 val batchIndexPlan = indexPlanManager.getIndexPlan(batchId);
                 long maxId = Math.max(streamingIndexPlan.getNextTableIndexId(), batchIndexPlan.getNextTableIndexId());
@@ -156,7 +158,7 @@ public class FusionIndexService extends BasicService {
             String batchId) {
         CreateTableIndexRequest copy = JsonUtil.deepCopyQuietly(request, CreateTableIndexRequest.class);
         copy.setModelId(batchId);
-        String tableAlias = getDataModelManager(model.getProject()).getDataModelDesc(batchId).getRootFactTableRef()
+        String tableAlias = getManager(NDataModelManager.class, model.getProject()).getDataModelDesc(batchId).getRootFactTableRef()
                 .getTableName();
         String oldAliasName = model.getRootFactTableRef().getTableName();
         convertTableIndex(copy, tableAlias, oldAliasName);
@@ -183,7 +185,7 @@ public class FusionIndexService extends BasicService {
 
     @Transaction(project = 0)
     public BuildIndexResponse updateTableIndex(String project, CreateTableIndexRequest request) {
-        NDataModel model = getDataModelManager(project).getDataModelDesc(request.getModelId());
+        NDataModel model = getManager(NDataModelManager.class, project).getDataModelDesc(request.getModelId());
         checkStreamingIndexEnabled(project, model);
 
         if (model.fusionModelStreamingPart()) {
@@ -192,7 +194,7 @@ public class FusionIndexService extends BasicService {
                 throw new KylinException(ServerErrorCode.STREAMING_INDEX_UPDATE_DISABLE,
                         String.format(Locale.ROOT, MsgPicker.getMsg().getSTREAMING_INDEXES_EDIT()));
             }
-            FusionModel fusionModel = getFusionModelManager(project).getFusionModel(request.getModelId());
+            FusionModel fusionModel = getManager(FusionModelManager.class, project).getFusionModel(request.getModelId());
             String batchId = fusionModel.getBatchModel().getUuid();
             CreateTableIndexRequest copy = convertTableIndexRequest(request, model, batchId);
             if (IndexEntity.Range.BATCH == request.getIndexRange()) {
@@ -210,19 +212,19 @@ public class FusionIndexService extends BasicService {
             List<IndexEntity.Range> range) {
         List<IndexResponse> indexes = indexPlanService.getIndexes(project, modelId, key, status, orderBy, desc,
                 sources);
-        NDataModel model = getDataModelManager(project).getDataModelDesc(modelId);
+        NDataModel model = getManager(NDataModelManager.class, project).getDataModelDesc(modelId);
         if (model.isFusionModel()) {
-            FusionModel fusionModel = getFusionModelManager(project).getFusionModel(modelId);
+            FusionModel fusionModel = getManager(FusionModelManager.class, project).getFusionModel(modelId);
             if (fusionModel != null) {
                 String batchId = fusionModel.getBatchModel().getUuid();
-                String oldAliasName = getDataModelManager(project).getDataModelDesc(batchId).getRootFactTableRef()
+                String oldAliasName = getManager(NDataModelManager.class, project).getDataModelDesc(batchId).getRootFactTableRef()
                         .getTableName();
                 String tableAlias = model.getRootFactTableRef().getTableName();
                 indexes.addAll(indexPlanService.getIndexes(project, batchId, key, status, orderBy, desc, sources)
                         .stream().filter(index -> IndexEntity.Range.BATCH == index.getIndexRange())
                         .map(index -> convertTableIndex(index, tableAlias, oldAliasName)).collect(Collectors.toList()));
             } else {
-                val streamingModel = getDataModelManager(project).getDataModelDesc(model.getFusionId());
+                val streamingModel = getManager(NDataModelManager.class, project).getDataModelDesc(model.getFusionId());
                 String oldAliasName = model.getRootFactTableRef().getTableName();
                 String tableAlias = streamingModel.getRootFactTableRef().getTableName();
                 indexes.stream().forEach(index -> convertTableIndex(index, tableAlias, oldAliasName));
@@ -252,7 +254,7 @@ public class FusionIndexService extends BasicService {
 
     @Transaction(project = 0)
     public void removeIndex(String project, String model, final long id, IndexEntity.Range indexRange) {
-        NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(model);
+        NDataModel modelDesc = getManager(NDataModelManager.class, project).getDataModelDesc(model);
         checkStreamingIndexEnabled(project, modelDesc);
 
         if (modelDesc.fusionModelStreamingPart()) {
@@ -261,7 +263,7 @@ public class FusionIndexService extends BasicService {
                 throw new KylinException(ServerErrorCode.STREAMING_INDEX_UPDATE_DISABLE,
                         String.format(Locale.ROOT, MsgPicker.getMsg().getSTREAMING_INDEXES_DELETE()));
             }
-            FusionModel fusionModel = getFusionModelManager(project).getFusionModel(model);
+            FusionModel fusionModel = getManager(FusionModelManager.class, project).getFusionModel(model);
             String batchId = fusionModel.getBatchModel().getUuid();
             if (IndexEntity.Range.BATCH == indexRange) {
                 indexPlanService.removeIndex(project, batchId, id);
@@ -275,7 +277,7 @@ public class FusionIndexService extends BasicService {
 
     @Transaction(project = 0)
     public void removeIndexes(String project, String modelId, Set<Long> ids) {
-        NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(modelId);
+        NDataModel modelDesc = getManager(NDataModelManager.class, project).getDataModelDesc(modelId);
         if (modelDesc.isStreaming() && checkStreamingJobAndSegments(project, modelId)) {
             throw new KylinException(ServerErrorCode.STREAMING_INDEX_UPDATE_DISABLE,
                     String.format(Locale.ROOT, MsgPicker.getMsg().getSTREAMING_INDEXES_DELETE()));
@@ -285,7 +287,7 @@ public class FusionIndexService extends BasicService {
     }
 
     private void removeHybridIndex(String project, String model, final long id) {
-        val indexPlan = getIndexPlanManager(project).getIndexPlan(model);
+        val indexPlan = getManager(NIndexPlanManager.class, project).getIndexPlan(model);
         if (indexPlan.getLayoutEntity(id) != null) {
             indexPlanService.removeIndex(project, model, id);
         }
@@ -324,7 +326,7 @@ public class FusionIndexService extends BasicService {
 
         DiffRuleBasedIndexResponse response = indexPlanService.calculateDiffRuleBasedIndex(request);
 
-        val model = getDataModelManager(request.getProject()).getDataModelDesc(request.getModelId());
+        val model = getManager(NDataModelManager.class, request.getProject()).getDataModelDesc(request.getModelId());
         if (NDataModel.ModelType.STREAMING == model.getModelType()) {
             checkStreamingAggEnabled(response, request.getProject(), request.getModelId());
         }
@@ -348,13 +350,13 @@ public class FusionIndexService extends BasicService {
         if (CollectionUtils.isEmpty(batchRequest.getAggregationGroups())) {
             return null;
         }
-        FusionModel fusionModel = getFusionModelManager(request.getProject()).getFusionModel(request.getModelId());
+        FusionModel fusionModel = getManager(FusionModelManager.class, request.getProject()).getFusionModel(request.getModelId());
         batchRequest.setModelId(fusionModel.getBatchModel().getUuid());
         return batchRequest;
     }
 
     private boolean isFusionModel(String project, String modelId) {
-        return getDataModelManager(project).getDataModelDesc(modelId).fusionModelStreamingPart();
+        return getManager(NDataModelManager.class, project).getDataModelDesc(modelId).fusionModelStreamingPart();
     }
 
     private List<NAggregationGroup> getStreamingAggGroup(List<NAggregationGroup> aggregationGroups) {
@@ -419,7 +421,7 @@ public class FusionIndexService extends BasicService {
     }
 
     private String getBatchModel(String project, String modelId) {
-        FusionModel fusionModel = getFusionModelManager(project).getFusionModel(modelId);
+        FusionModel fusionModel = getManager(FusionModelManager.class, project).getFusionModel(modelId);
         return fusionModel.getBatchModel().getId();
     }
 

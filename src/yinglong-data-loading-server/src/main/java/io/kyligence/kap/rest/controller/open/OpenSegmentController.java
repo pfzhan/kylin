@@ -31,6 +31,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
 import java.util.List;
 import java.util.Locale;
 
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
@@ -95,7 +96,7 @@ public class OpenSegmentController extends BaseController {
 
     @VisibleForTesting
     public NDataModel getModel(String modelAlias, String project) {
-        NDataModel model = modelService.getDataModelManager(project).listAllModels().stream() //
+        NDataModel model = modelService.getManager(NDataModelManager.class, project).listAllModels().stream() //
                 .filter(dataModel -> dataModel.getUuid().equals(modelAlias) //
                         || dataModel.getAlias().equalsIgnoreCase(modelAlias))
                 .findFirst().orElse(null);

@@ -69,6 +69,7 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.util.scd2.SCD2SqlConverter;
 import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinDesc;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.LayoutRecDetailResponse;
 import io.kyligence.kap.rest.response.OpenAccSqlResponse;
@@ -384,7 +385,7 @@ public class ModelSmartService extends BasicService implements ModelSmartSupport
             throw new KylinException(PROJECT_NOT_EXIST,
                     String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
         }
-        KylinConfig kylinConfig = getProjectManager().getProject(project).getConfig();
+        KylinConfig kylinConfig = getManager(NProjectManager.class).getProject(project).getConfig();
         AbstractContext proposeContext = new ModelSelectContextOfSemiV2(kylinConfig, project,
                 sqls.toArray(new String[0]));
         ProposerJob.propose(proposeContext,
@@ -410,7 +411,7 @@ public class ModelSmartService extends BasicService implements ModelSmartSupport
         if (CollectionUtils.isEmpty(sqls)) {
             return null;
         }
-        KylinConfig kylinConfig = getProjectManager().getProject(project).getConfig();
+        KylinConfig kylinConfig = getManager(NProjectManager.class).getProject(project).getConfig();
         checkBatchSqlSize(kylinConfig, sqls);
         AbstractContext proposeContext;
         String[] sqlArray = sqls.toArray(new String[0]);

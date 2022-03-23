@@ -39,10 +39,13 @@
     <artifactId>yinglong-common-service</artifactId>
 
     <dependencies>
-
         <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-systools</artifactId>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-tool</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-second-storage-core</artifactId>
         </dependency>
 
         <dependency>

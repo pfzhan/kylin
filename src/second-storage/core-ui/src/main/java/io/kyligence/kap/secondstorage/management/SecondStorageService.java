@@ -87,6 +87,7 @@ import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.handler.SecondStorageModelCleanJobHandler;
 import org.apache.kylin.job.handler.SecondStorageProjectCleanJobHandler;
 import org.apache.kylin.job.handler.SecondStorageSegmentCleanJobHandler;
+import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -337,13 +338,13 @@ public class SecondStorageService extends BasicService implements SecondStorageU
     private String triggerProjectClean(String project) {
         val jobHandler = new SecondStorageProjectCleanJobHandler();
         final JobParam param = SecondStorageJobParamUtil.projectCleanParam(project, getUsername());
-        return getJobManager(project).addJob(param, jobHandler);
+        return getManager(JobManager.class, project).addJob(param, jobHandler);
     }
 
     private String triggerModelClean(String project, String model) {
         val jobHandler = new SecondStorageModelCleanJobHandler();
         final JobParam param = SecondStorageJobParamUtil.modelCleanParam(project, model, getUsername());
-        return getJobManager(project).addJob(param, jobHandler);
+        return getManager(JobManager.class, project).addJob(param, jobHandler);
     }
 
     @Transaction(project = 0)
@@ -354,7 +355,7 @@ public class SecondStorageService extends BasicService implements SecondStorageU
         SecondStorageUtil.cleanSegments(project, model, segIds);
         val jobHandler = new SecondStorageSegmentCleanJobHandler();
         final JobParam param = SecondStorageJobParamUtil.segmentCleanParam(project, model, getUsername(), segIds);
-        return getJobManager(project).addJob(param, jobHandler);
+        return getManager(JobManager.class, project).addJob(param, jobHandler);
     }
 
     public List<ProjectLock> lockList(String project) {
@@ -446,7 +447,7 @@ public class SecondStorageService extends BasicService implements SecondStorageU
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         List<TableFlow> tableFlows = SecondStorageUtil.listTableFlow(config, project);
         NDataModelManager modelManager = NDataModelManager.getInstance(config, project);
-        NDataflowManager dataflowManager = getDataflowManager(project);
+        NDataflowManager dataflowManager = getManager(NDataflowManager.class, project);
         SecondStorageProjectModelSegment projectModelSegment = new SecondStorageProjectModelSegment();
         Map<String, SecondStorageModelSegment> modelSegmentMap = new HashMap<>();
         for(TableFlow tableFlow : tableFlows) {
@@ -555,7 +556,7 @@ public class SecondStorageService extends BasicService implements SecondStorageU
         if (isEnabled(project, modelId)) {
             return;
         }
-        val indexPlanManager = getIndexPlanManager(project);
+        val indexPlanManager = getManager(NIndexPlanManager.class, project);
         final IndexPlan indexPlan = indexPlanManager.getIndexPlan(modelId);
         if (!indexPlan.containBaseTableLayout() && !indexPlan.getModel().getEffectiveDimensions().isEmpty()) {
             indexPlanManager.updateIndexPlan(modelId, copied -> {

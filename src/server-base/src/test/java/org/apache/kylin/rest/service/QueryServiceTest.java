@@ -433,7 +433,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     private void mockOLAPContextForEmptyLayout() throws Exception {
         val modelManager = Mockito.spy(NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default"));
 
-        Mockito.doReturn(modelManager).when(queryService).getDataModelManager("default");
+        Mockito.doReturn(modelManager).when(queryService).getManager(NDataModelManager.class, "default");
         // mock empty index realization
         OLAPContext mock = new OLAPContext(1);
         NDataModel mockModel1 = Mockito.spy(new NDataModel());
@@ -456,7 +456,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     private void mockOLAPContext() throws Exception {
         val modelManager = Mockito.spy(NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default"));
 
-        Mockito.doReturn(modelManager).when(queryService).getDataModelManager("default");
+        Mockito.doReturn(modelManager).when(queryService).getManager(NDataModelManager.class, "default");
         // mock agg index realization
         OLAPContext aggMock = new OLAPContext(1);
         NDataModel mockModel1 = Mockito.spy(new NDataModel());
@@ -501,7 +501,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         val modelManager = Mockito
                 .spy(NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "streaming_test"));
 
-        Mockito.doReturn(modelManager).when(queryService).getDataModelManager("streaming_test");
+        Mockito.doReturn(modelManager).when(queryService).getManager(NDataModelManager.class, "streaming_test");
         // mock agg index realization
         OLAPContext aggMock = new OLAPContext(1);
         NDataModel mockModel1 = Mockito.spy(new NDataModel());
@@ -534,7 +534,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     private void mockOLAPContextWithStreaming() throws Exception {
         val modelManager = Mockito.spy(NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "demo"));
 
-        Mockito.doReturn(modelManager).when(queryService).getDataModelManager("demo");
+        Mockito.doReturn(modelManager).when(queryService).getManager(NDataModelManager.class, "demo");
         // mock agg index realization
         OLAPContext aggMock = new OLAPContext(1);
         NDataModel mockModel1 = Mockito.spy(new NDataModel());

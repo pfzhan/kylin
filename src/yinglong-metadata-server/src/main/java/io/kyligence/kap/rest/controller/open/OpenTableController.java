@@ -23,7 +23,20 @@
  */
 package io.kyligence.kap.rest.controller.open;
 
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_SAMPLING_RANGE;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_NAME;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_SAMPLE_RANGE;
+import static org.apache.kylin.common.exception.ServerErrorCode.RELOAD_TABLE_FAILED;
+import static org.apache.kylin.common.exception.ServerErrorCode.UNSUPPORTED_DATA_SOURCE_TYPE;
+import static org.apache.kylin.common.exception.ServerErrorCode.UNSUPPORTED_STREAMING_OPERATION;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Locale;
+
 import com.google.common.annotations.VisibleForTesting;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.rest.controller.NBasicController;
 import io.kyligence.kap.rest.controller.NTableController;
 import io.kyligence.kap.rest.request.DateRangeRequest;
@@ -57,18 +70,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Locale;
-
-import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_SAMPLING_RANGE;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_NAME;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_SAMPLE_RANGE;
-import static org.apache.kylin.common.exception.ServerErrorCode.RELOAD_TABLE_FAILED;
-import static org.apache.kylin.common.exception.ServerErrorCode.UNSUPPORTED_DATA_SOURCE_TYPE;
-import static org.apache.kylin.common.exception.ServerErrorCode.UNSUPPORTED_STREAMING_OPERATION;
-
 @Controller
 @RequestMapping(value = "/api/tables", produces = { HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
 public class OpenTableController extends NBasicController {
@@ -87,7 +88,7 @@ public class OpenTableController extends NBasicController {
 
     @VisibleForTesting
     public TableDesc getTable(String project, String tableName) {
-        TableDesc table = tableService.getTableManager(project).getTableDesc(tableName);
+        TableDesc table = tableService.getManager(NTableMetadataManager.class, project).getTableDesc(tableName);
         if (null == table) {
             throw new KylinException(INVALID_TABLE_NAME,
                     String.format(Locale.ROOT, MsgPicker.getMsg().getTABLE_NOT_FOUND(), tableName));

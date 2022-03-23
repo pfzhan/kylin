@@ -70,7 +70,7 @@ public class StreamingTableService extends TableService {
 
     @Transaction(project = 0)
     List<String> innerReloadTable(String project, TableDesc tableDesc, TableExtDesc extDesc) {
-        val tableManager = getTableManager(project);
+        val tableManager = getManager(NTableMetadataManager.class, project);
         String tableIdentity = tableDesc.getIdentity();
         val originTable = tableManager.getTableDesc(tableIdentity);
         Preconditions.checkNotNull(originTable,
