@@ -281,8 +281,10 @@
               </span>)
             </span>
             <span v-else>
-              <span>{{n.name}}</span>
-              <span class="ip-span">{{n.ip}}:{{n.port}}</span>
+              <span v-for="n2 in gn" :key="n2.name">
+                <span>{{n2.name}}</span>
+                <span class="ip-span">{{n2.ip}}:{{n2.port}}</span>
+              </span>
             </span>
           </li>
         </ul>
