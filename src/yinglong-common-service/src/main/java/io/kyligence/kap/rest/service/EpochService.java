@@ -47,7 +47,7 @@ public class EpochService extends BasicService {
 
     private static final Logger logger = LoggerFactory.getLogger(EpochService.class);
 
-    @Autowired
+    @Autowired(required = false)
     public AclEvaluate aclEvaluate;
 
     public void updateEpoch(List<String> projects, boolean force, boolean client) {

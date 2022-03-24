@@ -44,7 +44,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
-import org.assertj.core.util.Lists;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -76,6 +75,7 @@ import org.springframework.web.context.WebApplicationContext;
 
 import com.google.common.cache.Cache;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import com.unboundid.ldap.listener.InMemoryDirectoryServer;
 import com.unboundid.ldap.listener.InMemoryDirectoryServerConfig;
 import com.unboundid.ldap.listener.InMemoryListenerConfig;
@@ -89,8 +89,8 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextHierarchy({ @ContextConfiguration(locations = { "classpath:applicationContext.xml" }),
-        @ContextConfiguration(locations = { "classpath:kylinSecurity.xml" }) })
+@ContextHierarchy({ @ContextConfiguration(locations = {"classpath:applicationContext.xml"}),
+        @ContextConfiguration(locations = {"classpath:kylinSecurity.xml"}) })
 @WebAppConfiguration(value = "src/main/resources")
 @ActiveProfiles({ "ldap", "ldap-test", "test" })
 public class LdapUserServiceTest extends NLocalFileMetadataTestCase {
@@ -268,7 +268,7 @@ public class LdapUserServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testUpdateUserGroup() {
         thrown.expect(UnsupportedOperationException.class);
-        userGroupService.modifyGroupUsers("gg", Lists.emptyList());
+        userGroupService.modifyGroupUsers("gg", Lists.newArrayList());
     }
 
     @Test

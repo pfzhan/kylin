@@ -65,10 +65,6 @@ public class NUserGroupServiceTest extends ServiceTestBase {
     @Qualifier("userService")
     private UserService userService;
 
-    @Autowired
-    @Qualifier("aclTCRService")
-    private AclTCRService aclTCRService;
-
     @Test
     public void testBasic() throws IOException {
         for (String group : userGroupService.getAllUserGroups()) {
@@ -179,8 +175,8 @@ public class NUserGroupServiceTest extends ServiceTestBase {
         groups = userGroupService.listUserGroups("MODELER");
         Assert.assertEquals(3, groups.size());
         Assert.assertTrue(groups.contains("t3"));
-        Assert.assertThrows(RuntimeException.class,
-                () -> userGroupService.modifyGroupUsers("t1", Arrays.asList("ADMIN")));
+        List<String> userList = Arrays.asList("ADMIN");
+        Assert.assertThrows(RuntimeException.class, () -> userGroupService.modifyGroupUsers("t1", userList));
     }
 
     @Test

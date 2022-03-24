@@ -155,7 +155,7 @@ public class ProjectService extends BasicService {
     @Autowired
     private MetadataBackupService metadataBackupService;
 
-    @Autowired
+    @Autowired(required = false)
     @Qualifier("asyncTaskService")
     private AsyncTaskServiceSupporter asyncTaskService;
 
@@ -165,10 +165,10 @@ public class ProjectService extends BasicService {
     //    @Autowired
     //    AsyncQueryService asyncQueryService;
 
-    @Autowired
+    @Autowired(required = false)
     private ProjectModelSupporter projectModelSupporter;
 
-    @Autowired
+    @Autowired(required = false)
     private ProjectSmartServiceSupporter projectSmartService;
 
     @Autowired

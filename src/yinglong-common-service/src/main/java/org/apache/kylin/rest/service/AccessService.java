@@ -141,7 +141,7 @@ public class AccessService extends BasicService {
     @Qualifier("userService")
     protected UserService userService;
 
-    @Autowired
+    @Autowired(required = false)
     @Qualifier("aclTCRService")
     private AclTCRServiceSupporter aclTCRService;
 

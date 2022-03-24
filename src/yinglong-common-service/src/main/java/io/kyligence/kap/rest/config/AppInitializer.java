@@ -72,13 +72,13 @@ public class AppInitializer {
     @Autowired
     TaskScheduler taskScheduler;
 
-    @Autowired
+    @Autowired(required = false)
     CommonQueryCacheSupporter queryCacheManager;
 
-    @Autowired
+    @Autowired(required = false)
     EpochChangedListener epochChangedListener;
 
-    @Autowired
+    @Autowired(required = false)
     HostInfoFetcher hostInfoFetcher;
 
     JdbcStreamingJobStatsStore streamingJobStatsStore;

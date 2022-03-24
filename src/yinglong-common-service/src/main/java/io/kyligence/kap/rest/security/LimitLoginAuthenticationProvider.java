@@ -65,7 +65,7 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
     @Qualifier("userService")
     UserService userService;
 
-    @Autowired
+    @Autowired(required = false)
     @Qualifier("maintenanceModeService")
     MaintenanceModeSupporter maintenanceModeService;
 
