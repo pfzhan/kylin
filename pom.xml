@@ -689,6 +689,18 @@
                 <type>test-jar</type>
             </dependency>
             <dependency>
+                <groupId>io.kyligence.yinglong</groupId>
+                <artifactId>yinglong-modeling-service</artifactId>
+                <version>${project.version}</version>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.ke</groupId>
+                <artifactId>kap-second-storage-clickhouse</artifactId>
+                <version>${project.version}</version>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
                 <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-core-metadata</artifactId>
                 <version>${project.version}</version>

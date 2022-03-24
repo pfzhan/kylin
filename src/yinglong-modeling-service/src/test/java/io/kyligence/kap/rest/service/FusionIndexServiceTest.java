@@ -68,7 +68,7 @@ import io.kyligence.kap.rest.response.FusionRuleDataResult;
 import lombok.val;
 import lombok.var;
 
-public class FusionIndexServiceTest extends CSVSourceTestCase {
+public class FusionIndexServiceTest extends SourceTestCase {
 
     @InjectMocks
     private FusionIndexService fusionIndexService = Mockito.spy(new FusionIndexService());
@@ -511,7 +511,7 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
                 .aggregationGroups(Arrays.asList(aggGroup1, aggGroup2)).build();
         AggIndexResponse response = fusionIndexService.calculateAggIndexCount(request);
 
-        Assert.assertEquals(response.getAggIndexCounts().size(), 1);
+        Assert.assertEquals(1, response.getAggIndexCounts().size());
     }
 
     @Test

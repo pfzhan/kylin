@@ -34,7 +34,6 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.constant.JobStatusEnum;
@@ -67,24 +66,21 @@ import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.FusionModel;
 import io.kyligence.kap.metadata.model.FusionModelManager;
-import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.config.initialize.ModelUpdateListener;
 import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
-import io.kyligence.kap.rest.request.IndexesToSegmentsRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.OwnerChangeRequest;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
-import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
 import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import lombok.val;
 import lombok.var;
 
-public class FusionModelServiceTest extends CSVSourceTestCase {
+public class FusionModelServiceTest extends SourceTestCase {
 
     @InjectMocks
     private FusionModelService fusionModelService = Mockito.spy(new FusionModelService());
@@ -93,10 +89,7 @@ public class FusionModelServiceTest extends CSVSourceTestCase {
     private ModelService modelService = Mockito.spy(new ModelService());
 
     @InjectMocks
-    private ModelQueryService modelQueryService = Mockito.spy(new ModelQueryService());
-
-    @InjectMocks
-    private ModelBuildService modelBuildService = Mockito.spy(new ModelBuildService());
+    private MockModelQueryService modelQueryService = Mockito.spy(new MockModelQueryService());
 
     @Mock
     private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
@@ -133,13 +126,10 @@ public class FusionModelServiceTest extends CSVSourceTestCase {
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
         ReflectionTestUtils.setField(modelService, "accessService", accessService);
         ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
-        ReflectionTestUtils.setField(modelQueryService, "aclEvaluate", aclEvaluate);
-        ReflectionTestUtils.setField(modelBuildService, "aclEvaluate", aclEvaluate);
-        ReflectionTestUtils.setField(modelBuildService, "modelService", modelService);
-        ReflectionTestUtils.setField(fusionModelService, "modelBuildService", modelBuildService);
         ReflectionTestUtils.setField(modelService, "userGroupService", userGroupService);
         ReflectionTestUtils.setField(modelService, "modelQuerySupporter", modelQueryService);
         ReflectionTestUtils.setField(semanticService, "userGroupService", userGroupService);
+        ReflectionTestUtils.setField(indexPlanService, "aclEvaluate", aclEvaluate);
         modelService.setSemanticUpdater(semanticService);
         modelService.setIndexPlanService(indexPlanService);
         TestingAuthenticationToken auth = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
@@ -149,29 +139,6 @@ public class FusionModelServiceTest extends CSVSourceTestCase {
     @After
     public void tearDown() {
         cleanupTestMetadata();
-    }
-
-    @Test
-    public void testBuildSegmentsManually() throws Exception {
-        String modelId = "334671fd-e383-4fc9-b5c2-94fce832f77a";
-        String streamingId = "b05034a8-c037-416b-aa26-9e6b4a41ee40";
-        String project = "streaming_test";
-        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        modelManager.updateDataModel(modelId, copyForWrite -> {
-            copyForWrite.setManagementType(ManagementType.MODEL_BASED);
-            copyForWrite.setPartitionDesc(null);
-        });
-
-        NDataModel model = modelManager.getDataModelDesc(streamingId);
-        IncrementBuildSegmentParams incrParams = new IncrementBuildSegmentParams(project, modelId, "1633017600000",
-                "1633104000000", model.getPartitionDesc(), model.getMultiPartitionDesc(), null, true, null);
-        fusionModelService.incrementBuildSegmentsManually(incrParams);
-        NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        var dataflow = dataflowManager.getDataflow(modelId);
-        Assert.assertEquals(1, dataflow.getSegments().size());
-        Assert.assertEquals("LINEORDER_HIVE.LO_PARTITIONCOLUMN",
-                dataflow.getModel().getPartitionDesc().getPartitionDateColumn());
-
     }
 
     @Test
@@ -381,52 +348,6 @@ public class FusionModelServiceTest extends CSVSourceTestCase {
         String[] batchSegIds = { "ef5e0663-feba-4ed2-b71c-21958122bbff" };
         Assert.assertEquals(batchModelId, pair.getFirst());
         Assert.assertTrue(ArrayUtils.isEquals(pair.getSecond(), batchSegIds));
-    }
-
-    @Test
-    public void testAddIndexesToSegments() {
-        IndexesToSegmentsRequest buildSegmentsRequest = new IndexesToSegmentsRequest();
-        buildSegmentsRequest.setProject("streaming_test");
-
-        // test streaming of fusion model
-        buildSegmentsRequest.setSegmentIds(Arrays.asList("3e560d22-b749-48c3-9f64-d4230207f120"));
-        val fusionId = "4965c827-fbb4-4ea1-a744-3f341a3b030d";
-        try {
-            fusionModelService.addIndexesToSegments(fusionId, buildSegmentsRequest);
-        } catch (KylinException e) {
-            Assert.assertEquals("KE-010022004", e.getErrorCode().getCodeString());
-        } catch (Exception e) {
-            Assert.fail();
-        }
-
-        // test batch of fusion model
-        buildSegmentsRequest.setSegmentIds(Arrays.asList("86b5daaa-e295-4e8c-b877-f97bda69bee5"));
-        try {
-            fusionModelService.addIndexesToSegments(fusionId, buildSegmentsRequest);
-        } catch (Exception e) {
-            Assert.fail();
-        }
-
-        // test streaming model
-        buildSegmentsRequest.setSegmentIds(Arrays.asList("c380dd2a-43b8-4268-b73d-2a5f76236631"));
-        val streamingModelId = "e78a89dd-847f-4574-8afa-8768b4228b72";
-        try {
-            fusionModelService.addIndexesToSegments(streamingModelId, buildSegmentsRequest);
-        } catch (KylinException e) {
-            Assert.assertEquals("KE-010022004", e.getErrorCode().getCodeString());
-        } catch (Exception e) {
-            Assert.fail();
-        }
-
-        // test batch model
-        buildSegmentsRequest.setSegmentIds(Arrays.asList("ef5e0663-feba-4ed2-b71c-21958122bbff"));
-        val batchModelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        buildSegmentsRequest.setProject("default");
-        try {
-            fusionModelService.addIndexesToSegments(batchModelId, buildSegmentsRequest);
-        } catch (Exception e) {
-            Assert.fail();
-        }
     }
 
     @Test

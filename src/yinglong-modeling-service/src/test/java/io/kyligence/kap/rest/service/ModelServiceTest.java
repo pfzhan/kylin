@@ -25,11 +25,8 @@
 package io.kyligence.kap.rest.service;
 
 import static io.kyligence.kap.rest.request.MultiPartitionMappingRequest.MappingRequest;
-import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.eq;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -42,7 +39,6 @@ import java.lang.reflect.Field;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.text.MessageFormat;
-import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -62,9 +58,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.TreeMap;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -82,17 +76,11 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.Serializer;
-import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.TimeUtil;
-import org.apache.kylin.job.dao.ExecutablePO;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.ExecutableParams;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.execution.SucceedChainedTestExecutable;
 import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.ColumnDesc;
@@ -105,14 +93,10 @@ import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.SegmentStatusEnumToDisplay;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
-import org.apache.kylin.rest.request.OpenSqlAccelerateRequest;
-import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -134,7 +118,6 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -145,14 +128,10 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Longs;
 
-import io.kyligence.kap.common.persistence.transaction.TransactionException;
+import io.kyligence.kap.clickhouse.MockSecondStorage;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.util.Unsafe;
-import io.kyligence.kap.engine.spark.job.ExecutableAddCuboidHandler;
-import io.kyligence.kap.engine.spark.job.ExecutableAddSegmentHandler;
-import io.kyligence.kap.engine.spark.job.ExecutableMergeOrRefreshHandler;
-import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.engine.spark.utils.ComputedColumnEvalUtil;
 import io.kyligence.kap.junit.rule.TransactionExceptedException;
 import io.kyligence.kap.metadata.acl.AclTCR;
@@ -161,8 +140,6 @@ import io.kyligence.kap.metadata.cube.cuboid.CuboidStatus;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.LayoutPartition;
-import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
@@ -177,7 +154,6 @@ import io.kyligence.kap.metadata.cube.model.RuleBasedIndex;
 import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
-import io.kyligence.kap.metadata.job.JobBucket;
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.BadModelException;
 import io.kyligence.kap.metadata.model.BadModelException.CauseType;
@@ -193,60 +169,41 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.RetentionRange;
 import io.kyligence.kap.metadata.model.VolatileRange;
 import io.kyligence.kap.metadata.model.util.ExpandableMeasureUtil;
-import io.kyligence.kap.metadata.model.util.scd2.SCD2CondChecker;
-import io.kyligence.kap.metadata.model.util.scd2.SCD2SqlConverter;
 import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinTableDesc;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.QueryTimesResponse;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
-import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
-import io.kyligence.kap.rest.constant.ModelAttributeEnum;
 import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
 import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.MultiPartitionMappingRequest;
 import io.kyligence.kap.rest.request.OwnerChangeRequest;
-import io.kyligence.kap.rest.request.PartitionsRefreshRequest;
-import io.kyligence.kap.rest.request.SegmentTimeRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
 import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
-import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.CheckSegmentResponse;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
-import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.FusionModelResponse;
 import io.kyligence.kap.rest.response.IndicesResponse;
-import io.kyligence.kap.rest.response.LayoutRecDetailResponse;
+import io.kyligence.kap.rest.response.MultiPartitionValueResponse;
 import io.kyligence.kap.rest.response.NCubeDescResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.NModelDescResponse;
-import io.kyligence.kap.rest.response.OpenAccSqlResponse;
-import io.kyligence.kap.rest.response.OpenModelRecResponse;
-import io.kyligence.kap.rest.response.OpenSuggestionResponse;
 import io.kyligence.kap.rest.response.ParameterResponse;
 import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
 import io.kyligence.kap.rest.response.RelatedModelResponse;
+import io.kyligence.kap.rest.response.SegmentPartitionResponse;
 import io.kyligence.kap.rest.response.SimplifiedColumnResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
-import io.kyligence.kap.rest.response.SuggestionResponse;
-import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
-import io.kyligence.kap.rest.service.params.MergeSegmentParams;
-import io.kyligence.kap.rest.service.params.ModelQueryParams;
-import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
-import io.kyligence.kap.rest.util.ModelTriple;
 import io.kyligence.kap.rest.util.SCD2SimplificationConvertUtil;
 import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import io.kyligence.kap.secondstorage.config.Node;
 import io.kyligence.kap.secondstorage.metadata.NodeGroup;
-import io.kyligence.kap.smart.AbstractContext;
-import io.kyligence.kap.smart.ProposerJob;
-import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.streaming.jobs.StreamingJobListener;
 import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import lombok.val;
@@ -254,7 +211,7 @@ import lombok.var;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class ModelServiceTest extends CSVSourceTestCase {
+public class ModelServiceTest extends SourceTestCase {
 
     private final String MODEL_UT_INNER_JOIN_ID = "82fa7671-a935-45f5-8779-85703601f49a";
 
@@ -262,34 +219,25 @@ public class ModelServiceTest extends CSVSourceTestCase {
     private final ModelService modelService = Mockito.spy(new ModelService());
 
     @InjectMocks
-    private final ModelBuildService modelBuildService = Mockito.spy(new ModelBuildService());
-
-    @InjectMocks
-    private final ModelSmartService modelSmartService = Mockito.spy(new ModelSmartService());
-
-    @InjectMocks
-    private final ModelQueryService modelQueryService = Mockito.spy(new ModelQueryService());
+    private final MockModelQueryService modelQueryService = Mockito.spy(new MockModelQueryService());
 
     @InjectMocks
     private final ModelSemanticHelper semanticService = Mockito.spy(new ModelSemanticHelper());
 
     @InjectMocks
-    private final JobService jobService = Mockito.spy(new JobService());
-
-    @Autowired
-    private final TableService tableService = Mockito.spy(new TableService());
-
-    @Autowired
-    private final TableExtService tableExtService = Mockito.spy(new TableExtService());
-
-    @Autowired
-    private final IndexPlanService indexPlanService = Mockito.spy(new IndexPlanService());
-
-    @Autowired
-    private final ProjectService projectService = Mockito.spy(new ProjectService());
+    private final FusionModelService fusionModelService = Mockito.spy(new FusionModelService());
 
     @InjectMocks
-    private final SegmentHelper segmentHelper = new SegmentHelper();
+    private final TableService tableService = Mockito.spy(new TableService());
+
+    @InjectMocks
+    private final TableExtService tableExtService = Mockito.spy(new TableExtService());
+
+    @InjectMocks
+    private final IndexPlanService indexPlanService = Mockito.spy(new IndexPlanService());
+
+    @InjectMocks
+    private final ProjectService projectService = Mockito.spy(new ProjectService());
 
     @Mock
     private final AclUtil aclUtil = Mockito.spy(AclUtil.class);
@@ -316,6 +264,10 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     private FavoriteRuleManager favoriteRuleManager;
 
+    protected String getProject() {
+        return "default";
+    }
+
     @Before
     public void setup() {
         super.setup();
@@ -323,7 +275,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
         overwriteSystemProp("kylin.model.multi-partition-enabled", "true");
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
         ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
-        ReflectionTestUtils.setField(modelQueryService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(modelService, "accessService", accessService);
         ReflectionTestUtils.setField(modelService, "userGroupService", userGroupService);
         ReflectionTestUtils.setField(semanticService, "userGroupService", userGroupService);
@@ -335,22 +286,12 @@ public class ModelServiceTest extends CSVSourceTestCase {
                     ccDesc.setInnerExpression(ccExpression);
                     ComputedColumnEvalUtil.evaluateExprAndType(model, ccDesc);
                 }));
-        ReflectionTestUtils.setField(semanticService, "modelSmartSupporter", modelSmartService);
-        ReflectionTestUtils.setField(modelService, "projectService", projectService);
         ReflectionTestUtils.setField(modelService, "modelQuerySupporter", modelQueryService);
-        ReflectionTestUtils.setField(tableService, "jobService", jobService);
-
-        ReflectionTestUtils.setField(modelService, "modelBuildService", modelBuildService);
-
-        ReflectionTestUtils.setField(modelBuildService, "modelService", modelService);
-        ReflectionTestUtils.setField(modelBuildService, "segmentHelper", segmentHelper);
-        ReflectionTestUtils.setField(modelBuildService, "aclEvaluate", aclEvaluate);
-
-        ReflectionTestUtils.setField(modelSmartService, "modelService", modelService);
-        ReflectionTestUtils.setField(modelSmartService, "aclEvaluate", aclEvaluate);
+        ReflectionTestUtils.setField(indexPlanService, "aclEvaluate", aclEvaluate);
+        ReflectionTestUtils.setField(tableService, "aclEvaluate", aclEvaluate);
+        ReflectionTestUtils.setField(tableService, "fusionModelService", fusionModelService);
 
         modelService.setSemanticUpdater(semanticService);
-        modelService.setSegmentHelper(segmentHelper);
         modelService.setIndexPlanService(indexPlanService);
         val result1 = new QueryTimesResponse();
         result1.setModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -576,7 +517,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
-    @Ignore
     public void testGetModelsWithCC() {
         List<NDataModelResponse> models = modelService.getModels("nmodel_basic", "default", true, "", null, "", false);
         Assert.assertEquals(1, models.size());
@@ -678,7 +618,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", "0", "" + Long.MAX_VALUE, "", "second_storage_size",
                 false);
 
-        Assert.assertEquals(segmentResponseList.get(0).getId(), "3");
+        Assert.assertEquals("3", segmentResponseList.get(0).getId());
     }
 
     @Test
@@ -754,40 +694,12 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val dataflowId = "747f864b-9721-4b97-acde-0aa8e8656cba";
         var segments = modelService.getSegmentsResponse(dataflowId, project, "0", "" + Long.MAX_VALUE, "", "", false);
         Assert.assertEquals(5, segments.size());
-        Assert.assertEquals(4, segments.get(0).getMultiPartitionCount());
-        Assert.assertEquals(4, segments.get(0).getMultiPartitionCountTotal());
-        Assert.assertEquals(5588, segments.get(0).getBytesSize());
-        Assert.assertEquals(56, segments.get(0).getRowCount());
-        Assert.assertEquals(773349, segments.get(0).getSourceBytesSize());
-        Assert.assertEquals(SegmentStatusEnumToDisplay.ONLINE, segments.get(0).getStatusToDisplay());
 
-        Assert.assertEquals(3, segments.get(1).getMultiPartitionCount());
-        Assert.assertEquals(4, segments.get(1).getMultiPartitionCountTotal());
-        Assert.assertEquals(4191, segments.get(1).getBytesSize());
-        Assert.assertEquals(42, segments.get(1).getRowCount());
-        Assert.assertEquals(773349, segments.get(1).getSourceBytesSize());
-        Assert.assertEquals(SegmentStatusEnumToDisplay.ONLINE, segments.get(1).getStatusToDisplay());
-
-        Assert.assertEquals(3, segments.get(2).getMultiPartitionCount());
-        Assert.assertEquals(4, segments.get(2).getMultiPartitionCountTotal());
-        Assert.assertEquals(4191, segments.get(2).getBytesSize());
-        Assert.assertEquals(42, segments.get(2).getRowCount());
-        Assert.assertEquals(773349, segments.get(2).getSourceBytesSize());
-        Assert.assertEquals(SegmentStatusEnumToDisplay.ONLINE, segments.get(2).getStatusToDisplay());
-
-        Assert.assertEquals(2, segments.get(3).getMultiPartitionCount());
-        Assert.assertEquals(4, segments.get(3).getMultiPartitionCountTotal());
-        Assert.assertEquals(2794, segments.get(3).getBytesSize());
-        Assert.assertEquals(28, segments.get(3).getRowCount());
-        Assert.assertEquals(773349, segments.get(3).getSourceBytesSize());
-        Assert.assertEquals(SegmentStatusEnumToDisplay.ONLINE, segments.get(3).getStatusToDisplay());
-
-        Assert.assertEquals(2, segments.get(4).getMultiPartitionCount());
-        Assert.assertEquals(4, segments.get(4).getMultiPartitionCountTotal());
-        Assert.assertEquals(2794, segments.get(4).getBytesSize());
-        Assert.assertEquals(28, segments.get(4).getRowCount());
-        Assert.assertEquals(773349, segments.get(4).getSourceBytesSize());
-        Assert.assertEquals(SegmentStatusEnumToDisplay.ONLINE, segments.get(4).getStatusToDisplay());
+        checkSegment(segments.get(0), 4, 4, 5588, 56, 773349, SegmentStatusEnumToDisplay.ONLINE);
+        checkSegment(segments.get(1), 3, 4, 4191, 42, 773349, SegmentStatusEnumToDisplay.ONLINE);
+        checkSegment(segments.get(2), 3, 4, 4191, 42, 773349, SegmentStatusEnumToDisplay.ONLINE);
+        checkSegment(segments.get(3), 2, 4, 2794, 28, 773349, SegmentStatusEnumToDisplay.ONLINE);
+        checkSegment(segments.get(4), 2, 4, 2794, 28, 773349, SegmentStatusEnumToDisplay.ONLINE);
 
         // status test
         // loading
@@ -805,6 +717,16 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dataflowManager.updateDataflow(dfUpdate);
         segments = modelService.getSegmentsResponse(dataflowId, project, "0", "" + Long.MAX_VALUE, "", "", false);
         Assert.assertEquals(SegmentStatusEnumToDisplay.REFRESHING, segments.get(1).getStatusToDisplay());
+    }
+    
+    private void checkSegment(NDataSegmentResponse response, int count, int total, int byteSize, int rowCount,
+            int sourceByteSize, SegmentStatusEnumToDisplay status) {
+        Assert.assertEquals(count, response.getMultiPartitionCount());
+        Assert.assertEquals(total, response.getMultiPartitionCountTotal());
+        Assert.assertEquals(byteSize, response.getBytesSize());
+        Assert.assertEquals(rowCount, response.getRowCount());
+        Assert.assertEquals(sourceByteSize, response.getSourceBytesSize());
+        Assert.assertEquals(status, response.getStatusToDisplay());
     }
 
     @Test
@@ -827,40 +749,34 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val partitions1 = modelService.getSegmentPartitions(project, dataflowId, segment1Id, null, "last_modified_time",
                 false);
         Assert.assertEquals(5, partitions1.size());
-        Assert.assertEquals(0, partitions1.get(0).getPartitionId());
-        Assert.assertArrayEquals(new String[] { "0" }, partitions1.get(0).getValues());
-        Assert.assertEquals(PartitionStatusEnumToDisplay.ONLINE, partitions1.get(0).getStatus());
-        Assert.assertEquals(42, partitions1.get(0).getSourceCount());
-        Assert.assertEquals(1397, partitions1.get(0).getBytesSize());
-        Assert.assertEquals(4, partitions1.get(4).getPartitionId());
-        Assert.assertArrayEquals(new String[] { "4" }, partitions1.get(4).getValues());
-        Assert.assertEquals(PartitionStatusEnumToDisplay.LOADING, partitions1.get(4).getStatus());
-        Assert.assertEquals(42, partitions1.get(0).getSourceCount());
-        Assert.assertEquals(0, partitions1.get(4).getBytesSize());
+        checkPartition(partitions1.get(0), 0, new String[] { "0" }, PartitionStatusEnumToDisplay.ONLINE, 42, 1397);
+        checkPartition(partitions1.get(4), 4, new String[] { "4" }, PartitionStatusEnumToDisplay.LOADING, 0, 0);
 
         val partitions2 = modelService.getSegmentPartitions(project, dataflowId, segment2Id, null, "last_modified_time",
                 false);
         Assert.assertEquals(3, partitions2.size());
-        Assert.assertEquals(0, partitions2.get(0).getPartitionId());
-        Assert.assertArrayEquals(new String[] { "0" }, partitions2.get(0).getValues());
-        Assert.assertEquals(PartitionStatusEnumToDisplay.REFRESHING, partitions2.get(0).getStatus());
-        Assert.assertEquals(42, partitions1.get(0).getSourceCount());
-        Assert.assertEquals(1397, partitions2.get(0).getBytesSize());
-        Assert.assertEquals(1, partitions2.get(1).getPartitionId());
-        Assert.assertArrayEquals(new String[] { "1" }, partitions2.get(1).getValues());
-        Assert.assertEquals(PartitionStatusEnumToDisplay.ONLINE, partitions2.get(1).getStatus());
-        Assert.assertEquals(42, partitions1.get(0).getSourceCount());
-        Assert.assertEquals(1397, partitions2.get(1).getBytesSize());
+        checkPartition(partitions2.get(0), 0, new String[] { "0" }, PartitionStatusEnumToDisplay.REFRESHING, 0, 1397);
+        checkPartition(partitions2.get(1), 1, new String[] { "1" }, PartitionStatusEnumToDisplay.ONLINE, 0, 1397);
 
         // filter by status
         val onlinePartitions2 = modelService.getSegmentPartitions(project, dataflowId, segment2Id,
                 Lists.newArrayList("ONLINE"), "last_modified_time", true);
         Assert.assertEquals(2, onlinePartitions2.size());
-        Assert.assertEquals(2, onlinePartitions2.get(0).getPartitionId());
-        Assert.assertArrayEquals(new String[] { "2" }, onlinePartitions2.get(0).getValues());
-        Assert.assertEquals(PartitionStatusEnumToDisplay.ONLINE, onlinePartitions2.get(0).getStatus());
-        Assert.assertEquals(1, onlinePartitions2.get(1).getPartitionId());
-        Assert.assertEquals(PartitionStatusEnumToDisplay.ONLINE, onlinePartitions2.get(1).getStatus());
+        checkPartition(onlinePartitions2.get(0), 2, new String[] { "2" }, PartitionStatusEnumToDisplay.ONLINE, -1, -1);
+        checkPartition(onlinePartitions2.get(1), 1, new String[] { "1" }, PartitionStatusEnumToDisplay.ONLINE, -1, -1);
+    }
+
+    private void checkPartition(SegmentPartitionResponse response, long id, String[] values,
+            PartitionStatusEnumToDisplay status, long sourceCount, long byteSize) {
+        Assert.assertEquals(id, response.getPartitionId());
+        Assert.assertArrayEquals(values, response.getValues());
+        Assert.assertEquals(status, response.getStatus());
+        if (sourceCount > -1) {
+            Assert.assertEquals(sourceCount, response.getSourceCount());
+        }
+        if (byteSize > -1) {
+            Assert.assertEquals(byteSize, response.getBytesSize());
+        }
     }
 
     @Test
@@ -970,30 +886,17 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val modelId = "747f864b-9721-4b97-acde-0aa8e8656cba";
         var values = modelService.getMultiPartitionValues(project, modelId);
         Assert.assertEquals(4, values.size());
-        Assert.assertArrayEquals(new String[] { "0" }, values.get(0).getPartitionValue());
-        Assert.assertEquals(3, values.get(0).getBuiltSegmentCount());
-        Assert.assertEquals(5, values.get(0).getTotalSegmentCount());
-
-        Assert.assertArrayEquals(new String[] { "1" }, values.get(1).getPartitionValue());
-        Assert.assertEquals(4, values.get(1).getBuiltSegmentCount());
-        Assert.assertEquals(5, values.get(1).getTotalSegmentCount());
-
-        Assert.assertArrayEquals(new String[] { "2" }, values.get(2).getPartitionValue());
-        Assert.assertEquals(4, values.get(2).getBuiltSegmentCount());
-        Assert.assertEquals(5, values.get(2).getTotalSegmentCount());
-
-        Assert.assertArrayEquals(new String[] { "3" }, values.get(3).getPartitionValue());
-        Assert.assertEquals(3, values.get(3).getBuiltSegmentCount());
-        Assert.assertEquals(5, values.get(3).getTotalSegmentCount());
+        checkPartitionValue(values.get(0), new String[] { "0" }, 3, 5);
+        checkPartitionValue(values.get(1), new String[] { "1" }, 4, 5);
+        checkPartitionValue(values.get(2), new String[] { "2" }, 4, 5);
+        checkPartitionValue(values.get(3), new String[] { "3" }, 3, 5);
 
         // add a new value and a existed value
         modelService.addMultiPartitionValues(project, modelId,
                 Lists.<String[]> newArrayList(new String[] { "13" }, new String[] { "3" }));
         values = modelService.getMultiPartitionValues(project, modelId);
         Assert.assertEquals(5, values.size());
-        Assert.assertArrayEquals(new String[] { "13" }, values.get(4).getPartitionValue());
-        Assert.assertEquals(0, values.get(4).getBuiltSegmentCount());
-        Assert.assertEquals(5, values.get(4).getTotalSegmentCount());
+        checkPartitionValue(values.get(4), new String[] { "13" }, 0, 5);
         // delete a existed value and a non-exist value
         modelService.deletePartitions(project, null, modelId, Sets.newHashSet(4L, 5L));
         values = modelService.getMultiPartitionValues(project, modelId);
@@ -1026,6 +929,13 @@ public class ModelServiceTest extends CSVSourceTestCase {
                     .contains("The subpartition(s) “not-exist-value“ doesn’t exist. Please check and try again."));
         }
 
+    }
+
+    private void checkPartitionValue(MultiPartitionValueResponse response, String[] value, int buildCount,
+            int totalCount) {
+        Assert.assertArrayEquals(value, response.getPartitionValue());
+        Assert.assertEquals(buildCount, response.getBuiltSegmentCount());
+        Assert.assertEquals(totalCount, response.getTotalSegmentCount());
     }
 
     @Test
@@ -1193,8 +1103,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testGetModelJson() throws IOException {
         String modelJson = modelService.getModelJson("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default");
-        Assert.assertTrue(JsonUtil.readValue(modelJson, NDataModel.class).getUuid()
-                .equals("89af4ee2-2cdb-4b07-b39e-4c29856309aa"));
+        Assert.assertEquals("89af4ee2-2cdb-4b07-b39e-4c29856309aa", JsonUtil.readValue(modelJson, NDataModel.class).getUuid());
     }
 
     @Test
@@ -1387,32 +1296,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         IndexPlan clonedIndexPlan = indexPlanManager.getIndexPlan(newModels.get(0).getUuid());
         Assert.assertEquals(0, clonedIndexPlan.getToBeDeletedIndexes().size());
         val df = NDataflowManager.getInstance(getTestConfig(), getProject()).getDataflow(newModels.get(0).getUuid());
-        Assert.assertEquals(df.getStatus(), RealizationStatusEnum.OFFLINE);
-    }
-
-    @Test
-    public void testCloneSCD2Model() throws Exception {
-        final String randomUser = RandomStringUtils.randomAlphabetic(5);
-        SecurityContextHolder.getContext()
-                .setAuthentication(new TestingAuthenticationToken(randomUser, "123456", Constant.ROLE_ADMIN));
-
-        String projectName = "default";
-
-        val scd2Model = createNonEquiJoinModel(projectName, "scd2_non_equi");
-
-        //turn off scd2 model
-        NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).updateProject("default", copyForWrite -> {
-            copyForWrite.getOverrideKylinProps().put("kylin.query.non-equi-join-model-enabled", "false");
-        });
-
-        modelService.cloneModel(scd2Model.getId(), "clone_scd2_non_equi", projectName);
-
-        List<NDataModelResponse> newModels = modelService.getModels("clone_scd2_non_equi", projectName, true, "", null,
-                "last_modify", true);
-
-        Assert.assertTrue(newModels.size() == 1);
-
-        Assert.assertEquals(newModels.get(0).getStatus(), ModelStatusToDisplayEnum.OFFLINE);
+        Assert.assertEquals(RealizationStatusEnum.OFFLINE, df.getStatus());
     }
 
     @Test
@@ -1450,9 +1334,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
     public void testUpdateFusionDataModelStatus() {
         val project = "streaming_test";
         val mgr = NDataflowManager.getInstance(getTestConfig(), project);
-        var batchStatus = mgr.getDataflow("334671fd-e383-4fc9-b5c2-94fce832f77a").getStatus();
+        RealizationStatusEnum batchStatus = mgr.getDataflow("334671fd-e383-4fc9-b5c2-94fce832f77a").getStatus();
         Assert.assertEquals(RealizationStatusEnum.OFFLINE, batchStatus);
-        var streamingStatus = mgr.getDataflow("b05034a8-c037-416b-aa26-9e6b4a41ee40").getStatus();
+        RealizationStatusEnum streamingStatus = mgr.getDataflow("b05034a8-c037-416b-aa26-9e6b4a41ee40").getStatus();
         Assert.assertEquals(RealizationStatusEnum.OFFLINE, streamingStatus);
         modelService.updateDataModelStatus("b05034a8-c037-416b-aa26-9e6b4a41ee40", project, "ONLINE");
 
@@ -1475,12 +1359,12 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val project = "streaming_test";
         val mgr = NDataflowManager.getInstance(getTestConfig(), project);
         var batchDataflow = mgr.getDataflow("cd2b9a23-699c-4699-b0dd-38c9412b3dfd");
-        var batchStatus = batchDataflow.getStatus();
+        RealizationStatusEnum batchStatus = batchDataflow.getStatus();
         Assert.assertEquals(RealizationStatusEnum.ONLINE, batchStatus);
 
         modelService.updateDataModelStatus("cd2b9a23-699c-4699-b0dd-38c9412b3dfd", project, "OFFLINE");
         var streamingDataflow = mgr.getDataflow("4965c827-fbb4-4ea1-a744-3f341a3b030d");
-        var streamingStatus = streamingDataflow.getStatus();
+        RealizationStatusEnum streamingStatus = streamingDataflow.getStatus();
         Assert.assertEquals(RealizationStatusEnum.ONLINE, streamingStatus);
 
         List<NDataModelResponse> models = modelService.getModels("model_streaming", project, true, "", null,
@@ -1504,11 +1388,11 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val project = "streaming_test";
         val mgr = NDataflowManager.getInstance(getTestConfig(), project);
         var batchDataflow = mgr.getDataflow("334671fd-e383-4fc9-b5c2-94fce832f77a");
-        var batchStatus = batchDataflow.getStatus();
+        RealizationStatusEnum batchStatus = batchDataflow.getStatus();
         Assert.assertEquals(RealizationStatusEnum.OFFLINE, batchStatus);
 
         var streamingDataflow = mgr.getDataflow("b05034a8-c037-416b-aa26-9e6b4a41ee40");
-        var streamingStatus = streamingDataflow.getStatus();
+        RealizationStatusEnum streamingStatus = streamingDataflow.getStatus();
         val streamingSeg = mgr.appendSegmentForStreaming(streamingDataflow,
                 new SegmentRange.KafkaOffsetPartitionedSegmentRange(0L, 1L, createKafkaPartitionOffset(0, 100L),
                         createKafkaPartitionOffset(0, 200L)));
@@ -1541,7 +1425,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
-    @Ignore
+    @Ignore("Metadata changed! nmodel_basic_inner is not empty")
     public void testUpdateDataModelStatus_NoReadySegments_Exception() {
         thrown.expect(IllegalStateException.class);
         thrown.expectMessage("No ready segment in model 'nmodel_basic_inner', can not online the model!");
@@ -1564,23 +1448,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
-    public void testOnlineSCD2Model() throws Exception {
-        final String randomUser = RandomStringUtils.randomAlphabetic(5);
-        SecurityContextHolder.getContext()
-                .setAuthentication(new TestingAuthenticationToken(randomUser, "123456", Constant.ROLE_ADMIN));
-        String projectName = "default";
-        val scd2Model = createNonEquiJoinModel(projectName, "scd2_non_equi");
-
-        //turn off scd2 model
-        NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).updateProject("default", copyForWrite -> {
-            copyForWrite.getOverrideKylinProps().put("kylin.query.non-equi-join-model-enabled", "false");
-        });
-        thrown.expect(KylinException.class);
-        thrown.expectMessage("This model can’t go online as it includes non-equal join conditions");
-        modelService.updateDataModelStatus(scd2Model.getId(), "default", "ONLINE");
-    }
-
-    @Test
     public void testGetSegmentRangeByModel() {
         SegmentRange segmentRange = modelService.getSegmentRangeByModel("default",
                 "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "0", "2322442");
@@ -1600,32 +1467,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 "nmodel_basic");
         Assert.assertEquals(2, responses.size());
         Assert.assertEquals(false, responses.get(0).isHasErrorJobs());
-    }
-
-    @Test
-    public void testGetRelatedModels_HasErrorJobs() {
-        NExecutableManager executableManager = Mockito.mock(NExecutableManager.class);
-        Mockito.when(modelService.getManager(NExecutableManager.class, "default")).thenReturn(executableManager);
-        Mockito.when(executableManager.getExecutablesByStatus(ExecutableState.ERROR)).thenReturn(mockJobs());
-        List<RelatedModelResponse> responses = modelService.getRelateModels("default", "DEFAULT.TEST_KYLIN_FACT",
-                "nmodel_basic_inner");
-        Assert.assertEquals(1, responses.size());
-        Assert.assertEquals(true, responses.get(0).isHasErrorJobs());
-    }
-
-    @Test
-    public void testGetRelatedModels() {
-        List<RelatedModelResponse> models = modelService.getRelateModels("default", "EDW.TEST_CAL_DT", "");
-        Assert.assertEquals(0, models.size());
-        List<RelatedModelResponse> models2 = modelService.getRelateModels("default", "DEFAULT.TEST_KYLIN_FACT",
-                "nmodel_basic_inner");
-        Assert.assertEquals(1, models2.size());
-        Mockito.doReturn(new ArrayList<>()).when(modelService).addOldParams(Mockito.anyString(), any());
-
-        val models3 = modelService.getModels("741ca86a-1f13-46da-a59f-95fb68615e3a", null, true, "default", "ADMIN",
-                Lists.newArrayList(), "DEFAULT.TEST_KYLIN_FACT", 0, 8, "last_modify", true, null, null, null, null,
-                true);
-        Assert.assertEquals(1, models3.getTotalSize());
     }
 
     @Test
@@ -1655,237 +1496,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(4, result.size());
     }
 
-    @Test
-    public void testSuggestModel() {
-        List<String> sqls = Lists.newArrayList();
-        Mockito.doReturn(false).when(modelService).isProjectNotExist(getProject());
-        val result = modelSmartService.couldAnsweredByExistedModel(getProject(), sqls);
-        Assert.assertTrue(result);
-    }
-
-    @Test
-    public void testAnswerBySnapshot() {
-        // prepare table desc snapshot path
-        NDataflow dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default")
-                .getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
-        val tableManager = NTableMetadataManager.getInstance(dataflow.getConfig(), dataflow.getProject());
-        val table = tableManager.copyForWrite(tableManager.getTableDesc("DEFAULT.TEST_ORDER"));
-        table.setLastSnapshotPath("default/table_snapshot/DEFAULT.TEST_ORDER/fb283efd-36fb-43de-86dc-40cf39054f59");
-        tableManager.updateTableDesc(table);
-
-        List<String> sqls = Lists.newArrayList("select order_id, count(*) from test_order group by order_id limit 1");
-        Mockito.doReturn(false).when(modelService).isProjectNotExist(getProject());
-        val result = modelSmartService.couldAnsweredByExistedModel(getProject(), sqls);
-        Assert.assertTrue(result);
-    }
-
-    @Test
-    public void testMultipleModelContextSelectedTheSameModel() {
-        // prepare table desc snapshot path
-        NDataflow dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default")
-                .getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
-        NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(dataflow.getConfig(),
-                dataflow.getProject());
-        val table1 = tableMetadataManager.copyForWrite(tableMetadataManager.getTableDesc("EDW.TEST_CAL_DT"));
-        table1.setLastSnapshotPath("default/table_snapshot/EDW.TEST_CAL_DT/a27a7f08-792a-4514-a5ec-3182ea5474cc");
-        tableMetadataManager.updateTableDesc(table1);
-
-        val table2 = tableMetadataManager.copyForWrite(tableMetadataManager.getTableDesc("DEFAULT.TEST_ORDER"));
-        table2.setLastSnapshotPath("default/table_snapshot/DEFAULT.TEST_ORDER/fb283efd-36fb-43de-86dc-40cf39054f59");
-        tableMetadataManager.updateTableDesc(table2);
-
-        NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
-        projectManager.updateProject(getProject(), copyForWrite -> {
-            copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-            var properties = copyForWrite.getOverrideKylinProps();
-            if (properties == null) {
-                properties = Maps.newLinkedHashMap();
-            }
-            properties.put("kylin.metadata.semi-automatic-mode", "true");
-            copyForWrite.setOverrideKylinProps(properties);
-        });
-
-        val sqls = Lists.newArrayList("select order_id, count(*) from test_order group by order_id limit 1",
-                "select cal_dt, count(*) from edw.test_cal_dt group by cal_dt limit 1",
-                "SELECT count(*) \n" + "FROM \n" + "\"DEFAULT\".\"TEST_KYLIN_FACT\" as \"TEST_KYLIN_FACT\" \n"
-                        + "INNER JOIN \"DEFAULT\".\"TEST_ORDER\" as \"TEST_ORDER\"\n"
-                        + "ON \"TEST_KYLIN_FACT\".\"ORDER_ID\"=\"TEST_ORDER\".\"ORDER_ID\"\n"
-                        + "INNER JOIN \"EDW\".\"TEST_SELLER_TYPE_DIM\" as \"TEST_SELLER_TYPE_DIM\"\n"
-                        + "ON \"TEST_KYLIN_FACT\".\"SLR_SEGMENT_CD\"=\"TEST_SELLER_TYPE_DIM\".\"SELLER_TYPE_CD\"\n"
-                        + "INNER JOIN \"EDW\".\"TEST_CAL_DT\" as \"TEST_CAL_DT\"\n"
-                        + "ON \"TEST_KYLIN_FACT\".\"CAL_DT\"=\"TEST_CAL_DT\".\"CAL_DT\"\n"
-                        + "INNER JOIN \"DEFAULT\".\"TEST_CATEGORY_GROUPINGS\" as \"TEST_CATEGORY_GROUPINGS\"\n"
-                        + "ON \"TEST_KYLIN_FACT\".\"LEAF_CATEG_ID\"=\"TEST_CATEGORY_GROUPINGS\".\"LEAF_CATEG_ID\" AND \"TEST_KYLIN_FACT\".\"LSTG_SITE_ID\"=\"TEST_CATEGORY_GROUPINGS\".\"SITE_ID\"\n"
-                        + "INNER JOIN \"EDW\".\"TEST_SITES\" as \"TEST_SITES\"\n"
-                        + "ON \"TEST_KYLIN_FACT\".\"LSTG_SITE_ID\"=\"TEST_SITES\".\"SITE_ID\"\n"
-                        + "INNER JOIN \"DEFAULT\".\"TEST_ACCOUNT\" as \"SELLER_ACCOUNT\"\n"
-                        + "ON \"TEST_KYLIN_FACT\".\"SELLER_ID\"=\"SELLER_ACCOUNT\".\"ACCOUNT_ID\"\n"
-                        + "INNER JOIN \"DEFAULT\".\"TEST_ACCOUNT\" as \"BUYER_ACCOUNT\"\n"
-                        + "ON \"TEST_ORDER\".\"BUYER_ID\"=\"BUYER_ACCOUNT\".\"ACCOUNT_ID\"\n"
-                        + "INNER JOIN \"DEFAULT\".\"TEST_COUNTRY\" as \"SELLER_COUNTRY\"\n"
-                        + "ON \"SELLER_ACCOUNT\".\"ACCOUNT_COUNTRY\"=\"SELLER_COUNTRY\".\"COUNTRY\"\n"
-                        + "INNER JOIN \"DEFAULT\".\"TEST_COUNTRY\" as \"BUYER_COUNTRY\"\n"
-                        + "ON \"BUYER_ACCOUNT\".\"ACCOUNT_COUNTRY\"=\"BUYER_COUNTRY\".\"COUNTRY\" group by test_kylin_fact.cal_dt");
-        AbstractContext proposeContext = modelSmartService.suggestModel(getProject(), sqls, true, true);
-        val response = modelSmartService.buildModelSuggestionResponse(proposeContext);
-        Assert.assertEquals(3, response.getReusedModels().size());
-        Assert.assertEquals(0, response.getNewModels().size());
-        response.getReusedModels().forEach(recommendedModelResponse -> {
-            List<LayoutRecDetailResponse> indexes = recommendedModelResponse.getIndexes();
-            Assert.assertTrue(indexes.isEmpty());
-        });
-
-        AbstractContext proposeContext2 = modelSmartService.suggestModel(getProject(), sqls.subList(0, 2), true, true);
-        val response2 = modelSmartService.buildModelSuggestionResponse(proposeContext2);
-        Assert.assertEquals(2, response2.getReusedModels().size());
-        Assert.assertEquals(0, response2.getNewModels().size());
-        response2.getReusedModels().forEach(recommendedModelResponse -> {
-            List<LayoutRecDetailResponse> indexes = recommendedModelResponse.getIndexes();
-            Assert.assertTrue(indexes.isEmpty());
-        });
-    }
-
-    @Test
-    public void testOptimizeModelNeedMergeIndex() {
-        String project = "newten";
-
-        // prepare initial model
-        String sql = "select lstg_format_name, cal_dt, sum(price) from test_kylin_fact "
-                + "where cal_dt = '2012-01-02' group by lstg_format_name, cal_dt";
-        AbstractContext smartContext = ProposerJob.proposeForAutoMode(getTestConfig(), project, new String[] { sql });
-        SmartMaster smartMaster = new SmartMaster(smartContext);
-        smartMaster.runUtWithContext(null);
-        List<AbstractContext.ModelContext> modelContexts = smartContext.getModelContexts();
-        Assert.assertEquals(1, modelContexts.size());
-        NDataModel targetModel = modelContexts.get(0).getTargetModel();
-
-        // assert initial result
-        NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), project);
-        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), project);
-        NDataModel dataModel = modelManager.getDataModelDesc(targetModel.getUuid());
-        List<NDataModel.NamedColumn> allNamedColumns = dataModel.getAllNamedColumns();
-        long dimensionCount = allNamedColumns.stream().filter(NDataModel.NamedColumn::isDimension).count();
-        Assert.assertEquals(2L, dimensionCount);
-        Assert.assertEquals(2, dataModel.getAllMeasures().size());
-        Assert.assertEquals(1, indexPlanManager.getIndexPlan(dataModel.getUuid()).getAllLayouts().size());
-
-        // transfer auto model to semi-auto
-        // make model online
-        transferProjectToSemiAutoMode(getTestConfig(), project);
-        NDataflowManager dfManager = NDataflowManager.getInstance(getTestConfig(), project);
-        dfManager.updateDataflowStatus(targetModel.getId(), RealizationStatusEnum.ONLINE);
-
-        // optimize with a batch of sql list
-        List<String> sqlList = Lists.newArrayList();
-        sqlList.add(sql);
-        sqlList.add("select lstg_format_name, cal_dt, sum(price) from test_kylin_fact "
-                + "where lstg_format_name = 'USA' group by lstg_format_name, cal_dt");
-        sqlList.add("select lstg_format_name, cal_dt, count(item_count) from test_kylin_fact "
-                + "where cal_dt = '2012-01-02' group by lstg_format_name, cal_dt");
-        AbstractContext proposeContext = modelSmartService.suggestModel(project, sqlList, true, true);
-
-        // assert optimization result
-        List<AbstractContext.ModelContext> modelContextsAfterOptimization = proposeContext.getModelContexts();
-        Assert.assertEquals(1, modelContextsAfterOptimization.size());
-        AbstractContext.ModelContext modelContextAfterOptimization = modelContextsAfterOptimization.get(0);
-        Map<String, LayoutRecItemV2> indexRexItemMap = modelContextAfterOptimization.getIndexRexItemMap();
-        Assert.assertEquals(2, indexRexItemMap.size()); // if no merge, the result will be 3.
-
-        // apply recommendations
-        SuggestionResponse modelSuggestionResponse = modelSmartService.buildModelSuggestionResponse(proposeContext);
-        modelSmartService.saveRecResult(modelSuggestionResponse, project);
-
-        // assert result after apply recommendations
-        NDataModel modelAfterSuggestModel = modelManager.getDataModelDesc(targetModel.getUuid());
-        long dimensionCountRefreshed = modelAfterSuggestModel.getAllNamedColumns().stream()
-                .filter(NDataModel.NamedColumn::isDimension).count();
-        Assert.assertEquals(2L, dimensionCountRefreshed);
-        Assert.assertEquals(3, modelAfterSuggestModel.getAllMeasures().size());
-        IndexPlan indexPlan = indexPlanManager.getIndexPlan(modelAfterSuggestModel.getUuid());
-        Assert.assertEquals(3, indexPlan.getAllLayouts().size());
-
-        // remove proposed indexes
-        indexPlan.getAllLayouts().forEach(l -> indexPlanService.removeIndex(project, targetModel.getUuid(), l.getId()));
-        IndexPlan indexPlanRefreshed = indexPlanManager.getIndexPlan(targetModel.getUuid());
-        Assert.assertTrue(indexPlanRefreshed.getAllLayouts().isEmpty());
-
-        // suggest again and assert result again
-        AbstractContext proposeContextSecond = modelSmartService.suggestModel(project, sqlList, true, true);
-        List<AbstractContext.ModelContext> modelContextsTwice = proposeContextSecond.getModelContexts();
-        Assert.assertEquals(1, modelContextsTwice.size());
-        AbstractContext.ModelContext modelContextTwice = modelContextsTwice.get(0);
-        Map<String, LayoutRecItemV2> indexRexItemMapTwice = modelContextTwice.getIndexRexItemMap();
-        Assert.assertEquals(2, indexRexItemMapTwice.size());
-    }
-
-    @Test
-    public void testSuggestModelWithSimpleQuery() {
-        String project = "newten";
-        transferProjectToSemiAutoMode(getTestConfig(), project);
-
-        List<String> sqlList = Lists.newArrayList();
-        sqlList.add("select floor(date'2020-11-17' TO day), ceil(date'2020-11-17' TO day) from test_kylin_fact");
-        AbstractContext proposeContext = modelSmartService.suggestModel(project, sqlList, false, true);
-        SuggestionResponse modelSuggestionResponse = modelSmartService.buildModelSuggestionResponse(proposeContext);
-        modelSmartService.saveRecResult(modelSuggestionResponse, project);
-
-        List<AbstractContext.ModelContext> modelContexts = proposeContext.getModelContexts();
-        Assert.assertEquals(1, modelContexts.size());
-        NDataModel targetModel = modelContexts.get(0).getTargetModel();
-        long dimensionCountRefreshed = targetModel.getAllNamedColumns().stream()
-                .filter(NDataModel.NamedColumn::isDimension).count();
-        Assert.assertEquals(1L, dimensionCountRefreshed);
-        Assert.assertEquals(1, targetModel.getAllMeasures().size());
-    }
-
-    @Test
-    public void testSuggestOrOptimizeModels() throws Exception {
-        String project = "newten";
-        // prepare initial model
-        AbstractContext smartContext = ProposerJob.proposeForAutoMode(getTestConfig(), project,
-                new String[] { "select price from test_kylin_fact" });
-        smartContext.saveMetadata();
-        List<AbstractContext.ModelContext> modelContexts = smartContext.getModelContexts();
-        Assert.assertEquals(1, modelContexts.size());
-        NDataModel targetModel = modelContexts.get(0).getTargetModel();
-
-        transferProjectToSemiAutoMode(getTestConfig(), project);
-        NDataflowManager dfManager = NDataflowManager.getInstance(getTestConfig(), project);
-        dfManager.updateDataflowStatus(targetModel.getId(), RealizationStatusEnum.ONLINE);
-
-        NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), project);
-        NDataModel dataModel = modelManager.getDataModelDesc(targetModel.getUuid());
-        List<NDataModel.NamedColumn> allNamedColumns = dataModel.getAllNamedColumns();
-        long dimensionCount = allNamedColumns.stream().filter(NDataModel.NamedColumn::isDimension).count();
-        Assert.assertEquals(1L, dimensionCount);
-        Assert.assertEquals(1, dataModel.getAllMeasures().size());
-
-        List<String> sqlList = Lists.newArrayList();
-        sqlList.add("select lstg_format_name, sum(price) from test_kylin_fact group by lstg_format_name");
-        AbstractContext proposeContext = modelSmartService.suggestModel(project, sqlList, true, true);
-        SuggestionResponse modelSuggestionResponse = modelSmartService.buildModelSuggestionResponse(proposeContext);
-        modelSmartService.saveRecResult(modelSuggestionResponse, project);
-
-        NDataModel modelAfterSuggestModel = modelManager.getDataModelDesc(targetModel.getUuid());
-        long dimensionCountRefreshed = modelAfterSuggestModel.getAllNamedColumns().stream()
-                .filter(NDataModel.NamedColumn::isDimension).count();
-        Assert.assertEquals(2L, dimensionCountRefreshed);
-        Assert.assertEquals(2, modelAfterSuggestModel.getAllMeasures().size());
-    }
-
-    public static void transferProjectToSemiAutoMode(KylinConfig kylinConfig, String project) {
-        NProjectManager projectManager = NProjectManager.getInstance(kylinConfig);
-        projectManager.updateProject(project, copyForWrite -> {
-            copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-            var properties = copyForWrite.getOverrideKylinProps();
-            if (properties == null) {
-                properties = Maps.newLinkedHashMap();
-            }
-            properties.put("kylin.metadata.semi-automatic-mode", "true");
-            copyForWrite.setOverrideKylinProps(properties);
-        });
-    }
-
     private void prepareTwoOnlineModels() {
         UnitOfWork.doInTransactionWithRetry(() -> {
             modelService.dropModel("82fa7671-a935-45f5-8779-85703601f49a", "default");
@@ -1895,45 +1505,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
             modelService.dropModel("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default");
             return null;
         }, "default");
-    }
-
-    private void prepareTwoLagBehindModels() {
-        //all lag behind
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            modelService.dropModel("82fa7671-a935-45f5-8779-85703601f49a", "default");
-            return null;
-        }, "default");
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            modelService.dropModel("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default");
-            return null;
-        }, "default");
-        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
-        var df_basic = dfMgr.getDataflowByModelAlias("nmodel_basic");
-        val df_basic_inner = dfMgr.getDataflowByModelAlias("nmodel_basic_inner");
-        NDataflowUpdate update1 = new NDataflowUpdate(df_basic.getUuid());
-        update1.setStatus(RealizationStatusEnum.LAG_BEHIND);
-        dfMgr.updateDataflow(update1);
-
-        NDataflowUpdate update2 = new NDataflowUpdate(df_basic_inner.getUuid());
-        update2.setStatus(RealizationStatusEnum.LAG_BEHIND);
-        dfMgr.updateDataflow(update2);
-    }
-
-    private void prepareOneLagBehindAndOneOnlineModels() {
-        //one ONLINE one Lag_behind
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            modelService.dropModel("82fa7671-a935-45f5-8779-85703601f49a", "default");
-            return null;
-        }, "default");
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            modelService.dropModel("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default");
-            return null;
-        }, "default");
-        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
-        var df_basic = dfMgr.getDataflowByModelAlias("nmodel_basic");
-        NDataflowUpdate update1 = new NDataflowUpdate(df_basic.getUuid());
-        update1.setStatus(RealizationStatusEnum.LAG_BEHIND);
-        dfMgr.updateDataflow(update1);
     }
 
     @Test
@@ -1987,34 +1558,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
         //refresh exception
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
                 new String[] { "not_exist_01" }, false);
-    }
-
-    @Test
-    public void testDeleteSegmentById_cleanIndexPlanToBeDeleted() {
-        String modelId = "741ca86a-1f13-46da-a59f-95fb68615e3a";
-        String project = "default";
-        NDataModelManager dataModelManager = NDataModelManager.getInstance(getTestConfig(), project);
-        NDataModel dataModel = dataModelManager.getDataModelDesc(modelId);
-        NDataModel modelUpdate = dataModelManager.copyForWrite(dataModel);
-        modelUpdate.setManagementType(ManagementType.MODEL_BASED);
-        dataModelManager.updateDataModelDesc(modelUpdate);
-        NIndexPlanManager.getInstance(getTestConfig(), project).updateIndexPlan(modelId, copyForWrite -> {
-            val toBeDeletedSet = copyForWrite.getIndexes().stream().map(IndexEntity::getLayouts).flatMap(List::stream)
-                    .filter(layoutEntity -> 1000001L == layoutEntity.getId()).collect(Collectors.toSet());
-            copyForWrite.markIndexesToBeDeleted(modelId, toBeDeletedSet);
-        });
-        Assert.assertTrue(CollectionUtils.isNotEmpty(
-                NIndexPlanManager.getInstance(getTestConfig(), project).getIndexPlan(modelId).getToBeDeletedIndexes()));
-        val df1 = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelId);
-        Assert.assertEquals(df1.getStatus(), RealizationStatusEnum.ONLINE);
-        modelService.deleteSegmentById(modelId, project, new String[] { "ef783e4d-e35f-4bd9-8afd-efd64336f04d" },
-                false);
-        NDataflow dataflow = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelId);
-        IndexPlan indexPlan = NIndexPlanManager.getInstance(getTestConfig(), project).getIndexPlan(modelId);
-
-        Assert.assertTrue(CollectionUtils.isEmpty(dataflow.getSegments()));
-        Assert.assertTrue(CollectionUtils.isEmpty(indexPlan.getAllToBeDeleteLayoutId()));
-        Assert.assertEquals(dataflow.getStatus(), RealizationStatusEnum.OFFLINE);
     }
 
     @Test
@@ -2166,233 +1709,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
-    public void testMergeSegment() {
-        val dfId = new String("741ca86a-1f13-46da-a59f-95fb68615e3a");
-        val dfManager = NDataflowManager.getInstance(getTestConfig(), "default");
-        val df = dfManager.getDataflow(dfId);
-        // remove exist segment
-        val update = new NDataflowUpdate(df.getUuid());
-        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
-        dfManager.updateDataflow(update);
-        Segments<NDataSegment> segments = new Segments<>();
-
-        // first segment
-        long start = SegmentRange.dateToLong("2010-01-01");
-        long end = SegmentRange.dateToLong("2010-02-01");
-        SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-        val dataSegment1 = dfManager.appendSegment(df, segmentRange);
-        dataSegment1.setStatus(SegmentStatusEnum.READY);
-        dataSegment1.setSegmentRange(segmentRange);
-        segments.add(dataSegment1);
-
-        // second segment
-        start = SegmentRange.dateToLong("2010-02-01");
-        end = SegmentRange.dateToLong("2010-04-01");
-        segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-        val dataSegment2 = dfManager.appendSegment(df, segmentRange);
-        dataSegment2.setStatus(SegmentStatusEnum.READY);
-        dataSegment2.setSegmentRange(segmentRange);
-        segments.add(dataSegment2);
-
-        // third segment
-        start = SegmentRange.dateToLong("2010-04-01");
-        end = SegmentRange.dateToLong("2010-05-01");
-        segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-        val dataSegment3 = dfManager.appendSegment(df, segmentRange);
-        dataSegment3.setStatus(SegmentStatusEnum.READY);
-        dataSegment3.setSegmentRange(segmentRange);
-        segments.add(dataSegment3);
-
-        update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
-        dfManager.updateDataflow(update);
-
-        try {
-            modelBuildService.mergeSegmentsManually(new MergeSegmentParams("default", dfId,
-                    new String[] { dataSegment1.getId(), dataSegment3.getId() }));
-            Assert.fail();
-        } catch (Exception e) {
-            Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals(
-                    "Can’t merge the selected segments, as there are gap(s) in between. Please check and try again.",
-                    e.getMessage());
-        }
-
-        modelBuildService.mergeSegmentsManually(new MergeSegmentParams("default", dfId,
-                new String[] { dataSegment1.getId(), dataSegment2.getId(), dataSegment3.getId() }));
-        val execManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        val executables = getRunningExecutables("default", "741ca86a-1f13-46da-a59f-95fb68615e3a");
-        Assert.assertEquals(1, executables.size());
-        Assert.assertEquals(JobTypeEnum.INDEX_MERGE, executables.get(0).getJobType());
-        AbstractExecutable job = executables.get(0);
-        Assert.assertEquals(1, job.getTargetSegments().size());
-
-        val mergedSegment = dfManager.getDataflow(dfId).getSegment(job.getTargetSegments().get(0));
-        Assert.assertEquals(SegmentRange.dateToLong("2010-01-01"), mergedSegment.getSegRange().getStart());
-        Assert.assertEquals(SegmentRange.dateToLong("2010-05-01"), mergedSegment.getSegRange().getEnd());
-
-        try {
-            //refresh exception
-            modelBuildService.mergeSegmentsManually(
-                    new MergeSegmentParams("default", dfId, new String[] { dataSegment2.getId() }));
-            Assert.fail();
-        } catch (KylinException e) {
-            Assert.assertEquals("Can’t remove, refresh or merge segment \"" + dataSegment2.displayIdName()
-                    + "\", as it’s LOCKED. Please try again later.", e.getMessage());
-        }
-        // clear segments
-        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
-        dfManager.updateDataflow(update);
-    }
-
-    @Test
-    public void testMergeLoadingSegments() {
-        val dfId = new String("741ca86a-1f13-46da-a59f-95fb68615e3a");
-        val dfManager = NDataflowManager.getInstance(getTestConfig(), "default");
-        val df = dfManager.getDataflow(dfId);
-        // remove exist segment
-        val update = new NDataflowUpdate(df.getUuid());
-        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
-        dfManager.updateDataflow(update);
-
-        Segments<NDataSegment> segments = new Segments<>();
-
-        // first segment
-        long start = SegmentRange.dateToLong("2010-01-01");
-        long end = SegmentRange.dateToLong("2010-02-01");
-        SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-        val dataSegment1 = dfManager.appendSegment(df, segmentRange);
-        dataSegment1.setStatus(SegmentStatusEnum.NEW);
-        dataSegment1.setSegmentRange(segmentRange);
-        segments.add(dataSegment1);
-
-        // second segment
-        start = SegmentRange.dateToLong("2010-02-01");
-        end = SegmentRange.dateToLong("2010-03-01");
-        segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-        val dataSegment2 = dfManager.appendSegment(df, segmentRange);
-        dataSegment2.setStatus(SegmentStatusEnum.READY);
-        dataSegment2.setSegmentRange(segmentRange);
-        segments.add(dataSegment2);
-
-        update.setToUpdateSegs(segments.toArray(new NDataSegment[0]));
-        dfManager.updateDataflow(update);
-
-        thrown.expect(KylinException.class);
-        thrown.expectMessage(String.format(Locale.ROOT,
-                MsgPicker.getMsg().getSEGMENT_STATUS(SegmentStatusEnumToDisplay.LOADING.name()),
-                dataSegment1.displayIdName()));
-        modelBuildService.mergeSegmentsManually(
-                new MergeSegmentParams("default", dfId, new String[] { dataSegment1.getId(), dataSegment2.getId() }));
-
-        // clear segments
-        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
-        dfManager.updateDataflow(update);
-    }
-
-    @Test
-    public void testRefreshSegmentById_SegmentToRefreshIsLocked_Exception() {
-        val modelId = "741ca86a-1f13-46da-a59f-95fb68615e3a";
-        NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), "default");
-        val df = dataflowManager.getDataflow(modelId);
-        // remove the existed seg
-        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
-        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
-        dataflowManager.updateDataflow(update);
-        long start = SegmentRange.dateToLong("2010-01-01");
-        long end = SegmentRange.dateToLong("2010-01-02");
-        SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-        Segments<NDataSegment> segments = new Segments<>();
-        NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
-        dataSegment.setStatus(SegmentStatusEnum.NEW);
-        dataSegment.setSegmentRange(segmentRange);
-        segments.add(dataSegment);
-
-        start = SegmentRange.dateToLong("2010-01-02");
-        end = SegmentRange.dateToLong("2010-01-03");
-        segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-        val dataSegment2 = dataflowManager.appendSegment(df, segmentRange);
-        dataSegment2.setStatus(SegmentStatusEnum.READY);
-        dataSegment2.setSegmentRange(segmentRange);
-        segments.add(dataSegment2);
-        update = new NDataflowUpdate(df.getUuid());
-        update.setToAddOrUpdateLayouts(
-                generateAllDataLayout(getProject(), modelId, Arrays.asList(dataSegment, dataSegment2)));
-
-        update.setToUpdateSegs(segments.toArray(new NDataSegment[0]));
-        dataflowManager.updateDataflow(update);
-        //refresh normally
-        modelBuildService.refreshSegmentById(new RefreshSegmentParams("default", "741ca86a-1f13-46da-a59f-95fb68615e3a",
-                new String[] { dataSegment2.getId() }));
-        thrown.expect(KylinException.class);
-        thrown.expectMessage(
-                String.format(Locale.ROOT, MsgPicker.getMsg().getSEGMENT_LOCKED(), dataSegment2.displayIdName()));
-        //refresh exception
-        modelBuildService.refreshSegmentById(new RefreshSegmentParams("default", "741ca86a-1f13-46da-a59f-95fb68615e3a",
-                new String[] { dataSegment2.getId() }));
-    }
-
-    private NDataLayout[] generateAllDataLayout(String project, String modelId, List<NDataSegment> segments) {
-        List<NDataLayout> layouts = Lists.newArrayList();
-        val indexManager = NIndexPlanManager.getInstance(getTestConfig(), project);
-        val df = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelId);
-        indexManager.getIndexPlan(modelId).getAllLayouts().forEach(layout -> {
-            for (NDataSegment segment : segments) {
-                layouts.add(NDataLayout.newDataLayout(df, segment.getId(), layout.getId()));
-            }
-        });
-        return layouts.toArray(new NDataLayout[0]);
-    }
-
-    @Test
-    public void testRefreshSegmentById_isNotExist() {
-        thrown.expect(KylinException.class);
-        thrown.expectMessage("Can’t find the segment by ID \"not_exist_01\". Please check and try again.");
-        //refresh exception
-        modelBuildService.refreshSegmentById(new RefreshSegmentParams("default", "741ca86a-1f13-46da-a59f-95fb68615e3a",
-                new String[] { "not_exist_01" }));
-    }
-
-    @Test
-    public void testDeleteSegmentById_UnconsecutiveSegmentsToDelete_Exception() {
-        NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), "default");
-        NDataModelManager dataModelManager = NDataModelManager.getInstance(getTestConfig(), "default");
-        NDataModel dataModel = dataModelManager.getDataModelDesc("741ca86a-1f13-46da-a59f-95fb68615e3a");
-        NDataModel modelUpdate = dataModelManager.copyForWrite(dataModel);
-        modelUpdate.setManagementType(ManagementType.MODEL_BASED);
-        dataModelManager.updateDataModelDesc(modelUpdate);
-        NDataflow df = dataflowManager.getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
-        // remove the existed seg
-        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
-        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
-        dataflowManager.updateDataflow(update);
-        Segments<NDataSegment> segments = new Segments<>();
-
-        long start;
-        long end;
-        for (int i = 0; i <= 6; i++) {
-            //01-01 friday
-            start = SegmentRange.dateToLong("2010-01-01") + i * 86400000;
-            end = SegmentRange.dateToLong("2010-01-02") + i * 86400000;
-            SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-            df = dataflowManager.getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
-            NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
-            dataSegment.setStatus(SegmentStatusEnum.READY);
-            segments.add(dataSegment);
-        }
-        update = new NDataflowUpdate(df.getUuid());
-        update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
-        dataflowManager.updateDataflow(update);
-        //remove normally
-        modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
-                new String[] { segments.get(0).getId() }, false);
-        //2 dataflows
-        val df2 = dataflowManager.getDataflow(dataModel.getUuid());
-        modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
-                new String[] { segments.get(2).getId(), segments.get(3).getId() }, false);
-        Assert.assertEquals(6, df2.getSegments().size());
-    }
-
-    @Test
     public void testCreateModel_ExistedAlias_Exception() throws Exception {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         NDataModel model = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -2485,19 +1801,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
-    public void testCreateModelAndBuildManually() throws Exception {
-        setupPushdownEnv();
-        testGetLatestData();
-        testCreateModel_PartitionNotNull();
-        testBuildSegmentsManually_WithPushDown();
-        testBuildSegmentsManually();
-        testChangePartitionDesc();
-        testChangePartitionDesc_OriginModelNoPartition();
-        testChangePartitionDesc_NewModelNoPartitionColumn();
-        cleanPushdownEnv();
-    }
-
-    @Test
     public void testCreateModel_passFullLoad() throws Exception {
         setupPushdownEnv();
         val modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
@@ -2546,378 +1849,12 @@ public class ModelServiceTest extends CSVSourceTestCase {
         return newModel;
     }
 
-    @Test
-    public void testOptimizeModel_Twice() {
-        String project = "newten";
-        val projectMgr = NProjectManager.getInstance(getTestConfig());
-        val indexMgr = NIndexPlanManager.getInstance(getTestConfig(), project);
-        projectMgr.updateProject(project, copyForWrite -> {
-            copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-        });
-
-        Function<OpenSqlAccelerateRequest, OpenSqlAccelerateRequest> rewriteReq = req -> {
-            req.setForce2CreateNewModel(false);
-            return req;
-        };
-        String normSql = "select test_order.order_id,buyer_id from test_order "
-                + " join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
-                + "group by test_order.order_id,buyer_id";
-        OpenSuggestionResponse normalResponse = modelSmartService
-                .suggestOrOptimizeModels(smartRequest(project, normSql));
-        Assert.assertEquals(1, normalResponse.getModels().size());
-
-        normSql = "select test_order.order_id,sum(price) from test_order "
-                + " join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
-                + "group by test_order.order_id";
-        normalResponse = modelSmartService.suggestOrOptimizeModels(rewriteReq.apply(smartRequest(project, normSql)));
-        Assert.assertEquals(1, normalResponse.getModels().size());
-
-        normSql = "select test_order.order_id,buyer_id,max(price) from test_order "
-                + " join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
-                + "group by test_order.order_id,buyer_id,LSTG_FORMAT_NAME";
-        normalResponse = modelSmartService.suggestOrOptimizeModels(rewriteReq.apply(smartRequest(project, normSql)));
-
-        Assert.assertEquals(3,
-                indexMgr.getIndexPlan(normalResponse.getModels().get(0).getUuid()).getAllLayouts().size());
-    }
-
-    @Test
-    public void testAccSql() {
-        String project = "newten";
-        val projectMgr = NProjectManager.getInstance(getTestConfig());
-        projectMgr.updateProject(project, copyForWrite -> {
-            copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-        });
-
-        String sql1 = "select test_order.order_id,buyer_id from test_order "
-                + " join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
-                + "group by test_order.order_id,buyer_id";
-        val request = smartRequest(project, sql1);
-        request.setForce2CreateNewModel(false);
-        //create new model
-        OpenAccSqlResponse normalResponse = modelSmartService.suggestAndOptimizeModels(request);
-        Assert.assertEquals(1, normalResponse.getCreatedModels().size());
-        Assert.assertEquals(0, normalResponse.getOptimizedModels().size());
-
-        //create new model and add advice for model
-        String sql2 = "select max(buyer_id) from test_order "
-                + " join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
-                + "group by test_order.order_id";
-        val request2 = smartRequest(project, sql2);
-        String sql3 = "select max(order_id) from test_order";
-        request2.getSqls().add(sql3);
-        request2.setForce2CreateNewModel(false);
-        normalResponse = modelSmartService.suggestAndOptimizeModels(request2);
-        Assert.assertEquals(1, normalResponse.getCreatedModels().size());
-        Assert.assertEquals(1, normalResponse.getOptimizedModels().size());
-
-        //acc again, due to model online, so have no impact
-        normalResponse = modelSmartService.suggestAndOptimizeModels(request2);
-        Assert.assertEquals(0, normalResponse.getCreatedModels().size());
-        Assert.assertEquals(0, normalResponse.getOptimizedModels().size());
-        Assert.assertEquals(2, normalResponse.getErrorSqlList().size());
-
-        // acc again, due to model online and withOptimalModel=true, so have optimalModels and no error sql
-        request2.setWithOptimalModel(true);
-        normalResponse = modelSmartService.suggestAndOptimizeModels(request2);
-        Assert.assertEquals(0, normalResponse.getCreatedModels().size());
-        Assert.assertEquals(0, normalResponse.getErrorSqlList().size());
-        Assert.assertEquals(2, normalResponse.getOptimalModels().size());
-    }
-
-    @Test
-    public void testErrorAndConstantOptimalModelResponse() {
-        String project = "newten";
-        val projectMgr = NProjectManager.getInstance(getTestConfig());
-        projectMgr.updateProject(project,
-                copyForWrite -> copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN));
-        String sql1 = "select test_order.order_id,buyer_id from test_order "
-                + " join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
-                + "group by test_order.order_id,buyer_id";
-        String sql2 = "select 1";
-        String sql3 = "select select";
-        val request = smartRequest(project, sql1);
-        request.setForce2CreateNewModel(false);
-        request.setWithOptimalModel(true);
-        request.getSqls().add(sql2);
-        request.getSqls().add(sql3);
-        OpenAccSqlResponse normalResponse = modelSmartService.suggestAndOptimizeModels(request);
-        Assert.assertEquals(1, normalResponse.getCreatedModels().size());
-        Assert.assertEquals(1, normalResponse.getErrorSqlList().size());
-        Assert.assertEquals(1, normalResponse.getOptimalModels().size());
-        OpenModelRecResponse openModelRecResponse = normalResponse.getOptimalModels().get(0);
-        Assert.assertEquals("CONSTANT", openModelRecResponse.getAlias());
-    }
-
-    @Test
-    public void testOptimizeModelWithProposingJoin() {
-        String project = "newten";
-        NProjectManager projectMgr = NProjectManager.getInstance(getTestConfig());
-        NIndexPlanManager indexMgr = NIndexPlanManager.getInstance(getTestConfig(), project);
-        NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), project);
-        projectMgr.updateProject(project, copyForWrite -> {
-            copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-        });
-
-        // create a base model
-        String normSql = "select test_order.order_id,buyer_id from test_order "
-                + "left join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
-                + "group by test_order.order_id,buyer_id";
-        OpenSuggestionResponse normalResponse = modelSmartService
-                .suggestOrOptimizeModels(smartRequest(project, normSql));
-        Assert.assertEquals(1, normalResponse.getModels().size());
-        String modelId = normalResponse.getModels().get(0).getUuid();
-        final NDataModel model1 = modelManager.getDataModelDesc(modelId);
-        Assert.assertEquals(1, model1.getJoinTables().size());
-        Assert.assertEquals(17, model1.getAllNamedColumns().size());
-
-        // without proposing new join, accelerate failed
-        normSql = "select test_order.order_id,sum(price) from test_order "
-                + "left join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
-                + "left join edw.test_cal_dt on test_kylin_fact.cal_dt=test_cal_dt.cal_dt "
-                + "group by test_order.order_id";
-        OpenSqlAccelerateRequest request1 = smartRequest(project, normSql);
-        request1.setForce2CreateNewModel(false);
-        normalResponse = modelSmartService.suggestOrOptimizeModels(request1);
-        Assert.assertEquals(0, normalResponse.getModels().size());
-        Assert.assertEquals(1, normalResponse.getErrorSqlList().size());
-
-        // with proposing new join, accelerate success
-        projectMgr.updateProject(project, copyForWrite -> {
-            copyForWrite.getConfig().setProperty("kylin.smart.conf.model-opt-rule", "append");
-        });
-        OpenSqlAccelerateRequest request2 = smartRequest(project, normSql);
-        request2.setForce2CreateNewModel(false);
-        normalResponse = modelSmartService.suggestOrOptimizeModels(request2);
-        Assert.assertEquals(1, normalResponse.getModels().size());
-        NDataModel model2 = modelManager.getDataModelDesc(modelId);
-        Assert.assertEquals(2, model2.getJoinTables().size());
-        Assert.assertEquals(117, model2.getAllNamedColumns().size());
-
-        // proposing new index
-        normSql = "select test_order.order_id,buyer_id,max(price) from test_order "
-                + "left join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
-                + "group by test_order.order_id,buyer_id,LSTG_FORMAT_NAME";
-        OpenSqlAccelerateRequest request3 = smartRequest(project, normSql);
-        request3.setForce2CreateNewModel(false);
-        normalResponse = modelSmartService.suggestOrOptimizeModels(request3);
-        Assert.assertEquals(1, normalResponse.getModels().size());
-        Assert.assertEquals(3, indexMgr.getIndexPlan(modelId).getAllLayouts().size());
-    }
-
-    @Test
-    public void testCreateModelNonEquiJoin() throws Exception {
-
-        val newModel = createNonEquiJoinModel("default", "non_equi_join");
-        String sql = SCD2SqlConverter.INSTANCE.genSCD2SqlStr(newModel.getJoinTables().get(0).getJoin(),
-                genNonEquiJoinCond());
-        Assert.assertEquals(sql,
-                "select * from  \"DEFAULT\".\"TEST_KYLIN_FACT\" AS \"TEST_KYLIN_FACT\" LEFT JOIN \"DEFAULT\".\"TEST_ORDER\" AS \"TEST_ORDER\" ON \"TEST_KYLIN_FACT\".\"ORDER_ID\"=\"TEST_ORDER\".\"ORDER_ID\" AND (\"TEST_KYLIN_FACT\".\"SELLER_ID\">=\"TEST_ORDER\".\"TEST_EXTENDED_COLUMN\") AND (\"TEST_KYLIN_FACT\".\"SELLER_ID\"<\"TEST_ORDER\".\"BUYER_ID\")");
-
-        Assert.assertTrue(newModel.getJoinTables().get(0).getJoin().isNonEquiJoin());
-    }
-
-    @Test
-    public void testModelNonEquiJoinBrokenRepair() {
-        /* 1.create scd2 model
-         * 2.turn off scd2 configuration
-         * 3.unload fact table , model become broken
-         * 4.reload the fact table, model should be offline when model is scd2 and scd2 is turned off
-         */
-        overwriteSystemProp("kylin.query.non-equi-join-model-enabled", "true");
-        String project = "newten";
-        transferProjectToSemiAutoMode(getTestConfig(), project);
-        String scd2Sql = "select test_order.order_id,buyer_id from test_order "
-                + "left join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
-                + "and buyer_id>=seller_id and buyer_id<leaf_categ_id " //
-                + "group by test_order.order_id,buyer_id";
-        val scd2Response = modelSmartService.suggestOrOptimizeModels(smartRequest(project, scd2Sql));
-
-        String normSql = "select test_order.order_id,buyer_id from test_order "
-                + " join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
-                + "group by test_order.order_id,buyer_id";
-        val normalResponse = modelSmartService.suggestOrOptimizeModels(smartRequest(project, normSql));
-
-        String nonEquivModelId = scd2Response.getModels().get(0).getUuid();
-        String normalModelId = normalResponse.getModels().get(0).getUuid();
-
-        NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), project);
-        NDataModel scd2Model = modelManager.getDataModelDesc(nonEquivModelId);
-        NDataModel normalModel = modelManager.getDataModelDesc(normalModelId);
-        Assert.assertEquals(ModelStatusToDisplayEnum.WARNING, convertModelStatus(scd2Model, project));
-        Assert.assertEquals(ModelStatusToDisplayEnum.WARNING, convertModelStatus(normalModel, project));
-        Assert.assertTrue(SCD2CondChecker.INSTANCE.isScd2Model(scd2Model));
-
-        NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(getTestConfig(), project);
-        TableDesc tableDesc = tableMetadataManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT");
-        tableDesc.setMvcc(-1);
-
-        // online -> broken
-        tableService.unloadTable(project, "DEFAULT.TEST_KYLIN_FACT", false);
-        NDataModel nonEquivOnline2Broken = modelManager.getDataModelDesc(nonEquivModelId);
-        NDataModel normalOnline2Broken = modelManager.getDataModelDesc(normalModelId);
-        Assert.assertEquals(ModelStatusToDisplayEnum.BROKEN, convertModelStatus(nonEquivOnline2Broken, project));
-        Assert.assertEquals(ModelStatusToDisplayEnum.BROKEN, convertModelStatus(normalOnline2Broken, project));
-
-        // broken -> repair
-        TableExtDesc orCreateTableExt = tableMetadataManager.getOrCreateTableExt(tableDesc);
-        tableExtService.loadTable(tableDesc, orCreateTableExt, project);
-        await().atMost(30, TimeUnit.SECONDS).untilAsserted(() -> {
-            NDataModel nonEquivBroken2Repair = modelManager.getDataModelDesc(nonEquivModelId);
-            NDataModel normalBroken2Repair = modelManager.getDataModelDesc(nonEquivModelId);
-            Assert.assertEquals(ModelStatusToDisplayEnum.WARNING, convertModelStatus(nonEquivBroken2Repair, project));
-            Assert.assertEquals(ModelStatusToDisplayEnum.WARNING, convertModelStatus(normalBroken2Repair, project));
-        });
-    }
-
-    private OpenSqlAccelerateRequest smartRequest(String project, String sql) {
-        OpenSqlAccelerateRequest scd2Request = new OpenSqlAccelerateRequest();
-        scd2Request.setProject(project);
-        scd2Request.setSqls(Lists.newArrayList(sql));
-        scd2Request.setAcceptRecommendation(true);
-        scd2Request.setForce2CreateNewModel(true);
-        scd2Request.setWithEmptySegment(true);
-        scd2Request.setWithModelOnline(true);
-        return scd2Request;
-    }
-
-    private ModelStatusToDisplayEnum convertModelStatus(NDataModel model, String project) {
-        NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        long inconsistentSegmentCount = dataflowManager.getDataflow(model.getUuid())
-                .getSegments(SegmentStatusEnum.WARNING).size();
-        return modelService.convertModelStatusToDisplay(model, model.getProject(), inconsistentSegmentCount);
-    }
-
-    private void testGetLatestData() throws Exception {
-        ExistedDataRangeResponse response = modelService.getLatestDataRange("default",
-                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", null);
-        Assert.assertEquals(String.valueOf(Long.MAX_VALUE), response.getEndTime());
-        ExistedDataRangeResponse response1 = modelService.getLatestDataRange("default",
-                "82fa7671-a935-45f5-8779-85703601f49a", null);
-        Assert.assertTrue(Long.parseLong(response1.getStartTime()) < Long.parseLong(response1.getEndTime()));
-    }
-
     private void addModelInfo(ModelRequest modelRequest) {
         modelRequest.setProject("default");
         modelRequest.setUuid(null);
         modelRequest.setLastModified(0L);
         modelRequest.setStart("1325347200000");
         modelRequest.setEnd("1388505600000");
-    }
-
-    public void testChangePartitionDesc() throws Exception {
-
-        val modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        var model = modelMgr.getDataModelDescByAlias("nmodel_basic");
-        val request = JsonUtil.readValue(JsonUtil.writeValueAsString(model), ModelRequest.class);
-        request.setProject("default");
-        request.setUuid("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        request.setAllNamedColumns(model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
-                .collect(Collectors.toList()));
-        request.setSimplifiedMeasures(model.getAllMeasures().stream().filter(m -> !m.isTomb())
-                .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()));
-        val modelRequest = JsonUtil.readValue(JsonUtil.writeValueAsString(request), ModelRequest.class);
-
-        Assert.assertEquals("TEST_KYLIN_FACT.CAL_DT", modelRequest.getPartitionDesc().getPartitionDateColumn());
-
-        modelMgr.updateDataModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa", copy -> {
-            copy.getPartitionDesc().setPartitionDateColumn("TRANS_ID");
-        });
-
-        model = modelMgr.getDataModelDescByAlias("nmodel_basic");
-
-        Assert.assertEquals("TEST_KYLIN_FACT.TRANS_ID", model.getPartitionDesc().getPartitionDateColumn());
-        IndexPlan indexPlan = NIndexPlanManager.getInstance(getTestConfig(), "default").getIndexPlan(model.getUuid());
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            NIndexPlanManager.getInstance(getTestConfig(), "default").updateIndexPlan(indexPlan.getUuid(),
-                    copyForWrite -> {
-                        copyForWrite.setIndexes(new ArrayList<>());
-                    });
-            return 0;
-        }, "default");
-        modelService.updateDataModelSemantic("default", modelRequest);
-
-        model = modelMgr.getDataModelDescByAlias("nmodel_basic");
-
-        Assert.assertEquals("yyyy-MM-dd", model.getPartitionDesc().getPartitionDateFormat());
-
-    }
-
-    public void testChangePartitionDesc_OriginModelNoPartition() throws Exception {
-
-        val modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-
-        var model = modelMgr.getDataModelDescByAlias("nmodel_basic");
-        val request = JsonUtil.readValue(JsonUtil.writeValueAsString(model), ModelRequest.class);
-        request.setProject("default");
-        request.setUuid("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        request.setAllNamedColumns(model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
-                .collect(Collectors.toList()));
-        request.setSimplifiedMeasures(model.getAllMeasures().stream().filter(m -> !m.isTomb())
-                .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()));
-        val modelRequest = JsonUtil.readValue(JsonUtil.writeValueAsString(request), ModelRequest.class);
-
-        Assert.assertEquals("TEST_KYLIN_FACT.CAL_DT", modelRequest.getPartitionDesc().getPartitionDateColumn());
-
-        modelMgr.updateDataModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa", copy -> {
-            copy.setPartitionDesc(null);
-        });
-
-        model = modelMgr.getDataModelDescByAlias("nmodel_basic");
-
-        Assert.assertNull(model.getPartitionDesc());
-
-        modelService.updateDataModelSemantic("default", modelRequest);
-
-        model = modelMgr.getDataModelDescByAlias("nmodel_basic");
-
-        Assert.assertEquals("yyyy-MM-dd", model.getPartitionDesc().getPartitionDateFormat());
-
-    }
-
-    public void testChangePartitionDesc_NewModelNoPartitionColumn() throws Exception {
-
-        val modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-
-        var model = modelMgr.getDataModelDescByAlias("nmodel_basic");
-        val request = JsonUtil.readValue(JsonUtil.writeValueAsString(model), ModelRequest.class);
-        request.setProject("default");
-        request.setUuid("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        request.getPartitionDesc().setPartitionDateColumn("");
-        request.setAllNamedColumns(model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
-                .collect(Collectors.toList()));
-        request.setSimplifiedMeasures(model.getAllMeasures().stream().filter(m -> !m.isTomb())
-                .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()));
-        val modelRequest = JsonUtil.readValue(JsonUtil.writeValueAsString(request), ModelRequest.class);
-
-        model = modelMgr.getDataModelDescByAlias("nmodel_basic");
-
-        Assert.assertEquals("yyyy-MM-dd", model.getPartitionDesc().getPartitionDateFormat());
-
-        modelService.updateDataModelSemantic("default", modelRequest);
-
-        model = modelMgr.getDataModelDescByAlias("nmodel_basic");
-
-        Assert.assertEquals("", model.getPartitionDesc().getPartitionDateFormat());
-
-    }
-
-    public void testCreateModel_PartitionNotNull() throws Exception {
-        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        NDataModel model = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        model.setManagementType(ManagementType.MODEL_BASED);
-        ModelRequest modelRequest = new ModelRequest(model);
-        modelRequest.setProject("default");
-        modelRequest.setAlias("new_model");
-        modelRequest.setUuid(null);
-        modelRequest.setLastModified(0L);
-        val newModel = modelService.createModel(modelRequest.getProject(), modelRequest);
-        Assert.assertEquals("new_model", newModel.getAlias());
-        val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        val df = dfManager.getDataflow(newModel.getUuid());
-        Assert.assertEquals(0, df.getSegments().size());
-
-        modelManager.dropModel(newModel);
     }
 
     @Test
@@ -2939,14 +1876,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 false);
         Assert.assertEquals("COUNT_ALL", models.get(0).getSimplifiedMeasures().get(0).getName());
         modelManager.dropModel(newModel);
-    }
-
-    @Test
-    public void testBuildSegmentsManually_TableOrientedModel_Exception() throws Exception {
-        thrown.expectInTransaction(KylinException.class);
-        thrown.expectMessageInTransaction(
-                "Can’t manually build segments in model \"nmodel_basic\" under the current project settings.");
-        modelBuildService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "0", "100");
     }
 
     @Test
@@ -2974,6 +1903,22 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testAddSameNameDiffExprNormal() throws IOException, NoSuchFieldException, IllegalAccessException {
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+
+        List<NDataModelResponse> dataModelDescs = modelService.getModels("nmodel_basic", "default", true, null, null,
+                "", false);
+        Assert.assertEquals(1, dataModelDescs.size());
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        serializer.serialize(dataModelDescs.get(0), new DataOutputStream(baos));
+        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+        NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+        deserialized.setProject("default");
+
+        Field field = ComputedColumnDesc.class.getDeclaredField("expression");
+        Unsafe.changeAccessibleObject(field, true);
+        field.set(deserialized.getComputedColumnDescs().get(0), "1+1");
+
         expectedEx.expect(new BaseMatcher() {
             @Override
             public void describeTo(Description description) {
@@ -2990,29 +1935,13 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getConflictingModel().equals("nmodel_basic_inner")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
                         && ccException.getMessage().equals(
-                                "The name of computed column 'TEST_KYLIN_FACT.DEAL_AMOUNT' has already been used in "
-                                        + "model 'nmodel_basic_inner', and the expression is "
-                                        + "'TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT'. "
-                                        + "Please modify the expression to keep consistent, or use a different name.");
+                        "The name of computed column 'TEST_KYLIN_FACT.DEAL_AMOUNT' has already been used in "
+                                + "model 'nmodel_basic_inner', and the expression is "
+                                + "'TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT'. "
+                                + "Please modify the expression to keep consistent, or use a different name.");
 
             }
         });
-
-        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
-
-        List<NDataModelResponse> dataModelDescs = modelService.getModels("nmodel_basic", "default", true, null, null,
-                "", false);
-        Assert.assertEquals(1, dataModelDescs.size());
-
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        serializer.serialize(dataModelDescs.get(0), new DataOutputStream(baos));
-        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
-        NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
-        deserialized.setProject("default");
-
-        Field field = ComputedColumnDesc.class.getDeclaredField("expression");
-        Unsafe.changeAccessibleObject(field, true);
-        field.set(deserialized.getComputedColumnDescs().get(0), "1+1");
         modelService.getManager(NDataModelManager.class, "default").updateDataModelDesc(deserialized);
         // TODO should use modelService.updateModelAndDesc("default", deserialized);
     }
@@ -3020,10 +1949,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testFailureModelUpdateDueToComputedColumnConflict2()
             throws IOException, NoSuchFieldException, IllegalAccessException {
-        expectedEx.expect(IllegalArgumentException.class);
-        expectedEx.expectMessage("There is already a column named CAL_DT on table DEFAULT.TEST_KYLIN_FACT,"
-                + " please change your computed column name");
-
         Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
         List<NDataModelResponse> dataModelDescs = modelService.getModels("nmodel_basic", "default", true, null, null,
                 "", false);
@@ -3038,6 +1963,10 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Field field = ComputedColumnDesc.class.getDeclaredField("columnName");
         Unsafe.changeAccessibleObject(field, true);
         field.set(deserialized.getComputedColumnDescs().get(0), "cal_dt");
+
+        expectedEx.expect(IllegalArgumentException.class);
+        expectedEx.expectMessage("There is already a column named CAL_DT on table DEFAULT.TEST_KYLIN_FACT,"
+                + " please change your computed column name");
         modelService.getManager(NDataModelManager.class, "default").updateDataModelDesc(deserialized);
         // TODO should use modelService.updateModelAndDesc("default", deserialized);
     }
@@ -3095,18 +2024,21 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
-    public void testNewModelAddSameExprSameNameNormal() throws IOException {
+    public void testNewModelAddSameExprSameNameNormal() {
+        try {
+            Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+            String contents = StringUtils.join(Files.readAllLines(
+                    new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
+                    Charset.defaultCharset()), "\n");
 
-        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
-        String contents = StringUtils.join(Files.readAllLines(
-                new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
-                Charset.defaultCharset()), "\n");
-
-        InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
-        NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
-        deserialized.setProject("default");
-        modelService.getManager(NDataModelManager.class, "default").createDataModelDesc(deserialized, "ADMIN");
-        //TODO modelService.updateModelToResourceStore(deserialized, "default");
+            InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
+            NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+            deserialized.setProject("default");
+            modelService.getManager(NDataModelManager.class, "default").createDataModelDesc(deserialized, "ADMIN");
+            //TODO modelService.updateModelToResourceStore(deserialized, "default");
+        } catch (Exception e) {
+            Assert.fail(e.getMessage());
+        }
     }
 
     @Test
@@ -3162,26 +2094,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testNewModelAddSameExprSameNameOnDifferentAliasTableCannotProvideAdvice() throws Exception {
-
-        expectedEx.expect(new BaseMatcher() {
-            @Override
-            public void describeTo(Description description) {
-            }
-
-            @Override
-            public boolean matches(Object item) {
-                if (!(item instanceof BadModelException)) {
-                    return false;
-                }
-                BadModelException ccException = (BadModelException) item;
-                return BadModelException.CauseType.WRONG_POSITION_DUE_TO_NAME == ccException.getCauseType()
-                        && ccException.getConflictingModel().equals("nmodel_cc_test")
-                        && ccException.getBadCC().equals("TEST_ORDER.ID_PLUS_1") && ccException.getAdvise() == null
-                        && ccException.getMessage().equals(
-                                "Computed column ID_PLUS_1 is already defined in model nmodel_cc_test, no suggestion could be provided to reuse it");
-            }
-        });
-
         //save ut_left_join_cc_model, which is a model defining cc on lookup table
         Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
@@ -3208,12 +2120,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
         bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
         deserialized = serializer.deserialize(new DataInputStream(bais));
         deserialized.setProject("default");
-        modelService.getManager(NDataModelManager.class, "default").createDataModelDesc(deserialized, "ADMIN");
-        //TODO modelService.updateModelToResourceStore(deserialized, "default");
-    }
-
-    @Test
-    public void testSeekAdviseOnLookTable() throws Exception {
 
         expectedEx.expect(new BaseMatcher() {
             @Override
@@ -3226,18 +2132,19 @@ public class ModelServiceTest extends CSVSourceTestCase {
                     return false;
                 }
                 BadModelException ccException = (BadModelException) item;
-                return BadModelException.CauseType.SAME_NAME_DIFF_EXPR == ccException.getCauseType()
+                return BadModelException.CauseType.WRONG_POSITION_DUE_TO_NAME == ccException.getCauseType()
                         && ccException.getConflictingModel().equals("nmodel_cc_test")
-                        && "UPPER(BUYER_ACCOUNT.ACCOUNT_COUNTRY)".equals(ccException.getAdvise())
-                        && ccException.getBadCC().equals("BUYER_ACCOUNT.COUNTRY_UPPER")
+                        && ccException.getBadCC().equals("TEST_ORDER.ID_PLUS_1") && ccException.getAdvise() == null
                         && ccException.getMessage().equals(
-                                "The name of computed column 'BUYER_ACCOUNT.COUNTRY_UPPER' has already been used "
-                                        + "in model 'nmodel_cc_test', and the expression is "
-                                        + "'UPPER(BUYER_ACCOUNT.ACCOUNT_COUNTRY)'. "
-                                        + "Please modify the expression to keep consistent, or use a different name.");
+                        "Computed column ID_PLUS_1 is already defined in model nmodel_cc_test, no suggestion could be provided to reuse it");
             }
         });
+        modelService.getManager(NDataModelManager.class, "default").createDataModelDesc(deserialized, "ADMIN");
+        //TODO modelService.updateModelToResourceStore(deserialized, "default");
+    }
 
+    @Test
+    public void testSeekAdviseOnLookTable() throws Exception {
         //save nmodel_cc_test, which is a model defining cc on lookup table
         Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
@@ -3257,7 +2164,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         List<NDataModelResponse> dataModelDescs = modelService.getModels("nmodel_cc_test", "default", true, null, null,
                 "", false);
-        Assert.assertTrue(dataModelDescs.size() == 1);
+        Assert.assertEquals(1, dataModelDescs.size());
 
         contents = StringUtils.reverse(StringUtils.reverse(contents).replaceFirst(
                 Pattern.quote(StringUtils.reverse("\"expression\": \"UPPER(BUYER_ACCOUNT.ACCOUNT_COUNTRY)\",")),
@@ -3268,6 +2175,28 @@ public class ModelServiceTest extends CSVSourceTestCase {
         deserialized = serializer.deserialize(new DataInputStream(bais));
         deserialized.setSeekingCCAdvice(true);
 
+        expectedEx.expect(new BaseMatcher() {
+            @Override
+            public void describeTo(Description description) {
+            }
+
+            @Override
+            public boolean matches(Object item) {
+                if (!(item instanceof BadModelException)) {
+                    return false;
+                }
+                BadModelException ccException = (BadModelException) item;
+                return BadModelException.CauseType.SAME_NAME_DIFF_EXPR == ccException.getCauseType()
+                        && ccException.getConflictingModel().equals("nmodel_cc_test")
+                        && "UPPER(BUYER_ACCOUNT.ACCOUNT_COUNTRY)".equals(ccException.getAdvise())
+                        && ccException.getBadCC().equals("BUYER_ACCOUNT.COUNTRY_UPPER")
+                        && ccException.getMessage().equals(
+                        "The name of computed column 'BUYER_ACCOUNT.COUNTRY_UPPER' has already been used "
+                                + "in model 'nmodel_cc_test', and the expression is "
+                                + "'UPPER(BUYER_ACCOUNT.ACCOUNT_COUNTRY)'. "
+                                + "Please modify the expression to keep consistent, or use a different name.");
+            }
+        });
         modelService.checkComputedColumn(deserialized, "default", null);
 
     }
@@ -3479,38 +2408,45 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
-    public void testNewModelAddSameNameDiffExprModelToNonDefaultProject() throws IOException {
-        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
-        String contents = StringUtils.join(Files.readAllLines(
-                new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
-                Charset.defaultCharset()), "\n");
 
-        contents = contents.replace("CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)",
-                "SUBSTR(CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME),0,1)");
-
-        InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
-        NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
-        deserialized.setProject("newten");
-        //it's adding to non-default project, should be okay because cc conflict check is by project
-        modelService.getManager(NDataModelManager.class, "newten").createDataModelDesc(deserialized, "ADMIN");
-        //TODO modelService.updateModelToResourceStore(deserialized, "non-default");
+    public void testNewModelAddSameNameDiffExprModelToNonDefaultProject() {
+        try {
+            Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                    .getDataModelSerializer();
+            String contents = StringUtils.join(Files.readAllLines(
+                    new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
+                    Charset.defaultCharset()), "\n");
+            contents = contents.replace("CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)",
+                    "SUBSTR(CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME),0,1)");
+            InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
+            NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+            deserialized.setProject("newten");
+            //it's adding to non-default project, should be okay because cc conflict check is by project
+            modelService.getManager(NDataModelManager.class, "newten").createDataModelDesc(deserialized, "ADMIN");
+            //TODO modelService.updateModelToResourceStore(deserialized, "non-default");
+        } catch (Exception e) {
+            Assert.fail(e.getMessage());
+        }
     }
 
     @Test
-    public void testNewModelAddDiffNameSameExprModelToNonDefaultProject() throws IOException {
-        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
-        String contents = StringUtils.join(Files.readAllLines(
-                new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
-                Charset.defaultCharset()), "\n");
-
-        contents = contents.replace("LEFTJOIN_BUYER_COUNTRY_ABBR", "LEFTJOIN_BUYER_COUNTRY_ABBR_2");
-
-        InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
-        NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
-        deserialized.setProject("newten");
-        //it's adding to non-default project, should be okay because cc conflict check is by project
-        modelService.getManager(NDataModelManager.class, "newten").createDataModelDesc(deserialized, "ADMIN");
-        //TODO modelService.updateModelToResourceStore(deserialized, "non-default");
+    public void testNewModelAddDiffNameSameExprModelToNonDefaultProject() {
+        try {
+            Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                    .getDataModelSerializer();
+            String contents = StringUtils.join(Files.readAllLines(
+                    new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
+                    Charset.defaultCharset()), "\n");
+            contents = contents.replace("LEFTJOIN_BUYER_COUNTRY_ABBR", "LEFTJOIN_BUYER_COUNTRY_ABBR_2");
+            InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
+            NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+            deserialized.setProject("newten");
+            //it's adding to non-default project, should be okay because cc conflict check is by project
+            modelService.getManager(NDataModelManager.class, "newten").createDataModelDesc(deserialized, "ADMIN");
+            //TODO modelService.updateModelToResourceStore(deserialized, "non-default");
+        } catch (Exception e) {
+            Assert.fail(e.getMessage());
+        }
     }
 
     @Test
@@ -3899,7 +2835,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
             List<NDataModelResponse> dataModelDescs = modelService.getModels("nmodel_cc_test", "default", true, null,
                     null, "", false);
-            Assert.assertTrue(dataModelDescs.size() == 1);
+            Assert.assertEquals(1, dataModelDescs.size());
 
             contents = StringUtils.reverse(StringUtils.reverse(contents).replaceFirst(
                     Pattern.quote(StringUtils.reverse("\"expression\": \"UPPER(BUYER_ACCOUNT.ACCOUNT_COUNTRY)\",")),
@@ -3966,114 +2902,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 ccDesc2.getInnerExpression());
     }
 
-    @Test
-    @Ignore("will create cube with model")
-    public void testBuildSegmentsManuallyException1() throws Exception {
-        NDataModel model = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "match")
-                .getDataModelDesc("match");
-        ModelRequest modelRequest = new ModelRequest(model);
-        modelRequest.setUuid("new_model");
-        modelRequest.setAlias("new_model");
-        modelRequest.setManagementType(ManagementType.MODEL_BASED);
-        modelRequest.setLastModified(0L);
-        modelRequest.setProject("match");
-        thrown.expect(BadRequestException.class);
-        thrown.expectMessage("Can not build segments, please define table index or aggregate index first!");
-        modelService.createModel(modelRequest.getProject(), modelRequest);
-        modelBuildService.buildSegmentsManually("match", "new_model", "0", "100");
-    }
-
-    public void testBuildSegmentsManually() throws Exception {
-        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        NDataModel modelDesc = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        NDataModel modelUpdate = modelManager.copyForWrite(modelDesc);
-        modelUpdate.getPartitionDesc().setPartitionDateFormat("yyyy-MM-dd");
-        modelUpdate.setManagementType(ManagementType.MODEL_BASED);
-        modelManager.updateDataModelDesc(modelUpdate);
-
-        NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        NDataflow dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        NDataflowUpdate dataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
-        dataflowUpdate.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[dataflow.getSegments().size()]));
-        dataflowManager.updateDataflow(dataflowUpdate);
-        val jobInfo = modelBuildService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa",
-                "1577811661000", "1609430400000", true, Sets.newHashSet(), null, 0, false);
-
-        Assert.assertEquals(jobInfo.getJobs().size(), 1);
-        Assert.assertEquals(jobInfo.getJobs().get(0).getJobName(), JobTypeEnum.INC_BUILD.name());
-        modelDesc = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        Assert.assertEquals("yyyy-MM-dd", modelDesc.getPartitionDesc().getPartitionDateFormat());
-
-        val executables = getRunningExecutables("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        modelDesc = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        modelUpdate = modelManager.copyForWrite(modelDesc);
-        modelUpdate.setManagementType(ManagementType.TABLE_ORIENTED);
-        modelManager.updateDataModelDesc(modelUpdate);
-
-        String pattern = "yyyy-MM-dd";
-        Assert.assertEquals(2, executables.size());
-        Assert.assertTrue(((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableAddSegmentHandler);
-        Assert.assertEquals(0, executables.get(1).getPriority());
-        dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        Assert.assertEquals(1, dataflow.getSegments().size());
-        Assert.assertEquals(DateFormat.getFormatTimeStamp("1577808000000", pattern),
-                dataflow.getSegments().get(0).getSegRange().getStart());
-        Assert.assertEquals(DateFormat.getFormatTimeStamp("1609430400000", pattern),
-                dataflow.getSegments().get(0).getSegRange().getEnd());
-
-        // multi-partition model
-        String multiPartitionModelUuid = "b780e4e4-69af-449e-b09f-05c90dfa04b6";
-        dataflow = dataflowManager.getDataflow(multiPartitionModelUuid);
-        dataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
-        dataflowUpdate.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[dataflow.getSegments().size()]));
-        dataflowManager.updateDataflow(dataflowUpdate);
-        val jobInfo2 = modelBuildService.buildSegmentsManually("default", multiPartitionModelUuid, "1577811661000",
-                "1609430400000", true, Sets.newHashSet(), null, 0, true);
-        Assert.assertEquals(1, jobInfo2.getJobs().size());
-        Assert.assertEquals(jobInfo2.getJobs().get(0).getJobName(), JobTypeEnum.INC_BUILD.name());
-        val job2 = NExecutableManager.getInstance(getTestConfig(), "default")
-                .getJob(jobInfo2.getJobs().get(0).getJobId());
-        Assert.assertEquals(3, job2.getTargetPartitions().size());
-
-    }
-
-    public void testBuildSegmentsManually_WithPushDown() throws Exception {
-        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        NDataModel modelDesc = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        NDataModel modelUpdate = modelManager.copyForWrite(modelDesc);
-        modelUpdate.setManagementType(ManagementType.MODEL_BASED);
-        modelManager.updateDataModelDesc(modelUpdate);
-
-        NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        NDataflow dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        NDataflowUpdate dataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
-        dataflowUpdate.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[dataflow.getSegments().size()]));
-        dataflowManager.updateDataflow(dataflowUpdate);
-        val minAndMaxTime = PushDownUtil.getMaxAndMinTime(modelUpdate.getPartitionDesc().getPartitionDateColumn(),
-                modelUpdate.getRootFactTableName(), "default");
-        val dateFormat = DateFormat.proposeDateFormat(minAndMaxTime.getFirst());
-        modelBuildService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa",
-                DateFormat.getFormattedDate(minAndMaxTime.getFirst(), dateFormat),
-                DateFormat.getFormattedDate(minAndMaxTime.getSecond(), dateFormat));
-        val executables = getRunningExecutables("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-
-        Assert.assertTrue(((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableAddSegmentHandler);
-        dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        Assert.assertEquals(1, dataflow.getSegments().size());
-
-        java.text.DateFormat sdf = new SimpleDateFormat("yyyy/MM/dd", Locale.getDefault(Locale.Category.FORMAT));
-        sdf.setTimeZone(TimeZone.getDefault());
-
-        long t1 = sdf.parse("2012/01/01").getTime();
-        long t2 = sdf.parse("2014/01/01").getTime();
-
-        Assert.assertEquals(t1, dataflow.getSegments().get(0).getSegRange().getStart());
-        Assert.assertEquals(t2, dataflow.getSegments().get(0).getSegRange().getEnd());
-        val result = PushDownUtil.getMaxAndMinTimeWithTimeOut(modelUpdate.getPartitionDesc().getPartitionDateColumn(),
-                modelUpdate.getRootFactTableName(), "default");
-        Assert.assertNotNull(result);
-    }
-
     private void prepareModelToManually(String project, String modelId) {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         NDataModel modelDesc = modelManager.getDataModelDesc(modelId);
@@ -4090,115 +2918,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dataflow = dataflowManager.updateDataflow(dataflowUpdate);
         Assert.assertEquals(0, dataflow.getSegments().size());
 
-    }
-
-    @Test
-    public void testBuildSegmentsManually_IncrementBuild_ChangePartition() throws Exception {
-        for (String timeZone : timeZones) {
-            TimeZone.setDefault(TimeZone.getTimeZone(timeZone));
-            DateFormat.cleanCache();
-
-            String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-            String project = getProject();
-            NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-            modelManager.updateDataModel(modelId, copyForWrite -> {
-                copyForWrite.setManagementType(ManagementType.MODEL_BASED);
-                copyForWrite.setPartitionDesc(null);
-            });
-            String pattern = "yyyyMMdd";
-            PartitionDesc partitionDesc = new PartitionDesc();
-            partitionDesc.setPartitionDateColumn("TEST_KYLIN_FACT.CAL_DT");
-            partitionDesc.setPartitionDateFormat(pattern);
-            modelBuildService.incrementBuildSegmentsManually(project, modelId, "1577811661000", "1609430400000",
-                    partitionDesc, null);
-            NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-            var dataflow = dataflowManager.getDataflow(modelId);
-            Assert.assertEquals(1, dataflow.getSegments().size());
-            Assert.assertEquals(DateFormat.getFormatTimeStamp("1577808000000", pattern),
-                    dataflow.getSegments().get(0).getSegRange().getStart());
-        }
-    }
-
-    @Test
-    public void testBuildSegmentManually_PartitionValue_Not_Support() throws Exception {
-        List<String[]> multiPartitionValues = Lists.newArrayList();
-        multiPartitionValues.add(new String[] { "cn" });
-        try {
-            modelBuildService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "", true,
-                    Sets.newHashSet(), multiPartitionValues);
-        } catch (Exception e) {
-            Assert.assertTrue(e instanceof KylinException);
-            Assert.assertTrue(e.getMessage().contains(
-                    "Model \"nmodel_basic\" hasn’t set a partition column yet. Please set it first and try again."));
-        }
-    }
-
-    @Test
-    public void testBuildSegmentsManually_NoPartition_Exception() throws Exception {
-        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        NDataModel modelDesc = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        NDataModel modelUpdate = modelManager.copyForWrite(modelDesc);
-        modelUpdate.setManagementType(ManagementType.MODEL_BASED);
-        modelManager.updateDataModelDesc(modelUpdate);
-
-        modelManager.updateDataModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa", copyForWrite -> {
-            copyForWrite.setManagementType(ManagementType.MODEL_BASED);
-            copyForWrite.setPartitionDesc(null);
-        });
-
-        NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        NDataflow dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        NDataflowUpdate dataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
-        dataflowUpdate.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[dataflow.getSegments().size()]));
-        dataflow = dataflowManager.updateDataflow(dataflowUpdate);
-        Assert.assertEquals(0, dataflow.getSegments().size());
-        modelBuildService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "", true,
-                Sets.newHashSet(), null, 0, false);
-        dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        Assert.assertEquals(1, dataflow.getSegments().size());
-        Assert.assertTrue(dataflow.getSegments().get(0).getSegRange().isInfinite());
-        val executables = getRunningExecutables("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        Assert.assertEquals(1, executables.size());
-        AbstractExecutable job = executables.get(0);
-        Assert.assertEquals(0, job.getPriority());
-        Assert.assertTrue(((NSparkCubingJob) job).getHandler() instanceof ExecutableAddSegmentHandler);
-        thrown.expectInTransaction(KylinException.class);
-        thrown.expectMessageInTransaction(String.format(Locale.ROOT,
-                MsgPicker.getMsg().getSEGMENT_STATUS(SegmentStatusEnumToDisplay.LOADING.name()), dataflowManager
-                        .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getSegments().get(0).displayIdName()));
-        modelBuildService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "");
-    }
-
-    @Test
-    @Ignore
-    public void testBuildSegmentsManually_NoPartition_FullSegExisted() throws Exception {
-        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        val project = "default";
-        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        NDataModel modelDesc = modelManager.getDataModelDesc(modelId);
-        NDataModel modelUpdate = modelManager.copyForWrite(modelDesc);
-        modelUpdate.setManagementType(ManagementType.MODEL_BASED);
-        modelManager.updateDataModelDesc(modelUpdate);
-
-        val request = new ModelRequest(JsonUtil.deepCopy(modelDesc, NDataModel.class));
-        request.setSimplifiedMeasures(modelDesc.getEffectiveMeasures().values().stream()
-                .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()));
-        request.getAllNamedColumns().forEach(c -> c.setName(c.getAliasDotColumn().replace(".", "_")));
-        request.setSimplifiedDimensions(request.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isExist)
-                .collect(Collectors.toList()));
-        request.setComputedColumnDescs(request.getComputedColumnDescs());
-        request.setPartitionDesc(null);
-        request.setProject(project);
-        modelService.updateDataModelSemantic(project, request);
-        try {
-            modelBuildService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "");
-        } catch (TransactionException exception) {
-            Assert.assertTrue(exception.getCause() instanceof KylinException);
-            Assert.assertEquals(MsgPicker.getMsg().getADD_JOB_CHECK_FAIL(), exception.getCause().getMessage());
-        }
-        val executables = getRunningExecutables(project, modelId);
-        Assert.assertEquals(2, executables.size());
-        Assert.assertTrue(((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableAddCuboidHandler);
     }
 
     @Test
@@ -4221,7 +2940,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
-    @Ignore
+    @Ignore("Metadata changed! Model nmodel_basic is not existed")
     public void testSetIncrementing_LimitedFactTable_exception() {
         val modelManager = NDataModelManager.getInstance(getTestConfig(), "default");
         val model = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -4326,26 +3045,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelService.updateModelConfig(project, model, modelConfigRequest);
         updatedSize = indexPlanManager.getIndexPlan(model).getRuleBaseLayouts().size();
         Assert.assertEquals(initialSize - 2, updatedSize);
-    }
-
-    private List<AbstractExecutable> mockJobs() {
-        List<AbstractExecutable> jobs = new ArrayList<>();
-        SucceedChainedTestExecutable job1 = new SucceedChainedTestExecutable();
-        job1.setProject("default");
-        job1.setName("sparkjob1");
-        job1.setTargetSubject("741ca86a-1f13-46da-a59f-95fb68615e3a");
-        SucceedChainedTestExecutable job2 = new SucceedChainedTestExecutable();
-        job2.setProject("default");
-        job2.setName("sparkjob2");
-        job2.setTargetSubject("model2");
-        SucceedChainedTestExecutable job3 = new SucceedChainedTestExecutable();
-        job3.setProject("default");
-        job3.setName("sparkjob3");
-        job3.setTargetSubject("model3");
-        jobs.add(job1);
-        jobs.add(job2);
-        jobs.add(job3);
-        return jobs;
     }
 
     @Test
@@ -4502,306 +3201,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
-    public void testBuildIndexManually_TableOriented_exception() {
-        val project = "default";
-        val modelId = "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96";
-        thrown.expect(KylinException.class);
-        thrown.expectMessage(
-                "Can’t manually build indexes in model \"all_fixed_length\" under the current project settings.");
-        modelBuildService.buildIndicesManually(modelId, project, 3, null, null);
-    }
-
-    @Test
-    public void testBuildIndexManually() {
-        val project = "default";
-        val modelId = "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96";
-        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        val df = dataflowManager.getDataflow(modelId);
-        val dfUpdate = new NDataflowUpdate(df.getId());
-        List<NDataLayout> tobeRemoveCuboidLayouts = Lists.newArrayList();
-        Segments<NDataSegment> segments = df.getSegments();
-        for (NDataSegment segment : segments) {
-            tobeRemoveCuboidLayouts.addAll(segment.getLayoutsMap().values());
-        }
-        dfUpdate.setToRemoveLayouts(tobeRemoveCuboidLayouts.toArray(new NDataLayout[0]));
-        dataflowManager.updateDataflow(dfUpdate);
-        val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        modelManager.updateDataModel(modelId,
-                copyForWrite -> copyForWrite.setManagementType(ManagementType.MODEL_BASED));
-        val response = modelBuildService.buildIndicesManually(modelId, project, 0, null, null);
-        Assert.assertEquals(BuildIndexResponse.BuildIndexType.NORM_BUILD, response.getType());
-        val executables = getRunningExecutables(project, modelId);
-        Assert.assertEquals(1, executables.size());
-        Assert.assertTrue(((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableAddCuboidHandler);
-        Assert.assertEquals(0, executables.get(0).getPriority());
-
-    }
-
-    @Test
-    public void testBuildIndexManuallyWithoutLayout() {
-        val project = "default";
-        val modelId = "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96";
-        val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        modelManager.updateDataModel(modelId,
-                copyForWrite -> copyForWrite.setManagementType(ManagementType.MODEL_BASED));
-        val response = modelBuildService.buildIndicesManually(modelId, project, 3, null, null);
-        Assert.assertEquals(BuildIndexResponse.BuildIndexType.NO_LAYOUT, response.getType());
-        val executables = getRunningExecutables(project, modelId);
-        Assert.assertEquals(0, executables.size());
-    }
-
-    @Test
-    public void testBuildIndexManuallyWithoutSegment() {
-        val project = "default";
-        val modelId = "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96";
-        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        val df = dataflowManager.getDataflow(modelId);
-        val dfUpdate = new NDataflowUpdate(df.getId());
-        dfUpdate.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
-        dataflowManager.updateDataflow(dfUpdate);
-        val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        modelManager.updateDataModel(modelId,
-                copyForWrite -> copyForWrite.setManagementType(ManagementType.MODEL_BASED));
-        val response = modelBuildService.buildIndicesManually(modelId, project, 3, null, null);
-        Assert.assertEquals(BuildIndexResponse.BuildIndexType.NO_SEGMENT, response.getType());
-        val executables = getRunningExecutables(project, modelId);
-        Assert.assertEquals(0, executables.size());
-
-    }
-
-    //test refreshSegments:all Online model, all lag beghind model, One Online One lag behind model
-    //first test exception
-    @Test
-    public void testRefreshSegments_AffectedSegmentRangeChanged_Exception() throws IOException {
-        thrown.expect(KylinException.class);
-        thrown.expectMessage("Can’t refresh at the moment, as the segment range has changed. Please try again later.");
-        RefreshAffectedSegmentsResponse response = new RefreshAffectedSegmentsResponse();
-        response.setAffectedStart("12");
-        response.setAffectedEnd("120");
-        Mockito.doReturn(response).when(modelService).getRefreshAffectedSegmentsResponse("default",
-                "DEFAULT.TEST_KYLIN_FACT", "0", "12223334");
-        modelBuildService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "12223334", "0", "12223334");
-    }
-
-    @Test
-    public void testGetAffectedSegmentsResponse_NoSegments_Exception() throws IOException {
-        thrown.expect(KylinException.class);
-        thrown.expectMessage("No segments to refresh, please select new range and try again!");
-        List<NDataSegment> segments = modelService.getSegmentsByRange("a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94", "default",
-                "0", "" + Long.MAX_VALUE);
-        Assert.assertTrue(CollectionUtils.isEmpty(segments));
-
-        val loadingRangeMgr = NDataLoadingRangeManager.getInstance(getTestConfig(), "default");
-        val loadingRange = new NDataLoadingRange();
-        loadingRange.setTableName("DEFAULT.TEST_ENCODING");
-        loadingRange.setColumnName("TEST_ENCODING.int_dict");
-        loadingRange.setCoveredRange(new SegmentRange.TimePartitionedSegmentRange(0L, 12223334L));
-        loadingRangeMgr.createDataLoadingRange(loadingRange);
-        modelBuildService.refreshSegments("default", "DEFAULT.TEST_ENCODING", "0", "12223334", "0", "12223334");
-    }
-
-    @Test
-    public void testGetAffectedSegmentsResponse_TwoOnlineModelHasNewSegment_Exception() throws IOException {
-        prepareTwoOnlineModels();
-        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
-        val df = dfMgr.getDataflowByModelAlias("nmodel_basic");
-        dfMgr.refreshSegment(df, df.getSegments().get(0).getSegRange());
-
-        thrown.expect(KylinException.class);
-        thrown.expectMessage(MsgPicker.getMsg().getSEGMENT_CAN_NOT_REFRESH());
-        val loadingRangeMgr = NDataLoadingRangeManager.getInstance(getTestConfig(), "default");
-        val loadingRange = new NDataLoadingRange();
-        loadingRange.setTableName("DEFAULT.TEST_KYLIN_FACT");
-        loadingRange.setColumnName("TEST_KYLIN_FACT.CAL_DT");
-        loadingRange.setCoveredRange(new SegmentRange.TimePartitionedSegmentRange(0L, Long.MAX_VALUE));
-        loadingRangeMgr.createDataLoadingRange(loadingRange);
-        modelBuildService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "12223334", "0", "12223334");
-    }
-
-    @Test
-    public void testGetAffectedSegmentsResponse_OneLagBehindAndOneOnlineModel_LagBehindHasRefreshingException()
-            throws IOException {
-        prepareOneLagBehindAndOneOnlineModels();
-        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
-
-        val df = dfMgr.getDataflowByModelAlias("nmodel_basic_inner");
-        dfMgr.refreshSegment(df, df.getSegments().get(0).getSegRange());
-
-        thrown.expect(KylinException.class);
-        thrown.expectMessage(
-                "Can’t refresh some segments, as they are being built at the moment. Please try again later.");
-        val loadingRangeMgr = NDataLoadingRangeManager.getInstance(getTestConfig(), "default");
-        val loadingRange = new NDataLoadingRange();
-        loadingRange.setTableName("DEFAULT.TEST_KYLIN_FACT");
-        loadingRange.setColumnName("TEST_KYLIN_FACT.CAL_DT");
-        loadingRange.setCoveredRange(new SegmentRange.TimePartitionedSegmentRange(0L, Long.MAX_VALUE));
-        loadingRangeMgr.createDataLoadingRange(loadingRange);
-        modelBuildService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "12223334", "0", "12223334");
-    }
-
-    //now test cases without exception
-    @Test
-    public void testRefreshSegmentsByDataRange_TwoOnlineModelAndHasReadySegs() throws IOException {
-        prepareTwoOnlineModels();
-        modelBuildService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "9223372036854775807", "0",
-                "9223372036854775807");
-
-        val executables = getRunningExecutables("default", null);
-
-        Assert.assertEquals(2, executables.size());
-        Assert.assertTrue(
-                ((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableMergeOrRefreshHandler);
-    }
-
-    @Test
-    public void testRefreshSegmentsByDataRange_TwoOnlineModelNoExistedSegmentAndFullBuild() throws IOException {
-        prepareTwoOnlineModels();
-        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
-        val df1 = dfMgr.getDataflowByModelAlias("nmodel_basic");
-        val df2 = dfMgr.getDataflowByModelAlias("nmodel_basic_inner");
-
-        //purge segments first
-        NDataflowUpdate update1 = new NDataflowUpdate(df1.getUuid());
-        update1.setToRemoveSegs(df1.getSegments().toArray(new NDataSegment[0]));
-        dfMgr.updateDataflow(update1);
-
-        NDataflowUpdate update2 = new NDataflowUpdate(df2.getUuid());
-        update2.setToRemoveSegs(df2.getSegments().toArray(new NDataSegment[0]));
-        dfMgr.updateDataflow(update2);
-
-        modelBuildService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "9223372036854775807", "0",
-                "9223372036854775807");
-
-        val executables = getRunningExecutables("default", null);
-        Assert.assertEquals(2, executables.size());
-        Assert.assertTrue(((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableAddSegmentHandler);
-    }
-
-    @Test
-    public void testRefreshSegmentsByDataRange_TwoLagBehindModelAndNoReadySegs() throws IOException {
-        prepareTwoLagBehindModels();
-        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
-        var df_basic = dfMgr.getDataflowByModelAlias("nmodel_basic");
-        var df_basic_inner = dfMgr.getDataflowByModelAlias("nmodel_basic_inner");
-
-        NDataflowUpdate update1 = new NDataflowUpdate(df_basic.getUuid());
-        update1.setToRemoveSegs(df_basic.getSegments().toArray(new NDataSegment[0]));
-        dfMgr.updateDataflow(update1);
-        df_basic = dfMgr.getDataflowByModelAlias("nmodel_basic");
-        dfMgr.appendSegment(df_basic, SegmentRange.TimePartitionedSegmentRange.createInfinite());
-
-        NDataflowUpdate update2 = new NDataflowUpdate(df_basic_inner.getUuid());
-        update2.setToRemoveSegs(df_basic_inner.getSegments().toArray(new NDataSegment[0]));
-        dfMgr.updateDataflow(update2);
-        df_basic_inner = dfMgr.getDataflowByModelAlias("nmodel_basic_inner");
-        val oldSeg = dfMgr.appendSegment(df_basic_inner, SegmentRange.TimePartitionedSegmentRange.createInfinite());
-
-        modelBuildService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "9223372036854775807", "0",
-                "9223372036854775807");
-        val executables = getRunningExecutables("default", null);
-        Assert.assertEquals(2, executables.size());
-        Assert.assertTrue(((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableAddSegmentHandler);
-        Assert.assertTrue(((NSparkCubingJob) executables.get(1)).getHandler() instanceof ExecutableAddSegmentHandler);
-        df_basic_inner = dfMgr.getDataflowByModelAlias("nmodel_basic_inner");
-        Assert.assertNotSame(df_basic_inner.getSegments().get(0).getId(), oldSeg.getId());
-    }
-
-    @Test
-    public void testRefreshSegmentsByDataRange_TwoLagBehindModelAndHasReadySegs() throws IOException {
-        prepareTwoLagBehindModels();
-        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
-        var df_basic = dfMgr.getDataflowByModelAlias("nmodel_basic");
-        var df_basic_inner = dfMgr.getDataflowByModelAlias("nmodel_basic_inner");
-
-        NDataflowUpdate update1 = new NDataflowUpdate(df_basic.getUuid());
-        update1.setToRemoveSegs(df_basic.getSegments().toArray(new NDataSegment[0]));
-        dfMgr.updateDataflow(update1);
-        df_basic = dfMgr.getDataflowByModelAlias("nmodel_basic");
-        var firstSegment = dfMgr.appendSegment(df_basic, new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
-        dfMgr.appendSegment(df_basic, new SegmentRange.TimePartitionedSegmentRange(10L, 20L));
-        update1 = new NDataflowUpdate(df_basic.getUuid());
-        firstSegment.setStatus(SegmentStatusEnum.READY);
-        update1.setToAddOrUpdateLayouts(
-                generateAllDataLayout(getProject(), df_basic.getUuid(), Arrays.asList(firstSegment)));
-        update1.setToUpdateSegs(firstSegment);
-        dfMgr.updateDataflow(update1);
-
-        NDataflowUpdate update2 = new NDataflowUpdate(df_basic_inner.getUuid());
-        update2.setToRemoveSegs(df_basic_inner.getSegments().toArray(new NDataSegment[0]));
-        dfMgr.updateDataflow(update2);
-        df_basic_inner = dfMgr.getDataflowByModelAlias("nmodel_basic_inner");
-        firstSegment = dfMgr.appendSegment(df_basic_inner, new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
-        dfMgr.appendSegment(df_basic_inner, new SegmentRange.TimePartitionedSegmentRange(10L, 20L));
-        update2 = new NDataflowUpdate(df_basic_inner.getUuid());
-        firstSegment.setStatus(SegmentStatusEnum.READY);
-        update2.setToUpdateSegs(firstSegment);
-        update2.setToAddOrUpdateLayouts(
-                generateAllDataLayout(getProject(), df_basic_inner.getUuid(), Arrays.asList(firstSegment)));
-        dfMgr.updateDataflow(update2);
-
-        modelBuildService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "20", "0", "20");
-        val executables = getRunningExecutables("default", null);
-        //refresh 2 ready segs and rebuild two new segs
-        Assert.assertEquals(4, executables.size());
-        executables.sort(Comparator.comparing(AbstractExecutable::getJobType));
-        Assert.assertTrue(
-                ((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableMergeOrRefreshHandler);
-        Assert.assertTrue(
-                ((NSparkCubingJob) executables.get(1)).getHandler() instanceof ExecutableMergeOrRefreshHandler);
-        Assert.assertTrue(((NSparkCubingJob) executables.get(2)).getHandler() instanceof ExecutableAddSegmentHandler);
-        Assert.assertTrue(((NSparkCubingJob) executables.get(3)).getHandler() instanceof ExecutableAddSegmentHandler);
-    }
-
-    @Test
-    public void testRefreshSegmentsByDataRange_OneLagBehindOneOnlineModelAndHasReadySegs() throws IOException {
-        prepareOneLagBehindAndOneOnlineModels();
-        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
-        var df_basic = dfMgr.getDataflowByModelAlias("nmodel_basic");
-        var df_basic_inner = dfMgr.getDataflowByModelAlias("nmodel_basic_inner");
-
-        NDataflowUpdate update1 = new NDataflowUpdate(df_basic.getUuid());
-        update1.setToRemoveSegs(df_basic.getSegments().toArray(new NDataSegment[0]));
-        dfMgr.updateDataflow(update1);
-        df_basic = dfMgr.getDataflowByModelAlias("nmodel_basic");
-        var firstSegment = dfMgr.appendSegment(df_basic, new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
-        dfMgr.appendSegment(df_basic, new SegmentRange.TimePartitionedSegmentRange(10L, 20L));
-        update1 = new NDataflowUpdate(df_basic.getUuid());
-        firstSegment.setStatus(SegmentStatusEnum.READY);
-        update1.setToUpdateSegs(firstSegment);
-        update1.setToAddOrUpdateLayouts(
-                generateAllDataLayout(getProject(), df_basic.getUuid(), Arrays.asList(firstSegment)));
-        dfMgr.updateDataflow(update1);
-
-        NDataflowUpdate update2 = new NDataflowUpdate(df_basic_inner.getUuid());
-        update2.setToRemoveSegs(df_basic_inner.getSegments().toArray(new NDataSegment[0]));
-        dfMgr.updateDataflow(update2);
-        df_basic_inner = dfMgr.getDataflowByModelAlias("nmodel_basic_inner");
-        firstSegment = dfMgr.appendSegment(df_basic_inner, new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
-        val secondSeg = dfMgr.appendSegment(df_basic_inner, new SegmentRange.TimePartitionedSegmentRange(10L, 20L));
-        update2 = new NDataflowUpdate(df_basic_inner.getUuid());
-        firstSegment.setStatus(SegmentStatusEnum.READY);
-        secondSeg.setStatus(SegmentStatusEnum.READY);
-        update2.setToUpdateSegs(firstSegment, secondSeg);
-        update2.setToAddOrUpdateLayouts(
-                generateAllDataLayout(getProject(), df_basic_inner.getUuid(), Arrays.asList(firstSegment, secondSeg)));
-        dfMgr.updateDataflow(update2);
-
-        modelBuildService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "20", "0", "20");
-
-        val executables = getRunningExecutables("default", null);
-        executables.sort(Comparator.comparing(AbstractExecutable::getJobType));
-        //refresh 2 ready segs in online model and one ready seg in lag behind and rebuild one new seg in lag behind
-        Assert.assertEquals(4, executables.size());
-        Assert.assertTrue(
-                ((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableMergeOrRefreshHandler);
-        Assert.assertTrue(
-                ((NSparkCubingJob) executables.get(1)).getHandler() instanceof ExecutableMergeOrRefreshHandler);
-        Assert.assertTrue(
-                ((NSparkCubingJob) executables.get(2)).getHandler() instanceof ExecutableMergeOrRefreshHandler);
-        Assert.assertTrue(((NSparkCubingJob) executables.get(3)).getHandler() instanceof ExecutableAddSegmentHandler);
-    }
-
-    @Test
     public void testGetCubes() {
         Mockito.doReturn(Sets.newHashSet("default")).when(modelService).getAllProjects();
         List<NDataModelResponse> responses = modelService.getCubes("nmodel_full_measure_test", "default");
@@ -4912,12 +3311,16 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testCheckBeforeModelSave() {
-        String project = "default";
-        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        NDataModel okModel = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        okModel.setFilterCondition("TEST_KYLIN_FACT.SELLER_ID > 0");
-        ModelRequest okModelRequest = new ModelRequest(okModel);
-        okModelRequest.setProject(project);
+        try {
+            String project = "default";
+            NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            NDataModel okModel = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+            okModel.setFilterCondition("TEST_KYLIN_FACT.SELLER_ID > 0");
+            ModelRequest okModelRequest = new ModelRequest(okModel);
+            okModelRequest.setProject(project);
+        } catch (Exception e) {
+            Assert.fail(e.getMessage());
+        }
     }
 
     @Test
@@ -5083,16 +3486,16 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testGetCubeWithExactModelName() {
         NCubeDescResponse cube = modelService.getCubeWithExactModelName("ut_inner_join_cube_partial", "default");
-        Assert.assertTrue(cube.getDimensions().size() == 13);
-        Assert.assertTrue(cube.getMeasures().size() == 11);
-        Assert.assertTrue(cube.getAggregationGroups().size() == 2);
+        Assert.assertEquals(13, cube.getDimensions().size());
+        Assert.assertEquals(11, cube.getMeasures().size());
+        Assert.assertEquals(2, cube.getAggregationGroups().size());
         Set<String> derivedCol = Sets.newHashSet();
         for (val dim : cube.getDimensions()) {
             if (dim.getDerived() != null) {
                 derivedCol.add(dim.getDerived().get(0));
             }
         }
-        Assert.assertTrue(derivedCol.size() == 1);
+        Assert.assertEquals(1, derivedCol.size());
         Assert.assertTrue(derivedCol.contains("SITE_NAME"));
     }
 
@@ -5397,28 +3800,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
-    public void testGetCubes0ExistBrokenModel() {
-        tableService.unloadTable(getProject(), "DEFAULT.TEST_KYLIN_FACT", false);
-        val result = modelService.getCubes0(null, getProject());
-        Assert.assertEquals(8, result.size());
-
-        boolean notBrokenModel = result.stream()
-                .filter(model -> "a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94".equals(model.getUuid()))
-                .allMatch(NDataModelResponse::isModelBroken);
-        Assert.assertFalse(notBrokenModel);
-
-        boolean brokenModel = result.stream()
-                .filter(model -> "82fa7671-a935-45f5-8779-85703601f49a".equals(model.getUuid()))
-                .allMatch(NDataModelResponse::isModelBroken);
-        Assert.assertTrue(brokenModel);
-
-        int joinTablesSize = result.stream()
-                .filter(model -> "cb596712-3a09-46f8-aea1-988b43fe9b6c".equals(model.getUuid())).findFirst().get()
-                .getOldParams().getJoinTables().size();
-        Assert.assertEquals(1, joinTablesSize);
-    }
-
-    @Test
     public void testCheckSegments() {
         CheckSegmentResponse response = modelService.checkSegments("default", "all_fixed_length", "0",
                 Long.MAX_VALUE + "");
@@ -5669,7 +4050,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         request.setWithSecondStorage(true);
         request.setUuid(model);
         BuildBaseIndexResponse changedResponse = Mockito.mock(BuildBaseIndexResponse.class);
-        Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded(eq("default"), eq(request), eq(true));
+        Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded("default", request, true);
 
         Mockito.when(changedResponse.hasTableIndexChange()).thenReturn(true);
         modelService.changeSecondStorageIfNeeded(project, request, true);
@@ -5677,28 +4058,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         val modelRequest = modelService.convertToRequest(modelService.getModelById(model, project));
         Assert.assertTrue(modelRequest.isWithSecondStorage());
-    }
-
-    @Test
-    public void testChangePartitionDescWithSecondStorage() throws Exception {
-        val model = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        val project = "default";
-        MockSecondStorage.mock("default", new ArrayList<>(), this);
-        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            indexPlanManager.updateIndexPlan(model, indexPlan -> {
-                indexPlan.createAndAddBaseIndex(indexPlan.getModel());
-            });
-            return null;
-        }, project);
-        SecondStorageUtil.initModelMetaData("default", model);
-        Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
-
-        val modelRequest = prepare();
-        modelRequest.setWithSecondStorage(true);
-        modelRequest.getPartitionDesc().setPartitionDateColumn("TRANS_ID");
-        modelService.updateDataModelSemantic("default", modelRequest);
-        Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
     }
 
     @Test
@@ -5719,7 +4078,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         request.setWithSecondStorage(true);
         request.setUuid(model);
         BuildBaseIndexResponse changedResponse = Mockito.mock(BuildBaseIndexResponse.class);
-        Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded(eq("default"), eq(request), eq(true));
+        Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded("default", request, true);
         Mockito.when(changedResponse.hasTableIndexChange()).thenReturn(true);
 
         modelService.dropModel(model, project, false);
@@ -5747,7 +4106,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         request.setWithSecondStorage(true);
         request.setUuid(model);
         BuildBaseIndexResponse changedResponse = Mockito.mock(BuildBaseIndexResponse.class);
-        Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded(eq("default"), eq(request), eq(true));
+        Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded("default", request, true);
         Mockito.when(changedResponse.hasTableIndexChange()).thenReturn(true);
 
         modelService.purgeModel(model, project);
@@ -5874,377 +4233,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
-    public void testBuildMultiPartitionSegments() throws Exception {
-        val modelId = "b780e4e4-69af-449e-b09f-05c90dfa04b6";
-        val project = "default";
-
-        NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        NExecutableManager executableManager = NExecutableManager.getInstance(getTestConfig(), project);
-        NDataflow dataflow = dataflowManager.getDataflow(modelId);
-        val model = dataflow.getModel();
-        NDataflowUpdate dataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
-        dataflowUpdate.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[dataflow.getSegments().size()]));
-        dataflowManager.updateDataflow(dataflowUpdate);
-        val buildPartitions = Lists.<String[]> newArrayList();
-        buildPartitions.add(new String[] { "usa" });
-        buildPartitions.add(new String[] { "Austria" });
-        val segmentTimeRequests = Lists.<SegmentTimeRequest> newArrayList();
-        segmentTimeRequests.add(new SegmentTimeRequest("1630425600000", "1630512000000"));
-
-        IncrementBuildSegmentParams incrParams = new IncrementBuildSegmentParams(project, modelId, "1633017600000",
-                "1633104000000", model.getPartitionDesc(), model.getMultiPartitionDesc(), segmentTimeRequests, true,
-                buildPartitions);
-        val jobInfo = modelBuildService.incrementBuildSegmentsManually(incrParams);
-
-        Assert.assertEquals(2, jobInfo.getJobs().size());
-        Assert.assertEquals(jobInfo.getJobs().get(0).getJobName(), JobTypeEnum.INC_BUILD.name());
-        val executables = getRunningExecutables(project, modelId);
-        Assert.assertEquals(2, executables.size());
-        val job = executableManager.getJob(jobInfo.getJobs().get(0).getJobId());
-        Assert.assertEquals(3, job.getTargetPartitions().size());
-        Set<JobBucket> buckets = ExecutableParams.getBuckets(job.getParam(NBatchConstants.P_BUCKETS));
-        Assert.assertEquals(45, buckets.size());
-        NDataSegment segment = dataflowManager.getDataflow(modelId).getSegment(job.getTargetSegments().get(0));
-        Assert.assertEquals(44, segment.getMaxBucketId());
-
-        // build all partition values
-        IncrementBuildSegmentParams incrParams2 = new IncrementBuildSegmentParams(project, modelId, "1633104000000",
-                "1633190400000", model.getPartitionDesc(), model.getMultiPartitionDesc(), null, true, null)
-                        .withBuildAllSubPartitions(true);
-        val jobInfo2 = modelBuildService.incrementBuildSegmentsManually(incrParams2);
-        Assert.assertEquals(1, jobInfo2.getJobs().size());
-        Assert.assertEquals(jobInfo2.getJobs().get(0).getJobName(), JobTypeEnum.INC_BUILD.name());
-        val job2 = executableManager.getJob(jobInfo2.getJobs().get(0).getJobId());
-        Assert.assertEquals(4, job2.getTargetPartitions().size()); // usa,un,cn,Austria
-
-        // change multi partition desc will clean all segments
-        IncrementBuildSegmentParams incrParams3 = new IncrementBuildSegmentParams(project, modelId, "1633017600000",
-                "1633104000000", model.getPartitionDesc(), null, null, true, null);
-        val jobInfo3 = modelBuildService.incrementBuildSegmentsManually(incrParams3);
-        val newModel = dataflowManager.getDataflow(modelId).getModel();
-        Assert.assertEquals(1, jobInfo3.getJobs().size());
-        Assert.assertFalse(newModel.isMultiPartitionModel());
-    }
-
-    @Test
-    public void testRefreshMultiPartitionSegments() {
-        val modelId = "b780e4e4-69af-449e-b09f-05c90dfa04b6";
-        val project = "default";
-        val segmentId = "0db919f3-1359-496c-aab5-b6f3951adc0e";
-        val refreshSegmentParams = new RefreshSegmentParams(project, modelId, new String[] { segmentId });
-        modelBuildService.refreshSegmentById(refreshSegmentParams);
-
-        val jobs = getRunningExecutables(getProject(), modelId);
-        val job = jobs.get(0);
-        Assert.assertEquals(1, jobs.size());
-        Assert.assertEquals(2, job.getTargetPartitions().size());
-        Set<JobBucket> buckets = ExecutableParams.getBuckets(job.getParam(NBatchConstants.P_BUCKETS));
-        Assert.assertEquals(30, buckets.size());
-
-        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
-        val dataflow = dataflowManager.getDataflow(modelId);
-        val segment = dataflow.getSegment(job.getTargetSegments().get(0));
-        segment.getMultiPartitions().forEach(partition -> {
-            Assert.assertEquals(PartitionStatusEnum.REFRESH, partition.getStatus());
-        });
-    }
-
-    @Test
-    public void testMergeMultiPartitionSegments() {
-        val modelId = "b780e4e4-69af-449e-b09f-05c90dfa04b6";
-        val project = "default";
-
-        val dfManager = NDataflowManager.getInstance(getTestConfig(), project);
-        val df = dfManager.getDataflow(modelId);
-
-        // remove exist segment
-        val update = new NDataflowUpdate(df.getUuid());
-        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
-        dfManager.updateDataflow(update);
-
-        // first segment
-        List<String> partitionValues = Lists.newArrayList("usa", "cn");
-        NDataSegment dataSegment1 = generateSegmentForMultiPartition(modelId, partitionValues, "2010-01-01",
-                "2010-02-01", SegmentStatusEnum.READY);
-        NDataLayout layout1 = generateLayoutForMultiPartition(modelId, dataSegment1.getId(), partitionValues, 1L);
-
-        NDataSegment dataSegment2 = generateSegmentForMultiPartition(modelId, partitionValues, "2010-02-01",
-                "2010-03-01", SegmentStatusEnum.READY);
-        NDataLayout layout2 = generateLayoutForMultiPartition(modelId, dataSegment2.getId(), partitionValues, 1L);
-
-        List<String> partitionValues2 = Lists.newArrayList("usa");
-        NDataSegment dataSegment3 = generateSegmentForMultiPartition(modelId, partitionValues2, "2010-03-01",
-                "2010-04-01", SegmentStatusEnum.READY);
-        NDataLayout layout3 = generateLayoutForMultiPartition(modelId, dataSegment3.getId(), partitionValues2, 1L);
-
-        NDataSegment dataSegment4 = generateSegmentForMultiPartition(modelId, partitionValues2, "2010-04-01",
-                "2010-05-01", SegmentStatusEnum.READY);
-        NDataLayout layout4_1 = generateLayoutForMultiPartition(modelId, dataSegment4.getId(), partitionValues2, 1L);
-        NDataLayout layout4_2 = generateLayoutForMultiPartition(modelId, dataSegment4.getId(), partitionValues2,
-                10001L);
-
-        NDataSegment dataSegment5 = generateSegmentForMultiPartition(modelId, partitionValues2, "2010-05-01",
-                "2010-06-01", SegmentStatusEnum.READY);
-        NDataSegment dataSegment6 = generateSegmentForMultiPartition(modelId, partitionValues2, "2010-06-01",
-                "2010-07-01", SegmentStatusEnum.READY);
-
-        List<NDataLayout> toAddCuboIds = Lists.newArrayList(layout1, layout2, layout3, layout4_1, layout4_2);
-        val segments = Lists.newArrayList(dataSegment1, dataSegment2, dataSegment3, dataSegment4, dataSegment5,
-                dataSegment6);
-
-        val update2 = new NDataflowUpdate(df.getUuid());
-        update2.setToAddOrUpdateLayouts(toAddCuboIds.toArray(new NDataLayout[] {}));
-        update2.setToUpdateSegs(segments.toArray(new NDataSegment[] {}));
-        dfManager.updateDataflow(update2);
-
-        // empty layout in segment4
-        try {
-            modelBuildService.mergeSegmentsManually(new MergeSegmentParams(project, modelId,
-                    new String[] { dataSegment5.getId(), dataSegment6.getId() }));
-            Assert.fail();
-        } catch (Exception e) {
-            Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals(
-                    "The indexes included in the selected segments are not fully identical. Please build index first and try merging again.",
-                    e.getMessage());
-        }
-
-        // index is not aligned in segment3, segment4
-        try {
-            modelBuildService.mergeSegmentsManually(new MergeSegmentParams(project, modelId,
-                    new String[] { dataSegment3.getId(), dataSegment4.getId() }));
-            Assert.fail();
-        } catch (Exception e) {
-            Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals(
-                    "The indexes included in the selected segments are not fully identical. Please build index first and try merging again.",
-                    e.getMessage());
-        }
-
-        // partitions are not aligned in segment2, segment3
-        try {
-            modelBuildService.mergeSegmentsManually(new MergeSegmentParams(project, modelId,
-                    new String[] { dataSegment2.getId(), dataSegment3.getId() }));
-            Assert.fail();
-        } catch (Exception e) {
-            Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals(
-                    "The subpartitions included in the selected segments are not fully aligned. Please build the subpartitions first and try merging again.",
-                    e.getMessage());
-        }
-
-        // success
-        modelBuildService.mergeSegmentsManually(
-                new MergeSegmentParams(project, modelId, new String[] { dataSegment1.getId(), dataSegment2.getId() }));
-    }
-
-    private NDataSegment generateSegmentForMultiPartition(String modelId, List<String> partitionValues, String start,
-            String end, SegmentStatusEnum status) {
-        val dfm = NDataflowManager.getInstance(getTestConfig(), getProject());
-        val partitions = Lists.<String[]> newArrayList();
-        partitionValues.forEach(value -> {
-            partitions.add(new String[] { value });
-        });
-        long startTime = SegmentRange.dateToLong(start);
-        long endTime = SegmentRange.dateToLong(end);
-        val segmentRange = new SegmentRange.TimePartitionedSegmentRange(startTime, endTime);
-        val df = dfm.getDataflow(modelId);
-        val newSegment = dfm.appendSegment(df, segmentRange, status, partitions);
-        newSegment.getMultiPartitions().forEach(partition -> {
-            partition.setStatus(PartitionStatusEnum.READY);
-        });
-        return newSegment;
-    }
-
-    private NDataLayout generateLayoutForMultiPartition(String modelId, String segmentId, List<String> partitionValues,
-            long layoutId) {
-        val dfm = NDataflowManager.getInstance(getTestConfig(), getProject());
-        val modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
-
-        val model = modelManager.getDataModelDesc(modelId);
-        val df = dfm.getDataflow(modelId);
-        val partitions = Lists.<String[]> newArrayList();
-        partitionValues.forEach(value -> {
-            partitions.add(new String[] { value });
-        });
-        val partitionIds = model.getMultiPartitionDesc().getPartitionIdsByValues(partitions);
-        NDataLayout layout = NDataLayout.newDataLayout(df, segmentId, layoutId);
-        partitionIds.forEach(id -> {
-            layout.getMultiPartition().add(new LayoutPartition(id));
-        });
-        return layout;
-    }
-
-    @Test
-    public void testBuildMultiPartitionManually() {
-        val modelId = "b780e4e4-69af-449e-b09f-05c90dfa04b6";
-        val segmentId1 = "73570f31-05a5-448f-973c-44209830dd01";
-
-        val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
-        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
-        val dataflow = dataflowManager.getDataflow(modelId);
-        val dataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
-        dataflowManager.updateDataflow(dataflowUpdate);
-        val buildPartitions = Lists.<String[]> newArrayList();
-        buildPartitions.add(new String[] { "un" });
-        buildPartitions.add(new String[] { "Africa" });
-        buildPartitions.add(new String[] { "Austria" });
-        val multiPartition1 = modelManager.getDataModelDesc(modelId).getMultiPartitionDesc();
-        Assert.assertEquals(3, multiPartition1.getPartitions().size());
-        modelBuildService.buildSegmentPartitionByValue(getProject(), modelId, segmentId1, buildPartitions, false, false,
-                0, null, null);
-        val multiPartition2 = modelManager.getDataModelDesc(modelId).getMultiPartitionDesc();
-        // add two new partitions
-        Assert.assertEquals(5, multiPartition2.getPartitions().size());
-        val jobs1 = getRunningExecutables(getProject(), modelId);
-        Assert.assertEquals(1, jobs1.size());
-
-        val segmentId2 = "0db919f3-1359-496c-aab5-b6f3951adc0e";
-        modelBuildService.buildSegmentPartitionByValue(getProject(), modelId, segmentId2, buildPartitions, true, false,
-                0, null, null);
-        val jobs2 = getRunningExecutables(getProject(), modelId);
-        Assert.assertEquals(4, jobs2.size());
-
-        val segmentId3 = "d2edf0c5-5eb2-4968-9ad5-09efbf659324";
-        try {
-            modelBuildService.buildSegmentPartitionByValue(getProject(), modelId, segmentId3, buildPartitions, true,
-                    false, 0, null, null);
-            Assert.fail();
-        } catch (Exception e) {
-            Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals("Can’t add the job. Please ensure that the subpartitions are unique.", e.getMessage());
-            Assert.assertEquals(4, getRunningExecutables(getProject(), modelId).size());
-        }
-
-        val segmentId4 = "ff839b0b-2c23-4420-b332-0df70e36c343";
-        try {
-            overwriteSystemProp("kylin.job.max-concurrent-jobs", "1");
-            val buildPartitions2 = Lists.<String[]> newArrayList();
-            buildPartitions2.add(new String[] { "ASIA" });
-            buildPartitions2.add(new String[] { "EUROPE" });
-            buildPartitions2.add(new String[] { "MIDDLE EAST" });
-            buildPartitions2.add(new String[] { "AMERICA" });
-            buildPartitions2.add(new String[] { "MOROCCO" });
-            buildPartitions2.add(new String[] { "INDONESIA" });
-            modelBuildService.buildSegmentPartitionByValue(getProject(), modelId, segmentId4, buildPartitions2, true,
-                    false, 0, null, null);
-            Assert.fail();
-        } catch (Exception e) {
-            Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals(
-                    "Can't submit building jobs, as it exceeds the concurrency limit (5).  Please try submitting fewer jobs at a time.",
-                    e.getMessage());
-            Assert.assertEquals(4, getRunningExecutables(getProject(), modelId).size());
-        }
-
-        modelBuildService.buildSegmentPartitionByValue(getProject(), modelId, segmentId4, null, false, true, 0, null,
-                null);
-        val jobs4 = getRunningExecutables(getProject(), modelId);
-        Assert.assertEquals(3, jobs4.get(0).getTargetPartitions().size());
-    }
-
-    @Test
-    public void testRefreshMultiPartitionById() {
-        val modelId = "b780e4e4-69af-449e-b09f-05c90dfa04b6";
-        val segmentId1 = "0db919f3-1359-496c-aab5-b6f3951adc0e";
-        val segmentId2 = "ff839b0b-2c23-4420-b332-0df70e36c343";
-
-        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
-        val dataflow = dataflowManager.getDataflow(modelId);
-        val dataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
-        dataflowManager.updateDataflow(dataflowUpdate);
-
-        // refresh partition by id
-        PartitionsRefreshRequest param1 = new PartitionsRefreshRequest(getProject(), segmentId1,
-                Sets.newHashSet(7L, 8L), null, null, 0, null, null);
-        modelBuildService.refreshSegmentPartition(param1, modelId);
-
-        // refresh partition by value
-        val partitionValues = Lists.<String[]> newArrayList(new String[] { "usa" }, new String[] { "un" });
-        PartitionsRefreshRequest param2 = new PartitionsRefreshRequest(getProject(), segmentId2, null, partitionValues,
-                null, 0, null, null);
-        modelBuildService.refreshSegmentPartition(param2, modelId);
-
-        // no target partition id in segment
-        PartitionsRefreshRequest param3 = new PartitionsRefreshRequest(getProject(), segmentId1, Sets.newHashSet(99L),
-                null, null, 0, null, null);
-        try {
-            modelBuildService.refreshSegmentPartition(param3, modelId);
-            Assert.fail();
-        } catch (Exception e) {
-            Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals(e.getMessage(),
-                    "Can’t add the job. Please ensure that the operation is valid for the current object.");
-        }
-
-        // no target partition value in segment
-        partitionValues.add(new String[] { "nodata" });
-        PartitionsRefreshRequest param4 = new PartitionsRefreshRequest(getProject(), segmentId1, null, partitionValues,
-                null, 0, null, null);
-        try {
-            modelBuildService.refreshSegmentPartition(param4, modelId);
-            Assert.fail();
-        } catch (Exception e) {
-            Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals(e.getMessage(),
-                    "Can’t add the job. Please ensure that the operation is valid for the current object.");
-        }
-
-        // no target partition value or partition id
-        PartitionsRefreshRequest param5 = new PartitionsRefreshRequest(getProject(), segmentId1, null, null, null, 0,
-                null, null);
-        try {
-            modelBuildService.refreshSegmentPartition(param5, modelId);
-            Assert.fail();
-        } catch (Exception e) {
-            Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals(e.getMessage(),
-                    "Can’t add the job. Please ensure that the operation is valid for the current object.");
-        }
-    }
-
-    @Test
-    public void testMultiPartitionIndexBuild() {
-        val modelId = "b780e4e4-69af-449e-b09f-05c90dfa04b6";
-        val project = "default";
-
-        val dfManager = NDataflowManager.getInstance(getTestConfig(), project);
-        val df = dfManager.getDataflow(modelId);
-        // remove exist segment
-        val update = new NDataflowUpdate(df.getUuid());
-        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
-        dfManager.updateDataflow(update);
-
-        // different segments with different partitions and layouts
-        List<String> partitionValues = Lists.newArrayList("usa", "cn");
-        NDataSegment dataSegment1 = generateSegmentForMultiPartition(modelId, partitionValues, "2010-01-01",
-                "2010-02-01", SegmentStatusEnum.READY);
-        NDataLayout layout1 = generateLayoutForMultiPartition(modelId, dataSegment1.getId(), partitionValues, 1L);
-
-        List<String> partitionValues2 = Lists.newArrayList("usa");
-        NDataSegment dataSegment2 = generateSegmentForMultiPartition(modelId, partitionValues2, "2010-02-01",
-                "2010-03-01", SegmentStatusEnum.READY);
-        NDataLayout layout2 = generateLayoutForMultiPartition(modelId, dataSegment2.getId(), partitionValues2, 1L);
-        NDataLayout layout3 = generateLayoutForMultiPartition(modelId, dataSegment2.getId(), partitionValues2, 100001L);
-
-        List<NDataLayout> toAddCuboIds = Lists.newArrayList(layout1, layout2, layout3);
-        val segments = Lists.newArrayList(dataSegment1, dataSegment2);
-        val update2 = new NDataflowUpdate(df.getUuid());
-        update2.setToAddOrUpdateLayouts(toAddCuboIds.toArray(new NDataLayout[] {}));
-        update2.setToUpdateSegs(segments.toArray(new NDataSegment[] {}));
-        dfManager.updateDataflow(update2);
-
-        modelBuildService.addIndexesToSegments(project, modelId,
-                Lists.newArrayList(dataSegment1.getId(), dataSegment2.getId()), Lists.newArrayList(80001L), false,
-                ExecutablePO.DEFAULT_PRIORITY);
-        val executables = getRunningExecutables(getProject(), modelId);
-        val job = executables.get(0);
-        Assert.assertEquals(1, executables.size());
-        Assert.assertEquals(2, job.getTargetPartitions().size());
-        Assert.assertEquals(3, ExecutableParams.getBuckets(job.getParam("buckets")).size());
-    }
-
-    @Test
     public void testDeleteMultiPartitions() {
         val modelId = "b780e4e4-69af-449e-b09f-05c90dfa04b6";
         val segmentId = "0db919f3-1359-496c-aab5-b6f3951adc0e";
@@ -6291,24 +4279,24 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val model = modelManager.getDataModelDesc(modelId);
         val dfm = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
         val df = dfm.getDataflow(modelId);
-        Assert.assertEquals(df.getSegments().size(), 4);
-        Assert.assertEquals(df.getStatus(), RealizationStatusEnum.ONLINE);
+        Assert.assertEquals(4, df.getSegments().size());
+        Assert.assertEquals(RealizationStatusEnum.ONLINE, df.getStatus());
         // PartitionDesc change. Multi Partition column change or from none to have or from have to none.
 
         // Not change partition
         modelService.updatePartitionColumn(getProject(), modelId, model.getPartitionDesc(),
                 model.getMultiPartitionDesc());
-        Assert.assertEquals(df.getSegments().size(), 4);
-        Assert.assertEquals(df.getStatus(), RealizationStatusEnum.ONLINE);
-        Assert.assertEquals(model.getMultiPartitionDesc().getPartitions().size(), 3);
+        Assert.assertEquals(4, df.getSegments().size());
+        Assert.assertEquals(RealizationStatusEnum.ONLINE, df.getStatus());
+        Assert.assertEquals(3, model.getMultiPartitionDesc().getPartitions().size());
 
         // PartitionDesc change
         modelService.updatePartitionColumn(getProject(), modelId, null, model.getMultiPartitionDesc());
         val df1 = dfm.getDataflow(modelId);
         val model1 = modelManager.getDataModelDesc(modelId);
-        Assert.assertEquals(df1.getSegments().getSegments().size(), 0);
-        Assert.assertEquals(df1.getStatus(), RealizationStatusEnum.OFFLINE);
-        Assert.assertEquals(model1.getMultiPartitionDesc().getPartitions().size(), 0);
+        Assert.assertEquals(0, df1.getSegments().getSegments().size());
+        Assert.assertEquals(RealizationStatusEnum.OFFLINE, df1.getStatus());
+        Assert.assertEquals(0, model1.getMultiPartitionDesc().getPartitions().size());
 
         // Multi Partition column change
         dfm.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite(), SegmentStatusEnum.READY);
@@ -6319,16 +4307,16 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelService.updatePartitionColumn(getProject(), modelId, model.getPartitionDesc(),
                 new MultiPartitionDesc(columns));
         val df2 = dfm.getDataflow(modelId);
-        Assert.assertEquals(df2.getSegments().size(), 0);
-        Assert.assertEquals(df2.getStatus(), RealizationStatusEnum.OFFLINE);
+        Assert.assertEquals(0, df2.getSegments().size());
+        Assert.assertEquals(RealizationStatusEnum.OFFLINE, df2.getStatus());
 
         // Multi Partition column change to none
         dfm.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite(), SegmentStatusEnum.READY);
         dfm.updateDataflowStatus(modelId, RealizationStatusEnum.ONLINE);
         modelService.updatePartitionColumn(getProject(), modelId, model.getPartitionDesc(), null);
         val df3 = dfm.getDataflow(modelId);
-        Assert.assertEquals(df3.getSegments().size(), 0);
-        Assert.assertEquals(df3.getStatus(), RealizationStatusEnum.OFFLINE);
+        Assert.assertEquals(0, df3.getSegments().size());
+        Assert.assertEquals(RealizationStatusEnum.OFFLINE, df3.getStatus());
 
         // Normal model change to multi partition model
         dfm.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite(), SegmentStatusEnum.READY);
@@ -6336,8 +4324,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelService.updatePartitionColumn(getProject(), modelId, model.getPartitionDesc(),
                 new MultiPartitionDesc(columns));
         val df4 = dfm.getDataflow(modelId);
-        Assert.assertEquals(df4.getSegments().size(), 0);
-        Assert.assertEquals(df4.getStatus(), RealizationStatusEnum.OFFLINE);
+        Assert.assertEquals(0, df4.getSegments().size());
+        Assert.assertEquals(RealizationStatusEnum.OFFLINE, df4.getStatus());
     }
 
     private void checkPropParameter(ModelConfigRequest request) {
@@ -6455,8 +4443,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val modelId = "b780e4e4-69af-449e-b09f-05c90dfa04b6";
         val dfm = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
         val df = dfm.getDataflow(modelId);
-        Assert.assertEquals(df.getSegments().size(), 4);
-        Assert.assertEquals(df.getStatus(), RealizationStatusEnum.ONLINE);
+        Assert.assertEquals(4, df.getSegments().size());
+        Assert.assertEquals(RealizationStatusEnum.ONLINE, df.getStatus());
         // PartitionDesc change. Multi Partition column change or from none to have or from have to none.
 
         List<String[]> partitionValues = new ArrayList<>();
@@ -6593,7 +4581,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         request.setUuid(model);
         BuildBaseIndexResponse emptyResponse = new BuildBaseIndexResponse();
         BuildBaseIndexResponse changedResponse = Mockito.mock(BuildBaseIndexResponse.class);
-        Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded(eq("default"), eq(request), eq(true));
+        Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded("default", request, true);
 
         Mockito.when(changedResponse.hasTableIndexChange()).thenReturn(true);
         modelService.changeSecondStorageIfNeeded("default", request, true);
@@ -6623,125 +4611,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val modelId = "b780e4e4-69af-449e-b09f-05c90dfa04b6";
         val model = modelQueryService.getBrokenModel("default", modelId);
         Assert.assertTrue(model.isBroken());
-    }
-
-    @Test
-    public void testQueryModels() {
-        String project = "streaming_test";
-        val modelList = modelService.getModels(null, null, true, project, "ADMIN", Lists.newArrayList(), "", 0, 8,
-                "last_modify", true, null,
-                Arrays.asList(ModelAttributeEnum.BATCH, ModelAttributeEnum.STREAMING, ModelAttributeEnum.HYBRID), null,
-                null, true);
-        Assert.assertEquals(11, modelList.getTotalSize());
-        Assert.assertEquals(8, modelList.getValue().size());
-
-        val modelList1 = modelService.getModels(null, null, true, project, "ADMIN", Lists.newArrayList(), "", 1, 10,
-                "usage", true, null,
-                Arrays.asList(ModelAttributeEnum.BATCH, ModelAttributeEnum.STREAMING, ModelAttributeEnum.HYBRID), null,
-                null, true);
-        Assert.assertEquals(11, modelList1.getTotalSize());
-        Assert.assertEquals(1, modelList1.getValue().size());
-
-        val modelResponse = modelList1.getValue().get(0);
-        val dfMgr = NDataflowManager.getInstance(getTestConfig(), project);
-
-        val triple = new ModelTriple(dfMgr.getDataflow(modelResponse.getUuid()), modelResponse);
-        Assert.assertTrue(triple.getLeft() instanceof NDataflow);
-        Assert.assertTrue(triple.getMiddle() instanceof NDataModel);
-        Assert.assertNull(triple.getRight());
-
-        val modelList2 = modelService.getModels(null, null, true, project, "ADMIN", Lists.newArrayList(), "", 1, 5,
-                "storage", true, null,
-                Arrays.asList(ModelAttributeEnum.BATCH, ModelAttributeEnum.STREAMING, ModelAttributeEnum.HYBRID), null,
-                null, true);
-        Assert.assertEquals(11, modelList2.getTotalSize());
-        Assert.assertEquals(5, modelList2.getValue().size());
-        Assert.assertTrue(((NDataModelResponse) modelList2.getValue().get(0))
-                .getStorage() >= ((NDataModelResponse) modelList2.getValue().get(4)).getStorage());
-
-        val modelList3 = modelService.getModels(null, null, true, project, "ADMIN", Lists.newArrayList(), "", 1, 10,
-                "expansionrate", true, null,
-                Arrays.asList(ModelAttributeEnum.BATCH, ModelAttributeEnum.STREAMING, ModelAttributeEnum.HYBRID), null,
-                null, false);
-        Assert.assertEquals(1, modelList3.getValue().size());
-
-        val modelList4 = modelService.getModels(null, null, true, project, "ADMIN", Lists.newArrayList(), "", 0, 10,
-                "expansionrate", false, "ADMIN",
-                Arrays.asList(ModelAttributeEnum.BATCH, ModelAttributeEnum.STREAMING, ModelAttributeEnum.HYBRID),
-                974198646000L, System.currentTimeMillis(), true);
-        Assert.assertEquals(10, modelList4.getValue().size());
-
-        val modelList5 = modelService.getModels(null, null, true, project, "ADMIN", Lists.newArrayList(), "", 1, 6, "",
-                true, null,
-                Arrays.asList(ModelAttributeEnum.BATCH, ModelAttributeEnum.STREAMING, ModelAttributeEnum.HYBRID), null,
-                null, false);
-        Assert.assertEquals(5, modelList5.getValue().size());
-        getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "true");
-        val modelList6 = modelService.getModels(null, null, true, project, "ADMIN", Lists.newArrayList(), "", 1, 6, "",
-                true, null, Arrays.asList(ModelAttributeEnum.BATCH, ModelAttributeEnum.STREAMING,
-                        ModelAttributeEnum.HYBRID, ModelAttributeEnum.SECOND_STORAGE),
-                null, null, false);
-        Assert.assertEquals(5, modelList6.getValue().size());
-        getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "false");
-
-        // used for getModels without sortBy field
-        val modelList7 = modelService.getModels(null, null, true, project, "ADMIN", Lists.newArrayList(), "", 0, 6,
-                "", true, null,
-                Arrays.asList(ModelAttributeEnum.BATCH, ModelAttributeEnum.STREAMING, ModelAttributeEnum.HYBRID), null,
-                null, false);
-        Assert.assertEquals(6, modelList7.getValue().size());
-    }
-
-    @Test
-    public void testConvertToDataModelResponseBroken() {
-        List<ModelAttributeEnum> modelAttributeSet = Lists.newArrayList(ModelAttributeEnum.BATCH);
-        ModelQueryParams modelQueryParams = new ModelQueryParams("", null, true, "default", null, null, 0, 10, "", true,
-                null, modelAttributeSet, null, null, true);
-
-        val tripleList = modelQueryService.getModels(modelQueryParams);
-        ModelTriple modelTriple = tripleList.get(0);
-        NDataModel dataModel = modelTriple.getDataModel();
-
-        NDataModelResponse nDataModelResponse = modelService.convertToDataModelResponseBroken(dataModel);
-        Assert.assertEquals(ModelStatusToDisplayEnum.BROKEN, nDataModelResponse.getStatus());
-    }
-
-    @Test
-    public void testGetFusionModel() {
-        String project = "streaming_test";
-        String modelName = "streaming_test";
-        List<NDataModelResponse> models = modelService.getModels(modelName, project, false, null, Lists.newArrayList(),
-                null, false, null, null, null, true);
-
-        FusionModelResponse model = (FusionModelResponse) models.get(0);
-        Assert.assertEquals(0, model.getAvailableIndexesCount());
-        Assert.assertEquals(3, model.getTotalIndexes());
-        Assert.assertEquals(5, model.getStreamingIndexes());
-        Assert.assertEquals(10, model.getUsage());
-        Assert.assertEquals(0, model.getStorage());
-        Assert.assertEquals(0, model.getSource());
-
-        String modelName1 = "AUTO_MODEL_P_LINEORDER_1";
-        NDataModelResponse model1 = modelService
-                .getModels(modelName1, project, false, null, Lists.newArrayList(), null, false, null, null, null, true)
-                .get(0);
-        Assert.assertEquals(0, model1.getAvailableIndexesCount());
-        Assert.assertEquals(1, model1.getTotalIndexes());
-        Assert.assertEquals(0, model1.getStorage());
-        Assert.assertEquals(0, model1.getSource());
-
-        String modelName2 = "model_streaming";
-        DataResult<List<NDataModel>> modelResult2 = modelService.getModels("4965c827-fbb4-4ea1-a744-3f341a3b030d",
-                modelName2, true, project, "ADMIN", Lists.newArrayList(), "", 0, 10, "last_modify", true, null,
-                Arrays.asList(ModelAttributeEnum.BATCH, ModelAttributeEnum.STREAMING, ModelAttributeEnum.HYBRID,
-                        ModelAttributeEnum.SECOND_STORAGE),
-                null, null, true);
-        List<NDataModel> models2 = modelResult2.getValue();
-        FusionModelResponse model2 = (FusionModelResponse) models2.get(0);
-
-        Assert.assertEquals(14383, model2.getOldParams().getInputRecordCnt());
-        Assert.assertEquals(1505415, model2.getOldParams().getInputRecordSizeBytes());
-        Assert.assertEquals(396, model2.getOldParams().getSizeKB());
     }
 
     @Test
@@ -6881,102 +4750,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
-    public void testProposeDimAsMeasureToAnswerCountDistinctExpr() {
-        overwriteSystemProp("kylin.query.implicit-computed-column-convert", "FALSE");
-        overwriteSystemProp("kylin.query.convert-count-distinct-expression-enabled", "TRUE");
-        val sqls = Lists.newArrayList("select \n"
-                + "count(distinct (case when ORDER_ID > 0  then price when ORDER_ID > 10 then SELLER_ID  else null end))  \n"
-                + "FROM TEST_KYLIN_FACT ");
-        AbstractContext proposeContext = modelSmartService.suggestModel(getProject(), sqls, false, true);
-        val response = modelSmartService.buildModelSuggestionResponse(proposeContext);
-        Assert.assertEquals(1, response.getNewModels().size());
-        Assert.assertEquals(1, response.getNewModels().get(0).getIndexes().size());
-        Assert.assertEquals(3, response.getNewModels().get(0).getIndexes().get(0).getDimensions().size());
-        Assert.assertEquals(1, response.getNewModels().get(0).getIndexes().get(0).getMeasures().size());
-
-        Assert.assertEquals("ORDER_ID",
-                response.getNewModels().get(0).getIndexes().get(0).getDimensions().get(0).getDimension().getName());
-        Assert.assertEquals("PRICE",
-                response.getNewModels().get(0).getIndexes().get(0).getDimensions().get(1).getDimension().getName());
-        Assert.assertEquals("SELLER_ID",
-                response.getNewModels().get(0).getIndexes().get(0).getDimensions().get(2).getDimension().getName());
-        Assert.assertEquals("COUNT_ALL",
-                response.getNewModels().get(0).getIndexes().get(0).getMeasures().get(0).getMeasure().getName());
-    }
-
-    @Test
-    public void testProposeMeasureWhenSubQueryOnFilter() {
-        val sqls = Lists.newArrayList("select LO_ORDERDATE,sum(LO_TAX) from SSB.LINEORDER "
-                + "where LO_ORDERDATE = (select max(LO_ORDERDATE) from SSB.LINEORDER) group by LO_ORDERDATE ;");
-        AbstractContext proposeContext = modelSmartService.suggestModel(getProject(), sqls, false, true);
-        val response = modelSmartService.buildModelSuggestionResponse(proposeContext);
-        Assert.assertEquals(1, response.getNewModels().size());
-        Assert.assertEquals(1, response.getNewModels().get(0).getIndexes().size());
-        Assert.assertEquals(1, response.getNewModels().get(0).getIndexes().get(0).getDimensions().size());
-        Assert.assertEquals(3, response.getNewModels().get(0).getIndexes().get(0).getMeasures().size());
-
-        Assert.assertEquals("LO_ORDERDATE",
-                response.getNewModels().get(0).getIndexes().get(0).getDimensions().get(0).getDimension().getName());
-        Assert.assertEquals("COUNT_ALL",
-                response.getNewModels().get(0).getIndexes().get(0).getMeasures().get(0).getMeasure().getName());
-        Assert.assertEquals("MAX_LINEORDER_LO_ORDERDATE",
-                response.getNewModels().get(0).getIndexes().get(0).getMeasures().get(1).getMeasure().getName());
-        Assert.assertEquals("SUM_LINEORDER_LO_TAX",
-                response.getNewModels().get(0).getIndexes().get(0).getMeasures().get(2).getMeasure().getName());
-    }
-
-    @Test
-    public void testCouldAnsweredByExistedModels() {
-        val project = "streaming_test";
-        val proposeContext0 = modelSmartService.probeRecommendation(project, Collections.emptyList());
-        Assert.assertTrue(proposeContext0.getProposedModels().isEmpty());
-
-        val sqlList = Collections.singletonList("SELECT * FROM SSB.P_LINEORDER_STR");
-        val proposeContext1 = modelSmartService.probeRecommendation(project, sqlList);
-        Assert.assertTrue(proposeContext1.getProposedModels().isEmpty());
-
-        val sqls = Lists.newArrayList("select * from SSB.LINEORDER");
-        AbstractContext proposeContext = modelSmartService.suggestModel(getProject(), sqls, false, true);
-        val response = modelSmartService.buildModelSuggestionResponse(proposeContext);
-        Assert.assertTrue(response.getReusedModels().isEmpty());
-
-        thrown.expect(KylinException.class);
-        modelSmartService.probeRecommendation("not_existed_project", sqlList);
-    }
-
-    @Test
-    public void testProposeWhenAggPushdown() {
-        // before agg push down, propose table index and agg index
-        val sqls = Lists.newArrayList("SELECT \"自定义 SQL 查询\".\"CAL_DT\" ,\n"
-                + "       SUM (\"自定义 SQL 查询\".\"SELLER_ID\") AS \"TEMP_Calculation_54915774428294\",\n"
-                + "               COUNT (DISTINCT \"自定义 SQL 查询\".\"CAL_DT\") AS \"TEMP_Calculation_97108873613918\",\n"
-                + "                     COUNT (DISTINCT (CASE\n"
-                + "                                          WHEN (\"t0\".\"x_measure__0\" > 0) THEN \"t0\".\"LSTG_FORMAT_NAME\"\n"
-                + "                                          ELSE CAST (NULL AS VARCHAR (1))\n"
-                + "                                      END)) AS \"TEMP_Calculation_97108873613911\"\n" + "FROM\n"
-                + "  (SELECT *\n" + "   FROM TEST_KYLIN_FACT) \"自定义 SQL 查询\"\n" + "INNER JOIN\n"
-                + "     (SELECT LSTG_FORMAT_NAME, ORDER_ID, SUM (\"PRICE\") AS \"X_measure__0\"\n"
-                + "      FROM TEST_KYLIN_FACT  GROUP  BY LSTG_FORMAT_NAME, ORDER_ID) \"t0\" ON \"自定义 SQL 查询\".\"ORDER_ID\" = \"t0\".\"ORDER_ID\"\n"
-                + "GROUP  BY \"自定义 SQL 查询\".\"CAL_DT\"");
-        AbstractContext proposeContext = modelSmartService.suggestModel(getProject(), sqls, false, true);
-        SuggestionResponse response = modelSmartService.buildModelSuggestionResponse(proposeContext);
-        Assert.assertEquals(2, response.getNewModels().get(0).getIndexPlan().getIndexes().size());
-        Assert.assertTrue(response.getNewModels().get(0).getIndexPlan().getIndexes().get(0).isTableIndex());
-        Assert.assertTrue(
-                IndexEntity.isAggIndex(response.getNewModels().get(0).getIndexPlan().getIndexes().get(1).getId()));
-
-        // after agg push down, propose two agg index
-        overwriteSystemProp("kylin.query.calcite.aggregate-pushdown-enabled", "TRUE");
-        proposeContext = modelSmartService.suggestModel(getProject(), sqls, false, true);
-        response = modelSmartService.buildModelSuggestionResponse(proposeContext);
-        Assert.assertEquals(2, response.getNewModels().get(0).getIndexPlan().getIndexes().size());
-        Assert.assertTrue(
-                IndexEntity.isAggIndex(response.getNewModels().get(0).getIndexPlan().getIndexes().get(0).getId()));
-        Assert.assertTrue(
-                IndexEntity.isAggIndex(response.getNewModels().get(0).getIndexPlan().getIndexes().get(1).getId()));
-    }
-
-    @Test
     public void testCreateModelWithCorr() throws Exception {
         setupPushdownEnv();
         val modelRequest = JsonUtil.readValue(
@@ -7015,60 +4788,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 Assert.assertEquals(saved.getEffectiveMeasures().size(), indexEntity.getMeasures().size());
             }
         }
-    }
-
-    @Test
-    public void testChangePartitionDescAndSegWithSecondStorage() throws Exception {
-        val model = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        val project = "default";
-        MockSecondStorage.mock("default", new ArrayList<>(), this);
-        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            indexPlanManager.updateIndexPlan(model, indexPlan -> {
-                indexPlan.createAndAddBaseIndex(indexPlan.getModel());
-            });
-            return null;
-        }, project);
-        SecondStorageUtil.initModelMetaData(project, model);
-        Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
-
-        val modelRequest = prepare();
-        modelRequest.setWithSecondStorage(false);
-        modelRequest.getPartitionDesc().setPartitionDateColumn(null);
-        modelRequest.setWithBaseIndex(true);
-        modelRequest.setSaveOnly(true);
-
-        val indexResponse = modelService.updateDataModelSemantic(project, modelRequest);
-        Assert.assertFalse(indexResponse.isCleanSecondStorage());
-    }
-
-    @Test
-    public void testChangeSegWithSecondStorage() throws Exception {
-        val model = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        val project = "default";
-        MockSecondStorage.mock("default", new ArrayList<>(), this);
-        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            indexPlanManager.updateIndexPlan(model, indexPlan -> {
-                indexPlan.createAndAddBaseIndex(indexPlan.getModel());
-            });
-            return null;
-        }, project);
-        SecondStorageUtil.initModelMetaData(project, model);
-        Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
-
-        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        NDataModel modelAll = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-
-        val modelRequest = prepare();
-        modelRequest.setWithSecondStorage(false);
-        modelRequest.setWithBaseIndex(true);
-        modelRequest.setSaveOnly(true);
-        modelRequest.getSimplifiedDimensions().addAll(modelAll.getAllNamedColumns().stream()
-                .filter(x -> "DIM_UPD_USER".equalsIgnoreCase(x.getName())).collect(Collectors.toList()));
-
-        val indexResponse = modelService.updateDataModelSemantic(project, modelRequest);
-        Assert.assertTrue(indexResponse.isCleanSecondStorage());
     }
 
 }

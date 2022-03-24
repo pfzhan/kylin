@@ -97,7 +97,7 @@ import lombok.var;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class IndexPlanServiceTest extends CSVSourceTestCase {
+public class IndexPlanServiceTest extends SourceTestCase {
 
     @InjectMocks
     private IndexPlanService indexPlanService = Mockito.spy(new IndexPlanService());
@@ -616,14 +616,13 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
                                 "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LSTG_SITE_ID"))
                         .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID")).isLoadData(true)
                         .sortByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")).build());
-        val response = indexPlanService.createTableIndex("default",
+        indexPlanService.createTableIndex("default",
                 CreateTableIndexRequest.builder().project("default").modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .colOrder(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.CAL_DT",
                                 "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LSTG_SITE_ID"))
                         .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID")).isLoadData(true)
                         .sortByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")).build());
 
-        Assert.assertEquals(BuildIndexResponse.BuildIndexType.NO_LAYOUT, response.getType());
     }
 
     @Test
@@ -1083,7 +1082,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         // test default order by
         indexResponses = indexPlanService.getIndexes(getProject(), modelId, "", Lists.newArrayList(), null, false,
                 null);
-        Assert.assertSame(indexResponses.get(0).getStatus(), IndexEntity.Status.BUILDING);
+        Assert.assertSame(IndexEntity.Status.BUILDING, indexResponses.get(0).getStatus());
         IndexResponse prev = null;
         for (IndexResponse current : indexResponses) {
             if (prev == null) {

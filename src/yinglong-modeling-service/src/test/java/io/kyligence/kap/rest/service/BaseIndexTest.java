@@ -72,7 +72,7 @@ import io.kyligence.kap.rest.response.IndexStatResponse;
 import lombok.val;
 import lombok.var;
 
-public class BaseIndexTest extends CSVSourceTestCase {
+public class BaseIndexTest extends SourceTestCase {
 
     private static final String COMMON_MODEL_ID = "b780e4e4-69af-449e-b09f-05c90dfa04b6";
 

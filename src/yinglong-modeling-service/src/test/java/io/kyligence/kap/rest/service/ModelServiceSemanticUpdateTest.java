@@ -39,6 +39,9 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.cube.model.SelectRule;
+import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
@@ -64,6 +67,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.job.ExecutableAddCuboidHandler;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
@@ -98,7 +103,7 @@ import lombok.var;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
+public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
 
     private static final String MODEL_ID = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
 
@@ -107,12 +112,6 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
 
     @InjectMocks
     private ModelSemanticHelper semanticService = Mockito.spy(new ModelSemanticHelper());
-
-    @Mock
-    private ModelSmartService modelSmartService = Mockito.spy(new ModelSmartService());
-
-    @InjectMocks
-    private TableService tableService = Mockito.spy(new TableService());
 
     @InjectMocks
     private IndexPlanService indexPlanService = Mockito.spy(new IndexPlanService());
@@ -147,7 +146,6 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         });
 
         ReflectionTestUtils.setField(indexPlanService, "aclEvaluate", aclEvaluate);
-        ReflectionTestUtils.setField(semanticService, "modelSmartSupporter", modelSmartService);
     }
 
     private String getProject() {
@@ -156,7 +154,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
 
     @Before
     public void setup() {
-        super.setup();
+        ExecutableUtils.initJobFactory();
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", Mockito.spy(AclUtil.class));
@@ -659,7 +657,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
                 .forEach(column -> column.setStatus(ColumnStatus.TOMB));
         modelService.updateDataModelSemantic(getProject(), request);
 
-        Assert.assertEquals(indexPlanService.getShardByColumns(getProject(), modelId).getShardByColumns().size(), 0);
+        Assert.assertEquals(0, indexPlanService.getShardByColumns(getProject(), modelId).getShardByColumns().size());
     }
 
     @Test
@@ -975,7 +973,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         Assert.assertEquals(0, df.getSegments().size());
         Assert.assertEquals(tableIndexCount,
                 df.getIndexPlan().getAllLayouts().stream().filter(l -> l.getIndex().isTableIndex()).count());
-        Assert.assertEquals(df.getStatus(), RealizationStatusEnum.OFFLINE);
+        Assert.assertEquals(RealizationStatusEnum.OFFLINE, df.getStatus());
     }
 
     @Test
@@ -1398,25 +1396,6 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         }
     }
 
-    @Test
-    public void testSCD2ModelWithAlias() throws Exception {
-        getTestConfig().setProperty("kylin.query.non-equi-join-model-enabled", "true");
-        val modelMgr = NDataModelManager.getInstance(getTestConfig(), "scd2");
-        val model = modelMgr.getDataModelDescByAlias("same_scd2_dim_tables");
-        val req = newSemanticRequest(model.getId(), "scd2");
-        val modelFromReq = modelService.convertToDataModel(req);
-        Assert.assertEquals(2, modelFromReq.getJoinTables().size());
-        val join = modelFromReq.getJoinTables().get(1).getAlias().equalsIgnoreCase("TEST_SCD2_1")
-                ? modelFromReq.getJoinTables().get(1)
-                : modelFromReq.getJoinTables().get(0);
-        Assert.assertEquals("TEST_SCD2_1", join.getAlias());
-        Assert.assertEquals(
-                "\"TEST_KYLIN_FACT\".\"SELLER_ID\" = \"TEST_SCD2_1\".\"BUYER_ID\" "
-                        + "AND \"TEST_KYLIN_FACT\".\"CAL_DT\" >= \"TEST_SCD2_1\".\"START_DATE\" "
-                        + "AND \"TEST_KYLIN_FACT\".\"CAL_DT\" < \"TEST_SCD2_1\".\"END_DATE\"",
-                join.getJoin().getNonEquiJoinCondition().getExpr());
-    }
-
     private NDataModel getTestInnerModel() {
         val modelMgr = NDataModelManager.getInstance(getTestConfig(), getProject());
         val model = modelMgr.getDataModelDesc("741ca86a-1f13-46da-a59f-95fb68615e3a");
@@ -1570,5 +1549,15 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
                 is(7));
         Assert.assertThat(indexPlanManager.getIndexPlan(modelId).getRuleBasedIndex().genCuboidLayouts().size(), is(0));
 
+    }
+
+    protected List<AbstractExecutable> getRunningExecutables(String project, String model) {
+        return NExecutableManager.getInstance(getTestConfig(), project).getRunningExecutables(project, model);
+    }
+
+    protected void deleteJobByForce(AbstractExecutable executable) {
+        val exManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        exManager.updateJobOutput(executable.getId(), ExecutableState.DISCARDED);
+        exManager.deleteJob(executable.getId());
     }
 }
