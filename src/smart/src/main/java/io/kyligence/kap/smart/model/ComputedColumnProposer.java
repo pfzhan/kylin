@@ -54,7 +54,7 @@ import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 import io.kyligence.kap.metadata.recommendation.entity.CCRecItemV2;
 import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.smart.AbstractContext.ModelContext;
-import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
+import io.kyligence.kap.engine.spark.utils.ComputedColumnEvalUtil;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

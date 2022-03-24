@@ -40,6 +40,7 @@ import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.engine.spark.utils.ComputedColumnEvalUtil;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
@@ -51,7 +52,6 @@ import io.kyligence.kap.query.util.ConvertToComputedColumn;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
-import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
 import io.kyligence.kap.util.AccelerationContextUtil;
 import lombok.val;
 

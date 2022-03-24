@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 
 import io.kyligence.kap.metadata.model.util.ExpandableMeasureUtil;
 import io.kyligence.kap.query.util.KapQueryUtil;
-import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
+import io.kyligence.kap.engine.spark.utils.ComputedColumnEvalUtil;
 import org.apache.kylin.common.KylinConfig;
 
 import com.google.common.collect.ImmutableList;

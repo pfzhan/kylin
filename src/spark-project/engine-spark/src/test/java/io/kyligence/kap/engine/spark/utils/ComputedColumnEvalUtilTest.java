@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.smart.util;
+package io.kyligence.kap.engine.spark.utils;
 
 import static org.apache.kylin.query.exception.QueryErrorCode.CC_EXPRESSION_ILLEGAL;
 

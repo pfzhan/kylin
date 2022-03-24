@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.smart.util;
+package io.kyligence.kap.engine.spark.utils;
 
 import java.util.Collections;
 import java.util.List;
@@ -130,7 +130,7 @@ public class ComputedColumnEvalUtil {
     }
 
     private static void evalDataTypeOfCC(List<ComputedColumnDesc> computedColumns, SparkSession ss,
-            NDataModel nDataModel, int start, int end) throws AnalysisException {
+                                         NDataModel nDataModel, int start, int end) throws AnalysisException {
         val originDf = generateFullFlatTableDF(ss, nDataModel);
         originDf.persist();
         Dataset<Row> ds = originDf.selectExpr(computedColumns.subList(start, end).stream() //

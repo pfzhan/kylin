@@ -43,10 +43,18 @@
     <dependencies>
         <!--KAP-->
         <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-query-service</artifactId>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-query</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-core-job</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-engine-spark</artifactId>
+        </dependency>
         <!-- Provided -->
         <dependency>
             <groupId>org.slf4j</groupId>
