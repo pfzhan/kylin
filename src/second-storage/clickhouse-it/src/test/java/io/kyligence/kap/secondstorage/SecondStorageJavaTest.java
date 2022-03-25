@@ -131,7 +131,7 @@ public class SecondStorageJavaTest implements JobWaiter {
         new IndexDataConstructor(project).buildDataflow(modelId);
         secondStorageService.onUpdate(project, modelId);
         val manager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        Assert.assertTrue(manager.getAllExecutables().stream().anyMatch(ClickHouseModelCleanJob.class::isInstance));
+        Assert.assertTrue(manager.getAllExecutables().stream().noneMatch(ClickHouseModelCleanJob.class::isInstance));
         secondStorageService.disableModelSecondStorage(project, modelId);
         int jobNum = manager.getAllExecutables().size();
         secondStorageService.onUpdate(project, modelId);

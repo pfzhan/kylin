@@ -235,5 +235,12 @@ public class TableData implements Serializable, WithLayout {
         }
         return allSegmentIds.containsAll(segmentIds);
     }
-    // replace?
+
+    public Set<String> getAllSegments() {
+        if (allSegmentIds == null) {
+            allSegmentIds = partitions.stream().map(TablePartition::getSegmentId).collect(Collectors.toSet());
+        }
+
+        return Collections.unmodifiableSet(allSegmentIds);
+    }
 }

@@ -40,4 +40,5 @@ public class ClickHouseCleanJobParam {
     final String submitter;
     final NDataflow df;
     final Set<NDataSegment> segments;
+    final Set<Long> needDeleteLayoutIds;
 }

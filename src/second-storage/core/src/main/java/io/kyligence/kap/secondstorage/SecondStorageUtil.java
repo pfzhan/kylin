@@ -329,6 +329,25 @@ public class SecondStorageUtil {
         }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID);
     }
 
+    public static void cleanSegments(String project, String modelId, Set<String> segments, Set<Long> layoutIds) {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            KylinConfig config = KylinConfig.getInstanceFromEnv();
+            Optional<Manager<TableFlow>> tableFlowManager = SecondStorageUtil.tableFlowManager(config, project);
+
+            tableFlowManager.ifPresent(manager ->
+                    manager.listAll().stream()
+                            .filter(tableFlow -> tableFlow.getId().equals(modelId))
+                            .forEach(tableFlow -> tableFlow.update(copy ->
+                                    copy.getTableDataList().stream()
+                                            .filter(tableData -> layoutIds.contains(tableData.getLayoutID()))
+                                            .forEach(tableData -> tableData.removePartitions(
+                                                    tablePartition -> segments.contains(tablePartition.getSegmentId())))
+                            )));
+
+            return null;
+        }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID);
+    }
+
     public static Optional<Manager<TableFlow>> tableFlowManager(KylinConfig config, String project) {
         return isGlobalEnable() ? Optional.of(SecondStorage.tableFlowManager(config, project)) : Optional.empty();
     }

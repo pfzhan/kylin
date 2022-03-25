@@ -29,6 +29,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -64,9 +65,9 @@ import io.kyligence.kap.secondstorage.metadata.Manager;
 import io.kyligence.kap.secondstorage.metadata.MetadataOperator;
 import io.kyligence.kap.secondstorage.metadata.NodeGroup;
 import io.kyligence.kap.secondstorage.metadata.TableData;
+import io.kyligence.kap.secondstorage.metadata.TableEntity;
 import io.kyligence.kap.secondstorage.metadata.TableFlow;
 import io.kyligence.kap.secondstorage.metadata.TablePartition;
-import io.kyligence.kap.secondstorage.metadata.TablePlan;
 import io.kyligence.kap.secondstorage.response.TableSyncResponse;
 import io.kyligence.kap.secondstorage.util.SecondStorageJobUtil;
 import lombok.val;
@@ -84,6 +85,7 @@ import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.handler.SecondStorageIndexCleanJobHandler;
 import org.apache.kylin.job.handler.SecondStorageModelCleanJobHandler;
 import org.apache.kylin.job.handler.SecondStorageProjectCleanJobHandler;
 import org.apache.kylin.job.handler.SecondStorageSegmentCleanJobHandler;
@@ -354,6 +356,16 @@ public class SecondStorageService extends BasicService implements SecondStorageU
         SecondStorageUtil.cleanSegments(project, model, segIds);
         val jobHandler = new SecondStorageSegmentCleanJobHandler();
         final JobParam param = SecondStorageJobParamUtil.segmentCleanParam(project, model, getUsername(), segIds);
+        return getJobManager(project).addJob(param, jobHandler);
+    }
+
+    @Transaction(project = 0)
+    public String triggerIndexClean(String project, String modelId, Set<Long> needDeleteLayoutIds) {
+        SecondStorageUtil.validateProjectLock(project, Collections.singletonList(LockTypeEnum.LOAD.name()));
+        Preconditions.checkState(SecondStorageUtil.isModelEnable(project, modelId));
+
+        val jobHandler = new SecondStorageIndexCleanJobHandler();
+        final JobParam param = SecondStorageJobParamUtil.layoutCleanParam(project, modelId, getUsername(), needDeleteLayoutIds, Collections.emptySet());
         return getJobManager(project).addJob(param, jobHandler);
     }
 
@@ -634,23 +646,50 @@ public class SecondStorageService extends BasicService implements SecondStorageU
         Preconditions.checkState(tableFlowManager.isPresent());
         val tableFlow = tableFlowManager.get().get(modelId);
         Preconditions.checkState(tableFlow.isPresent());
-        boolean isClean = false;
+
         if (indexPlan.getBaseTableLayout() != null) {
-            if (needClean) {
-                triggerModelClean(project, modelId);
-                isClean = true;
-            }
+            // get all layout entity contains locked index
+            Set<Long> allBaseLayout = indexPlan.getAllLayouts().stream().filter(LayoutEntity::isBaseIndex).map(LayoutEntity::getId).collect(Collectors.toSet());
+            Set<Long> needDeleteLayoutIds = new HashSet<>(allBaseLayout.size());
+
             tableFlowManager.get().get(modelId).map(tf -> {
-                tf.update(TableFlow::cleanTableData);
+                // clean unused table_data, maybe index is deleted
+                List<Long> deleteLayouts = tf.getTableDataList().stream()
+                        .map(TableData::getLayoutID)
+                        .filter(id -> !allBaseLayout.contains(id))
+                        .collect(Collectors.toList());
+                needDeleteLayoutIds.addAll(deleteLayouts);
                 return tf;
             });
+
+            if (!needDeleteLayoutIds.isEmpty()) {
+                triggerIndexClean(project, modelId, needDeleteLayoutIds);
+            }
+
             tablePlanManager.get().get(modelId).map(tp -> {
-                tp = tp.update(TablePlan::cleanTable);
+                // clean unused table_entity, maybe index is deleted
+                val deleteLayoutIds = tp.getTableMetas().stream()
+                        .filter(tableEntity -> !allBaseLayout.contains(tableEntity.getLayoutID()))
+                        .map(TableEntity::getLayoutID).collect(Collectors.toSet());
+                tp = tp.update(t -> t.cleanTable(deleteLayoutIds));
+
+                // add new base_layout if not exists
                 tp.createTableEntityIfNotExists(indexPlan.getBaseTableLayout(), true);
                 return tp;
             });
+
+            tableFlowManager.get().get(modelId).map(tf -> {
+                // clean unused table_data, maybe index is deleted
+                List<Long> deleteLayouts = tf.getTableDataList().stream()
+                        .map(TableData::getLayoutID)
+                        .filter(id -> !allBaseLayout.contains(id))
+                        .collect(Collectors.toList());
+
+                tf = tf.update(t -> t.cleanTableData(tableData -> deleteLayouts.contains(tableData.getLayoutID())));
+                return tf;
+            });
         }
-        return isClean;
+        return true;
     }
 
     public void resetStorage() {

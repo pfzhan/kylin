@@ -24,6 +24,7 @@
 package io.kyligence.kap.clickhouse;
 
 import io.kyligence.kap.clickhouse.factory.ClickHouseOperatorFactory;
+import io.kyligence.kap.clickhouse.job.ClickHouseIndexCleanJob;
 import io.kyligence.kap.guava20.shaded.common.base.Strings;
 import io.kyligence.kap.secondstorage.config.Node;
 import io.kyligence.kap.secondstorage.factory.SecondStorageDatabaseOperatorFactory;
@@ -32,6 +33,7 @@ import static org.apache.kylin.job.factory.JobFactoryConstant.STORAGE_JOB_FACTOR
 import static org.apache.kylin.job.factory.JobFactoryConstant.STORAGE_MODEL_CLEAN_FACTORY;
 import static org.apache.kylin.job.factory.JobFactoryConstant.STORAGE_NODE_CLEAN_FACTORY;
 import static org.apache.kylin.job.factory.JobFactoryConstant.STORAGE_SEGMENT_CLEAN_FACTORY;
+import static org.apache.kylin.job.factory.JobFactoryConstant.STORAGE_INDEX_CLEAN_FACTORY;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -138,6 +140,7 @@ public class ClickHouseStorage implements SecondStoragePlugin {
         JobFactory.register(STORAGE_MODEL_CLEAN_FACTORY, new ClickHouseModelCleanJob.ModelCleanJobFactory());
         JobFactory.register(STORAGE_NODE_CLEAN_FACTORY, new ClickHouseProjectCleanJob.ProjectCleanJobFactory());
         JobFactory.register(STORAGE_SEGMENT_CLEAN_FACTORY, new ClickHouseSegmentCleanJob.SegmentCleanJobFactory());
+        JobFactory.register(STORAGE_INDEX_CLEAN_FACTORY, new ClickHouseIndexCleanJob.IndexCleanJobFactory());
 
         SecondStorageStepFactory.register(SecondStorageStepFactory.SecondStorageLoadStep.class, ClickHouseLoad::new);
         SecondStorageStepFactory.register(SecondStorageStepFactory.SecondStorageRefreshStep.class, ClickHouseRefresh::new);

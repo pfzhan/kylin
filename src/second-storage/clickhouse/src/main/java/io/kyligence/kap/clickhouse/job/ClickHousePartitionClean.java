@@ -30,6 +30,7 @@ import java.sql.SQLException;
 import java.util.Map;
 import java.util.Objects;
 
+import io.kyligence.kap.secondstorage.metadata.TableData;
 import io.kyligence.kap.secondstorage.util.SecondStorageDateUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -89,13 +90,15 @@ public class ClickHousePartitionClean extends AbstractClickHouseClean {
         segments.forEach(segment -> {
             nodeGroupManager.get().listAll().stream().flatMap(nodeGroup -> nodeGroup.getNodeNames().stream())
                     .forEach(node -> {
-                        if (!tableFlow.getTableDataList().isEmpty()) {
-                            database = NameUtil.getDatabase(dataflow);
-                            table = NameUtil.getTable(dataflow, tableFlow.getTableDataList().get(0).getLayoutID());
+                        database = NameUtil.getDatabase(dataflow);
+                        for (TableData tableData : tableFlow.getTableDataList()) {
+                            table = NameUtil.getTable(dataflow, tableData.getLayoutID());
+
                             ShardCleaner shardCleaner = segmentRangeMap.get(segment).isInfinite()
                                     ? new ShardCleaner(node, database, table, null, true, null)
                                     : new ShardCleaner(node, database, table,
                                     SecondStorageDateUtils.splitByDay(segmentRangeMap.get(segment)), dateFormat);
+
                             shardCleaners.add(shardCleaner);
                         }
                     });

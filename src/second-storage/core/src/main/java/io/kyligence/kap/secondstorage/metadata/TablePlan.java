@@ -27,6 +27,7 @@ import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Consumer;
 
 import org.apache.kylin.common.persistence.RootPersistentEntity;
@@ -112,6 +113,15 @@ public class TablePlan extends RootPersistentEntity
     public void cleanTable() {
         checkIsNotCachedAndShared();
         this.tableMetas.clear();
+    }
+
+    public void cleanTable(Set<Long> layoutIds) {
+        if (layoutIds== null || layoutIds.isEmpty()) {
+            return;
+        }
+
+        checkIsNotCachedAndShared();
+        this.tableMetas.removeIf(tableEntity -> layoutIds.contains(tableEntity.getLayoutID()));
     }
 
     public String getDescription() {

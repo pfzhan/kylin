@@ -154,7 +154,11 @@ public class ClickHouseLoad extends AbstractExecutable {
         return new SegmentFileProvider(segmentLayoutRoot);
     }
 
-    private List<LoadInfo> distributeLoad(NDataflow df, IndexPlan indexPlan, TablePlan tablePlan, String[] nodeNames) {
+    private List<LoadInfo> distributeLoad(NDataflow df,
+                                          IndexPlan indexPlan,
+                                          TablePlan tablePlan,
+                                          String[] nodeNames,
+                                          TableFlow tableFlow) {
         int ckInstances = nodeNames.length;
         return getSegmentIds() // Equivalent to scala `for comprehension`
                 .stream().flatMap(segId -> getLayoutIds().stream().map(indexPlan::getLayoutEntity)
@@ -164,7 +168,7 @@ public class ClickHouseLoad extends AbstractExecutable {
                             int shardNumber = Math.min(ckInstances, tableEntity.getShardNumbers());
                             return LoadInfo.distribute(selectInstances(nodeNames, shardNumber), df.getModel(),
                                     df.getSegment(segId), getFileProvider(df, segId, layoutEntity.getId()),
-                                    layoutEntity);
+                                    layoutEntity, tableFlow);
                         }))
                 .collect(Collectors.toList());
     }
@@ -297,7 +301,7 @@ public class ClickHouseLoad extends AbstractExecutable {
 
                 for (val shards : replicaShards) {
                     List<LoadInfo> infoList = distributeLoad(mc.df, mc.indexPlan(), mc.tablePlan(),
-                            orderGroupByIndex(shards, indexInGroup));
+                            orderGroupByIndex(shards, indexInGroup), mc.tableFlow());
                     infoList = preprocessLoadInfo(infoList);
                     tempLoadInfos.add(infoList);
                 }
