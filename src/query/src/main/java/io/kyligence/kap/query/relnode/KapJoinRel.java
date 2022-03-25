@@ -111,11 +111,15 @@ public class KapJoinRel extends OLAPJoinRel implements KapRel {
         olapContextImplementor.visitChild(getInput(1), this, rightState);
 
         if (leftState.hasModelView() || rightState.hasModelView()) {
-            olapContextImplementor.allocateContext((KapRel) getInput(0), this);
-            leftState.setHasFreeTable(false);
+            if (leftState.hasFreeTable()) {
+                olapContextImplementor.allocateContext((KapRel) getInput(0), this);
+                leftState.setHasFreeTable(false);
+            }
 
-            olapContextImplementor.allocateContext((KapRel) getInput(1), this);
-            rightState.setHasFreeTable(false);
+            if (rightState.hasFreeTable()) {
+                olapContextImplementor.allocateContext((KapRel) getInput(1), this);
+                rightState.setHasFreeTable(false);
+            }
         }
 
         // special case for left join
