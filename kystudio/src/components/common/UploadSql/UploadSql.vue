@@ -615,6 +615,14 @@ export default class UploadSqlModel extends Vue {
         closeOnClickModal: false,
         confirmButtonText: this.$t('confirmEditSqlText')
       })
+      try {
+        await this.validateWhiteSql()
+      } catch (e) {
+        setTimeout(() => {
+          this.$el.querySelector('.error_messages')?.scrollIntoView()
+        }, 50)
+        return
+      }
     }
     if (unCheckedSQL) {
       kapConfirm(this.$t('submitConfirm', {unCheckedSQL: unCheckedSQL}), {cancelButtonText: this.$t('kylinLang.common.cancel'), confirmButtonText: this.$t('kylinLang.common.submit'), type: 'warning', centerButton: true}).then(() => {
