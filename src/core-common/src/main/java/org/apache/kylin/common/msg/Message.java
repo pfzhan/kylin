@@ -1688,7 +1688,7 @@ public class Message {
     }
 
     public String getSECOND_STORAGE_NODE_NOT_AVAILABLE() {
-        return "Can’t turn on the tiered storage, as the nodes are unavailable. Please refresh the page and try again.";
+        return "Can't add node. The node does not exist or has been used by other project, please modify and try again.";
     }
 
     public String getBASE_TABLE_INDEX_NOT_AVAILABLE() {
