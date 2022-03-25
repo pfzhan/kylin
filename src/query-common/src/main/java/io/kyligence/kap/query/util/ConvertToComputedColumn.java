@@ -54,9 +54,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -90,7 +88,6 @@ import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
-import com.google.common.collect.Sets;
 
 import io.kyligence.kap.guava20.shaded.common.cache.CacheBuilder;
 import io.kyligence.kap.guava20.shaded.common.cache.CacheLoader;
@@ -203,41 +200,6 @@ public class ConvertToComputedColumn implements KapQueryUtil.IQueryTransformer {
         }
 
         return Pair.newPair(sql, recursionCompleted);
-    }
-
-    private static String replaceCcName(String sql, List<NDataModel> dataModelDescs) throws SqlParseException {
-
-        List<ComputedColumnDesc> allCcInPrj = Lists.newArrayList();
-        dataModelDescs.forEach(model -> allCcInPrj.addAll(model.getComputedColumnDescs()));
-        val sortedEntryList = SqlNodeExtractor.getIdentifierPos(sql).entrySet().stream()
-                .sorted((o1, o2) -> o2.getValue().getFirst() - o1.getValue().getFirst()).collect(Collectors.toList());
-
-        String transformedSql = sql;
-        for (Map.Entry<SqlIdentifier, Pair<Integer, Integer>> identifierPairEntry : sortedEntryList) {
-            for (ComputedColumnDesc computedColumnDesc : allCcInPrj) {
-                String identifierName = identifierPairEntry.getKey().toString();
-                if (identifierName.equalsIgnoreCase(computedColumnDesc.getColumnName())) {
-                    transformedSql = transformedSql.substring(0, identifierPairEntry.getValue().getFirst())
-                            + transformedSql
-                                    .substring(identifierPairEntry.getValue().getFirst(),
-                                            identifierPairEntry.getValue().getSecond())
-                                    .replaceAll("(?i)" + identifierName, computedColumnDesc.getInternalCcName())
-                            + transformedSql.substring(identifierPairEntry.getValue().getSecond());
-                    break;
-                } else if (identifierName.contains(".") && identifierName.substring(identifierName.lastIndexOf('.') + 1)
-                        .equalsIgnoreCase(computedColumnDesc.getColumnName())) {
-                    String originCcName = identifierName.substring(identifierName.lastIndexOf('.') + 1);
-                    transformedSql = transformedSql.substring(0, identifierPairEntry.getValue().getFirst())
-                            + transformedSql
-                                    .substring(identifierPairEntry.getValue().getFirst(),
-                                            identifierPairEntry.getValue().getSecond())
-                                    .replaceAll("(?i)" + originCcName, computedColumnDesc.getInternalCcName())
-                            + transformedSql.substring(identifierPairEntry.getValue().getSecond());
-                    break;
-                }
-            }
-        }
-        return transformedSql;
     }
 
     static Pair<String, Integer> replaceComputedColumn(String inputSql, SqlCall selectOrOrderby,
@@ -535,35 +497,17 @@ public class ConvertToComputedColumn implements KapQueryUtil.IQueryTransformer {
             return Lists.newArrayList();
         }
 
-        Ordering<ComputedColumnDesc> ordering = Ordering.from(new Comparator<String>() {
-            @Override
-            public int compare(String o1, String o2) {
-                return Integer.compare(o1.length(), o2.length());
-            }
-        }).reverse().nullsLast().onResultOf(new Function<ComputedColumnDesc, String>() {
-            @Nullable
-            @Override
-            public String apply(@Nullable ComputedColumnDesc input) {
-                return input == null ? null : input.getExpression();
-            }
-        });
+        Ordering<ComputedColumnDesc> ordering = Ordering
+                .from((Comparator<String>) (o1, o2) -> Integer.compare(o1.length(), o2.length())).reverse().nullsLast()
+                .onResultOf(new Function<ComputedColumnDesc, String>() {
+                    @Nullable
+                    @Override
+                    public String apply(@Nullable ComputedColumnDesc input) {
+                        return input == null ? null : input.getExpression();
+                    }
+                });
 
         return ordering.immutableSortedCopy(computedColumns);
-    }
-
-    private static final Set<Character> spaceSet = Sets.newHashSet(' ', '\t', '\n');
-
-    private static int countIgnoreSpace(String str) {
-        if (StringUtils.isEmpty(str)) {
-            return 0;
-        }
-        int len = 0;
-        for (char c : str.toCharArray()) {
-            if (!spaceSet.contains(c)) {
-                len++;
-            }
-        }
-        return len;
     }
 
     static class SqlTreeVisitor implements SqlVisitor<SqlNode> {
@@ -598,12 +542,11 @@ public class ConvertToComputedColumn implements KapQueryUtil.IQueryTransformer {
             sqlNodes.add(call);
             if (call.getOperator() instanceof SqlAsOperator) {
                 call.getOperator().acceptCall(this, call, true, SqlBasicVisitor.ArgHandlerImpl.<SqlNode> instance());
-                return null;
-            }
-
-            for (SqlNode operand : call.getOperandList()) {
-                if (operand != null) {
-                    operand.accept(this);
+            } else {
+                for (SqlNode operand : call.getOperandList()) {
+                    if (operand != null) {
+                        operand.accept(this);
+                    }
                 }
             }
             return null;

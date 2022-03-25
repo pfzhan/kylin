@@ -95,7 +95,7 @@ public class DefaultQueryTransformer implements KapQueryUtil.IQueryTransformer {
         return sql;
     }
 
-    // Case {fn EXTRACT(...) }
+    // Case: {fn EXTRACT(...) } -> EXTRACT(...)
     // Use non-greedy regex matching to remove escape functions
     // Notice: Only unsupported escape function need to be handled
     // Reference: https://calcite.apache.org/docs/reference.html#jdbc-function-escape

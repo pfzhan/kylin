@@ -44,7 +44,7 @@ import org.apache.commons.collections.CollectionUtils;
 public abstract class AbstractSqlVisitor extends SqlBasicVisitor<SqlNode> {
     public String originSql;
 
-    public AbstractSqlVisitor(String originSql) {
+    protected AbstractSqlVisitor(String originSql) {
         this.originSql = originSql;
     }
 

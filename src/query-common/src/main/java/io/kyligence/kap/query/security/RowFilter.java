@@ -48,6 +48,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.text.StrBuilder;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.exception.KylinRuntimeException;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.rest.constant.Constant;
@@ -111,14 +112,15 @@ public class RowFilter implements KapQueryUtil.IQueryTransformer, IPushDownConve
         Map<SqlSelect, List<Table>> selectClausesWithTbls = getSelectClausesWithTbls(inputSQL, schema, project);
         List<Pair<Integer, String>> toBeInsertedPosAndExprs = new ArrayList<>();
 
-        for (SqlSelect select : selectClausesWithTbls.keySet()) {
-            if (!select.hasWhere()) {
+        for (Map.Entry<SqlSelect, List<Table>> select : selectClausesWithTbls.entrySet()) {
+            if (!select.getKey().hasWhere()) {
                 continue;
             }
 
-            for (Table table : selectClausesWithTbls.get(select)) {
+            for (Table table : select.getValue()) {
                 if (candidateTables.contains(table.getName())) {
-                    Pair<Integer, Integer> replacePos = CalciteParser.getReplacePos(select.getWhere(), inputSQL);
+                    Pair<Integer, Integer> replacePos = CalciteParser.getReplacePos(select.getKey().getWhere(),
+                            inputSQL);
                     toBeInsertedPosAndExprs.add(Pair.newPair(replacePos.getFirst(), "("));
                     toBeInsertedPosAndExprs.add(Pair.newPair(replacePos.getSecond(), ")"));
                     break;
@@ -159,12 +161,12 @@ public class RowFilter implements KapQueryUtil.IQueryTransformer, IPushDownConve
 
         List<Pair<Integer, String>> toBeReplacedPosAndExprs = new ArrayList<>();
 
-        for (SqlSelect select : selectClausesWithTbls.keySet()) {
-            int insertPos = getInsertPos(inputSQL, select);
+        for (Map.Entry<SqlSelect, List<Table>> select : selectClausesWithTbls.entrySet()) {
+            int insertPos = getInsertPos(inputSQL, select.getKey());
 
             //Will concat one select clause's all tables's row ACL conditions into one where clause.
-            List<Table> tables = selectClausesWithTbls.get(select);
-            String whereCond = getToBeInsertCond(whereCondWithTbls, select, tables);
+            List<Table> tables = select.getValue();
+            String whereCond = getToBeInsertCond(whereCondWithTbls, select.getKey(), tables);
 
             if (!whereCond.isEmpty()) {
                 toBeReplacedPosAndExprs.add(Pair.newPair(insertPos, whereCond));
@@ -243,7 +245,7 @@ public class RowFilter implements KapQueryUtil.IQueryTransformer, IPushDownConve
         return rightMost;
     }
 
-    //{selectClause1:[DB.TABLE1:ALIAS1, DB.TABLE2:ALIAS2]}
+    // '{selectClause1:[DB.TABLE1:ALIAS1, DB.TABLE2:ALIAS2]}'
     private static Map<SqlSelect, List<Table>> getSelectClausesWithTbls(String inputSQL, String schema, String project) {
         Map<SqlSelect, List<Table>> selectWithTables = new HashMap<>();
 
@@ -293,7 +295,7 @@ public class RowFilter implements KapQueryUtil.IQueryTransformer, IPushDownConve
             try {
                 node = CalciteParser.parse(inputSQL, project);
             } catch (SqlParseException e) {
-                throw new RuntimeException(
+                throw new KylinRuntimeException(
                         "Failed to parse SQL \'" + inputSQL + "\', please make sure the SQL is valid");
             }
             SelectClauseFinder sv = new SelectClauseFinder();
@@ -327,7 +329,7 @@ public class RowFilter implements KapQueryUtil.IQueryTransformer, IPushDownConve
 
     /*visitor classes.Get select clause 's all tablesWithAlias and skip the subquery*/
     static class NonSubqueryTablesFinder extends SqlBasicVisitor<SqlNode> {
-        // {table:alias,...}
+        // '{table:alias,...}'
         private List<Table> tablesWithAlias;
 
         private NonSubqueryTablesFinder() {
@@ -354,11 +356,10 @@ public class RowFilter implements KapQueryUtil.IQueryTransformer, IPushDownConve
         public SqlNode visit(SqlCall call) {
             // skip subquery in the from clause
             if (call instanceof SqlSelect) {
-                return null;
-            }
-            // for the case table alias like "from t t1".The only SqlBasicCall in from clause is "AS".
-            // the instanceof SqlIdentifier is for the case that "select * from (select * from t2) t1".subquery as table.
-            if (call instanceof SqlBasicCall) {
+                // do nothing.
+            } else if (call instanceof SqlBasicCall) {
+                // for the case table alias like "from t t1".The only SqlBasicCall in from clause is "AS".
+                // the instanceof SqlIdentifier is for the case that "select * from (select * from t2) t1".subquery as table.
                 SqlBasicCall node = (SqlBasicCall) call;
                 if (node.getOperator() instanceof SqlAsOperator && node.getOperands()[0] instanceof SqlIdentifier) {
                     SqlIdentifier id0 = (SqlIdentifier) ((SqlBasicCall) call).getOperands()[0];
@@ -367,17 +368,15 @@ public class RowFilter implements KapQueryUtil.IQueryTransformer, IPushDownConve
                     String alais = CalciteParser.getLastNthName(id1, 1);
                     tablesWithAlias.add(new Table(table, alais));
                 }
-                return null;
-            }
-            if (call instanceof SqlJoin) {
+            } else if (call instanceof SqlJoin) {
                 SqlJoin node = (SqlJoin) call;
                 node.getLeft().accept(this);
                 node.getRight().accept(this);
-                return null;
-            }
-            for (SqlNode operand : call.getOperandList()) {
-                if (operand != null) {
-                    operand.accept(this);
+            } else {
+                for (SqlNode operand : call.getOperandList()) {
+                    if (operand != null) {
+                        operand.accept(this);
+                    }
                 }
             }
             return null;

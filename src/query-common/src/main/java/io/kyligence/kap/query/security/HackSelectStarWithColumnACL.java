@@ -41,6 +41,7 @@ import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.exception.KylinRuntimeException;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -77,7 +78,7 @@ public class HackSelectStarWithColumnACL implements KapQueryUtil.IQueryTransform
         try {
             sqlNode = CalciteParser.parse(sql, project);
         } catch (SqlParseException e) {
-            throw new RuntimeException("Failed to parse SQL \'" + sql + "\', please make sure the SQL is valid");
+            throw new KylinRuntimeException("Failed to parse SQL \'" + sql + "\', please make sure the SQL is valid");
         }
 
         if (!isSingleSelectStar(sqlNode)) {
@@ -190,11 +191,11 @@ public class HackSelectStarWithColumnACL implements KapQueryUtil.IQueryTransform
             if (call instanceof SqlOrderBy) {
                 SqlOrderBy sqlOrderBy = (SqlOrderBy) call;
                 sqlOrderBy.query.accept(this);
-                return null;
-            }
-            for (SqlNode operand : call.getOperandList()) {
-                if (operand != null) {
-                    operand.accept(this);
+            } else {
+                for (SqlNode operand : call.getOperandList()) {
+                    if (operand != null) {
+                        operand.accept(this);
+                    }
                 }
             }
             return null;
