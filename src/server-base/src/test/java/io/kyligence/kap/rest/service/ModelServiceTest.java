@@ -38,6 +38,7 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -68,8 +69,12 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import com.google.common.base.Charsets;
+import com.google.common.io.CharStreams;
 import io.kyligence.kap.rest.controller.NModelController;
 import io.kyligence.kap.rest.response.OpenModelRecResponse;
+import io.kyligence.kap.tool.bisync.SyncContext;
+import io.kyligence.kap.tool.bisync.tableau.TableauDatasourceModel;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
@@ -7123,6 +7128,124 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         val indexResponse = modelService.updateDataModelSemantic(project, modelRequest);
         Assert.assertTrue(indexResponse.isCleanSecondStorage());
+    }
+
+    @Test
+    public void testBuildHasPermissionSourceSyncModel() throws Exception {
+        Set<String> groups = new HashSet<>();
+        groups.add("g1");
+        val project = "default";
+        val modelId = "cb596712-3a09-46f8-aea1-988b43fe9b6c";
+        prepareBasic(project);
+        SecurityContextHolder.getContext()
+                .setAuthentication(new TestingAuthenticationToken("u1", "ANALYST", Constant.ROLE_ANALYST));
+        TableauDatasourceModel datasource_all_cols = (TableauDatasourceModel) modelService.exportCustomModel(project, modelId,
+                SyncContext.BI.TABLEAU_CONNECTOR_TDS, SyncContext.ModelElement.ALL_COLS,
+                "localhost", 8080, groups);
+        ByteArrayOutputStream outStream1 = new ByteArrayOutputStream();
+        datasource_all_cols.dump(outStream1);
+        Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector_permission.tds"),
+                outStream1.toString(Charset.defaultCharset().name()));
+
+        TableauDatasourceModel datasource_agg_index_col = (TableauDatasourceModel) modelService.exportCustomModel(project, modelId,
+                SyncContext.BI.TABLEAU_CONNECTOR_TDS, SyncContext.ModelElement.AGG_INDEX_COL,
+                "localhost", 8080, groups);
+        ByteArrayOutputStream outStream2 = new ByteArrayOutputStream();
+        datasource_agg_index_col.dump(outStream2);
+        Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector_permission.tds"),
+                outStream2.toString(Charset.defaultCharset().name()));
+
+        TableauDatasourceModel datasource = (TableauDatasourceModel) modelService.exportCustomModel(project, modelId,
+                SyncContext.BI.TABLEAU_CONNECTOR_TDS, SyncContext.ModelElement.AGG_INDEX_AND_TABLE_INDEX_COL,
+                "localhost", 8080, groups);
+        ByteArrayOutputStream outStream3 = new ByteArrayOutputStream();
+        datasource.dump(outStream3);
+        Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector_permission.tds"),
+                outStream3.toString(Charset.defaultCharset().name()));
+    }
+
+    @Test
+    public void testTableNotHasPermissionColumn() throws Exception {
+        Set<String> groups = new HashSet<>();
+        groups.add("g1");
+        val project = "default";
+        val modelId = "cb596712-3a09-46f8-aea1-988b43fe9b6c";
+        prepareBasic(project);
+        SecurityContextHolder.getContext()
+                .setAuthentication(new TestingAuthenticationToken("u1", "ANALYST", Constant.ROLE_ANALYST));
+        TableauDatasourceModel datasource1 = (TableauDatasourceModel) modelService.exportCustomModel(project, modelId,
+                SyncContext.BI.TABLEAU_CONNECTOR_TDS, SyncContext.ModelElement.AGG_INDEX_AND_TABLE_INDEX_COL,
+                "localhost", 8080, groups);
+        ByteArrayOutputStream outStream4 = new ByteArrayOutputStream();
+        datasource1.dump(outStream4);
+        Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector_permission.tds"),
+                outStream4.toString(Charset.defaultCharset().name()));
+    }
+
+    private String getExpectedTds(String path) throws IOException {
+        return CharStreams.toString(new InputStreamReader(getClass().getResourceAsStream(path), Charsets.UTF_8));
+    }
+
+    private void prepareBasic(String project) {
+        AclTCRManager manager = AclTCRManager.getInstance(getTestConfig(), project);
+
+        AclTCR u1a1 = new AclTCR();
+        AclTCR.Table u1t1 = new AclTCR.Table();
+        AclTCR.ColumnRow u1cr1 = new AclTCR.ColumnRow();
+        AclTCR.Column u1c1 = new AclTCR.Column();
+        u1c1.addAll(Arrays.asList("ID1", "ID2", "ID3"));
+        u1cr1.setColumn(u1c1);
+
+        AclTCR.ColumnRow u1cr2 = new AclTCR.ColumnRow();
+        AclTCR.Column u1c2 = new AclTCR.Column();
+        u1c2.addAll(Arrays.asList("NAME1", "NAME2", "NAME3"));
+        u1cr2.setColumn(u1c2);
+        u1t1.put("DEFAULT.TEST_MEASURE", u1cr1);
+        u1t1.put("DEFAULT.TEST_MEASURE1", u1cr2);
+        u1a1.setTable(u1t1);
+        manager.updateAclTCR(u1a1, "u1", true);
+
+        AclTCR g1a1 = new AclTCR();
+        AclTCR.Table g1t1 = new AclTCR.Table();
+        AclTCR.ColumnRow g1cr1 = new AclTCR.ColumnRow();
+        AclTCR.Column g1c1 = new AclTCR.Column();
+        g1c1.addAll(Arrays.asList("ID1", "ID2", "ID3", "ID4"));
+        g1cr1.setColumn(g1c1);
+        g1t1.put("DEFAULT.TEST_MEASURE", g1cr1);
+        g1a1.setTable(g1t1);
+        manager.updateAclTCR(g1a1, "g1", false);
+    }
+
+    @Test
+    public void testCheckTablePermission() {
+        val project = "default";
+        val modelId = "cb596712-3a09-46f8-aea1-988b43fe9b6c";
+        thrown.expect(KylinException.class);
+        thrown.expectMessage(MsgPicker.getMsg().getTABLE_NO_COLUMNS_PERMISSION());
+
+        AclTCRManager manager = AclTCRManager.getInstance(getTestConfig(), project);
+        Set<String> columns = new HashSet<>();
+        columns.add("DEFAULT.TEST_MEASURE1.NAME1");
+        columns.add("DEFAULT.TEST_MEASURE1.NAME2");
+        columns.add("DEFAULT.TEST_MEASURE1.NAME3");
+
+        AclTCR u1a1 = new AclTCR();
+        AclTCR.Table u1t1 = new AclTCR.Table();
+        AclTCR.ColumnRow u1cr1 = new AclTCR.ColumnRow();
+        AclTCR.Column u1c1 = new AclTCR.Column();
+        u1cr1.setColumn(u1c1);
+
+        AclTCR.ColumnRow u1cr2 = new AclTCR.ColumnRow();
+        AclTCR.Column u1c2 = new AclTCR.Column();
+        u1c2.addAll(Arrays.asList("NAME1", "NAME2", "NAME3"));
+        u1cr2.setColumn(u1c2);
+        u1t1.put("DEFAULT.TEST_MEASURE", u1cr1);
+        u1t1.put("DEFAULT.TEST_MEASURE1", u1cr2);
+        u1a1.setTable(u1t1);
+        manager.updateAclTCR(u1a1, "u1", true);
+        SecurityContextHolder.getContext()
+                .setAuthentication(new TestingAuthenticationToken("u1", "ANALYST", Constant.ROLE_ANALYST));
+        modelService.checkTableHasColumnPermission(project, modelId, columns);
     }
 
 }

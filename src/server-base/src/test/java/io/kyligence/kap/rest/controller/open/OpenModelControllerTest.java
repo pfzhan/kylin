@@ -34,6 +34,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
+import io.kyligence.kap.tool.bisync.SyncContext;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -906,5 +907,23 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
             properties.put("kylin.metadata.semi-automatic-mode", "true");
             copyForWrite.setOverrideKylinProps(properties);
         });
+    }
+
+    @Test
+    public void testOpenAPIBIExport() throws Exception {
+        String modelName = "multi_level_partition";
+        String project = "multi_level_partition";
+        String modelId = "747f864b-9721-4b97-acde-0aa8e8656cba";
+        mockGetModelName(modelName, project, modelId);
+        Mockito.doReturn(null).when(modelService).exportCustomModel("default",
+                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", SyncContext.BI.TABLEAU_CONNECTOR_TDS,
+                SyncContext.ModelElement.AGG_INDEX_COL, "localhost", 8080);
+        mockMvc.perform(MockMvcRequestBuilders
+                .get("/api/models/bi_export")
+                .param("model_name", modelName).param("project", project)
+                .param("export_as", "TABLEAU_ODBC_TDS").param("element", "AGG_INDEX_COL")
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
     }
 }

@@ -721,6 +721,20 @@ public class OpenModelController extends NBasicController {
         modelController.exportModel(modelId, projectName, exportAs, element, host, port, request, response);
     }
 
+    @ApiOperation(value = "bi export", tags = { "QE" })
+    @GetMapping(value = "/bi_export")
+    @ResponseBody
+    public void biExport(@RequestParam("model_name") String modelAlias,
+                            @RequestParam(value = "project") String project, @RequestParam(value = "export_as") SyncContext.BI exportAs,
+                            @RequestParam(value = "element", required = false, defaultValue = "AGG_INDEX_COL") SyncContext.ModelElement element,
+                            @RequestParam(value = "server_host", required = false) String host,
+                            @RequestParam(value = "server_port", required = false) Integer port, HttpServletRequest request,
+                            HttpServletResponse response) throws IOException {
+        String projectName = checkProjectName(project);
+        String modelId = getModel(modelAlias, projectName).getId();
+        modelController.biExport(modelId, projectName, exportAs, element, host, port, request, response);
+    }
+
     @ApiOperation(value = "updateModelName", tags = { "AI" })
     @PutMapping(value = "/{model_name}/name")
     @ResponseBody
