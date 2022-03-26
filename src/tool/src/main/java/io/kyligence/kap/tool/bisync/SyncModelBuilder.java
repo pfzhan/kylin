@@ -71,6 +71,30 @@ public class SyncModelBuilder {
         Set<String[]> hierarchies = getHierarchies(indexPlan);
         JoinTreeNode joinTree = generateJoinTree(dataModelDesc.getJoinTables(), dataModelDesc.getRootFactTableName());
 
+        return getSyncModel(dataModelDesc, columnDefMap, measureDefs, hierarchies, joinTree);
+    }
+
+    public SyncModel buildHasPermissionSourceSyncModel(Set<String> authTables, Set<String> authColumns) {
+        NDataModel dataModelDesc = syncContext.getDataflow().getModel();
+        IndexPlan indexPlan = syncContext.getDataflow().getIndexPlan();
+
+        // init joinTree, dimension cols, measure cols, hierarchies
+        Map<String, ColumnDef> columnDefMap = authColumns(dataModelDesc, authTables, authColumns);
+
+        List<MeasureDef> measureDefs = new ArrayList<>(dataModelDesc.getEffectiveMeasures().values()).stream()
+                .map(MeasureDef::new).filter(measureDef -> checkMeasurePermission(authColumns, measureDef.getMeasure()))
+                .collect(Collectors.toList());
+        markHasPermissionIndexedColumnsAndMeasures(columnDefMap, measureDefs, indexPlan, syncContext.getModelElement(), authColumns);
+        markComputedColumnVisibility(columnDefMap, measureDefs, syncContext.getKylinConfig().exposeComputedColumn());
+        Set<String[]> hierarchies = getHierarchies(indexPlan).stream()
+                .map(hierarchyArray -> Arrays.stream(hierarchyArray).filter(renameColumnName(authColumns)::contains).collect(Collectors.toSet()).toArray(new String[]{}))
+                .collect(Collectors.toSet()).stream().filter(x -> x.length > 0).collect(Collectors.toSet());
+
+        JoinTreeNode joinTree = generateJoinTree(dataModelDesc.getJoinTables(), dataModelDesc.getRootFactTableName());
+        return getSyncModel(dataModelDesc, columnDefMap, measureDefs, hierarchies, joinTree);
+    }
+
+    private SyncModel getSyncModel(NDataModel dataModelDesc, Map<String, ColumnDef> columnDefMap, List<MeasureDef> measureDefs, Set<String[]> hierarchies, JoinTreeNode joinTree) {
         // populate CubeSyncModel
         SyncModel syncModel = new SyncModel();
         syncModel.setColumnDefMap(columnDefMap);
@@ -82,6 +106,14 @@ public class SyncModelBuilder {
         syncModel.setHost(syncContext.getHost());
         syncModel.setPort(String.valueOf(syncContext.getPort()));
         return syncModel;
+    }
+
+    private boolean checkMeasurePermission(Set<String> columns, NDataModel.Measure measureDef) {
+        Set<String> measureColumns = measureDef.getFunction().getParameters().stream()
+                .filter(parameterDesc -> parameterDesc.getColRef() != null)
+                .map(parameterDesc -> parameterDesc.getColRef().getCanonicalName())
+                .collect(Collectors.toSet());
+        return columns.containsAll(measureColumns);
     }
 
     private void markComputedColumnVisibility(Map<String, ColumnDef> columnDefMap, List<MeasureDef> measureDefs, boolean exposeComputedColumns) {
@@ -141,6 +173,66 @@ public class SyncModelBuilder {
         }
     }
 
+    private void markHasPermissionIndexedColumnsAndMeasures(Map<String, ColumnDef> columnDefMap, List<MeasureDef> measureDefs,
+                                               IndexPlan indexPlan, SyncContext.ModelElement modelElement,
+                                                            Set<String> columns) {
+        Set<String> colsToShow = new HashSet<>();
+        Set<String> measuresToShow = new HashSet<>();
+        switch (modelElement) {
+            case AGG_INDEX_COL:
+                ImmutableBitSet aggDimBitSet = indexPlan.getAllIndexes().stream().filter(index -> !index.isTableIndex())
+                        .map(IndexEntity::getDimensionBitset)
+                        .reduce(ImmutableBitSet.EMPTY, ImmutableBitSet::or);
+                Set<TblColRef> tblColRefs = Maps.filterKeys(indexPlan.getEffectiveDimCols(), input -> input != null && aggDimBitSet.get(input)).values();
+                colsToShow = tblColRefs.stream().filter(column -> columns.contains(column.getCanonicalName()))
+                        .map(TblColRef::getAliasDotName).collect(Collectors.toSet());
+                measuresToShow = indexPlan.getEffectiveMeasures().values().stream()
+                        .filter(measureDef -> checkMeasurePermission(columns, measureDef))
+                        .map(MeasureDesc::getName).collect(Collectors.toSet());
+                break;
+            case AGG_INDEX_AND_TABLE_INDEX_COL:
+                colsToShow = indexPlan.getEffectiveDimCols().values().stream()
+                        .filter(column -> columns.contains(column.getCanonicalName()))
+                        .map(TblColRef::getAliasDotName).collect(Collectors.toSet());
+                measuresToShow = indexPlan.getEffectiveMeasures().values().stream()
+                        .filter(measureDef -> checkMeasurePermission(columns, measureDef))
+                        .map(MeasureDesc::getName).collect(Collectors.toSet());
+                break;
+            case ALL_COLS:
+                Set<String> newColumns = renameColumnName(columns);
+                colsToShow = indexPlan.getModel().getDimensionNameIdMap().keySet().stream()
+                        .filter(newColumns::contains).collect(Collectors.toSet());
+                measuresToShow = indexPlan.getModel().getEffectiveMeasures().values().stream()
+                        .filter(measureDef -> checkMeasurePermission(columns, measureDef))
+                        .map(MeasureDesc::getName).collect(Collectors.toSet());
+                for (MeasureDef measureDef : measureDefs) {
+                    measureDef.setHidden(false);
+                }
+                break;
+            default:
+                break;
+        }
+
+        for (String colToShow : colsToShow) {
+            columnDefMap.get(colToShow).setHidden(false);
+        }
+        for (MeasureDef measureDef : measureDefs) {
+            if (measuresToShow.contains(measureDef.getMeasure().getName())) {
+                measureDef.setHidden(false);
+            }
+        }
+    }
+
+    private Set<String> renameColumnName(Set<String> columns) {
+        return columns.stream().map(x -> {
+                        String[] split = x.split("\\.");
+                        if (split.length == 3) {
+                            return split[1] + "." + split[2];
+                        }
+                        return x;
+                    }).collect(Collectors.toSet());
+    }
+
     private Map<String, ColumnDef> getAllColumns(NDataModel modelDesc) {
         Map<String, ColumnDef> modelColsMap = new HashMap<>();
         for (TableRef tableRef: modelDesc.getAllTables()) {
@@ -151,6 +243,25 @@ public class SyncModelBuilder {
                 modelColsMap.put(colName, columnDef);
             }
         }
+
+        // sync col alias
+        for (NDataModel.NamedColumn namedColumn : modelDesc.getAllNamedColumns()) {
+            if (modelColsMap.get(namedColumn.getAliasDotColumn()) != null) {
+                modelColsMap.get(namedColumn.getAliasDotColumn()).setColumnAlias(namedColumn.getName());
+            }
+        }
+        return modelColsMap;
+    }
+
+    private Map<String, ColumnDef> authColumns(NDataModel modelDesc, Set<String> tables, Set<String> columns) {
+        Map<String, ColumnDef> modelColsMap = new HashMap<>();
+        modelDesc.getAllTables().stream().filter(table -> tables.contains(table.getTableIdentity())).forEach(tableRef -> tableRef.getColumns().stream()
+                .filter(column -> columns.contains(column.getCanonicalName())).forEach(column -> {
+            ColumnDef columnDef = new ColumnDef(
+                    "dimension", tableRef.getAlias(), null, column.getName(), column.getDatatype(), true, column.getColumnDesc().isComputedColumn());
+            String colName = tableRef.getAlias() + "." + column.getName();
+            modelColsMap.put(colName, columnDef);
+        }));
 
         // sync col alias
         for (NDataModel.NamedColumn namedColumn : modelDesc.getAllNamedColumns()) {

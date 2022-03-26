@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
+import io.kyligence.kap.tool.bisync.SyncContext;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -470,4 +471,37 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         Mockito.verify(openModelController).updateModelName(model, modelUpdateRequest);
     }
 
+    @Test
+    public void testOpenAPIBIExport() throws Exception {
+        String modelName = "multi_level_partition";
+        String project = "multi_level_partition";
+        mockMvc.perform(MockMvcRequestBuilders
+                .get("/api/models/bi_export")
+                .param("model_name", modelName).param("project", project)
+                .param("export_as", "TABLEAU_ODBC_TDS").param("element", "AGG_INDEX_COL")
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        mockMvc.perform(MockMvcRequestBuilders
+                .get("/api/models/bi_export")
+                .param("model_name", modelName).param("project", project)
+                .param("export_as", "OTHER").param("element", "AGG_INDEX_COL")
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().is4xxClientError());
+    }
+
+    @Test
+    public void testExport() throws Exception {
+        String modelName = "multi_level_partition";
+        String project = "multi_level_partition";
+        mockMvc.perform(MockMvcRequestBuilders
+                .get("/api/models/multi_level_partition/export")
+                .param("model_name", modelName).param("project", project)
+                .param("export_as", "TABLEAU_ODBC_TDS").param("element", "AGG_INDEX_COL")
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+    }
 }

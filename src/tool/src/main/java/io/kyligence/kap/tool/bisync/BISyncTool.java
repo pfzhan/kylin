@@ -27,12 +27,16 @@ package io.kyligence.kap.tool.bisync;
 import io.kyligence.kap.tool.bisync.model.SyncModel;
 import io.kyligence.kap.tool.bisync.tableau.TableauDataSourceConverter;
 
+import java.util.Set;
+
 public class BISyncTool {
 
     public static BISyncModel dumpToBISyncModel(SyncContext syncContext) {
         SyncModel syncModel = new SyncModelBuilder(syncContext).buildSourceSyncModel();
+        return getBISyncModel(syncContext, syncModel);
+    }
 
-
+    private static BISyncModel getBISyncModel(SyncContext syncContext, SyncModel syncModel) {
         switch (syncContext.getTargetBI()) {
             case TABLEAU_ODBC_TDS:
             case TABLEAU_CONNECTOR_TDS:
@@ -40,5 +44,12 @@ public class BISyncTool {
             default:
                 throw new IllegalArgumentException();
         }
+    }
+
+    public static BISyncModel dumpHasPermissionToBISyncModel(SyncContext syncContext,
+                                                             Set<String> authTables, Set<String> authColumns) {
+        SyncModel syncModel = new SyncModelBuilder(syncContext)
+                .buildHasPermissionSourceSyncModel(authTables, authColumns);
+        return getBISyncModel(syncContext, syncModel);
     }
 }

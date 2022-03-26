@@ -26,6 +26,7 @@
 package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 import java.util.Arrays;
@@ -137,5 +138,39 @@ public class NModelControllerTest extends AbstractMVCIntegrationTestCase {
         String msg = String.format(Locale.ROOT, Message.getInstance().getMODEL_ALIAS_DUPLICATED(), "nmodel_basic");
         JsonNode jsonNode = JsonUtil.readValueAsTree(result.getResponse().getContentAsString());
         Assert.assertTrue(jsonNode.get("msg").asText().contains(msg));
+    }
+
+    @Test
+    public void testOpenAPIBIExport() throws Exception {
+        String modelName = "multi_level_partition";
+        String project = "multi_level_partition";
+        mockMvc.perform(MockMvcRequestBuilders
+                .get("/api/models/bi_export")
+                .param("model_name", modelName).param("project", project)
+                .param("export_as", "TABLEAU_ODBC_TDS").param("element", "AGG_INDEX_COL")
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        mockMvc.perform(MockMvcRequestBuilders
+                .get("/api/models/bi_export")
+                .param("model_name", modelName).param("project", project)
+                .param("export_as", "OTHER").param("element", "AGG_INDEX_COL")
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().is4xxClientError());
+    }
+
+    @Test
+    public void testExport() throws Exception {
+        String modelName = "multi_level_partition";
+        String project = "multi_level_partition";
+        mockMvc.perform(MockMvcRequestBuilders
+                .get("/api/models/multi_level_partition/export")
+                .param("model_name", modelName).param("project", project)
+                .param("export_as", "TABLEAU_ODBC_TDS").param("element", "AGG_INDEX_COL")
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
     }
 }
