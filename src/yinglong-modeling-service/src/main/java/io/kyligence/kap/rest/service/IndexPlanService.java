@@ -127,7 +127,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
     @Autowired
     private AclEvaluate aclEvaluate;
 
-    @Autowired
+    @Autowired(required = false)
     private final List<ModelChangeSupporter> modelChangeSupporters = Lists.newArrayList();
 
     /**

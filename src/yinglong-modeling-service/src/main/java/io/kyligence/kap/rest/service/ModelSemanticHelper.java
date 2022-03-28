@@ -127,7 +127,7 @@ import lombok.extern.slf4j.Slf4j;
 public class ModelSemanticHelper extends BasicService {
 
     @Setter
-    @Autowired
+    @Autowired(required = false)
     private ModelSmartSupporter modelSmartSupporter;
 
     private static final Logger logger = LoggerFactory.getLogger(ModelSemanticHelper.class);

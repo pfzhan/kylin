@@ -134,7 +134,7 @@ public class MetaStoreService extends BasicService {
     public IndexPlanService indexPlanService;
 
     @Setter
-    @Autowired
+    @Autowired(required = false)
     private List<ModelChangeSupporter> modelChangeSupporters = Lists.newArrayList();
 
     public List<ModelPreviewResponse> getPreviewModels(String project, List<String> ids) {

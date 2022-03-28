@@ -136,7 +136,7 @@ public class ServiceTestBase extends NLocalFileMetadataTestCase {
 
     @Configuration
     @ComponentScan("io.kyligence.kap.rest")
-    @ImportResource(locations = {"applicationContext.xml", "kylinSecurity.xml"})
+    @ImportResource(locations = {"classpath:applicationContext.xml", "classpath:kylinSecurity.xml"})
     @EnableAsync
     public static class SpringConfig {
         @Bean

@@ -50,7 +50,7 @@ public class ScheduleService {
     @Autowired
     ProjectService projectService;
 
-    @Autowired
+    @Autowired(required = false)
     ProjectSmartSupporter projectSmartSupporter;
 
     @Scheduled(cron = "${kylin.metadata.ops-cron:0 0 0 * * *}")

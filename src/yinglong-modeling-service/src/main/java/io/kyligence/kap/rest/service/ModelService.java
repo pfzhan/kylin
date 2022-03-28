@@ -290,7 +290,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
     private ModelBuildSupporter modelBuildService;
 
     @Setter
-    @Autowired
+    @Autowired(required = false)
     private List<ModelChangeSupporter> modelChangeSupporters = Lists.newArrayList();
 
     public NDataModel getModelById(String modelId, String project) {
