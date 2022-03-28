@@ -25,7 +25,6 @@
 package io.kyligence.kap.smart;
 
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -134,12 +133,10 @@ public abstract class AbstractContext {
         Set<NDataModel> models = Sets.newHashSet();
         Set<String> tableIdentities = Sets.newHashSet();
         Map<String, Set<NDataModel>> tableToModelsMap = Maps.newHashMap();
-        Map<String, NDataModel> modelViewToModelMap = Maps.newHashMap();
         getAllModels().forEach(model -> {
             if (model.isBroken()) {
                 return;
             }
-            modelViewToModelMap.put((model.getProject() + "." + model.getAlias()).toUpperCase(Locale.ROOT), model);
             for (TableRef tableRef : model.getAllTables()) {
                 tableToModelsMap.putIfAbsent(tableRef.getTableIdentity(), Sets.newHashSet());
                 tableToModelsMap.get(tableRef.getTableIdentity()).add(model);
@@ -156,9 +153,7 @@ public abstract class AbstractContext {
         // related tables from sql + related tables from baseModels
         Preconditions.checkNotNull(sqlArray);
         for (String sql : sqlArray) {
-            Set<NDataModel> modelViewRelatedModelSet = Sets.newHashSet();
-            Set<String> sqlRelatedTableIdentities = extractTablesAndModelViewRelatedModel(sql, allTableMap, modelViewToModelMap, modelViewRelatedModelSet);
-            models.addAll(modelViewRelatedModelSet);
+            Set<String> sqlRelatedTableIdentities = extractTables(sql, allTableMap);
             tableIdentities.addAll(sqlRelatedTableIdentities);
             sqlRelatedTableIdentities.forEach(tableIdentity -> {
                 Set<NDataModel> relatedModels = tableToModelsMap.getOrDefault(tableIdentity, Sets.newHashSet());
@@ -186,8 +181,7 @@ public abstract class AbstractContext {
         return tableNameMap;
     }
 
-    private Set<String> extractTablesAndModelViewRelatedModel(String sql, Map<String, Set<String>> tableNameMap,
-                                                              Map<String, NDataModel> modelViewToModelMap, Set<NDataModel> modelViewRelatedModelSet) {
+    private Set<String> extractTables(String sql, Map<String, Set<String>> tableNameMap) {
         String normalizedSql = QueryUtil.normalizeForTableDetecting(project, sql);
         Set<String> allRelatedTables = Sets.newHashSet();
         try {
@@ -195,11 +189,6 @@ public abstract class AbstractContext {
             allSqlIdentifier.forEach(id -> {
                 Set<String> orDefault = tableNameMap.getOrDefault(id.toString(), Sets.newHashSet());
                 allRelatedTables.addAll(orDefault);
-                if (modelViewToModelMap.containsKey(id.toString())) {
-                    NDataModel model = modelViewToModelMap.get(id.toString());
-                    modelViewRelatedModelSet.add(model);
-                    model.getAllTables().forEach(tableRef -> allRelatedTables.add(tableRef.getTableIdentity()));
-                }
             });
         } catch (SqlParseException e) {
             log.info("extract error, sql is: {}", sql, e);

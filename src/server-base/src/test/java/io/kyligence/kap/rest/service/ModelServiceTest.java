@@ -2673,28 +2673,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
-    public void testOptimizedModelWithModelViewSql() {
-        String project = "newten";
-        val projectMgr = NProjectManager.getInstance(getTestConfig());
-        projectMgr.updateProject(project,
-                copyForWrite -> copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN));
-        String sql1 = "select test_order.order_id,buyer_id from test_order group by test_order.order_id,buyer_id";
-        val request = smartRequest(project, sql1);
-        request.setForce2CreateNewModel(false);
-        OpenAccSqlResponse normalResponse = modelSmartService.suggestAndOptimizeModels(request);
-        Assert.assertEquals(1, normalResponse.getCreatedModels().size());
-
-        // use model view sql, can suggest optimized model
-        KylinConfig.getInstanceFromEnv().setProperty("kylin.query.auto-model-view-enabled", "true");
-        String sql2 = String.format("select order_id from %s.%s group by order_id", project,
-                normalResponse.getCreatedModels().get(0).getAlias());
-        val request2 = smartRequest(project, sql2);
-        request2.setForce2CreateNewModel(false);
-        normalResponse = modelSmartService.suggestAndOptimizeModels(request2);
-        Assert.assertEquals(1, normalResponse.getOptimizedModels().size());
-    }
-
-    @Test
     public void testOptimizeModelWithProposingJoin() {
         String project = "newten";
         NProjectManager projectMgr = NProjectManager.getInstance(getTestConfig());
