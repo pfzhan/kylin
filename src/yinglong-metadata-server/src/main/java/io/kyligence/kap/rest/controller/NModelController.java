@@ -77,6 +77,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.exception.LookupTableException;
 import io.kyligence.kap.rest.constant.ModelAttributeEnum;
 import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
@@ -112,8 +113,8 @@ import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.tool.bisync.BISyncModel;
 import io.kyligence.kap.tool.bisync.SyncContext;
 import io.swagger.annotations.ApiOperation;
-import lombok.extern.log4j.Log4j;
 import lombok.val;
+import lombok.extern.log4j.Log4j;
 
 @Log4j
 @Controller
@@ -375,7 +376,6 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, modelService.getTableIndices(modelId, project), "");
     }
 
-
     @ApiOperation(value = "getModelJson", tags = { "AI" }, notes = "Update URL: {model}")
     @GetMapping(value = "/{model:.+}/json")
     @ResponseBody
@@ -551,7 +551,8 @@ public class NModelController extends NBasicController {
     }
 
     @ApiOperation(value = "updateModelStatus", tags = { "AI" }, notes = "Update Body: model_id, new_model_name")
-    @PutMapping(value = "/{model:.+}/status", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
+    @PutMapping(value = "/{model:.+}/status", produces = { HTTP_VND_APACHE_KYLIN_JSON,
+            HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     public EnvelopeResponse<String> updateModelStatus(@PathVariable("model") String modelId,
             @RequestBody ModelUpdateRequest modelRenameRequest) {
@@ -720,51 +721,36 @@ public class NModelController extends NBasicController {
 
         BISyncModel syncModel = modelService.exportModel(projectName, modelId, exportAs, element, host, port);
 
-        dumpSyncModel(modelId, exportAs, response, projectName, syncModel);
+        dumpSyncModel(modelId, exportAs, projectName, syncModel, response);
     }
 
     @ApiOperation(value = "biExport", tags = { "QE" })
     @GetMapping(value = "/bi_export")
     @ResponseBody
     public void biExport(@RequestParam("model") String modelId, @RequestParam(value = "project") String project,
-                            @RequestParam(value = "export_as") SyncContext.BI exportAs,
-                            @RequestParam(value = "element", required = false, defaultValue = "AGG_INDEX_COL") SyncContext.ModelElement element,
-                            @RequestParam(value = "server_host", required = false) String serverHost,
-                            @RequestParam(value = "server_port", required = false) Integer serverPort, HttpServletRequest request,
-                            HttpServletResponse response) throws IOException {
+            @RequestParam(value = "export_as") SyncContext.BI exportAs,
+            @RequestParam(value = "element", required = false, defaultValue = "AGG_INDEX_COL") SyncContext.ModelElement element,
+            @RequestParam(value = "server_host", required = false) String serverHost,
+            @RequestParam(value = "server_port", required = false) Integer serverPort, HttpServletRequest request,
+            HttpServletResponse response) throws IOException {
         String projectName = checkProjectName(project);
 
         String host = getHost(serverHost, request.getServerName());
         Integer port = getPort(serverPort, request.getServerPort());
 
-        BISyncModel syncModel;
+        BISyncModel syncModel = AclPermissionUtil.isAdmin()
+                ? modelService.exportModel(projectName, modelId, exportAs, element, host, port)
+                : modelService.biExportCustomModel(projectName, modelId, exportAs, element, host, port);
 
-        if (AclPermissionUtil.isAdmin()) {
-            syncModel = modelService.exportModel(projectName, modelId, exportAs, element, host, port);
-        } else {
-            syncModel = modelService.exportCustomModel(projectName, modelId, exportAs, element, host, port);
-        }
-
-        dumpSyncModel(modelId, exportAs, response, projectName, syncModel);
+        dumpSyncModel(modelId, exportAs, projectName, syncModel, response);
     }
 
-    private String getHost(String serverHost, String serverName) {
-        String host = KylinConfig.getInstanceFromEnv().getModelExportHost();
-        host = Optional.ofNullable(Optional.ofNullable(host).orElse(serverHost)).orElse(serverName);
-        return host;
-    }
-
-    private Integer getPort(Integer serverPort, Integer requestServerPort) {
-        Integer port = KylinConfig.getInstanceFromEnv().getModelExportPort() == -1 ? null
-                : KylinConfig.getInstanceFromEnv().getModelExportPort();
-        port = Optional.ofNullable(Optional.ofNullable(port).orElse(serverPort)).orElse(requestServerPort);
-        return port;
-    }
-
-    private void dumpSyncModel(String modelId, SyncContext.BI exportAs,
-                               HttpServletResponse response, String projectName, BISyncModel syncModel) throws IOException {
-        String fileName = String.format(Locale.ROOT, "%s_%s_%s", projectName,
-                modelService.getModelById(modelId, projectName).getAlias(),
+    private void dumpSyncModel(String modelId, SyncContext.BI exportAs, String projectName, BISyncModel syncModel,
+            HttpServletResponse response) throws IOException {
+        NDataModelManager manager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), projectName);
+        NDataModel dataModel = manager.getDataModelDesc(modelId);
+        String alias = dataModel.getAlias();
+        String fileName = String.format(Locale.ROOT, "%s_%s_%s", projectName, alias,
                 new SimpleDateFormat("yyyyMMddHHmmss", Locale.getDefault(Locale.Category.FORMAT)).format(new Date()));
         switch (exportAs) {
         case TABLEAU_CONNECTOR_TDS:
@@ -779,6 +765,19 @@ public class NModelController extends NBasicController {
         syncModel.dump(response.getOutputStream());
         response.getOutputStream().flush();
         response.getOutputStream().close();
+    }
+
+    private String getHost(String serverHost, String serverName) {
+        String host = KylinConfig.getInstanceFromEnv().getModelExportHost();
+        host = Optional.ofNullable(Optional.ofNullable(host).orElse(serverHost)).orElse(serverName);
+        return host;
+    }
+
+    private Integer getPort(Integer serverPort, Integer requestServerPort) {
+        Integer port = KylinConfig.getInstanceFromEnv().getModelExportPort() == -1 ? null
+                : KylinConfig.getInstanceFromEnv().getModelExportPort();
+        port = Optional.ofNullable(Optional.ofNullable(port).orElse(serverPort)).orElse(requestServerPort);
+        return port;
     }
 
     @ApiOperation(value = "updateMultiPartitionMapping", tags = { "QE" }, notes = "Add URL: {model}")

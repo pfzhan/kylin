@@ -28,10 +28,10 @@ import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLI
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
-import io.kyligence.kap.tool.bisync.SyncContext;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -82,6 +82,7 @@ import io.kyligence.kap.rest.service.FusionIndexService;
 import io.kyligence.kap.rest.service.FusionModelService;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.RawRecService;
+import io.kyligence.kap.tool.bisync.SyncContext;
 import lombok.val;
 
 public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
@@ -475,31 +476,13 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
     public void testOpenAPIBIExport() throws Exception {
         String modelName = "multi_level_partition";
         String project = "multi_level_partition";
-        mockMvc.perform(MockMvcRequestBuilders
-                .get("/api/models/bi_export")
-                .param("model_name", modelName).param("project", project)
-                .param("export_as", "TABLEAU_ODBC_TDS").param("element", "AGG_INDEX_COL")
-                .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-
-        mockMvc.perform(MockMvcRequestBuilders
-                .get("/api/models/bi_export")
-                .param("model_name", modelName).param("project", project)
-                .param("export_as", "OTHER").param("element", "AGG_INDEX_COL")
-                .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().is4xxClientError());
-    }
-
-    @Test
-    public void testExport() throws Exception {
-        String modelName = "multi_level_partition";
-        String project = "multi_level_partition";
-        mockMvc.perform(MockMvcRequestBuilders
-                .get("/api/models/multi_level_partition/export")
-                .param("model_name", modelName).param("project", project)
-                .param("export_as", "TABLEAU_ODBC_TDS").param("element", "AGG_INDEX_COL")
+        String modelId = "747f864b-9721-4b97-acde-0aa8e8656cba";
+        mockGetModelName(modelName, project, modelId);
+        Mockito.doReturn(null).when(modelService).exportCustomModel("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa",
+                SyncContext.BI.TABLEAU_CONNECTOR_TDS, SyncContext.ModelElement.AGG_INDEX_COL, "localhost", 8080,
+                Collections.singleton("g1"));
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/bi_export").param("model_name", modelName)
+                .param("project", project).param("export_as", "TABLEAU_ODBC_TDS").param("element", "AGG_INDEX_COL")
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());

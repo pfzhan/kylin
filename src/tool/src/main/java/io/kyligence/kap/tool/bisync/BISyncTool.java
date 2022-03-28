@@ -24,10 +24,10 @@
 
 package io.kyligence.kap.tool.bisync;
 
+import java.util.Set;
+
 import io.kyligence.kap.tool.bisync.model.SyncModel;
 import io.kyligence.kap.tool.bisync.tableau.TableauDataSourceConverter;
-
-import java.util.Set;
 
 public class BISyncTool {
 
@@ -38,18 +38,18 @@ public class BISyncTool {
 
     private static BISyncModel getBISyncModel(SyncContext syncContext, SyncModel syncModel) {
         switch (syncContext.getTargetBI()) {
-            case TABLEAU_ODBC_TDS:
-            case TABLEAU_CONNECTOR_TDS:
-                return new TableauDataSourceConverter().convert(syncModel, syncContext);
-            default:
-                throw new IllegalArgumentException();
+        case TABLEAU_ODBC_TDS:
+        case TABLEAU_CONNECTOR_TDS:
+            return new TableauDataSourceConverter().convert(syncModel, syncContext);
+        default:
+            throw new IllegalArgumentException();
         }
     }
 
-    public static BISyncModel dumpHasPermissionToBISyncModel(SyncContext syncContext,
-                                                             Set<String> authTables, Set<String> authColumns) {
-        SyncModel syncModel = new SyncModelBuilder(syncContext)
-                .buildHasPermissionSourceSyncModel(authTables, authColumns);
+    public static BISyncModel dumpHasPermissionToBISyncModel(SyncContext syncContext, Set<String> authTables,
+            Set<String> authColumns) {
+        SyncModel syncModel = new SyncModelBuilder(syncContext).buildHasPermissionSourceSyncModel(authTables,
+                authColumns);
         return getBISyncModel(syncContext, syncModel);
     }
 }

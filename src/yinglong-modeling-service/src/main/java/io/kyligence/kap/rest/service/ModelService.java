@@ -840,7 +840,6 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         NDataModelResponse nDataModelResponse = modelDesc.isFusionModel() ? new FusionModelResponse(modelDesc)
                 : new NDataModelResponse(modelDesc);
 
-
         if (modelDesc.isBroken()) {
             val tableManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), projectName);
             if (tableManager.getTableDesc(modelDesc.getRootFactTableName()) == null) {
@@ -3821,6 +3820,12 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                 : dataModelDesc.getPartitionDesc().getPartitionDateFormat();
     }
 
+    public BISyncModel biExportCustomModel(String projectName, String modelId, SyncContext.BI targetBI,
+            SyncContext.ModelElement modelElement, String host, int port) {
+        Set<String> groups = getCurrentUserGroups();
+        return exportCustomModel(projectName, modelId, targetBI, modelElement, host, port, groups);
+    }
+
     public BISyncModel exportModel(String projectName, String modelId, SyncContext.BI targetBI,
             SyncContext.ModelElement modelElement, String host, int port) {
         NDataflow dataflow = getDataflowManager(projectName).getDataflow(modelId);
@@ -3837,14 +3842,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
     }
 
     public BISyncModel exportCustomModel(String projectName, String modelId, SyncContext.BI targetBI,
-                                         SyncContext.ModelElement modelElement, String host, int port) {
-        Set<String> groups = getCurrentUserGroups();
-        return exportCustomModel(projectName, modelId, targetBI, modelElement, host, port, groups);
-    }
-
-    public BISyncModel exportCustomModel(String projectName, String modelId, SyncContext.BI targetBI,
-                                         SyncContext.ModelElement modelElement, String host, int port,
-                                         Set<String> groups) {
+            SyncContext.ModelElement modelElement, String host, int port, Set<String> groups) {
         String currentUserName = aclEvaluate.getCurrentUserName();
         NDataflow dataflow = getDataflowManager(projectName).getDataflow(modelId);
         if (dataflow.getStatus() == RealizationStatusEnum.BROKEN) {
@@ -3860,7 +3858,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         return BISyncTool.dumpHasPermissionToBISyncModel(syncContext, authTables, authColumns);
     }
 
-    private SyncContext getSyncContext(String projectName, String modelId, SyncContext.BI targetBI, SyncContext.ModelElement modelElement, String host, int port) {
+    private SyncContext getSyncContext(String projectName, String modelId, SyncContext.BI targetBI,
+            SyncContext.ModelElement modelElement, String host, int port) {
         SyncContext syncContext = new SyncContext();
         syncContext.setProjectName(projectName);
         syncContext.setModelId(modelId);
@@ -3880,16 +3879,22 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         aclEvaluate.checkProjectReadPermission(project);
 
         NDataModel model = getDataModelManager(project).getDataModelDesc(modeId);
-        Set<TableRef> tables = model.getAllTables();
-        for (TableRef ref : tables) {
-            Collection<TblColRef> columns = ref.getColumns();
-            long count = columns.stream().map(TblColRef::getCanonicalName)
-                    .collect(Collectors.toSet()).stream().filter(authColumns::contains).count();
-            if (count == 0) {
-                throw new KylinException(ServerErrorCode.INVALID_TABLE_AUTH,
-                        MsgPicker.getMsg().getTABLE_NO_COLUMNS_PERMISSION());
-            }
+        long jointCount = model.getJoinTables().stream()
+                .filter(table -> authColumns
+                        .containsAll(Arrays.stream(table.getJoin().getPrimaryKeyColumns())
+                                .map(TblColRef::getCanonicalName).collect(Collectors.toSet()))
+                        && authColumns.containsAll(Arrays.stream(table.getJoin().getForeignKeyColumns())
+                                .map(TblColRef::getCanonicalName).collect(Collectors.toSet())))
+                .count();
+        long singleTableCount = model.getAllTables().stream().filter(ref -> ref.getColumns().stream()
+                .map(TblColRef::getCanonicalName).collect(Collectors.toSet()).stream().anyMatch(authColumns::contains))
+                .count();
+
+        if (jointCount != model.getJoinTables().size() || singleTableCount == 0) {
+            throw new KylinException(ServerErrorCode.INVALID_TABLE_AUTH,
+                    MsgPicker.getMsg().getTABLE_NO_COLUMNS_PERMISSION());
         }
+
     }
 
     private Set<String> getAllAuthTables(String project, Set<String> groups, String user) {

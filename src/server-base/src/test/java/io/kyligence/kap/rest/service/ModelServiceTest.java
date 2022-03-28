@@ -70,11 +70,6 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import com.google.common.base.Charsets;
-import com.google.common.io.CharStreams;
-import io.kyligence.kap.rest.response.OpenModelRecResponse;
-import io.kyligence.kap.tool.bisync.SyncContext;
-import io.kyligence.kap.tool.bisync.tableau.TableauDatasourceModel;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
@@ -146,9 +141,11 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.google.common.base.Charsets;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.google.common.io.CharStreams;
 import com.google.common.primitives.Longs;
 
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
@@ -233,6 +230,7 @@ import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.NModelDescResponse;
 import io.kyligence.kap.rest.response.OpenAccSqlResponse;
+import io.kyligence.kap.rest.response.OpenModelRecResponse;
 import io.kyligence.kap.rest.response.OpenSuggestionResponse;
 import io.kyligence.kap.rest.response.ParameterResponse;
 import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
@@ -256,6 +254,8 @@ import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
 import io.kyligence.kap.streaming.jobs.StreamingJobListener;
 import io.kyligence.kap.streaming.manager.StreamingJobManager;
+import io.kyligence.kap.tool.bisync.SyncContext;
+import io.kyligence.kap.tool.bisync.tableau.TableauDatasourceModel;
 import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
@@ -7184,16 +7184,16 @@ public class ModelServiceTest extends CSVSourceTestCase {
         prepareBasic(project);
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("u1", "ANALYST", Constant.ROLE_ANALYST));
-        TableauDatasourceModel datasource_all_cols = (TableauDatasourceModel) modelService.exportCustomModel(project, modelId,
-                SyncContext.BI.TABLEAU_CONNECTOR_TDS, SyncContext.ModelElement.ALL_COLS,
-                "localhost", 8080, groups);
+        TableauDatasourceModel datasource_all_cols = (TableauDatasourceModel) modelService.exportCustomModel(project,
+                modelId, SyncContext.BI.TABLEAU_CONNECTOR_TDS, SyncContext.ModelElement.ALL_COLS, "localhost", 8080,
+                groups);
         ByteArrayOutputStream outStream1 = new ByteArrayOutputStream();
         datasource_all_cols.dump(outStream1);
         Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector_permission.tds"),
                 outStream1.toString(Charset.defaultCharset().name()));
 
-        TableauDatasourceModel datasource_agg_index_col = (TableauDatasourceModel) modelService.exportCustomModel(project, modelId,
-                SyncContext.BI.TABLEAU_CONNECTOR_TDS, SyncContext.ModelElement.AGG_INDEX_COL,
+        TableauDatasourceModel datasource_agg_index_col = (TableauDatasourceModel) modelService.exportCustomModel(
+                project, modelId, SyncContext.BI.TABLEAU_CONNECTOR_TDS, SyncContext.ModelElement.AGG_INDEX_COL,
                 "localhost", 8080, groups);
         ByteArrayOutputStream outStream2 = new ByteArrayOutputStream();
         datasource_agg_index_col.dump(outStream2);
@@ -7210,20 +7210,16 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
-    public void testTableNotHasPermissionColumn() throws Exception {
-        Set<String> groups = new HashSet<>();
-        groups.add("g1");
+    public void testExportModel() throws Exception {
         val project = "default";
         val modelId = "cb596712-3a09-46f8-aea1-988b43fe9b6c";
         prepareBasic(project);
-        SecurityContextHolder.getContext()
-                .setAuthentication(new TestingAuthenticationToken("u1", "ANALYST", Constant.ROLE_ANALYST));
-        TableauDatasourceModel datasource1 = (TableauDatasourceModel) modelService.exportCustomModel(project, modelId,
+        TableauDatasourceModel datasource1 = (TableauDatasourceModel) modelService.exportModel(project, modelId,
                 SyncContext.BI.TABLEAU_CONNECTOR_TDS, SyncContext.ModelElement.AGG_INDEX_AND_TABLE_INDEX_COL,
-                "localhost", 8080, groups);
+                "localhost", 8080);
         ByteArrayOutputStream outStream4 = new ByteArrayOutputStream();
         datasource1.dump(outStream4);
-        Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector_permission.tds"),
+        Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector.tds"),
                 outStream4.toString(Charset.defaultCharset().name()));
     }
 
@@ -7243,7 +7239,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         AclTCR.ColumnRow u1cr2 = new AclTCR.ColumnRow();
         AclTCR.Column u1c2 = new AclTCR.Column();
-        u1c2.addAll(Arrays.asList("NAME1", "NAME2", "NAME3"));
+        u1c2.addAll(Arrays.asList("ID1", "NAME1", "NAME2", "NAME3"));
         u1cr2.setColumn(u1c2);
         u1t1.put("DEFAULT.TEST_MEASURE", u1cr1);
         u1t1.put("DEFAULT.TEST_MEASURE1", u1cr2);
