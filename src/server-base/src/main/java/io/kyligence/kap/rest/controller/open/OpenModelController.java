@@ -112,8 +112,8 @@ import io.kyligence.kap.rest.response.SegmentPartitionResponse;
 import io.kyligence.kap.rest.service.FavoriteRuleService;
 import io.kyligence.kap.rest.service.FusionIndexService;
 import io.kyligence.kap.rest.service.FusionModelService;
-import io.kyligence.kap.rest.service.ModelSmartService;
 import io.kyligence.kap.rest.service.ModelService;
+import io.kyligence.kap.rest.service.ModelSmartService;
 import io.kyligence.kap.rest.service.OptRecService;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.common.AccelerateInfo;
@@ -567,7 +567,7 @@ public class OpenModelController extends NBasicController {
     }
 
     @ApiOperation(value = "/accelerateSql", tags = { "AI" })
-    @PostMapping(value = {"/accelerate_sqls", "/sql_acceleration"})
+    @PostMapping(value = { "/accelerate_sqls", "/sql_acceleration" })
     @ResponseBody
     public EnvelopeResponse<OpenAccSqlResponse> accelerateSqls(@RequestBody OpenSqlAccelerateRequest request) {
         String projectName = checkProjectName(request.getProject());
@@ -576,7 +576,8 @@ public class OpenModelController extends NBasicController {
         request.setForce2CreateNewModel(false);
         request.setWithOptimalModel(true);
         checkProjectNotSemiAuto(request.getProject());
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, modelSmartService.suggestAndOptimizeModels(request), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, modelSmartService.suggestAndOptimizeModels(request),
+                "");
     }
 
     @ApiOperation(value = "suggestModels", tags = { "AI" })
@@ -589,7 +590,8 @@ public class OpenModelController extends NBasicController {
         checkProjectNotSemiAuto(request.getProject());
         request.setForce2CreateNewModel(true);
         request.setAcceptRecommendation(true);
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, modelSmartService.suggestOrOptimizeModels(request), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, modelSmartService.suggestOrOptimizeModels(request),
+                "");
     }
 
     @ApiOperation(value = "optimizeModels", tags = { "AI" })
@@ -602,7 +604,8 @@ public class OpenModelController extends NBasicController {
         checkProjectNotSemiAuto(request.getProject());
         checkNotEmpty(request.getSqls());
         request.setForce2CreateNewModel(false);
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, modelSmartService.suggestOrOptimizeModels(request), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, modelSmartService.suggestOrOptimizeModels(request),
+                "");
     }
 
     @ApiOperation(value = "deleteModel", tags = { "AI" })
@@ -724,12 +727,12 @@ public class OpenModelController extends NBasicController {
     @ApiOperation(value = "bi export", tags = { "QE" })
     @GetMapping(value = "/bi_export")
     @ResponseBody
-    public void biExport(@RequestParam("model_name") String modelAlias,
-                            @RequestParam(value = "project") String project, @RequestParam(value = "export_as") SyncContext.BI exportAs,
-                            @RequestParam(value = "element", required = false, defaultValue = "AGG_INDEX_COL") SyncContext.ModelElement element,
-                            @RequestParam(value = "server_host", required = false) String host,
-                            @RequestParam(value = "server_port", required = false) Integer port, HttpServletRequest request,
-                            HttpServletResponse response) throws IOException {
+    public void biExport(@RequestParam("model_name") String modelAlias, @RequestParam(value = "project") String project,
+            @RequestParam(value = "export_as") SyncContext.BI exportAs,
+            @RequestParam(value = "element", required = false, defaultValue = "AGG_INDEX_COL") SyncContext.ModelElement element,
+            @RequestParam(value = "server_host", required = false) String host,
+            @RequestParam(value = "server_port", required = false) Integer port, HttpServletRequest request,
+            HttpServletResponse response) throws IOException {
         String projectName = checkProjectName(project);
         String modelId = getModel(modelAlias, projectName).getId();
         modelController.biExport(modelId, projectName, exportAs, element, host, port, request, response);

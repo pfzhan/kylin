@@ -66,7 +66,9 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.model.MultiPartitionDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.rest.constant.ModelAttributeEnum;
 import io.kyligence.kap.rest.request.BuildIndexRequest;
@@ -80,6 +82,7 @@ import io.kyligence.kap.rest.request.ModelUpdateRequest;
 import io.kyligence.kap.rest.request.ModelValidationRequest;
 import io.kyligence.kap.rest.request.MultiPartitionMappingRequest;
 import io.kyligence.kap.rest.request.OwnerChangeRequest;
+import io.kyligence.kap.rest.request.PartitionColumnRequest;
 import io.kyligence.kap.rest.request.PartitionsBuildRequest;
 import io.kyligence.kap.rest.request.PartitionsRefreshRequest;
 import io.kyligence.kap.rest.request.SegmentFixRequest;
@@ -102,6 +105,9 @@ import io.kyligence.kap.rest.service.ModelSmartService;
 import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
 import io.kyligence.kap.rest.service.params.MergeSegmentParams;
 import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
+import io.kyligence.kap.tool.bisync.BISyncModel;
+import io.kyligence.kap.tool.bisync.BISyncTool;
+import io.kyligence.kap.tool.bisync.SyncContext;
 import lombok.val;
 
 public class NModelControllerTest extends NLocalFileMetadataTestCase {
@@ -1037,6 +1043,119 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .delete("/api/models/{model}/multi_partition/sub_partition_values",
                         "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                 .param("project", "default").param("ids", new String[] { "1", "2" })
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+    }
+
+    @Test
+    public void testListMultiPartitionModel() throws Exception {
+        String project = "default";
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/name/multi_partition").param("project", project)
+                .param("non_offline", "true").contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+    }
+
+    @Test
+    public void testGetLatestData() throws Exception {
+        String modelName = "multi_level_partition";
+        String modelId = "747f864b-9721-4b97-acde-0aa8e8656cba";
+        PartitionColumnRequest request = new PartitionColumnRequest();
+        request.setMultiPartitionDesc(new MultiPartitionDesc());
+        request.setProject("multi_level_partition");
+        Mockito.doReturn(null).when(nModelController).getPartitionLatestData(modelId, request);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/{model}/data_range/latest_data", modelName)
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+    }
+
+    @Test
+    public void testGetAggIndicesShardColumns() throws Exception {
+        String project = "default";
+        String modelId = "747f864b-9721-4b97-acde-0aa8e8656cba";
+        PartitionColumnRequest request = new PartitionColumnRequest();
+        request.setMultiPartitionDesc(new MultiPartitionDesc());
+        request.setProject("multi_level_partition");
+        Mockito.doReturn(null).when(nModelController).getAggIndicesShardColumns(modelId, project);
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/{model}/agg_indices/shard_columns", modelId)
+                .contentType(MediaType.APPLICATION_JSON).param("project", project)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+    }
+
+    @Test
+    public void testBIExportByNormalUser() throws Exception {
+        String project = "default";
+        String modelName = "741ca86a-1f13-46da-a59f-95fb68615e3a";
+        SecurityContextHolder.getContext()
+                .setAuthentication(new TestingAuthenticationToken("u1", "ANALYST", Constant.ROLE_ANALYST));
+        SyncContext syncContext = new SyncContext();
+        syncContext.setProjectName(project);
+        syncContext.setModelId(modelName);
+        syncContext.setTargetBI(SyncContext.BI.TABLEAU_CONNECTOR_TDS);
+        syncContext.setModelElement(SyncContext.ModelElement.AGG_INDEX_AND_TABLE_INDEX_COL);
+        syncContext.setHost("localhost");
+        syncContext.setPort(8080);
+        syncContext.setDataflow(NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelName));
+        syncContext.setKylinConfig(getTestConfig());
+        BISyncModel syncModel = BISyncTool.dumpToBISyncModel(syncContext);
+        Mockito.doReturn(syncModel).when(modelService).biExportCustomModel(project, modelName,
+                SyncContext.BI.TABLEAU_CONNECTOR_TDS, SyncContext.ModelElement.AGG_INDEX_AND_TABLE_INDEX_COL,
+                "localhost", 8080);
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/bi_export").param("model", modelName)
+                .param("project", project).param("export_as", "TABLEAU_CONNECTOR_TDS")
+                .param("element", "AGG_INDEX_AND_TABLE_INDEX_COL").param("server_host", "localhost")
+                .param("server_port", "8080").contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+    }
+
+    @Test
+    public void testBIExportByADMIN() throws Exception {
+        String project = "default";
+        String modelName = "741ca86a-1f13-46da-a59f-95fb68615e3a";
+        SyncContext syncContext = new SyncContext();
+        syncContext.setProjectName(project);
+        syncContext.setModelId(modelName);
+        syncContext.setTargetBI(SyncContext.BI.TABLEAU_CONNECTOR_TDS);
+        syncContext.setModelElement(SyncContext.ModelElement.AGG_INDEX_AND_TABLE_INDEX_COL);
+        syncContext.setHost("localhost");
+        syncContext.setPort(8080);
+        syncContext.setDataflow(NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelName));
+        syncContext.setKylinConfig(getTestConfig());
+        BISyncModel syncModel = BISyncTool.dumpToBISyncModel(syncContext);
+        Mockito.doReturn(syncModel).when(modelService).exportModel(project, modelName,
+                SyncContext.BI.TABLEAU_CONNECTOR_TDS, SyncContext.ModelElement.AGG_INDEX_AND_TABLE_INDEX_COL,
+                "localhost", 8080);
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/bi_export").param("model", modelName)
+                .param("project", project).param("export_as", "TABLEAU_CONNECTOR_TDS")
+                .param("element", "AGG_INDEX_AND_TABLE_INDEX_COL").param("server_host", "localhost")
+                .param("server_port", "8080").contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+    }
+
+    @Test
+    public void testExport() throws Exception {
+        String project = "default";
+        String modelName = "741ca86a-1f13-46da-a59f-95fb68615e3a";
+        SyncContext syncContext = new SyncContext();
+        syncContext.setProjectName(project);
+        syncContext.setModelId(modelName);
+        syncContext.setTargetBI(SyncContext.BI.TABLEAU_CONNECTOR_TDS);
+        syncContext.setModelElement(SyncContext.ModelElement.AGG_INDEX_AND_TABLE_INDEX_COL);
+        syncContext.setHost("localhost");
+        syncContext.setPort(8080);
+        syncContext.setDataflow(NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelName));
+        syncContext.setKylinConfig(getTestConfig());
+        BISyncModel syncModel = BISyncTool.dumpToBISyncModel(syncContext);
+        Mockito.doReturn(syncModel).when(modelService).exportModel(project, modelName,
+                SyncContext.BI.TABLEAU_CONNECTOR_TDS, SyncContext.ModelElement.AGG_INDEX_AND_TABLE_INDEX_COL,
+                "localhost", 8080);
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/{model}/export", modelName).param("project", project)
+                .param("export_as", "TABLEAU_CONNECTOR_TDS").param("element", "AGG_INDEX_AND_TABLE_INDEX_COL")
+                .param("server_host", "localhost").param("server_port", "8080").contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
     }

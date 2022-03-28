@@ -101,7 +101,6 @@
       <map key="[ORDER_ID (TEST_ORDER)]" value="[TEST_ORDER].[ORDER_ID]"/>
       <map key="[ITEM_COUNT]" value="[TEST_KYLIN_FACT].[ITEM_COUNT]"/>
       <map key="[TEST_DATE_ENC]" value="[TEST_ORDER].[TEST_DATE_ENC]"/>
-      <map key="[LEAF_CATEG_ID]" value="[TEST_KYLIN_FACT].[LEAF_CATEG_ID]"/>
       <map key="[TEST_TIME_ENC]" value="[TEST_ORDER].[TEST_TIME_ENC]"/>
     </cols>
   </connection>
@@ -112,7 +111,6 @@
   <column caption="ORDER_ID" datatype="integer" name="[ORDER_ID (TEST_ORDER)]" role="dimension" type="ordinal" hidden="true"/>
   <column caption="ITEM_COUNT" datatype="integer" name="[ITEM_COUNT]" role="dimension" type="ordinal" hidden="true"/>
   <column caption="TEST_DATE_ENC" datatype="date" name="[TEST_DATE_ENC]" role="dimension" type="ordinal"/>
-  <column caption="LEAF_CATEG_ID" datatype="integer" name="[LEAF_CATEG_ID]" role="dimension" type="ordinal"/>
   <column caption="TEST_TIME_ENC" datatype="datetime" name="[TEST_TIME_ENC]" role="dimension" type="nominal"/>
   <column caption="TRANS_CNT" datatype="integer" name="[TRANS_CNT]" role="measure" type="quantitative">
     <calculation class="tableau" formula="COUNT(1)"/>
@@ -132,11 +130,7 @@
   <column caption="ITEM_COUNT_MAX" datatype="integer" name="[ITEM_COUNT_MAX]" role="measure" type="quantitative">
     <calculation class="tableau" formula="MAX([ITEM_COUNT])"/>
   </column>
-  <drill-paths>
-    <drill-path name="[LEAF_CATEG_ID]">
-      <field>[LEAF_CATEG_ID]</field>
-    </drill-path>
-  </drill-paths>
+  <drill-paths/>
   <semantic-values>
     <semantic-value key="[Country].[Name]" value="&quot;美国&quot;"/>
   </semantic-values>

@@ -31,10 +31,10 @@ import static org.mockito.ArgumentMatchers.eq;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
-import io.kyligence.kap.tool.bisync.SyncContext;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -97,15 +97,16 @@ import io.kyligence.kap.rest.response.OpenValidationResponse;
 import io.kyligence.kap.rest.response.SegmentPartitionResponse;
 import io.kyligence.kap.rest.response.SuggestionResponse;
 import io.kyligence.kap.rest.service.FusionIndexService;
-import io.kyligence.kap.rest.service.ModelSmartService;
 import io.kyligence.kap.rest.service.FusionModelService;
 import io.kyligence.kap.rest.service.IndexPlanService;
 import io.kyligence.kap.rest.service.ModelService;
+import io.kyligence.kap.rest.service.ModelSmartService;
 import io.kyligence.kap.rest.service.RawRecService;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.ModelCreateContextOfSemiV2;
 import io.kyligence.kap.smart.ModelReuseContextOfSemiV2;
 import io.kyligence.kap.smart.ModelSelectContextOfSemiV2;
+import io.kyligence.kap.tool.bisync.SyncContext;
 import lombok.val;
 import lombok.var;
 
@@ -619,7 +620,8 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         AbstractContext context = new ModelCreateContextOfSemiV2(getTestConfig(), favoriteRequest.getProject(),
                 sqls.toArray(new String[0]));
         val result = new SuggestionResponse(Lists.newArrayList(), Lists.newArrayList());
-        Mockito.doReturn(context).when(modelSmartService).suggestModel(favoriteRequest.getProject(), sqls, false, false);
+        Mockito.doReturn(context).when(modelSmartService).suggestModel(favoriteRequest.getProject(), sqls, false,
+                false);
         Mockito.doReturn(result).when(modelSmartService).buildModelSuggestionResponse(context);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/model_suggestion")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(favoriteRequest))
@@ -915,13 +917,11 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         String project = "multi_level_partition";
         String modelId = "747f864b-9721-4b97-acde-0aa8e8656cba";
         mockGetModelName(modelName, project, modelId);
-        Mockito.doReturn(null).when(modelService).exportCustomModel("default",
-                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", SyncContext.BI.TABLEAU_CONNECTOR_TDS,
-                SyncContext.ModelElement.AGG_INDEX_COL, "localhost", 8080);
-        mockMvc.perform(MockMvcRequestBuilders
-                .get("/api/models/bi_export")
-                .param("model_name", modelName).param("project", project)
-                .param("export_as", "TABLEAU_ODBC_TDS").param("element", "AGG_INDEX_COL")
+        Mockito.doReturn(null).when(modelService).exportCustomModel("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa",
+                SyncContext.BI.TABLEAU_CONNECTOR_TDS, SyncContext.ModelElement.AGG_INDEX_COL, "localhost", 8080,
+                Collections.singleton("g1"));
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/bi_export").param("model_name", modelName)
+                .param("project", project).param("export_as", "TABLEAU_ODBC_TDS").param("element", "AGG_INDEX_COL")
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
