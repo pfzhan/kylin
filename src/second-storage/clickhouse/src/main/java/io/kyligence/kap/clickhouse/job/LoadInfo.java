@@ -189,6 +189,10 @@ public class LoadInfo {
     public void upsertTableData(TableFlow copied, String database, String table, PartitionType partitionType) {
         copied.upsertTableData(layout, tableData -> {
             Preconditions.checkArgument(tableData.getPartitionType() == partitionType);
+            if (tableData.getLayoutID() != layout.getId()) {
+                return;
+            }
+
             if (oldSegmentId != null) {
                 tableData.removePartitions(tablePartition -> tablePartition.getSegmentId().equals(oldSegmentId));
             }

@@ -448,7 +448,7 @@ public class ClickHouseUtils {
         conf.set("spark.sql.extensions", "io.kyligence.kap.query.SQLPushDownExtensions");
     }
 
-    public static JobParam triggerClickHouseJob(NDataflow df, KylinConfig config) {
+    public static JobParam triggerClickHouseJob(NDataflow df) {
         val segments = new HashSet<>(df.getSegments());
         AbstractJobHandler localHandler = new SecondStorageSegmentLoadJobHandler();
         JobParam jobParam = SecondStorageJobParamUtil.of(df.getProject(), df.getModel().getUuid(), "ADMIN",

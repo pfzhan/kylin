@@ -154,23 +154,40 @@ public class ClickHouseLoad extends AbstractExecutable {
         return new SegmentFileProvider(segmentLayoutRoot);
     }
 
-    private List<LoadInfo> distributeLoad(NDataflow df,
+    private List<LoadInfo> distributeLoad(NDataflow dataFlow,
                                           IndexPlan indexPlan,
                                           TablePlan tablePlan,
                                           String[] nodeNames,
                                           TableFlow tableFlow) {
-        int ckInstances = nodeNames.length;
-        return getSegmentIds() // Equivalent to scala `for comprehension`
-                .stream().flatMap(segId -> getLayoutIds().stream().map(indexPlan::getLayoutEntity)
-                        .filter(SecondStorageUtil::isBaseTableIndex).map(layoutEntity -> {
-                            TableEntity tableEntity = tablePlan.getEntity(layoutEntity).orElse(null);
-                            Preconditions.checkArgument(tableEntity != null);
-                            int shardNumber = Math.min(ckInstances, tableEntity.getShardNumbers());
-                            return LoadInfo.distribute(selectInstances(nodeNames, shardNumber), df.getModel(),
-                                    df.getSegment(segId), getFileProvider(df, segId, layoutEntity.getId()),
-                                    layoutEntity, tableFlow);
-                        }))
-                .collect(Collectors.toList());
+        return getLayoutIds().stream()
+                .map(indexPlan::getLayoutEntity)
+                .filter(SecondStorageUtil::isBaseTableIndex)
+                .flatMap(layoutEntity ->
+                        getSegmentIds().stream()
+                                .filter(segmentId -> filterLoadSegments(segmentId, indexPlan, layoutEntity.getId(), dataFlow))
+                                .map(segmentId ->
+                                        genLoadInfoBySegmentId(segmentId, nodeNames, layoutEntity, tablePlan, dataFlow, tableFlow)
+                                )
+                ).collect(Collectors.toList());
+    }
+
+    private boolean filterLoadSegments(String segmentId, IndexPlan indexPlan, long currentLayoutId, NDataflow dataFlow) {
+        // if index is locked , only need load has build segment
+        if (indexPlan.getBaseTableLayoutId() == currentLayoutId) {
+            return true;
+        }
+
+        return dataFlow.getSegment(segmentId).getLayoutsMap().containsKey(currentLayoutId);
+    }
+
+    private LoadInfo genLoadInfoBySegmentId(String segmentId, String[] nodeNames, LayoutEntity currentLayoutEntity,
+                                            TablePlan tablePlan, NDataflow dataFlow, TableFlow tableFlow) {
+        TableEntity tableEntity = tablePlan.getEntity(currentLayoutEntity).orElse(null);
+        Preconditions.checkArgument(tableEntity != null);
+        int shardNumber = Math.min(nodeNames.length, tableEntity.getShardNumbers());
+        return LoadInfo.distribute(selectInstances(nodeNames, shardNumber), dataFlow.getModel(),
+                dataFlow.getSegment(segmentId), getFileProvider(dataFlow, segmentId, currentLayoutEntity.getId()),
+                currentLayoutEntity, tableFlow);
     }
 
     public static class MethodContext {
