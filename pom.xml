@@ -3052,7 +3052,9 @@
                         <exclude>**/io/kyligence/kap/rest/scheduler/JobSchedulerListenerTest$ModelHandler.class
                         </exclude>
                         <exclude>**/io/kyligence/kap/tool/kerberos/KerberosLoginUtil.class</exclude>
-                        <exclude>**/org/apache/spark/sql/execution/columnar/ColumnarCachedBatchSerializer$FromCachedBatch.class</exclude>
+                        <exclude>
+                            **/org/apache/spark/sql/execution/columnar/ColumnarCachedBatchSerializer$FromCachedBatch.class
+                        </exclude>
                     </excludes>
                     <signaturesFiles>
                         <signaturesFile>${user.dir}/dev-support/forbidden-signatures.txt</signaturesFile>

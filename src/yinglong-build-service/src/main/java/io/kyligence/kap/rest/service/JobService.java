@@ -89,6 +89,7 @@ import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.PagingUtil;
+import io.kyligence.kap.rest.util.SparkHistoryUIUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -133,9 +134,9 @@ import lombok.var;
 @Component("jobService")
 public class JobService extends BasicService implements JobSupporter {
 
-//    @Autowired
-//    @Qualifier("tableExtService")
-//    private TableExtService tableExtService;
+    //    @Autowired
+    //    @Qualifier("tableExtService")
+    //    private TableExtService tableExtService;
 
     @Autowired
     private ProjectService projectService;
@@ -797,8 +798,9 @@ public class JobService extends BasicService implements JobSupporter {
         }
         return result;
     }
-
-    private ExecutableStepResponse parseToExecutableStep(AbstractExecutable task, Output stepOutput,
+    // for ut
+    @VisibleForTesting
+    public ExecutableStepResponse parseToExecutableStep(AbstractExecutable task, Output stepOutput,
             Map<String, String> waiteTimeMap, ExecutableState jobState) {
         ExecutableStepResponse result = new ExecutableStepResponse();
         result.setId(task.getId());
@@ -815,6 +817,11 @@ public class JobService extends BasicService implements JobSupporter {
             if (entry.getKey() != null && entry.getValue() != null) {
                 result.putInfo(entry.getKey(), entry.getValue());
             }
+        }
+        if (KylinConfig.getInstanceFromEnv().isHistoryServerEnable()
+                && result.getInfo().containsKey(ExecutableConstants.YARN_APP_ID)) {
+            result.putInfo(ExecutableConstants.SPARK_HISTORY_APP_URL,
+                    SparkHistoryUIUtil.getHistoryTrackerUrl(result.getInfo().get(ExecutableConstants.YARN_APP_ID)));
         }
         result.setExecStartTime(AbstractExecutable.getStartTime(stepOutput));
         result.setExecEndTime(AbstractExecutable.getEndTime(stepOutput));
