@@ -63,7 +63,7 @@ public class OptRecServiceGeneralTest extends OptRecV2TestBase {
     private final AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
 
     public OptRecServiceGeneralTest() {
-        super("../server-base/src/test/resources/ut_rec_v2/general",
+        super("../yinglong-smart-service/src/test/resources/ut_rec_v2/general",
                 new String[] { "cca38043-5e04-4954-b917-039ba37f159e" });
     }
 

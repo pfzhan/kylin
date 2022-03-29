@@ -58,7 +58,7 @@ public class OptRecServiceAliasConflictTest extends OptRecV2TestBase {
     private final AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
 
     public OptRecServiceAliasConflictTest() {
-        super("../server-base/src/test/resources/ut_rec_v2/cc_name_conflict",
+        super("../yinglong-smart-service/src/test/resources/ut_rec_v2/cc_name_conflict",
                 new String[] { "caa2c0a5-2957-4110-bf2e-d92a7eb7ea97" });
     }
 

@@ -27,6 +27,8 @@ package io.kyligence.kap.rest.service;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
@@ -46,6 +48,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
@@ -59,7 +62,7 @@ import io.kyligence.kap.rest.response.OpenRecApproveResponse;
 import io.kyligence.kap.rest.response.OptRecLayoutsResponse;
 import io.kyligence.kap.rest.service.task.QueryHistoryTaskScheduler;
 
-public class OptRecServiceCompatibleTest extends OptRecV2TestBase {
+public class OptRecServiceIllegalMeasureTest extends OptRecV2TestBase {
 
     OptRecService optRecService = Mockito.spy(new OptRecService());
     ModelService modelService = Mockito.spy(new ModelService());
@@ -96,8 +99,8 @@ public class OptRecServiceCompatibleTest extends OptRecV2TestBase {
         SecurityContextHolder.getContext().setAuthentication(auth);
     }
 
-    public OptRecServiceCompatibleTest() {
-        super("../server-base/src/test/resources/ut_rec_v2/compatible_test",
+    public OptRecServiceIllegalMeasureTest() {
+        super("../yinglong-smart-service/src/test/resources/ut_rec_v2/illegal_measure",
                 new String[] { "13aceef1-d9a1-4ec0-bb8e-b52f7bd3b99b" });
     }
 
@@ -118,8 +121,11 @@ public class OptRecServiceCompatibleTest extends OptRecV2TestBase {
      */
     @Test
     public void testApproveAll() throws IOException {
+        /*
+         * RawRecItem id greater than 22 is generated with TableDesc of `illegal_measure/table/SSB.P_LINEORDER.json`,
+         */
         reloadTable();
-        prepareAllLayoutRecs();
+        prepareAllLayoutRecs(Lists.newArrayList(15, 16, 17, 18, 19, 20, 21, 33, 34, 35, 36, 37, 38, 39));
         NDataModel modelBeforeApprove = getModel();
         Assert.assertEquals(0, modelBeforeApprove.getEffectiveDimensions().size());
         Assert.assertEquals(17, modelBeforeApprove.getAllNamedColumns().size());
@@ -127,7 +133,58 @@ public class OptRecServiceCompatibleTest extends OptRecV2TestBase {
         Assert.assertEquals(0, modelBeforeApprove.getComputedColumnDescs().size());
         Assert.assertEquals(3, modelBeforeApprove.getRecommendationsCount());
         Assert.assertEquals(0, getIndexPlan().getAllLayouts().size());
-        Assert.assertEquals(0, getIndexPlan().getAllLayoutsReadOnly().size());
+        OptRecLayoutsResponse response = optRecService.getOptRecLayoutsResponse(getProject(), getDefaultUUID(), "all");
+        Assert.assertEquals(8, response.getLayouts().size());
+        Set<Integer> brokenRecs = response.getBrokenRecs();
+        Assert.assertEquals(11, brokenRecs.size());
+        List<Integer> collect = brokenRecs.stream().sorted().collect(Collectors.toList());
+        Assert.assertEquals(Lists.newArrayList(4, 5, 8, 13, 14, 15, 16, 18, 19, 20, 21), collect);
+
+        optRecService.updateRecommendationCount(getProject(), getDefaultUUID());
+        Assert.assertEquals(8, getModel().getRecommendationsCount());
+
+        List<RawRecItem> rawRecItems = jdbcRawRecStore.queryAll().stream() //
+                .filter(RawRecItem::isLayoutRec).collect(Collectors.toList());
+        Set<Integer> normalRecIdSet = Sets.newHashSet(33, 34, 35, 36, 37, 38, 39, 17);
+        rawRecItems.forEach(recItem -> {
+            if (normalRecIdSet.contains(recItem.getId())) {
+                Assert.assertEquals(RawRecItem.RawRecState.RECOMMENDED, recItem.getState());
+            } else {
+                Assert.assertEquals(RawRecItem.RawRecState.BROKEN, recItem.getState());
+            }
+        });
+
+        List<OpenRecApproveResponse.RecToIndexResponse> recToIndexResponses = Lists.newArrayList();
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            recToIndexResponses.addAll(optRecService.batchApprove(getProject(), "all"));
+            return 0;
+        }, getProject());
+
+        Assert.assertEquals(1, recToIndexResponses.size());
+        Assert.assertEquals(7, recToIndexResponses.get(0).getAddedIndexes().size());
+
+        NDataModel modelAfterApprove = getModel();
+        Assert.assertEquals(8, modelAfterApprove.getEffectiveDimensions().size());
+        Assert.assertEquals(18, modelAfterApprove.getAllNamedColumns().size());
+        Assert.assertEquals(6, modelAfterApprove.getEffectiveMeasures().size());
+        Assert.assertEquals(1, modelAfterApprove.getComputedColumnDescs().size());
+        Assert.assertEquals(7, getIndexPlan().getAllLayouts().size());
+    }
+
+    @Test
+    public void testChangeColumnOrder() throws IOException {
+        /*
+         * Without reload table, we mocked changing the column order, because RawRecItem with
+         * id less then 22 is generated by table `ssb.p_lineorder`. Even if they will generate
+         * same layout, it works.
+         */
+        prepareAllLayoutRecs(Lists.newArrayList(15, 16, 17, 18, 19, 20, 21, 33, 34, 35, 36, 37, 38, 39));
+        NDataModel modelBeforeApprove = getModel();
+        Assert.assertEquals(0, modelBeforeApprove.getEffectiveDimensions().size());
+        Assert.assertEquals(17, modelBeforeApprove.getAllNamedColumns().size());
+        Assert.assertEquals(1, modelBeforeApprove.getEffectiveMeasures().size());
+        Assert.assertEquals(0, modelBeforeApprove.getComputedColumnDescs().size());
+        Assert.assertEquals(0, getIndexPlan().getAllLayouts().size());
         OptRecLayoutsResponse response = optRecService.getOptRecLayoutsResponse(getProject(), getDefaultUUID(), "all");
         Assert.assertEquals(14, response.getLayouts().size());
         jdbcRawRecStore.queryAll().forEach(rawRecItem -> {
@@ -150,13 +207,50 @@ public class OptRecServiceCompatibleTest extends OptRecV2TestBase {
         Assert.assertEquals(18, modelAfterApprove.getAllNamedColumns().size());
         Assert.assertEquals(6, modelAfterApprove.getEffectiveMeasures().size());
         Assert.assertEquals(1, modelAfterApprove.getComputedColumnDescs().size());
-        Assert.assertEquals(0, modelAfterApprove.getRecommendationsCount());
-        Assert.assertEquals(7, getIndexPlan().getAllLayoutsMap().size());
-        Assert.assertEquals(7, getIndexPlan().getAllLayoutsReadOnly().size());
+        Assert.assertEquals(7, getIndexPlan().getAllLayouts().size());
     }
 
-    private void prepareAllLayoutRecs() throws IOException {
-        prepare(Lists.newArrayList(15, 16, 17, 18, 19, 20, 21, 33, 34, 35, 36, 37, 38, 39));
+    @Test
+    public void testJustApproveNewVersionRawRecItems() throws IOException {
+        prepareAllLayoutRecs(Lists.newArrayList(33, 34, 35, 36, 37, 38, 39));
+        NDataModel modelBeforeApprove = getModel();
+        Assert.assertEquals(0, modelBeforeApprove.getEffectiveDimensions().size());
+        Assert.assertEquals(17, modelBeforeApprove.getAllNamedColumns().size());
+        Assert.assertEquals(1, modelBeforeApprove.getEffectiveMeasures().size());
+        Assert.assertEquals(0, modelBeforeApprove.getComputedColumnDescs().size());
+        Assert.assertEquals(0, getIndexPlan().getAllLayouts().size());
+        OptRecLayoutsResponse response = optRecService.getOptRecLayoutsResponse(getProject(), getDefaultUUID(), "all");
+        Assert.assertEquals(7, response.getLayouts().size());
+        List<RawRecItem> rawRecItems = jdbcRawRecStore.queryAll().stream() //
+                .filter(RawRecItem::isLayoutRec).collect(Collectors.toList());
+        Set<Integer> normalRecIdSet = Sets.newHashSet(33, 34, 35, 36, 37, 38, 39);
+        rawRecItems.forEach(recItem -> {
+            if (normalRecIdSet.contains(recItem.getId())) {
+                Assert.assertEquals(RawRecItem.RawRecState.RECOMMENDED, recItem.getState());
+            } else {
+                Assert.assertEquals(RawRecItem.RawRecState.INITIAL, recItem.getState());
+            }
+        });
+
+        List<OpenRecApproveResponse.RecToIndexResponse> recToIndexResponses = Lists.newArrayList();
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            recToIndexResponses.addAll(optRecService.batchApprove(getProject(), "all"));
+            return 0;
+        }, getProject());
+
+        Assert.assertEquals(1, recToIndexResponses.size());
+        Assert.assertEquals(7, recToIndexResponses.get(0).getAddedIndexes().size());
+
+        NDataModel modelAfterApprove = getModel();
+        Assert.assertEquals(8, modelAfterApprove.getEffectiveDimensions().size());
+        Assert.assertEquals(18, modelAfterApprove.getAllNamedColumns().size());
+        Assert.assertEquals(6, modelAfterApprove.getEffectiveMeasures().size());
+        Assert.assertEquals(1, modelAfterApprove.getComputedColumnDescs().size());
+        Assert.assertEquals(7, getIndexPlan().getAllLayouts().size());
+    }
+
+    private void prepareAllLayoutRecs(List<Integer> layoutRawRecItemIdList) throws IOException {
+        prepare(layoutRawRecItemIdList);
     }
 
     private void prepare(List<Integer> addLayoutId) throws IOException {

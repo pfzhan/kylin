@@ -99,7 +99,7 @@ public class OptRecServiceTest extends OptRecV2TestBase {
     }
 
     public OptRecServiceTest() {
-        super("../server-base/src/test/resources/ut_rec_v2/opt_service",
+        super("../yinglong-smart-service/src/test/resources/ut_rec_v2/opt_service",
                 new String[] { "db89adb4-3aad-4f2a-ac2e-72ea0a30420b" });
     }
 
