@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.service;
 
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -42,7 +43,7 @@ import io.kyligence.kap.metadata.epoch.EpochManager;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class MaintenanceModeServiceTest extends CSVSourceTestCase {
+public class MaintenanceModeServiceTest extends NLocalFileMetadataTestCase {
 
     @InjectMocks
     private MaintenanceModeService maintenanceModeService = Mockito.spy(new MaintenanceModeService());
@@ -58,7 +59,7 @@ public class MaintenanceModeServiceTest extends CSVSourceTestCase {
 
     @Before
     public void setup() {
-        super.setup();
+        createTestMetadata();
         overwriteSystemProp("HADOOP_USER_NAME", "root");
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
         ReflectionTestUtils.setField(maintenanceModeService, "aclEvaluate", aclEvaluate);

@@ -56,7 +56,6 @@ import org.apache.kylin.common.persistence.AclEntity;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.response.AccessEntryResponse;
-import org.apache.kylin.rest.response.SidPermissionWithAclResponse;
 import org.apache.kylin.rest.security.AclEntityType;
 import org.apache.kylin.rest.security.AclPermission;
 import org.apache.kylin.rest.security.AclPermissionFactory;
@@ -102,7 +101,6 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.request.AccessRequest;
-import io.kyligence.kap.rest.service.AclTCRService;
 import io.kyligence.kap.rest.service.ProjectService;
 
 @RunWith(PowerMockRunner.class)
@@ -123,9 +121,6 @@ public class AccessServiceTest extends NLocalFileMetadataTestCase {
 
     @Mock
     UserService userService = Mockito.spy(UserService.class);
-
-    @Mock
-    AclTCRService aclTCRService = Mockito.spy(AclTCRService.class);
 
     @Mock
     AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
@@ -149,11 +144,7 @@ public class AccessServiceTest extends NLocalFileMetadataTestCase {
         Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        ReflectionTestUtils.setField(aclTCRService, "aclEvaluate", aclEvaluate);
-        ReflectionTestUtils.setField(aclTCRService, "accessService", accessService);
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
-        ReflectionTestUtils.setField(aclTCRService, "userService", userService);
-        ReflectionTestUtils.setField(aclTCRService, "userGroupService", userGroupService);
 
         // Init users
         ManagedUser adminUser = new ManagedUser("ADMIN", "KYLIN", false, Arrays.asList(//
@@ -207,17 +198,17 @@ public class AccessServiceTest extends NLocalFileMetadataTestCase {
 
         // test init
         acl = accessService.init(ae, AclPermission.ADMINISTRATION);
-        Assert.assertTrue(((PrincipalSid) acl.getOwner()).getPrincipal().equals("ADMIN"));
-        Assert.assertEquals(accessService.generateAceResponses(acl).size(), 1);
+        Assert.assertEquals("ADMIN", ((PrincipalSid) acl.getOwner()).getPrincipal());
+        Assert.assertEquals(1, accessService.generateAceResponses(acl).size());
         AccessEntryResponse aer = accessService.generateAceResponses(acl).get(0);
-        Assert.assertTrue(aer.getId() != null);
-        Assert.assertTrue(aer.getPermission() == AclPermission.ADMINISTRATION);
-        Assert.assertTrue(((PrincipalSid) aer.getSid()).getPrincipal().equals("ADMIN"));
+        Assert.assertNotNull(aer.getId());
+        Assert.assertSame(AclPermission.ADMINISTRATION, aer.getPermission());
+        Assert.assertEquals("ADMIN", ((PrincipalSid) aer.getSid()).getPrincipal());
 
         // test grant
         Sid modeler = accessService.getSid("MODELER", true);
         acl = accessService.grant(ae, AclPermission.ADMINISTRATION, modeler);
-        Assert.assertEquals(accessService.generateAceResponses(acl).size(), 2);
+        Assert.assertEquals(2, accessService.generateAceResponses(acl).size());
 
         int modelerEntryId = 0;
         for (AccessControlEntry ace : acl.getEntries()) {
@@ -225,21 +216,21 @@ public class AccessServiceTest extends NLocalFileMetadataTestCase {
 
             if (sid.getPrincipal().equals("MODELER")) {
                 modelerEntryId = (Integer) ace.getId();
-                Assert.assertTrue(ace.getPermission() == AclPermission.ADMINISTRATION);
+                Assert.assertSame(AclPermission.ADMINISTRATION, ace.getPermission());
             }
         }
 
         // test update
         acl = accessService.update(ae, modelerEntryId, AclPermission.READ);
 
-        Assert.assertEquals(accessService.generateAceResponses(acl).size(), 2);
+        Assert.assertEquals(2, accessService.generateAceResponses(acl).size());
 
         for (AccessControlEntry ace : acl.getEntries()) {
             PrincipalSid sid = (PrincipalSid) ace.getSid();
 
             if (sid.getPrincipal().equals("MODELER")) {
                 modelerEntryId = (Integer) ace.getId();
-                Assert.assertTrue(ace.getPermission() == AclPermission.READ);
+                Assert.assertSame(AclPermission.READ, ace.getPermission());
             }
         }
 
@@ -252,14 +243,14 @@ public class AccessServiceTest extends NLocalFileMetadataTestCase {
         accessService.inherit(attachedEntity, ae);
 
         attachedEntityAcl = accessService.getAcl(attachedEntity);
-        Assert.assertTrue(attachedEntityAcl.getParentAcl() != null);
-        Assert.assertTrue(
-                attachedEntityAcl.getParentAcl().getObjectIdentity().getIdentifier().equals("test-domain-object"));
-        Assert.assertTrue(attachedEntityAcl.getEntries().size() == 1);
+        Assert.assertNotNull(attachedEntityAcl.getParentAcl());
+        Assert.assertEquals("test-domain-object",
+                attachedEntityAcl.getParentAcl().getObjectIdentity().getIdentifier());
+        Assert.assertEquals(1, attachedEntityAcl.getEntries().size());
 
         // test revoke
         acl = accessService.revoke(ae, modelerEntryId);
-        Assert.assertEquals(accessService.generateAceResponses(acl).size(), 1);
+        Assert.assertEquals(1, accessService.generateAceResponses(acl).size());
 
         // test clean
         accessService.clean(ae, true);
@@ -434,33 +425,6 @@ public class AccessServiceTest extends NLocalFileMetadataTestCase {
     public void testGetGrantedProjectsOfUserOrGroupWithNotExistGroup() throws IOException {
         thrown.expectMessage("Operation failed, group:[nogroup] not exists, please add it first");
         accessService.getGrantedProjectsOfUserOrGroup("nogroup", false);
-    }
-
-    @Test
-    public void testGetUserOrGroupAclPermissions() throws IOException {
-        // test admin user
-        List<String> projects = accessService.getGrantedProjectsOfUserOrGroup("ADMIN", true);
-        Mockito.when(userService.isGlobalAdmin("ADMIN")).thenReturn(true);
-        List<SidPermissionWithAclResponse> responses = accessService.getUserOrGroupAclPermissions(projects, "ADMIN",
-                true);
-        Assert.assertEquals(25, responses.size());
-        Assert.assertTrue(responses.stream().allMatch(response -> "ADMIN".equals(response.getProjectPermission())));
-
-        // test normal group
-        addGroupAndGrantPermission("MANAGEMENT_GROUP", AclPermission.MANAGEMENT);
-        Mockito.when(userGroupService.exists("MANAGEMENT_GROUP")).thenReturn(true);
-        projects = accessService.getGrantedProjectsOfUserOrGroup("MANAGEMENT_GROUP", false);
-        responses = accessService.getUserOrGroupAclPermissions(projects, "MANAGEMENT_GROUP", false);
-        Assert.assertEquals(1, responses.size());
-        Assert.assertEquals("MANAGEMENT", responses.get(0).getProjectPermission());
-
-        // add ANALYST user to a granted normal group
-        addGroupAndGrantPermission("ROLE_ANALYST", AclPermission.OPERATION);
-        Mockito.when(userGroupService.exists("ROLE_ANALYST")).thenReturn(true);
-        userGroupService.modifyGroupUsers("ROLE_ANALYST", Lists.newArrayList("ANALYST"));
-        responses = accessService.getUserOrGroupAclPermissions(projects, "ANALYST", true);
-        Assert.assertEquals(1, responses.size());
-        Assert.assertEquals("OPERATION", responses.get(0).getProjectPermission());
     }
 
     private void addGroupAndGrantPermission(String group, Permission permission) throws IOException {

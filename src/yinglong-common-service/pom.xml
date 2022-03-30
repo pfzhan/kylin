@@ -255,6 +255,12 @@
 
         <!-- test -->
         <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-core-job</artifactId>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>io.kyligence.yinglong</groupId>
             <artifactId>yinglong-systools</artifactId>
             <type>test-jar</type>
@@ -277,7 +283,6 @@
             <groupId>org.mockito</groupId>
             <artifactId>mockito-junit-jupiter</artifactId>
             <scope>test</scope>
-            <version>${mockito.version}</version>
         </dependency>
         <dependency>
             <groupId>org.junit.vintage</groupId>
@@ -307,6 +312,11 @@
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

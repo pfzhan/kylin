@@ -89,7 +89,7 @@ public class MetadataBackupServiceTest extends NLocalFileMetadataTestCase {
         //1.assert there is no metadata dir in root dir before backup,the root dir is junitFolder.getAbsolutePath()
         val rootPath = new Path(kylinConfig.getHdfsWorkingDirectory()).getParent();
         val rootFS = HadoopUtil.getWorkingFileSystem();
-        Assertions.assertThat(rootFS.listStatus(rootPath)).hasSize(0);
+        Assertions.assertThat(rootFS.listStatus(rootPath)).isEmpty();
 
         //2.execute backup()
         metadataBackupService.backupAll();
@@ -156,7 +156,7 @@ public class MetadataBackupServiceTest extends NLocalFileMetadataTestCase {
 
         val rootPath = new Path(kylinConfig.getHdfsWorkingDirectory()).getParent();
         val rootFS = HadoopUtil.getWorkingFileSystem();
-        Assertions.assertThat(rootFS.listStatus(rootPath)).hasSize(0);
+        Assertions.assertThat(rootFS.listStatus(rootPath)).isEmpty();
 
         metadataBackupService.backupAll();
 

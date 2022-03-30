@@ -23,9 +23,9 @@
  */
 package io.kyligence.kap.rest.security;
 
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.KylinUserService;
-import org.apache.kylin.rest.service.ServiceTestBase;
 import org.apache.kylin.rest.service.UserService;
 import org.junit.After;
 import org.junit.Assert;
@@ -50,7 +50,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import io.kyligence.kap.metadata.user.ManagedUser;
 
-public class LimitLoginAuthenticationProviderTest extends ServiceTestBase {
+public class LimitLoginAuthenticationProviderTest extends NLocalFileMetadataTestCase {
 
     @InjectMocks
     private LimitLoginAuthenticationProvider limitLoginAuthenticationProvider;

@@ -47,7 +47,7 @@ import io.kyligence.kap.rest.cluster.MockClusterManager;
 import io.kyligence.kap.rest.response.ClusterStatusResponse;
 import lombok.val;
 
-public class MonitorServiceTest extends CSVSourceTestCase {
+public class MonitorServiceTest extends SourceTestCase {
 
     @InjectMocks
     private MonitorService monitorService = Mockito.spy(new MonitorService());

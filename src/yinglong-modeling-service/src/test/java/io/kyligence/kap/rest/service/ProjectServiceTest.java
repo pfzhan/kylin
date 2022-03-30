@@ -40,6 +40,8 @@ import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.util.EncryptUtil;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
@@ -56,14 +58,12 @@ import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.request.FavoriteRuleUpdateRequest;
 import org.apache.kylin.rest.response.UserProjectPermissionResponse;
 import org.apache.kylin.rest.security.AclManager;
 import org.apache.kylin.rest.security.AclPermissionEnum;
 import org.apache.kylin.rest.security.AclRecord;
 import org.apache.kylin.rest.security.ObjectIdentityImpl;
 import org.apache.kylin.rest.service.AccessService;
-import org.apache.kylin.rest.service.ServiceTestBase;
 import org.apache.kylin.rest.service.UserService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
@@ -112,17 +112,14 @@ import io.kyligence.kap.rest.request.PushDownConfigRequest;
 import io.kyligence.kap.rest.request.PushDownProjectConfigRequest;
 import io.kyligence.kap.rest.request.SegmentConfigRequest;
 import io.kyligence.kap.rest.request.ShardNumConfigRequest;
-import io.kyligence.kap.rest.response.ProjectStatisticsResponse;
 import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
-import io.kyligence.kap.rest.service.task.RecommendationTopNUpdateScheduler;
 import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import io.kyligence.kap.streaming.metadata.StreamingJobMeta;
 import lombok.val;
 import lombok.var;
 
-public class ProjectServiceTest extends ServiceTestBase {
+public class ProjectServiceTest extends NLocalFileMetadataTestCase {
     private static final String PROJECT = "default";
-    private static final String PROJECT_NEWTEN = "newten";
     private static final String PROJECT_JDBC = "jdbc";
     private static final String PROJECT_ID = "a8f4da94-a8a4-464b-ab6f-b3012aba04d5";
     private static final String MODEL_ID = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
@@ -131,19 +128,16 @@ public class ProjectServiceTest extends ServiceTestBase {
     private final ProjectService projectService = Mockito.spy(ProjectService.class);
 
     @InjectMocks
-    private final ProjectSmartService projectSmartService = Mockito.spy(ProjectSmartService.class);
+    private final ProjectSmartServiceSupporter projectSmartService = Mockito.spy(ProjectSmartServiceSupporter.class);
 
     @InjectMocks
     private final ModelService modelService = Mockito.spy(ModelService.class);
-
-    @InjectMocks
-    private final RawRecService rawRecService = Mockito.spy(RawRecService.class);
 
     @Mock
     private final AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
 
     @Mock
-    private final AsyncTaskService asyncTaskService = Mockito.spy(AsyncTaskService.class);
+    private final AsyncTaskServiceSupporter asyncTaskService = Mockito.spy(AsyncTaskServiceSupporter.class);
 
     @Mock
     private final AccessService accessService = Mockito.spy(AccessService.class);
@@ -165,18 +159,10 @@ public class ProjectServiceTest extends ServiceTestBase {
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", Mockito.spy(AclUtil.class));
         ReflectionTestUtils.setField(projectService, "aclEvaluate", aclEvaluate);
-        ReflectionTestUtils.setField(projectService, "asyncTaskService", asyncTaskService);
         ReflectionTestUtils.setField(projectService, "accessService", accessService);
         ReflectionTestUtils.setField(projectService, "projectModelSupporter", modelService);
         ReflectionTestUtils.setField(projectService, "userService", userService);
         ReflectionTestUtils.setField(projectService, "projectSmartService", projectSmartService);
-
-
-        ReflectionTestUtils.setField(projectSmartService, "recommendationTopNUpdateScheduler",
-                new RecommendationTopNUpdateScheduler());
-        ReflectionTestUtils.setField(projectSmartService, "aclEvaluate", aclEvaluate);
-        ReflectionTestUtils.setField(projectSmartService, "projectSmartSupporter", rawRecService);
-        ReflectionTestUtils.setField(projectSmartService, "projectModelSupporter", modelService);
 
         ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
         projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
@@ -198,7 +184,7 @@ public class ProjectServiceTest extends ServiceTestBase {
             return null;
         }, projectInstance.getName());
         ProjectInstance projectInstance2 = projectManager.getProject("project11");
-        Assert.assertTrue(projectInstance2 != null);
+        Assert.assertNotNull(projectInstance2);
         Assert.assertEquals("true", projectInstance2.getOverrideKylinProps().get("kylin.metadata.semi-automatic-mode"));
         projectManager.dropProject("project11");
     }
@@ -213,7 +199,7 @@ public class ProjectServiceTest extends ServiceTestBase {
             return null;
         }, projectInstance.getName());
         ProjectInstance projectInstance2 = projectManager.getProject("project11");
-        Assert.assertTrue(projectInstance2 != null);
+        Assert.assertNotNull(projectInstance2);
         Assert.assertEquals(MaintainModelType.AUTO_MAINTAIN, projectInstance2.getMaintainModelType());
         projectManager.dropProject("project11");
     }
@@ -324,10 +310,10 @@ public class ProjectServiceTest extends ServiceTestBase {
 
     @Test
     public void testUpdateStorageQuotaConfig() throws Exception {
-        thrown.expect(KylinException.class);
-        thrown.expectMessage("No valid storage quota size, Please set an integer greater than or equal to 1TB "
-                + "to 'storage_quota_size', unit byte.");
-        projectService.updateStorageQuotaConfig(PROJECT, 2147483648L);
+        Assert.assertThrows(
+                "No valid storage quota size, Please set an integer greater than or equal to 1TB "
+                        + "to 'storage_quota_size', unit byte.",
+                KylinException.class, () -> projectService.updateStorageQuotaConfig(PROJECT, 2147483648L));
 
         projectService.updateStorageQuotaConfig(PROJECT, 1024L * 1024 * 1024 * 1024);
         Assert.assertEquals(1024L * 1024 * 1024 * 1024,
@@ -1021,176 +1007,6 @@ public class ProjectServiceTest extends ServiceTestBase {
         projectService.updateProjectOwner(project, ownerChangeRequest2);
     }
 
-    public void testGetFavoriteRules() {
-        Map<String, Object> favoriteRuleResponse = projectSmartService.getFavoriteRules(PROJECT);
-        Assert.assertEquals(true, favoriteRuleResponse.get("count_enable"));
-        Assert.assertEquals(10.0f, favoriteRuleResponse.get("count_value"));
-        Assert.assertEquals(Lists.newArrayList("userA", "userB", "userC"), favoriteRuleResponse.get("users"));
-        Assert.assertEquals(Lists.newArrayList("ROLE_ADMIN"), favoriteRuleResponse.get("user_groups"));
-        Assert.assertEquals(5L, favoriteRuleResponse.get("min_duration"));
-        Assert.assertEquals(8L, favoriteRuleResponse.get("max_duration"));
-        Assert.assertEquals(true, favoriteRuleResponse.get("duration_enable"));
-    }
-
-    @Test
-    public void testUpdateFavoriteRules() {
-        RecommendationTopNUpdateScheduler recommendationTopNUpdateScheduler = new RecommendationTopNUpdateScheduler();
-        ReflectionTestUtils.setField(projectSmartService, "recommendationTopNUpdateScheduler",
-                recommendationTopNUpdateScheduler);
-        // update with FavoriteRuleUpdateRequest and assert
-        FavoriteRuleUpdateRequest request = new FavoriteRuleUpdateRequest();
-        request.setProject(PROJECT);
-        request.setDurationEnable(false);
-        request.setMinDuration("0");
-        request.setMaxDuration("10");
-        request.setSubmitterEnable(false);
-        request.setUsers(Lists.newArrayList("userA", "userB", "userC", "ADMIN"));
-        request.setRecommendationEnable(true);
-        request.setRecommendationsValue("30");
-        request.setMinHitCount("11");
-        request.setEffectiveDays("11");
-        request.setUpdateFrequency("3");
-
-        projectSmartService.updateRegularRule(PROJECT, request);
-        Map<String, Object> favoriteRuleResponse = projectSmartService.getFavoriteRules(PROJECT);
-        Assert.assertEquals(false, favoriteRuleResponse.get("duration_enable"));
-        Assert.assertEquals(false, favoriteRuleResponse.get("submitter_enable"));
-        Assert.assertEquals(Lists.newArrayList("userA", "userB", "userC", "ADMIN"), favoriteRuleResponse.get("users"));
-        Assert.assertEquals(Lists.newArrayList(), favoriteRuleResponse.get("user_groups"));
-        Assert.assertEquals(0L, favoriteRuleResponse.get("min_duration"));
-        Assert.assertEquals(10L, favoriteRuleResponse.get("max_duration"));
-        Assert.assertEquals(true, favoriteRuleResponse.get("recommendation_enable"));
-        Assert.assertEquals(30L, favoriteRuleResponse.get("recommendations_value"));
-        Assert.assertEquals(false, favoriteRuleResponse.get("excluded_tables_enable"));
-        Assert.assertEquals("", favoriteRuleResponse.get("excluded_tables"));
-        Assert.assertEquals(11, favoriteRuleResponse.get("min_hit_count"));
-        Assert.assertEquals(11, favoriteRuleResponse.get("effective_days"));
-        Assert.assertEquals(3, favoriteRuleResponse.get("update_frequency"));
-
-        // check excluded_tables
-        request.setExcludeTablesEnable(true);
-        request.setExcludedTables("a.a,b.b,c.c");
-        projectSmartService.updateRegularRule(PROJECT, request);
-        favoriteRuleResponse = projectSmartService.getFavoriteRules(PROJECT);
-        Assert.assertEquals(true, favoriteRuleResponse.get("excluded_tables_enable"));
-        Assert.assertEquals("a.a,b.b,c.c", favoriteRuleResponse.get("excluded_tables"));
-        // check excluded_tables
-        request.setExcludeTablesEnable(false);
-        request.setExcludedTables(null);
-        projectSmartService.updateRegularRule(PROJECT, request);
-        favoriteRuleResponse = projectSmartService.getFavoriteRules(PROJECT);
-        Assert.assertEquals(false, favoriteRuleResponse.get("excluded_tables_enable"));
-        Assert.assertEquals("", favoriteRuleResponse.get("excluded_tables"));
-
-        // check user_groups
-        request.setUserGroups(Lists.newArrayList("ROLE_ADMIN", "USER_GROUP1"));
-        projectSmartService.updateRegularRule(PROJECT, request);
-        favoriteRuleResponse = projectSmartService.getFavoriteRules(PROJECT);
-        Assert.assertEquals(Lists.newArrayList("userA", "userB", "userC", "ADMIN"), favoriteRuleResponse.get("users"));
-        Assert.assertEquals(Lists.newArrayList("ROLE_ADMIN", "USER_GROUP1"), favoriteRuleResponse.get("user_groups"));
-
-        // assert if favorite rules' values are empty
-        request.setFreqEnable(false);
-        request.setFreqValue(null);
-        request.setDurationEnable(false);
-        request.setMinDuration(null);
-        request.setMaxDuration(null);
-        projectSmartService.updateRegularRule(PROJECT, request);
-        favoriteRuleResponse = projectSmartService.getFavoriteRules(PROJECT);
-        Assert.assertNull(favoriteRuleResponse.get("freq_value"));
-        Assert.assertNull(favoriteRuleResponse.get("min_duration"));
-        Assert.assertNull(favoriteRuleResponse.get("max_duration"));
-        recommendationTopNUpdateScheduler.close();
-    }
-
-    @Test
-    public void testResetFavoriteRules() {
-        // reset
-        projectService.resetProjectConfig(PROJECT, "favorite_rule_config");
-        Map<String, Object> favoriteRules = projectSmartService.getFavoriteRules(PROJECT);
-
-        Assert.assertEquals(false, favoriteRules.get("freq_enable"));
-        Assert.assertEquals(0.1f, favoriteRules.get("freq_value"));
-
-        Assert.assertEquals(true, favoriteRules.get("count_enable"));
-        Assert.assertEquals(10.0f, favoriteRules.get("count_value"));
-
-        Assert.assertEquals(true, favoriteRules.get("submitter_enable"));
-        Assert.assertEquals(Lists.newArrayList("ADMIN"), favoriteRules.get("users"));
-        Assert.assertEquals(Lists.newArrayList("ROLE_ADMIN"), favoriteRules.get("user_groups"));
-
-        Assert.assertEquals(false, favoriteRules.get("duration_enable"));
-        Assert.assertEquals(0L, favoriteRules.get("min_duration"));
-        Assert.assertEquals(180L, favoriteRules.get("max_duration"));
-
-        Assert.assertEquals(true, favoriteRules.get("recommendation_enable"));
-        Assert.assertEquals(20L, favoriteRules.get("recommendations_value"));
-
-        Assert.assertEquals(false, favoriteRules.get("excluded_tables_enable"));
-        Assert.assertEquals("", favoriteRules.get("excluded_tables"));
-
-        Assert.assertEquals(30, favoriteRules.get("min_hit_count"));
-        Assert.assertEquals(2, favoriteRules.get("effective_days"));
-        Assert.assertEquals(2, favoriteRules.get("update_frequency"));
-
-    }
-
-    @Test
-    public void testGetProjectStatistics() {
-        RecommendationTopNUpdateScheduler recommendationTopNUpdateScheduler = new RecommendationTopNUpdateScheduler();
-        ReflectionTestUtils.setField(projectSmartService, "recommendationTopNUpdateScheduler",
-                recommendationTopNUpdateScheduler);
-        ProjectStatisticsResponse projectStatistics = projectSmartService.getProjectStatistics("gc_test");
-        Assert.assertEquals(1, projectStatistics.getDatabaseSize());
-        Assert.assertEquals(1, projectStatistics.getTableSize());
-        Assert.assertEquals(0, projectStatistics.getLastWeekQueryCount());
-        Assert.assertEquals(0, projectStatistics.getUnhandledQueryCount());
-        Assert.assertEquals(0, projectStatistics.getAdditionalRecPatternCount());
-        Assert.assertEquals(0, projectStatistics.getRemovalRecPatternCount());
-        Assert.assertEquals(0, projectStatistics.getRecPatternCount());
-        Assert.assertEquals(7, projectStatistics.getEffectiveRuleSize());
-        Assert.assertEquals(0, projectStatistics.getApprovedRecCount());
-        Assert.assertEquals(0, projectStatistics.getApprovedAdditionalRecCount());
-        Assert.assertEquals(0, projectStatistics.getApprovedRemovalRecCount());
-        Assert.assertEquals(2, projectStatistics.getModelSize());
-        Assert.assertEquals(0, projectStatistics.getAcceptableRecSize());
-        Assert.assertFalse(projectStatistics.isRefreshed());
-        Assert.assertEquals(20, projectStatistics.getMaxRecShowSize());
-
-        FavoriteRuleUpdateRequest request = new FavoriteRuleUpdateRequest();
-        request.setProject("gc_test");
-        request.setExcludeTablesEnable(true);
-        request.setDurationEnable(false);
-        request.setMinDuration("0");
-        request.setMaxDuration("10");
-        request.setSubmitterEnable(true);
-        request.setUsers(Lists.newArrayList("userA", "userB", "userC", "ADMIN"));
-        request.setRecommendationEnable(true);
-        request.setRecommendationsValue("30");
-        request.setUpdateFrequency("1");
-        projectSmartService.updateRegularRule("gc_test", request);
-        ProjectStatisticsResponse projectStatistics2 = projectSmartService.getProjectStatistics("gc_test");
-        Assert.assertEquals(7, projectStatistics2.getEffectiveRuleSize());
-
-        ProjectStatisticsResponse statisticsOfProjectDefault = projectSmartService.getProjectStatistics(PROJECT);
-        Assert.assertEquals(3, statisticsOfProjectDefault.getDatabaseSize());
-        Assert.assertEquals(20, statisticsOfProjectDefault.getTableSize());
-        Assert.assertEquals(0, statisticsOfProjectDefault.getLastWeekQueryCount());
-        Assert.assertEquals(0, statisticsOfProjectDefault.getUnhandledQueryCount());
-        Assert.assertEquals(-1, statisticsOfProjectDefault.getAdditionalRecPatternCount());
-        Assert.assertEquals(-1, statisticsOfProjectDefault.getRemovalRecPatternCount());
-        Assert.assertEquals(-1, statisticsOfProjectDefault.getRecPatternCount());
-        Assert.assertEquals(-1, statisticsOfProjectDefault.getEffectiveRuleSize());
-        Assert.assertEquals(-1, statisticsOfProjectDefault.getApprovedRecCount());
-        Assert.assertEquals(-1, statisticsOfProjectDefault.getApprovedAdditionalRecCount());
-        Assert.assertEquals(-1, statisticsOfProjectDefault.getApprovedRemovalRecCount());
-        Assert.assertEquals(8, statisticsOfProjectDefault.getModelSize());
-        Assert.assertEquals(-1, statisticsOfProjectDefault.getAcceptableRecSize());
-        Assert.assertFalse(statisticsOfProjectDefault.isRefreshed());
-        Assert.assertEquals(-1, statisticsOfProjectDefault.getMaxRecShowSize());
-        recommendationTopNUpdateScheduler.close();
-    }
-
     @Test
     public void testUpdateJdbcConfig() throws Exception {
         ProjectInstance projectInstance = new ProjectInstance();
@@ -1232,16 +1048,6 @@ public class ProjectServiceTest extends ServiceTestBase {
     }
 
     @Test
-    public void testGetStreamingProjectStatistics() {
-        ProjectStatisticsResponse projectStatistics = projectSmartService.getProjectStatistics("streaming_test");
-        Assert.assertEquals(2, projectStatistics.getDatabaseSize());
-        Assert.assertEquals(11, projectStatistics.getTableSize());
-        Assert.assertEquals(0, projectStatistics.getLastWeekQueryCount());
-        Assert.assertEquals(0, projectStatistics.getUnhandledQueryCount());
-        Assert.assertEquals(11, projectStatistics.getModelSize());
-    }
-
-    @Test
     public void testUpdateJdbcInfo() {
         ProjectInstance projectInstance = new ProjectInstance();
         projectInstance.setName(PROJECT_JDBC);
@@ -1266,8 +1072,8 @@ public class ProjectServiceTest extends ServiceTestBase {
         jdbcSourceInfoRequest.setJdbcSourceEnable(true);
         jdbcSourceInfoRequest.setJdbcSourceName("h2");
         jdbcSourceInfoRequest.setJdbcSourceDriver("com.mysql.jdbc.driver");
-        thrown.expect(KylinException.class);
-        projectService.updateJdbcInfo(PROJECT_JDBC, jdbcSourceInfoRequest);
+        JdbcSourceInfoRequest finalJdbcSourceInfoRequest = jdbcSourceInfoRequest;
+        Assert.assertThrows(KylinException.class, () -> projectService.updateJdbcInfo(PROJECT_JDBC, finalJdbcSourceInfoRequest));
 
         project = NProjectManager.getInstance(getTestConfig()).getProject(PROJECT_JDBC);
         Assert.assertEquals("org.h2.Driver", project.getOverrideKylinProps().get(KYLIN_SOURCE_JDBC_DRIVER_KEY));
@@ -1277,8 +1083,7 @@ public class ProjectServiceTest extends ServiceTestBase {
         projectService.updateJdbcInfo(PROJECT_JDBC, jdbcSourceInfoRequest);
 
         project = NProjectManager.getInstance(getTestConfig()).getProject(PROJECT_JDBC);
-        Assert.assertEquals("test", project.getOverrideKylinProps().get(KYLIN_SOURCE_JDBC_PASS_KEY));
-
+        Assert.assertEquals(EncryptUtil.encryptWithPrefix("test"), project.getOverrideKylinProps().get(KYLIN_SOURCE_JDBC_PASS_KEY));
     }
 
     @Test(expected = KylinException.class)

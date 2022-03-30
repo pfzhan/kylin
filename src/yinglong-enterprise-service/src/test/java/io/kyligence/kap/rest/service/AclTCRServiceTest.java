@@ -44,9 +44,11 @@ import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.persistence.AclEntity;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.response.SidPermissionWithAclResponse;
 import org.apache.kylin.rest.security.AclEntityFactory;
 import org.apache.kylin.rest.security.AclEntityType;
 import org.apache.kylin.rest.security.AclManager;
+import org.apache.kylin.rest.security.AclPermission;
 import org.apache.kylin.rest.security.MutableAclRecord;
 import org.apache.kylin.rest.security.ObjectIdentityImpl;
 import org.apache.kylin.rest.service.AccessService;
@@ -169,6 +171,8 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(accessService, "userService", userService);
         ReflectionTestUtils.setField(accessService, "aclService", aclService);
         ReflectionTestUtils.setField(aclTCRService, "projectService", projectService);
+        ReflectionTestUtils.setField(accessService, "aclTCRService", aclTCRService);
+        ReflectionTestUtils.setField(accessService, "userGroupService", userGroupService);
         initUsers();
 
         Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", ROLE_ADMIN);
@@ -177,6 +181,11 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
 
     private void initUsers() throws IOException {
         NKylinUserManager userManager = NKylinUserManager.getInstance(getTestConfig());
+        userManager.update(new ManagedUser("ADMIN", "KYLIN", false, Arrays.asList(//
+                new SimpleGrantedAuthority(Constant.ROLE_ADMIN), new SimpleGrantedAuthority(Constant.ROLE_ANALYST),
+                new SimpleGrantedAuthority(Constant.ROLE_MODELER))));
+        userManager.update(new ManagedUser("ANALYST", "ANALYST", false, Arrays.asList(//
+                new SimpleGrantedAuthority(Constant.ROLE_ANALYST))));
         userManager.update(new ManagedUser(user1, "Q`w11g23", false, Arrays.asList(//
                 new SimpleGrantedAuthority(Constant.GROUP_ALL_USERS))));
         userManager.update(new ManagedUser(user2, "Q`w11g23", false, Arrays.asList(//
@@ -1302,4 +1311,38 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         }, "Admin is not supported to update permission.");
     }
 
+    @Test
+    public void testGetUserOrGroupAclPermissions() throws IOException {
+        // test admin user
+        List<String> projects = accessService.getGrantedProjectsOfUserOrGroup("ADMIN", true);
+        Mockito.when(userService.isGlobalAdmin("ADMIN")).thenReturn(true);
+        List<SidPermissionWithAclResponse> responses = accessService.getUserOrGroupAclPermissions(projects, "ADMIN",
+                true);
+        Assert.assertEquals(25, responses.size());
+        Assert.assertTrue(responses.stream().allMatch(response -> "ADMIN".equals(response.getProjectPermission())));
+
+        // test normal group
+        addGroupAndGrantPermission("MANAGEMENT_GROUP", AclPermission.MANAGEMENT);
+        Mockito.when(userGroupService.exists("MANAGEMENT_GROUP")).thenReturn(true);
+        projects = accessService.getGrantedProjectsOfUserOrGroup("MANAGEMENT_GROUP", false);
+        responses = accessService.getUserOrGroupAclPermissions(projects, "MANAGEMENT_GROUP", false);
+        Assert.assertEquals(1, responses.size());
+        Assert.assertEquals("MANAGEMENT", responses.get(0).getProjectPermission());
+
+        // add ANALYST user to a granted normal group
+        addGroupAndGrantPermission("ROLE_ANALYST", AclPermission.OPERATION);
+        Mockito.when(userGroupService.exists("ROLE_ANALYST")).thenReturn(true);
+        userGroupService.modifyGroupUsers("ROLE_ANALYST", Lists.newArrayList("ANALYST"));
+        responses = accessService.getUserOrGroupAclPermissions(projects, "ANALYST", true);
+        Assert.assertEquals(1, responses.size());
+        Assert.assertEquals("OPERATION", responses.get(0).getProjectPermission());
+    }
+
+    private void addGroupAndGrantPermission(String group, Permission permission) throws IOException {
+        ProjectInstance projectInstance = NProjectManager.getInstance(getTestConfig()).getProject("default");
+        AclEntity ae = accessService.getAclEntity(AclEntityType.PROJECT_INSTANCE, projectInstance.getUuid());
+        userGroupService.addGroup(group);
+        Sid sid = accessService.getSid(group, false);
+        ReflectionTestUtils.invokeMethod(accessService, "grant", ae, permission, sid);
+    }
 }

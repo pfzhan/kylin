@@ -24,18 +24,14 @@
 
 package io.kyligence.kap.rest.config.initialize;
 
+import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasourceParameters;
+
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.common.metrics.MetricsTag;
-import io.kyligence.kap.common.persistence.metadata.JdbcDataSource;
-import io.micrometer.core.instrument.Counter;
-import io.micrometer.core.instrument.Gauge;
-import io.micrometer.core.instrument.Tags;
 import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KylinConfig;
@@ -50,7 +46,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mockito;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
@@ -58,22 +53,25 @@ import org.powermock.modules.junit4.PowerMockRunner;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.codahale.metrics.MetricFilter;
+import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.metrics.MetricsController;
 import io.kyligence.kap.common.metrics.MetricsGroup;
 import io.kyligence.kap.common.metrics.MetricsName;
+import io.kyligence.kap.common.metrics.MetricsTag;
 import io.kyligence.kap.common.metrics.prometheus.PrometheusMetrics;
+import io.kyligence.kap.common.persistence.metadata.JdbcDataSource;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
-import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.ProjectService;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tags;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import lombok.val;
 import lombok.var;
-
-import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasourceParameters;
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({ SpringContext.class, MetricsGroup.class, UserGroupInformation.class, JdbcDataSource.class })
@@ -84,9 +82,6 @@ public class MetricsRegistryTest extends NLocalFileMetadataTestCase {
     private String project = "default";
 
     Map<String, Long> totalStorageSizeMap;
-
-    @InjectMocks
-    private final ModelService modelService = Mockito.spy(new ModelService());
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
@@ -126,9 +121,9 @@ public class MetricsRegistryTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testRemoveProjectFromStorageSizeMap() {
-        Assert.assertEquals(totalStorageSizeMap.size(), 1);
+        Assert.assertEquals(1, totalStorageSizeMap.size());
         MetricsRegistry.removeProjectFromStorageSizeMap(project);
-        Assert.assertEquals(totalStorageSizeMap.size(), 0);
+        Assert.assertEquals(0, totalStorageSizeMap.size());
     }
 
     @Test
