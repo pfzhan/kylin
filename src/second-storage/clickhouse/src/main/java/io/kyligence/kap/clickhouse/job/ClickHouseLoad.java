@@ -164,20 +164,11 @@ public class ClickHouseLoad extends AbstractExecutable {
                 .filter(SecondStorageUtil::isBaseTableIndex)
                 .flatMap(layoutEntity ->
                         getSegmentIds().stream()
-                                .filter(segmentId -> filterLoadSegments(segmentId, indexPlan, layoutEntity.getId(), dataFlow))
+                                .filter(segmentId -> dataFlow.getSegment(segmentId).getLayoutsMap().containsKey(layoutEntity.getId()))
                                 .map(segmentId ->
                                         genLoadInfoBySegmentId(segmentId, nodeNames, layoutEntity, tablePlan, dataFlow, tableFlow)
                                 )
                 ).collect(Collectors.toList());
-    }
-
-    private boolean filterLoadSegments(String segmentId, IndexPlan indexPlan, long currentLayoutId, NDataflow dataFlow) {
-        // if index is locked , only need load has build segment
-        if (indexPlan.getBaseTableLayoutId() == currentLayoutId) {
-            return true;
-        }
-
-        return dataFlow.getSegment(segmentId).getLayoutsMap().containsKey(currentLayoutId);
     }
 
     private LoadInfo genLoadInfoBySegmentId(String segmentId, String[] nodeNames, LayoutEntity currentLayoutEntity,
