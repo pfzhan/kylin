@@ -200,14 +200,14 @@ public class TableService extends BasicService {
     @Autowired
     private TableFusionModelSupporter fusionModelService;
 
-    @Autowired
+    @Autowired(required = false)
     @Qualifier("tableSamplingService")
     private TableSamplingSupporter tableSamplingService;
 
     @Autowired
     private TableIndexPlanSupporter indexPlanService;
 
-    @Autowired
+    @Autowired(required = false)
     @Qualifier("jobService")
     private JobSupporter jobService;
 
@@ -218,7 +218,7 @@ public class TableService extends BasicService {
     @Qualifier("kafkaService")
     private KafkaService kafkaService;
 
-    @Autowired
+    @Autowired(required = false)
     @Qualifier("aclTCRService")
     private AclTCRServiceSupporter aclTCRService;
 

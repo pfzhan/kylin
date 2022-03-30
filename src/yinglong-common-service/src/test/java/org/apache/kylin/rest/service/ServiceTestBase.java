@@ -75,7 +75,7 @@ import java.util.Arrays;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = ServiceTestBase.SpringConfig.class)
-@WebAppConfiguration(value = "src/main/resources")
+@WebAppConfiguration(value = "../yinglong-common-service/src/main/resources")
 @ActiveProfiles({ "testing", "test" })
 public class ServiceTestBase extends NLocalFileMetadataTestCase {
 

@@ -65,7 +65,7 @@ public class FusionModelService extends BasicService implements TableFusionModel
     @Autowired
     private ModelService modelService;
 
-    @Autowired
+    @Autowired(required = false)
     @Qualifier("modelBuildService")
     private ModelBuildSupporter modelBuildService;
 

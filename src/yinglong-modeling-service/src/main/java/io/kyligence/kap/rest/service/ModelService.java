@@ -264,7 +264,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
     private ModelSemanticHelper semanticUpdater;
 
     @Setter
-    @Autowired
+    @Autowired(required = false)
     @Qualifier("segmentHelper")
     private SegmentHelperSupporter segmentHelper;
 
@@ -278,14 +278,14 @@ public class ModelService extends BasicService implements TableModelSupporter, P
     private AccessService accessService;
 
     @Setter
-    @Autowired
+    @Autowired(required = false)
     private ModelQuerySupporter modelQuerySupporter;
 
     @Setter
     @Autowired
     private IndexPlanService indexPlanService;
 
-    @Autowired
+    @Autowired(required = false)
     @Qualifier("modelBuildService")
     private ModelBuildSupporter modelBuildService;
 
