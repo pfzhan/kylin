@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.query.engine.mask;
 
-import io.kyligence.kap.query.QueryExtension;
 import org.apache.calcite.rel.RelNode;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.spark.sql.Dataset;
@@ -38,7 +37,12 @@ public final class QueryResultMasks {
     public static final ThreadLocal<QueryResultMask> THREAD_LOCAL = new ThreadLocal<>();
 
     public static void init(String project, KylinConfig kylinConfig) {
-        QueryExtension.getFactory().getQueryResultMasksExtension().addQueryResultMasks(kylinConfig, project, THREAD_LOCAL);
+        THREAD_LOCAL.set(
+                new CompositeQueryResultMasks(
+                        new QueryDependentColumnMask(project, kylinConfig),
+                        new QuerySensitiveDataMask(project, kylinConfig)
+                )
+        );
     }
 
     public static void remove() {

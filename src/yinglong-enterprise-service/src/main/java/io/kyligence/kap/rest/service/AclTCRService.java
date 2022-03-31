@@ -38,7 +38,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -605,7 +604,7 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
     }
 
     private List<AclTCRResponse> getAllTablesAclTCRResponse(String project,
-            final SortedMap<String, AclTCR.Table> authorized) {
+            final TreeMap<String, AclTCR.Table> authorized) {
         return getAclTCRManager(project).getAllDbAclTable(project).entrySet().stream().map(de -> {
             AclTCRResponse response = new AclTCRResponse();
             response.setDatabaseName(de.getKey());
@@ -617,7 +616,7 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
         }).collect(Collectors.toList());
     }
 
-    private List<AclTCRResponse> getAclTCRResponse(String project, SortedMap<String, AclTCR.Table> db2AclTable) {
+    private List<AclTCRResponse> getAclTCRResponse(String project, TreeMap<String, AclTCR.Table> db2AclTable) {
         return db2AclTable.entrySet().stream().map(de -> {
             AclTCRResponse response = new AclTCRResponse();
             response.setDatabaseName(de.getKey());
@@ -778,7 +777,7 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
             aclTCR = new AclTCR();
         }
 
-        SortedMap<String, AclTCR.Table> allDbAclTable = aclTCRManager.getAllDbAclTable(project);
+        TreeMap<String, AclTCR.Table> allDbAclTable = aclTCRManager.getAllDbAclTable(project);
 
         AclTCR.Table aclTable = initTableAcl(aclTCR, allDbAclTable);
 

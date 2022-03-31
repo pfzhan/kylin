@@ -37,22 +37,17 @@ import org.junit.Test;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.query.StructField;
-import io.kyligence.kap.query.QueryExtension;
 
 public class QueryExecColumnMetaTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setUp() throws Exception {
         this.createTestMetadata();
-        // Use default Factory for Open Core
-        QueryExtension.setFactory(new QueryExtension.Factory());
     }
 
     @After
     public void tearDown() throws Exception {
         this.cleanupTestMetadata();
-        // Unset Factory for Open Core
-        QueryExtension.setFactory(null);
     }
 
     public static String[] sqls = { "SELECT \"pRICE\",\n" + "\"PRice\"\n" + "FROM \"TEST_KYLIN_FACT\"\n",

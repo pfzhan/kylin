@@ -50,8 +50,8 @@ import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.MetadataExtension;
 import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
@@ -93,8 +93,7 @@ public class NQueryLayoutChooser {
         val model = dataflow.getModel();
         log.info("Matching dataflow with seg num: {} layout num: {}", prunedSegments.size(), commonLayouts.size());
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        Set<String> excludedTables = MetadataExtension.getFactory().getQueryExcludedTablesExtension()
-                .getExcludedTables(config, model.getProject());
+        Set<String> excludedTables = FavoriteRuleManager.getInstance(config, model.getProject()).getExcludedTables();
         boolean isReplaceCount = config.isReplaceColCountWithCountStar();
         val indexPlan = dataflow.getIndexPlan();
         val chooserContext = new ChooserContext(model);

@@ -40,30 +40,15 @@ import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.query.calcite.KylinRelDataTypeSystem;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import io.kyligence.kap.junit.annotation.MetadataInfo;
-import io.kyligence.kap.query.QueryExtension;
 import io.kyligence.kap.query.util.QueryContextCutter;
 import lombok.val;
 
 @MetadataInfo(project = "default")
 class SelectRealizationTest {
-
-    @BeforeEach
-    public void setUp() throws Exception {
-        // Use default Factory for Open Core
-        QueryExtension.setFactory(new QueryExtension.Factory());
-    }
-
-    @AfterEach
-    public void tearDown() throws Exception {
-        // Unset Factory for Open Core
-        QueryExtension.setFactory(null);
-    }
 
     @Test
     void testDerivedFromSameContext() throws SqlParseException {

@@ -31,7 +31,6 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.util.LinkedHashMap;
 
-import io.kyligence.kap.query.QueryExtension;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.commons.io.IOUtils;
@@ -64,15 +63,11 @@ public class ModelViewTest extends NLocalFileMetadataTestCase {
     public void setup() {
         overwriteSystemProp("kylin.query.auto-model-view-enabled", "TRUE");
         this.createTestMetadata();
-        // Use default Factory for Open Core
-        QueryExtension.setFactory(new QueryExtension.Factory());
     }
 
     @After
     public void tearDown() throws Exception {
         this.cleanupTestMetadata();
-        // Unset Factory for Open Core
-        QueryExtension.setFactory(null);
     }
 
     private void createProject(String project) throws IOException {

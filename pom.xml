@@ -328,6 +328,7 @@
         <module>src/second-storage/clickhouse</module>
         <module>src/second-storage/clickhouse-it</module>
         <!-- yinglong modules -->
+        <module>src/yinglong-enterprise-core-metadata</module>
         <module>src/yinglong-systools</module>
         <!-- yinglong service -->
         <module>src/yinglong-modeling-service</module>
@@ -354,8 +355,6 @@
         <module>src/yinglong-query-booter</module>
         <module>src/yinglong-common-booter</module>
 
-        <module>src/core-metadata-extensions</module>
-        <module>src/query-extensions</module>
     </modules>
 
     <dependencyManagement>
@@ -604,6 +603,11 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
+                <artifactId>yinglong-enterprise-core-metadata</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-core-job</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -630,16 +634,6 @@
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-license-service</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-core-metadata-ext</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-query-ext</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -697,7 +691,7 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-core-metadata-ext</artifactId>
+                <artifactId>yinglong-enterprise-core-metadata</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
             </dependency>

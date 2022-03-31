@@ -46,11 +46,6 @@
             <groupId>io.kyligence.yinglong</groupId>
             <artifactId>yinglong-query-service</artifactId>
         </dependency>
-        <!-- TODO this will be resolved by Open Core isolation -->
-        <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-query-ext</artifactId>
-        </dependency>
 
         <!-- Provided -->
         <dependency>

@@ -30,7 +30,6 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 
-import io.kyligence.kap.query.QueryExtension;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.commons.io.IOUtils;
@@ -75,15 +74,11 @@ public class KylinSqlValidatorTest extends NLocalFileMetadataTestCase {
         NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT).updateDataflowStatus(df.getId(),
                 RealizationStatusEnum.ONLINE);
 
-        // Use default Factory for Open Core
-        QueryExtension.setFactory(new QueryExtension.Factory());
     }
 
     @After
     public void teardown() {
         this.cleanupTestMetadata();
-        // Unset Factory for Open Core
-        QueryExtension.setFactory(null);
     }
 
     private void assertExpandFields(String sql, int expectedFiledNum) {
