@@ -89,6 +89,14 @@
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-tool</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-core-metadata-ext</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-query-ext</artifactId>
+        </dependency>
         <!-- Env -->
         <dependency>
             <groupId>org.apache.hadoop</groupId>

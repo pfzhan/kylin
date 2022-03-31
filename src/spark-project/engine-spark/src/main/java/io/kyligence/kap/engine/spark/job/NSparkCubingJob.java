@@ -181,7 +181,7 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
         job.setParam(NBatchConstants.P_DATA_RANGE_END, String.valueOf(endTime));
         FavoriteRuleManager ruleManager = FavoriteRuleManager.getInstance(kylinConfig, df.getProject());
         Set<String> excludedTables = ruleManager.getExcludedTables();
-        // if excludedTables contains factTable, remove factTable in excludedTables
+        // if excludedTables contains factTable, remove fact Table in excludedTables
         val rootFactTableName = df.getModel().getRootFactTableName();
         excludedTables.remove(rootFactTableName);
         job.setParam(NBatchConstants.P_EXCLUDED_TABLES, String.join(",", excludedTables));

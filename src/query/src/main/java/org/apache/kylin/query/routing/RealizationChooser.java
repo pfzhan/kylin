@@ -109,13 +109,13 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.realization.HybridRealization;
-import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.model.FusionModelManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectLoader;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.MetadataExtension;
 import lombok.val;
 
 public class RealizationChooser {
@@ -325,7 +325,8 @@ public class RealizationChooser {
 
     private static boolean needToManyDerived(NDataModel model) {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        Set<String> excludedTables = FavoriteRuleManager.getInstance(config, model.getProject()).getExcludedTables();
+        Set<String> excludedTables = MetadataExtension.getFactory().getQueryExcludedTablesExtension()
+                .getExcludedTables(config, model.getProject());
         for (JoinTableDesc joinTable : model.getJoinTables()) {
             if (joinTable.isDerivedToManyJoinRelation() || excludedTables.contains(joinTable.getTable())) {
                 return true;

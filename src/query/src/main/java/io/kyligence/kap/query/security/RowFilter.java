@@ -86,7 +86,7 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IPushDownConverte
 
         sql = rowFilter(defaultSchema, sql, allWhereCondWithTbls, project);
 
-        logger.debug("\nFinsh transforming SQL with row ACL.\n");
+        logger.debug("\nFinish transforming SQL with row ACL.\n");
         return sql;
     }
 
