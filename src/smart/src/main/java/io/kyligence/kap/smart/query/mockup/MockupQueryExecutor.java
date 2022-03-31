@@ -26,11 +26,15 @@ package io.kyligence.kap.smart.query.mockup;
 
 import java.sql.SQLException;
 import java.util.Collection;
+import java.util.List;
 import java.util.Locale;
+import java.util.stream.Collectors;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.common.util.ThreadUtil;
+import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.util.QueryParams;
@@ -113,10 +117,28 @@ public class MockupQueryExecutor extends AbstractQueryExecutor {
                     ctxs.forEach(OLAPContext::simplify);
                 }
             }
+            if (CollectionUtils.isNotEmpty(ctxs)) {
+                ctxs.forEach(ctx -> ctx.aggregations = transformSpecialFunctions(ctx));
+            }
             record.setOLAPContexts(ctxs);
             clearCurrentRecord();
         }
 
         return record;
+    }
+
+    private List<FunctionDesc> transformSpecialFunctions(OLAPContext ctx) {
+        return ctx.aggregations.stream().map(func -> {
+            if (FunctionDesc.FUNC_INTERSECT_COUNT.equalsIgnoreCase(func.getExpression())) {
+                ctx.getGroupByColumns().add(func.getParameters().get(1).getColRef());
+                return FunctionDesc.newInstance(FunctionDesc.FUNC_COUNT_DISTINCT, func.getParameters().subList(0, 1),
+                        "bitmap");
+            } else if (FunctionDesc.FUNC_BITMAP_UUID.equalsIgnoreCase((func.getExpression()))) {
+                return FunctionDesc.newInstance(FunctionDesc.FUNC_COUNT_DISTINCT, func.getParameters().subList(0, 1),
+                        "bitmap");
+            } else {
+                return func;
+            }
+        }).collect(Collectors.toList());
     }
 }

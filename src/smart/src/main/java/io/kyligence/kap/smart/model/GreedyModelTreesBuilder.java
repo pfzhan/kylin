@@ -37,7 +37,6 @@ import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.JoinsGraph;
@@ -74,15 +73,12 @@ public class GreedyModelTreesBuilder {
         this.proposeContext = proposeContext;
     }
 
-    public List<ModelTree> build(List<String> sqls, List<Collection<OLAPContext>> olapContexts,
-            TableDesc expectedFactTable) {
+    public List<ModelTree> build(Map<String, Collection<OLAPContext>> olapContexts, TableDesc expectedFactTable) {
         // 1. group OLAPContexts by fact_table & modelPriorities
         log.info("Split OLAPContexts by fact table.");
         Map<TableDesc, Map<String, TreeBuilder>> buildersMap = Maps.newHashMap();
-        for (int i = 0; i < sqls.size(); i++) {
-            String sql = sqls.get(i);
+        olapContexts.forEach((sql, sqlContexts) -> {
             String[] modelPriorities = QueryModelPriorities.getModelPrioritiesFromComment(sql);
-            Collection<OLAPContext> sqlContexts = olapContexts.get(i);
             sqlContexts.stream() //
                     .filter(ctx -> ctx.firstTableScan != null) //
                     .forEach(ctx -> {
@@ -91,26 +87,13 @@ public class GreedyModelTreesBuilder {
                                 && !actualFactTbl.getIdentity().equals(expectedFactTable.getIdentity())) {
                             return; // root fact not match
                         }
-                        ctx.aggregations = ctx.aggregations.stream().map(func -> {
-                            if (FunctionDesc.FUNC_INTERSECT_COUNT.equalsIgnoreCase(func.getExpression())) {
-                                ctx.getGroupByColumns().add(func.getParameters().get(1).getColRef());
-                                return FunctionDesc.newInstance(FunctionDesc.FUNC_COUNT_DISTINCT,
-                                        func.getParameters().subList(0, 1), "bitmap");
-                            } else if (FunctionDesc.FUNC_BITMAP_UUID.equalsIgnoreCase((func.getExpression()))) {
-                                return FunctionDesc.newInstance(FunctionDesc.FUNC_COUNT_DISTINCT,
-                                        func.getParameters().subList(0, 1), "bitmap");
-                            } else {
-                                return func;
-                            }
-                        }).collect(Collectors.toList());
-
                         Map<String, TreeBuilder> builders = buildersMap.computeIfAbsent(actualFactTbl,
                                 key -> Maps.newHashMap());
                         TreeBuilder builder = builders.computeIfAbsent(StringUtils.join(modelPriorities),
                                 k -> new TreeBuilder(actualFactTbl, tableMap, proposeContext));
                         builder.addOLAPContext(sql, ctx);
                     });
-        }
+        });
 
         // 2. each group generate multiple ModelTrees
         List<ModelTree> results = buildersMap.values() //
@@ -129,6 +112,12 @@ public class GreedyModelTreesBuilder {
             results.add(new ModelTree(expectedFactTable, ImmutableList.of(), ImmutableMap.of(), ImmutableMap.of()));
         }
         return results;
+    }
+
+    public ModelTree build(Collection<OLAPContext> olapContexts, TableDesc actualFactTbl) {
+        TreeBuilder treeBuilder = new TreeBuilder(actualFactTbl, tableMap, proposeContext);
+        olapContexts.forEach(olapContext -> treeBuilder.addOLAPContext(olapContext.sql, olapContext));
+        return treeBuilder.buildOne(olapContexts, false);
     }
 
     public static class TreeBuilder {
@@ -235,7 +224,7 @@ public class GreedyModelTreesBuilder {
             return result;
         }
 
-        private ModelTree buildOne(List<OLAPContext> inputCtxs, boolean forceMerge) {
+        private ModelTree buildOne(Collection<OLAPContext> inputCtxs, boolean forceMerge) {
             Map<TableRef, String> innerTableRefAlias = Maps.newHashMap();
             Map<TableRef, String> correctedTableAlias = Maps.newHashMap();
             List<OLAPContext> usedCtxs = Lists.newArrayList();

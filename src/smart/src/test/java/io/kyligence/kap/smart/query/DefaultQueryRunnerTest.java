@@ -25,7 +25,7 @@
 package io.kyligence.kap.smart.query;
 
 import java.util.Collection;
-import java.util.concurrent.ConcurrentNavigableMap;
+import java.util.Map;
 
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.junit.After;
@@ -56,17 +56,17 @@ public class DefaultQueryRunnerTest extends NLocalFileMetadataTestCase {
                 "SELECT PRICE, ITEM_COUNT, CAL_DT FROM TEST_KYLIN_FACT" };
         AbstractQueryRunner queryRunner1 = new QueryRunnerBuilder(DEFAULT_PROJECT, getTestConfig(), sqls).build();
         queryRunner1.execute();
-        ConcurrentNavigableMap<Integer, Collection<OLAPContext>> olapContexts = queryRunner1.getOlapContexts();
+        Map<String, Collection<OLAPContext>> olapContexts = queryRunner1.getOlapContexts();
         Assert.assertEquals(2, olapContexts.size());
 
-        Assert.assertEquals(1, olapContexts.get(0).size());
-        OLAPContext olapContext1 = olapContexts.get(0).iterator().next();
+        Assert.assertEquals(1, olapContexts.get(sqls[0]).size());
+        OLAPContext olapContext1 = olapContexts.get(sqls[0]).iterator().next();
         Assert.assertNull(olapContext1.getTopNode());
         Assert.assertNull(olapContext1.getParentOfTopNode());
         Assert.assertEquals(0, olapContext1.allOlapJoins.size());
 
-        Assert.assertEquals(1, olapContexts.get(1).size());
-        OLAPContext olapContext2 = olapContexts.get(1).iterator().next();
+        Assert.assertEquals(1, olapContexts.get(sqls[1]).size());
+        OLAPContext olapContext2 = olapContexts.get(sqls[1]).iterator().next();
         Assert.assertNull(olapContext2.getTopNode());
         Assert.assertNull(olapContext2.getParentOfTopNode());
         Assert.assertEquals(0, olapContext2.allOlapJoins.size());

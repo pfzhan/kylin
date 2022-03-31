@@ -157,48 +157,46 @@ public class ModelSelectProposer extends AbstractProposer {
 
         val subModelContexts = Lists.<AbstractContext.ModelContext> newArrayList();
         val sqlModelContextMap = Maps.<String, AbstractContext.ModelContext> newHashMap();
-        val nonSelectedSqls = Lists.<String> newArrayList();
-        val nonSelectedOlapContexts = Lists.<Collection<OLAPContext>> newArrayList();
         val sqlSelectedModelMap = Maps.<NDataModel, List<String>> newHashMap();
-        for (Map.Entry<String, List<OLAPContext>> entry : sqlOLAPContextMap.entrySet()) {
-            val sql = entry.getKey();
-            val olapContexts = entry.getValue();
-            val sqlModelContext = buildModelContext(Lists.newArrayList(sql),
-                    Lists.<Collection<OLAPContext>> newArrayList(olapContexts)).get(0);
+
+        Map<String, Collection<OLAPContext>> noneSelected = Maps.newHashMap();
+        sqlOLAPContextMap.forEach((key, value) -> {
+            Map<String, Collection<OLAPContext>> map = Maps.newHashMap();
+            map.put(key, value);
+            val sqlModelContext = buildModelContext(map).get(0);
             val selectedModel = selectExistedModel(sqlModelContext.getModelTree(), sqlModelContext);
             if (selectedModel == null) {
-                nonSelectedSqls.add(sql);
-                nonSelectedOlapContexts.add(olapContexts);
+                noneSelected.put(key, value);
             } else {
                 sqlSelectedModelMap.putIfAbsent(selectedModel, Lists.newArrayList());
-                sqlSelectedModelMap.get(selectedModel).add(sql);
-                sqlModelContextMap.put(sql, sqlModelContext);
+                sqlSelectedModelMap.get(selectedModel).add(key);
+                sqlModelContextMap.put(key, sqlModelContext);
             }
-        }
+        });
 
         // merge non-selected model contexts
-        subModelContexts.addAll(buildModelContext(nonSelectedSqls, nonSelectedOlapContexts));
+        subModelContexts.addAll(buildModelContext(noneSelected));
 
         // merge selected model contexts by model id
         sqlSelectedModelMap.forEach((model, sqls) -> {
+            Map<String, Collection<OLAPContext>> map = Maps.newHashMap();
             if (sqls.size() == 1) {
                 subModelContexts.add(sqlModelContextMap.get(sqls.get(0)));
             } else {
-                val olapContexts = Lists.<Collection<OLAPContext>> newArrayList();
                 for (String sql : sqls) {
-                    olapContexts.add(sqlOLAPContextMap.get(sql));
+                    map.putIfAbsent(sql, Lists.newArrayList());
+                    map.get(sql).addAll(sqlOLAPContextMap.get(sql));
                 }
-                subModelContexts.addAll(buildModelContext(sqls, olapContexts));
+                subModelContexts.addAll(buildModelContext(map));
             }
         });
 
         return subModelContexts;
     }
 
-    private List<AbstractContext.ModelContext> buildModelContext(List<String> sqls,
-            List<Collection<OLAPContext>> olapContexts) {
+    private List<AbstractContext.ModelContext> buildModelContext(Map<String, Collection<OLAPContext>> groupedOlapMap) {
         return new GreedyModelTreesBuilder(KylinConfig.getInstanceFromEnv(), project, proposeContext) //
-                .build(sqls, olapContexts, null) //
+                .build(groupedOlapMap, null) //
                 .stream() //
                 .filter(modelTree -> !modelTree.getOlapContexts().isEmpty()) //
                 .map(proposeContext::createModelContext) //

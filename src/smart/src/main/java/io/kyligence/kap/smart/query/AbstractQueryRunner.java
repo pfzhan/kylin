@@ -27,13 +27,18 @@ package io.kyligence.kap.smart.query;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfig.SetAndUnsetThreadLocalConfig;
 import org.apache.kylin.common.QueryContext;
@@ -44,6 +49,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
@@ -71,7 +77,7 @@ public abstract class AbstractQueryRunner implements Closeable {
     @Getter
     private final ConcurrentNavigableMap<Integer, SQLResult> queryResults = new ConcurrentSkipListMap<>();
     @Getter
-    private final ConcurrentNavigableMap<Integer, Collection<OLAPContext>> olapContexts = new ConcurrentSkipListMap<>();
+    private final Map<String, Collection<OLAPContext>> olapContexts = Maps.newLinkedHashMap();
 
     private static final ExecutorService SUGGESTION_EXECUTOR_POOL = Executors.newFixedThreadPool(
             KylinConfig.getInstanceFromEnv().getProposingThreadNum(), new NamedThreadFactory("SuggestRunner"));
@@ -120,7 +126,7 @@ public abstract class AbstractQueryRunner implements Closeable {
                 Collection<OLAPContext> olapCtxs = record.getOLAPContexts();
                 queryResults.put(index, result == null ? SQLResult.failedSQL(null) : result);
                 if (needCollectOlapContext) {
-                    olapContexts.put(index, olapCtxs == null ? Lists.newArrayList() : olapCtxs);
+                    olapContexts.get(sql).addAll(olapCtxs == null ? Lists.newArrayList() : olapCtxs);
                 }
             } finally {
                 NProjectLoader.removeCache();
@@ -137,6 +143,7 @@ public abstract class AbstractQueryRunner implements Closeable {
             AbstractQueryExecutor queryExecutor = new MockupQueryExecutor();
             CountDownLatch latch = new CountDownLatch(sqls.length);
             for (int i = 0; i < sqls.length; i++) {
+                olapContexts.put(sqls[i], Lists.newArrayList());
                 submitQueryExecute(latch, queryExecutor, config, project, sqls[i], i);
             }
             latch.await();
@@ -168,8 +175,26 @@ public abstract class AbstractQueryRunner implements Closeable {
         return Lists.newArrayList(queryResults.values());
     }
 
-    public List<Collection<OLAPContext>> getAllOLAPContexts() {
-        return Lists.newArrayList(olapContexts.values());
+    public Map<String, List<OLAPContext>> filterModelViewOLAPContexts() {
+        List<OLAPContext> modeViewOlapContextList = Lists.newArrayList();
+        olapContexts.forEach((sql, olapContextList) -> {
+            List<OLAPContext> modelViewOlapContexts = olapContextList.stream()
+                    .filter(e -> StringUtils.isNotEmpty(e.getModelAlias())).collect(Collectors.toList());
+            if (CollectionUtils.isEmpty(modelViewOlapContexts)) {
+                return;
+            }
+            modelViewOlapContexts.forEach(e -> e.sql = sql);
+            modeViewOlapContextList.addAll(modelViewOlapContexts);
+        });
+        return modeViewOlapContextList.stream().collect(Collectors.groupingBy(OLAPContext::getModelAlias));
+    }
+
+    public Map<String, Collection<OLAPContext>> filterNonModelViewOlapContexts() {
+        return olapContexts.entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey, v -> v.getValue().stream()
+                                .filter(e -> StringUtils.isEmpty(e.getModelAlias())).collect(Collectors.toList()),
+                        (k1, k2) -> k1, LinkedHashMap::new));
     }
 
     @Override

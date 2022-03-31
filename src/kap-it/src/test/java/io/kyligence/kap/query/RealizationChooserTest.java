@@ -45,7 +45,7 @@ import io.kyligence.kap.util.AccelerationContextUtil;
 
 import java.util.Collection;
 import java.util.Locale;
-import java.util.concurrent.ConcurrentNavigableMap;
+import java.util.Map;
 
 import lombok.val;
 import lombok.var;
@@ -256,9 +256,9 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
 
         AbstractQueryRunner queryRunner1 = new QueryRunnerBuilder(project, getTestConfig(), new String[] { sql }).build();
         queryRunner1.execute();
-        ConcurrentNavigableMap<Integer, Collection<OLAPContext>> olapContexts = queryRunner1.getOlapContexts();
+        Map<String, Collection<OLAPContext>> olapContexts = queryRunner1.getOlapContexts();
 
-        OLAPContext context = olapContexts.get(0).iterator().next();
+        OLAPContext context = olapContexts.get(sql).iterator().next();
         context.olapSchema.setConfigOnlyInTest(KylinConfig.getInstanceFromEnv().base());
 
         RealizationChooser.attemptSelectCandidate(context);

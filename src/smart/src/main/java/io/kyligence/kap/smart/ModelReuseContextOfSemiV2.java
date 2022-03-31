@@ -54,6 +54,7 @@ public class ModelReuseContextOfSemiV2 extends AbstractSemiContextV2 {
         return new ChainedProposer(this, ImmutableList.of(//
                 new SQLAnalysisProposer(this), //
                 new ModelSelectProposer(this), //
+                new ViewModelSelectProposer(this), //
                 new ModelOptProposer(this), //
                 new ModelInfoAdjustProposer(this), //
                 new ModelRenameProposer(this), //

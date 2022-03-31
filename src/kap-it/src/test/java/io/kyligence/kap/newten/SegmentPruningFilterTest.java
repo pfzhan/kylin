@@ -60,7 +60,7 @@ import org.junit.runner.RunWith;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.ConcurrentNavigableMap;
+import java.util.Map;
 
 @RunWith(TimeZoneTestRunner.class)
 public class SegmentPruningFilterTest extends NLocalWithSparkSessionTest implements AdaptiveSparkPlanHelper {
@@ -96,9 +96,9 @@ public class SegmentPruningFilterTest extends NLocalWithSparkSessionTest impleme
         NDataflow dataflow = dataflowManager.getDataflow(dataflowId);
         AbstractQueryRunner queryRunner1 = new QueryRunnerBuilder(project, kylinConfig, new String[]{sql}).build();
         queryRunner1.execute();
-        ConcurrentNavigableMap<Integer, Collection<OLAPContext>> olapContexts = queryRunner1.getOlapContexts();
-        OLAPContext context = olapContexts.get(0).iterator().next();
-        TblColRef filterColumn = (TblColRef) context.filterColumns.iterator().next();
+        Map<String, Collection<OLAPContext>> olapContexts = queryRunner1.getOlapContexts();
+        OLAPContext context = olapContexts.get(sql).iterator().next();
+        TblColRef filterColumn = context.filterColumns.iterator().next();
         dataflow.getModel().getPartitionDesc().setPartitionDateColumnRef(filterColumn);
         CalciteSchema rootSchema = new QueryExec(project, kylinConfig).getRootSchema();
         SimpleDataContext dataContext = new SimpleDataContext(rootSchema.plus(), TypeSystem.javaTypeFactory(), kylinConfig);

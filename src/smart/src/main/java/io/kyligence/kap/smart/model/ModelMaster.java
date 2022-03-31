@@ -175,7 +175,7 @@ public class ModelMaster {
             extractor.execute();
             final AbstractContext proposeContext = modelContext.getProposeContext();
             List<ModelTree> modelTrees = new GreedyModelTreesBuilder(kylinConfig, project, proposeContext) //
-                    .build(originQueryList, extractor.getAllOLAPContexts(), null);
+                    .build(extractor.filterNonModelViewOlapContexts(), null);
             ModelTree updatedModelTree = null;
             for (ModelTree modelTree : modelTrees) {
                 boolean match = proposeContext instanceof SmartContext //
