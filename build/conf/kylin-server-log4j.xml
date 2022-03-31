@@ -2,7 +2,7 @@
 <Configuration name="Log4j1">
     <Appenders>
         <RollingRandomAccessFile name="server" fileName="${env:KYLIN_HOME}/logs/kylin.log" append="true"
-                                 filePattern="${env:KYLIN_HOME}/logs/kylin.log.%i" immediateFlush="false">
+                                 filePattern="${env:KYLIN_HOME}/logs/kylin.log.%i" immediateFlush="false" >
             <Policies>
                 <SizeBasedTriggeringPolicy size="268435456"/>
             </Policies>
@@ -34,15 +34,6 @@
             <DefaultRolloverStrategy max="10"/>
             <PatternLayout pattern="%d{ISO8601} %-5p %X{request.project}[%t] %c{2} : %mask{%m}%n"/>
         </RollingFile>
-        <RollingFile name="spark-history-server" fileName="${env:KYLIN_HOME}/logs/kylin.history_server.log"
-                     append="true"
-                     filePattern="${env:KYLIN_HOME}/logs/kylin.history_server.log.%i">
-            <Policies>
-                <SizeBasedTriggeringPolicy size="268435456"/>
-            </Policies>
-            <DefaultRolloverStrategy max="10"/>
-            <PatternLayout pattern="%d{ISO8601} %-5p %X{request.project}[%t] %c{2} : %mask{%m}%n"/>
-        </RollingFile>
     </Appenders>
     <Loggers>
         <Root level="INFO">
@@ -57,9 +48,6 @@
         <Logger name="org.apache.spark.scheduler.YarnScheduler" level="INFO" additivity="false">
             <AppenderRef ref="query-log-spark"/>
         </Logger>
-        <Logger name="org.apache.spark.deploy.history" level="INFO" additivity="false">
-            <AppenderRef ref="spark-history-server"/>
-        </Logger>
         <Logger name="io.kyligence" level="DEBUG"/>
         <Logger name="org.springframework" level="WARN"/>
         <Logger name="org.apache.kylin" level="DEBUG"/>
@@ -71,11 +59,11 @@
         <!--  Query log  -->
         <Logger name="io.kyligence.kap.query" level="INFO"/>
         <Logger name="org.apache.kylin.query" level="INFO"/>
-        <Logger name="io.kyligence.kap.metadata.cube.model.NDataflowCapabilityChecker" level="INFO"/>
-        <Logger name="org.apache.kylin.common.util.CheckUtil" level="INFO"/>
-        <Logger name="io.kyligence.kap.metadata.cube.cuboid.NQueryLayoutChooser" level="INFO"/>
-        <Logger name="io.kyligence.kap.query.runtime.plan.ResultPlan" level="INFO"/>
-        <Logger name="org.apache.spark.sql.kylin.external.LogEx" level="INFO"/>
-        <Logger name="io.kyligence.kap.engine.spark.utils.LogEx" level="INFO"/>
+        <Logger name="io.kyligence.kap.metadata.cube.model.NDataflowCapabilityChecker" level="INFO" />
+        <Logger name="org.apache.kylin.common.util.CheckUtil" level="INFO" />
+        <Logger name="io.kyligence.kap.metadata.cube.cuboid.NQueryLayoutChooser" level="INFO" />
+        <Logger name="io.kyligence.kap.query.runtime.plan.ResultPlan" level="INFO" />
+        <Logger name="org.apache.spark.sql.kylin.external.LogEx" level="INFO" />
+        <Logger name="io.kyligence.kap.engine.spark.utils.LogEx" level="INFO" />
     </Loggers>
 </Configuration>

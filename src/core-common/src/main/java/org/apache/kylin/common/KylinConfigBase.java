@@ -797,7 +797,7 @@ public abstract class KylinConfigBase implements Serializable {
 
     public double getMergeSegmentStorageThreshold() {
         double thresholdValue = Double.parseDouble(getOptional("kylin.cube.merge-segment-storage-threshold", "0"));
-        if (thresholdValue < 0 || thresholdValue > 1) {
+        if(thresholdValue < 0 || thresholdValue > 1) {
             logger.warn("The configuration file is incorrect. The value of[kylin.cube.merge-segment-storage-threshold] "
                     + "cannot be less than 0 or greater than 1.");
             thresholdValue = 0;
@@ -1051,7 +1051,6 @@ public abstract class KylinConfigBase implements Serializable {
     public boolean isConcurrencyFetchDataSourceSize() {
         return Boolean.parseBoolean(getOptional("kylin.job.concurrency-fetch-datasource-size-enabled", FALSE));
     }
-
     public int getConcurrencyFetchDataSourceSizeThreadNumber() {
         return Integer.parseInt(getOptional("kylin.job.concurrency-fetch-datasource-size-thread_number", "10"));
     }
@@ -1381,7 +1380,7 @@ public abstract class KylinConfigBase implements Serializable {
     public int getSparkUIZombieJobCleanSeconds() {
         return Integer.parseInt(this.getOptional("kylin.query.engine.spark-ui-zombie-job-clean-seconds", "180"));
     }
-
+    
     public int getSparkEngineMaxRetryTime() {
         return Integer.parseInt(getOptional("kylin.engine.max-retry-time", "3"));
     }
@@ -1497,8 +1496,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public long getStreamingJobExecutionIdCheckInterval() {
-        return TimeUtil.timeStringAs(getOptional("kylin.streaming.job-execution-id-check-interval", "1m"),
-                TimeUnit.MINUTES);
+        return TimeUtil.timeStringAs(getOptional("kylin.streaming.job-execution-id-check-interval", "1m"), TimeUnit.MINUTES);
     }
 
     public String getSparkEngineBuildStepsToSkip() {
@@ -2905,10 +2903,6 @@ public abstract class KylinConfigBase implements Serializable {
         return getOptional("kylin.query.ui.proxy-location", KYLIN_ROOT);
     }
 
-    public boolean isHistoryServerEnable() {
-        return Boolean.parseBoolean(getOptional("kylin.history-server.enable", FALSE));
-    }
-
     public String getJobFinishedNotifierUrl() {
         return getOptional("kylin.job.finished-notifier-url", null);
     }
@@ -3140,26 +3134,23 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public long[] getMetricsQuerySlaSeconds() {
-        return getOptionalLongArray("kylin.metrics.query.sla.seconds", new String[] { "3", "15", "60" });
+        return getOptionalLongArray("kylin.metrics.query.sla.seconds", new String[]{"3", "15", "60"});
     }
 
     public long[] getMetricsJobSlaMinutes() {
-        return getOptionalLongArray("kylin.metrics.job.sla.minutes", new String[] { "30", "60", "300" });
+        return getOptionalLongArray("kylin.metrics.job.sla.minutes", new String[]{"30", "60", "300"});
     }
 
     public boolean isSpark3ExecutorPrometheusEnabled() {
-        return Boolean
-                .parseBoolean(getOptional("kylin.storage.columnar.spark-conf.spark.ui.prometheus.enabled", FALSE));
+        return Boolean.parseBoolean(getOptional("kylin.storage.columnar.spark-conf.spark.ui.prometheus.enabled", FALSE));
     }
 
     public String getSpark3DriverPrometheusServletClass() {
-        return this.getOptional("kylin.storage.columnar.spark-conf.spark.metrics.conf.*.sink.prometheusServlet.class",
-                "");
+        return this.getOptional("kylin.storage.columnar.spark-conf.spark.metrics.conf.*.sink.prometheusServlet.class", "");
     }
 
     public String getSpark3DriverPrometheusServletPath() {
-        return this.getOptional("kylin.storage.columnar.spark-conf.spark.metrics.conf.*.sink.prometheusServlet.path",
-                "");
+        return this.getOptional("kylin.storage.columnar.spark-conf.spark.metrics.conf.*.sink.prometheusServlet.path", "");
     }
 
     protected final long[] getOptionalLongArray(String prop, String[] dft) {

@@ -60,7 +60,6 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.RandomUtil;
-import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.dao.ExecutablePO;
@@ -342,6 +341,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         List<ExecutableResponse> jobs = jobService.listJobs(jobFilter);
         Assert.assertEquals(2, jobs.size());
     }
+
 
     private List<ProjectInstance> mockProjects() {
         ProjectInstance defaultProject = new ProjectInstance();
@@ -1079,7 +1079,6 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
             }
             job1.setCreateTime(executable.getCreateTime());
             job1.getOutput().setCreateTime(executable.getCreateTime());
-            job1.getOutput().getInfo().put("applicationid", "app000");
 
             job1.setType("io.kyligence.kap.rest.execution.SucceedChainedTestExecutable");
             job1.setProject(executable.getProject());
@@ -1373,26 +1372,5 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         jobService.killExistApplication(executable);
 
         jobService.killExistApplication(getProject(), executable.getId());
-    }
-
-    @Test
-    public void testHistoryTrackerUrl() {
-        getTestConfig().setProperty("kylin.history-server.enable", "true");
-        AbstractExecutable task = new FiveSecondSucceedTestExecutable();
-        task.setProject("default");
-        DefaultOutput stepOutput = new DefaultOutput();
-        stepOutput.setState(ExecutableState.RUNNING);
-        stepOutput.setExtra(new HashMap<>());
-        Map<String, String> waiteTimeMap = new HashMap<>();
-        ExecutableState jobState = ExecutableState.RUNNING;
-        ExecutableStepResponse result = jobService.parseToExecutableStep(task, stepOutput, waiteTimeMap, jobState);
-        assert !result.getInfo().containsKey(ExecutableConstants.SPARK_HISTORY_APP_URL);
-        stepOutput.getExtra().put(ExecutableConstants.YARN_APP_ID, "app-id");
-        result = jobService.parseToExecutableStep(task, stepOutput, waiteTimeMap, jobState);
-        assert result.getInfo().containsKey(ExecutableConstants.SPARK_HISTORY_APP_URL);
-        getTestConfig().setProperty("kylin.history-server.enable", "false");
-        result = jobService.parseToExecutableStep(task, stepOutput, waiteTimeMap, jobState);
-        assert !result.getInfo().containsKey(ExecutableConstants.SPARK_HISTORY_APP_URL);
-
     }
 }
