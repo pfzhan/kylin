@@ -66,12 +66,12 @@ public class SQLAnalysisProposer extends AbstractProposer {
             logFailedQuery(extractor);
 
             val modelContexts = new GreedyModelTreesBuilder(KylinConfig.getInstanceFromEnv(), project, proposeContext) //
-                    .build(extractor.getOlapContexts(), null) //
+                    .build(extractor.filterNonModelViewOlapContexts(), null) //
                     .stream() //
                     .filter(modelTree -> !modelTree.getOlapContexts().isEmpty()) //
                     .map(proposeContext::createModelContext) //
                     .collect(Collectors.toList());
-
+            proposeContext.getModelViewOLAPContextMap().putAll(extractor.filterModelViewOLAPContexts());
             proposeContext.setModelContexts(modelContexts);
         } catch (Exception e) {
             log.error("Failed to get query stats. ", e);

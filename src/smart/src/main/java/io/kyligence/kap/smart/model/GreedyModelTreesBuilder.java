@@ -36,7 +36,6 @@ import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.JoinsGraph;
@@ -100,7 +99,6 @@ public class GreedyModelTreesBuilder {
                 .flatMap(hintOlapMap -> hintOlapMap.values().stream()) //
                 .filter(olapList -> !olapList.isEmpty()) //
                 .map(olapList -> {
-                    olapList.forEach(olap -> olap.aggregations = transformSpecialFunctions(olap));
                     TableDesc table = olapList.get(0).firstTableScan.getTableRef().getTableDesc();
                     TreeBuilder builder = new TreeBuilder(table, tableMap, proposeContext);
                     builder.contextList.addAll(olapList);
@@ -119,27 +117,18 @@ public class GreedyModelTreesBuilder {
         return modelTreeList;
     }
 
-    private List<FunctionDesc> transformSpecialFunctions(OLAPContext ctx) {
-        return ctx.aggregations.stream().map(func -> {
-            if (FunctionDesc.FUNC_INTERSECT_COUNT.equalsIgnoreCase(func.getExpression())) {
-                ctx.getGroupByColumns().add(func.getParameters().get(1).getColRef());
-                return FunctionDesc.newInstance(FunctionDesc.FUNC_COUNT_DISTINCT, func.getParameters().subList(0, 1),
-                        "bitmap");
-            } else if (FunctionDesc.FUNC_BITMAP_UUID.equalsIgnoreCase((func.getExpression()))) {
-                return FunctionDesc.newInstance(FunctionDesc.FUNC_COUNT_DISTINCT, func.getParameters().subList(0, 1),
-                        "bitmap");
-            } else {
-                return func;
-            }
-        }).collect(Collectors.toList());
-    }
-
     private boolean isFactTableCompatible(OLAPContext ctx, TableDesc factTable) {
         if (ctx.firstTableScan == null) {
             return false;
         }
         TableDesc ctxFactTable = ctx.firstTableScan.getTableRef().getTableDesc();
         return factTable == null || Objects.equals(ctxFactTable.getIdentity(), factTable.getIdentity());
+    }
+
+    public ModelTree build(Collection<OLAPContext> olapContexts, TableDesc actualFactTbl) {
+        TreeBuilder treeBuilder = new TreeBuilder(actualFactTbl, tableMap, proposeContext);
+        treeBuilder.contextList.addAll(olapContexts);
+        return treeBuilder.buildOne(olapContexts, false);
     }
 
     public static class TreeBuilder {
@@ -235,7 +224,7 @@ public class GreedyModelTreesBuilder {
             return result;
         }
 
-        private ModelTree buildOne(List<OLAPContext> inputCtxs, boolean forceMerge) {
+        private ModelTree buildOne(Collection<OLAPContext> inputCtxs, boolean forceMerge) {
             Map<TableRef, String> innerTableRefAlias = Maps.newHashMap();
             Map<TableRef, String> correctedTableAlias = Maps.newHashMap();
             List<OLAPContext> usedCtxs = Lists.newArrayList();
