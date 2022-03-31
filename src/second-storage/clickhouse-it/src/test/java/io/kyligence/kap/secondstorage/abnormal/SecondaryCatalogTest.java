@@ -28,7 +28,10 @@ import com.google.common.collect.ImmutableMap;
 import static io.kyligence.kap.clickhouse.ClickHouseConstants.CONFIG_CLICKHOUSE_QUERY_CATALOG;
 import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.engine.spark.IndexDataConstructor;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.secondstorage.test.utils.JobWaiter;
 import io.kyligence.kap.util.ExecAndComp;
 import io.kyligence.kap.newten.clickhouse.ClickHouseUtils;
 import static io.kyligence.kap.newten.clickhouse.ClickHouseUtils.columnMapping;
@@ -37,6 +40,7 @@ import io.kyligence.kap.secondstorage.test.ClickHouseClassRule;
 import io.kyligence.kap.secondstorage.test.EnableClickHouseJob;
 import io.kyligence.kap.secondstorage.test.EnableTestUser;
 import io.kyligence.kap.secondstorage.test.SharedSparkSession;
+import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -52,8 +56,9 @@ import org.testcontainers.containers.JdbcDatabaseContainer;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
-public class SecondaryCatalogTest {
+public class SecondaryCatalogTest implements JobWaiter {
     static private final String cubeName = "acfde546-2cc9-4eec-bc92-e3bd46d4e2ee";
     static private final String project = "table_index";
 
@@ -81,7 +86,7 @@ public class SecondaryCatalogTest {
             Unsafe.setProperty(CONFIG_CLICKHOUSE_QUERY_CATALOG, queryCatalog);
 
             //build
-            new IndexDataConstructor(project).buildDataflow(cubeName);
+            buildModel();
             NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             Assert.assertEquals(3, SecondStorageUtil.setSecondStorageSizeInfo(modelManager.listAllModels()).size());
 
@@ -107,5 +112,13 @@ public class SecondaryCatalogTest {
         } finally {
             Unsafe.clearProperty(CONFIG_CLICKHOUSE_QUERY_CATALOG);
         }
+    }
+
+    public void buildModel() throws Exception {
+        new IndexDataConstructor(project).buildDataflow(cubeName);
+        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        waitJobFinish(project,
+                triggerClickHouseLoadJob(project, cubeName, "ADMIN",
+                        dataflowManager.getDataflow(cubeName).getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList())));
     }
 }

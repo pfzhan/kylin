@@ -124,6 +124,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static io.kyligence.kap.newten.clickhouse.ClickHouseUtils.configClickhouseWith;
@@ -232,6 +233,15 @@ public class SecondStorageLockTest implements JobWaiter {
         }
     }
 
+
+    @Test
+    public void testIncrementBuildLockedLayout2() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse()) {
+            testLockedSegmentLoadCH(1, clickhouse1);
+        }
+    }
+
+
     @Test
     public void testStatic() {
         JobParam jobParam = new JobParam();
@@ -243,6 +253,39 @@ public class SecondStorageLockTest implements JobWaiter {
         assertNull(params.getSecondStorageDeleteLayoutIds());
     }
 
+    private void testLockedSegmentLoadCH(int replica, JdbcDatabaseContainer<?>... clickhouse) throws Exception {
+        final String catalog = "default";
+
+        Unsafe.setProperty(ClickHouseLoad.SOURCE_URL, getSourceUrl());
+        Unsafe.setProperty(ClickHouseLoad.ROOT_PATH, getLocalWorkingDirectory());
+
+        configClickhouseWith(clickhouse, replica, catalog, () -> {
+            secondStorageService.changeProjectSecondStorageState(getProject(), SecondStorageNodeHelper.getAllPairs(), true);
+            Assert.assertEquals(clickhouse.length, SecondStorageUtil.listProjectNodes(getProject()).size());
+            secondStorageService.changeModelSecondStorageState(getProject(), modelId, true);
+            setQuerySession(catalog, clickhouse[0].getJdbcUrl(), clickhouse[0].getDriverClassName());
+
+            Set<Long> existTablePlanLayoutIds = new HashSet<>();
+            Set<Long> existTableDataLayoutIds = new HashSet<>();
+
+            val layout01 = getBuildBaseLayout(existTablePlanLayoutIds, existTableDataLayoutIds, clickhouse, replica);
+            val layout02 = updateIndex("LSTG_SITE_ID");
+
+            val segment = getDataFlow().getFirstSegment();
+            buildSegments(layout02, segment);
+            ClickHouseUtils.triggerClickHouseJob(getDataFlow());
+
+            existTablePlanLayoutIds.add(layout02);
+            existTableDataLayoutIds.add(layout02);
+            checkSecondStorageMetadata(existTablePlanLayoutIds, existTableDataLayoutIds);
+            checkSecondStorageSegmentMetadata(getAllSegmentIds(), layout01);
+            checkSecondStorageSegmentMetadata(ImmutableSet.of(segment.getId()), layout02);
+
+            return true;
+        });
+
+    }
+
     private void testIncrementBuildLockedLayout(int replica, JdbcDatabaseContainer<?>... clickhouse) throws Exception {
         final String catalog = "default";
 
@@ -250,7 +293,7 @@ public class SecondStorageLockTest implements JobWaiter {
         Unsafe.setProperty(ClickHouseLoad.ROOT_PATH, getLocalWorkingDirectory());
 
         configClickhouseWith(clickhouse, replica, catalog, () -> {
-            int indexDeleteJobCnt = 0;
+            AtomicInteger indexDeleteJobCnt = new AtomicInteger(0);
             secondStorageService.changeProjectSecondStorageState(getProject(), SecondStorageNodeHelper.getAllPairs(), true);
             Assert.assertEquals(clickhouse.length, SecondStorageUtil.listProjectNodes(getProject()).size());
             secondStorageService.changeModelSecondStorageState(getProject(), modelId, true);
@@ -261,20 +304,7 @@ public class SecondStorageLockTest implements JobWaiter {
 
             // Test
             // Step1: create model and load to second storage
-            val layout01 = updateIndex("TRANS_ID");
-
-            buildIncrementalLoadQuery(); // build table index
-            checkHttpServer(); // check http server
-            ClickHouseUtils.triggerClickHouseJob(getDataFlow()); //load into clickhouse
-            existTablePlanLayoutIds.add(layout01);
-            existTableDataLayoutIds.add(layout01);
-
-            checkSecondStorageBaseMetadata(true, clickhouse.length, replica);
-            checkSecondStorageMetadata(existTablePlanLayoutIds, existTableDataLayoutIds);
-            checkSecondStorageSegmentMetadata(getAllSegmentIds(), layout01);
-
-            String sql1 = "select TRANS_ID from TEST_KYLIN_FACT where CAL_DT between '2012-01-01' and '2012-01-02' limit 1";
-            assertQueryResult(sql1, layout01);
+            val layout01 = getBuildBaseLayout(existTablePlanLayoutIds, existTableDataLayoutIds, clickhouse, replica);
 
             // Step2: change model and removed locked index
             val layout02 = updateIndex("LSTG_SITE_ID");
@@ -289,7 +319,7 @@ public class SecondStorageLockTest implements JobWaiter {
             // removed old index
             indexPlanService.removeIndexes(getProject(), modelId, ImmutableSet.of(layout01));
             waitAllJobFinish();
-            assertEquals(++indexDeleteJobCnt, getNExecutableManager().getAllExecutables().stream().filter(ClickHouseIndexCleanJob.class::isInstance).count());
+            assertEquals(indexDeleteJobCnt.incrementAndGet(), getNExecutableManager().getAllExecutables().stream().filter(ClickHouseIndexCleanJob.class::isInstance).count());
 
             existTablePlanLayoutIds.remove(layout01);
             existTableDataLayoutIds.remove(layout01);
@@ -313,7 +343,7 @@ public class SecondStorageLockTest implements JobWaiter {
 
             NDataSegment segmentTmp01 = getDataFlow().getSegments().getFirstSegment();
             removeIndexesFromSegments(segmentTmp01.getId(), layout02);
-            assertEquals(++indexDeleteJobCnt, getNExecutableManager().getAllExecutables().stream().filter(ClickHouseIndexCleanJob.class::isInstance).count());
+            assertEquals(indexDeleteJobCnt.incrementAndGet(), getNExecutableManager().getAllExecutables().stream().filter(ClickHouseIndexCleanJob.class::isInstance).count());
 
             checkSecondStorageMetadata(existTablePlanLayoutIds, existTableDataLayoutIds);
             checkSecondStorageSegmentMetadata(getDataFlow().getSegments().stream().map(NDataSegment::getId).filter(segmentId -> !segmentId.equals(segmentTmp01.getId())).collect(Collectors.toSet()), layout02);
@@ -321,7 +351,7 @@ public class SecondStorageLockTest implements JobWaiter {
 
             // test remove all segment of locked index
             removeIndexesFromSegments(getDataFlow().getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()), layout02);
-            assertEquals(++indexDeleteJobCnt, getNExecutableManager().getAllExecutables().stream().filter(ClickHouseIndexCleanJob.class::isInstance).count());
+            assertEquals(indexDeleteJobCnt.incrementAndGet(), getNExecutableManager().getAllExecutables().stream().filter(ClickHouseIndexCleanJob.class::isInstance).count());
             existTablePlanLayoutIds.remove(layout02);
             existTableDataLayoutIds.remove(layout02);
             checkSecondStorageMetadata(existTablePlanLayoutIds, existTableDataLayoutIds);
@@ -330,10 +360,10 @@ public class SecondStorageLockTest implements JobWaiter {
             // Step4: change model and test refresh segment
 
             long layout04 = testRefreshSegment(existTablePlanLayoutIds, existTableDataLayoutIds, layout03);
-            assertEquals(++indexDeleteJobCnt, getNExecutableManager().getAllExecutables().stream().filter(ClickHouseIndexCleanJob.class::isInstance).count());
+            assertEquals(indexDeleteJobCnt.incrementAndGet(), getNExecutableManager().getAllExecutables().stream().filter(ClickHouseIndexCleanJob.class::isInstance).count());
 
             long layout05 = testCleanSegment(existTablePlanLayoutIds, existTableDataLayoutIds, layout04);
-            assertEquals(++indexDeleteJobCnt, getNExecutableManager().getAllExecutables().stream().filter(ClickHouseIndexCleanJob.class::isInstance).count());
+            assertEquals(indexDeleteJobCnt.incrementAndGet(), getNExecutableManager().getAllExecutables().stream().filter(ClickHouseIndexCleanJob.class::isInstance).count());
             testMerge(existTablePlanLayoutIds, existTableDataLayoutIds, layout04, layout05);
 
             // Step7: test build new segment and load all to second storage
@@ -365,6 +395,27 @@ public class SecondStorageLockTest implements JobWaiter {
             secondStorageService.changeModelSecondStorageState(getProject(), modelId, false);
             return true;
         });
+    }
+
+    private long getBuildBaseLayout(Set<Long> existTablePlanLayoutIds, Set<Long> existTableDataLayoutIds, JdbcDatabaseContainer<?>[] clickhouse, int replica) throws Exception {
+        // Test
+        // Step1: create model and load to second storage
+        val layout01 = updateIndex("TRANS_ID");
+
+        buildIncrementalLoadQuery(); // build table index
+        checkHttpServer(); // check http server
+        ClickHouseUtils.triggerClickHouseJob(getDataFlow()); //load into clickhouse
+        existTablePlanLayoutIds.add(layout01);
+        existTableDataLayoutIds.add(layout01);
+
+        checkSecondStorageBaseMetadata(true, clickhouse.length, replica);
+        checkSecondStorageMetadata(existTablePlanLayoutIds, existTableDataLayoutIds);
+        checkSecondStorageSegmentMetadata(getAllSegmentIds(), layout01);
+
+        String sql1 = "select TRANS_ID from TEST_KYLIN_FACT where CAL_DT between '2012-01-01' and '2012-01-02' limit 1";
+        assertQueryResult(sql1, layout01);
+
+        return layout01;
     }
 
     private long testRefreshSegment(Set<Long> existTablePlanLayoutIds, Set<Long> existTableDataLayoutIds, long lockedLayoutId) throws IOException, InterruptedException {
@@ -635,12 +686,17 @@ public class SecondStorageLockTest implements JobWaiter {
     private void buildSegmentAndLoadCH(long layoutId) throws InterruptedException {
         // build new index segment
         for (NDataSegment segment : getDataFlow().getSegments()) {
-            indexDataConstructor.buildSegment(modelId, segment, ImmutableSet.of(getDataFlow().getIndexPlan().getLayoutEntity(layoutId)), true, null);
+            buildSegments(layoutId, segment);
         }
 
         waitAllJobFinish();
         ClickHouseUtils.triggerClickHouseJob(getDataFlow());
     }
+
+    private void buildSegments(long layoutId, NDataSegment segment) throws InterruptedException {
+        indexDataConstructor.buildSegment(modelId, segment, ImmutableSet.of(getDataFlow().getIndexPlan().getLayoutEntity(layoutId)), true, null);
+    }
+
 
     private long updateIndex(String columnName) throws IOException {
         val indexResponse = modelService.updateDataModelSemantic(getProject(), getChangedModelRequest(columnName));

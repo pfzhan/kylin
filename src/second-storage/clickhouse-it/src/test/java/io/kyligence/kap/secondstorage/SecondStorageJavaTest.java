@@ -128,7 +128,7 @@ public class SecondStorageJavaTest implements JobWaiter {
 
     @Test
     public void testModelUpdate() throws Exception {
-        new IndexDataConstructor(project).buildDataflow(modelId);
+        buildModel();
         secondStorageService.onUpdate(project, modelId);
         val manager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         Assert.assertTrue(manager.getAllExecutables().stream().noneMatch(ClickHouseModelCleanJob.class::isInstance));
@@ -142,7 +142,7 @@ public class SecondStorageJavaTest implements JobWaiter {
     public void testCleanSegment() throws Exception {
         val tableFlowManager = SecondStorageUtil.tableFlowManager(KylinConfig.getInstanceFromEnv(), project);
         Assert.assertTrue(tableFlowManager.isPresent());
-        new IndexDataConstructor(project).buildDataflow(modelId);
+        buildModel();
         int segmentNum = tableFlowManager.get().get(modelId).orElseThrow(() -> new IllegalStateException("tableflow not found")).getTableDataList().get(0).getPartitions().size();
         Assert.assertEquals(1, segmentNum);
         val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
@@ -165,7 +165,7 @@ public class SecondStorageJavaTest implements JobWaiter {
 
     @Test
     public void testDoubleTriggerSegmentLoad() throws Exception {
-        new IndexDataConstructor(project).buildDataflow(modelId);
+        buildModel();
         val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val dataflow = dataflowManager.getDataflow(modelId);
         val segs = dataflow.getQueryableSegments().stream().map(NDataSegment::getId).collect(Collectors.toList());
@@ -198,7 +198,7 @@ public class SecondStorageJavaTest implements JobWaiter {
 
     @Test
     public void testRecoverModelWhenHasLoadTask() throws Exception {
-        new IndexDataConstructor(project).buildDataflow(modelId);
+        buildModel();
         val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val dataflow = dataflowManager.getDataflow(modelId);
         val segs = dataflow.getQueryableSegments().stream().map(NDataSegment::getId).collect(Collectors.toList());
@@ -217,7 +217,7 @@ public class SecondStorageJavaTest implements JobWaiter {
 
     @Test
     public void testCleanSegmentWhenHasLoadTask() throws Exception {
-        new IndexDataConstructor(project).buildDataflow(modelId);
+        buildModel();
         val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val dataflow = dataflowManager.getDataflow(modelId);
         val segs = dataflow.getQueryableSegments().stream().map(NDataSegment::getId).collect(Collectors.toList());
@@ -299,7 +299,7 @@ public class SecondStorageJavaTest implements JobWaiter {
         secondStorageService.sizeInNode(project);
 
         //build
-        new IndexDataConstructor(project).buildDataflow(modelId);
+        buildModel();
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         Assert.assertEquals(3, SecondStorageUtil.setSecondStorageSizeInfo(modelManager.listAllModels()).size());
 
@@ -342,7 +342,7 @@ public class SecondStorageJavaTest implements JobWaiter {
 
     @Test
     public void testSchedulerService() throws Exception {
-        new IndexDataConstructor(project).buildDataflow(modelId);
+        buildModel();
         val jdbcUrl = SecondStorageNodeHelper.resolve(SecondStorageNodeHelper.getAllNames().get(0));
         ClickHouse clickHouse = new ClickHouse(jdbcUrl);
         ClickHouseOperator operator = new ClickHouseOperator(SecondStorageNodeHelper.resolve(SecondStorageNodeHelper.getAllNames().get(0)));
@@ -381,7 +381,7 @@ public class SecondStorageJavaTest implements JobWaiter {
 
     @Test
     public void testJobPaused() throws Exception {
-        new IndexDataConstructor(project).buildDataflow(modelId);
+        buildModel();
         val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val dataflow = dataflowManager.getDataflow(modelId);
         val segs = dataflow.getQueryableSegments().stream().map(NDataSegment::getId).collect(Collectors.toList());
@@ -429,7 +429,7 @@ public class SecondStorageJavaTest implements JobWaiter {
 
     @Test(expected = KylinException.class)
     public void testCheckJobRestart() throws Exception {
-        new IndexDataConstructor(project).buildDataflow(modelId);
+        buildModel();
         val manager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val job = manager.getAllJobs().get(0);
         SecondStorageUtil.checkJobRestart(project, job.getId());
@@ -437,7 +437,7 @@ public class SecondStorageJavaTest implements JobWaiter {
 
     @Test
     public void testCleanModelWhenTableNotExists() throws Exception {
-        new IndexDataConstructor(project).buildDataflow(modelId);
+        buildModel();
         val node = SecondStorageNodeHelper.getAllNames().get(0);
         val jdbc = SecondStorageNodeHelper.resolve(node);
         ClickHouse clickHouse = new ClickHouse(jdbc);
@@ -450,7 +450,7 @@ public class SecondStorageJavaTest implements JobWaiter {
 
     @Test
     public void testCleanModelWhenDatabaseNotExists() throws Exception {
-        new IndexDataConstructor(project).buildDataflow(modelId);
+        buildModel();
         val node = SecondStorageNodeHelper.getAllNames().get(0);
         val jdbc = SecondStorageNodeHelper.resolve(node);
         ClickHouse clickHouse = new ClickHouse(jdbc);
@@ -464,7 +464,7 @@ public class SecondStorageJavaTest implements JobWaiter {
 
     @Test
     public void testModelUpdateNoClean() throws Exception {
-        new IndexDataConstructor(project).buildDataflow(modelId);
+        buildModel();
         val manager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val jobCnt = manager.getAllExecutables().stream()
                 .filter(ClickHouseModelCleanJob.class::isInstance)
@@ -505,4 +505,11 @@ public class SecondStorageJavaTest implements JobWaiter {
         ClickHouseUtils.internalConfigClickHouse(clickhouse, replica, sshPort);
     }
 
+    public void buildModel() throws Exception {
+        new IndexDataConstructor(project).buildDataflow(modelId);
+        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        waitJobFinish(project,
+                triggerClickHouseLoadJob(project, modelId, "ADMIN",
+                        dataflowManager.getDataflow(modelId).getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList())));
+    }
 }
