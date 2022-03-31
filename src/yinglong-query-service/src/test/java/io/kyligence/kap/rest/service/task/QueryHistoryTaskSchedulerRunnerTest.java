@@ -29,6 +29,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.kylin.common.util.NamedThreadFactory;
+import org.apache.kylin.rest.util.SpringContext;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -53,6 +54,7 @@ public class QueryHistoryTaskSchedulerRunnerTest extends NLocalFileMetadataTestC
     @Before
     public void setUp() {
         createTestMetadata();
+        new SpringContext().setApplicationContext(null);
         qhAccelerateScheduler = Mockito.spy(new QueryHistoryTaskScheduler(PROJECT));
     }
 

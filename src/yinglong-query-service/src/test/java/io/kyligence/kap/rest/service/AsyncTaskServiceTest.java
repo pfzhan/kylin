@@ -33,6 +33,7 @@ import static org.mockito.Mockito.when;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.ZoneOffset;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import javax.servlet.ServletOutputStream;
@@ -124,7 +125,7 @@ public class AsyncTaskServiceTest extends NLocalFileMetadataTestCase {
             public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
                 Object[] arguments = invocationOnMock.getArguments();
                 baos.write((byte[]) arguments[0]);
-                Thread.sleep(1000);
+                TimeUnit.SECONDS.sleep(1);
                 return null;
             }
         }).when(servletOutputStream).write(any(byte[].class));

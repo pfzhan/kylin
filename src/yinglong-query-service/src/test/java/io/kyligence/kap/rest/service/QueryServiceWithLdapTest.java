@@ -23,7 +23,6 @@
  */
 
 
-
 package io.kyligence.kap.rest.service;
 
 import com.unboundid.ldap.listener.InMemoryDirectoryServer;
@@ -66,10 +65,10 @@ import static org.springframework.security.test.web.servlet.setup.SecurityMockMv
 
 @Slf4j
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextHierarchy({ @ContextConfiguration(locations = { "classpath:applicationContext.xml" }),
-        @ContextConfiguration(locations = { "classpath:kylinSecurity.xml" }) })
+@ContextHierarchy({@ContextConfiguration(locations = {"classpath:applicationContext.xml"}),
+        @ContextConfiguration(locations = {"classpath:kylinSecurity.xml"})})
 @WebAppConfiguration(value = "src/main/resources")
-@ActiveProfiles({ "ldap", "ldap-test", "test" })
+@ActiveProfiles({"ldap", "ldap-test", "test"})
 public class QueryServiceWithLdapTest extends NLocalFileMetadataTestCase {
 
     private static final String LDAP_CONFIG = "ut_ldap/ldap-config.properties";
