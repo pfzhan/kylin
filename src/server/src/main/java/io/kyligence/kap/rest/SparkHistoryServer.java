@@ -42,7 +42,7 @@ import org.springframework.context.annotation.Configuration;
 @ConditionalOnProperty(name = "kylin.history-server.enable", havingValue = "true")
 public class SparkHistoryServer {
 
-    @Bean("sparkHistoryServer")
+    @Bean("historyServer")
     @SneakyThrows
     public HistoryServer createHistoryServer() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();

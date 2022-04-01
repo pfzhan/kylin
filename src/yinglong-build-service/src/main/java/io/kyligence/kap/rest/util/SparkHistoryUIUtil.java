@@ -62,7 +62,7 @@ import org.springframework.stereotype.Component;
 public class SparkHistoryUIUtil {
 
     @Autowired
-    @Qualifier("sparkHistoryServer")
+    @Qualifier("historyServer")
     private HistoryServer historyServer;
 
     public static final String HISTORY_UI_BASE = "/history_server";
