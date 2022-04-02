@@ -505,12 +505,18 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.yinglong</groupId>
+                <artifactId>yinglong-data-loading-booter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.yinglong</groupId>
                 <artifactId>yinglong-query-server</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.kyligence.yinglong</groupId>
                 <artifactId>yinglong-query-booter</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.kyligence.yinglong</groupId>

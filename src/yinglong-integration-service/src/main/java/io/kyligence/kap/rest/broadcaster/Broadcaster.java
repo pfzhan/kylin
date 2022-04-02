@@ -202,7 +202,7 @@ public class Broadcaster implements Closeable {
         Set<String> serverModeNameSets = Stream.of(serverModeEnums).filter(Objects::nonNull)
                 .map(ServerModeEnum::getName).collect(Collectors.toSet());
         if (clusterManager == null) {
-            clusterManager = (ClusterManager) SpringContext.getApplicationContext().getBean("zookeeperClusterManager");
+            clusterManager = SpringContext.getApplicationContext().getBean(ClusterManager.class);
         }
         final List<ServerInfoResponse> nodes = clusterManager.getServersFromCache();
         Set<String> result = Sets.newHashSet();
