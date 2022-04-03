@@ -150,11 +150,14 @@ public class AppInitializer {
     @EventListener(ApplicationReadyEvent.class)
     public void afterReady(ApplicationReadyEvent event) {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
+
+        if (kylinConfig.isJobNode()) {
+            new EpochOrchestrator(kylinConfig);
+        }
         if (kylinConfig.getJStackDumpTaskEnabled()) {
             taskScheduler.scheduleAtFixedRate(new JStackDumpTask(),
                     kylinConfig.getJStackDumpTaskPeriod() * Constant.MINUTE);
         }
-
         if (kylinConfig.isGuardianEnabled() && kylinConfig.isGuardianHAEnabled()) {
             log.info("Guardian Process ha is enabled, start check scheduler");
             taskScheduler.scheduleAtFixedRate(new KapGuardianHATask(),
