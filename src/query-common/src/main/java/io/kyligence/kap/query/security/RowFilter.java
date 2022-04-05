@@ -87,7 +87,7 @@ public class RowFilter implements KapQueryUtil.IQueryTransformer, IPushDownConve
 
         sql = rowFilter(defaultSchema, sql, allWhereCondWithTbls, project);
 
-        logger.debug("\nFinsh transforming SQL with row ACL.\n");
+        logger.debug("\nFinish transforming SQL with row ACL.\n");
         return sql;
     }
 

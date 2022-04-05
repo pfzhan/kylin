@@ -57,26 +57,24 @@ public class CognosParenthesesEscapeTransformer implements KapQueryUtil.IQueryTr
         String originSql = sql;
         Matcher m;
         int offset = 0; // use this to locate the index of matched parentheses in the pattern in original sql
-        while (true) {
+        boolean done = false;
+        while (!done) {
             m = FROM_PATTERN.matcher(sql);
-            if (!m.find()) {
-                break;
-            }
-
-            int i = m.end() - 1;
-            while (i > m.start()) {
-                if (sql.charAt(i) == '(') {
-                    parentheses.add(i + offset);
+            if (m.find()) {
+                int i = m.end() - 1;
+                while (i > m.start()) {
+                    if (sql.charAt(i) == '(') {
+                        parentheses.add(i + offset);
+                    }
+                    i--;
                 }
-                i--;
+                if (m.end() < sql.length()) {
+                    offset += m.end();
+                    sql = sql.substring(m.end());
+                    continue;
+                }
             }
-
-            if (m.end() < sql.length()) {
-                offset += m.end();
-                sql = sql.substring(m.end());
-            } else {
-                break;
-            }
+            done = true;
         }
 
         List<Integer> indices = Lists.newArrayList();

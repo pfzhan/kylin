@@ -41,6 +41,7 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.acl.SensitiveDataMask;
 import io.kyligence.kap.metadata.acl.SensitiveDataMaskInfo;
+import io.kyligence.kap.query.QueryExtension;
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.query.mask.QuerySensitiveDataMask;
 
@@ -74,11 +75,15 @@ public class QuerySensitiveDataMaskTest extends NLocalFileMetadataTestCase {
                         new SensitiveDataMask("TIME1", SensitiveDataMask.MaskType.DEFAULT),
                         new SensitiveDataMask("TIME2", SensitiveDataMask.MaskType.DEFAULT)));
         mask = new QuerySensitiveDataMask("DEFAULT", maskInfo);
+        // Use default Factory for Open Core
+        QueryExtension.setFactory(new QueryExtension.Factory());
     }
 
     @After
     public void tearDown() throws Exception {
         this.cleanupTestMetadata();
+        // Unset Factory for Open Core
+        QueryExtension.setFactory(null);
     }
 
     @Test

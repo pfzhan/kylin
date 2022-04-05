@@ -41,7 +41,7 @@
     <dependencies>
         <dependency>
             <groupId>io.kyligence.ke</groupId>
-            <artifactId>yinglong-enterprise-core-metadata</artifactId>
+            <artifactId>kap-core-metadata-ext</artifactId>
         </dependency>
         <dependency>
             <groupId>io.kyligence.ke</groupId>

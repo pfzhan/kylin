@@ -40,6 +40,7 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.acl.DependentColumn;
 import io.kyligence.kap.metadata.acl.DependentColumnInfo;
+import io.kyligence.kap.query.QueryExtension;
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.query.mask.QueryDependentColumnMask;
 
@@ -74,11 +75,15 @@ public class QueryDependentColumnMaskTest extends NLocalFileMetadataTestCase {
                 new DependentColumn("TIME2", "DEFAULT.TEST_ACCOUNT.ACCOUNT_BUYER_LEVEL", new String[] { "1", "2" }),
                 new DependentColumn("FLAG", "DEFAULT.TEST_ACCOUNT.ACCOUNT_BUYER_LEVEL", new String[] { "1", "2" })));
         mask = new QueryDependentColumnMask("DEFAULT", dependentColumnInfo);
+        // Use default Factory for Open Core
+        QueryExtension.setFactory(new QueryExtension.Factory());
     }
 
     @After
     public void tearDown() throws Exception {
         this.cleanupTestMetadata();
+        // Unset Factory for Open Core
+        QueryExtension.setFactory(null);
     }
 
     @Test

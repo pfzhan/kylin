@@ -47,37 +47,29 @@ public class CognosParenthesesEscapeTransformerTest {
 
     @Test
     public void advanced1Test() throws IOException {
-        CognosParenthesesEscapeTransformer escape = new CognosParenthesesEscapeTransformer();
-        String query = FileUtils.readFileToString(new File("src/test/resources/query/cognos/query01.sql"),
-                Charset.defaultCharset());
-        String expected = FileUtils.readFileToString(new File("src/test/resources/query/cognos/query01.sql.expected"),
-                Charset.defaultCharset());
-        String transformed = escape.completion(query);
-        //System.out.println(transformed);
-        Assert.assertEquals(expected, transformed);
+        advancedTestTemplate("src/test/resources/query/cognos/query01.sql",
+                "src/test/resources/query/cognos/query01.sql.expected");
     }
 
     @Test
     public void advanced2Test() throws IOException {
-        CognosParenthesesEscapeTransformer escape = new CognosParenthesesEscapeTransformer();
-        String query = FileUtils.readFileToString(new File("src/test/resources/query/cognos/query02.sql"),
-                Charset.defaultCharset());
-        String expected = FileUtils.readFileToString(new File("src/test/resources/query/cognos/query02.sql.expected"),
-                Charset.defaultCharset());
-        String transformed = escape.completion(query);
-        //System.out.println(transformed);
-        Assert.assertEquals(expected, transformed);
+        advancedTestTemplate("src/test/resources/query/cognos/query02.sql",
+                "src/test/resources/query/cognos/query02.sql.expected");
     }
 
     @Test
     public void advanced3Test() throws IOException {
+        advancedTestTemplate("src/test/resources/query/cognos/query03.sql",
+                "src/test/resources/query/cognos/query03.sql.expected");
+    }
+
+    private void advancedTestTemplate(String originFile, String expectedFile) throws IOException {
         CognosParenthesesEscapeTransformer escape = new CognosParenthesesEscapeTransformer();
-        String query = FileUtils.readFileToString(new File("src/test/resources/query/cognos/query03.sql"),
+        String query = FileUtils.readFileToString(new File(originFile),
                 Charset.defaultCharset());
-        String expected = FileUtils.readFileToString(new File("src/test/resources/query/cognos/query03.sql.expected"),
+        String expected = FileUtils.readFileToString(new File(expectedFile),
                 Charset.defaultCharset());
         String transformed = escape.completion(query);
-        //System.out.println(transformed);
         Assert.assertEquals(expected, transformed);
     }
 

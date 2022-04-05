@@ -55,6 +55,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.query.QueryExtension;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.linq4j.Enumerable;
@@ -97,7 +98,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.CollectionUtil;
-import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
@@ -365,8 +365,8 @@ public class OLAPTable extends AbstractQueryableTable implements TranslatableTab
         QueryContext.AclInfo aclInfo = QueryContext.current().getAclInfo();
         String userName = Objects.nonNull(aclInfo) ? aclInfo.getUsername() : null;
         Set<String> groups = Objects.nonNull(aclInfo) ? aclInfo.getGroups() : null;
-        val aclManager = AclTCRManager.getInstance(olapSchema.getConfig(), olapSchema.getProjectName());
-        return aclManager.isColumnsAuthorized(userName, groups, ccSourceCols);
+        return QueryExtension.getFactory().getTableColumnAuthExtension()
+                .isColumnsAuthorized(olapSchema.getConfig(), olapSchema.getProjectName(), userName, groups, ccSourceCols);
     }
 
     @Override

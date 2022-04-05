@@ -31,8 +31,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import io.kyligence.kap.query.engine.view.ViewAnalyzer;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.schema.Function;
 import org.apache.calcite.schema.Schema;
@@ -44,12 +42,14 @@ import org.apache.kylin.metadata.model.DatabaseDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.constant.Constant;
 
-import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.query.QueryExtension;
+import io.kyligence.kap.query.engine.view.ViewAnalyzer;
 import io.kyligence.kap.query.engine.view.ViewSchema;
 import io.kyligence.kap.query.schema.KapOLAPSchema;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * factory that create and construct schemas within a project
@@ -71,8 +71,8 @@ class ProjectSchemaFactory {
         QueryContext.AclInfo aclInfo = QueryContext.current().getAclInfo();
         String user = Objects.nonNull(aclInfo) ? aclInfo.getUsername() : null;
         Set<String> groups = Objects.nonNull(aclInfo) ? aclInfo.getGroups() : null;
-        schemasMap = AclTCRManager.getInstance(kylinConfig, projectName).getAuthorizedTablesAndColumns(user, groups,
-                aclDisabledOrIsAdmin(aclInfo));
+        schemasMap = QueryExtension.getFactory().getSchemaMapExtension().getAuthorizedTablesAndColumns(kylinConfig,
+                projectName, aclDisabledOrIsAdmin(aclInfo), user, groups);
         modelsMap = NDataflowManager.getInstance(kylinConfig, projectName).getModelsGroupbyTable();
 
         // "database" in TableDesc correspond to our schema

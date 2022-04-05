@@ -42,6 +42,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.query.QueryExtension;
 
 public class QueryRoutingEngineTest extends NLocalFileMetadataTestCase {
 
@@ -53,11 +54,15 @@ public class QueryRoutingEngineTest extends NLocalFileMetadataTestCase {
     public void setup() throws Exception {
         this.createTestMetadata();
         pushdownCount = 0;
+        // Use default Factory for Open Core
+        QueryExtension.setFactory(new QueryExtension.Factory());
     }
 
     @After
     public void tearDown() throws Exception {
         this.cleanupTestMetadata();
+        // Unset Factory for Open Core
+        QueryExtension.setFactory(null);
     }
 
     @Test

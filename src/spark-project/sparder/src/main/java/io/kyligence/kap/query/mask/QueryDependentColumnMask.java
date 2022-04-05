@@ -24,12 +24,16 @@
 
 package io.kyligence.kap.query.mask;
 
-import com.google.common.collect.Sets;
-import io.kyligence.kap.metadata.acl.AclTCRManager;
-import io.kyligence.kap.metadata.acl.DependentColumn;
-import io.kyligence.kap.metadata.acl.DependentColumnInfo;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.query.relnode.KapTableScan;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
@@ -55,15 +59,13 @@ import org.apache.spark.sql.catalyst.expressions.Expression;
 import org.apache.spark.sql.catalyst.expressions.Literal;
 import org.apache.spark.sql.catalyst.parser.ParseException;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
-import java.util.stream.Collectors;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.metadata.acl.AclTCRManager;
+import io.kyligence.kap.metadata.acl.DependentColumn;
+import io.kyligence.kap.metadata.acl.DependentColumnInfo;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.query.relnode.KapTableScan;
 
 public class QueryDependentColumnMask implements QueryResultMask {
 
@@ -126,44 +128,45 @@ public class QueryDependentColumnMask implements QueryResultMask {
             ResultColumnMaskInfo maskInfo = resultColumnMaskInfos.get(i);
             if (!maskInfo.needMask()) {
                 columns[i] = dfWithIndexedCol.col(dfWithIndexedCol.columns()[i]);
-                continue;
-            }
-            if (maskInfo.maskAsNull) {
+            } else if (maskInfo.maskAsNull) {
                 columns[i] = new Column(new Literal(null, dfWithIndexedCol.schema().fields()[i].dataType()))
                         .as(dfWithIndexedCol.columns()[i]);
-                continue;
-            }
-
-            StringBuilder condExpr = new StringBuilder();
-            for (ResultDependentValues dependentValue : maskInfo.dependentValues) {
-                String depColumnName = dfWithIndexedCol.columns()[dependentValue.colIdx];
-                if (condExpr.length() > 0) {
-                    condExpr.append(" AND ");
+            } else {
+                try {
+                    String condExpr = maskDependentCondition(dfWithIndexedCol, maskInfo);
+                    Expression expr = dfWithIndexedCol.sparkSession().sessionState().sqlParser()
+                            .parseExpression(String.format(Locale.ROOT, "CASE WHEN (%s) THEN `%s` ELSE NULL END",
+                                    condExpr, dfWithIndexedCol.columns()[i]));
+                    columns[i] = new Column(expr).as(dfWithIndexedCol.columns()[i]);
+                } catch (ParseException e) {
+                    throw new KylinException(ServerErrorCode.ACL_DEPENDENT_COLUMN_PARSE_ERROR, e);
                 }
-                condExpr.append("(");
-                condExpr.append("`").append(depColumnName).append("`");
-                condExpr.append(" IN (");
-                boolean firstVal = true;
-                for (String depValue : dependentValue.values) {
-                    if (!firstVal) {
-                        condExpr.append(",");
-                    }
-                    condExpr.append("'").append(depValue).append("'");
-                    firstVal = false;
-                }
-                condExpr.append("))");
             }
-            Expression expr = null;
-            try {
-                expr = dfWithIndexedCol.sparkSession().sessionState().sqlParser()
-                        .parseExpression(String.format(Locale.ROOT, "CASE WHEN (%s) THEN `%s` ELSE NULL END",
-                                condExpr.toString(), dfWithIndexedCol.columns()[i]));
-            } catch (ParseException e) {
-                throw new KylinException(ServerErrorCode.ACL_DEPENDENT_COLUMN_PARSE_ERROR, e);
-            }
-            columns[i] = new Column(expr).as(dfWithIndexedCol.columns()[i]);
         }
         return dfWithIndexedCol.select(columns).toDF(df.columns());
+    }
+
+    private String maskDependentCondition(Dataset<Row> dfWithIndexedCol, ResultColumnMaskInfo maskInfo) {
+        StringBuilder condExpr = new StringBuilder();
+        for (ResultDependentValues dependentValue : maskInfo.dependentValues) {
+            String depColumnName = dfWithIndexedCol.columns()[dependentValue.colIdx];
+            if (condExpr.length() > 0) {
+                condExpr.append(" AND ");
+            }
+            condExpr.append("(");
+            condExpr.append("`").append(depColumnName).append("`");
+            condExpr.append(" IN (");
+            boolean firstVal = true;
+            for (String depValue : dependentValue.values) {
+                if (!firstVal) {
+                    condExpr.append(",");
+                }
+                condExpr.append("'").append(depValue).append("'");
+                firstVal = false;
+            }
+            condExpr.append("))");
+        }
+        return condExpr.toString();
     }
 
     private List<ResultColumnMaskInfo> buildResultColumnMaskInfo(List<ColumnReferences> resultColRefs) {

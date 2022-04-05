@@ -46,6 +46,7 @@ import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.query.QueryExtension;
 import io.kyligence.kap.query.engine.QueryExec;
 import lombok.val;
 
@@ -74,11 +75,15 @@ public class KylinSqlValidatorTest extends NLocalFileMetadataTestCase {
         NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT).updateDataflowStatus(df.getId(),
                 RealizationStatusEnum.ONLINE);
 
+        // Use default Factory for Open Core
+        QueryExtension.setFactory(new QueryExtension.Factory());
     }
 
     @After
     public void teardown() {
         this.cleanupTestMetadata();
+        // Unset Factory for Open Core
+        QueryExtension.setFactory(null);
     }
 
     private void assertExpandFields(String sql, int expectedFiledNum) {

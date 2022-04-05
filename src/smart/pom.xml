@@ -50,6 +50,11 @@
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-core-job</artifactId>
         </dependency>
+        <!-- TO-DO this will be resolved by Open Core isolation -->
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-query-ext</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>io.kyligence.ke</groupId>
