@@ -422,6 +422,13 @@ public class SecondStorageService extends BasicService implements SecondStorageU
         }
         Manager<NodeGroup> nodeGroupManager = optionalNodeGroupManager.get();
         List<NodeGroup> nodeGroups = nodeGroupManager.listAll();
+
+        if (LockOperateTypeEnum.LOCK.name().equals(operateType)) {
+            for (NodeGroup nodeGroup : nodeGroups) {
+                LockTypeEnum.checkLocks(lockTypes, nodeGroup.getLockTypes());
+            }
+        }
+
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             nodeGroups.stream().forEach(x -> {
                 x.update(y -> {
