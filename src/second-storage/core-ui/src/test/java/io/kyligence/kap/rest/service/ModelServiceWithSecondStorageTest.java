@@ -80,6 +80,7 @@ import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import io.kyligence.kap.secondstorage.SecondStorageUpdater;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
+import io.kyligence.kap.secondstorage.management.SecondStorageService;
 import io.kyligence.kap.streaming.jobs.StreamingJobListener;
 import lombok.val;
 import lombok.var;
@@ -93,7 +94,7 @@ public class ModelServiceWithSecondStorageTest extends NLocalFileMetadataTestCas
     private final ModelService modelService = Mockito.spy(new ModelService());
 
     @InjectMocks
-    private final MockModelQueryService modelQueryService = Mockito.spy(new MockModelQueryService());
+    private final ModelQueryService modelQueryService = Mockito.spy(new ModelQueryService());
 
     @InjectMocks
     private final ModelSemanticHelper semanticService = Mockito.spy(new ModelSemanticHelper());
@@ -132,13 +133,15 @@ public class ModelServiceWithSecondStorageTest extends NLocalFileMetadataTestCas
         PowerMockito.when(SpringContext.getBean(PermissionGrantingStrategy.class))
                 .thenAnswer(invocation -> PowerMockito.mock(PermissionGrantingStrategy.class));
         PowerMockito.when(SpringContext.getBean(SecondStorageUpdater.class))
-                .thenAnswer(invocation -> new MockSecondStorageService());
+                .thenAnswer(invocation -> new SecondStorageService());
 
         overwriteSystemProp("HADOOP_USER_NAME", "root");
         overwriteSystemProp("kylin.model.multi-partition-enabled", "true");
         Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
         SecurityContextHolder.getContext().setAuthentication(authentication);
         createTestMetadata();
+        getTestConfig().setProperty("kylin.query.engine.sparder-additional-files",
+                "../../../build/conf/spark-executor-log4j.xml");
 
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
         ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
