@@ -201,14 +201,14 @@ public class SecondStorageEndpoint extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, null, "");
     }
 
-    @PostMapping(value = "/lock/operate")
+    @PostMapping(value = "/lock/operate", produces = {HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
     public EnvelopeResponse<Void> lockOperate(@RequestBody ProjectLockOperateRequest request) {
         checkProjectName(request.getProject());
         secondStorageService.lockOperate(request.getProject(), request.getLockTypes(), request.getOperateType());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, null, "");
     }
 
-    @GetMapping(value = "/lock/list")
+    @GetMapping(value = "/lock/list", produces = {HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
     @ResponseBody
     public EnvelopeResponse<List<ProjectLock>> lockList(String project) {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, secondStorageService.lockList(project), "");
@@ -251,13 +251,13 @@ public class SecondStorageEndpoint extends NBasicController {
         secondStorageService.refreshConf();
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, null, "");
     }
-    @PostMapping(value = "/reset")
+    @PostMapping(value = "/reset", produces = {HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
     public EnvelopeResponse resetStorage() {
         secondStorageService.resetStorage();
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, null, "");
     }
 
-    @PostMapping("/node/status")
+    @PostMapping(value = "/node/status", produces = {HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
     public EnvelopeResponse<Void> updateNodeStatus(@RequestBody Map<String, Map<String, Boolean>> nodeStatusMap) {
         secondStorageService.updateNodeStatus(nodeStatusMap);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, null, "");
