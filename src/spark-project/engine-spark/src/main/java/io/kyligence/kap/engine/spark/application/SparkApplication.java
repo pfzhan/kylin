@@ -43,7 +43,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -94,6 +96,7 @@ import io.kyligence.kap.engine.spark.job.KylinBuildEnv;
 import io.kyligence.kap.engine.spark.job.LogJobInfoUtils;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import io.kyligence.kap.engine.spark.job.ResourceDetect;
+import io.kyligence.kap.engine.spark.job.SegmentBuildJob;
 import io.kyligence.kap.engine.spark.job.SparkJobConstants;
 import io.kyligence.kap.engine.spark.job.UdfManager;
 import io.kyligence.kap.engine.spark.utils.JobMetricsUtils;
@@ -113,7 +116,6 @@ public abstract class SparkApplication implements Application {
 
     protected volatile KylinConfig config;
     protected volatile String jobId;
-    protected SparkSession ss;
     protected String project;
     protected int layoutSize = -1;
     protected BuildJobInfos infos;
@@ -121,6 +123,10 @@ public abstract class SparkApplication implements Application {
      * path for spark app args on HDFS
      */
     protected String path;
+
+    private final AtomicReference<SparkConf> atomicSparkConf = new AtomicReference<>(null);
+    private final AtomicReference<SparkSession> atomicSparkSession = new AtomicReference<>(null);
+    private final AtomicReference<KylinBuildEnv> atomicBuildEnv = new AtomicReference<>(null);
 
     public void execute(String[] args) {
         try {
@@ -160,6 +166,18 @@ public abstract class SparkApplication implements Application {
 
     public KylinConfig getConfig() {
         return config;
+    }
+
+    /// backwards compatibility, must have been initialized before invoking #doExecute.
+    protected SparkSession ss;
+
+    public SparkSession getSparkSession() throws NoRetryException {
+        SparkSession sparkSession = atomicSparkSession.get();
+        if (Objects.isNull(sparkSession)) {
+            // shouldn't reach here
+            throw new NoRetryException("spark session shouldn't be null");
+        }
+        return sparkSession;
     }
 
     /**
@@ -218,8 +236,8 @@ public abstract class SparkApplication implements Application {
      * @param sparkSession build sparkSession
      * @return
      */
-    public String getTrackingUrl(IClusterManager cm, SparkSession sparkSession) {
-        return cm.getBuildTrackingUrl(sparkSession);
+    public String getTrackingUrl(IClusterManager clusterManager, SparkSession sparkSession) {
+        return clusterManager.getBuildTrackingUrl(sparkSession);
     }
 
     /**
@@ -258,19 +276,19 @@ public abstract class SparkApplication implements Application {
             String hostAddress = InetAddress.getByName(originHost).getHostAddress();
             return url.replace(originHost, hostAddress);
         } catch (UnknownHostException uhe) {
-            logger.error(
-                    "failed to get the ip address of " + originHost + ", step back to use the origin tracking url.",
+            logger.error("failed to get the ip address of {}, step back to use the origin tracking url.", originHost,
                     uhe);
             return url;
         }
     }
 
-    private Map<String, String> getTrackingInfo(IClusterManager cm, boolean ipAddressPreferred) {
-        String applicationId = ss.sparkContext().applicationId();
+    private Map<String, String> getTrackingInfo(SparkSession sparkSession, boolean ipAddressPreferred) {
+        IClusterManager clusterManager = atomicBuildEnv.get().clusterManager();
+        String applicationId = sparkSession.sparkContext().applicationId();
         Map<String, String> extraInfo = new HashMap<>();
         extraInfo.put("yarn_app_id", applicationId);
         try {
-            String trackingUrl = getTrackingUrl(cm, ss);
+            String trackingUrl = getTrackingUrl(clusterManager, sparkSession);
             if (StringUtils.isBlank(trackingUrl)) {
                 logger.warn("Get tracking url of application {}, but empty url found.", applicationId);
                 return extraInfo;
@@ -285,6 +303,10 @@ public abstract class SparkApplication implements Application {
         return extraInfo;
     }
 
+    protected void exchangeSparkSession() {
+        exchangeSparkSession(atomicSparkConf.get());
+    }
+
     protected final void execute() throws Exception {
         String hdfsMetalUrl = getParam(NBatchConstants.P_DIST_META_URL);
         jobId = getParam(NBatchConstants.P_JOB_ID);
@@ -295,59 +317,35 @@ public abstract class SparkApplication implements Application {
         try (KylinConfig.SetAndUnsetThreadLocalConfig autoCloseConfig = KylinConfig
                 .setAndUnsetThreadLocalConfig(KylinConfig.loadKylinConfigFromHdfs(hdfsMetalUrl))) {
             config = autoCloseConfig.get();
-            // init KylinBuildEnv
-            KylinBuildEnv buildEnv = KylinBuildEnv.getOrCreate(config);
-            infos = KylinBuildEnv.get().buildJobInfos();
+            //// KylinBuildEnv
+            final KylinBuildEnv buildEnv = KylinBuildEnv.getOrCreate(config);
+            atomicBuildEnv.set(buildEnv);
+            infos = buildEnv.buildJobInfos();
             infos.recordJobId(jobId);
             infos.recordProject(project);
             infos.recordJobStepId(System.getProperty("spark.driver.param.taskId", jobId));
             HadoopUtil.setCurrentConfiguration(new Configuration());
-            SparkConf sparkConf = buildEnv.sparkConf();
-            if (isJobOnCluster(sparkConf) && !(this instanceof ResourceDetect)) {
-                if (getSparkConfigOverride(config).size() > 0) {
-                    Map<String, String> sparkConfigOverride = getApplicationSparkConfig(config);
-                    for (Map.Entry<String, String> entry : sparkConfigOverride.entrySet()) {
-                        sparkConf.set(entry.getKey(), entry.getValue());
-                    }
-                    logger.info("Override user-defined spark conf: {}",
-                            JsonUtil.writeValueAsString(sparkConfigOverride));
-                }
-                if (config.isAutoSetSparkConf()) {
-                    logger.info("Set spark conf automatically.");
-                    try {
-                        autoSetSparkConf(sparkConf);
-                    } catch (Exception e) {
-                        logger.warn("Auto set spark conf failed. Load spark conf from system properties", e);
-                    }
-                }
-            }
+            ////////
+            exchangeSparkConf(buildEnv.sparkConf());
 
             TimeZoneUtils.setDefaultTimeZone(config);
 
-            // wait until resource is enough
-            waiteForResource(sparkConf, buildEnv);
+            /// wait until resource is enough
+            waiteForResource(atomicSparkConf.get(), buildEnv);
 
+            ///
             logger.info("Prepare job environment");
-            ss = createSpark(sparkConf);
+            prepareSparkSession();
 
-            if (!config.isUTEnv() && (!sparkConf.get("spark.master").startsWith("k8s"))) {
-                updateSparkJobExtraInfo("/kylin/api/jobs/spark", project, jobId,
-                        getTrackingInfo(buildEnv.clusterManager(), config.isTrackingUrlIpAddressEnabled()));
-            }
-
-            // for spark metrics
-            JobMetricsUtils.registerListener(ss);
-            SparderEnv.registerListener(ss.sparkContext());
-
-            //#8341
-            SparderEnv.setSparkSession(ss);
-            UdfManager.create(ss);
+            /// backwards compatibility
+            ss = getSparkSession();
 
             if (!config.isUTEnv()) {
                 Unsafe.setProperty("kylin.env", config.getDeployEnv());
             }
             logger.info("Start job");
             infos.startJob();
+            // should be invoked after method prepareSparkSession
             extraInit();
 
             waiteForResourceSuccess();
@@ -363,10 +361,7 @@ public abstract class SparkApplication implements Application {
             if (infos != null) {
                 infos.jobEnd();
             }
-            if (ss != null && !ss.conf().get("spark.master").startsWith("local")) {
-                JobMetricsUtils.unRegisterListener(ss);
-                ss.stop();
-            }
+            destroySparkSession();
             extraDestroy();
         }
     }
@@ -411,7 +406,6 @@ public abstract class SparkApplication implements Application {
     }
 
     protected void extraInit() {
-        //do nothing
     }
 
     protected void extraDestroy() {
@@ -519,10 +513,6 @@ public abstract class SparkApplication implements Application {
         return config.getSparkConfigOverride();
     }
 
-    private Map<String, String> getApplicationSparkConfig(KylinConfig config) {
-        return getSparkConfigOverride(config);
-    }
-
     protected void checkDateFormatIfExist(String project, String modelId) throws Exception {
         if (config.isUTEnv()) {
             return;
@@ -544,7 +534,9 @@ public abstract class SparkApplication implements Application {
 
         String partitionColumn = modelDesc.getPartitionDesc().getPartitionDateColumnRef().getExpressionInSourceDB();
 
-        try (SparkSubmitter.OverriddenSparkSession ignored = SparkSubmitter.getInstance().overrideSparkSession(ss)) {
+        SparkSession sparkSession = atomicSparkSession.get();
+        try (SparkSubmitter.OverriddenSparkSession ignored = SparkSubmitter.getInstance()
+                .overrideSparkSession(sparkSession)) {
             String dateString = PushDownUtil.getFormatIfNotExist(modelDesc.getRootFactTableName(), partitionColumn,
                     project);
             val sdf = new SimpleDateFormat(modelDesc.getPartitionDesc().getPartitionDateFormat(),
@@ -558,5 +550,86 @@ public abstract class SparkApplication implements Application {
         } catch (ParseException | NoRetryException e) {
             throw new NoRetryException("date format not match");
         }
+    }
+
+    private void exchangeSparkConf(SparkConf sparkConf) throws Exception {
+        if (isJobOnCluster(sparkConf) && !(this instanceof ResourceDetect)) {
+            Map<String, String> baseSparkConf = getSparkConfigOverride(config);
+            if (!baseSparkConf.isEmpty()) {
+                baseSparkConf.forEach(sparkConf::set);
+                String baseSparkConfStr = JsonUtil.writeValueAsString(baseSparkConf);
+                logger.info("Override user-defined spark conf: {}", baseSparkConfStr);
+            }
+            if (config.isAutoSetSparkConf()) {
+                logger.info("Set spark conf automatically.");
+                try {
+                    autoSetSparkConf(sparkConf);
+                } catch (Exception e) {
+                    logger.warn("Auto set spark conf failed. Load spark conf from system properties", e);
+                }
+            }
+        }
+
+        atomicSparkConf.set(sparkConf);
+    }
+
+    private void exchangeSparkSession(SparkConf sparkConf) {
+        SparkSession sparkSession = atomicSparkSession.get();
+        if (Objects.nonNull(sparkSession)) {
+            // destroy previous spark session
+            destroySparkSession();
+        }
+
+        sparkSession = createSpark(sparkConf);
+        if (!config.isUTEnv() && !sparkConf.get("spark.master").startsWith("k8s")) {
+            updateSparkJobExtraInfo("/kylin/api/jobs/spark", project, jobId,
+                    getTrackingInfo(sparkSession, config.isTrackingUrlIpAddressEnabled()));
+        }
+
+        // for spark metrics
+        JobMetricsUtils.registerListener(sparkSession);
+        SparderEnv.registerListener(sparkSession.sparkContext());
+
+        //#8341
+        SparderEnv.setSparkSession(sparkSession);
+        UdfManager.create(sparkSession);
+
+        ///
+        atomicSparkSession.set(sparkSession);
+    }
+
+    private void prepareSparkSession() throws NoRetryException {
+        SparkConf sparkConf = atomicSparkConf.get();
+        if (Objects.isNull(sparkConf)) {
+            // shouldn't reach here
+            throw new NoRetryException("spark conf shouldn't be null");
+        }
+
+        /// SegmentBuildJob only!!!
+        if (config.isSnapshotSpecifiedSparkConf() && (this instanceof SegmentBuildJob)) {
+            // snapshot specified spark conf, based on the exchanged spark conf.
+            SparkConf clonedSparkConf = sparkConf.clone();
+            Map<String, String> snapshotSparkConf = config.getSnapshotBuildingConfigOverride();
+            snapshotSparkConf.forEach(clonedSparkConf::set);
+            logger.info("exchange sparkSession using snapshot specified sparkConf");
+            exchangeSparkSession(clonedSparkConf);
+            return;
+        }
+        // normal logic
+        exchangeSparkSession(sparkConf);
+    }
+
+    private void destroySparkSession() {
+        SparkSession sparkSession = atomicSparkSession.get();
+        if (Objects.isNull(sparkSession)) {
+            logger.info("no initialized sparkSession instance");
+            return;
+        }
+        if (sparkSession.conf().get("spark.master").startsWith("local")) {
+            // for UT use? but very strange for resource detect mode (spark local).
+            return;
+        }
+        JobMetricsUtils.unRegisterListener(sparkSession);
+        sparkSession.stop();
     }
 }

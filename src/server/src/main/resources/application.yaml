@@ -107,7 +107,6 @@ spring:
     activate:
       on-profile: sandbox
     import: optional:${KYLIN_CONF}/kylin.properties
-
   web:
     resources:
       static-locations: "file://${KYLIN_HOME}/kystudio/dist"

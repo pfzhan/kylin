@@ -599,7 +599,7 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
     @Override
     public RelWriter explainTerms(RelWriter pw) {
         return super.explainTerms(pw).item("ctx",
-                context == null ? "" : String.valueOf(context.id) + "@" + context.realization);
+                context == null ? "" : context.id + "@" + context.realization);
     }
 
     public List<TblColRef> getGroups() {

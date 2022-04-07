@@ -25,8 +25,8 @@
 package io.kyligence.kap.smart.query;
 
 import java.io.Serializable;
+import java.sql.SQLException;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -37,9 +37,9 @@ import lombok.Setter;
 @Setter
 @Getter
 @NoArgsConstructor
-@SuppressWarnings("serial")
-@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class SQLResult implements Serializable {
+
+    public static final String NON_SELECT_CLAUSE = "Statement is not a select clause";
 
     @JsonProperty("status")
     private Status status;
@@ -50,17 +50,41 @@ public class SQLResult implements Serializable {
     @JsonIgnore
     private Throwable exception;
 
-    // used for acceleration validate
-    private transient ResultDetails details = new ResultDetails();
+    @JsonProperty("query_id")
+    private String queryId;
 
-    public SQLResult(Status status, String message, Throwable exception) {
-        this.status = status;
-        this.message = message;
-        this.exception = exception;
+    @JsonProperty("sql")
+    private String sql;
+
+    @JsonProperty("duration")
+    private long duration;
+
+    @JsonProperty("project")
+    private String project;
+
+    public void writeNonQueryException(String project, String sql, long duration) {
+        write(project, sql, duration, NON_SELECT_CLAUSE);
+        writeExceptionInfo(NON_SELECT_CLAUSE, new SQLException(NON_SELECT_CLAUSE + ":" + sql));
     }
 
-    static SQLResult failedSQL(String message) {
-        return new SQLResult(Status.FAILED, message, new Exception(message));
+    public void writeExceptionInfo(String message, Throwable e) {
+        this.status = Status.FAILED;
+        this.message = message;
+        this.exception = e;
+    }
+
+    public void writeNormalInfo(String project, String sql, long elapsed, String queryId) {
+        write(project, sql, elapsed, queryId);
+        if (this.exception == null) {
+            this.status = Status.SUCCESS;
+        }
+    }
+
+    private void write(String project, String sql, long elapsed, String queryId) {
+        this.project = project;
+        this.sql = sql;
+        this.duration = elapsed;
+        this.queryId = queryId;
     }
 
     public enum Status {

@@ -52,6 +52,29 @@ public class IndexDataWarehouse {
 
     private String suffix;
 
+    public void reuseBuildData(File outputFolder) throws IOException {
+        FileUtils.deleteQuietly(outputFolder);
+        ZipFileUtils.decompressZipFile(outputFolder.getAbsolutePath() + ".zip",
+                outputFolder.getParentFile().getAbsolutePath());
+        FileUtils.copyDirectory(new File(outputFolder, "hdfs"),
+                new File(kylinConfig.getHdfsWorkingDirectory().substring(7)));
+
+        val buildConfig = KylinConfig.createKylinConfig(kylinConfig);
+        buildConfig.setMetadataUrl(outputFolder.getAbsolutePath() + "/metadata");
+        val buildStore = ResourceStore.getKylinMetaStore(buildConfig);
+        val store = ResourceStore.getKylinMetaStore(kylinConfig);
+        for (String key : store.listResourcesRecursively("/" + project)) {
+            store.deleteResource(key);
+        }
+        for (String key : buildStore.listResourcesRecursively("/" + project)) {
+            val raw = buildStore.getResource(key);
+            store.deleteResource(key);
+            store.putResourceWithoutCheck(key, raw.getByteSource(), System.currentTimeMillis(), 100);
+        }
+        FileUtils.deleteQuietly(outputFolder);
+        log.info("reuse data succeed for {}", outputFolder);
+    }
+
     boolean reuseBuildData() {
         if (!TestUtils.isSkipBuild()) {
             return false;
@@ -60,26 +83,7 @@ public class IndexDataWarehouse {
             val method = findTestMethod();
             val inputFolder = new File(kylinConfig.getMetadataUrlPrefix()).getParentFile();
             val outputFolder = getOutputFolder(inputFolder, method);
-            FileUtils.deleteQuietly(outputFolder);
-            ZipFileUtils.decompressZipFile(outputFolder.getAbsolutePath() + ".zip",
-                    outputFolder.getParentFile().getAbsolutePath());
-            FileUtils.copyDirectory(new File(outputFolder, "hdfs"),
-                    new File(kylinConfig.getHdfsWorkingDirectory().substring(7)));
-
-            val buildConfig = KylinConfig.createKylinConfig(kylinConfig);
-            buildConfig.setMetadataUrl(outputFolder.getAbsolutePath() + "/metadata");
-            val buildStore = ResourceStore.getKylinMetaStore(buildConfig);
-            val store = ResourceStore.getKylinMetaStore(kylinConfig);
-            for (String key : store.listResourcesRecursively("/" + project)) {
-                store.deleteResource(key);
-            }
-            for (String key : buildStore.listResourcesRecursively("/" + project)) {
-                val raw = buildStore.getResource(key);
-                store.deleteResource(key);
-                store.putResourceWithoutCheck(key, raw.getByteSource(), System.currentTimeMillis(), 100);
-            }
-            FileUtils.deleteQuietly(outputFolder);
-            log.info("reuse data succeed for {}", outputFolder);
+            reuseBuildData(outputFolder);
         } catch (IOException | NoSuchElementException e) {
             log.warn("reuse data failed", e);
             return false;

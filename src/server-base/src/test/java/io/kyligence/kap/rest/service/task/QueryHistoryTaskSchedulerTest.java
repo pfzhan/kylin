@@ -59,8 +59,6 @@ import io.kyligence.kap.metadata.favorite.AsyncAccelerationTask;
 import io.kyligence.kap.metadata.favorite.AsyncTaskManager;
 import io.kyligence.kap.metadata.favorite.QueryHistoryIdOffset;
 import io.kyligence.kap.metadata.favorite.QueryHistoryIdOffsetManager;
-import io.kyligence.kap.metadata.query.AccelerateRatio;
-import io.kyligence.kap.metadata.query.AccelerateRatioManager;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryInfo;
 import io.kyligence.kap.metadata.query.QueryMetrics;
@@ -114,10 +112,6 @@ public class QueryHistoryTaskSchedulerTest extends NLocalFileMetadataTestCase {
 
         Mockito.when(qhAccelerateScheduler.accelerateRuleUtil.findMatchedCandidate(Mockito.anyString(),
                 Mockito.anyList(), Mockito.anyMap(), Mockito.anyList())).thenReturn(queryHistories());
-
-        // before update accelerate ratio
-        AccelerateRatioManager accelerateRatioManager = AccelerateRatioManager.getInstance(getTestConfig(), PROJECT);
-        Assert.assertNull(accelerateRatioManager.get());
 
         // before update id offset
         QueryHistoryIdOffsetManager idOffsetManager = QueryHistoryIdOffsetManager.getInstance(getTestConfig(), PROJECT);
@@ -193,10 +187,6 @@ public class QueryHistoryTaskSchedulerTest extends NLocalFileMetadataTestCase {
         Assert.assertNull(dataflow.getLayoutHitCount().get(1000001L));
         Assert.assertEquals(0L, dataflow.getLastQueryTime());
 
-        // before update accelerate ratio
-        AccelerateRatioManager accelerateRatioManager = AccelerateRatioManager.getInstance(getTestConfig(), PROJECT);
-        Assert.assertNull(accelerateRatioManager.get());
-
         // before update id offset
         QueryHistoryIdOffsetManager idOffsetManager = QueryHistoryIdOffsetManager.getInstance(getTestConfig(), PROJECT);
         Assert.assertEquals(0, idOffsetManager.get().getQueryHistoryStatMetaUpdateIdOffset());
@@ -214,11 +204,6 @@ public class QueryHistoryTaskSchedulerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(1, dataflow.getLayoutHitCount().get(1000001L).getDateFrequency()
                 .get(TimeUtil.getDayStart(QUERY_TIME)).intValue());
         Assert.assertEquals(1586760398338L, dataflow.getLastQueryTime());
-
-        // after update accelerate ratio
-        AccelerateRatio ratio = accelerateRatioManager.get();
-        Assert.assertEquals(5, ratio.getNumOfQueryHitIndex());
-        Assert.assertEquals(8, ratio.getOverallQueryNum());
 
         // after update id offset
         Assert.assertEquals(8, idOffsetManager.get().getQueryHistoryStatMetaUpdateIdOffset());
@@ -240,10 +225,6 @@ public class QueryHistoryTaskSchedulerTest extends NLocalFileMetadataTestCase {
         Assert.assertNull(dataflow.getLayoutHitCount().get(1000001L));
         Assert.assertEquals(0L, dataflow.getLastQueryTime());
 
-        // before update accelerate ratio
-        AccelerateRatioManager accelerateRatioManager = AccelerateRatioManager.getInstance(getTestConfig(), PROJECT);
-        Assert.assertNull(accelerateRatioManager.get());
-
         // before update id offset
         QueryHistoryIdOffsetManager idOffsetManager = QueryHistoryIdOffsetManager.getInstance(getTestConfig(), PROJECT);
         Assert.assertEquals(0, idOffsetManager.get().getQueryHistoryStatMetaUpdateIdOffset());
@@ -262,11 +243,6 @@ public class QueryHistoryTaskSchedulerTest extends NLocalFileMetadataTestCase {
                 .get(TimeUtil.getDayStart(QUERY_TIME)).intValue());
         Assert.assertEquals(1586760398338L, dataflow.getLastQueryTime());
 
-        // after update accelerate ratio
-        AccelerateRatio ratio = accelerateRatioManager.get();
-        Assert.assertEquals(5, ratio.getNumOfQueryHitIndex());
-        Assert.assertEquals(8, ratio.getOverallQueryNum());
-
         // after update id offset
         Assert.assertEquals(8, idOffsetManager.get().getQueryHistoryStatMetaUpdateIdOffset());
     }
@@ -279,10 +255,6 @@ public class QueryHistoryTaskSchedulerTest extends NLocalFileMetadataTestCase {
                 Mockito.anyInt(), Mockito.anyString())).thenReturn(queryHistories()).thenReturn(null);
         Mockito.when(qhAccelerateScheduler.accelerateRuleUtil.findMatchedCandidate(Mockito.anyString(),
                 Mockito.anyList(), Mockito.anyMap(), Mockito.anyList())).thenReturn(queryHistories());
-
-        // before update accelerate ratio
-        AccelerateRatioManager accelerateRatioManager = AccelerateRatioManager.getInstance(getTestConfig(), PROJECT);
-        Assert.assertNull(accelerateRatioManager.get());
 
         // before update id offset
         QueryHistoryIdOffsetManager idOffsetManager = QueryHistoryIdOffsetManager.getInstance(getTestConfig(), PROJECT);

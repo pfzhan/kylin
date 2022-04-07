@@ -26,6 +26,7 @@ package io.kyligence.kap.secondstorage;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
@@ -210,7 +211,7 @@ public class SecondStorageUtil {
                 .flatMap(nodeGroup -> nodeGroup.getNodeNames().stream()).distinct()
                 .map(name -> {
                     Node node = SecondStorageNodeHelper.getNode(name);
-                    return new SecondStorageNode().setIp(node.getIp()).setName(node.getName()).setPort(node.getPort());
+                    return new SecondStorageNode(node);
                 }).collect(Collectors.toList())).orElse(Collections.emptyList());
     }
 
@@ -240,7 +241,7 @@ public class SecondStorageUtil {
             secondStorageInfo.setSecondStorageEnabled(isModelEnable(model.getProject(), model.getId()));
             TableFlow tableFlow = tableFlowManager.get(model.getId()).orElse(null);
             if (isTableFlowEmpty(tableFlow)) {
-                secondStorageInfo.setSecondStorageNodes(Collections.emptyList());
+                secondStorageInfo.setSecondStorageNodes(Collections.emptyMap());
                 secondStorageInfo.setSecondStorageSize(0);
             } else {
                 List<TablePartition> tablePartitions = tableFlow.getTableDataList().stream()
@@ -254,11 +255,9 @@ public class SecondStorageUtil {
                             .reduce(Long::sum).orElse(0L);
                 }
 
-                List<SecondStorageNode> nodes = nodesStr.stream()
-                        .distinct()
-                        .map(SecondStorageUtil::transformNode)
-                        .collect(Collectors.toList());
-                secondStorageInfo.setSecondStorageNodes(nodes);
+                List<String> nodes = nodesStr.stream().distinct().collect(Collectors.toList());
+                Map<String, List<SecondStorageNode>> pairs = convertNodesToPairs(nodes);
+                secondStorageInfo.setSecondStorageNodes(pairs);
                 secondStorageInfo.setSecondStorageSize(sizes / SecondStorageConfig.getInstanceFromEnv().getReplicaNum());
             }
             return secondStorageInfo;
@@ -267,10 +266,15 @@ public class SecondStorageUtil {
 
     public static SecondStorageNode transformNode(String name) {
         Node node = SecondStorageNodeHelper.getNode(name);
-        return new SecondStorageNode()
-                .setIp(node.getIp())
-                .setName(node.getName())
-                .setPort(node.getPort());
+        return new SecondStorageNode(node);
+    }
+
+    public static Map<String, List<SecondStorageNode>> convertNodesToPairs(List<String> nodes) {
+        Map<String, List<SecondStorageNode>> result = Maps.newHashMap();
+        nodes.stream().sorted().forEach(node ->
+                result.computeIfAbsent(SecondStorageNodeHelper.getPairByNode(node), k -> new ArrayList<>())
+                        .add(new SecondStorageNode(SecondStorageNodeHelper.getNode(node))));
+        return result;
     }
 
     public static boolean isTableFlowEmpty(TableFlow tableFlow) {
@@ -321,6 +325,25 @@ public class SecondStorageUtil {
                                             tablePartition -> segments.contains(tablePartition.getSegmentId())));
                         });
                     }));
+            return null;
+        }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID);
+    }
+
+    public static void cleanSegments(String project, String modelId, Set<String> segments, Set<Long> layoutIds) {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            KylinConfig config = KylinConfig.getInstanceFromEnv();
+            Optional<Manager<TableFlow>> tableFlowManager = SecondStorageUtil.tableFlowManager(config, project);
+
+            tableFlowManager.ifPresent(manager ->
+                    manager.listAll().stream()
+                            .filter(tableFlow -> tableFlow.getId().equals(modelId))
+                            .forEach(tableFlow -> tableFlow.update(copy ->
+                                    copy.getTableDataList().stream()
+                                            .filter(tableData -> layoutIds.contains(tableData.getLayoutID()))
+                                            .forEach(tableData -> tableData.removePartitions(
+                                                    tablePartition -> segments.contains(tablePartition.getSegmentId())))
+                            )));
+
             return null;
         }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID);
     }

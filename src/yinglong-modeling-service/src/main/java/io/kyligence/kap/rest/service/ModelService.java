@@ -48,6 +48,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.secondstorage.metadata.TableData;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
@@ -78,6 +79,7 @@ import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.handler.SecondStorageIndexCleanJobHandler;
 import org.apache.kylin.job.handler.SecondStorageModelCleanJobHandler;
 import org.apache.kylin.job.handler.SecondStorageSegmentCleanJobHandler;
 import org.apache.kylin.job.handler.SecondStorageSegmentLoadJobHandler;
@@ -974,13 +976,11 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                             }));
             segmentResponseList.forEach(segment -> {
                 if (tablePartitions.containsKey(segment.getId())) {
-                    val nodes = new ArrayList<SecondStorageNode>();
+                    val nodes = new ArrayList<String>();
                     Long sizes = 0L;
                     var partitions = tablePartitions.get(segment.getId());
                     for (TablePartition partition : partitions) {
-                        var ns = partition.getShardNodes().stream().map(SecondStorageUtil::transformNode)
-                                .collect(Collectors.toList());
-                        nodes.addAll(ns);
+                        nodes.addAll(partition.getShardNodes());
                         var size = partition.getSizeInNode().values().stream().reduce(Long::sum).orElse(0L);
                         sizes += size;
                     }
@@ -989,9 +989,10 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                     } catch (Exception e) {
                         log.error("setSecondStorageSize failed", e);
                     }
-                    segment.setSecondStorageNodes(nodes);
+                    Map<String, List<SecondStorageNode>> pairs = SecondStorageUtil.convertNodesToPairs(nodes);
+                    segment.setSecondStorageNodes(pairs);
                 } else {
-                    segment.setSecondStorageNodes(Collections.emptyList());
+                    segment.setSecondStorageNodes(Collections.emptyMap());
                     segment.setSecondStorageSize(0L);
                 }
             });
@@ -2236,6 +2237,34 @@ public class ModelService extends BasicService implements TableModelSupporter, P
             }
             getIndexPlanManager(project).updateIndexPlan(dataflow.getUuid(),
                     IndexPlan::removeTobeDeleteIndexIfNecessary);
+
+            if (SecondStorageUtil.isModelEnable(project, modelId)) {
+                SecondStorage.tableFlowManager(getConfig(), project).get(modelId).ifPresent(tableFlow -> {
+                    val tablePlanManager = SecondStorageUtil.tablePlanManager(getConfig(), project);
+                    Preconditions.checkState(tablePlanManager.isPresent());
+                    Preconditions.checkState(tablePlanManager.get().get(modelId).isPresent());
+                    val tablePlan = tablePlanManager.get().get(modelId).get();
+
+                    Set<Long> needDeleteLayoutIds = tableFlow.getTableDataList().stream()
+                            .filter(tableData -> indexIds.contains(tableData.getLayoutID()))
+                            .filter(tableData -> tableData.getPartitions().stream()
+                                    .allMatch(tablePartition -> segmentIds.contains(tablePartition.getSegmentId()))
+                            )
+                            .map(TableData::getLayoutID)
+                            .filter(layoutId -> dataflow.getIndexPlan().getBaseTableLayoutId().longValue() != layoutId.longValue())
+                            .collect(Collectors.toSet());
+
+                    SecondStorageUtil.cleanSegments(project, modelId, new HashSet<>(segmentIds), new HashSet<>(indexIds));
+
+                    tableFlow.update(copied -> copied.cleanTableData(tableData -> needDeleteLayoutIds.contains(tableData.getLayoutID())));
+                    tablePlan.update(t -> t.cleanTable(needDeleteLayoutIds));
+
+                    val jobHandler = new SecondStorageIndexCleanJobHandler();
+                    final JobParam param = SecondStorageJobParamUtil.layoutCleanParam(project, modelId,
+                            BasicService.getUsername(), new HashSet<>(indexIds), new HashSet<>(segmentIds));
+                    getJobManager(project).addJob(param, jobHandler);
+                });
+            }
             return null;
         }, project);
     }
@@ -4052,6 +4081,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         String project = request.getProject();
         aclEvaluate.checkProjectReadPermission(project);
 
+        request.setPartitionDesc(null);
         NDataModel model = convertAndInitDataModel(request, project);
 
         String uuid = model.getUuid();

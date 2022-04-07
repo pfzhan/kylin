@@ -63,10 +63,10 @@
         <hive-hcatalog.version>2.3.9</hive-hcatalog.version>
 
         <!-- Kafka versions -->
-        <kafka.version>2.1.1</kafka.version>
+        <kafka.version>2.8.1</kafka.version>
 
         <!-- Spark versions -->
-        <spark.version>3.2.0-kylin-4.x-r57</spark.version>
+        <spark.version>3.2.0-kylin-4.x-r59</spark.version>
 
         <roaring.version>0.9.2-kylin-r4</roaring.version>
 
@@ -80,7 +80,7 @@
         <zookeeper.version>3.4.14</zookeeper.version>
         <curator.version>2.12.0-kylin-r5</curator.version>
         <jsr305.version>3.0.1</jsr305.version>
-        <guava.version>14.0</guava.version>
+        <guava.version>30.0-jre</guava.version>
         <listenablefuture.version>1.0</listenablefuture.version>
         <jsch.version>0.1.54</jsch.version>
         <commons-cli.version>1.2</commons-cli.version>
@@ -100,7 +100,7 @@
         <scalatest.version>3.2.0</scalatest.version>
         <dbunit.version>2.5.2</dbunit.version>
         <h2.version>1.4.197</h2.version>
-        <jetty.version>9.2.20.v20161216</jetty.version>
+        <jetty.version>9.4.43.v20210629</jetty.version>
         <jamm.version>0.3.1</jamm.version>
         <mockito.version>3.12.4</mockito.version>
         <powermock.version>2.0.9</powermock.version>
@@ -115,8 +115,8 @@
         <!-- Utility -->
         <mssql-jdbc.version>6.1.0.jre7</mssql-jdbc.version>
         <mysql-connector.version>8.0.28</mysql-connector.version>
-        <postgresql.version>42.2.25</postgresql.version>
-        <commons-dbcp.version>2.5.0</commons-dbcp.version>
+        <postgresql.version>42.3.3</postgresql.version>
+        <commons-dbcp.version>2.9.0</commons-dbcp.version>
         <lmax.disruptor.versoin>3.4.2</lmax.disruptor.versoin>
         <log4j2.version>2.17.1</log4j2.version>
         <log4j2-cachefile-transformer.version>2.14.1</log4j2-cachefile-transformer.version>
@@ -278,7 +278,7 @@
         <poi.version>4.1.2</poi.version>
 
         <!-- clickhouse -->
-        <clickhouse-native-jdbc.version>2.5.7</clickhouse-native-jdbc.version>
+        <clickhouse-native-jdbc.version>2.6.5</clickhouse-native-jdbc.version>
         <clickhouse-jdbc.version>0.2.4</clickhouse-jdbc.version>
         <clickhouse.group>ru.yandex.clickhouse</clickhouse.group>
         <clickhouse.artifact>clickhouse-jdbc</clickhouse.artifact>
@@ -294,6 +294,11 @@
         <netty.version>3.10.6.Final</netty.version>
         <servo-core.version>0.13.2</servo-core.version>
         <apache-api.version>1.0.3</apache-api.version>
+
+        <spring.cloud.alibaba.version>2021.1</spring.cloud.alibaba.version>
+
+        <jersey.version>2.35</jersey.version>
+        <validation.api.version>2.0.1.Final</validation.api.version>
     </properties>
 
     <modules>
@@ -336,21 +341,25 @@
         <module>src/yinglong-streaming-service</module>
         <module>src/yinglong-enterprise-service</module>
         <module>src/yinglong-integration-service</module>
-        <!-- yinglong server (starter) -->
+
+        <!-- yinglong controller  -->
+        <module>src/yinglong-common-server</module>
+        <module>src/yinglong-smart-server</module>
         <module>src/yinglong-metadata-server</module>
         <module>src/yinglong-data-loading-server</module>
-        <module>src/yinglong-smart-server</module>
         <module>src/yinglong-query-server</module>
+
+        <!-- yinglong server (starter) -->
+        <module>src/yinglong-smart-booter</module>
+        <module>src/yinglong-data-loading-booter</module>
+        <module>src/yinglong-query-booter</module>
+        <module>src/yinglong-common-booter</module>
+
     </modules>
 
     <dependencyManagement>
         <dependencies>
             <!-- KAP, same order with modules -->
-            <dependency>
-                <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-external</artifactId>
-                <version>${external.version}</version>
-            </dependency>
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-it</artifactId>
@@ -374,21 +383,6 @@
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-datasource-sdk</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kyligence.ke</groupId>
-                <artifactId>ke-assembly</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-storage-parquet-format</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-storage-parquet-protocol</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -495,6 +489,45 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.yinglong</groupId>
+                <artifactId>yinglong-smart-booter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.yinglong</groupId>
+                <artifactId>yinglong-common-booter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.yinglong</groupId>
+                <artifactId>yinglong-smart-server</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.yinglong</groupId>
+                <artifactId>yinglong-data-loading-server</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.yinglong</groupId>
+                <artifactId>yinglong-query-server</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.yinglong</groupId>
+                <artifactId>yinglong-query-booter</artifactId>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.yinglong</groupId>
+                <artifactId>yinglong-common-server</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.yinglong</groupId>
+                <artifactId>yinglong-metadata-server</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.yinglong</groupId>
                 <artifactId>yinglong-smart-service</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -512,6 +545,12 @@
                 <groupId>io.kyligence.yinglong</groupId>
                 <artifactId>yinglong-integration-service</artifactId>
                 <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.alibaba.cloud</groupId>
+                <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+                <version>${spring.cloud.alibaba.version}</version>
             </dependency>
 
             <dependency>
@@ -681,6 +720,12 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
+                <artifactId>kap-query</artifactId>
+                <version>${project.version}</version>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-spark-common</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
@@ -698,8 +743,20 @@
                 <type>test-jar</type>
             </dependency>
             <dependency>
+                <groupId>io.kyligence.ke</groupId>
+                <artifactId>kap-it</artifactId>
+                <version>${project.version}</version>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
                 <groupId>io.kyligence.yinglong</groupId>
                 <artifactId>yinglong-common-service</artifactId>
+                <version>${project.version}</version>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.yinglong</groupId>
+                <artifactId>yinglong-systools</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
             </dependency>
@@ -975,11 +1032,6 @@
                 </exclusions>
                 <version>${hadoop.version}</version>
                 <optional>true</optional>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.directory.api</groupId>
-                <artifactId>api-util</artifactId>
-                <version>${apache-api.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.directory.api</groupId>
@@ -1409,10 +1461,6 @@
                     <exclusion>
                         <groupId>org.eclipse.jetty.aggregate</groupId>
                         <artifactId>jetty-all</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>org.codehaus.jackson</groupId>
-                        <artifactId>jackson-mapper-asl</artifactId>
                     </exclusion>
                 </exclusions>
                 <scope>provided</scope>
@@ -2572,6 +2620,11 @@
                 <version>${aws-java-sdk-s3.version}</version>
                 <scope>test</scope>
             </dependency>
+            <dependency>
+                <groupId>javax.validation</groupId>
+                <artifactId>validation-api</artifactId>
+                <version>${validation.api.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -2648,6 +2701,10 @@
                         <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
                         <junitxml>.</junitxml>
                         <filereports>WDF TestSuite.txt</filereports>
+                        <argLine>${argLine} ${surefireArgLine}</argLine>
+                        <systemProperties>
+                            <skipBuild>${skipBuild}</skipBuild>
+                        </systemProperties>
                     </configuration>
                     <executions>
                         <execution>
@@ -2709,7 +2766,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-source-plugin</artifactId>
-                    <version>3.0.1</version>
+                    <version>3.2.1</version>
                     <executions>
                         <execution>
                             <id>attach-sources</id>
@@ -2718,22 +2775,19 @@
                                 <goal>jar-no-fork</goal>
                             </goals>
                         </execution>
+                        <execution>
+                            <id>attach-sources-deploy</id>
+                            <phase>deploy</phase>
+                        </execution>
                     </executions>
                     <configuration>
                         <includePom>true</includePom>
                     </configuration>
                 </plugin>
                 <plugin>
-                    <artifactId>maven-source-plugin</artifactId>
-                    <executions>
-                        <execution>
-                            <id>attach-sources</id>
-                            <phase>deploy</phase>
-                        </execution>
-                    </executions>
-                </plugin>
-                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-javadoc-plugin</artifactId>
+                    <version>3.3.2</version>
                     <executions>
                         <execution>
                             <id>attach-javadocs</id>
@@ -2742,7 +2796,9 @@
                     </executions>
                 </plugin>
                 <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-deploy-plugin</artifactId>
+                    <version>3.0.0-M2</version>
                     <executions>
                         <execution>
                             <id>deploy</id>
@@ -2777,32 +2833,6 @@
                             <phase>test</phase>
                             <goals>
                                 <goal>report</goal>
-                                <goal>report-aggregate</goal>
-                            </goals>
-                        </execution>
-                    </executions>
-                </plugin>
-                <plugin>
-                    <groupId>org.scoverage</groupId>
-                    <artifactId>scoverage-maven-plugin</artifactId>
-                    <version>1.4.11</version>
-                    <configuration>
-                        <scalaVersion>${scala.version}</scalaVersion>
-                        <highlighting>true</highlighting>
-                    </configuration>
-                    <executions>
-                        <execution>
-                            <id>instrument</id>
-                            <goals>
-                                <goal>pre-compile</goal>
-                                <goal>post-compile</goal>
-                            </goals>
-                        </execution>
-                        <execution>
-                            <id>scoverage-report</id>
-                            <phase>test</phase>
-                            <goals>
-                                <goal>report-only</goal>
                             </goals>
                         </execution>
                     </executions>
@@ -2857,25 +2887,6 @@
                                 <consoleOutput>true</consoleOutput>
                                 <failsOnError>true</failsOnError>
                             </configuration>
-                            <goals>
-                                <goal>check</goal>
-                            </goals>
-                        </execution>
-                    </executions>
-                </plugin>
-                <plugin>
-                    <groupId>com.github.spotbugs</groupId>
-                    <artifactId>spotbugs-maven-plugin</artifactId>
-                    <version>3.1.12.2</version>
-                    <dependencies>
-                        <dependency>
-                            <groupId>com.github.spotbugs</groupId>
-                            <artifactId>spotbugs</artifactId>
-                            <version>4.0.0</version>
-                        </dependency>
-                    </dependencies>
-                    <executions>
-                        <execution>
                             <goals>
                                 <goal>check</goal>
                             </goals>
@@ -3085,45 +3096,6 @@
         </plugins>
     </build>
 
-    <reporting>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-project-info-reports-plugin</artifactId>
-                <version>2.9</version>
-                <reportSets>
-                    <reportSet>
-                        <reports>
-                            <report>index</report>
-                            <report>summary</report>
-                            <report>dependency-info</report>
-                            <report>project-team</report>
-                            <report>scm</report>
-                            <report>issue-tracking</report>
-                            <report>mailing-list</report>
-                            <report>cim</report>
-                            <report>plugin-management</report>
-                            <report>plugins</report>
-                            <report>distribution-management</report>
-                            <report>license</report>
-                            <report>modules</report>
-                        </reports>
-                    </reportSet>
-                </reportSets>
-            </plugin>
-            <plugin>
-                <groupId>com.github.spotbugs</groupId>
-                <artifactId>spotbugs-maven-plugin</artifactId>
-                <version>3.1.12.2</version>
-                <configuration>
-                    <effort>Max</effort>
-                    <threshold>Low</threshold>
-                    <excludeFilterFile>dev-support/findbugs-exclude-filter.xml</excludeFilterFile>
-                </configuration>
-            </plugin>
-        </plugins>
-    </reporting>
-
     <profiles>
         <profile>
             <id>kyoffice</id>
@@ -3203,10 +3175,10 @@
             </build>
         </profile>
         <profile>
-            <id>hadoop-3.2</id>
+            <id>hadoop3</id>
             <properties>
-                <hadoop.version>3.2.0</hadoop.version>
-                <hadoop.cloud.version>3.2.0</hadoop.cloud.version>
+                <hadoop.version>3.3.1</hadoop.version>
+                <hadoop.cloud.version>3.3.1</hadoop.cloud.version>
                 <jetty.version>9.3.24.v20180605</jetty.version>
             </properties>
         </profile>

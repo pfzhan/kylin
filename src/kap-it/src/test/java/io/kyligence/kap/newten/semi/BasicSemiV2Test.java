@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
+import io.kyligence.kap.rest.service.ProjectSmartService;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.TimeUtil;
@@ -70,10 +71,9 @@ import io.kyligence.kap.metadata.recommendation.entity.MeasureRecItemV2;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.NUserGroupService;
 import io.kyligence.kap.rest.service.OptRecService;
-import io.kyligence.kap.rest.service.ProjectService;
 import io.kyligence.kap.rest.service.RawRecService;
 import io.kyligence.kap.smart.AbstractContext;
-import io.kyligence.kap.smart.ModelReuseContextOfSemiV2;
+import io.kyligence.kap.smart.ModelReuseContext;
 import io.kyligence.kap.smart.ProposerJob;
 import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.util.AccelerationContextUtil;
@@ -102,7 +102,7 @@ public class BasicSemiV2Test extends SemiAutoTestBase {
     private JdbcRawRecStore jdbcRawRecStore;
     private RDBMSQueryHistoryDAO queryHistoryDAO;
     private final RawRecService rawRecService = new RawRecService();
-    private final ProjectService projectService = new ProjectService();
+    private final ProjectSmartService projectSmartService = new ProjectSmartService();
     private TimeZone defaultTimeZone;
 
     @Before
@@ -124,7 +124,7 @@ public class BasicSemiV2Test extends SemiAutoTestBase {
         ReflectionTestUtils.setField(modelService, "userGroupService", userGroupService);
         ReflectionTestUtils.setField(modelService, "modelChangeSupporters", Arrays.asList(rawRecService));
         ReflectionTestUtils.setField(rawRecService, "optRecService", optRecService);
-        ReflectionTestUtils.setField(rawRecService, "projectService", projectService);
+        ReflectionTestUtils.setField(rawRecService, "projectSmartService", projectSmartService);
         TestingAuthenticationToken auth = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
         SecurityContextHolder.getContext().setAuthentication(auth);
     }
@@ -868,7 +868,7 @@ public class BasicSemiV2Test extends SemiAutoTestBase {
         // suggest model
         String[] sqls = new String[] { "SELECT min(LO_CUSTKEY) FROM LINEORDER limit 10",
                 "SELECT max(LO_CUSTKEY) FROM SSB.LINEORDER limit 10" };
-        AbstractContext proposeContext = new ModelReuseContextOfSemiV2(getTestConfig(), project, sqls, true);
+        AbstractContext proposeContext = new ModelReuseContext(getTestConfig(), project, sqls, true);
         val smartMaster = new SmartMaster(proposeContext);
         smartMaster.executePropose();
 

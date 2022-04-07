@@ -38,6 +38,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.secondstorage.SecondStorageUpdater;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -63,6 +65,7 @@ import org.apache.kylin.rest.response.AggIndexResponse;
 import org.apache.kylin.rest.response.DiffRuleBasedIndexResponse;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.SpringContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -385,6 +388,8 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
         });
 
         modelChangeSupporters.forEach(listener -> listener.onUpdate(project, modelId));
+
+        updateSecondStorage(project, modelId);
     }
 
     private void removeAggGroup(Set<Integer> invalidDimensions, Set<Integer> invalidMeasures, IndexPlan indexPlan) {
@@ -1203,6 +1208,14 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
             response.setNeedCreateBaseTableIndex(true);
         }
         return response;
+    }
+
+    @Transaction(project = 0)
+    private void updateSecondStorage(String project, String modelId) {
+        if (SecondStorageUtil.isModelEnable(project, modelId)) {
+            SecondStorageUpdater updater = SpringContext.getBean(SecondStorageUpdater.class);
+            updater.onUpdate(project, modelId);
+        }
     }
 
     @Override

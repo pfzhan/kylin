@@ -36,7 +36,7 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.util.scd2.SCD2CondChecker;
-import io.kyligence.kap.newten.ExecAndComp.CompareLevel;
+import io.kyligence.kap.util.ExecAndComp.CompareLevel;
 import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.util.AccelerationContextUtil;
 

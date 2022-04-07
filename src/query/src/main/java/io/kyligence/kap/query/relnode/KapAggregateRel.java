@@ -260,7 +260,7 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
     public void setContext(OLAPContext context) {
         this.context = context;
         ((KapRel) getInput()).setContext(context);
-        subContexts.addAll(ContextUtil.collectSubContext((KapRel) this.getInput()));
+        subContexts.addAll(ContextUtil.collectSubContext(this.getInput()));
     }
 
     @Override

@@ -35,9 +35,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.Path;
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.ExecutableParams;
-import org.apache.spark.sql.SparkSession;
 import org.apache.spark.tracker.BuildContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -120,10 +118,6 @@ public abstract class SegmentJob extends SparkApplication {
         if (runtime != null) {
             runtime.shutdown();
         }
-    }
-
-    public SparkSession getSparkSession() {
-        return ss;
     }
 
     public String getDataflowId() {

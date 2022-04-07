@@ -28,33 +28,18 @@ import java.util.Collection;
 import java.util.Map;
 
 import org.apache.kylin.query.relnode.OLAPContext;
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.smart.query.mockup.MockupQueryExecutor;
+import io.kyligence.kap.smart.common.AutoTestOnLearnKylinData;
 
-public class DefaultQueryRunnerTest extends NLocalFileMetadataTestCase {
-
-    private static final String DEFAULT_PROJECT = "default";
-
-    @Before
-    public void setup() {
-        createTestMetadata();
-    }
-
-    @After
-    public void tearDown() {
-        cleanupTestMetadata();
-    }
+public class DefaultQueryRunnerTest extends AutoTestOnLearnKylinData {
 
     @Test
     public void testExecute() throws Exception {
-        String[] sqls = new String[] { "SELECT SUM(PRICE * ITEM_COUNT), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT",
-                "SELECT PRICE, ITEM_COUNT, CAL_DT FROM TEST_KYLIN_FACT" };
-        AbstractQueryRunner queryRunner1 = new QueryRunnerBuilder(DEFAULT_PROJECT, getTestConfig(), sqls).build();
+        String[] sqls = new String[] { "select sum(price * item_count), part_dt from kylin_sales group by part_dt",
+                "select price, item_count, part_dt from kylin_sales" };
+        AbstractQueryRunner queryRunner1 = new QueryRunnerBuilder(proj, getTestConfig(), sqls).build();
         queryRunner1.execute();
         Map<String, Collection<OLAPContext>> olapContexts = queryRunner1.getOlapContexts();
         Assert.assertEquals(2, olapContexts.size());
@@ -70,12 +55,5 @@ public class DefaultQueryRunnerTest extends NLocalFileMetadataTestCase {
         Assert.assertNull(olapContext2.getTopNode());
         Assert.assertNull(olapContext2.getParentOfTopNode());
         Assert.assertEquals(0, olapContext2.allOlapJoins.size());
-
-        AbstractQueryRunner queryRunner2 = new QueryRunnerBuilder(DEFAULT_PROJECT, getTestConfig(), sqls).build();
-
-        queryRunner2.execute(new MockupQueryExecutor());
-        Assert.assertEquals(0, queryRunner2.getOlapContexts().size());
-        queryRunner1.close();
-        queryRunner2.close();
     }
 }

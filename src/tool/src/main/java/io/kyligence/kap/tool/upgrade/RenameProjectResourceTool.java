@@ -73,10 +73,10 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.util.OptionBuilder;
 import io.kyligence.kap.common.util.Unsafe;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
@@ -90,8 +90,6 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.query.AccelerateRatio;
-import io.kyligence.kap.metadata.query.AccelerateRatioManager;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -290,9 +288,6 @@ public class RenameProjectResourceTool extends ExecutableApplication {
         // query_history_time_offset
         results.addAll(updateQueryHistoryTimeOffset(originProjectName, destProjectName));
 
-        // accelerate ratio
-        results.addAll(updateAccelerateRatio(originProjectName, destProjectName));
-
         // table table_exd
         results.addAll(updateTable(originProjectName, destProjectName));
 
@@ -460,28 +455,6 @@ public class RenameProjectResourceTool extends ExecutableApplication {
                 + queryHistoryTimeOffset.getUuid() + MetadataConstants.FILE_SURFIX;
 
         results.add(new RenameEntity(srcQueryHistoryTimeOffsetPath, destQueryHistoryTimeOffsetPath));
-
-        return results;
-    }
-
-    /**
-     * @param originProjectName
-     * @param destProjectName
-     * @return
-     */
-    private List<RenameEntity> updateAccelerateRatio(String originProjectName, String destProjectName) {
-        List<RenameEntity> results = new ArrayList<>();
-
-        AccelerateRatioManager accelerateRatioManager = AccelerateRatioManager.getInstance(fileSystemConfig,
-                originProjectName);
-        AccelerateRatio accelerateRatio = accelerateRatioManager.get();
-        if (accelerateRatio != null) {
-            String oriResourcePath = "/" + originProjectName + ResourceStore.ACCELERATE_RATIO_RESOURCE_ROOT + "/"
-                    + accelerateRatio.resourceName() + MetadataConstants.FILE_SURFIX;
-            String destResourcePath = "/" + destProjectName + ResourceStore.ACCELERATE_RATIO_RESOURCE_ROOT + "/"
-                    + accelerateRatio.resourceName() + MetadataConstants.FILE_SURFIX;
-            results.add(new RenameEntity(oriResourcePath, destResourcePath));
-        }
 
         return results;
     }

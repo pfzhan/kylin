@@ -24,18 +24,10 @@
 
 package io.kyligence.kap.newten;
 
-import io.kyligence.kap.common.util.TempMetadataBuilder;
-import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.junit.TimeZoneTestRunner;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.query.engine.QueryExec;
-import io.kyligence.kap.query.engine.TypeSystem;
-import io.kyligence.kap.query.engine.meta.SimpleDataContext;
-import io.kyligence.kap.smart.query.AbstractQueryRunner;
-import io.kyligence.kap.smart.query.QueryRunnerBuilder;
-import lombok.val;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.rex.RexExecutorImpl;
 import org.apache.hadoop.util.Shell;
@@ -49,23 +41,26 @@ import org.apache.kylin.query.routing.RealizationPruner;
 import org.apache.spark.SparkConf;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.execution.adaptive.AdaptiveSparkPlanHelper;
 import org.apache.spark.sql.internal.StaticSQLConf;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import io.kyligence.kap.common.util.TempMetadataBuilder;
+import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.query.engine.QueryExec;
+import io.kyligence.kap.query.engine.TypeSystem;
+import io.kyligence.kap.query.engine.meta.SimpleDataContext;
+import io.kyligence.kap.smart.query.AbstractQueryRunner;
+import io.kyligence.kap.smart.query.QueryRunnerBuilder;
+import lombok.val;
 
-@RunWith(TimeZoneTestRunner.class)
-public class SegmentPruningFilterTest extends NLocalWithSparkSessionTest implements AdaptiveSparkPlanHelper {
-
-    private final String base = "select count(*)  FROM TEST_ORDER LEFT JOIN TEST_KYLIN_FACT ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID ";
+public class SegmentPruningFilterTest extends NLocalWithSparkSessionTest {
 
     @BeforeClass
     public static void initSpark() {
@@ -91,17 +86,18 @@ public class SegmentPruningFilterTest extends NLocalWithSparkSessionTest impleme
 
     }
 
-    private static List<NDataSegment> startRealizationPruner(NDataflowManager dataflowManager,
-                                                             String dataflowId, String sql, String project, KylinConfig kylinConfig) throws Exception {
+    private static List<NDataSegment> startRealizationPruner(NDataflowManager dataflowManager, String dataflowId,
+            String sql, String project, KylinConfig kylinConfig) throws Exception {
         NDataflow dataflow = dataflowManager.getDataflow(dataflowId);
-        AbstractQueryRunner queryRunner1 = new QueryRunnerBuilder(project, kylinConfig, new String[]{sql}).build();
+        AbstractQueryRunner queryRunner1 = new QueryRunnerBuilder(project, kylinConfig, new String[] { sql }).build();
         queryRunner1.execute();
         Map<String, Collection<OLAPContext>> olapContexts = queryRunner1.getOlapContexts();
         OLAPContext context = olapContexts.get(sql).iterator().next();
         TblColRef filterColumn = context.filterColumns.iterator().next();
         dataflow.getModel().getPartitionDesc().setPartitionDateColumnRef(filterColumn);
         CalciteSchema rootSchema = new QueryExec(project, kylinConfig).getRootSchema();
-        SimpleDataContext dataContext = new SimpleDataContext(rootSchema.plus(), TypeSystem.javaTypeFactory(), kylinConfig);
+        SimpleDataContext dataContext = new SimpleDataContext(rootSchema.plus(), TypeSystem.javaTypeFactory(),
+                kylinConfig);
         context.firstTableScan.getCluster().getPlanner().setExecutor(new RexExecutorImpl(dataContext));
         return RealizationPruner.pruneSegments(dataflow, context);
     }
@@ -130,16 +126,14 @@ public class SegmentPruningFilterTest extends NLocalWithSparkSessionTest impleme
         String project = getProject();
         NDataflowManager dataflowManager = NDataflowManager.getInstance(kylinConfig, project);
         String sql = "SELECT * FROM SONGZHEN_TEST_DB.TEST_FACT_13_10W WHERE DATE_6 >= '2021-10-28' AND DATE_6 < '2021-11-05'";
-        List<NDataSegment> selectSegmentList = startRealizationPruner(dataflowManager,
-                dataflowId, sql, project, kylinConfig);
+        List<NDataSegment> selectSegmentList = startRealizationPruner(dataflowManager, dataflowId, sql, project,
+                kylinConfig);
         Assert.assertEquals(4, selectSegmentList.size());
         sql = "SELECT * FROM SONGZHEN_TEST_DB.TEST_FACT_13_10W WHERE DATE_6 >= CAST('2021-10-28' AS DATE) AND DATE_6 < '2021-11-05'";
-        selectSegmentList = startRealizationPruner(dataflowManager,
-                dataflowId, sql, project, kylinConfig);
+        selectSegmentList = startRealizationPruner(dataflowManager, dataflowId, sql, project, kylinConfig);
         Assert.assertEquals(4, selectSegmentList.size());
         sql = "SELECT * FROM SONGZHEN_TEST_DB.TEST_FACT_13_10W WHERE DATE_6 >= CAST('2021-10-28' AS DATE) AND DATE_6 < CAST('2021-11-05' AS DATE)";
-        selectSegmentList = startRealizationPruner(dataflowManager,
-                dataflowId, sql, project, kylinConfig);
+        selectSegmentList = startRealizationPruner(dataflowManager, dataflowId, sql, project, kylinConfig);
         Assert.assertEquals(4, selectSegmentList.size());
     }
 
@@ -150,16 +144,14 @@ public class SegmentPruningFilterTest extends NLocalWithSparkSessionTest impleme
         String project = getProject();
         NDataflowManager dataflowManager = NDataflowManager.getInstance(kylinConfig, project);
         String sql = "SELECT * FROM SONGZHEN_TEST_DB.TEST_FACT_24_2W WHERE STRING_DATE_20 >= '2021-12-20' AND STRING_DATE_20 < '2021-12-26'";
-        List<NDataSegment> selectSegmentList = startRealizationPruner(dataflowManager,
-                dataflowId, sql, project, kylinConfig);
+        List<NDataSegment> selectSegmentList = startRealizationPruner(dataflowManager, dataflowId, sql, project,
+                kylinConfig);
         Assert.assertEquals(6, selectSegmentList.size());
         sql = "SELECT * FROM SONGZHEN_TEST_DB.TEST_FACT_24_2W WHERE STRING_DATE_20 >= CAST('2021-12-20' AS DATE) AND STRING_DATE_20 < '2021-12-26'";
-        selectSegmentList = startRealizationPruner(dataflowManager,
-                dataflowId, sql, project, kylinConfig);
+        selectSegmentList = startRealizationPruner(dataflowManager, dataflowId, sql, project, kylinConfig);
         Assert.assertEquals(6, selectSegmentList.size());
         sql = "SELECT * FROM SONGZHEN_TEST_DB.TEST_FACT_24_2W WHERE STRING_DATE_20 >= CAST('2021-12-20' AS DATE) AND STRING_DATE_20 < CAST('2021-12-26' AS DATE)";
-        selectSegmentList = startRealizationPruner(dataflowManager,
-                dataflowId, sql, project, kylinConfig);
+        selectSegmentList = startRealizationPruner(dataflowManager, dataflowId, sql, project, kylinConfig);
         Assert.assertEquals(6, selectSegmentList.size());
     }
 
@@ -170,16 +162,14 @@ public class SegmentPruningFilterTest extends NLocalWithSparkSessionTest impleme
         String project = getProject();
         NDataflowManager dataflowManager = NDataflowManager.getInstance(kylinConfig, project);
         String sql = "SELECT * FROM SONGZHEN_TEST_DB.TEST_FACT_30_3W WHERE STRING_DATE2_24 >= 20211220 AND STRING_DATE2_24 < 20211224";
-        List<NDataSegment> selectSegmentList = startRealizationPruner(dataflowManager,
-                dataflowId, sql, project, kylinConfig);
+        List<NDataSegment> selectSegmentList = startRealizationPruner(dataflowManager, dataflowId, sql, project,
+                kylinConfig);
         Assert.assertEquals(4, selectSegmentList.size());
         sql = "SELECT * FROM SONGZHEN_TEST_DB.TEST_FACT_30_3W WHERE STRING_DATE2_24 >= '20211220' AND STRING_DATE2_24 < 20211224";
-        selectSegmentList = startRealizationPruner(dataflowManager,
-                dataflowId, sql, project, kylinConfig);
+        selectSegmentList = startRealizationPruner(dataflowManager, dataflowId, sql, project, kylinConfig);
         Assert.assertEquals(4, selectSegmentList.size());
         sql = "SELECT * FROM SONGZHEN_TEST_DB.TEST_FACT_30_3W WHERE STRING_DATE2_24 >= '20211220' AND STRING_DATE2_24 < '20211224'";
-        selectSegmentList = startRealizationPruner(dataflowManager,
-                dataflowId, sql, project, kylinConfig);
+        selectSegmentList = startRealizationPruner(dataflowManager, dataflowId, sql, project, kylinConfig);
         Assert.assertEquals(4, selectSegmentList.size());
     }
 

@@ -22,11 +22,9 @@
 
 package io.kyligence.kap.it
 
-import java.io.File
-import java.util.TimeZone
-
-import io.kyligence.kap.common.util.Unsafe
+import io.kyligence.kap.common.util.{TestUtils, Unsafe}
 import io.kyligence.kap.common.{CompareSupport, JobSupport, QuerySupport, SSSource}
+import io.kyligence.kap.engine.spark.IndexDataWarehouse
 import io.kyligence.kap.metadata.cube.model.NDataflowManager.NDataflowUpdater
 import io.kyligence.kap.metadata.cube.model.{NDataflow, NDataflowManager}
 import io.kyligence.kap.query.{QueryConstants, QueryFetcher}
@@ -40,8 +38,10 @@ import org.apache.spark.sql.execution.utils.SchemaProcessor
 import org.apache.spark.sql.execution.{KylinFileSourceScanExec, LayoutFileSourceScanExec}
 import org.apache.spark.sql.{DataFrame, SparderEnv}
 
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor, Future}
+import java.io.File
+import java.util.TimeZone
+import java.util.concurrent.Executors
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
 class TestQueryAndBuildFunSuite
   extends SparderBaseFunSuite
@@ -55,68 +55,66 @@ class TestQueryAndBuildFunSuite
 
   override val DEFAULT_PROJECT = "default"
 
-  case class FloderInfo(floder: String, filter: List[String] = List(), checkOrder: Boolean = false)
+  case class FolderInfo(folder: String, filter: List[String] = List(), checkOrder: Boolean = false)
 
   val defaultTimeZone: TimeZone = TimeZone.getDefault
 
-  implicit val ec: ExecutionContextExecutor = ExecutionContext.global
-
   val queryFolders = List(
-    FloderInfo("sql", List("query105.sql", "query131.sql", "query138.sql")),
-    FloderInfo("sql_cache"),
-    FloderInfo("sql_casewhen", List("query08.sql", "query09.sql", "query11.sql", "query12.sql", "query13.sql")),
-    FloderInfo("sql_cross_join"),
-    FloderInfo("sql_datetime"),
-    FloderInfo("sql_derived"),
-    FloderInfo("sql_distinct_dim"),
-    FloderInfo("sql_hive"),
-    FloderInfo("sql_join",
+    FolderInfo("sql", List("query105.sql", "query131.sql", "query138.sql")),
+    FolderInfo("sql_cache"),
+    FolderInfo("sql_casewhen", List("query08.sql", "query09.sql", "query11.sql", "query12.sql", "query13.sql")),
+    FolderInfo("sql_cross_join"),
+    FolderInfo("sql_datetime"),
+    FolderInfo("sql_derived"),
+    FolderInfo("sql_distinct_dim"),
+    FolderInfo("sql_hive"),
+    FolderInfo("sql_join",
       List("query_11.sql", "query_12.sql", "query_13.sql", "query_14.sql", "query_15.sql", "query_16.sql",
         "query_17.sql", "query_18.sql", "query_19.sql", "query_20.sql", "query_25.sql")),
-    FloderInfo("sql_join/sql_right_join"),
-    FloderInfo("sql_kap", List("query03.sql")),
-    FloderInfo("sql_like", List("query25.sql", "query26.sql")),
-    FloderInfo("sql_lookup"),
-    FloderInfo("sql_magine", List("query13.sql")),
-    FloderInfo("sql_magine_left"),
-    FloderInfo("sql_subquery", List("query19.sql", "query25.sql")),
-    FloderInfo("sql_orderby", List(), checkOrder = true),
-    FloderInfo("sql_powerbi"),
-    FloderInfo("sql_raw"),
-    FloderInfo("sql_rawtable", List("query26.sql", "query32.sql", "query33.sql", "query34.sql", "query37.sql", "query38.sql")),
-    FloderInfo("sql_tableau", List("query00.sql", "query24.sql", "query25.sql")),
-    FloderInfo("sql_topn"),
-    FloderInfo("sql_union", List("query07.sql")),
-    FloderInfo("sql_value"),
-    FloderInfo("sql_udf", List("query02.sql")),
-    FloderInfo("sql_tableau", List("query00.sql", "query24.sql", "query25.sql"))
+    FolderInfo("sql_join/sql_right_join"),
+    FolderInfo("sql_kap", List("query03.sql")),
+    FolderInfo("sql_like", List("query25.sql", "query26.sql")),
+    FolderInfo("sql_lookup"),
+    FolderInfo("sql_magine", List("query13.sql")),
+    FolderInfo("sql_magine_left"),
+    FolderInfo("sql_subquery", List("query19.sql", "query25.sql")),
+    FolderInfo("sql_orderby", List(), checkOrder = true),
+    FolderInfo("sql_powerbi"),
+    FolderInfo("sql_raw"),
+    FolderInfo("sql_rawtable", List("query26.sql", "query32.sql", "query33.sql", "query34.sql", "query37.sql", "query38.sql")),
+    FolderInfo("sql_tableau", List("query00.sql", "query24.sql", "query25.sql")),
+    FolderInfo("sql_topn"),
+    FolderInfo("sql_union", List("query07.sql")),
+    FolderInfo("sql_value"),
+    FolderInfo("sql_udf", List("query02.sql")),
+    FolderInfo("sql_tableau", List("query00.sql", "query24.sql", "query25.sql"))
   )
 
   val onlyLeft = List(
-    FloderInfo("sql_computedcolumn"),
-    FloderInfo("sql_computedcolumn/sql_computedcolumn_common"),
-    FloderInfo("sql_computedcolumn/sql_computedcolumn_leftjoin")
+    FolderInfo("sql_computedcolumn"),
+    FolderInfo("sql_computedcolumn/sql_computedcolumn_common"),
+    FolderInfo("sql_computedcolumn/sql_computedcolumn_leftjoin")
   )
 
   val onlyInner = List(
-    FloderInfo("sql_join/sql_inner_join")
+    FolderInfo("sql_join/sql_inner_join")
   )
 
   val isNotDistinctFrom = List(
-    FloderInfo("sql_join/sql_is_not_distinct_from")
+    FolderInfo("sql_join/sql_is_not_distinct_from")
   )
 
   val noneCompare = List(
-    FloderInfo("sql_current_date"),
-    FloderInfo("sql_distinct"),
-    FloderInfo("sql_grouping", List("query07.sql", "query08.sql")),
-    FloderInfo("sql_h2_uncapable"),
-    FloderInfo("sql_percentile"),
-    FloderInfo("sql_window")
+    FolderInfo("sql_current_date"),
+    FolderInfo("sql_distinct"),
+    FolderInfo("sql_grouping", List("query07.sql", "query08.sql")),
+    FolderInfo("sql_h2_uncapable"),
+    FolderInfo("sql_percentile"),
+    FolderInfo("sql_window")
   )
 
   val tempQuery = List(
-    FloderInfo("temp")
+    FolderInfo("temp")
   )
 
   val joinTypes = List(
@@ -133,14 +131,13 @@ class TestQueryAndBuildFunSuite
   }
 
   override def beforeAll(): Unit = {
-    Unsafe.setProperty("calcite.keep-in-clause", "true")
-    Unsafe.setProperty("kylin.dictionary.null-encoding-opt-threshold", "1")
-    val timeZones = Array("GMT", "GMT+8", "CST")
-    val timeZoneStr = timeZones.apply((System.currentTimeMillis() % 3).toInt)
-    TimeZone.setDefault(TimeZone.getTimeZone(timeZoneStr))
-    logInfo(s"Curren time zone set to $timeZoneStr")
-
     super.beforeAll()
+    overwriteSystemProp("calcite.keep-in-clause", "true")
+    overwriteSystemProp("kylin.dictionary.null-encoding-opt-threshold", "1")
+    overwriteSystemProp("kylin.query.spark-job-trace-enabled", "false")
+    val timeZoneStr = "GMT+8"
+    TimeZone.setDefault(TimeZone.getTimeZone(timeZoneStr))
+    logInfo(s"Current time zone set to $timeZoneStr")
     NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv, DEFAULT_PROJECT)
       .updateDataflow(DF_NAME, Updater(RealizationStatusEnum.OFFLINE))
     KylinConfig.getInstanceFromEnv.setProperty("kylin.query.pushdown.runner-class-name", "")
@@ -149,7 +146,6 @@ class TestQueryAndBuildFunSuite
     // test for snapshot cleanup
     KylinConfig.getInstanceFromEnv.setProperty("kylin.snapshot.version-ttl", "0")
     KylinConfig.getInstanceFromEnv.setProperty("kylin.snapshot.max-versions", "1")
-    SparderEnv.skipCompute()
     build()
   }
 
@@ -158,17 +154,6 @@ class TestQueryAndBuildFunSuite
       .updateDataflow(DF_NAME, Updater(RealizationStatusEnum.ONLINE))
     SparderEnv.cleanCompute()
     TimeZone.setDefault(defaultTimeZone)
-    Unsafe.clearProperty("calcite.keep-in-clause")
-  }
-
-  ignore("temp") {
-    var result = tempQuery
-      .flatMap { folder =>
-        queryFolder(folder, joinTypes)
-      }
-      .filter(_ != null)
-
-    assert(result.isEmpty)
   }
 
   test("buildKylinFact") {
@@ -197,7 +182,6 @@ class TestQueryAndBuildFunSuite
         queryFolderWithoutCompare(folder)
       }
       .filter(_ != null)
-    print(result)
     assert(result.isEmpty)
 
     try {
@@ -239,10 +223,10 @@ class TestQueryAndBuildFunSuite
 
   test("non-equal join with is not distinct from condition") {
     val result = isNotDistinctFrom
-            .flatMap { folder =>
-              queryFolder(folder, List("left"))
-            }
-            .filter(_ != null)
+      .flatMap { folder =>
+        queryFolder(folder, List("left"))
+      }
+      .filter(_ != null)
     if (result.nonEmpty) {
       print(result)
     }
@@ -264,68 +248,54 @@ class TestQueryAndBuildFunSuite
     }.get
   }
 
-  private def queryFolder(floderInfo: FloderInfo, joinType: List[String]): List[String] = {
-    val futures = QueryFetcher
-      .fetchQueries(QueryConstants.KAP_SQL_BASE_DIR + floderInfo.floder)
+  private def queryFolder(folderInfo: FolderInfo, joinType: List[String]): List[String] = {
+    QueryFetcher
+      .fetchQueries(QueryConstants.KAP_SQL_BASE_DIR + folderInfo.folder)
       .filter { tp =>
-        !floderInfo.filter.contains(new File(tp._1).getName)
+        !folderInfo.filter.contains(new File(tp._1).getName)
       }
       .flatMap {
         case (fileName: String, query: String) =>
           joinType.map { joinType =>
-            val afterChangeJoin = changeJoinType(query, joinType)
-
-            Future[String] {
-              runAndCompare(afterChangeJoin, cleanSql(afterChangeJoin), DEFAULT_PROJECT, floderInfo.checkOrder,
-                s"$joinType\n$fileName\n $query\n")
-            }
+            runAndCompare(query, DEFAULT_PROJECT, joinType.toUpperCase, fileName, folderInfo.checkOrder)
           }
       }
-    // scalastyle:off
-    val result = Await.result(Future.sequence(futures.toList), Duration.Inf)
-    // scalastyle:on
-    result
+      .filter(_ != null)
+      .toList
   }
 
-  private def queryFolderWithoutCompare(floderInfo: FloderInfo) = {
-    val futures = QueryFetcher
-      .fetchQueries(QueryConstants.KAP_SQL_BASE_DIR + floderInfo.floder)
+  private def queryFolderWithoutCompare(folderInfo: FolderInfo) = {
+    QueryFetcher
+      .fetchQueries(QueryConstants.KAP_SQL_BASE_DIR + folderInfo.folder)
       .filter { tp =>
-        !floderInfo.filter.contains(new File(tp._1).getName)
+        !folderInfo.filter.contains(new File(tp._1).getName)
       }
       .flatMap {
         case (fileName: String, query: String) =>
           joinTypes.map { joinType =>
             val afterChangeJoin = changeJoinType(query, joinType)
-
-            Future[String] {
-              try {
-                singleQuery(afterChangeJoin, DEFAULT_PROJECT).collect()
-                null
-              } catch {
-                case exception: Throwable =>
-                  s"$fileName \n$query \n${ThrowableUtil.stackTraceToString(exception)} "
-              }
+            try {
+              singleQuery(afterChangeJoin, DEFAULT_PROJECT).collect()
+              null
+            } catch {
+              case exception: Throwable =>
+                s"$fileName \n$query \n${ThrowableUtil.stackTraceToString(exception)} "
             }
           }
       }
-    // scalastyle:off
-    val result = Await.result(Future.sequence(futures.toList), Duration.Inf)
-    // scalastyle:on
-    result
+      .filter(_ != null)
+      .toList
   }
 
   def build(): Unit = {
-    if ("true" == System.getProperty("noBuild", "false")) {
+    if (TestUtils.isSkipBuild) {
       logInfo("Direct query")
+      val config = KylinConfig.getInstanceFromEnv
+      new IndexDataWarehouse(config, getProject, "")
+        .reuseBuildData(new File("../examples/buildKylinFact"))
     } else {
-      if ("true" == System.getProperty("isDeveloperMode", "false")) {
-        fullBuildCube("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-        fullBuildCube("741ca86a-1f13-46da-a59f-95fb68615e3a")
-      } else {
-        buildFourSegementAndMerge("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-        buildFourSegementAndMerge("741ca86a-1f13-46da-a59f-95fb68615e3a")
-      }
+      buildFourSegementAndMerge("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+      buildFourSegementAndMerge("741ca86a-1f13-46da-a59f-95fb68615e3a")
 
       // replace metadata with new one after build
       dumpMetadata()

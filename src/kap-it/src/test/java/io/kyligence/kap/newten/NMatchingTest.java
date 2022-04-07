@@ -27,6 +27,7 @@ package io.kyligence.kap.newten;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.kyligence.kap.util.ExecAndComp;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.engine.JobEngineConfig;
@@ -40,7 +41,7 @@ import org.junit.Test;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.newten.ExecAndComp.CompareLevel;
+import io.kyligence.kap.util.ExecAndComp.CompareLevel;
 import lombok.val;
 
 public class NMatchingTest extends NLocalWithSparkSessionTest {
@@ -83,7 +84,7 @@ public class NMatchingTest extends NLocalWithSparkSessionTest {
             ExecAndComp.execAndCompare(query, getProject(), CompareLevel.SAME, "left");
             Assert.fail();
         } catch (Exception e) {
-            Assert.assertTrue(e.getCause().getCause().getMessage().contains("No realization found for OLAPContext"));
+            Assert.assertTrue(e.getCause().getCause().getCause().getMessage().contains("No realization found for OLAPContext"));
         }
 
     }

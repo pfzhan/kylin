@@ -43,6 +43,7 @@
     </parent>
 
     <dependencies>
+
         <!-- https://mvnrepository.com/artifact/org.scala-lang.modules/scala-xml -->
         <dependency>
             <groupId>org.scala-lang.modules</groupId>
@@ -146,6 +147,26 @@
         <dependency>
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-server-base</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.yinglong</groupId>
+            <artifactId>yinglong-smart-server</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.yinglong</groupId>
+            <artifactId>yinglong-data-loading-server</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.yinglong</groupId>
+            <artifactId>yinglong-query-server</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.yinglong</groupId>
+            <artifactId>yinglong-metadata-server</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.yinglong</groupId>
+            <artifactId>yinglong-common-server</artifactId>
         </dependency>
         <dependency>
             <groupId>io.kyligence.ke</groupId>
@@ -379,17 +400,6 @@
             <name>Kyligence Repository</name>
             <url>https://repository.kyligence.io/repository/maven-public/
             </url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </pluginRepository>
-        <pluginRepository>
-            <id>local-nexus</id>
-            <name>local private nexus</name>
-            <url>http://10.1.30.102:8081/repository/maven-public/</url>
             <releases>
                 <enabled>true</enabled>
             </releases>

@@ -32,7 +32,7 @@ import org.junit.Test;
 
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.newten.ExecAndComp;
+import io.kyligence.kap.util.ExecAndComp;
 import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.util.AccelerationContextUtil;
 import lombok.val;

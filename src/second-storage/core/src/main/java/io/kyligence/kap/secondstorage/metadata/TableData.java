@@ -36,6 +36,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import io.kyligence.kap.secondstorage.SecondStorageQueryRouteUtil;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.spark.sql.execution.datasources.jdbc.ShardOptions$;
 
@@ -210,17 +211,22 @@ public class TableData implements Serializable, WithLayout {
         if (partitions.isEmpty()) {
             return null;
         }
-        List<String> aliveShardReplica = SecondStorageQueryRouteUtil.getAliveShardReplica(partitions, project, allSegIds);
-        List<String> nodes = SecondStorageNodeHelper.resolveToJDBC(aliveShardReplica);
-        return ShardOptions$.MODULE$.buildSharding(JavaConverters.asScalaBuffer(nodes));
+        List<Set<String>> aliveShardReplica = SecondStorageQueryRouteUtil.getUsedShard(partitions, project, allSegIds);
+        List<String> jdbcUrls = SecondStorageNodeHelper.resolveShardToJDBC(aliveShardReplica);
+
+        if (QueryContext.current().getSecondStorageUrls() != null && !QueryContext.current().getSecondStorageUrls().isEmpty()) {
+            QueryContext.current().setRetrySecondStorage(false);
+        }
+        QueryContext.current().setSecondStorageUrls(jdbcUrls);
+        return ShardOptions$.MODULE$.buildSharding(JavaConverters.asScalaBuffer(jdbcUrls));
     }
 
     public String getSchemaURL() {
         if (partitions.isEmpty()) {
             return null;
         }
-        List<String> nodes = SecondStorageNodeHelper.resolveToJDBC(SecondStorageQueryRouteUtil.getCurrentAliveShardReplica());
-        return nodes.get(0);
+
+        return QueryContext.current().getSecondStorageUrls().get(0);
     }
 
     public boolean containSegments(Set<String> segmentIds) {
@@ -229,5 +235,12 @@ public class TableData implements Serializable, WithLayout {
         }
         return allSegmentIds.containsAll(segmentIds);
     }
-    // replace?
+
+    public Set<String> getAllSegments() {
+        if (allSegmentIds == null) {
+            allSegmentIds = partitions.stream().map(TablePartition::getSegmentId).collect(Collectors.toSet());
+        }
+
+        return Collections.unmodifiableSet(allSegmentIds);
+    }
 }

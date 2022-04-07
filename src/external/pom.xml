@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Copyright (C) 2020 Kyligence Inc. All rights reserved.
+ *
+ * http://kyligence.io
+ *
+ * This software is the confidential and proprietary information of
+ * Kyligence Inc. ("Confidential Information"). You shall not disclose
+ * such Confidential Information and shall use it only in accordance
+ * with the terms of the license agreement you entered into with
+ * Kyligence Inc.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+-->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <artifactId>kap-external</artifactId>
+    <groupId>io.kyligence.ke</groupId>
+    <version>4.5.9</version>
+    <packaging>pom</packaging>
+    <name>KAP - External</name>
+    <url>http://kyligence.io</url>
+    <description>Tailored Dependencies for KAP</description>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <guava20.shade>io.kyligence.kap.guava20.shaded</guava20.shade>
+        <curator.version>2.12.0-kylin-r4</curator.version>
+        <slf4j.version>1.7.30</slf4j.version>
+    </properties>
+
+    <modules>
+        <module>curator</module>
+        <module>curator-test</module>
+        <module>guava20</module>
+        <module>influxdb</module>
+        <module>swagger</module>
+        <module>commons-httpclient</module>
+        <module>guava14</module>
+        <module>jackson-xc</module>
+        <module>libfb303</module>
+        <module>kafka-clients</module>
+    </modules>
+
+    <distributionManagement>
+        <repository>
+            <id>${repository.id}</id>
+            <url>${repository.url}</url>
+            <name>${repository.name}</name>
+            <layout>default</layout>
+        </repository>
+        <snapshotRepository>
+            <id>${repository.id.snapshots}</id>
+            <url>${repository.url.snapshots}</url>
+            <name>${repository.name.snapshots}</name>
+            <layout>default</layout>
+        </snapshotRepository>
+    </distributionManagement>
+
+    <!--overwrite parent, need to upgrade this when upgrade grpc-->
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-shade-plugin</artifactId>
+                    <version>3.2.4</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-source-plugin</artifactId>
+                    <version>3.0.1</version>
+                    <executions>
+                        <execution>
+                            <id>attach-sources</id>
+                            <phase>package</phase>
+                            <goals>
+                                <goal>jar-no-fork</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                    <configuration>
+                        <includePom>true</includePom>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-source-plugin</artifactId>
+                    <executions>
+                        <execution>
+                            <id>attach-sources</id>
+                            <phase>deploy</phase>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-javadoc-plugin</artifactId>
+                    <executions>
+                        <execution>
+                            <id>attach-javadocs</id>
+                            <phase>deploy</phase>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-deploy-plugin</artifactId>
+                    <executions>
+                        <execution>
+                            <id>deploy</id>
+                            <phase>deploy</phase>
+                            <goals>
+                                <goal>deploy</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-release-plugin</artifactId>
+                    <version>2.5.3</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+        <plugins>
+<!--            <plugin>-->
+<!--                <artifactId>exec-maven-plugin</artifactId>-->
+<!--                <groupId>org.codehaus.mojo</groupId>-->
+<!--                <version>1.5.0</version>-->
+<!--                <executions>-->
+<!--                    <execution>-->
+<!--                        <id>install_guava20</id>-->
+<!--                        <phase>compile</phase>-->
+<!--                        <goals>-->
+<!--                            <goal>exec</goal>-->
+<!--                        </goals>-->
+<!--                        <configuration>-->
+<!--                            <executable>mvn</executable>-->
+<!--                            <arguments>-->
+<!--                                <argument>-f</argument>-->
+<!--                                <argument>-->
+<!--                                    guava20/pom.xml-->
+<!--                                </argument>-->
+<!--                                <argument>clean</argument>-->
+<!--                                <argument>install</argument>-->
+<!--                                <argument>-DskipTests</argument>-->
+
+<!--                            </arguments>-->
+<!--                            <workingDirectory>${project.basedir}/../../-->
+<!--                            </workingDirectory>-->
+<!--                        </configuration>-->
+<!--                    </execution>-->
+<!--                    <execution>-->
+<!--                        <id>install_curator</id>-->
+<!--                        <phase>compile</phase>-->
+<!--                        <goals>-->
+<!--                            <goal>exec</goal>-->
+<!--                        </goals>-->
+<!--                        <configuration>-->
+<!--                            <executable>mvn</executable>-->
+<!--                            <arguments>-->
+<!--                                <argument>-f</argument>-->
+<!--                                <argument>-->
+<!--                                    src/external/curator/pom.xml-->
+<!--                                </argument>-->
+<!--                                <argument>clean</argument>-->
+<!--                                <argument>install</argument>-->
+<!--                                <argument>-DskipTests</argument>-->
+
+<!--                            </arguments>-->
+<!--                            <workingDirectory>-->
+<!--                                ${project.basedir}/../../-->
+<!--                            </workingDirectory>-->
+<!--                        </configuration>-->
+<!--                    </execution>-->
+<!--                    <execution>-->
+<!--                        <id>install_curatortest</id>-->
+<!--                        <phase>compile</phase>-->
+<!--                        <goals>-->
+<!--                            <goal>exec</goal>-->
+<!--                        </goals>-->
+<!--                        <configuration>-->
+<!--                            <executable>mvn</executable>-->
+<!--                            <arguments>-->
+<!--                                <argument>-f</argument>-->
+<!--                                <argument>-->
+<!--                                    src/external/curator-test/pom.xml-->
+<!--                                </argument>-->
+<!--                                <argument>clean</argument>-->
+<!--                                <argument>install</argument>-->
+<!--                                <argument>-DskipTests</argument>-->
+
+<!--                            </arguments>-->
+<!--                            <workingDirectory>-->
+<!--                                ${project.basedir}/../../-->
+<!--                            </workingDirectory>-->
+<!--                        </configuration>-->
+<!--                    </execution>-->
+<!--                    <execution>-->
+<!--                        <id>install_influxdb</id>-->
+<!--                        <phase>compile</phase>-->
+<!--                        <goals>-->
+<!--                            <goal>exec</goal>-->
+<!--                        </goals>-->
+<!--                        <configuration>-->
+<!--                            <executable>mvn</executable>-->
+<!--                            <arguments>-->
+<!--                                <argument>-f</argument>-->
+<!--                                <argument>-->
+<!--                                    src/external/influxdb/pom.xml-->
+<!--                                </argument>-->
+<!--                                <argument>clean</argument>-->
+<!--                                <argument>install</argument>-->
+<!--                                <argument>-DskipTests</argument>-->
+
+<!--                            </arguments>-->
+<!--                            <workingDirectory>-->
+<!--                                ${project.basedir}/../../-->
+<!--                            </workingDirectory>-->
+<!--                        </configuration>-->
+<!--                    </execution>-->
+<!--                    <execution>-->
+<!--                        <id>install_swagger</id>-->
+<!--                        <phase>compile</phase>-->
+<!--                        <goals>-->
+<!--                            <goal>exec</goal>-->
+<!--                        </goals>-->
+<!--                        <configuration>-->
+<!--                            <executable>mvn</executable>-->
+<!--                            <arguments>-->
+<!--                                <argument>-f</argument>-->
+<!--                                <argument>-->
+<!--                                    src/external/swagger/pom.xml-->
+<!--                                </argument>-->
+<!--                                <argument>clean</argument>-->
+<!--                                <argument>install</argument>-->
+<!--                                <argument>-DskipTests</argument>-->
+
+<!--                            </arguments>-->
+<!--                            <workingDirectory>-->
+<!--                                ${project.basedir}/../../-->
+<!--                            </workingDirectory>-->
+<!--                        </configuration>-->
+<!--                    </execution>-->
+<!--                </executions>-->
+<!--            </plugin>-->
+        </plugins>
+    </build>
+
+</project>

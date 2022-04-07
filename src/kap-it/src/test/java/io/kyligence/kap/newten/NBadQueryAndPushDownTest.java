@@ -29,6 +29,7 @@ import java.nio.file.Files;
 import java.sql.SQLException;
 import java.util.List;
 
+import io.kyligence.kap.util.ExecAndComp;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;

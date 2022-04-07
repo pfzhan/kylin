@@ -39,6 +39,7 @@ public class SecondStorageJobParamUtil {
         registerImplementation(JobTypeEnum.SECOND_STORAGE_MODEL_CLEAN, new SecondStorageCleanJobUtil());
         registerImplementation(JobTypeEnum.SECOND_STORAGE_SEGMENT_CLEAN, new SecondStorageCleanJobUtil());
         registerImplementation(JobTypeEnum.SECOND_STORAGE_NODE_CLEAN, new SecondStorageCleanJobUtil());
+        registerImplementation(JobTypeEnum.SECOND_STORAGE_INDEX_CLEAN, new SecondStorageCleanJobUtil());
     }
 
     private SecondStorageJobParamUtil() {
@@ -73,6 +74,27 @@ public class SecondStorageJobParamUtil {
         param.setProject(project);
         param.withTargetSegments(ids);
         param.setJobTypeEnum(JobTypeEnum.SECOND_STORAGE_SEGMENT_CLEAN);
+        return param;
+    }
+
+    /**
+     * build delete layout table parameters
+     *
+     * PRD_KE-34597 add index clean job
+     *
+     * @param project project name
+     * @param model model id
+     * @param owner owner
+     * @param needDeleteLayoutIds required delete ids of layout
+     * @return job parameters
+     */
+    public static JobParam layoutCleanParam(String project, String model, String owner, Set<Long> needDeleteLayoutIds,
+                                            Set<String> segmentIds) {
+        JobParam param = new JobParam(model, owner);
+        param.setProject(project);
+        param.withTargetSegments(segmentIds);
+        param.setSecondStorageDeleteLayoutIds(needDeleteLayoutIds);
+        param.setJobTypeEnum(JobTypeEnum.SECOND_STORAGE_INDEX_CLEAN);
         return param;
     }
 }

@@ -36,6 +36,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.util.ExecAndComp;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -484,9 +485,6 @@ public abstract class SuggestTestBase extends NLocalWithSparkSessionTest {
             long startTime = System.currentTimeMillis();
             buildAllModels(kylinConfig, getProject(), params);
             log.info("build models cost {} ms", System.currentTimeMillis() - startTime);
-
-            // dump metadata for debugging
-//            dumpMetadata();
 
             // 3. validate results between SparkSQL and cube
             populateSSWithCSVData(kylinConfig, getProject(), SparderEnv.getSparkSession());

@@ -93,6 +93,7 @@ import io.kyligence.kap.rest.service.ModelSmartService;
 import io.kyligence.kap.rest.service.NUserGroupService;
 import io.kyligence.kap.rest.service.OptRecService;
 import io.kyligence.kap.rest.service.ProjectService;
+import io.kyligence.kap.rest.service.ProjectSmartService;
 import io.kyligence.kap.rest.service.RawRecService;
 import io.kyligence.kap.rest.service.task.QueryHistoryTaskScheduler;
 import io.kyligence.kap.rest.util.SCD2SimplificationConvertUtil;
@@ -114,6 +115,7 @@ public class SemiV2CITest extends SemiAutoTestBase {
     private NIndexPlanManager indexPlanManager;
     private RDBMSQueryHistoryDAO queryHistoryDAO;
     private ProjectService projectService;
+    private ProjectSmartService projectSmartService;
 
     @Mock
     OptRecService optRecService = Mockito.spy(new OptRecService());
@@ -138,6 +140,7 @@ public class SemiV2CITest extends SemiAutoTestBase {
         jdbcRawRecStore = new JdbcRawRecStore(KylinConfig.getInstanceFromEnv());
         rawRecService = new RawRecService();
         projectService = new ProjectService();
+        projectSmartService = new ProjectSmartService();
         modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
         indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
         modelService.setSemanticUpdater(semanticService);
@@ -172,9 +175,11 @@ public class SemiV2CITest extends SemiAutoTestBase {
         ReflectionTestUtils.setField(modelSmartService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(projectService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(projectService, "userGroupService", userGroupService);
-        ReflectionTestUtils.setField(projectService, "projectSmartSupporter", rawRecService);
         ReflectionTestUtils.setField(rawRecService, "optRecService", optRecService);
-        ReflectionTestUtils.setField(rawRecService, "projectService", projectService);
+        ReflectionTestUtils.setField(rawRecService, "projectSmartService", projectSmartService);
+
+        ReflectionTestUtils.setField(projectSmartService, "projectSmartSupporter", rawRecService);
+        ReflectionTestUtils.setField(projectSmartService, "aclEvaluate", aclEvaluate);
         TestingAuthenticationToken auth = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
         SecurityContextHolder.getContext().setAuthentication(auth);
     }
@@ -212,7 +217,7 @@ public class SemiV2CITest extends SemiAutoTestBase {
         Assert.assertTrue(rawRecItemBeforeAccelerate.isEmpty());
 
         // accelerate
-        projectService.accelerateImmediately(getProject());
+        projectSmartService.accelerateImmediately(getProject());
 
         // after accelerate
         List<RawRecItem> rawRecItems = jdbcRawRecStore.queryAll();
@@ -256,7 +261,7 @@ public class SemiV2CITest extends SemiAutoTestBase {
         Assert.assertTrue(rawRecItemBeforeAccelerate.isEmpty());
 
         // accelerate
-        projectService.accelerateManually(getProject());
+        projectSmartService.accelerateManually(getProject());
 
         // after accelerate
         List<RawRecItem> rawRecItems = jdbcRawRecStore.queryAll();
@@ -300,7 +305,7 @@ public class SemiV2CITest extends SemiAutoTestBase {
         Assert.assertTrue(rawRecItemBeforeAccelerate.isEmpty());
 
         // accelerate
-        projectService.accelerateManually(getProject());
+        projectSmartService.accelerateManually(getProject());
 
         // after accelerate
         List<RawRecItem> rawRecItems = jdbcRawRecStore.queryAll();

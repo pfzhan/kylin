@@ -238,7 +238,13 @@ public class ClickHouseV2QueryTest extends NLocalWithSparkSessionTest {
                     "select s2, i1, i2 from %s.%s where i1 > 1 limit 1", catalogName, table);
             Dataset<Row> dataset = ss.sql(sql);
             ShardJDBCScan shardJDBCScan = ClickHouseUtils.findShardScan(dataset.queryExecution().optimizedPlan());
-            assert shardJDBCScan.pushedStatement().limitOpt().isEmpty();
+            assert shardJDBCScan.pushedStatement().limitOpt().get().equals(1);
+
+            String sql1 = String.format(Locale.ROOT,
+                    "select (CASE WHEN i1 > 4 THEN 0 ELSE 1 END) from %s.%s where i1 > 1 limit 1", catalogName, table);
+            Dataset<Row> dataset1 = ss.sql(sql1);
+            ShardJDBCScan shardJDBCScan1 = ClickHouseUtils.findShardScan(dataset1.queryExecution().optimizedPlan());
+            assert shardJDBCScan1.pushedStatement().limitOpt().isEmpty();
             return true;
         });
         Assert.assertTrue(result);
@@ -310,7 +316,6 @@ public class ClickHouseV2QueryTest extends NLocalWithSparkSessionTest {
             List<Row> expectedRow =
                     ImmutableList.of(RowFactory.create("3", 3, 3L));
             executeAndCheck(dataset, expectedRow);
-
             return true;
         });
         Assert.assertTrue(result);

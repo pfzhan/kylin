@@ -27,6 +27,7 @@ package io.kyligence.kap.smart;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
@@ -52,7 +53,7 @@ public class SQLAnalysisProposer extends AbstractProposer {
 
     public SQLAnalysisProposer(AbstractContext proposeContext) {
         super(proposeContext);
-        this.sqls = proposeContext.getSqlArray();
+        this.sqls = Objects.requireNonNull(proposeContext.getSqlArray());
     }
 
     @Override
@@ -64,7 +65,6 @@ public class SQLAnalysisProposer extends AbstractProposer {
             extractor.execute();
             logFailedQuery(extractor);
 
-            //TODO refactor this logic to somewhere like initialOrMergeModel
             val modelContexts = new GreedyModelTreesBuilder(KylinConfig.getInstanceFromEnv(), project, proposeContext) //
                     .build(extractor.filterNonModelViewOlapContexts(), null) //
                     .stream() //
@@ -91,22 +91,23 @@ public class SQLAnalysisProposer extends AbstractProposer {
     }
 
     private void logFailedQuery(AbstractQueryRunner extractor) {
-        final Map<Integer, SQLResult> queryResultMap = extractor.getQueryResults();
+        final Map<String, SQLResult> queryResultMap = extractor.getQueryResults();
         SqlSyntaxAdvisor sqlAdvisor = new SqlSyntaxAdvisor();
 
-        queryResultMap.forEach((index, sqlResult) -> {
-            if (sqlResult.getStatus() == SQLResult.Status.FAILED) {
-                AccelerateInfo accelerateInfo = proposeContext.getAccelerateInfoMap().get(sqls[index]);
-                Preconditions.checkNotNull(accelerateInfo);
-                Throwable throwable = sqlResult.getException();
-                if (!(throwable instanceof NoRealizationFoundException
-                        || throwable.getCause() instanceof NoRealizationFoundException)) {
-                    if (throwable.getMessage().contains("not found")) {
-                        SQLAdvice sqlAdvices = sqlAdvisor.proposeWithMessage(sqlResult);
-                        accelerateInfo.setPendingMsg(sqlAdvices.getIncapableReason());
-                    } else {
-                        accelerateInfo.setFailedCause(throwable);
-                    }
+        queryResultMap.forEach((sql, sqlResult) -> {
+            if (sqlResult.getStatus() != SQLResult.Status.FAILED) {
+                return;
+            }
+            AccelerateInfo accelerateInfo = proposeContext.getAccelerateInfoMap().get(sql);
+            Preconditions.checkNotNull(accelerateInfo);
+            Throwable throwable = sqlResult.getException();
+            if (!(throwable instanceof NoRealizationFoundException
+                    || throwable.getCause() instanceof NoRealizationFoundException)) {
+                if (throwable.getMessage().contains("not found")) {
+                    SQLAdvice sqlAdvices = sqlAdvisor.proposeWithMessage(sqlResult);
+                    accelerateInfo.setPendingMsg(sqlAdvices.getIncapableReason());
+                } else {
+                    accelerateInfo.setFailedCause(throwable);
                 }
             }
         });

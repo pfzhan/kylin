@@ -24,14 +24,14 @@
 
 package io.kyligence.kap.smart.query.mockup;
 
-import java.sql.SQLException;
-import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.common.util.ThreadUtil;
 import org.apache.kylin.metadata.model.FunctionDesc;
@@ -40,12 +40,9 @@ import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.query.util.QueryUtil;
 
-import com.google.common.cache.CacheLoader.InvalidCacheLoadException;
-
+import io.kyligence.kap.guava20.shaded.common.base.Stopwatch;
 import io.kyligence.kap.query.engine.QueryExec;
-import io.kyligence.kap.smart.common.SmartConfig;
 import io.kyligence.kap.smart.query.QueryRecord;
-import io.kyligence.kap.smart.query.SQLResult;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -57,7 +54,8 @@ public class MockupQueryExecutor extends AbstractQueryExecutor {
         this.queryNonEquiJoinEnabled = BackdoorToggles.getIsQueryNonEquiJoinModelEnabled();
     }
 
-    public QueryRecord execute(String projectName, KylinConfig kylinConfig, String sql) {
+    public QueryRecord execute(String project, KylinConfig kylinConfig, String sql) {
+        Stopwatch watch = Stopwatch.createStarted();
         OLAPContext.clearThreadLocalContexts();
         //set to check all models, rather than skip models when finding a realization in RealizationChooser#attemptSelectRealization
         BackdoorToggles.addToggle(BackdoorToggles.DEBUG_TOGGLE_CHECK_ALL_MODELS, "true");
@@ -68,59 +66,34 @@ public class MockupQueryExecutor extends AbstractQueryExecutor {
         if (queryNonEquiJoinEnabled) {
             BackdoorToggles.addToggle(BackdoorToggles.QUERY_NON_EQUI_JOIN_MODEL_ENABLED, "true");
         }
-
         QueryRecord record = getCurrentRecord();
-        SQLResult sqlResult = new SQLResult();
-        record.setSqlResult(sqlResult);
-
         if (!QueryUtil.isSelectStatement(sql)) {
-            sqlResult.setStatus(SQLResult.Status.FAILED);
-            sqlResult.setMessage("Not Supported SQL.");
-            sqlResult.setException(new SQLException("Not Supported SQL."));
+            record.noteNonQueryException(project, sql, watch.elapsed(TimeUnit.MILLISECONDS));
             return record;
         }
 
         try {
             // execute and discard the result data
-            QueryExec queryExec = new QueryExec(projectName, kylinConfig);
-            QueryParams queryParams = new QueryParams(kylinConfig, sql, projectName, 0, 0, queryExec.getDefaultSchemaName(), true);
+            QueryExec queryExec = new QueryExec(project, kylinConfig);
+            QueryParams queryParams = new QueryParams(kylinConfig, sql, project, 0, 0, queryExec.getDefaultSchemaName(),
+                    true);
             queryExec.executeQuery(QueryUtil.massageSql(queryParams));
-
-            sqlResult.setStatus(SQLResult.Status.SUCCESS);
         } catch (Throwable e) { // cannot replace with Exception, e may a instance of Error
             Throwable cause = e.getCause();
-            boolean printException = true;
-            if (cause instanceof InvalidCacheLoadException) {
-                if (isSqlResultStatusModifiedByExceptionCause(sqlResult, cause.getStackTrace())) {
-                    return record;
-                }
-            } else if (cause instanceof NoRealizationFoundException) {
-                printException = false;
-            }
-
             String message = e.getMessage() == null
                     ? String.format(Locale.ROOT, "%s, check kylin.log for details", e.getClass().toString())
                     : QueryUtil.makeErrorMsgUserFriendly(e);
-            if (printException) {
+            if (!(cause instanceof NoRealizationFoundException)) {
                 log.debug("Failed to run in MockupQueryExecutor. Critical stackTrace:\n{}",
                         ThreadUtil.getKylinStackTrace());
             }
-
-            sqlResult.setStatus(SQLResult.Status.FAILED);
-            sqlResult.setMessage(message);
-            sqlResult.setException(e);
+            record.noteException(message, e);
         } finally {
-            Collection<OLAPContext> ctxs = OLAPContext.getThreadLocalContexts();
-            if (ctxs != null) {
-                ctxs.forEach(OLAPContext::clean);
-                if (SmartConfig.wrap(kylinConfig).startMemoryTuning()) {
-                    ctxs.forEach(OLAPContext::simplify);
-                }
+            record.noteNormal(project, sql, watch.elapsed(TimeUnit.MILLISECONDS), QueryContext.current().getQueryId());
+            record.noteOlapContexts(kylinConfig);
+            if (CollectionUtils.isNotEmpty(record.getOlapContexts())) {
+                record.getOlapContexts().forEach(ctx -> ctx.aggregations = transformSpecialFunctions(ctx));
             }
-            if (CollectionUtils.isNotEmpty(ctxs)) {
-                ctxs.forEach(ctx -> ctx.aggregations = transformSpecialFunctions(ctx));
-            }
-            record.setOLAPContexts(ctxs);
             clearCurrentRecord();
         }
 
