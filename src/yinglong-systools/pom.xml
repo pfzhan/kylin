@@ -192,17 +192,6 @@
             <artifactId>mapstruct</artifactId>
         </dependency>
 
-        <!-- Swagger -->
-        <dependency>
-            <groupId>io.springfox</groupId>
-            <artifactId>springfox-boot-starter</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.mapstruct</groupId>
-            <artifactId>mapstruct</artifactId>
-        </dependency>
-
         <!-- util -->
         <dependency>
             <groupId>org.projectlombok</groupId>
