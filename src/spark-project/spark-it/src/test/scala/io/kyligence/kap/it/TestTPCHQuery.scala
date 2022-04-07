@@ -38,7 +38,6 @@ class TestTPCHQuery
     with JobSupport
     with QuerySupport
     with SharedSparkSession
-//    with ParquetTPCHSource
     with Logging {
   override val schedulerInterval = "10"
   override val DEFAULT_PROJECT = "tpch-pqt"

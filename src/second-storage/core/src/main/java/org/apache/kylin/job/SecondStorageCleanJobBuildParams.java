@@ -29,12 +29,14 @@ import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.factory.JobFactory;
 import org.apache.kylin.job.model.JobParam;
 
+import java.util.Objects;
 import java.util.Set;
 
 public class SecondStorageCleanJobBuildParams extends JobFactory.JobBuildParams {
     private String project;
     private String modelId;
     private String dataflowId;
+    private Set<Long> secondStorageDeleteLayoutIds;
 
     public SecondStorageCleanJobBuildParams(Set<NDataSegment> segments, JobParam jobParam, JobTypeEnum jobType) {
         super(segments,
@@ -73,5 +75,15 @@ public class SecondStorageCleanJobBuildParams extends JobFactory.JobBuildParams 
     public SecondStorageCleanJobBuildParams setDataflowId(String dataflowId) {
         this.dataflowId = dataflowId;
         return this;
+    }
+
+    public void setSecondStorageDeleteLayoutIds(Set<Long> secondStorageDeleteLayoutIds) {
+        if (Objects.nonNull(secondStorageDeleteLayoutIds)) {
+            this.secondStorageDeleteLayoutIds = secondStorageDeleteLayoutIds;
+        }
+    }
+
+    public Set<Long> getSecondStorageDeleteLayoutIds() {
+        return this.secondStorageDeleteLayoutIds;
     }
 }

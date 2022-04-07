@@ -28,7 +28,10 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
+import com.google.common.collect.Maps;
+import io.kyligence.kap.secondstorage.config.Node;
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
 import org.junit.Assert;
@@ -70,7 +73,9 @@ public class ModelUtilsTest extends NLocalFileMetadataTestCase {
 
     private void prepareSecondStorageInfo(List<SecondStorageInfo> secondStorageInfos) {
         val ssi = new SecondStorageInfo().setSecondStorageEnabled(true);
-        ssi.setSecondStorageSize(1024).setSecondStorageNodes(Arrays.asList(new SecondStorageNode()));
+        Map<String, List<SecondStorageNode>> pairs = Maps.newHashMap();
+        pairs.put("ssi", Arrays.asList(new SecondStorageNode(new Node())));
+        ssi.setSecondStorageSize(1024).setSecondStorageNodes(pairs);
         secondStorageInfos.add(ssi);
         PowerMockito.stub(PowerMockito.method(SecondStorageUtil.class, "isProjectEnable")).toReturn(Boolean.TRUE);
         PowerMockito.stub(PowerMockito.method(SecondStorageUtil.class, "setSecondStorageSizeInfo", List.class))

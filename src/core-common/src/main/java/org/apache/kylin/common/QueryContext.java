@@ -142,7 +142,8 @@ public class QueryContext implements Closeable {
 
     // record second storage partition which used
     @Getter
-    private List<List<String>> usedSecondStorageNodes = new ArrayList<>();
+    @Setter
+    private List<String> secondStorageUrls;
 
     // record last partition status
     @Getter

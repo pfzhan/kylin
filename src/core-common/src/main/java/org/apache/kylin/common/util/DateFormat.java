@@ -65,6 +65,7 @@ public class DateFormat {
     public static final String DEFAULT_TIME_PATTERN_WITH_MILLISECONDS_P1 = "HH:mm:ss.SSS";
     public static final String DEFAULT_TIME_PATTERN_WITH_MILLISECONDS_P2 = "HH:mm:ss:SSS";
     public static final String DEFAULT_TIME_PATTERN_WITH_MILLISECONDS_P3 = "HH:mm:ss.SSS'Z'";
+    public static final String DEFAULT_TIME_PATTERN_WITH_MILLISECONDS_P4 = "HH:mm:ss.SSSXXX";
     public static final String DEFAULT_DATETIME_PATTERN_WITHOUT_MILLISECONDS = "yyyy-MM-dd HH:mm:ss";
     public static final String DEFAULT_DATETIME_PATTERN_WITH_MILLISECONDS = "yyyy-MM-dd HH:mm:ss.SSS";
     public static final String DEFAULT_DATETIME_PATTERN_WITH_TIMEZONE = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
@@ -117,6 +118,8 @@ public class DateFormat {
                 COMPACT_DATE_PATTERN + "'T'" + DEFAULT_TIME_PATTERN_WITH_MILLISECONDS_P3);
         dateFormatRegex.put("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.\\d+Z$",
                 DEFAULT_DATE_PATTERN + "'T'" + DEFAULT_TIME_PATTERN_WITH_MILLISECONDS_P3);
+        dateFormatRegex.put("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.\\d+\\+\\d{2}:\\d{2}$",
+                DEFAULT_DATE_PATTERN + "'T'" + DEFAULT_TIME_PATTERN_WITH_MILLISECONDS_P4);
         dateFormatRegex.put("^\\d{4}/\\d{2}/\\d{2}T\\d{2}:\\d{2}:\\d{2}.\\d+Z$",
                 DEFAULT_DATE_PATTERN_WITH_SLASH + "'T'" + DEFAULT_TIME_PATTERN_WITH_MILLISECONDS_P3);
         dateFormatRegex.put("^\\d{4}\\.\\d{2}\\.\\d{2}T\\d{2}:\\d{2}:\\d{2}.\\d+Z$",
@@ -185,7 +188,7 @@ public class DateFormat {
         return getDateFormat(pattern).format(new Date(millis));
     }
 
-    public static String formatDayToEpchoToDateStr(long daysToEpoch, TimeZone timeZone) {
+    public static String formatDayToEpochToDateStr(long daysToEpoch, TimeZone timeZone) {
         return formatToDateStr(daysToEpoch * 24 * 60 * 60 * 1000, DEFAULT_DATE_PATTERN, timeZone);
     }
 

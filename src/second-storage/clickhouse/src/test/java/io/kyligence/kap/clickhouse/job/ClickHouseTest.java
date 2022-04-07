@@ -24,11 +24,12 @@
 
 package io.kyligence.kap.clickhouse.job;
 
+import io.kyligence.kap.clickhouse.ClickHouseStorage;
+import io.kyligence.kap.guava20.shaded.common.base.Strings;
 import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
 import io.kyligence.kap.secondstorage.config.ClusterInfo;
 import io.kyligence.kap.secondstorage.config.Node;
 import lombok.val;
-import org.apache.commons.lang.StringUtils;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -53,22 +54,24 @@ public class ClickHouseTest {
         clusterNodes.put("pair1", Collections.singletonList(new Node().setName("node01").setIp("127.0.0.1").setPort(9000).setUser("default").setPassword("123456")));
         clusterNodes.put("pair2", Collections.singletonList(new Node().setName("node02").setIp("127.0.0.1").setPort(9000).setUser("default")));
         clusterNodes.put("pair3", Collections.singletonList(new Node().setName("node03").setIp("127.0.0.1").setPort(9000)));
-        SecondStorageNodeHelper.initFromCluster(cluster, node -> {
-            Map<String, String> param = new HashMap<>(4);
-            if (StringUtils.isNotEmpty(cluster.getKeepAliveTimeout())) {
-                param.put(ClickHouse.KEEP_ALIVE_TIMEOUT, cluster.getKeepAliveTimeout());
-            }
-            if (StringUtils.isNotEmpty(cluster.getSocketTimeout())) {
-                param.put(ClickHouse.SOCKET_TIMEOUT, cluster.getSocketTimeout());
-            }
-            if (StringUtils.isNotEmpty(node.getUser())) {
-                param.put(ClickHouse.USER, node.getUser());
-            }
-            if (StringUtils.isNotEmpty(node.getPassword())) {
-                param.put(ClickHouse.PASSWORD, node.getPassword());
-            }
-            return ClickHouse.buildUrl(node.getIp(), node.getPort(), param);
-        });
+        SecondStorageNodeHelper.initFromCluster(
+                cluster,
+                node -> ClickHouse.buildUrl(node.getIp(), node.getPort(), ClickHouseStorage.getJdbcUrlProperties(cluster, node)),
+                nodes -> {
+                    if (nodes.isEmpty()) {
+                        return "";
+                    }
+
+                    StringBuilder sb = new StringBuilder();
+                    for (Node node : nodes) {
+                        if (Strings.isNullOrEmpty(sb.toString())) {
+                            sb.append(node.getIp()).append(":").append(node.getPort());
+                        } else {
+                            sb.append(",").append(node.getIp()).append(":").append(node.getPort());
+                        }
+                    }
+                    return ClickHouse.buildUrl(sb.toString(), ClickHouseStorage.getJdbcUrlProperties(cluster, nodes.get(0)));
+                });
     }
 
     @Test
@@ -87,5 +90,18 @@ public class ClickHouseTest {
         Assert.assertEquals(2, param.size());
         val param2 = ClickHouse.extractParam(SecondStorageNodeHelper.resolve("node03"));
         Assert.assertEquals(0, param2.size());
+    }
+
+    @Test
+    public void testJdbcUrlProperties() {
+        Node node = new Node("node01", "127.0.0.1", 9000, "default", "123456");
+        ClusterInfo cluster = new ClusterInfo();
+        cluster.setKeepAliveTimeout("1000");
+        cluster.setSocketTimeout("1000");
+        Map<String, String> properties = ClickHouseStorage.getJdbcUrlProperties(cluster, node);
+        Assert.assertEquals(properties.get(ClickHouse.KEEP_ALIVE_TIMEOUT), cluster.getKeepAliveTimeout());
+        Assert.assertEquals(properties.get(ClickHouse.SOCKET_TIMEOUT), cluster.getSocketTimeout());
+        Assert.assertEquals(properties.get(ClickHouse.USER), node.getUser());
+        Assert.assertEquals(properties.get(ClickHouse.PASSWORD), node.getPassword());
     }
 }

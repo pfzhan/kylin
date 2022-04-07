@@ -31,9 +31,9 @@ source build/script_newten/functions.sh
 
 rm -rf build/spark
 
-spark_pkg_name="spark-newten-3.2.0-4.x-r57"
+spark_pkg_name="spark-newten-3.2.0-4.x-r59"
 spark_pkg_file_name="${spark_pkg_name}.tgz"
-spark_pkg_md5="08a9be54d780006b407d2f9430b7f4a0"
+spark_pkg_md5="596804d3235e5c28b57c5b3d1ac87016"
 
 checkDownloadSparkVersion ${spark_pkg_name}
 
@@ -47,11 +47,10 @@ else
         echo "md5 check failed"
         rm build/${spark_pkg_file_name}
         wget --directory-prefix=build/ https://s3.cn-north-1.amazonaws.com.cn/download-resource/kyspark/${spark_pkg_file_name}  || echo "Download spark failed"
-
     fi
 fi
 
-tar -zxf build/${spark_pkg_file_name} -C build/   || { exit 1; }
+tar -zxf build/${spark_pkg_file_name} -C build/ || { exit 1; }
 mv build/${spark_pkg_name} build/spark
 
 # Remove unused components in Spark
@@ -59,3 +58,22 @@ rm -rf build/spark/lib/spark-examples-*
 rm -rf build/spark/examples
 rm -rf build/spark/data
 rm -rf build/spark/R
+rm -rf build/spark/hive_1_2_2
+
+cp -rf build/hadoop3 build/spark/
+
+if [[ "${WITH_HIVE1}" != "0" ]]; then
+    if [ ! -f "build/hive_1_2_2.tar.gz" ]
+    then
+        echo "no binary file found"
+        wget --directory-prefix=build/ https://s3.cn-north-1.amazonaws.com.cn/download-resource/kyspark/hive_1_2_2.tar.gz || echo "Download hive1 failed"
+    else
+        if [ `calMd5 build/hive_1_2_2.tar.gz | awk '{print $1}'` != "e8e86e086fb7e821d724ad0c19457a36" ]
+        then
+            echo "md5 check failed"
+            rm build/hive_1_2_2.tar.gz
+            wget --directory-prefix=build/ https://s3.cn-north-1.amazonaws.com.cn/download-resource/kyspark/hive_1_2_2.tar.gz  || echo "Download hive1 failed"
+        fi
+    fi
+    tar -zxf build/hive_1_2_2.tar.gz -C build/spark/ || { exit 1; }
+fi

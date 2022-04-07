@@ -104,6 +104,7 @@ public class ModelBrokenListener {
             }
             dataflowManager.updateDataflow(dfUpdate);
             model.setHandledAfterBroken(true);
+            model.setRecommendationsCount(0);
             modelManager.updateDataBrokenModelDesc(model);
 
             OptRecManagerV2 optRecManagerV2 = OptRecManagerV2.getInstance(project);

@@ -3,33 +3,9 @@ global:
   scrape_timeout: 10s  # Set the scrape timeout to every 10 seconds. Default is every 10 seconds
   evaluation_interval: 15s # Set the evaluation interval to every 15 seconds. Default is every 1 minute
 
-rule_files:
-  - /xxx/rules/*.rules  # rule files, must replace this with yourself config
-alerting:
-  alertmanagers:
-    - static_configs:
-        - targets: [ 'localhost:9093' ]    # alert manager instance, must replace this with yourself config
 scrape_configs:
   - job_name: Kyligence Enterprise  # should be equals to Application Name
     scrape_interval: 15s
     scrape_timeout: 10s
     metrics_path: /kylin/api/prometheus  # endpoint for prometheus
     scheme: http
-    static_configs:
-      - targets: ['localhost:7070']   # KE instance,must replace this with yourself config
-  - job_name: Spark  # should be equals to Application Name
-    scrape_interval: 15s
-    scrape_timeout: 10s
-    metrics_path: /kylin/api/monitor/spark/prometheus  # endpoint for spark prometheus
-    scheme: http
-    static_configs:
-      - targets: ['localhost:7070']   # KE instance,must replace this with yourself config
-    metric_relabel_configs:
-      - source_labels: [ __name__ ]
-        target_label: application_id
-        regex: metrics_(application_[0-9]+_[0-9]+)_.+
-        replacement: $1
-      - source_labels: [ __name__ ]
-        target_label: __name__
-        regex: metrics_application_[0-9]+_[0-9]+_(.+)
-        replacement: metrics_$1

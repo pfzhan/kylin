@@ -48,6 +48,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.kyligence.kap.clickhouse.job.DataLoader.columns;
@@ -71,6 +72,8 @@ public class ShardLoader {
     private final boolean incremental;
     private final List<Date> targetPartitions;
     private final List<Date> committedPartition = new ArrayList<>();
+    private final Set<String> needDropPartition;
+    private final Set<String> needDropTable;
 
     public ShardLoader(ShardLoadContext context) throws SQLException {
         this.clickHouse = new ClickHouse(context.jdbcURL);
@@ -86,6 +89,8 @@ public class ShardLoader {
         this.destTempTableName = context.executableId + "@" + destTableName + "_" + NameUtil.TEMP_TABLE_FLAG + "_tmp";
         this.likeTempTableName = context.executableId + "@" + destTableName + "_" + NameUtil.TEMP_TABLE_FLAG + "_ke_like";
         this.targetPartitions = context.targetPartitions;
+        this.needDropPartition = context.needDropPartition;
+        this.needDropTable = context.needDropTable;
     }
 
     private void commitIncrementalLoad() throws SQLException {
@@ -162,6 +167,8 @@ public class ShardLoader {
         String partitionColumn;
         String partitionFormat;
         List<Date> targetPartitions;
+        Set<String> needDropPartition;
+        Set<String> needDropTable;
     }
 
     public void cleanIncrementLoad() throws SQLException {
@@ -178,6 +185,15 @@ public class ShardLoader {
                     new AlterTable.ManipulatePartition(dateFormat.format(partition),
                             AlterTable.PartitionOperation.DROP));
             clickHouse.apply(alterTable.toSql(render));
+
+            if (needDropPartition != null) {
+                for (String table : needDropPartition) {
+                    alterTable = new AlterTable(TableIdentifier.table(database, table),
+                            new AlterTable.ManipulatePartition(dateFormat.format(partition),
+                                    AlterTable.PartitionOperation.DROP));
+                    clickHouse.apply(alterTable.toSql(render));
+                }
+            }
         }
     }
 
@@ -202,6 +218,12 @@ public class ShardLoader {
         }
         dropTable(destTempTableName);
         dropTable(likeTempTableName);
+
+        if (needDropTable != null) {
+            for (String table : needDropTable) {
+                dropTable(table);
+            }
+        }
     }
 
     public void cleanUpQuietly(boolean keepInsertTempTable) {

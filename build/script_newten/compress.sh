@@ -42,14 +42,11 @@ cd build/
 rm -rf ${package_name}
 mkdir ${package_name}
 
-cp -rf CHANGELOG.md VERSION commit_SHA1 lib tool LICENSE ${package_name}/
+cp -rf CHANGELOG.md VERSION commit_SHA1 lib ${package_name}/
 
-mkdir ${package_name}/lib/ext
+mkdir -p ${package_name}/lib/ext
 
-if [[ "${PACKAGE_SPARK}" = "1" ]]; then
-    cp -rf spark ${package_name}/
-fi
-
+cp -rf spark ${package_name}/
 cp -rf sample_project ${package_name}/
 cp -rf samples ${package_name}/
 cp -rf influxdb ${package_name}/
@@ -60,10 +57,6 @@ cp -rf postgresql ${package_name}/
 mkdir -p ${package_name}/tool/ssb
 cp -rf ../src/examples/sample_cube/data ${package_name}/tool/ssb/
 cp -rf ../src/examples/sample_cube/create_sample_ssb_tables.sql ${package_name}/tool/ssb/
-
-cp -rf deploy/grafana/dashboards ${package_name}/grafana/
-cp -rf deploy/grafana/provisioning ${package_name}/grafana/conf/
-cp -rf deploy/grafana/custom.ini ${package_name}/grafana/conf/
 
 # Add ops_plan files
 cp -rf ../ops_plan ${package_name}/
@@ -85,22 +78,14 @@ cp -rf conf/setenv.sh ${package_name}/conf/setenv.sh.template
 cp -rf bin/ ${package_name}/bin/
 cp -rf sbin/ ${package_name}/sbin/
 
-rm -rf ext lib tomcat commit_SHA1 VERSION # keep the spark folder on purpose
+rm -rf ext lib commit_SHA1 VERSION # keep the spark folder on purpose
 
-mkdir ${package_name}/server
 cp -rf server/webapp/dist ${package_name}/server/public
 cp -rf server/newten.jar ${package_name}/server/
 cp -rf server/jars ${package_name}/server/
 cp -rf deploy/.keystore ${package_name}/server/
 mv ${package_name}/server/jars/log4j* ${package_name}/spark/jars/
 rm -rf server/
-
-#add udf jar to lib
-cp ../src/udf/target/kap-udf-${kap_version}.jar ${package_name}/lib/kylin-udf-${release_version}.jar
-
-# add hadoop3 jar to spark
-cp -rf hadoop3 ${package_name}/spark
-
 
 ## comment all default properties, and append them to the user visible kylin.properties
 ## first 16 lines are license, just skip them

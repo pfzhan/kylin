@@ -26,9 +26,9 @@ package io.kyligence.kap.rest.request;
 
 import java.util.List;
 
-import com.clearspring.analytics.util.Lists;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import io.kyligence.kap.guava20.shaded.common.collect.Lists;
 import lombok.Data;
 
 @Data

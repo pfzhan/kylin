@@ -30,8 +30,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
-import io.kyligence.kap.metadata.recommendation.ref.OptRecV2;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -63,37 +61,40 @@ import io.kyligence.kap.metadata.recommendation.candidate.LayoutMetric;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
+import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
+import io.kyligence.kap.metadata.recommendation.ref.OptRecV2;
 import io.kyligence.kap.rest.service.task.QueryHistoryTaskScheduler;
 import io.kyligence.kap.smart.AbstractContext;
-import io.kyligence.kap.smart.ModelReuseContextOfSemiV2;
+import io.kyligence.kap.smart.ModelReuseContext;
 import io.kyligence.kap.smart.ProposerJob;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 
 @Component("rawRecService")
-public class RawRecService extends BasicService implements ModelChangeSupporter, ProjectSmartSupporter, QuerySmartSupporter {
+public class RawRecService extends BasicService
+        implements ModelChangeSupporter, ProjectSmartSupporter, QuerySmartSupporter {
     private static final Logger log = LoggerFactory.getLogger("smart");
     private static final String ACCELERATION_INTERRUPT_BY_USER = "Acceleration triggered by user terminate the process of generate recommendation automatically at present.";
 
     @Autowired
-    ProjectService projectService;
+    ProjectSmartService projectSmartService;
 
     @Autowired
     OptRecService optRecService;
 
     public void accelerate(String project) {
-        projectService.accelerateImmediately(project);
+        projectSmartService.accelerateImmediately(project);
         updateCostsAndTopNCandidates(project);
     }
 
     public void transferAndSaveRecommendations(AbstractContext proposeContext) {
-        if (!(proposeContext instanceof ModelReuseContextOfSemiV2)) {
+        if (!(proposeContext instanceof ModelReuseContext)) {
             return;
         }
         //filter modelcontext(by create model)
         proposeContext.setModelContexts(proposeContext.getModelContexts().stream()
                 .filter(modelContext -> modelContext.getOriginModel() != null).collect(Collectors.toList()));
 
-        ModelReuseContextOfSemiV2 semiContextV2 = (ModelReuseContextOfSemiV2) proposeContext;
+        ModelReuseContext semiContextV2 = (ModelReuseContext) proposeContext;
         Map<String, RawRecItem> nonLayoutUniqueFlagRecMap = semiContextV2.getExistingNonLayoutRecItemMap();
         transferAndSaveModelRelatedRecItems(semiContextV2, nonLayoutUniqueFlagRecMap);
 
@@ -121,7 +122,7 @@ public class RawRecService extends BasicService implements ModelChangeSupporter,
 
         KylinConfig kylinConfig = getProjectManager().getProject(project).getConfig();
         AbstractContext semiContextV2 = ProposerJob
-                .propose(new ModelReuseContextOfSemiV2(kylinConfig, project, sqlList.toArray(new String[0])));
+                .propose(new ModelReuseContext(kylinConfig, project, sqlList.toArray(new String[0])));
 
         Map<String, RawRecItem> nonLayoutRecItemMap = semiContextV2.getExistingNonLayoutRecItemMap();
         transferAndSaveModelRelatedRecItems(semiContextV2, nonLayoutRecItemMap);
@@ -264,9 +265,8 @@ public class RawRecService extends BasicService implements ModelChangeSupporter,
 
     @Override
     public int getGaugeSize(String project, String modelId) {
-        return optRecService.getOptRecLayoutsResponse(
-                project, modelId, OptRecService.RecActionType.REMOVE_INDEX.name()
-        ).getSize();
+        return optRecService.getOptRecLayoutsResponse(project, modelId, OptRecService.RecActionType.REMOVE_INDEX.name())
+                .getSize();
     }
 
     @Override

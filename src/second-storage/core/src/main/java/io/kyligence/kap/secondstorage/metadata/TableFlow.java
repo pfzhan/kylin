@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import org.apache.kylin.common.persistence.RootPersistentEntity;
@@ -124,9 +125,13 @@ public class TableFlow extends RootPersistentEntity
         Preconditions.checkArgument(HasLayoutElement.sameLayout(data, layoutEntity));
     }
 
-    public void cleanTableData() {
+    public void cleanTableData(Predicate<? super TableData> filter) {
+        if (filter == null) {
+            return;
+        }
+
         checkIsNotCachedAndShared();
-        this.tableDataList.clear();
+        this.tableDataList.removeIf(filter);
     }
 
     @Override

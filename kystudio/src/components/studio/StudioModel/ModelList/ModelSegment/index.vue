@@ -990,9 +990,17 @@ export default class ModelSegment extends Vue {
     }
   }
   getSecStorageNodes (segment) {
-    return segment.second_storage_nodes && segment.second_storage_nodes.map(s => {
-      return `${s.name} ${s.ip}:${s.port}`
-    }).toString()
+    if (segment.second_storage_nodes && Object.keys(segment.second_storage_nodes).length > 0) {
+      return Object.values(segment.second_storage_nodes).map((g) => {
+        if (g.length > 1) {
+          return `(${g.map((n) => {
+            return `${n.name} ${n.ip}:${n.port}`
+          }).join(', ')})`
+        } else {
+          return `${g[0].name} ${g[0].ip}:${g[0].port}`
+        }
+      }).join(', ')
+    }
   }
   async handleMergeSegment () {
     try {
@@ -1266,6 +1274,9 @@ export default class ModelSegment extends Vue {
   }
   .segment-path {
     word-break: break-all;
+  }
+  &.ksd-list .list {
+    align-items: baseline;
   }
 }
 .merge-comfirm {

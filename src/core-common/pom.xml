@@ -280,6 +280,7 @@
                     <artifactId>log4j-core</artifactId>
                 </exclusion>
             </exclusions>
+            <version>${mockito.version}</version>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
@@ -291,6 +292,7 @@
                     <artifactId>log4j-core</artifactId>
                 </exclusion>
             </exclusions>
+            <version>${mockito.version}</version>
         </dependency>
         <dependency>
             <groupId>commons-codec</groupId>

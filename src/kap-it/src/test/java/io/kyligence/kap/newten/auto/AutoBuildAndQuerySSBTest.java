@@ -26,7 +26,7 @@ package io.kyligence.kap.newten.auto;
 import com.google.common.collect.Lists;
 import org.junit.Test;
 
-import io.kyligence.kap.newten.ExecAndComp.CompareLevel;
+import io.kyligence.kap.util.ExecAndComp.CompareLevel;
 
 public class AutoBuildAndQuerySSBTest extends AutoTestBase {
     @Test

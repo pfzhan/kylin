@@ -28,9 +28,8 @@ import java.util.Map;
 
 import org.apache.commons.lang3.NotImplementedException;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
-
+import io.kyligence.kap.guava20.shaded.common.collect.ImmutableList;
+import io.kyligence.kap.guava20.shaded.common.collect.Maps;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import lombok.Getter;
 import lombok.val;

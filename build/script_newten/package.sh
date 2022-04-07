@@ -2102,17 +2102,27 @@ echo "VERSION file content:" ${KAP_VERSION_NAME}
 echo "BUILD STAGE 2 - Build binaries..."
 sh build/script_newten/build.sh $@             || { exit 1; }
 
-echo "BUILD STAGE 3 - Prepare spark..."
-sh build/script_newten/download-spark.sh      || { exit 1; }
+if [[ "${WITH_SPARK}" = "1" ]]; then
+    echo "BUILD STAGE 3 - Prepare spark..."
+    sh build/script_newten/download-spark.sh      || { exit 1; }
+else
+    rm -rf build/spark
+fi
 
-echo "BUILD STAGE 4 - Prepare influxdb..."
-sh build/script_newten/download-influxdb.sh      || { exit 1; }
+if [[ "${WITH_THIRDPARTY}" = "1" ]]; then
+    echo "BUILD STAGE 4 - Prepare influxdb..."
+    sh build/script_newten/download-influxdb.sh      || { exit 1; }
 
-echo "BUILD STAGE 5 - Prepare grafana..."
-sh build/script_newten/download-grafana.sh      || { exit 1; }
+    echo "BUILD STAGE 5 - Prepare grafana..."
+    sh build/script_newten/download-grafana.sh      || { exit 1; }
 
-echo "BUILD STAGE 6 - Prepare postgresql..."
-sh build/script_newten/download-postgresql.sh      || { exit 1; }
+    echo "BUILD STAGE 6 - Prepare postgresql..."
+    sh build/script_newten/download-postgresql.sh      || { exit 1; }
+else
+    rm -rf build/influxdb
+    rm -rf build/grafana
+    rm -rf build/postgresql
+fi
 
 echo "BUILD STAGE 7 - Prepare and compress package..."
 sh build/script_newten/prepare.sh ${MVN_PROFILE} || { exit 1; }

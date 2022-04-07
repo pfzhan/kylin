@@ -126,7 +126,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
-import io.kyligence.kap.newten.ExecAndComp;
+import io.kyligence.kap.util.ExecAndComp;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.service.JobService;
 import io.kyligence.kap.rest.service.ModelService;
@@ -351,7 +351,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
             ModelService ms = new ModelService();
 
             ms.addSecondStorageResponse(cubeName, getProject(), mockSegments, df);
-            Assert.assertEquals(2, (mockSegments.get(0)).getSecondStorageNodes().size());
+            Assert.assertEquals(2, (mockSegments.get(0)).getSecondStorageNodes().get("pair0").size());
 
         }
     }
@@ -371,7 +371,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
                 JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse();
                 JdbcDatabaseContainer<?> clickhouse3 = ClickHouseUtils.startClickHouse();
                 JdbcDatabaseContainer<?> clickhouse4 = ClickHouseUtils.startClickHouse()) {
-            build_load_query("testIncrementalTwoShardDoubleReplica", true, false, 2, null, clickhouse1, clickhouse2,
+            build_load_query("testIncrementalTwoShardDoubleReplica", true, false, 2, null, null, clickhouse1, clickhouse2,
                     clickhouse3, clickhouse4);
         }
     }
@@ -517,6 +517,126 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
             ExecAndComp.queryModel(getProject(), sql1);
             Assert.assertTrue(
                     OLAPContext.getNativeRealizations().stream().noneMatch(NativeQueryRealization::isSecondStorage));
+        }
+    }
+
+    @Test
+    public void testshard2Replica2AndDifferentGroupNodeDown() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse3 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse4 = ClickHouseUtils.startClickHouse()) {
+            build_load_query("test2shard2ReplicaAndDifferentGroupNodeDown",
+                    false,
+                    false,
+                    2,
+                    () ->{
+                        clickhouse1.stop();
+                        clickhouse2.stop();
+                        return null;
+                    },
+                    () -> {
+                        String sql = "select order_id from TEST_KYLIN_FACT ";
+                        OLAPContext.clearThreadLocalContexts();
+                        ExecAndComp.queryModel(getProject(), sql);
+                        Assert.assertTrue(OLAPContext.getNativeRealizations().stream().allMatch(NativeQueryRealization::isSecondStorage));
+
+                        return null;
+                    },
+                    clickhouse1, clickhouse2, clickhouse3, clickhouse4);
+        }
+    }
+
+    @Test
+    public void testQueryWithClickHouseHADownSameGroup() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse3 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse4 = ClickHouseUtils.startClickHouse()) {
+            build_load_query("testQueryWithClickHouseHASuccess",
+                    false,
+                    false,
+                    2,
+                    () ->{
+                        Map<String, List<Node>> cluster = ClickHouseConfigLoader.getInstance().getCluster().getCluster();
+                        int index = 0;
+                        Map<String, Map<String, Boolean>> nodeStatusMap = new HashMap<>();
+                        for (String pair : cluster.keySet()) {
+                            Map<String, Boolean> nodeStatus = com.google.common.collect.Maps.newHashMap();
+                            for (Node n : cluster.get(pair)) {
+                                nodeStatus.put(n.getName(), index == 0 || index == 3);
+                                index++;
+                            }
+                            nodeStatusMap.put(pair, nodeStatus);
+                        }
+                        secondStorageEndpoint.updateNodeStatus(nodeStatusMap);
+                        return null;
+                    },
+                    () -> {
+                        String sql = "select sum(PRICE) from TEST_KYLIN_FACT group by PRICE";
+                        ExecAndComp.queryModel(getProject(), sql);
+                        Assert.assertTrue(OLAPContext.getNativeRealizations().stream().anyMatch(NativeQueryRealization::isSecondStorage));
+
+                        Map<String, List<Node>> cluster = ClickHouseConfigLoader.getInstance().getCluster().getCluster();
+                        Map<String, Map<String, Boolean>> nodeStatusMap = new HashMap<>();
+                        for (String pair : cluster.keySet()) {
+                            Map<String, Boolean> nodeStatus = com.google.common.collect.Maps.newHashMap();
+                            for (Node n : cluster.get(pair)) {
+                                nodeStatus.put(n.getName(), true);
+                            }
+                            nodeStatusMap.put(pair, nodeStatus);
+                        }
+                        secondStorageEndpoint.updateNodeStatus(nodeStatusMap);
+                        return null;
+                    },
+                    clickhouse1, clickhouse2, clickhouse3, clickhouse4);
+        }
+    }
+
+    @Test
+    public void testQueryWithClickHouseHADownOneShard() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse3 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse4 = ClickHouseUtils.startClickHouse()) {
+            build_load_query("testQueryWithClickHouseHASuccess",
+                    false,
+                    false,
+                    2,
+                    () ->{
+                        Map<String, List<Node>> cluster = ClickHouseConfigLoader.getInstance().getCluster().getCluster();
+                        int index = 0;
+                        Map<String, Map<String, Boolean>> nodeStatusMap = new HashMap<>();
+                        for (String pair : cluster.keySet()) {
+                            Map<String, Boolean> nodeStatus = Maps.newHashMap();
+                            for (Node n : cluster.get(pair)) {
+                                nodeStatus.put(n.getName(), index == 0);
+
+                            }
+                            index++;
+                            nodeStatusMap.put(pair, nodeStatus);
+                        }
+                        secondStorageEndpoint.updateNodeStatus(nodeStatusMap);
+                        return null;
+                    },
+                    () -> {
+                        String sql = "select sum(PRICE) from TEST_KYLIN_FACT group by PRICE";
+                        ExecAndComp.queryModel(getProject(), sql);
+                        Assert.assertTrue(OLAPContext.getNativeRealizations().stream().noneMatch(NativeQueryRealization::isSecondStorage));
+
+                        Map<String, List<Node>> cluster = ClickHouseConfigLoader.getInstance().getCluster().getCluster();
+                        Map<String, Map<String, Boolean>> nodeStatusMap = new HashMap<>();
+                        for (String pair : cluster.keySet()) {
+                            Map<String, Boolean> nodeStatus = com.google.common.collect.Maps.newHashMap();
+                            for (Node n : cluster.get(pair)) {
+                                nodeStatus.put(n.getName(), true);
+                            }
+                            nodeStatusMap.put(pair, nodeStatus);
+                        }
+                        secondStorageEndpoint.updateNodeStatus(nodeStatusMap);
+                        return null;
+                    },
+                    clickhouse1, clickhouse2, clickhouse3, clickhouse4);
         }
     }
 
@@ -1043,13 +1163,11 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
         });
     }
 
-    protected void build_load_query(String catalog, boolean incremental, int replica, Callable<Void> beforeQuery,
-            JdbcDatabaseContainer<?>... clickhouse) throws Exception {
-        build_load_query(catalog, incremental, true, replica, beforeQuery, clickhouse);
+    protected void build_load_query(String catalog, boolean incremental, int replica, Callable<Void> beforeQuery, JdbcDatabaseContainer<?>... clickhouse) throws Exception {
+        build_load_query(catalog, incremental, true, replica, beforeQuery, null, clickhouse);
     }
 
-    protected void build_load_query(String catalog, boolean incremental, boolean isMergeSegment, int replica,
-            Callable<Void> beforeQuery, JdbcDatabaseContainer<?>... clickhouse) throws Exception {
+    protected void build_load_query(String catalog, boolean incremental, boolean isMergeSegment, int replica, Callable<Void> beforeQuery, Callable<Void> checkQuery, JdbcDatabaseContainer<?>... clickhouse) throws Exception {
         Unsafe.setProperty(ClickHouseLoad.SOURCE_URL, getSourceUrl());
         Unsafe.setProperty(ClickHouseLoad.ROOT_PATH, getLocalWorkingDirectory());
         configClickhouseWith(clickhouse, replica, catalog, () -> {
@@ -1126,9 +1244,14 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
             ss.sessionState().conf().setConfString("spark.sql.catalog." + catalog + ".driver",
                     clickhouse[0].getDriverClassName());
             // check ClickHouse
-            if (beforeQuery != null)
-                beforeQuery.call();
-            checkQueryResult(incremental, clickhouse, replica);
+            if (beforeQuery != null) beforeQuery.call();
+
+            if (checkQuery != null) {
+                checkQuery.call();
+            } else {
+                checkQueryResult(incremental, clickhouse, replica);
+            }
+
             return true;
         });
     }

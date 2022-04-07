@@ -209,7 +209,6 @@ import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
 import io.kyligence.kap.rest.constant.ModelAttributeEnum;
 import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
-import io.kyligence.kap.rest.controller.NModelController;
 import io.kyligence.kap.rest.execution.SucceedChainedTestExecutable;
 import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
@@ -343,6 +342,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                     ccDesc.setInnerExpression(ccExpression);
                     ComputedColumnEvalUtil.evaluateExprAndType(model, ccDesc);
                 }));
+        ReflectionTestUtils.setField(semanticService, "modelSmartSupporter", modelSmartService);
         ReflectionTestUtils.setField(modelService, "projectService", projectService);
         ReflectionTestUtils.setField(modelService, "modelQuerySupporter", modelQueryService);
         ReflectionTestUtils.setField(tableService, "jobService", jobService);
@@ -1165,10 +1165,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         partition.setPartitionDateColumn("DEFAULT.TEST_KYLIN_FACT.TRANS_ID000");
         partition.setPartitionDateFormat("yyyy-MM-dd");
         modelRequest.setPartitionDesc(partition);
-        val modelController = new NModelController();
-        ReflectionTestUtils.setField(modelController, "modelService", modelService);
-        val resp = modelController.detectInvalidIndexes(modelRequest);
-        Assert.assertEquals("000", resp.getCode());
+        val resp = modelService.detectInvalidIndexes(modelRequest);
+        Assert.assertNotNull(resp);
     }
 
     @Test
@@ -7175,35 +7173,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         val indexResponse = modelService.updateDataModelSemantic(project, modelRequest);
         Assert.assertFalse(indexResponse.isCleanSecondStorage());
-    }
-
-    @Test
-    public void testChangeSegWithSecondStorage() throws Exception {
-        val model = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        val project = "default";
-        MockSecondStorage.mock("default", new ArrayList<>(), this);
-        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            indexPlanManager.updateIndexPlan(model, indexPlan -> {
-                indexPlan.createAndAddBaseIndex(indexPlan.getModel());
-            });
-            return null;
-        }, project);
-        SecondStorageUtil.initModelMetaData(project, model);
-        Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
-
-        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        NDataModel modelAll = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-
-        val modelRequest = prepare();
-        modelRequest.setWithSecondStorage(false);
-        modelRequest.setWithBaseIndex(true);
-        modelRequest.setSaveOnly(true);
-        modelRequest.getSimplifiedDimensions().addAll(modelAll.getAllNamedColumns().stream()
-                .filter(x -> "DIM_UPD_USER".equalsIgnoreCase(x.getName())).collect(Collectors.toList()));
-
-        val indexResponse = modelService.updateDataModelSemantic(project, modelRequest);
-        Assert.assertTrue(indexResponse.isCleanSecondStorage());
     }
 
     @Test

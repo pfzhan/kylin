@@ -28,6 +28,7 @@ package io.kyligence.kap.newten;
 
 import java.io.File;
 
+import io.kyligence.kap.util.ExecAndComp;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;

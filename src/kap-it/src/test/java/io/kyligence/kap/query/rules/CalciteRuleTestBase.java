@@ -57,7 +57,7 @@ import com.clearspring.analytics.util.Lists;
 import com.google.common.base.Strings;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.newten.ExecAndComp;
+import io.kyligence.kap.util.ExecAndComp;
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.query.engine.QueryOptimizer;
 import io.kyligence.kap.query.util.HepUtils;

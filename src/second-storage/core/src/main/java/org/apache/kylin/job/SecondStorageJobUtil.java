@@ -87,9 +87,8 @@ public class SecondStorageJobUtil extends ExecutableUtil {
         Manager<TableFlow> tableFlowManager = SecondStorage.tableFlowManager(config, project);
         TablePlan plan = tablePlanManager.makeSureRootEntity(model);
         tableFlowManager.makeSureRootEntity(model);
-        Map<Long, List<LayoutEntity>> layouts = segments.get(0)
-                .getLayoutsMap().values()
-                .stream()
+        Map<Long, List<LayoutEntity>> layouts = segments.stream()
+                .flatMap(nDataSegment -> nDataSegment.getLayoutsMap().values().stream())
                 .map(NDataLayout::getLayout)
                 .filter(SecondStorageUtil::isBaseTableIndex)
                 .collect(Collectors.groupingBy(LayoutEntity::getIndexId));

@@ -29,7 +29,10 @@ import io.kyligence.kap.clickhouse.ddl.ClickHouseCreateTable;
 import io.kyligence.kap.clickhouse.ddl.ClickHouseRender;
 import io.kyligence.kap.clickhouse.management.ClickHouseConfigLoader;
 import io.kyligence.kap.common.util.Unsafe;
+import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import io.kyligence.kap.engine.spark.utils.RichOption;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.secondstorage.SecondStorage;
 import io.kyligence.kap.secondstorage.SecondStorageConstants;
 import io.kyligence.kap.secondstorage.config.ClusterInfo;
@@ -37,7 +40,17 @@ import io.kyligence.kap.secondstorage.config.Node;
 import io.kyligence.kap.secondstorage.ddl.InsertInto;
 import io.kyligence.kap.secondstorage.ddl.exp.ColumnWithType;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.job.SecondStorageJobParamUtil;
+import org.apache.kylin.job.common.ExecutableUtil;
+import org.apache.kylin.job.execution.DefaultChainedExecutable;
+import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.handler.AbstractJobHandler;
+import org.apache.kylin.job.handler.SecondStorageSegmentLoadJobHandler;
+import org.apache.kylin.job.model.JobParam;
 import org.apache.spark.SparkConf;
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan;
 import org.apache.spark.sql.execution.datasource.FilePruner;
@@ -71,6 +84,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Locale;
@@ -430,7 +444,39 @@ public class ClickHouseUtils {
         log.info(statement.toSQL(null));
     }
 
-    static void InjectNewPushDownRule(SparkConf conf) {
+    public static void InjectNewPushDownRule(SparkConf conf) {
         conf.set("spark.sql.extensions", "io.kyligence.kap.query.SQLPushDownExtensions");
+    }
+
+    public static JobParam triggerClickHouseJob(NDataflow df) {
+        val segments = new HashSet<>(df.getSegments());
+        AbstractJobHandler localHandler = new SecondStorageSegmentLoadJobHandler();
+        JobParam jobParam = SecondStorageJobParamUtil.of(df.getProject(), df.getModel().getUuid(), "ADMIN",
+                segments.stream().map(NDataSegment::getId));
+        String jobId = simulateJobMangerAddJob(jobParam, localHandler);
+        waitJobFinish(df.getProject(), jobId);
+        return jobParam;
+    }
+
+    public static String simulateJobMangerAddJob(JobParam jobParam, AbstractJobHandler handler) {
+        ExecutableUtil.computeParams(jobParam);
+        handler.handle(jobParam);
+        return jobParam.getJobId();
+    }
+
+    public static void waitJobFinish(String project, String jobId, boolean isAllowFailed) {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        NExecutableManager executableManager = NExecutableManager.getInstance(config, project);
+        DefaultChainedExecutable job = (DefaultChainedExecutable) executableManager.getJob(jobId);
+        await().atMost(300, TimeUnit.SECONDS).until(() -> !job.getStatus().isProgressing());
+        Assert.assertFalse(job.getStatus().isProgressing());
+        if (!isAllowFailed) {
+            val firstErrorMsg = IndexDataConstructor.firstFailedJobErrorMessage(executableManager, job);
+            Assert.assertEquals(firstErrorMsg, ExecutableState.SUCCEED, executableManager.getJob(jobId).getStatus());
+        }
+    }
+
+    private static void waitJobFinish(String project, String jobId) {
+        waitJobFinish(project, jobId, false);
     }
 }

@@ -1,0 +1,42 @@
+version: 1 #yaml file version, it won't change frequently
+ops_plan:
+  -
+    name: Kyligence Enterprise
+    version: 1 # monitoring version, might change with the component release
+    prometheus:
+      scrape_config: ops_plan/self/scrape_config.yml
+      alert_rules:
+        - ops_plan/self/alert_rules/app_status_alert.rules
+        - ops_plan/self/alert_rules/build_status_alert.rules
+        - ops_plan/self/alert_rules/http_status_alert.rules
+        - ops_plan/self/alert_rules/jvm_status_alert.rules
+        - ops_plan/self/alert_rules/query_status_alert.rules
+    grafana:
+      config_files:
+        - ops_plan/self/dashboard/KE_JVM_Monitoring.json
+        - ops_plan/self/dashboard/KE_Application_Monitoring.json
+  -
+    name: Spark
+    version: 1
+    prometheus:
+      scrape_config: ops_plan/spark/scrape_config.yml
+    grafana:
+      config_files:
+        - ops_plan/spark/dashboard/Spark_Driver_Monitoring.json
+        - ops_plan/spark/dashboard/Spark_Executor_Monitoring.json
+
+
+health_check:
+  endpoint:
+  interval: 30 #default 15 seconds
+  timeout: 100 #default is 100 milliseconds
+  max_tries: 5 #default is 3 times
+
+
+deployment_script: #maybe unnecessary on cloud
+  pre_upgrade:
+  upgrade:
+  post_upgrade:
+  pre_rollback:
+  rollback:
+  post_rollback:

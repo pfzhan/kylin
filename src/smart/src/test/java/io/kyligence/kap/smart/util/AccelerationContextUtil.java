@@ -42,9 +42,9 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.smart.AbstractContext;
-import io.kyligence.kap.smart.AbstractSemiContextV2;
-import io.kyligence.kap.smart.ModelCreateContextOfSemiV2;
-import io.kyligence.kap.smart.ModelReuseContextOfSemiV2;
+import io.kyligence.kap.smart.AbstractSemiContext;
+import io.kyligence.kap.smart.ModelCreateContext;
+import io.kyligence.kap.smart.ModelReuseContext;
 import io.kyligence.kap.smart.SmartContext;
 import lombok.var;
 
@@ -58,10 +58,9 @@ public class AccelerationContextUtil {
         return new SmartContext(config, project, sqlArray);
     }
 
-    public static AbstractSemiContextV2 newModelReuseContext(KylinConfig kylinConfig, String project,
-            String[] sqlArray) {
+    public static AbstractSemiContext newModelReuseContext(KylinConfig kylinConfig, String project, String[] sqlArray) {
         KylinConfigExt config = NProjectManager.getInstance(kylinConfig).getProject(project).getConfig();
-        ModelReuseContextOfSemiV2 context = new ModelReuseContextOfSemiV2(config, project, sqlArray);
+        ModelReuseContext context = new ModelReuseContext(config, project, sqlArray);
         context.getExtraMeta().setOnlineModelIds(getOnlineModelIds(project));
         return context;
     }
@@ -71,9 +70,9 @@ public class AccelerationContextUtil {
                 .map(RootPersistentEntity::getUuid).collect(Collectors.toSet());
     }
 
-    public static AbstractSemiContextV2 newModelCreateContext(KylinConfig kylinConfig, String project,
+    public static AbstractSemiContext newModelCreateContext(KylinConfig kylinConfig, String project,
             String[] sqlArray) {
-        return new ModelCreateContextOfSemiV2(kylinConfig, project, sqlArray) {
+        return new ModelCreateContext(kylinConfig, project, sqlArray) {
 
             @Override
             public void saveMetadata() {

@@ -101,7 +101,6 @@ public abstract class ResourceStore implements AutoCloseable {
     public static final String USER_GROUP_ROOT = GLOBAL_PROJECT + "/user_group";
     public static final String ACL_ROOT = GLOBAL_PROJECT + "/acl";
     public static final String PROJECT_ROOT = GLOBAL_PROJECT + "/project";
-    public static final String CLUSTER_RESOURCE_ROOT = GLOBAL_PROJECT + "/cluster";
 
     public static final String DATA_MODEL_DESC_RESOURCE_ROOT = "/model_desc";
     public static final String FUSION_MODEL_RESOURCE_ROOT = "/fusion_model";
@@ -114,10 +113,8 @@ public abstract class ResourceStore implements AutoCloseable {
     public static final String STREAMING_RESOURCE_ROOT = "/streaming";
     public static final String KAFKA_RESOURCE_ROOT = "/kafka";
     public static final String DATAFLOW_RESOURCE_ROOT = "/dataflow";
-    public static final String EVENT_RESOURCE_ROOT = "/event";
     public static final String DATA_LOADING_RANGE_RESOURCE_ROOT = "/loading_range";
     public static final String QUERY_FILTER_RULE_RESOURCE_ROOT = "/rule";
-    public static final String FAVORITE_QUERY_RESOURCE_ROOT = "/favorite";
     public static final String JOB_STATISTICS = "/job_stats";
     public static final String EXECUTABLE_JOB = "/execute";
     public static final String HISTORY_SOURCE_USAGE = GLOBAL_PROJECT + "/history_source_usage";
@@ -128,7 +125,6 @@ public abstract class ResourceStore implements AutoCloseable {
     public static final String METASTORE_TRASH_RECORD = GLOBAL_PROJECT + "/trash_record";
     public static final String QUERY_HISTORY_TIME_OFFSET = "/query_history_time_offset";
     public static final String QUERY_HISTORY_ID_OFFSET = "/query_history_id_offset";
-    public static final String ACCELERATE_RATIO_RESOURCE_ROOT = "/accelerate_ratio";
     public static final String ASYNC_TASK = "/async_task";
     public static final String COMPRESSED_FILE = "/metadata.zip";
 

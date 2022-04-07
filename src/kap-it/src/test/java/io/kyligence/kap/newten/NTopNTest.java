@@ -50,12 +50,14 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.guava20.shaded.common.base.Throwables;
 import io.kyligence.kap.metadata.cube.cuboid.NQueryLayoutChooser;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.newten.ExecAndComp.CompareLevel;
 import io.kyligence.kap.smart.SmartContext;
 import io.kyligence.kap.smart.SmartMaster;
+import io.kyligence.kap.util.ExecAndComp;
+import io.kyligence.kap.util.ExecAndComp.CompareLevel;
 import lombok.val;
 
 public class NTopNTest extends NLocalWithSparkSessionTest {
@@ -124,7 +126,7 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
             ExecAndComp.execAndCompare(query, getProject(), CompareLevel.SAME, "left");
             Assert.fail();
         } catch (Exception e) {
-            Assert.assertTrue(e.getCause().getCause().getMessage().contains("No realization found for OLAPContext"));
+            Assert.assertTrue(Throwables.getRootCause(e.getCause()).getMessage().contains("No realization found for OLAPContext"));
         }
     }
 
@@ -154,7 +156,7 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
             ExecAndComp.execAndCompare(query, getProject(), CompareLevel.SAME, "left");
             Assert.fail();
         } catch (Exception e) {
-            Assert.assertTrue(e.getCause().getCause().getMessage().contains("No realization found for OLAPContext"));
+            Assert.assertTrue(Throwables.getRootCause(e.getCause()).getMessage().contains("No realization found for OLAPContext"));
         }
     }
 
@@ -175,7 +177,7 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
             ExecAndComp.execAndCompare(query, getProject(), CompareLevel.SAME, "left");
             Assert.fail();
         } catch (Exception e) {
-            Assert.assertTrue(e.getCause().getCause().getMessage().contains("No realization found for OLAPContext"));
+            Assert.assertTrue(Throwables.getRootCause(e.getCause()).getMessage().contains("No realization found for OLAPContext"));
         }
     }
 
@@ -193,7 +195,7 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
             ExecAndComp.queryModelWithoutCompute(getProject(), sql);
             Assert.fail();
         } catch (Exception e) {
-            Assert.assertTrue(e.getCause().getMessage().contains("No realization found for OLAPContext"));
+            Assert.assertTrue(Throwables.getRootCause(e.getCause()).getMessage().contains("No realization found for OLAPContext"));
         }
 
     }

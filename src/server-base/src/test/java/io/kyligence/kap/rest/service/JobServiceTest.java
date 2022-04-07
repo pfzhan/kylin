@@ -71,6 +71,7 @@ import org.apache.kylin.job.execution.ChainedStageExecutable;
 import org.apache.kylin.job.execution.DefaultOutput;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.FiveSecondSucceedTestExecutable;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.execution.StageBase;
 import org.apache.kylin.job.execution.SucceedTestExecutable;
@@ -289,6 +290,9 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(3, jobs13.getValue().size());
 
         String jobId = jobs13.getValue().get(0).getId();
+        for (ExecutablePO job : mockJobs) {
+            job.setJobType(JobTypeEnum.TABLE_SAMPLING);
+        }
         jobFilter.setKey(jobId);
         DataResult<List<ExecutableResponse>> jobs14 = jobService.listJobs(jobFilter, 0, 10);
         Assert.assertTrue(jobs14.getValue().size() == 1 && jobs14.getValue().get(0).getId().equals(jobId));
@@ -323,6 +327,19 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
             Assert.assertEquals(3, copyDurationList.size());
             Assert.assertEquals(totalDurationArrays, copyDurationList);
         }
+
+        for (int i = 0; i < 3; i++) {
+            if (i < 2) {
+                mockJobs.get(i).setJobType(JobTypeEnum.SECOND_STORAGE_NODE_CLEAN);
+            } else {
+                mockJobs.get(i).setJobType(JobTypeEnum.TABLE_SAMPLING);
+            }
+        }
+        List<String> jobNames = Lists.newArrayList();
+        JobFilter jobFilter = new JobFilter(Lists.newArrayList(), jobNames, 0, "", "default", "default", "",
+                false);
+        List<ExecutableResponse> jobs = jobService.listJobs(jobFilter);
+        Assert.assertEquals(2, jobs.size());
     }
 
 

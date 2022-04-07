@@ -21,19 +21,7 @@
     <dependencies>
         <dependency>
             <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-common-service</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-datasource-service</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
             <artifactId>yinglong-modeling-service</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-systools</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.tomcat.embed</groupId>

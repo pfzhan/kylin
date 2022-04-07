@@ -130,6 +130,9 @@ public class ProjectServiceTest extends ServiceTestBase {
     private final ProjectService projectService = Mockito.spy(ProjectService.class);
 
     @InjectMocks
+    private final ProjectSmartService projectSmartService = Mockito.spy(ProjectSmartService.class);
+
+    @InjectMocks
     private final ModelService modelService = Mockito.spy(ModelService.class);
 
     @InjectMocks
@@ -164,8 +167,15 @@ public class ProjectServiceTest extends ServiceTestBase {
         ReflectionTestUtils.setField(projectService, "asyncTaskService", asyncTaskService);
         ReflectionTestUtils.setField(projectService, "accessService", accessService);
         ReflectionTestUtils.setField(projectService, "projectModelSupporter", modelService);
-        ReflectionTestUtils.setField(projectService, "projectSmartSupporter", rawRecService);
         ReflectionTestUtils.setField(projectService, "userService", userService);
+        ReflectionTestUtils.setField(projectService, "projectSmartService", projectSmartService);
+
+
+        ReflectionTestUtils.setField(projectSmartService, "recommendationTopNUpdateScheduler",
+                new RecommendationTopNUpdateScheduler());
+        ReflectionTestUtils.setField(projectSmartService, "aclEvaluate", aclEvaluate);
+        ReflectionTestUtils.setField(projectSmartService, "projectSmartSupporter", rawRecService);
+        ReflectionTestUtils.setField(projectSmartService, "projectModelSupporter", modelService);
 
         ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
         projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
@@ -1011,7 +1021,7 @@ public class ProjectServiceTest extends ServiceTestBase {
     }
 
     public void testGetFavoriteRules() {
-        Map<String, Object> favoriteRuleResponse = projectService.getFavoriteRules(PROJECT);
+        Map<String, Object> favoriteRuleResponse = projectSmartService.getFavoriteRules(PROJECT);
         Assert.assertEquals(true, favoriteRuleResponse.get("count_enable"));
         Assert.assertEquals(10.0f, favoriteRuleResponse.get("count_value"));
         Assert.assertEquals(Lists.newArrayList("userA", "userB", "userC"), favoriteRuleResponse.get("users"));
@@ -1024,7 +1034,7 @@ public class ProjectServiceTest extends ServiceTestBase {
     @Test
     public void testUpdateFavoriteRules() {
         RecommendationTopNUpdateScheduler recommendationTopNUpdateScheduler = new RecommendationTopNUpdateScheduler();
-        ReflectionTestUtils.setField(projectService, "recommendationTopNUpdateScheduler",
+        ReflectionTestUtils.setField(projectSmartService, "recommendationTopNUpdateScheduler",
                 recommendationTopNUpdateScheduler);
         // update with FavoriteRuleUpdateRequest and assert
         FavoriteRuleUpdateRequest request = new FavoriteRuleUpdateRequest();
@@ -1040,8 +1050,8 @@ public class ProjectServiceTest extends ServiceTestBase {
         request.setEffectiveDays("11");
         request.setUpdateFrequency("3");
 
-        projectService.updateRegularRule(PROJECT, request);
-        Map<String, Object> favoriteRuleResponse = projectService.getFavoriteRules(PROJECT);
+        projectSmartService.updateRegularRule(PROJECT, request);
+        Map<String, Object> favoriteRuleResponse = projectSmartService.getFavoriteRules(PROJECT);
         Assert.assertEquals(false, favoriteRuleResponse.get("duration_enable"));
         Assert.assertEquals(false, favoriteRuleResponse.get("submitter_enable"));
         Assert.assertEquals(Lists.newArrayList("userA", "userB", "userC", "ADMIN"), favoriteRuleResponse.get("users"));
@@ -1059,22 +1069,22 @@ public class ProjectServiceTest extends ServiceTestBase {
         // check excluded_tables
         request.setExcludeTablesEnable(true);
         request.setExcludedTables("a.a,b.b,c.c");
-        projectService.updateRegularRule(PROJECT, request);
-        favoriteRuleResponse = projectService.getFavoriteRules(PROJECT);
+        projectSmartService.updateRegularRule(PROJECT, request);
+        favoriteRuleResponse = projectSmartService.getFavoriteRules(PROJECT);
         Assert.assertEquals(true, favoriteRuleResponse.get("excluded_tables_enable"));
         Assert.assertEquals("a.a,b.b,c.c", favoriteRuleResponse.get("excluded_tables"));
         // check excluded_tables
         request.setExcludeTablesEnable(false);
         request.setExcludedTables(null);
-        projectService.updateRegularRule(PROJECT, request);
-        favoriteRuleResponse = projectService.getFavoriteRules(PROJECT);
+        projectSmartService.updateRegularRule(PROJECT, request);
+        favoriteRuleResponse = projectSmartService.getFavoriteRules(PROJECT);
         Assert.assertEquals(false, favoriteRuleResponse.get("excluded_tables_enable"));
         Assert.assertEquals("", favoriteRuleResponse.get("excluded_tables"));
 
         // check user_groups
         request.setUserGroups(Lists.newArrayList("ROLE_ADMIN", "USER_GROUP1"));
-        projectService.updateRegularRule(PROJECT, request);
-        favoriteRuleResponse = projectService.getFavoriteRules(PROJECT);
+        projectSmartService.updateRegularRule(PROJECT, request);
+        favoriteRuleResponse = projectSmartService.getFavoriteRules(PROJECT);
         Assert.assertEquals(Lists.newArrayList("userA", "userB", "userC", "ADMIN"), favoriteRuleResponse.get("users"));
         Assert.assertEquals(Lists.newArrayList("ROLE_ADMIN", "USER_GROUP1"), favoriteRuleResponse.get("user_groups"));
 
@@ -1084,8 +1094,8 @@ public class ProjectServiceTest extends ServiceTestBase {
         request.setDurationEnable(false);
         request.setMinDuration(null);
         request.setMaxDuration(null);
-        projectService.updateRegularRule(PROJECT, request);
-        favoriteRuleResponse = projectService.getFavoriteRules(PROJECT);
+        projectSmartService.updateRegularRule(PROJECT, request);
+        favoriteRuleResponse = projectSmartService.getFavoriteRules(PROJECT);
         Assert.assertNull(favoriteRuleResponse.get("freq_value"));
         Assert.assertNull(favoriteRuleResponse.get("min_duration"));
         Assert.assertNull(favoriteRuleResponse.get("max_duration"));
@@ -1096,7 +1106,7 @@ public class ProjectServiceTest extends ServiceTestBase {
     public void testResetFavoriteRules() {
         // reset
         projectService.resetProjectConfig(PROJECT, "favorite_rule_config");
-        Map<String, Object> favoriteRules = projectService.getFavoriteRules(PROJECT);
+        Map<String, Object> favoriteRules = projectSmartService.getFavoriteRules(PROJECT);
 
         Assert.assertEquals(false, favoriteRules.get("freq_enable"));
         Assert.assertEquals(0.1f, favoriteRules.get("freq_value"));
@@ -1127,9 +1137,9 @@ public class ProjectServiceTest extends ServiceTestBase {
     @Test
     public void testGetProjectStatistics() {
         RecommendationTopNUpdateScheduler recommendationTopNUpdateScheduler = new RecommendationTopNUpdateScheduler();
-        ReflectionTestUtils.setField(projectService, "recommendationTopNUpdateScheduler",
+        ReflectionTestUtils.setField(projectSmartService, "recommendationTopNUpdateScheduler",
                 recommendationTopNUpdateScheduler);
-        ProjectStatisticsResponse projectStatistics = projectService.getProjectStatistics("gc_test");
+        ProjectStatisticsResponse projectStatistics = projectSmartService.getProjectStatistics("gc_test");
         Assert.assertEquals(1, projectStatistics.getDatabaseSize());
         Assert.assertEquals(1, projectStatistics.getTableSize());
         Assert.assertEquals(0, projectStatistics.getLastWeekQueryCount());
@@ -1157,11 +1167,11 @@ public class ProjectServiceTest extends ServiceTestBase {
         request.setRecommendationEnable(true);
         request.setRecommendationsValue("30");
         request.setUpdateFrequency("1");
-        projectService.updateRegularRule("gc_test", request);
-        ProjectStatisticsResponse projectStatistics2 = projectService.getProjectStatistics("gc_test");
+        projectSmartService.updateRegularRule("gc_test", request);
+        ProjectStatisticsResponse projectStatistics2 = projectSmartService.getProjectStatistics("gc_test");
         Assert.assertEquals(7, projectStatistics2.getEffectiveRuleSize());
 
-        ProjectStatisticsResponse statisticsOfProjectDefault = projectService.getProjectStatistics(PROJECT);
+        ProjectStatisticsResponse statisticsOfProjectDefault = projectSmartService.getProjectStatistics(PROJECT);
         Assert.assertEquals(3, statisticsOfProjectDefault.getDatabaseSize());
         Assert.assertEquals(20, statisticsOfProjectDefault.getTableSize());
         Assert.assertEquals(0, statisticsOfProjectDefault.getLastWeekQueryCount());
@@ -1178,11 +1188,11 @@ public class ProjectServiceTest extends ServiceTestBase {
         Assert.assertFalse(statisticsOfProjectDefault.isRefreshed());
         Assert.assertEquals(-1, statisticsOfProjectDefault.getMaxRecShowSize());
 
-        ProjectStatisticsResponse statsOfPrjStreamingTest = projectService.getProjectStatistics("streaming_test");
+        ProjectStatisticsResponse statsOfPrjStreamingTest = projectSmartService.getProjectStatistics("streaming_test");
         Assert.assertEquals(2, statsOfPrjStreamingTest.getDatabaseSize());
         Assert.assertEquals(11, statsOfPrjStreamingTest.getTableSize());
         getTestConfig().setProperty("kylin.streaming.enabled", "false");
-        statsOfPrjStreamingTest = projectService.getProjectStatistics("streaming_test");
+        statsOfPrjStreamingTest = projectSmartService.getProjectStatistics("streaming_test");
         Assert.assertEquals(1, statsOfPrjStreamingTest.getDatabaseSize());
         Assert.assertEquals(6, statsOfPrjStreamingTest.getTableSize());
         recommendationTopNUpdateScheduler.close();
@@ -1230,7 +1240,7 @@ public class ProjectServiceTest extends ServiceTestBase {
 
     @Test
     public void testGetStreamingProjectStatistics() {
-        ProjectStatisticsResponse projectStatistics = projectService.getProjectStatistics("streaming_test");
+        ProjectStatisticsResponse projectStatistics = projectSmartService.getProjectStatistics("streaming_test");
         Assert.assertEquals(2, projectStatistics.getDatabaseSize());
         Assert.assertEquals(11, projectStatistics.getTableSize());
         Assert.assertEquals(0, projectStatistics.getLastWeekQueryCount());

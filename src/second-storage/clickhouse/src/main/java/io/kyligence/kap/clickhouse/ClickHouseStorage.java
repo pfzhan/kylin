@@ -24,12 +24,16 @@
 package io.kyligence.kap.clickhouse;
 
 import io.kyligence.kap.clickhouse.factory.ClickHouseOperatorFactory;
+import io.kyligence.kap.clickhouse.job.ClickHouseIndexCleanJob;
+import io.kyligence.kap.guava20.shaded.common.base.Strings;
+import io.kyligence.kap.secondstorage.config.Node;
 import io.kyligence.kap.secondstorage.factory.SecondStorageDatabaseOperatorFactory;
 import io.kyligence.kap.secondstorage.factory.SecondStorageMetadataFactory;
 import static org.apache.kylin.job.factory.JobFactoryConstant.STORAGE_JOB_FACTORY;
 import static org.apache.kylin.job.factory.JobFactoryConstant.STORAGE_MODEL_CLEAN_FACTORY;
 import static org.apache.kylin.job.factory.JobFactoryConstant.STORAGE_NODE_CLEAN_FACTORY;
 import static org.apache.kylin.job.factory.JobFactoryConstant.STORAGE_SEGMENT_CLEAN_FACTORY;
+import static org.apache.kylin.job.factory.JobFactoryConstant.STORAGE_INDEX_CLEAN_FACTORY;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -78,22 +82,24 @@ public class ClickHouseStorage implements SecondStoragePlugin {
         ClickHouseConfigLoader.getInstance().refresh();
         ClusterInfo cluster = ClickHouseConfigLoader.getInstance().getCluster();
         SecondStorageNodeHelper.clear();
-        SecondStorageNodeHelper.initFromCluster(cluster, node -> {
-            Map<String, String> param = new HashMap<>(4);
-            if (StringUtils.isNotEmpty(cluster.getKeepAliveTimeout())) {
-                param.put(ClickHouse.KEEP_ALIVE_TIMEOUT, cluster.getKeepAliveTimeout());
-            }
-            if (StringUtils.isNotEmpty(cluster.getSocketTimeout())) {
-                param.put(ClickHouse.SOCKET_TIMEOUT, cluster.getSocketTimeout());
-            }
-            if (StringUtils.isNotEmpty(node.getUser())) {
-                param.put(ClickHouse.USER, node.getUser());
-            }
-            if (StringUtils.isNotEmpty(node.getPassword())) {
-                param.put(ClickHouse.PASSWORD, node.getPassword());
-            }
-            return ClickHouse.buildUrl(node.getIp(), node.getPort(), param);
-        });
+        SecondStorageNodeHelper.initFromCluster(
+                cluster,
+                node -> ClickHouse.buildUrl(node.getIp(), node.getPort(), getJdbcUrlProperties(cluster, node)),
+                nodes -> {
+                    if (nodes.isEmpty()) {
+                        return "";
+                    }
+
+                    StringBuilder sb = new StringBuilder();
+                    for (Node node : nodes) {
+                        if (Strings.isNullOrEmpty(sb.toString())) {
+                            sb.append(node.getIp()).append(":").append(node.getPort());
+                        } else {
+                            sb.append(",").append(node.getIp()).append(":").append(node.getPort());
+                        }
+                    }
+                    return ClickHouse.buildUrl(sb.toString(), getJdbcUrlProperties(cluster, nodes.get(0)));
+                });
     }
 
     @Override
@@ -134,6 +140,7 @@ public class ClickHouseStorage implements SecondStoragePlugin {
         JobFactory.register(STORAGE_MODEL_CLEAN_FACTORY, new ClickHouseModelCleanJob.ModelCleanJobFactory());
         JobFactory.register(STORAGE_NODE_CLEAN_FACTORY, new ClickHouseProjectCleanJob.ProjectCleanJobFactory());
         JobFactory.register(STORAGE_SEGMENT_CLEAN_FACTORY, new ClickHouseSegmentCleanJob.SegmentCleanJobFactory());
+        JobFactory.register(STORAGE_INDEX_CLEAN_FACTORY, new ClickHouseIndexCleanJob.IndexCleanJobFactory());
 
         SecondStorageStepFactory.register(SecondStorageStepFactory.SecondStorageLoadStep.class, ClickHouseLoad::new);
         SecondStorageStepFactory.register(SecondStorageStepFactory.SecondStorageRefreshStep.class, ClickHouseRefresh::new);
@@ -141,5 +148,25 @@ public class ClickHouseStorage implements SecondStoragePlugin {
 
         SecondStorageFactoryUtils.register(SecondStorageMetadataFactory.class, new ClickHouseMetadataFactory());
         SecondStorageFactoryUtils.register(SecondStorageDatabaseOperatorFactory.class, new ClickHouseOperatorFactory());
+    }
+
+    public static Map<String, String> getJdbcUrlProperties(ClusterInfo cluster, Node node) {
+
+        Map<String, String> param = new HashMap<>(4);
+
+        if (StringUtils.isNotEmpty(cluster.getKeepAliveTimeout())) {
+            param.put(ClickHouse.KEEP_ALIVE_TIMEOUT, cluster.getKeepAliveTimeout());
+        }
+        if (StringUtils.isNotEmpty(cluster.getSocketTimeout())) {
+            param.put(ClickHouse.SOCKET_TIMEOUT, cluster.getSocketTimeout());
+        }
+        if (StringUtils.isNotEmpty(node.getUser())) {
+            param.put(ClickHouse.USER, node.getUser());
+        }
+        if (StringUtils.isNotEmpty(node.getPassword())) {
+            param.put(ClickHouse.PASSWORD, node.getPassword());
+        }
+
+        return param;
     }
 }

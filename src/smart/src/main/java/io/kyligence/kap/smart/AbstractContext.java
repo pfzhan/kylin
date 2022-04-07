@@ -75,8 +75,7 @@ public abstract class AbstractContext {
     private final SmartConfig smartConfig;
     private final String project;
     private final String[] sqlArray;
-    private final ChainedProposer preProcessProposers;
-    private final ChainedProposer processProposers;
+    private final ChainedProposer proposers;
     private final ExtraMetaInfo extraMeta = new ExtraMetaInfo();
 
     private final List<NDataModel> relatedModels = Lists.newArrayList();
@@ -105,8 +104,7 @@ public abstract class AbstractContext {
         this.smartConfig = SmartConfig.wrap(kylinConfig);
         this.project = project;
         this.sqlArray = sqlArray;
-        this.preProcessProposers = createPreProcessProposers();
-        this.processProposers = createTransactionProposers();
+        this.proposers = createProposers();
         this.partialMatch = false;
         this.partialMatchNonEqui = false;
         filterSqlRelatedModelsAndTables();
@@ -122,9 +120,7 @@ public abstract class AbstractContext {
 
     public abstract void changeModelMainType(NDataModel model);
 
-    public abstract ChainedProposer createTransactionProposers();
-
-    public abstract ChainedProposer createPreProcessProposers();
+    public abstract ChainedProposer createProposers();
 
     public abstract void saveMetadata();
 
@@ -236,7 +232,7 @@ public abstract class AbstractContext {
     }
 
     public boolean needCollectRecommendations() {
-        return this instanceof ModelReuseContextOfSemiV2;
+        return this instanceof ModelReuseContext;
     }
 
     public void handleExceptionAfterModelSelect() {
@@ -298,7 +294,7 @@ public abstract class AbstractContext {
 
         private Map<String, String> loadUniqueContentToFlag() {
             Map<String, String> result = Maps.newHashMap();
-            if (!(getProposeContext() instanceof AbstractSemiContextV2) || getTargetModel() == null) {
+            if (!(getProposeContext() instanceof AbstractSemiContext) || getTargetModel() == null) {
                 return result;
             }
 

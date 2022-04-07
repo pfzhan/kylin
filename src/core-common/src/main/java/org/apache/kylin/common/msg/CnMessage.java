@@ -1910,7 +1910,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getSECOND_STORAGE_NODE_NOT_AVAILABLE() {
-        return "当前无法开启分层存储，节点已被使用。请刷新页面后重试。";
+        return "无法添加节点。节点不存在或被其他项目占用，请修改后重试";
     }
 
     @Override

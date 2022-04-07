@@ -64,6 +64,7 @@ import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.job.common.JobUtil;
 import org.apache.kylin.job.common.ShellExecutable;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.constant.JobActionEnum;
@@ -115,7 +116,6 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.model.FusionModel;
 import io.kyligence.kap.metadata.model.FusionModelManager;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.rest.aspect.Transaction;
 import io.kyligence.kap.rest.request.JobFilter;
@@ -198,7 +198,7 @@ public class JobService extends BasicService implements JobSupporter {
             if (StringUtils.isEmpty(subject)) {
                 return true;
             }
-            return StringUtils.containsIgnoreCase(getTargetSubjectAlias(executablePO), subject)
+            return StringUtils.containsIgnoreCase(JobUtil.deduceTargetSubject(executablePO), subject)
                     || StringUtils.containsIgnoreCase(executablePO.getId(), subject);
         }).and(executablePO -> {
             List<String> jobNames = jobFilter.getJobNames();
@@ -240,20 +240,6 @@ public class JobService extends BasicService implements JobSupporter {
             Collections.sort(result, propertyComparator(TOTAL_DURATION, !jobFilter.isReverse()));
         }
         return result;
-    }
-
-    private String getTargetSubjectAlias(ExecutablePO executablePO) {
-        val modelManager = NDataModelManager.getInstance(getConfig(), executablePO.getProject());
-        NDataModel dataModelDesc = NDataModelManager.getInstance(getConfig(), executablePO.getProject())
-                .getDataModelDesc(executablePO.getTargetModel());
-        String targetModel = executablePO.getTargetModel();
-        String subjectAlia = null;
-        if (dataModelDesc != null) {
-            subjectAlia = modelManager.isModelBroken(targetModel)
-                    ? modelManager.getDataModelDescWithoutInit(targetModel).getAlias()
-                    : dataModelDesc.getAlias();
-        }
-        return subjectAlia;
     }
 
     private List<ExecutableResponse> filterAndSort(final JobFilter jobFilter, List<ExecutablePO> jobs) {
@@ -734,7 +720,7 @@ public class JobService extends BasicService implements JobSupporter {
             /*
              * As long as there is a task executing, the step of this step is executing;
              * when all Segments are completed, the status of this step is changed to complete.
-             * 
+             *
              * if one segment is skip, other segment is success, the status of this step is success
              */
             Set<JobStatusEnum> jobStatusEnums = Sets.newHashSet(JobStatusEnum.ERROR, JobStatusEnum.STOPPED,

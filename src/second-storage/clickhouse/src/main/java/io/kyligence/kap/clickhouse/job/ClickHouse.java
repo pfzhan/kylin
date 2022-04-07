@@ -107,7 +107,11 @@ public class ClickHouse implements Closeable {
     }
 
     public static String buildUrl(String ip, int port, Map<String, String> param) {
-        StringBuilder base = new StringBuilder("jdbc:clickhouse://" + ip + ":" + port);
+        return buildUrl(ip + ":" + port, param);
+    }
+
+    public static String buildUrl(String address, Map<String, String> param) {
+        StringBuilder base = new StringBuilder("jdbc:clickhouse://" + address);
         if (!param.isEmpty()) {
             base.append('?');
             List<String> paramList = new ArrayList<>();

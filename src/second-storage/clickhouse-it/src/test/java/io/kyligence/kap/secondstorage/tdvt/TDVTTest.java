@@ -28,8 +28,11 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.engine.spark.IndexDataConstructor;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.newten.ExecAndComp;
+import io.kyligence.kap.secondstorage.test.utils.JobWaiter;
+import io.kyligence.kap.util.ExecAndComp;
 import io.kyligence.kap.newten.clickhouse.ClickHouseUtils;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import io.kyligence.kap.secondstorage.test.ClickHouseClassRule;
@@ -78,7 +81,7 @@ import static io.kyligence.kap.clickhouse.ClickHouseConstants.CONFIG_CLICKHOUSE_
 
 @RunWith(Parameterized.class)
 @Slf4j
-public class TDVTTest {
+public class TDVTTest implements JobWaiter {
 
     static private final String project = "tdvt_new";
     static private final String AUTO_MODEL_CALCS_1 = "d4ebc34f-ec70-4e81-830c-0d278fe064aa";
@@ -188,6 +191,14 @@ public class TDVTTest {
     }
     @Test
     public void testRunSql() throws Exception {
+        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        waitJobFinish(project,
+                triggerClickHouseLoadJob(project, AUTO_MODEL_CALCS_1, "ADMIN",
+                        dataflowManager.getDataflow(AUTO_MODEL_CALCS_1).getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList())));
+        waitJobFinish(project,
+                triggerClickHouseLoadJob(project, AUTO_MODEL_STAPLES_1, "ADMIN",
+                        dataflowManager.getDataflow(AUTO_MODEL_STAPLES_1).getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList())));
+
         String sqlStatement = readSQL();
         String resultPush = runWithAggPushDown(sqlStatement);
         String resultTableIndex = runWithTableIndex(sqlStatement);

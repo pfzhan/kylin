@@ -31,7 +31,9 @@ import io.kyligence.kap.secondstorage.ColumnMapping;
 import io.kyligence.kap.secondstorage.SecondStorageConcurrentTestUtil;
 import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
 import io.kyligence.kap.secondstorage.ddl.exp.ColumnWithType;
+import io.kyligence.kap.secondstorage.metadata.TableData;
 import io.kyligence.kap.secondstorage.util.SecondStorageDateUtils;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.util.NamedThreadFactory;
@@ -44,6 +46,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -53,7 +56,9 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
+@Slf4j
 public class DataLoader {
 
     static String clickHouseType(DataType dt) {
@@ -159,6 +164,12 @@ public class DataLoader {
                             .partitionColumn(Objects.toString(dateCol.getId()))
                             .targetPartitions(SecondStorageDateUtils.splitByDay(loadInfo.segment.getSegRange()));
                 }
+
+
+                val needDropTable = getNeedDropTable(loadInfo);
+                builder.needDropTable(needDropTable);
+                builder.needDropPartition(getNeedDropPartition(loadInfo, needDropTable));
+
                 ShardLoader.ShardLoadContext context = builder.build();
                 loadInfo.setTargetDatabase(database);
                 loadInfo.setTargetTable(prefixTableName.apply(loadInfo.getLayout()));
@@ -181,6 +192,7 @@ public class DataLoader {
             Future<?> future = executorService.submit(() -> {
                 String replicaName = shardLoader.getClickHouse().getShardName();
                 try (SetThreadName ignored = new SetThreadName("Shard %s", replicaName)) {
+                    log.info("Load parquet files into {}", replicaName);
                     shardLoader.setup(loadContext.isNewJob());
                     val files = shardLoader.loadDataIntoTempTable(loadContext.getHistory(replicaName), stopFlag);
                     files.forEach(file -> loadContext.finishSingleFile(replicaName, file));
@@ -226,6 +238,21 @@ public class DataLoader {
                 shardLoader.cleanUpQuietly(paused);
             }
         }
+    }
+
+
+    private Set<String> getNeedDropTable(LoadInfo loadInfo) {
+        return loadInfo.containsOldSegmentTableData.stream().filter(tableData -> {
+            val all = tableData.getAllSegments();
+            return tableData.getLayoutID() != loadInfo.getLayout().getId() && all.size() == 1 && all.contains(loadInfo.oldSegmentId);
+        }).map(TableData::getTable).collect(Collectors.toSet());
+    }
+
+    private Set<String> getNeedDropPartition(LoadInfo loadInfo, Set<String> needDropTable) {
+        return loadInfo.containsOldSegmentTableData.stream()
+                .filter(tableData -> tableData.getLayoutID() != loadInfo.getLayout().getId() && !needDropTable.contains(tableData.getTable()))
+                .map(TableData::getTable)
+                .collect(Collectors.toSet());
     }
 
 }

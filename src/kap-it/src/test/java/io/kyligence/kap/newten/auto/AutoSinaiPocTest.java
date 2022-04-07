@@ -25,7 +25,7 @@ package io.kyligence.kap.newten.auto;
 
 import org.junit.Test;
 
-import io.kyligence.kap.newten.ExecAndComp;
+import io.kyligence.kap.util.ExecAndComp;
 
 public class AutoSinaiPocTest extends AutoTestBase {
 

@@ -24,6 +24,10 @@
 
 package io.kyligence.kap.streaming.app
 
+import java.text.SimpleDateFormat
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong}
+import java.util.{Locale, TimeZone}
+
 import com.google.common.base.Preconditions
 import io.kyligence.kap.engine.spark.job.{KylinBuildEnv, NSparkCubingUtil, UdfManager}
 import io.kyligence.kap.metadata.cube.cuboid.{NSpanningTree, NSpanningTreeFactory}
@@ -48,9 +52,6 @@ import org.apache.spark.sql.streaming.{StreamingQueryListener, Trigger}
 import org.apache.spark.sql.{DataFrame, Dataset, Row, SparkSession, functions => F}
 import org.apache.spark.storage.StorageLevel
 
-import java.text.SimpleDateFormat
-import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong}
-import java.util.{Locale, TimeZone}
 import scala.collection.mutable.ArrayBuffer
 
 object StreamingEntry
@@ -106,9 +107,9 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
     Preconditions.checkState(prjMgr.getProject(prj) != null, "metastore can not find this project %s", prj)
 
     val (query, timeColumn, streamFlatTable) = generateStreamQueryForOneModel(ss, prj, dataflowId, watermark)
-    Preconditions.checkState(query != null, "generate query for one model failed for project:  %s dataflowId: $s", prj, dataflowId)
+    Preconditions.checkState(query != null, s"generate query for one model failed for project:  $prj dataflowId: %s", dataflowId)
     Preconditions.checkState(timeColumn != null,
-      "streaming query must have time partition column for project:  %s dataflowId: $s", prj, dataflowId)
+      s"streaming query must have time partition column for project:  $prj dataflowId: %s", dataflowId)
 
     val builder = startRealtimeBuildStreaming(streamFlatTable, timeColumn, query, baseCheckpointLocation)
     addShutdownListener(gracefulStop, prj, jobId)

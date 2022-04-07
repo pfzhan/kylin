@@ -108,6 +108,9 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
     @InjectMocks
     private ModelSemanticHelper semanticService = Mockito.spy(new ModelSemanticHelper());
 
+    @Mock
+    private ModelSmartService modelSmartService = Mockito.spy(new ModelSmartService());
+
     @InjectMocks
     private TableService tableService = Mockito.spy(new TableService());
 
@@ -144,6 +147,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         });
 
         ReflectionTestUtils.setField(indexPlanService, "aclEvaluate", aclEvaluate);
+        ReflectionTestUtils.setField(semanticService, "modelSmartSupporter", modelSmartService);
     }
 
     private String getProject() {

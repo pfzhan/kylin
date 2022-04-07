@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.smart.model;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -74,49 +73,61 @@ public class GreedyModelTreesBuilder {
     }
 
     public List<ModelTree> build(Map<String, Collection<OLAPContext>> olapContexts, TableDesc expectedFactTable) {
-        // 1. group OLAPContexts by fact_table & modelPriorities
-        log.info("Split OLAPContexts by fact table.");
-        Map<TableDesc, Map<String, TreeBuilder>> buildersMap = Maps.newHashMap();
+
+        // 1. group by its factTable and model priority(sql hint)
+        Map<TableDesc, Map<String, List<OLAPContext>>> groupedMap = Maps.newHashMap();
         olapContexts.forEach((sql, sqlContexts) -> {
-            String[] modelPriorities = QueryModelPriorities.getModelPrioritiesFromComment(sql);
-            sqlContexts.stream() //
-                    .filter(ctx -> ctx.firstTableScan != null) //
-                    .forEach(ctx -> {
-                        TableDesc actualFactTbl = ctx.firstTableScan.getTableRef().getTableDesc();
-                        if (expectedFactTable != null
-                                && !actualFactTbl.getIdentity().equals(expectedFactTable.getIdentity())) {
-                            return; // root fact not match
-                        }
-                        Map<String, TreeBuilder> builders = buildersMap.computeIfAbsent(actualFactTbl,
-                                key -> Maps.newHashMap());
-                        TreeBuilder builder = builders.computeIfAbsent(StringUtils.join(modelPriorities),
-                                k -> new TreeBuilder(actualFactTbl, tableMap, proposeContext));
-                        builder.addOLAPContext(sql, ctx);
-                    });
+            Map<TableDesc, Map<String, List<OLAPContext>>> groupingResult = sqlContexts.stream()
+                    .filter(ctx -> isFactTableCompatible(ctx, expectedFactTable)) //
+                    .collect(Collectors.groupingBy(ctx -> ctx.firstTableScan.getTableRef().getTableDesc(),
+                            Collectors.groupingBy(ctx -> {
+                                String[] modelPriorities = QueryModelPriorities.getModelPrioritiesFromComment(ctx.sql);
+                                return StringUtils.join(modelPriorities);
+                            })));
+            groupingResult.forEach((table, map) -> {
+                groupedMap.putIfAbsent(table, Maps.newLinkedHashMap());
+                Map<String, List<OLAPContext>> hintOlapMap = groupedMap.get(table);
+                map.forEach((hint, olapList) -> {
+                    List<OLAPContext> contexts = hintOlapMap.computeIfAbsent(hint, h -> Lists.newArrayList());
+                    contexts.addAll(olapList);
+                });
+            });
         });
 
-        // 2. each group generate multiple ModelTrees
-        List<ModelTree> results = buildersMap.values() //
-                .stream() //
-                .flatMap(builders -> builders.values().stream())//
-                .map(TreeBuilder::build) //
-                .flatMap(List::stream) //
-                .collect(Collectors.toList());
-        log.info("Grouped OLAPContexts generated {} modelTrees.", results.size());
+        // 2. each group produces at least one modelTree
+        List<ModelTree> modelTreeList = groupedMap.values().stream()
+                .flatMap(hintOlapMap -> hintOlapMap.values().stream()) //
+                .filter(olapList -> !olapList.isEmpty()) //
+                .map(olapList -> {
+                    TableDesc table = olapList.get(0).firstTableScan.getTableRef().getTableDesc();
+                    TreeBuilder builder = new TreeBuilder(table, tableMap, proposeContext);
+                    builder.contextList.addAll(olapList);
+                    return builder.build();
+                }).flatMap(List::stream).collect(Collectors.toList());
 
         // 3. enable current root_fact's model exists
         if (expectedFactTable != null
-                && results.stream().noneMatch(tree -> tree.getRootFactTable() == expectedFactTable)) {
+                && modelTreeList.stream().noneMatch(tree -> tree.getRootFactTable() == expectedFactTable)) {
             log.debug("There is no modelTree relies on fact table({}), add a new one.",
                     expectedFactTable.getIdentity());
-            results.add(new ModelTree(expectedFactTable, ImmutableList.of(), ImmutableMap.of(), ImmutableMap.of()));
+            ModelTree emptyTree = new ModelTree(expectedFactTable, ImmutableList.of(), ImmutableMap.of(),
+                    ImmutableMap.of());
+            modelTreeList.add(emptyTree);
         }
-        return results;
+        return modelTreeList;
+    }
+
+    private boolean isFactTableCompatible(OLAPContext ctx, TableDesc factTable) {
+        if (ctx.firstTableScan == null) {
+            return false;
+        }
+        TableDesc ctxFactTable = ctx.firstTableScan.getTableRef().getTableDesc();
+        return factTable == null || Objects.equals(ctxFactTable.getIdentity(), factTable.getIdentity());
     }
 
     public ModelTree build(Collection<OLAPContext> olapContexts, TableDesc actualFactTbl) {
         TreeBuilder treeBuilder = new TreeBuilder(actualFactTbl, tableMap, proposeContext);
-        olapContexts.forEach(olapContext -> treeBuilder.addOLAPContext(olapContext.sql, olapContext));
+        treeBuilder.contextList.addAll(olapContexts);
         return treeBuilder.buildOne(olapContexts, false);
     }
 
@@ -124,8 +135,7 @@ public class GreedyModelTreesBuilder {
         private final TableDesc rootFact;
         private final TableAliasGenerator.TableAliasDict dict;
         private final AbstractContext proposeContext;
-
-        private final Map<String, Collection<OLAPContext>> contexts = Maps.newLinkedHashMap();
+        private final List<OLAPContext> contextList = Lists.newArrayList();
 
         public TreeBuilder(TableDesc rootFact, Map<String, TableDesc> tableMap, AbstractContext proposeContext) {
             this.rootFact = rootFact;
@@ -156,8 +166,9 @@ public class GreedyModelTreesBuilder {
             Map<TableRef, String> allTableAlias = new HashMap<>();
             for (TableRef tableRef : joinsGraph.getAllTblRefNodes()) {
                 JoinDesc[] joinHierarchy = getJoinDescHierarchy(joinsGraph, tableRef);
-                String tblAlias = (joinHierarchy.length == 0) ? joinsGraph.getCenter().getTableName()
-                        : dict.getHierachyAliasFromJoins(joinHierarchy);
+                String tblAlias = joinHierarchy.length == 0 //
+                        ? joinsGraph.getCenter().getTableName() //
+                        : dict.getHierarchyAliasFromJoins(joinHierarchy);
                 allTableAlias.put(tableRef, tblAlias);
             }
             return allTableAlias;
@@ -205,21 +216,10 @@ public class GreedyModelTreesBuilder {
             return correctTblAliasAndKeepOriginAlias(innerTableRefAlias, rootFact, Maps.newHashMap());
         }
 
-        private void addOLAPContext(String sql, OLAPContext ctx) {
-            if (!this.contexts.containsKey(sql)) {
-                this.contexts.put(sql, new ArrayList<>());
-            }
-            this.contexts.get(sql).add(ctx);
-            ctx.sql = sql;
-        }
-
         private List<ModelTree> build() {
-            List<OLAPContext> ctxs = contexts.values().stream().flatMap(Collection::stream)
-                    .collect(Collectors.toList());
-
             List<ModelTree> result = Lists.newArrayList();
-            while (!ctxs.isEmpty()) {
-                result.add(buildOne(ctxs, false));
+            while (!contextList.isEmpty()) {
+                result.add(buildOne(contextList, false));
             }
             return result;
         }
@@ -230,32 +230,23 @@ public class GreedyModelTreesBuilder {
             List<OLAPContext> usedCtxs = Lists.newArrayList();
             List<OLAPContext> ctxsNeedMerge = Lists.newArrayList();
             inputCtxs.removeIf(Objects::isNull);
-            inputCtxs.stream().filter(ctx -> {
-                if (forceMerge) {
-                    return true;
-                }
-                return matchContext(usedCtxs, ctx);
-            }).filter(ctx -> {
-                if (ctx.joins.isEmpty()) {// Digest single table contexts(no joins)
-                    innerTableRefAlias.putAll(getUniqueTblAliasBasedOnPosInGraph(ctx, dict));
-                    correctedTableAlias.putAll(correctTableAlias(innerTableRefAlias, rootFact));
-                    usedCtxs.add(ctx);
-                    return false;
-                }
-                return true;
-            }).forEach(context -> {
-                innerTableRefAlias.putAll(getUniqueTblAliasBasedOnPosInGraph(context, dict));
-                correctedTableAlias.putAll(correctTableAlias(innerTableRefAlias, rootFact));
-                usedCtxs.add(context);
-                ctxsNeedMerge.add(context);
-            });
+            inputCtxs.stream() //
+                    .filter(ctx -> forceMerge || matchContext(usedCtxs, ctx)) //
+                    .filter(ctx -> {
+                        innerTableRefAlias.putAll(getUniqueTblAliasBasedOnPosInGraph(ctx, dict));
+                        correctedTableAlias.putAll(correctTableAlias(innerTableRefAlias, rootFact));
+                        usedCtxs.add(ctx);
+                        // Digest single table contexts(no joins)
+                        return !ctx.joins.isEmpty();
+                    }) //
+                    .forEach(ctxsNeedMerge::add);
 
             Map<String, TableRef> aliasRefMap = Maps.newHashMap();
             Map<String, JoinTableDesc> joinTables = new LinkedHashMap<>();
 
             // Merge matching contexts' joins
+            Map<String, AccelerateInfo> accelerateInfoMap = proposeContext.getAccelerateInfoMap();
             for (OLAPContext ctx : ctxsNeedMerge) {
-                Map<String, AccelerateInfo> accelerateInfoMap = proposeContext.getAccelerateInfoMap();
                 AccelerateInfo accelerateInfo = accelerateInfoMap.get(ctx.sql);
                 if (accelerateInfo.isNotSucceed()) {
                     inputCtxs.remove(ctx);
@@ -266,7 +257,7 @@ public class GreedyModelTreesBuilder {
                 try {
                     mergeContext(ctx, joinTables, correctedTableAlias, aliasRefMap);
                 } catch (Exception e) {
-                    log.debug("the sql \n{}\n cannot be accelerated for meeting error", ctx.sql, e);
+                    log.debug("Failed to accelerate sql: \n{}\n", ctx.sql, e);
                     inputCtxs.remove(ctx);
                     usedCtxs.remove(ctx);
                     accelerateInfo.setFailedCause(e);
@@ -366,10 +357,7 @@ public class GreedyModelTreesBuilder {
         }
 
         private static JoinDesc[] getJoinDescHierarchy(JoinsGraph joinsTree, TableRef leaf) {
-            if (leaf == null) {
-                throw new IllegalStateException("The TableRef cannot be NULL !");
-            }
-
+            Preconditions.checkState(leaf != null, "The TableRef cannot be null!");
             JoinDesc join = joinsTree.getJoinByPKSide(leaf);
             if (join == null) {
                 return new JoinDesc[0];

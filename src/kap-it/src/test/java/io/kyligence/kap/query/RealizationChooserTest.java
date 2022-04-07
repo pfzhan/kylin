@@ -25,7 +25,23 @@ package io.kyligence.kap.query;
 
 import static org.apache.kylin.common.exception.ServerErrorCode.STREAMING_MODEL_NOT_FOUND;
 
+import java.util.Collection;
+import java.util.Locale;
+import java.util.Map;
+
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.metadata.model.FunctionDesc;
+import org.apache.kylin.metadata.model.IStorageAware;
+import org.apache.kylin.metadata.realization.IRealization;
+import org.apache.kylin.metadata.realization.NoStreamingRealizationFoundException;
+import org.apache.kylin.query.relnode.OLAPContext;
+import org.apache.kylin.query.routing.RealizationChooser;
+import org.junit.Assert;
+import org.junit.Test;
+
 import com.google.common.collect.Lists;
+
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
@@ -42,24 +58,8 @@ import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.smart.query.AbstractQueryRunner;
 import io.kyligence.kap.smart.query.QueryRunnerBuilder;
 import io.kyligence.kap.util.AccelerationContextUtil;
-
-import java.util.Collection;
-import java.util.Locale;
-import java.util.Map;
-
 import lombok.val;
 import lombok.var;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.metadata.model.FunctionDesc;
-import org.apache.kylin.metadata.model.IStorageAware;
-import org.apache.kylin.metadata.realization.IRealization;
-import org.apache.kylin.metadata.realization.NoStreamingRealizationFoundException;
-import org.apache.kylin.query.relnode.OLAPContext;
-import org.apache.kylin.query.routing.RealizationChooser;
-import org.junit.Assert;
-import org.junit.Test;
-
 
 public class RealizationChooserTest extends NLocalWithSparkSessionTest {
 
@@ -210,7 +210,7 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
         RealizationChooser.attemptSelectCandidate(context);
         IRealization realization = context.realization;
         Assert.assertTrue(realization instanceof HybridRealization);
-        HybridRealization hybridRealization = (HybridRealization)realization;
+        HybridRealization hybridRealization = (HybridRealization) realization;
         Assert.assertTrue(hybridRealization.getBatchRealization() instanceof NDataflow);
         Assert.assertTrue(hybridRealization.getStreamingRealization() instanceof NDataflow);
         Assert.assertTrue(hybridRealization.getStreamingRealization().isStreaming());
@@ -250,11 +250,11 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
     public void testHybridStreamingMatchLookUp() throws Exception {
         String project = "streaming_test";
         String sql = "select * from SSB.CUSTOMER";
-        NTableMetadataManager.getInstance(getTestConfig(), project)
-                .getTableDesc("SSB.CUSTOMER").setLastSnapshotPath(
-                "default/table_snapshot/SSB.CUSTOMER/cf3eddab-4686-721c-ee1f-a502ed95163e");
+        NTableMetadataManager.getInstance(getTestConfig(), project).getTableDesc("SSB.CUSTOMER")
+                .setLastSnapshotPath("default/table_snapshot/SSB.CUSTOMER/cf3eddab-4686-721c-ee1f-a502ed95163e");
 
-        AbstractQueryRunner queryRunner1 = new QueryRunnerBuilder(project, getTestConfig(), new String[] { sql }).build();
+        AbstractQueryRunner queryRunner1 = new QueryRunnerBuilder(project, getTestConfig(), new String[] { sql })
+                .build();
         queryRunner1.execute();
         Map<String, Collection<OLAPContext>> olapContexts = queryRunner1.getOlapContexts();
 
@@ -265,7 +265,7 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
         IRealization realization = context.realization;
 
         Assert.assertTrue(realization instanceof HybridRealization);
-        HybridRealization hybridRealization = (HybridRealization)realization;
+        HybridRealization hybridRealization = (HybridRealization) realization;
         Assert.assertEquals(hybridRealization.getUuid(), "14e00a6f-d910-14b6-ee67-e0a5775012c4");
     }
 
@@ -286,8 +286,10 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
             RealizationChooser.attemptSelectCandidate(context);
         } catch (Exception e) {
             Assert.assertTrue(e instanceof NoStreamingRealizationFoundException);
-            Assert.assertEquals(((NoStreamingRealizationFoundException) e).getErrorCode().getCodeString(), STREAMING_MODEL_NOT_FOUND.toErrorCode().getCodeString());
-            Assert.assertEquals(e.getMessage(), String.format(Locale.ROOT, MsgPicker.getMsg().getNO_STREAMING_MODEL_FOUND()));
+            Assert.assertEquals(((NoStreamingRealizationFoundException) e).getErrorCode().getCodeString(),
+                    STREAMING_MODEL_NOT_FOUND.toErrorCode().getCodeString());
+            Assert.assertEquals(e.getMessage(),
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getNO_STREAMING_MODEL_FOUND()));
             Assert.assertTrue(context.storageContext.isBatchCandidateEmpty());
             Assert.assertTrue(context.storageContext.isStreamCandidateEmpty());
         }
@@ -349,8 +351,10 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
             RealizationChooser.attemptSelectCandidate(context);
         } catch (Exception e) {
             Assert.assertTrue(e instanceof NoStreamingRealizationFoundException);
-            Assert.assertEquals(((NoStreamingRealizationFoundException) e).getErrorCode().getCodeString(), STREAMING_MODEL_NOT_FOUND.toErrorCode().getCodeString());
-            Assert.assertEquals(e.getMessage(), String.format(Locale.ROOT, MsgPicker.getMsg().getNO_STREAMING_MODEL_FOUND()));
+            Assert.assertEquals(((NoStreamingRealizationFoundException) e).getErrorCode().getCodeString(),
+                    STREAMING_MODEL_NOT_FOUND.toErrorCode().getCodeString());
+            Assert.assertEquals(e.getMessage(),
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getNO_STREAMING_MODEL_FOUND()));
         }
         Assert.assertTrue(context.storageContext.isStreamCandidateEmpty());
 
@@ -367,8 +371,10 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
             RealizationChooser.attemptSelectCandidate(context2);
         } catch (Exception e) {
             Assert.assertTrue(e instanceof NoStreamingRealizationFoundException);
-            Assert.assertEquals(((NoStreamingRealizationFoundException) e).getErrorCode().getCodeString(), STREAMING_MODEL_NOT_FOUND.toErrorCode().getCodeString());
-            Assert.assertEquals(e.getMessage(), String.format(Locale.ROOT, MsgPicker.getMsg().getNO_STREAMING_MODEL_FOUND()));
+            Assert.assertEquals(((NoStreamingRealizationFoundException) e).getErrorCode().getCodeString(),
+                    STREAMING_MODEL_NOT_FOUND.toErrorCode().getCodeString());
+            Assert.assertEquals(e.getMessage(),
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getNO_STREAMING_MODEL_FOUND()));
         }
         Assert.assertTrue(context2.storageContext.isBatchCandidateEmpty());
     }

@@ -41,8 +41,8 @@ import io.kyligence.kap.guava20.shaded.common.collect.Sets;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.newten.ExecAndComp;
-import io.kyligence.kap.newten.ExecAndComp.CompareLevel;
+import io.kyligence.kap.util.ExecAndComp;
+import io.kyligence.kap.util.ExecAndComp.CompareLevel;
 import lombok.extern.slf4j.Slf4j;
 
 /**

@@ -140,7 +140,7 @@ public class SecondStorageEndpoint extends NBasicController {
     }
 
     @ApiOperation(value = "enableProject")
-    @PostMapping(value = "/project/state")
+    @PostMapping(value = "/project/state", produces = {HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
     public EnvelopeResponse<JobInfoResponse> enableProjectStorage(@RequestBody ProjectEnableRequest projectEnableRequest) {
         checkProjectName(projectEnableRequest.getProject());
         val jobInfo = secondStorageService.changeProjectSecondStorageState(projectEnableRequest.getProject(),
@@ -167,7 +167,7 @@ public class SecondStorageEndpoint extends NBasicController {
     }
 
     @ApiOperation(value = "listSecondStorageNodesByProject")
-    @GetMapping(value = "/project/nodes")
+    @GetMapping(value = "/project/nodes", produces = {HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
     @ResponseBody
     public EnvelopeResponse<List<ProjectNode>> projectNodes(String project) {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, secondStorageService.projectNodes(project), "");
@@ -227,13 +227,13 @@ public class SecondStorageEndpoint extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, secondStorageService.tableSync(project), "");
     }
 
-    @PostMapping(value = "/project/load")
+    @PostMapping(value = "/project/load", produces = {HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
     public EnvelopeResponse<List<ProjectRecoveryResponse>> projectLoad(@RequestBody ProjectLoadRequest request) {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                 secondStorageService.projectLoadData(request.getProjects()).getLoads(), "");
     }
 
-    @PostMapping(value = "/project/clean")
+    @PostMapping(value = "/project/clean", produces = {HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
     public EnvelopeResponse<Map<String, Map<String, String>>> projectClean(@RequestBody ProjectCleanRequest request) {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, secondStorageService.projectClean(request.getProjects()), "");
     }
@@ -246,7 +246,7 @@ public class SecondStorageEndpoint extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response.getLoads().get(0), "");
     }
 
-    @PostMapping(value = "/config/refresh")
+    @PostMapping(value = "/config/refresh", produces = {HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
     public EnvelopeResponse<ProjectRecoveryResponse> refreshConf() {
         secondStorageService.refreshConf();
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, null, "");

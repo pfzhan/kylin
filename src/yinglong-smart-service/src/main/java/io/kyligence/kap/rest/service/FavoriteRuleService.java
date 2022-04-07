@@ -46,12 +46,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.metadata.query.AccelerateRatio;
-import io.kyligence.kap.metadata.query.AccelerateRatioManager;
 import io.kyligence.kap.rest.response.ImportSqlResponse;
 import io.kyligence.kap.rest.response.SQLParserResponse;
 import io.kyligence.kap.rest.response.SQLValidateResponse;
-import io.kyligence.kap.smart.query.mockup.MockupQueryExecutor;
 import io.kyligence.kap.smart.query.validator.AbstractSQLValidator;
 import io.kyligence.kap.smart.query.validator.SQLValidateResult;
 import io.kyligence.kap.smart.query.validator.SqlSyntaxValidator;
@@ -67,7 +64,7 @@ public class FavoriteRuleService extends BasicService {
 
     public Map<String, SQLValidateResult> batchSqlValidate(List<String> sqls, String project) {
         KylinConfig kylinConfig = getProjectManager().getProject(project).getConfig();
-        AbstractSQLValidator sqlValidator = new SqlSyntaxValidator(project, kylinConfig, new MockupQueryExecutor());
+        AbstractSQLValidator sqlValidator = new SqlSyntaxValidator(project, kylinConfig);
         return sqlValidator.batchValidate(sqls.toArray(new String[0]));
     }
 
@@ -186,15 +183,5 @@ public class FavoriteRuleService extends BasicService {
         SQLValidateResult result = map.get(correctedSql);
 
         return new SQLValidateResponse(result.isCapable(), result.getSqlAdvices());
-    }
-
-    public double getAccelerateRatio(String project) {
-        aclEvaluate.checkProjectReadPermission(project);
-        AccelerateRatioManager ratioManager = getAccelerateRatioManager(project);
-        AccelerateRatio accelerateRatio = ratioManager.get();
-        if (accelerateRatio == null || accelerateRatio.getOverallQueryNum() == 0)
-            return 0;
-
-        return accelerateRatio.getNumOfQueryHitIndex() / (double) accelerateRatio.getOverallQueryNum();
     }
 }
