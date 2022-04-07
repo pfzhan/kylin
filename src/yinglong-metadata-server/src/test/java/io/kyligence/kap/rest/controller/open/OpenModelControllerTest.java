@@ -487,4 +487,19 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
     }
+
+    @Test
+    public void testUpdateModelStatus() throws Exception {
+        String project = "default";
+        String modelName = "model1";
+        mockGetModelName(modelName, project, RandomUtil.randomUUIDStr());
+        ModelUpdateRequest modelUpdateRequest = new ModelUpdateRequest();
+        modelUpdateRequest.setProject(project);
+        modelUpdateRequest.setStatus("OFFLINE");
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/{model_name}/status", modelName)
+                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(modelUpdateRequest))
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(openModelController).updateModelStatus(modelName, modelUpdateRequest);
+    }
 }
