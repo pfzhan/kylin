@@ -39,7 +39,8 @@ public enum MetricsTag {
     HIT_SNAPSHOT("hit_snapshot"),
     TYPE("type"),
     POOL("pool"),
-    HOST("host");
+    HOST("host"),
+    HIT_SECOND_STORAGE("hit_second_storage");
 
     private final String value;
 
