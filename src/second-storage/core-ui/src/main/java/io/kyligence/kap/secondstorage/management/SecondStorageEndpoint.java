@@ -35,11 +35,9 @@ import io.kyligence.kap.secondstorage.management.request.ModelEnableRequest;
 import io.kyligence.kap.secondstorage.management.request.ProjectCleanRequest;
 import io.kyligence.kap.secondstorage.management.request.ProjectEnableRequest;
 import io.kyligence.kap.secondstorage.management.request.ProjectLoadRequest;
-import io.kyligence.kap.secondstorage.management.request.ProjectLoadResponse;
 import io.kyligence.kap.secondstorage.management.request.ProjectLockOperateRequest;
 import io.kyligence.kap.secondstorage.management.request.ProjectRecoveryResponse;
 import io.kyligence.kap.secondstorage.management.request.ProjectTableSyncResponse;
-import io.kyligence.kap.secondstorage.management.request.RecoverRequest;
 import io.kyligence.kap.secondstorage.management.request.SecondStorageMetadataRequest;
 import io.kyligence.kap.secondstorage.management.request.StorageRequest;
 import io.swagger.annotations.ApiOperation;
@@ -112,7 +110,7 @@ public class SecondStorageEndpoint extends NBasicController {
     @ApiOperation(value = "cleanSegments")
     @DeleteMapping(value = "/segments")
     @ResponseBody
-    public EnvelopeResponse cleanStorage(StorageRequest request,
+    public EnvelopeResponse<Void> cleanStorage(StorageRequest request,
                                          @RequestParam(name="segment_ids") List<String> segmentIds) {
         request.setSegmentIds(segmentIds);
         checkProjectName(request.getProject());
@@ -192,15 +190,6 @@ public class SecondStorageEndpoint extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
-    @PostMapping(value = "/recovery/model", produces = {HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
-    public EnvelopeResponse<Void> recoverModel(@RequestBody RecoverRequest request) {
-        checkProjectName(request.getProject());
-        checkRequiredArg("modelName", request.getModelName());
-        checkModel(request.getProject(), request.getModelName());
-        secondStorageService.importSingleModel(request.getProject(), request.getModelName());
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, null, "");
-    }
-
     @PostMapping(value = "/lock/operate", produces = {HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
     public EnvelopeResponse<Void> lockOperate(@RequestBody ProjectLockOperateRequest request) {
         checkProjectName(request.getProject());
@@ -238,14 +227,6 @@ public class SecondStorageEndpoint extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, secondStorageService.projectClean(request.getProjects()), "");
     }
 
-    @PostMapping(value = "/recovery/project", produces = {HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
-    public EnvelopeResponse<ProjectRecoveryResponse> recoverProject(@RequestBody RecoverRequest request) {
-        checkProjectName(request.getProject());
-        secondStorageService.isProjectAdmin(request.getProject());
-        ProjectLoadResponse response = secondStorageService.projectLoadData(Arrays.asList(request.getProject()));
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response.getLoads().get(0), "");
-    }
-
     @PostMapping(value = "/config/refresh", produces = {HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
     public EnvelopeResponse<ProjectRecoveryResponse> refreshConf() {
         secondStorageService.refreshConf();
@@ -263,7 +244,7 @@ public class SecondStorageEndpoint extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, null, "");
     }
 
-    private void checkModel(String project, String modelName) {
+    public void checkModel(String project, String modelName) {
         val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val model = modelManager.getDataModelDescByAlias(modelName);
         if (Objects.isNull(model)) {

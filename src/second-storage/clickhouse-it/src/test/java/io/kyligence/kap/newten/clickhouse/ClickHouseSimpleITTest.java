@@ -51,6 +51,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import io.kyligence.kap.secondstorage.management.OpenSecondStorageEndpoint;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.time.DateUtils;
@@ -175,6 +176,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
     @Mock
     private final AclUtil aclUtil = Mockito.spy(AclUtil.class);
 
+    private OpenSecondStorageEndpoint openSecondStorageEndpoint = new OpenSecondStorageEndpoint();
     private SecondStorageService secondStorageService = new SecondStorageService();
     private ModelService modelService = Mockito.mock(ModelService.class);
     private SecondStorageEndpoint secondStorageEndpoint = new SecondStorageEndpoint();
@@ -923,13 +925,13 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
 
     @Test
     public void testRecoverProject() throws Exception {
-        secondStorageEndpoint.setModelService(modelService);
+        openSecondStorageEndpoint.setSecondStorageService(secondStorageService);
 
         try (JdbcDatabaseContainer<?> clickhouse = ClickHouseUtils.startClickHouse()) {
             build_load_query("testRecoverProject", false, clickhouse);
             val request = new RecoverRequest();
             request.setProject(getProject());
-            val response = secondStorageEndpoint.recoverProject(request);
+            val response = openSecondStorageEndpoint.recoverProject(request);
             Assert.assertEquals(1, response.getData().getSubmittedModels().size());
             Assert.assertEquals(0, response.getData().getFailedModels().size());
         }

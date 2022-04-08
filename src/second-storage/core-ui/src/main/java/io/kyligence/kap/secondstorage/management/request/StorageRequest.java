@@ -39,6 +39,8 @@ public class StorageRequest {
     private String project;
     @JsonProperty("model")
     private String model;
+    @JsonProperty("model_name")
+    private String modelName;
     @JsonProperty("segment_ids")
     private List<String> segmentIds;
     @JsonProperty("segment_names")
