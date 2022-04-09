@@ -61,6 +61,14 @@ public class ClickHouseRender extends DefaultSQLRender {
                     .append(String.join(",", query.orderBy()))
                     .append(')');
         }
+        if (query.getDeduplicationWindow() > 0) {
+            result.append(' ')
+                    .append(KeyWord.SETTINGS)
+                    .append(' ')
+                    .append(KeyWord.NON_REPLICATED_DEDUPLICATION_WINDOW)
+                    .append(" = ")
+                    .append(query.getDeduplicationWindow());
+        }
     }
 
     @Override
@@ -101,6 +109,8 @@ public class ClickHouseRender extends DefaultSQLRender {
         private static final String PARTITION = "PARTITION";
         private static final String FREEZE = "FREEZE";
         private static final String ATTACH_PART = "ATTACH PART";
+        private static final String SETTINGS = "SETTINGS";
+        private static final String NON_REPLICATED_DEDUPLICATION_WINDOW = "non_replicated_deduplication_window";
 
         private KeyWord() {
         }

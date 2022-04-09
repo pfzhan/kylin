@@ -59,6 +59,8 @@ import io.kyligence.kap.rest.service.NUserGroupService;
 import io.kyligence.kap.rest.service.SegmentHelper;
 import io.kyligence.kap.rest.service.params.MergeSegmentParams;
 import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
+import io.kyligence.kap.secondstorage.ddl.InsertInto;
+import io.kyligence.kap.secondstorage.ddl.exp.TableIdentifier;
 import io.kyligence.kap.secondstorage.management.SecondStorageEndpoint;
 import io.kyligence.kap.secondstorage.management.SecondStorageScheduleService;
 import io.kyligence.kap.secondstorage.management.SecondStorageService;
@@ -84,7 +86,9 @@ import org.apache.kylin.job.SecondStorageCleanJobBuildParams;
 import org.apache.kylin.job.SecondStorageJobParamUtil;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.handler.AbstractJobHandler;
 import org.apache.kylin.job.handler.SecondStorageIndexCleanJobHandler;
+import org.apache.kylin.job.handler.SecondStorageSegmentLoadJobHandler;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -126,6 +130,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -138,7 +143,7 @@ import static org.junit.Assert.assertTrue;
 @RunWith(PowerMockRunner.class)
 @PowerMockRunnerDelegate(JUnit4.class)
 @PowerMockIgnore({"javax.net.ssl.*", "javax.management.*", "org.apache.hadoop.*", "javax.security.*", "javax.crypto.*", "javax.script.*"})
-@PrepareForTest({SpringContext.class})
+@PrepareForTest({SpringContext.class, InsertInto.class})
 public class SecondStorageLockTest implements JobWaiter {
     private final String modelId = "acfde546-2cc9-4eec-bc92-e3bd46d4e2ee";
     private final String userName = "ADMIN";
@@ -261,6 +266,44 @@ public class SecondStorageLockTest implements JobWaiter {
         SecondStorageCleanJobBuildParams params = new SecondStorageCleanJobBuildParams(null, jobParam, null);
         params.setSecondStorageDeleteLayoutIds(jobParam.getSecondStorageDeleteLayoutIds());
         assertNull(params.getSecondStorageDeleteLayoutIds());
+    }
+
+    @Test
+    public void testSegmentLoadWithRetry() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse()) {
+            testSegmentLoadWithRetry(1, clickhouse1);
+        }
+    }
+
+    public void testSegmentLoadWithRetry(int replica, JdbcDatabaseContainer<?>... clickhouse) throws Exception {
+        PowerMockito.mockStatic(InsertInto.class);
+        PowerMockito.when(InsertInto.insertInto(Mockito.anyString(), Mockito.anyString()))
+                .thenAnswer((Answer<InsertInto>) invocation -> new InsertInto(TableIdentifier.table("def", "tab")));
+
+        final String catalog = "default";
+        Unsafe.setProperty(ClickHouseLoad.SOURCE_URL, getSourceUrl());
+        Unsafe.setProperty(ClickHouseLoad.ROOT_PATH, getLocalWorkingDirectory());
+
+        configClickhouseWith(clickhouse, replica, catalog, () -> {
+            secondStorageService.changeProjectSecondStorageState(getProject(), SecondStorageNodeHelper.getAllPairs(), true);
+            Assert.assertEquals(clickhouse.length, SecondStorageUtil.listProjectNodes(getProject()).size());
+            secondStorageService.changeModelSecondStorageState(getProject(), modelId, true);
+            setQuerySession(catalog, clickhouse[0].getJdbcUrl(), clickhouse[0].getDriverClassName());
+
+            buildIncrementalLoadQuery(); // build table index
+            checkHttpServer(); // check http server
+
+            val segments = new HashSet<>(getDataFlow().getSegments());
+            AbstractJobHandler localHandler = new SecondStorageSegmentLoadJobHandler();
+            JobParam jobParam = SecondStorageJobParamUtil.of(getProject(), getDataFlow().getModel().getUuid(), "ADMIN",
+                    segments.stream().map(NDataSegment::getId));
+            String jobId = ClickHouseUtils.simulateJobMangerAddJob(jobParam, localHandler);
+            TimeUnit.MILLISECONDS.sleep(20000);
+            PowerMockito.doCallRealMethod().when(InsertInto.class);
+            InsertInto.insertInto(Mockito.anyString(), Mockito.anyString());
+            waitJobFinish(getProject(), jobId);
+            return true;
+        });
     }
 
     private void testLockedSegmentLoadCH(int replica, JdbcDatabaseContainer<?>... clickhouse) throws Exception {

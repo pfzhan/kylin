@@ -517,6 +517,18 @@ public abstract class KylinConfigBase implements Serializable {
         return getOptional("kylin.second-storage.ssh-identity-path", "~/.ssh/id_rsa");
     }
 
+    public int getSecondStorageLoadDeduplicationWindow() {
+        return Integer.parseInt(getOptional("kylin.second-storage.load-deduplication-window", "10000"));
+    }
+
+    public int getSecondStorageLoadRetry() {
+        return Integer.parseInt(getOptional("kylin.second-storage.load-retry", "3"));
+    }
+
+    public int getSecondStorageLoadRetryInterval() {
+        return Integer.parseInt(getOptional("kylin.second-storage.load-retry-interval", "30000"));
+    }
+
     public int getMetadataCacheMaxNum() {
         return Integer.parseInt(getOptional("kylin.metadata.cache.max-num", String.valueOf(Integer.MAX_VALUE)));
     }

@@ -358,7 +358,7 @@ public class SecondStorageJavaTest implements JobWaiter {
         val jdbcUrl = SecondStorageNodeHelper.resolve(SecondStorageNodeHelper.getAllNames().get(0));
         ClickHouseOperator operator = new ClickHouseOperator(SecondStorageNodeHelper.resolve(SecondStorageNodeHelper.getAllNames().get(0)));
         val databases = operator.listDatabases();
-        Assert.assertEquals(2, databases.size());
+        Assert.assertEquals(4, databases.size());
         ClickHouse clickHouse = new ClickHouse(jdbcUrl);
         clickHouse.apply("CREATE TABLE test(a int) engine=Memory()");
         val tables = operator.listTables("default");
