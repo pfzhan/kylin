@@ -354,6 +354,16 @@ public class OpenModelController extends NBasicController {
         return modelController.updateModelName(modelId, modelRenameRequest);
     }
 
+    @ApiOperation(value = "updateModelStatus", tags = { "AI" })
+    @PutMapping(value = "/{model_name}/status")
+    @ResponseBody
+    public EnvelopeResponse<String> updateModelStatus(@PathVariable("model_name") String modelAlias,
+                                                      @RequestBody ModelUpdateRequest modelRenameRequest) {
+        String projectName = checkProjectName(modelRenameRequest.getProject());
+        String modelId = getModel(modelAlias, projectName).getId();
+        return modelController.updateModelStatus(modelId, modelRenameRequest);
+    }
+
     private void checkProjectMLP(String project) {
         ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(project);
