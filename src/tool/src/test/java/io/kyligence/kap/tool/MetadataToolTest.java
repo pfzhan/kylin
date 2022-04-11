@@ -25,6 +25,10 @@
 package io.kyligence.kap.tool;
 
 import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasourceParameters;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -46,6 +50,8 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
+import io.kyligence.kap.common.util.OptionBuilder;
+import org.apache.commons.cli.Option;
 import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -53,11 +59,13 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.ResourceTool;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.assertj.core.api.Assertions;
 import org.junit.After;
@@ -89,6 +97,12 @@ import lombok.var;
 public class MetadataToolTest extends NLocalFileMetadataTestCase {
 
     private static final Logger logger = LoggerFactory.getLogger(MetadataToolTest.class);
+
+    private static final Option OPERATE_BACKUP = OptionBuilder.getInstance()
+            .withDescription("Backup metadata to local path or HDFS path").isRequired(false).create("backup");
+
+    private static final Option OPERATE_RESTORE = OptionBuilder.getInstance()
+            .withDescription("Restore metadata from local path or HDFS path").isRequired(false).create("restore");
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
@@ -702,5 +716,19 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("/just/a/path/", simpleMetadataUrl);
         simpleMetadataUrl = tool.getMetadataUrl(simplePath, false);
         Assert.assertEquals("/just/a/path/", simpleMetadataUrl);
+    }
+
+    @Test
+    public void testExecute_throwsException() {
+        MetadataTool metadataTool = new MetadataTool();
+        OptionsHelper optionsHelper = mock(OptionsHelper.class);
+        when(optionsHelper.hasOption(OPERATE_BACKUP)).thenReturn(false);
+        when(optionsHelper.hasOption(OPERATE_RESTORE)).thenReturn(false);
+        try {
+            metadataTool.execute(optionsHelper);
+        } catch (Exception e) {
+            assertTrue(e instanceof KylinException);
+            assertEquals("KE-050040202: \"-restore\" is not specified.", e.toString());
+        }
     }
 }

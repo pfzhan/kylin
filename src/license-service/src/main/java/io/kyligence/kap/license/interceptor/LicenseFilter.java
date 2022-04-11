@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.license.interceptor;
 
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.USER_AUTH_INFO_NOTFOUND;
+
 import java.io.IOException;
 import java.util.Arrays;
 
@@ -75,7 +77,7 @@ public class LicenseFilter implements Filter {
                         if (e instanceof KylinException) {
                             servletRequest.setAttribute("error", e);
                         } else {
-                            servletRequest.setAttribute("error", new UnauthorizedException(e.getMessage()));
+                            servletRequest.setAttribute("error", new UnauthorizedException(USER_AUTH_INFO_NOTFOUND));
                         }
                         servletRequest.getRequestDispatcher("/api/error").forward(servletRequest, response);
                         return;

@@ -24,8 +24,10 @@
 
 package io.kyligence.kap.rest.service;
 
+import static org.apache.kylin.common.exception.code.ErrorCodeSystem.MAINTENANCE_MODE_ENTER_FAILED;
+import static org.apache.kylin.common.exception.code.ErrorCodeSystem.MAINTENANCE_MODE_LEAVE_FAILED;
+
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.exception.SystemErrorCode;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -48,9 +50,8 @@ public class MaintenanceModeService extends BasicService implements MaintenanceM
     public void setMaintenanceMode(String reason) {
         aclEvaluate.checkIsGlobalAdmin();
         EpochManager epochMgr = EpochManager.getInstance();
-        if (!epochMgr.setMaintenanceMode(reason)) {
-            throw new KylinException(SystemErrorCode.FAILED_ENTER_MAINTENANCE_MODE,
-                    "System is already in maintenance mode");
+        if (Boolean.FALSE.equals(epochMgr.setMaintenanceMode(reason))) {
+            throw new KylinException(MAINTENANCE_MODE_ENTER_FAILED);
         }
         logger.info("System enter maintenance mode.");
     }
@@ -58,9 +59,8 @@ public class MaintenanceModeService extends BasicService implements MaintenanceM
     public void unsetMaintenanceMode(String reason) {
         aclEvaluate.checkIsGlobalAdmin();
         EpochManager epochMgr = EpochManager.getInstance();
-        if (!epochMgr.unsetMaintenanceMode(reason)) {
-            throw new KylinException(SystemErrorCode.FAILED_LEAVE_MAINTENANCE_MODE,
-                    "System is not in maintenance mode");
+        if (Boolean.FALSE.equals(epochMgr.unsetMaintenanceMode(reason))) {
+            throw new KylinException(MAINTENANCE_MODE_LEAVE_FAILED);
         }
         logger.info("System leave maintenance mode.");
     }

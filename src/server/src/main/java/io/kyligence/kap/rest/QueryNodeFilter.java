@@ -25,14 +25,14 @@ package io.kyligence.kap.rest;
 
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CONNECT_CATALOG;
 import static org.apache.kylin.common.exception.ServerErrorCode.NO_ACTIVE_ALL_NODE;
-import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_WITHOUT_RESOURCE_GROUP;
 import static org.apache.kylin.common.exception.ServerErrorCode.SYSTEM_IS_RECOVER;
 import static org.apache.kylin.common.exception.ServerErrorCode.TRANSFER_FAILED;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeSystem.MAINTENANCE_MODE_WRITE_FAILED;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 
@@ -51,7 +51,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.ErrorCode;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.exception.SystemErrorCode;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -193,8 +192,7 @@ public class QueryNodeFilter implements Filter {
                 Pair<String, HttpServletRequest> projectInfo = ProjectInfoParser.parseProjectInfo(servletRequest);
                 project = projectInfo.getFirst();
                 if (!checkProjectExist(project)) {
-                    servletRequest.setAttribute(ERROR, new KylinException(PROJECT_NOT_EXIST,
-                            String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project)));
+                    servletRequest.setAttribute(ERROR, new KylinException(PROJECT_NOT_EXIST, project));
                     servletRequest.getRequestDispatcher(API_ERROR).forward(servletRequest, response);
                     return;
                 }
@@ -208,8 +206,7 @@ public class QueryNodeFilter implements Filter {
                 }
 
                 if (EpochManager.getInstance().isMaintenanceMode()) {
-                    servletRequest.setAttribute(ERROR, new KylinException(SystemErrorCode.WRITE_IN_MAINTENANCE_MODE,
-                            MsgPicker.getMsg().getWRITE_IN_MAINTENANCE_MODE()));
+                    servletRequest.setAttribute(ERROR, new KylinException(MAINTENANCE_MODE_WRITE_FAILED));
                     servletRequest.getRequestDispatcher(API_ERROR).forward(servletRequest, response);
                     return;
                 }

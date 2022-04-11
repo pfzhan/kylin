@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.exception.SystemErrorCode;
+import org.apache.kylin.common.exception.code.ErrorCodeSystem;
 import org.apache.kylin.common.persistence.InMemResourceStore;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -277,8 +277,9 @@ public class UnitOfWork {
     }
 
     private static void handleError(Throwable throwable, UnitOfWorkParams<?> params, int retry, String traceId) {
-        if (throwable instanceof KylinException && ((KylinException) throwable).getErrorCode()
-                .equals(SystemErrorCode.WRITE_IN_MAINTENANCE_MODE.toErrorCode())) {
+        if (throwable instanceof KylinException && Objects.nonNull(((KylinException) throwable).getErrorCodeProducer())
+                && ((KylinException) throwable).getErrorCodeProducer().getErrorCode()
+                        .equals(ErrorCodeSystem.MAINTENANCE_MODE_WRITE_FAILED.getErrorCode())) {
             retry = params.getMaxRetry();
         }
         if (throwable instanceof QuitTxnRightNow) {

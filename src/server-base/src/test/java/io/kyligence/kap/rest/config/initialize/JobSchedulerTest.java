@@ -24,6 +24,12 @@
 
 package io.kyligence.kap.rest.config.initialize;
 
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_CHECK_FAIL;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_CHECK_INDEX_FAIL;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_CHECK_SEGMENT_FAIL;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_EXCEPTION;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_REFRESH_CHECK_INDEX_FAIL;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -32,7 +38,6 @@ import java.util.Set;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.NExecutableManager;
@@ -206,7 +211,7 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
 
         relatedSegments.remove(0);
         thrown.expect(KylinException.class);
-        thrown.expectMessage(MsgPicker.getMsg().getADD_JOB_CHECK_FAIL());
+        thrown.expectMessage(JOB_CREATE_CHECK_FAIL.getMsg());
         jobManager.addRelatedIndexJob(new JobParam(relatedSegments, targetLayouts, MODEL_ID, "ADMIN"));
     }
 
@@ -237,7 +242,7 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
             copyForWrite.markWhiteIndexToBeDelete(MODEL_ID, Sets.newHashSet(20000000001L));
         }), MODEL_ID);
         thrown.expect(KylinException.class);
-        thrown.expectMessage(MsgPicker.getMsg().getREFRESH_JOB_CHECK_INDEX_FAIL());
+        thrown.expectMessage(JOB_REFRESH_CHECK_INDEX_FAIL.getMsg());
         jobManager.refreshSegmentJob(new JobParam(df.getSegments().get(0), MODEL_ID, "ADMIN"));
     }
 
@@ -265,7 +270,7 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(19, getProcessLayout(executables.get(1)));
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage(MsgPicker.getMsg().getADD_JOB_CHECK_FAIL());
+        thrown.expectMessage(JOB_CREATE_CHECK_FAIL.getMsg());
         jobManager.refreshSegmentJob(new JobParam(seg, MODEL_ID, "ADMIN"));
     }
 
@@ -283,7 +288,7 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(1, executables.size());
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage(MsgPicker.getMsg().getADD_JOB_CHECK_FAIL());
+        thrown.expectMessage(JOB_CREATE_CHECK_FAIL.getMsg());
         jobManager.refreshSegmentJob(new JobParam(seg, MODEL_ID, "ADMIN"));
     }
 
@@ -343,8 +348,7 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
         val seg1 = dfm.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(
                 SegmentRange.dateToLong("2012-01-01"), SegmentRange.dateToLong("" + "2012-03-01")));
         thrown.expect(KylinException.class);
-        thrown.expectMessage(
-                "Can’t submit the job, as the indexes are not identical in the selected segments. Please check and try again.");
+        thrown.expectMessage(JOB_CREATE_CHECK_SEGMENT_FAIL.getMsg());
         jobManager.mergeSegmentJob(new JobParam(seg1, MODEL_ID, "ADMIN"));
     }
 
@@ -364,7 +368,7 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
             jobManager.mergeSegmentJob(new JobParam(seg1, MODEL_ID, "ADMIN"));
             Assert.fail();
         } catch (KylinException e) {
-            Assert.assertEquals("Can’t find executable jobs at the moment. Please try again later.", e.getMessage());
+            Assert.assertEquals(JOB_CREATE_EXCEPTION.getMsg(), e.getMessage());
         }
     }
 
@@ -384,7 +388,7 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
         List<AbstractExecutable> executables = getRunningExecutables(DEFAULT_PROJECT, MODEL_ID);
         Assert.assertEquals(1, executables.size());
         thrown.expect(KylinException.class);
-        thrown.expectMessage(MsgPicker.getMsg().getADD_JOB_CHECK_FAIL());
+        thrown.expectMessage(JOB_CREATE_CHECK_FAIL.getMsg());
         jobManager.mergeSegmentJob(new JobParam(seg1, MODEL_ID, "ADMIN"));
     }
 
@@ -448,9 +452,8 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
 
         val seg1 = dfm.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(
                 SegmentRange.dateToLong("2012-05-01"), SegmentRange.dateToLong("" + "2012-06-01")));
-
         thrown.expect(KylinException.class);
-        thrown.expectMessage(MsgPicker.getMsg().getADD_JOB_CHECK_INDEX_FAIL());
+        thrown.expectMessage(JOB_CREATE_CHECK_INDEX_FAIL.getMsg());
         jobManager.addSegmentJob(new JobParam(seg1, MODEL_ID, "ADMIN"));
     }
 
@@ -467,7 +470,7 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(1, executables.size());
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage(MsgPicker.getMsg().getADD_JOB_CHECK_FAIL());
+        thrown.expectMessage(JOB_CREATE_CHECK_FAIL.getMsg());
         jobManager.addSegmentJob(new JobParam(seg1, MODEL_ID, "ADMIN"));
     }
 

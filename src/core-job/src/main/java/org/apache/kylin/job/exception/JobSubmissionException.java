@@ -24,12 +24,13 @@
 
 package org.apache.kylin.job.exception;
 
-import org.apache.kylin.common.exception.KylinException;
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JOB;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JOB;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.code.ErrorCodeProducer;
 
 public class JobSubmissionException extends KylinException {
 
@@ -37,6 +38,10 @@ public class JobSubmissionException extends KylinException {
 
     public JobSubmissionException(String msg) {
         super(FAILED_CREATE_JOB, msg);
+    }
+
+    public JobSubmissionException(ErrorCodeProducer errorCodeProducer, Object... args) {
+        super(errorCodeProducer, args);
     }
 
     public void addJobFailInfo(String segId, KylinException error) {

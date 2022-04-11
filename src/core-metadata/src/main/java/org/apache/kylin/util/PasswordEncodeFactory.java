@@ -41,12 +41,11 @@
  */
 package org.apache.kylin.util;
 
-import static org.apache.kylin.common.exception.SystemErrorCode.FAILED_INIT_PASSWORD_ENCODER;
-import static org.apache.kylin.common.exception.SystemErrorCode.INVALID_PASSWORD_ENCODER;
+import static org.apache.kylin.common.exception.code.ErrorCodeSystem.PASSWORD_INIT_ENCODER_FAILED;
+import static org.apache.kylin.common.exception.code.ErrorCodeSystem.PASSWORD_INVALID_ENCODER;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import lombok.extern.slf4j.Slf4j;
@@ -55,17 +54,16 @@ import lombok.extern.slf4j.Slf4j;
 public class PasswordEncodeFactory {
     public static PasswordEncoder newUserPasswordEncoder() {
         String userPasswordEncode = KylinConfig.getInstanceFromEnv().getUserPasswordEncoder();
-        log.debug("using '" + userPasswordEncode + "' for user password encode");
-        PasswordEncoder passwordEncoder = null;
+        log.debug("using '{}' for user password encode", userPasswordEncode);
+        PasswordEncoder passwordEncoder;
         try {
             passwordEncoder = (PasswordEncoder) Class.forName(userPasswordEncode).newInstance();
         } catch (ClassNotFoundException e) {
-            log.error("class " + userPasswordEncode + " is not found, password init failed", e);
-            throw new KylinException(INVALID_PASSWORD_ENCODER, MsgPicker.getMsg().getINVALID_PASSWORD_ENCODER());
+            log.error("class '{}' is not found, password init failed", userPasswordEncode, e);
+            throw new KylinException(PASSWORD_INVALID_ENCODER);
         } catch (Exception e) {
             log.error("password encoder init failed", e);
-            throw new KylinException(FAILED_INIT_PASSWORD_ENCODER,
-                    MsgPicker.getMsg().getFAILED_INIT_PASSWORD_ENCODER());
+            throw new KylinException(PASSWORD_INIT_ENCODER_FAILED);
         }
         return passwordEncoder;
     }

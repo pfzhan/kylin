@@ -25,6 +25,8 @@
 package io.kyligence.kap.rest.service;
 
 import static io.kyligence.kap.metadata.model.NTableMetadataManager.getInstance;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_ID_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_NOT_EXIST;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -939,7 +941,7 @@ public class TableServiceTest extends CSVSourceTestCase {
     @Test
     public void testGetAutoMergeConfigException() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage(String.format(Locale.ROOT, Message.getInstance().getMODEL_NOT_FOUND(), "default"));
+        thrown.expectMessage(MODEL_ID_NOT_EXIST.getMsg("default"));
         tableService.getAutoMergeConfigByModel("default", "default");
     }
 
@@ -1424,7 +1426,7 @@ public class TableServiceTest extends CSVSourceTestCase {
 
         // model not exist
         thrown.expect(KylinException.class);
-        thrown.expectMessage(String.format(Locale.ROOT, Message.getInstance().getMODEL_NOT_FOUND(), "nomodel"));
+        thrown.expectMessage(MODEL_NAME_NOT_EXIST.getMsg("nomodel"));
         tableService.getTablesOfModel(project, "nomodel");
     }
 

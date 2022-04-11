@@ -190,6 +190,7 @@
             **/io/kyligence/kap/engine/spark/source/NSparkMetadataExplorer.java
         </sonar.jacoco.excludes>
         <sonar.coverage.exclusions>
+            **/io/kyligence/kap/**/*Exception.java,
             **/io/kyligence/kap/rest/*Server.java,
             **/io/kyligence/kap/engine/spark/builder/DFTableEncoder.java,
             **/io/kyligence/kap/engine/spark/builder/DFLayoutMergeAssist.java,
@@ -219,6 +220,7 @@
             **/io/kyligence/kap/rest/config/MetricsConfig.java,
             **/io/kyligence/kap/metadata/model/Canvas.java,
             **/io/kyligence/kap/rest/ZookeeperClusterManager.java,
+            **/org/apache/kylin/**/*Exception.java,
             **/org/apache/kylin/common/msg/**,
             **/org/apache/spark/dict/NBucketDictionary.java,
             **/org/apache/spark/dict/NGlobalDictHDFSStore.java,

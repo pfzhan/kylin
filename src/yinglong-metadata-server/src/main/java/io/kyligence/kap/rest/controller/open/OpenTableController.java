@@ -23,22 +23,18 @@
  */
 package io.kyligence.kap.rest.controller.open;
 
-import com.google.common.annotations.VisibleForTesting;
-import io.kyligence.kap.rest.controller.NBasicController;
-import io.kyligence.kap.rest.controller.NTableController;
-import io.kyligence.kap.rest.request.DateRangeRequest;
-import io.kyligence.kap.rest.request.OpenReloadTableRequest;
-import io.kyligence.kap.rest.request.TableLoadRequest;
-import io.kyligence.kap.rest.response.LoadTableResponse;
-import io.kyligence.kap.rest.response.OpenPreReloadTableResponse;
-import io.kyligence.kap.rest.response.OpenReloadTableResponse;
-import io.kyligence.kap.rest.response.PreUnloadTableResponse;
-import io.kyligence.kap.rest.service.ProjectService;
-import io.kyligence.kap.rest.service.TableService;
-import io.swagger.annotations.ApiOperation;
-import lombok.val;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_NAME;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_SAMPLE_RANGE;
+import static org.apache.kylin.common.exception.ServerErrorCode.UNSUPPORTED_DATA_SOURCE_TYPE;
+import static org.apache.kylin.common.exception.ServerErrorCode.UNSUPPORTED_STREAMING_OPERATION;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_SAMPLING_RANGE_INVALID;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Locale;
+
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.Pair;
@@ -57,17 +53,21 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Locale;
+import com.google.common.annotations.VisibleForTesting;
 
-import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_SAMPLING_RANGE;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_NAME;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_SAMPLE_RANGE;
-import static org.apache.kylin.common.exception.ServerErrorCode.RELOAD_TABLE_FAILED;
-import static org.apache.kylin.common.exception.ServerErrorCode.UNSUPPORTED_DATA_SOURCE_TYPE;
-import static org.apache.kylin.common.exception.ServerErrorCode.UNSUPPORTED_STREAMING_OPERATION;
+import io.kyligence.kap.rest.controller.NBasicController;
+import io.kyligence.kap.rest.controller.NTableController;
+import io.kyligence.kap.rest.request.DateRangeRequest;
+import io.kyligence.kap.rest.request.OpenReloadTableRequest;
+import io.kyligence.kap.rest.request.TableLoadRequest;
+import io.kyligence.kap.rest.response.LoadTableResponse;
+import io.kyligence.kap.rest.response.OpenPreReloadTableResponse;
+import io.kyligence.kap.rest.response.OpenReloadTableResponse;
+import io.kyligence.kap.rest.response.PreUnloadTableResponse;
+import io.kyligence.kap.rest.service.ProjectService;
+import io.kyligence.kap.rest.service.TableService;
+import io.swagger.annotations.ApiOperation;
+import lombok.val;
 
 @Controller
 @RequestMapping(value = "/api/tables", produces = { HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
@@ -134,8 +134,7 @@ public class OpenTableController extends NBasicController {
         if (Boolean.TRUE.equals(tableLoadRequest.getNeedSampling())
                 && (null == tableLoadRequest.getSamplingRows() || tableLoadRequest.getSamplingRows() > MAX_SAMPLING_ROWS
                         || tableLoadRequest.getSamplingRows() < MIN_SAMPLING_ROWS)) {
-            throw new KylinException(INVALID_SAMPLING_RANGE,
-                    "Invalid parameters, please check whether the number of sampling rows is between 10000 and 20000000.");
+            throw new KylinException(JOB_SAMPLING_RANGE_INVALID, MIN_SAMPLING_ROWS, MAX_SAMPLING_ROWS);
         }
 
         // default set data_source_type = 9 and 8
@@ -171,58 +170,47 @@ public class OpenTableController extends NBasicController {
     @GetMapping(value = "/pre_reload")
     @ResponseBody
     public EnvelopeResponse<OpenPreReloadTableResponse> preReloadTable(@RequestParam(value = "project") String project,
-            @RequestParam(value = "table") String table) {
-        try {
-            String projectName = checkProjectName(project);
-            checkStreamingOperation(project, table);
-            OpenPreReloadTableResponse result = tableService.preProcessBeforeReloadWithoutFailFast(projectName, table);
-            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, result, "");
-        } catch (Exception e) {
-            Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);
-            throw new KylinException(RELOAD_TABLE_FAILED, root.getMessage());
-        }
+            @RequestParam(value = "table") String table) throws Exception {
+        String projectName = checkProjectName(project);
+        checkStreamingOperation(project, table);
+        OpenPreReloadTableResponse result = tableService.preProcessBeforeReloadWithoutFailFast(projectName, table);
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, result, "");
     }
 
     @ApiOperation(value = "reloadTable", tags = { "AI" })
     @PostMapping(value = "/reload")
     @ResponseBody
-    public EnvelopeResponse<OpenReloadTableResponse> reloadTable(@RequestBody OpenReloadTableRequest request)
-            throws KylinException {
-        try {
-            String projectName = checkProjectName(request.getProject());
-            checkStreamingOperation(request.getProject(), request.getTable());
-            request.setProject(projectName);
-            checkRequiredArg("need_sampling", request.getNeedSampling());
-            validatePriority(request.getPriority());
-            if (StringUtils.isEmpty(request.getTable())) {
-                throw new KylinException(INVALID_TABLE_NAME, MsgPicker.getMsg().getTABLE_NAME_CANNOT_EMPTY());
-            }
-            if (request.getNeedSampling() && (request.getSamplingRows() < MIN_SAMPLING_ROWS
-                    || request.getSamplingRows() > MAX_SAMPLING_ROWS)) {
-                throw new KylinException(INVALID_TABLE_SAMPLE_RANGE, MsgPicker.getMsg().getTABLE_SAMPLE_MAX_ROWS());
-            }
-
-            Pair<String, List<String>> pair = tableService.reloadTable(request.getProject(),
-                    request.getTable().toUpperCase(Locale.ROOT), request.getNeedSampling(), request.getSamplingRows(),
-                    request.getNeedBuilding(), request.getPriority(), request.getYarnQueue());
-
-            OpenReloadTableResponse response = new OpenReloadTableResponse();
-            response.setSamplingId(pair.getFirst());
-            response.setJobIds(pair.getSecond());
-
-            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
-        } catch (Exception e) {
-            Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);
-            throw new KylinException(RELOAD_TABLE_FAILED, root.getMessage());
+    public EnvelopeResponse<OpenReloadTableResponse> reloadTable(@RequestBody OpenReloadTableRequest request) {
+        String projectName = checkProjectName(request.getProject());
+        checkStreamingOperation(request.getProject(), request.getTable());
+        request.setProject(projectName);
+        checkRequiredArg("need_sampling", request.getNeedSampling());
+        validatePriority(request.getPriority());
+        if (StringUtils.isEmpty(request.getTable())) {
+            throw new KylinException(INVALID_TABLE_NAME, MsgPicker.getMsg().getTABLE_NAME_CANNOT_EMPTY());
         }
+        if (request.getNeedSampling()
+                && (request.getSamplingRows() < MIN_SAMPLING_ROWS || request.getSamplingRows() > MAX_SAMPLING_ROWS)) {
+            throw new KylinException(INVALID_TABLE_SAMPLE_RANGE, MsgPicker.getMsg().getTABLE_SAMPLE_MAX_ROWS());
+        }
+
+        Pair<String, List<String>> pair = tableService.reloadTable(request.getProject(),
+                request.getTable().toUpperCase(Locale.ROOT), request.getNeedSampling(), request.getSamplingRows(),
+                request.getNeedBuilding(), request.getPriority(), request.getYarnQueue());
+
+        OpenReloadTableResponse response = new OpenReloadTableResponse();
+        response.setSamplingId(pair.getFirst());
+        response.setJobIds(pair.getSecond());
+
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
     @ApiOperation(value = "prepareUnloadTable", tags = { "AI" })
     @GetMapping(value = "/{database:.+}/{table:.+}/prepare_unload")
     @ResponseBody
     public EnvelopeResponse<PreUnloadTableResponse> prepareUnloadTable(@RequestParam(value = "project") String project,
-            @PathVariable(value = "database") String database,
-            @PathVariable(value = "table") String table) throws IOException {
+            @PathVariable(value = "database") String database, @PathVariable(value = "table") String table)
+            throws IOException {
 
         String projectName = checkProjectName(project);
         String dbTblName = String.format(Locale.ROOT, "%s.%s", database, table);

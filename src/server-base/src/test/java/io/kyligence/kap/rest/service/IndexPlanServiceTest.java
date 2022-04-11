@@ -25,6 +25,7 @@ package io.kyligence.kap.rest.service;
 
 import static io.kyligence.kap.metadata.cube.model.IndexEntity.Source.CUSTOM_TABLE_INDEX;
 import static io.kyligence.kap.metadata.cube.model.IndexEntity.Source.RECOMMENDED_TABLE_INDEX;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.INDEX_DUPLICATE;
 import static org.apache.kylin.metadata.model.SegmentStatusEnum.READY;
 import static org.apache.kylin.metadata.model.SegmentStatusEnum.WARNING;
 import static org.hamcrest.Matchers.is;
@@ -43,7 +44,6 @@ import org.apache.commons.collections.ListUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.cube.model.SelectRule;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -609,7 +609,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
     @Test
     public void testCreateDuplicateTableIndex() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage(MsgPicker.getMsg().getDUPLICATE_LAYOUT());
+        thrown.expectMessage(INDEX_DUPLICATE.getMsg());
         indexPlanService.createTableIndex("default",
                 CreateTableIndexRequest.builder().project("default").modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .colOrder(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.CAL_DT",

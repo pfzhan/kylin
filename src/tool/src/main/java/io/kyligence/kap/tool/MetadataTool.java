@@ -24,8 +24,8 @@
 
 package io.kyligence.kap.tool;
 
-import static org.apache.kylin.common.exception.ToolErrorCode.FILE_ALREADY_EXIST;
-import static org.apache.kylin.common.exception.ToolErrorCode.INVALID_SHELL_PARAMETER;
+import static org.apache.kylin.common.exception.code.ErrorCodeTool.FILE_ALREADY_EXISTS;
+import static org.apache.kylin.common.exception.code.ErrorCodeTool.PARAMETER_NOT_SPECIFY;
 
 import java.io.File;
 import java.io.IOException;
@@ -229,7 +229,7 @@ public class MetadataTool extends ExecutableApplication {
         } else if (optionsHelper.hasOption(OPERATE_RESTORE)) {
             restore(optionsHelper, optionsHelper.hasOption(OPTION_AFTER_TRUNCATE));
         } else {
-            throw new KylinException(INVALID_SHELL_PARAMETER, "The input parameters are wrong");
+            throw new KylinException(PARAMETER_NOT_SPECIFY, "-restore");
         }
     }
 
@@ -240,14 +240,14 @@ public class MetadataTool extends ExecutableApplication {
             File localFile = new File(path);
             if (localFile.exists()) {
                 logger.error("[UNEXPECTED_THINGS_HAPPENED] local file {} already exists ", path);
-                throw new KylinException(FILE_ALREADY_EXIST, path);
+                throw new KylinException(FILE_ALREADY_EXISTS, path);
             }
             return;
         }
         val fs = HadoopUtil.getWorkingFileSystem();
         if (fs.exists(new Path(path))) {
             logger.error("[UNEXPECTED_THINGS_HAPPENED] specified file {} already exists ", path);
-            throw new KylinException(FILE_ALREADY_EXIST, path);
+            throw new KylinException(FILE_ALREADY_EXISTS, path);
         }
     }
 
@@ -272,50 +272,50 @@ public class MetadataTool extends ExecutableApplication {
 
         try (val backupResourceStore = ResourceStore.getKylinMetaStore(backupConfig)) {
 
-           val backupMetadataStore = backupResourceStore.getMetadataStore();
+            val backupMetadataStore = backupResourceStore.getMetadataStore();
 
-           if (StringUtils.isBlank(project)) {
-               logger.info("start to copy all projects from ResourceStore.");
-               val auditLogStore = resourceStore.getAuditLogStore();
-               long finalOffset = getOffset(auditLogStore);
-               backupResourceStore.putResourceWithoutCheck(ResourceStore.METASTORE_IMAGE,
-                       ByteSource.wrap(JsonUtil.writeValueAsBytes(new ImageDesc(finalOffset))),
-                       System.currentTimeMillis(), -1);
-               var projectFolders = resourceStore.listResources("/");
-               if (projectFolders == null) {
-                   return;
-               }
-               UnitOfWork.doInTransactionWithRetry(() -> {
-                   backupProjects(projectFolders, backupResourceStore, excludeTableExd);
-                   return null;
-               }, UnitOfWork.GLOBAL_UNIT);
+            if (StringUtils.isBlank(project)) {
+                logger.info("start to copy all projects from ResourceStore.");
+                val auditLogStore = resourceStore.getAuditLogStore();
+                long finalOffset = getOffset(auditLogStore);
+                backupResourceStore.putResourceWithoutCheck(ResourceStore.METASTORE_IMAGE,
+                        ByteSource.wrap(JsonUtil.writeValueAsBytes(new ImageDesc(finalOffset))),
+                        System.currentTimeMillis(), -1);
+                var projectFolders = resourceStore.listResources("/");
+                if (projectFolders == null) {
+                    return;
+                }
+                UnitOfWork.doInTransactionWithRetry(() -> {
+                    backupProjects(projectFolders, backupResourceStore, excludeTableExd);
+                    return null;
+                }, UnitOfWork.GLOBAL_UNIT);
 
-               val uuid = resourceStore.getResource(ResourceStore.METASTORE_UUID_TAG);
-               if (uuid != null) {
-                   backupResourceStore.putResourceWithoutCheck(uuid.getResPath(), uuid.getByteSource(),
-                           uuid.getTimestamp(), -1);
-               }
-               logger.info("start to backup all projects");
+                val uuid = resourceStore.getResource(ResourceStore.METASTORE_UUID_TAG);
+                if (uuid != null) {
+                    backupResourceStore.putResourceWithoutCheck(uuid.getResPath(), uuid.getByteSource(),
+                            uuid.getTimestamp(), -1);
+                }
+                logger.info("start to backup all projects");
 
-           } else {
-               logger.info("start to copy project {} from ResourceStore.", project);
-               UnitOfWork.doInTransactionWithRetry(
-                       UnitOfWorkParams.builder().readonly(true).unitName(project).processor(() -> {
-                           copyResourceStore("/" + project, resourceStore, backupResourceStore, true, excludeTableExd);
-                           val uuid = resourceStore.getResource(ResourceStore.METASTORE_UUID_TAG);
-                           backupResourceStore.putResourceWithoutCheck(uuid.getResPath(), uuid.getByteSource(),
-                                   uuid.getTimestamp(), -1);
-                           return null;
-                       }).build());
-               if (Thread.currentThread().isInterrupted()) {
-                   throw new InterruptedException("metadata task is interrupt");
-               }
-               logger.info("start to backup project {}", project);
-           }
-           backupResourceStore.deleteResource(ResourceStore.METASTORE_TRASH_RECORD);
-           backupMetadataStore.dump(backupResourceStore);
-           logger.info("backup successfully at {}", backupPath);
-       }
+            } else {
+                logger.info("start to copy project {} from ResourceStore.", project);
+                UnitOfWork.doInTransactionWithRetry(
+                        UnitOfWorkParams.builder().readonly(true).unitName(project).processor(() -> {
+                            copyResourceStore("/" + project, resourceStore, backupResourceStore, true, excludeTableExd);
+                            val uuid = resourceStore.getResource(ResourceStore.METASTORE_UUID_TAG);
+                            backupResourceStore.putResourceWithoutCheck(uuid.getResPath(), uuid.getByteSource(),
+                                    uuid.getTimestamp(), -1);
+                            return null;
+                        }).build());
+                if (Thread.currentThread().isInterrupted()) {
+                    throw new InterruptedException("metadata task is interrupt");
+                }
+                logger.info("start to backup project {}", project);
+            }
+            backupResourceStore.deleteResource(ResourceStore.METASTORE_TRASH_RECORD);
+            backupMetadataStore.dump(backupResourceStore);
+            logger.info("backup successfully at {}", backupPath);
+        }
     }
 
     private long getOffset(AuditLogStore auditLogStore) {
@@ -445,8 +445,8 @@ public class MetadataTool extends ExecutableApplication {
         val threadViewRS = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
 
         //check destResources and srcResources are null,because  Sets.difference(srcResources, destResources) will report NullPointerException
-        destResources = destResources == null ? Collections.EMPTY_SET : destResources;
-        srcResources = srcResources == null ? Collections.EMPTY_SET : srcResources;
+        destResources = destResources == null ? Collections.emptySet() : destResources;
+        srcResources = srcResources == null ? Collections.emptySet() : srcResources;
 
         logger.info("Start insert metadata resource...");
         val insertRes = Sets.difference(srcResources, destResources);

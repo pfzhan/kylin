@@ -43,9 +43,7 @@
 package org.apache.kylin.rest.util;
 
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PROJECT_NAME;
-import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
-
-import java.util.Locale;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_NOT_EXIST;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -73,8 +71,7 @@ public class AclEvaluate {
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         ProjectInstance prjInstance = projectManager.getProject(projectName);
         if (prjInstance == null) {
-            throw new KylinException(PROJECT_NOT_EXIST,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_NOT_FOUND(), projectName));
+            throw new KylinException(PROJECT_NOT_EXIST, projectName);
         }
         return prjInstance;
     }

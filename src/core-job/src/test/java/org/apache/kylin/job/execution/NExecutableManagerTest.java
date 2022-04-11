@@ -60,6 +60,7 @@ import org.apache.kylin.job.dao.NExecutableDao;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.assertj.core.util.Lists;
+import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -328,7 +329,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(ExecutableState.RUNNING, job.getStatus());
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Can’t RESUME job");
+        thrown.expectMessage(CoreMatchers.startsWith("Can't RESUME job"));
         manager.resumeJob(job.getId());
     }
 
@@ -342,7 +343,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(ExecutableState.READY, job.getStatus());
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Can’t RESUME job");
+        thrown.expectMessage(CoreMatchers.startsWith("Can't RESUME job"));
         manager.resumeJob(job.getId());
     }
 
@@ -356,7 +357,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         assertEquals(ExecutableState.DISCARDED, job.getStatus());
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Can’t RESUME job");
+        thrown.expectMessage(CoreMatchers.startsWith("Can't RESUME job"));
         manager.resumeJob(job.getId());
     }
 
@@ -382,7 +383,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(ExecutableState.SUICIDAL, job.getStatus());
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Can’t RESUME job");
+        thrown.expectMessage(CoreMatchers.startsWith("Can't RESUME job"));
         manager.resumeJob(job.getId());
     }
 
@@ -398,7 +399,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(ExecutableState.SUCCEED, job.getStatus());
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Can’t RESUME job");
+        thrown.expectMessage(CoreMatchers.startsWith("Can't RESUME job"));
         manager.resumeJob(job.getId());
     }
 

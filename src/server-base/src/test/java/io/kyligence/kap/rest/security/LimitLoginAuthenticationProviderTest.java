@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.rest.security;
 
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.USER_LOGIN_FAILED;
+
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.KylinUserService;
 import org.apache.kylin.rest.service.ServiceTestBase;
@@ -96,7 +98,7 @@ public class LimitLoginAuthenticationProviderTest extends ServiceTestBase {
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("", userAdmin.getPassword(),
                 userAdmin.getAuthorities());
         thrown.expect(BadCredentialsException.class);
-        thrown.expectMessage("Invalid username or password.");
+        thrown.expectMessage(USER_LOGIN_FAILED.getMsg());
         limitLoginAuthenticationProvider.authenticate(token);
     }
 
@@ -105,7 +107,7 @@ public class LimitLoginAuthenticationProviderTest extends ServiceTestBase {
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("lalala",
                 userAdmin.getPassword(), userAdmin.getAuthorities());
         thrown.expect(BadCredentialsException.class);
-        thrown.expectMessage("Invalid username or password.");
+        thrown.expectMessage(USER_LOGIN_FAILED.getMsg());
         limitLoginAuthenticationProvider.authenticate(token);
     }
 
@@ -121,7 +123,7 @@ public class LimitLoginAuthenticationProviderTest extends ServiceTestBase {
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("ADMIN", "",
                 userAdmin.getAuthorities());
         thrown.expect(BadCredentialsException.class);
-        thrown.expectMessage("Invalid username or password.");
+        thrown.expectMessage(USER_LOGIN_FAILED.getMsg());
         limitLoginAuthenticationProvider.authenticate(token);
     }
 
@@ -130,7 +132,7 @@ public class LimitLoginAuthenticationProviderTest extends ServiceTestBase {
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("ADMIN", "fff",
                 userAdmin.getAuthorities());
         thrown.expect(BadCredentialsException.class);
-        thrown.expectMessage("Invalid username or password.");
+        thrown.expectMessage(USER_LOGIN_FAILED.getMsg());
         limitLoginAuthenticationProvider.authenticate(token);
     }
 

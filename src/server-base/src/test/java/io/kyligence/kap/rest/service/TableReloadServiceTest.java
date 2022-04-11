@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.rest.service;
 
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.TABLE_RELOAD_HAVING_NOT_FINAL_JOB;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.CoreMatchers.is;
 
@@ -42,8 +43,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
-import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
@@ -100,11 +99,13 @@ import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.OpenPreReloadTableResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
@@ -1086,7 +1087,8 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
             Assert.fail();
         } catch (TransactionException e) {
             Assert.assertTrue(e.getCause() instanceof RuntimeException);
-            Assert.assertTrue(e.getCause().getMessage().contains("KE-010007008(Ongoing Jobs)"));
+            Assert.assertEquals(TABLE_RELOAD_HAVING_NOT_FINAL_JOB.getCodeMsg("DEFAULT.TEST_ORDER"),
+                    e.getCause().getMessage());
         }
     }
 
@@ -1558,7 +1560,6 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
 
         Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
     }
-
 
     private void prepareTableExt(String tableIdentity) {
         val tableManager = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);

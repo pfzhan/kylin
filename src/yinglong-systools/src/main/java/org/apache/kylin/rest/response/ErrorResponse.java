@@ -30,9 +30,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -45,9 +45,10 @@ package org.apache.kylin.rest.response;
 import static org.apache.kylin.common.exception.CommonErrorCode.FAILED_PARSE_JSON;
 import static org.apache.kylin.common.exception.CommonErrorCode.UNKNOWN_ERROR_CODE;
 
-import com.fasterxml.jackson.core.JsonParseException;
 import org.apache.kylin.common.exception.KylinException;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonParseException;
 import com.google.common.base.Throwables;
 
 /**
@@ -64,6 +65,11 @@ public class ErrorResponse extends EnvelopeResponse {
     //request URL, kept from legacy codes
     public String url;
 
+    public String suggestion;
+
+    @JsonProperty("error_code")
+    public String errorCode;
+
     public ErrorResponse(String url, Throwable exception) {
         super();
         this.url = url;
@@ -74,16 +80,19 @@ public class ErrorResponse extends EnvelopeResponse {
             this.msg = exception.getLocalizedMessage();
             KylinException kylinException = (KylinException) exception;
             this.code = kylinException.getCode();
+            this.suggestion = kylinException.getSuggestionString();
+            this.errorCode = kylinException.getErrorCodeString();
             if (kylinException.isThrowTrace()) {
                 this.stacktrace = Throwables.getStackTraceAsString(exception);
             }
             this.data = kylinException.getData();
         } else {
-            String errorCode = UNKNOWN_ERROR_CODE.toErrorCode().getLocalizedString();
+            String errorCodeString = UNKNOWN_ERROR_CODE.toErrorCode().getLocalizedString();
             if (exception.getClass() == JsonParseException.class) {
-                errorCode = FAILED_PARSE_JSON.toErrorCode().getLocalizedString();
+                errorCodeString = FAILED_PARSE_JSON.toErrorCode().getLocalizedString();
             }
-            this.msg = errorCode + " " + exception.getLocalizedMessage();
+
+            this.msg = errorCodeString + " " + exception.getLocalizedMessage();
             this.code = KylinException.CODE_UNDEFINED;
             this.stacktrace = Throwables.getStackTraceAsString(exception);
         }

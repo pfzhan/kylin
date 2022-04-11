@@ -24,6 +24,9 @@
 
 package io.kyligence.kap.rest.service;
 
+import static org.apache.kylin.common.exception.code.ErrorCodeSystem.MAINTENANCE_MODE_ENTER_FAILED;
+import static org.apache.kylin.common.exception.code.ErrorCodeSystem.MAINTENANCE_MODE_LEAVE_FAILED;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -84,24 +87,24 @@ public class MaintenanceModeServiceTest extends CSVSourceTestCase {
     }
 
     @Test
-    public void testSetMaintenanceModeTwice() throws Exception {
+    public void testSetMaintenanceModeTwice() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         EpochManager epochManager = EpochManager.getInstance();
         Assert.assertFalse(epochManager.isMaintenanceMode());
         maintenanceModeService.setMaintenanceMode("MODE1");
         Assert.assertTrue(epochManager.isMaintenanceMode());
         thrown.expect(KylinException.class);
-        thrown.expectMessage("System is already in maintenance mode");
+        thrown.expectMessage(MAINTENANCE_MODE_ENTER_FAILED.getMsg());
         maintenanceModeService.setMaintenanceMode("MODE1");
     }
 
     @Test
-    public void testUnsetMaintenanceModeTwice() throws Exception {
+    public void testUnsetMaintenanceModeTwice() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         EpochManager epochManager = EpochManager.getInstance();
         Assert.assertFalse(epochManager.isMaintenanceMode());
         thrown.expect(KylinException.class);
-        thrown.expectMessage("System is not in maintenance mode");
+        thrown.expectMessage(MAINTENANCE_MODE_LEAVE_FAILED.getMsg());
         maintenanceModeService.unsetMaintenanceMode("MODE1");
     }
 }

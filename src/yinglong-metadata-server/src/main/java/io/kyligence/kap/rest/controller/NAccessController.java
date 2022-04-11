@@ -27,8 +27,8 @@ package io.kyligence.kap.rest.controller;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_USER_NAME;
-import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_ID_NOT_EXIST;
 import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
 
 import java.io.IOException;
@@ -173,8 +173,7 @@ public class NAccessController extends NBasicController {
 
             NDataModel model = projectService.getDataModelManager(project).getDataModelDesc(modelId);
             if (Objects.isNull(model) || model.isBroken()) {
-                throw new KylinException(MODEL_NOT_EXIST,
-                        "Model " + modelId + "does not exist or broken in project " + project);
+                throw new KylinException(MODEL_ID_NOT_EXIST, modelId);
             }
             whole.remove(model.getOwner());
         }

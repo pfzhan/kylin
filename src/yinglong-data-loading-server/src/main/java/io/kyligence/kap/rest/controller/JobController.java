@@ -26,7 +26,7 @@ package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
-import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_JOB_ID;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_ID_EMPTY;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -124,7 +124,7 @@ public class JobController extends BaseController {
             @RequestParam(value = "statuses", required = false) List<String> statuses) throws IOException {
         jobService.checkJobStatus(statuses);
         if (StringUtils.isBlank(project) && CollectionUtils.isEmpty(jobIds)) {
-            throw new KylinException(EMPTY_JOB_ID, "At least one job should be selected to delete!");
+            throw new KylinException(JOB_ID_EMPTY, "delete");
         }
 
         if (null != project) {
@@ -143,8 +143,7 @@ public class JobController extends BaseController {
         jobService.checkJobStatusAndAction(jobUpdateRequest);
         if (StringUtils.isBlank(jobUpdateRequest.getProject())
                 && CollectionUtils.isEmpty(jobUpdateRequest.getJobIds())) {
-            throw new KylinException(EMPTY_JOB_ID,
-                    "At least one job should be selected to " + jobUpdateRequest.getAction());
+            throw new KylinException(JOB_ID_EMPTY, jobUpdateRequest.getAction());
         }
 
         if (!StringUtils.isEmpty(jobUpdateRequest.getProject())) {
@@ -242,7 +241,7 @@ public class JobController extends BaseController {
     @ResponseBody
     public EnvelopeResponse<String> updateJobError(@RequestBody JobErrorRequest request) {
         if (StringUtils.isBlank(request.getProject()) && StringUtils.isBlank(request.getJobId())) {
-            throw new KylinException(EMPTY_JOB_ID, "At least one job should be selected to update stage status");
+            throw new KylinException(JOB_ID_EMPTY, "At least one job should be selected to update stage status");
         }
         checkProjectName(request.getProject());
         logger.info("updateJobError errorRequest is : {}", request);
@@ -263,7 +262,7 @@ public class JobController extends BaseController {
     @ResponseBody
     public EnvelopeResponse<String> updateStageStatus(@RequestBody StageRequest stageRequest) {
         if (StringUtils.isBlank(stageRequest.getProject()) && StringUtils.isBlank(stageRequest.getTaskId())) {
-            throw new KylinException(EMPTY_JOB_ID, "At least one job should be selected to update stage status");
+            throw new KylinException(JOB_ID_EMPTY, "At least one job should be selected to update stage status");
         }
         checkProjectName(stageRequest.getProject());
         logger.info("updateStageStatus stageRequest is : {}", stageRequest);

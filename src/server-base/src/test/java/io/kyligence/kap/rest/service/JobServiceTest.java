@@ -24,6 +24,9 @@
 
 package io.kyligence.kap.rest.service;
 
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_ACTION_ILLEGAL;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_STATUS_ILLEGAL;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_UPDATE_STATUS_FAILED;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
@@ -57,7 +60,6 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.constant.ExecutableConstants;
@@ -950,7 +952,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         manager.updateJobOutput(executable.getId(), ExecutableState.SUCCEED, null, null, null);
         Assert.assertEquals(ExecutableState.SUCCEED, executable.getStatus());
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Can’t DISCARD job");
+        thrown.expectMessage(JOB_UPDATE_STATUS_FAILED.getMsg("DISCARD", executable.getId(), ExecutableState.SUCCEED));
         jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "DISCARD",
                 Lists.newArrayList());
     }
@@ -1132,7 +1134,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         mockJob.setTasks(tasks);
 
         jobOutput.setEndTime(lastEndTime);
-        Mockito.when(executableDao.getJobByUuid(Mockito.eq(mockJob.getId()))).thenReturn(mockJob);
+        Mockito.when(executableDao.getJobByUuid(eq(mockJob.getId()))).thenReturn(mockJob);
         return mockJob;
     }
 
@@ -1308,7 +1310,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
     public void testCheckJobStatus() {
         jobService.checkJobStatus(Lists.newArrayList("RUNNING"));
         thrown.expect(KylinException.class);
-        thrown.expectMessage(MsgPicker.getMsg().getILLEGAL_JOB_STATE());
+        thrown.expectMessage(JOB_STATUS_ILLEGAL.getMsg());
         jobService.checkJobStatus("UNKNOWN");
     }
 
@@ -1319,8 +1321,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         request.setAction("PAUSE");
         jobService.checkJobStatusAndAction(request);
         thrown.expect(KylinException.class);
-        thrown.expectMessage(String.format(Locale.ROOT, MsgPicker.getMsg().getILLEGAL_JOB_ACTION(), "RUNNING",
-                "DISCARD, PAUSE, RESTART"));
+        thrown.expectMessage(JOB_ACTION_ILLEGAL.getMsg("RUNNING", "DISCARD, PAUSE, RESTART"));
         jobService.checkJobStatusAndAction("RUNNING", "RESUME");
     }
 

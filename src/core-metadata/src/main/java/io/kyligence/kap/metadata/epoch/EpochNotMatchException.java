@@ -24,9 +24,8 @@
 
 package io.kyligence.kap.metadata.epoch;
 
-import static org.apache.kylin.common.exception.SystemErrorCode.EPOCH_DOES_NOT_BELONG_TO_CURRENT_NODE;
-
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.code.ErrorCodeProducer;
 
 import lombok.Getter;
 
@@ -35,8 +34,8 @@ public class EpochNotMatchException extends KylinException {
     @Getter
     private String project;
 
-    public EpochNotMatchException(String msg, String project) {
-        super(EPOCH_DOES_NOT_BELONG_TO_CURRENT_NODE, msg);
+    public EpochNotMatchException(ErrorCodeProducer errorCodeProducer, String project, Object... args) {
+        super(errorCodeProducer, args);
         this.project = project;
     }
 }

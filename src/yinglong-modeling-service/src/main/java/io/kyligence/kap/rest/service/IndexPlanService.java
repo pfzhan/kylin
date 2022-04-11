@@ -23,6 +23,10 @@
  */
 package io.kyligence.kap.rest.service;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
+import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.INDEX_DUPLICATE;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -185,7 +189,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
             return new Pair<>(indexPlanManager.getIndexPlan(originIndexPlan.getUuid()), response);
         } catch (Exception e) {
             logger.error("Update agg index failed...", e);
-            throw new KylinException(ServerErrorCode.FAILED_UPDATE_AGG_INDEX, e);
+            throw e;
         }
     }
 
@@ -206,7 +210,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
             return createTableIndex(project, request);
         } catch (Exception e) {
             logger.error("Update table index failed...", e);
-            throw new KylinException(ServerErrorCode.FAILED_UPDATE_TABLE_INDEX, e);
+            throw e;
         }
     }
 
@@ -260,7 +264,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
         IndexPlan indexPlan = indexPlanManager.getIndexPlan(modelId);
         for (LayoutEntity cuboidLayout : indexPlan.getAllLayouts()) {
             if (cuboidLayout.equals(newLayout) && cuboidLayout.isManual()) {
-                throw new KylinException(ServerErrorCode.DUPLICATE_INDEX, MsgPicker.getMsg().getDUPLICATE_LAYOUT());
+                throw new KylinException(INDEX_DUPLICATE);
             }
         }
         int layoutIndex = indexPlan.getWhitelistLayouts().indexOf(newLayout);
@@ -358,7 +362,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
             Set<Integer> invalidMeasures) {
         aclEvaluate.checkProjectWritePermission(project);
         if (CollectionUtils.isEmpty(ids)) {
-            throw new KylinException(ServerErrorCode.INVALID_PARAMETER, MsgPicker.getMsg().getLAYOUT_LIST_IS_EMPTY());
+            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getLAYOUT_LIST_IS_EMPTY());
         }
 
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
@@ -371,7 +375,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
                 .map(String::valueOf).collect(Collectors.joining(","));
 
         if (StringUtils.isNotEmpty(notExistsLayoutIds)) {
-            throw new KylinException(ServerErrorCode.INVALID_PARAMETER,
+            throw new KylinException(INVALID_PARAMETER,
                     String.format(Locale.ROOT, MsgPicker.getMsg().getLAYOUT_NOT_EXISTS(), notExistsLayoutIds));
         }
 
@@ -542,7 +546,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
         val dimensions = model.getDimensionNameIdMap();
         for (String shardByColumn : request.getShardByColumns()) {
             if (!dimensions.containsKey(shardByColumn)) {
-                throw new KylinException(ServerErrorCode.PERMISSION_DENIED,
+                throw new KylinException(PERMISSION_DENIED,
                         String.format(Locale.ROOT, MsgPicker.getMsg().getCOLUMU_IS_NOT_DIMENSION(), shardByColumn));
             }
         }

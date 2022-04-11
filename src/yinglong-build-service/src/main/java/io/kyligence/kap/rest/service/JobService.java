@@ -23,11 +23,11 @@
  */
 package io.kyligence.kap.rest.service;
 
-import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_JOB_STATUS;
-import static org.apache.kylin.common.exception.ServerErrorCode.ILLEGAL_JOB_ACTION;
-import static org.apache.kylin.common.exception.ServerErrorCode.ILLEGAL_JOB_STATUS;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
-import static org.apache.kylin.common.exception.ServerErrorCode.JOB_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_ACTION_ILLEGAL;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_STATUS_ILLEGAL;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_UPDATE_STATUS_FAILED;
 import static org.apache.kylin.query.util.AsyncQueryUtil.ASYNC_QUERY_JOB_ID_PRE;
 
 import java.io.IOException;
@@ -89,7 +89,6 @@ import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.PagingUtil;
-import io.kyligence.kap.rest.util.SparkHistoryUIUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -124,6 +123,7 @@ import io.kyligence.kap.rest.request.JobUpdateRequest;
 import io.kyligence.kap.rest.response.ExecutableResponse;
 import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import io.kyligence.kap.rest.response.JobStatisticsResponse;
+import io.kyligence.kap.rest.util.SparkHistoryUIUtil;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import lombok.Getter;
 import lombok.Setter;
@@ -414,8 +414,7 @@ public class JobService extends BasicService implements JobSupporter {
     private void discardJob(String project, String jobId) {
         AbstractExecutable job = getExecutableManager(project).getJob(jobId);
         if (ExecutableState.SUCCEED == job.getStatus()) {
-            throw new KylinException(FAILED_UPDATE_JOB_STATUS, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getInvalidJobStatusTransaction(), "DISCARD", jobId, job.getStatus()));
+            throw new KylinException(JOB_UPDATE_STATUS_FAILED, "DISCARD", jobId, job.getStatus());
         }
         if (ExecutableState.DISCARDED == job.getStatus()) {
             return;
@@ -503,8 +502,7 @@ public class JobService extends BasicService implements JobSupporter {
         //executableManager.getJob only reply ChainedExecutable
         AbstractExecutable executable = executableManager.getJob(jobId);
         if (executable == null) {
-            throw new KylinException(JOB_NOT_EXIST,
-                    String.format(Locale.ROOT, "Can't find job %s Please check and try again.", jobId));
+            throw new KylinException(JOB_NOT_EXIST, jobId);
         }
 
         // waite time in output
@@ -798,6 +796,7 @@ public class JobService extends BasicService implements JobSupporter {
         }
         return result;
     }
+
     // for ut
     @VisibleForTesting
     public ExecutableStepResponse parseToExecutableStep(AbstractExecutable task, Output stepOutput,
@@ -952,8 +951,9 @@ public class JobService extends BasicService implements JobSupporter {
     public Map<String, Integer> getJobCount(String project, long startTime, long endTime, String dimension) {
         aclEvaluate.checkProjectOperationPermission(project);
         JobStatisticsManager manager = getJobStatisticsManager(project);
-        if (dimension.equals("model"))
+        if (dimension.equals("model")) {
             return manager.getJobCountByModel(startTime, endTime);
+        }
 
         return manager.getJobCountByTime(startTime, endTime, dimension);
     }
@@ -961,8 +961,9 @@ public class JobService extends BasicService implements JobSupporter {
     public Map<String, Double> getJobDurationPerByte(String project, long startTime, long endTime, String dimension) {
         aclEvaluate.checkProjectOperationPermission(project);
         JobStatisticsManager manager = getJobStatisticsManager(project);
-        if (dimension.equals("model"))
+        if (dimension.equals("model")) {
             return manager.getDurationPerByteByModel(startTime, endTime);
+        }
 
         return manager.getDurationPerByteByTime(startTime, endTime, dimension);
     }
@@ -1039,9 +1040,8 @@ public class JobService extends BasicService implements JobSupporter {
     }
 
     public void checkJobStatus(String jobStatus) {
-        Message msg = MsgPicker.getMsg();
         if (Objects.isNull(JobStatusEnum.getByName(jobStatus))) {
-            throw new KylinException(ILLEGAL_JOB_STATUS, msg.getILLEGAL_JOB_STATE());
+            throw new KylinException(JOB_STATUS_ILLEGAL);
         }
     }
 
@@ -1050,8 +1050,7 @@ public class JobService extends BasicService implements JobSupporter {
         JobActionEnum.validateValue(action);
         JobStatusEnum jobStatusEnum = JobStatusEnum.valueOf(jobStatus);
         if (!jobStatusEnum.checkAction(JobActionEnum.valueOf(action))) {
-            throw new KylinException(ILLEGAL_JOB_ACTION, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getILLEGAL_JOB_ACTION(), jobStatus, jobStatusEnum.getValidActions()));
+            throw new KylinException(JOB_ACTION_ILLEGAL, jobStatus, jobStatusEnum.getValidActions());
         }
 
     }

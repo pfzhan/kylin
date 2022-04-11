@@ -25,11 +25,28 @@
 package io.kyligence.kap.rest.service;
 
 import static io.kyligence.kap.rest.request.MultiPartitionMappingRequest.MappingRequest;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CONCURRENT_SUBMIT_LIMIT;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_CHECK_FAIL;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_CHECK_MULTI_PARTITION_ABANDON;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_CHECK_MULTI_PARTITION_DUPLICATE;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_ID_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_DUPLICATE;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_LOCKED;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_MERGE_CHECK_INDEX_ILLEGAL;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_MERGE_CHECK_PARTITION_ILLEGAL;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_NOT_EXIST_ID;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_NOT_EXIST_NAME;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_REFRESH_SELECT_RANGE_EMPTY;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_STATUS;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -68,7 +85,6 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.rest.response.OpenModelRecResponse;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
@@ -80,7 +96,6 @@ import org.apache.commons.lang3.time.DateUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.DateFormat;
@@ -122,7 +137,6 @@ import org.apache.kylin.util.BrokenEntityProxy;
 import org.apache.kylin.util.PasswordEncodeFactory;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
-import org.hamcrest.core.IsInstanceOf;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -227,6 +241,7 @@ import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.NModelDescResponse;
 import io.kyligence.kap.rest.response.OpenAccSqlResponse;
+import io.kyligence.kap.rest.response.OpenModelRecResponse;
 import io.kyligence.kap.rest.response.OpenSuggestionResponse;
 import io.kyligence.kap.rest.response.ParameterResponse;
 import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
@@ -356,8 +371,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val result1 = new QueryTimesResponse();
         result1.setModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         result1.setQueryTimes(10);
-        RDBMSQueryHistoryDAO rdbmsQueryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
-        Mockito.doReturn(rdbmsQueryHistoryDAO).when(modelService).getQueryHistoryDao();
+        RDBMSQueryHistoryDAO rdbmsQueryHistoryDAO = mock(RDBMSQueryHistoryDAO.class);
+        doReturn(rdbmsQueryHistoryDAO).when(modelService).getQueryHistoryDao();
         val prjManager = NProjectManager.getInstance(getTestConfig());
         val prj = prjManager.getProject("default");
         val copy = prjManager.copyForWrite(prj);
@@ -430,7 +445,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         brokenEntity.setUuid(brokenModelId);
         brokenEntity.setMvcc(indexPlan.getMvcc());
         brokenEntity.setProject("default");
-        Mockito.doReturn(brokenEntity).when(modelService).getIndexPlan(brokenModelId, "default");
+        doReturn(brokenEntity).when(modelService).getIndexPlan(brokenModelId, "default");
 
         List<NDataModelResponse> models9 = modelService.getModels("nmodel_basic_inner", "default", false, "", null,
                 "last_modify", true, "admin", null, null);
@@ -663,7 +678,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         mockSegments.add(segmentResponse3);
         mockSegments.add(segmentResponse2);
 
-        Mockito.doReturn(mockSegments).when(modelService).getSegmentsResponseCore(ArgumentMatchers.any(),
+        doReturn(mockSegments).when(modelService).getSegmentsResponseCore(ArgumentMatchers.any(),
                 ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(),
                 ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.anyBoolean(),
                 ArgumentMatchers.any());
@@ -870,10 +885,11 @@ public class ModelServiceTest extends CSVSourceTestCase {
     public void testGetSegmentPartition_not_exist_id() {
         val project = "multi_level_partition";
         val dataflowId = "747f864b-9721-4b97-acde-0aa8e8656cba";
+        String not_exist_id = "not_exist_id";
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Can’t find the segment by ID \"not_exist_id\". Please check and try again.");
-        modelService.getSegmentPartitions(project, dataflowId, "not_exist_id", null, "last_modified_time", false);
+        thrown.expectMessage(SEGMENT_NOT_EXIST_ID.getMsg(not_exist_id));
+        modelService.getSegmentPartitions(project, dataflowId, not_exist_id, null, "last_modified_time", false);
     }
 
     @Test
@@ -1216,7 +1232,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testDropModelExceptionName() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Can’t find model named \"nmodel_basic2222\". Please check and try again.");
+        thrown.expectMessage(MODEL_ID_NOT_EXIST.getMsg("nmodel_basic2222"));
         modelService.dropModel("nmodel_basic2222", "default");
     }
 
@@ -1344,21 +1360,22 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testPurgeModelExceptionName() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Can’t find model named \"nmodel_basic2222\". Please check and try again.");
+        thrown.expectMessage(MODEL_ID_NOT_EXIST.getMsg("nmodel_basic2222"));
         modelService.purgeModelManually("nmodel_basic2222", "default");
     }
 
     @Test
     public void testCloneModelException() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Model \"nmodel_basic_inner\" already exists. Please rename it.");
-        modelService.cloneModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "nmodel_basic_inner", "default");
+        String nmodel_basic_inner = "nmodel_basic_inner";
+        thrown.expectMessage(MODEL_NAME_DUPLICATE.getMsg(nmodel_basic_inner));
+        modelService.cloneModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa", nmodel_basic_inner, "default");
     }
 
     @Test
     public void testCloneModelExceptionName() {
-        thrown.expectCause(IsInstanceOf.instanceOf(KylinException.class));
-        thrown.expectMessageInTransaction("Can’t find model named \"nmodel_basic2222\". Please check and try again.");
+        thrown.expectInTransaction(KylinException.class);
+        thrown.expectMessageInTransaction(MODEL_ID_NOT_EXIST.getMsg("nmodel_basic2222"));
         modelService.cloneModel("nmodel_basic2222", "nmodel_basic_inner222", "default");
     }
 
@@ -1442,15 +1459,16 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testRenameModelException() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Can’t find model named \"nmodel_basic222\". Please check and try again.");
+        thrown.expectMessage(MODEL_ID_NOT_EXIST.getMsg("nmodel_basic222"));
         modelService.renameDataModel("default", "nmodel_basic222", "new_name");
     }
 
     @Test
     public void testRenameModelException2() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Model \"nmodel_basic_inner\" already exists. Please rename it.");
-        modelService.renameDataModel("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "nmodel_basic_inner");
+        String nmodel_basic_inner = "nmodel_basic_inner";
+        thrown.expectMessage(MODEL_NAME_DUPLICATE.getMsg(nmodel_basic_inner));
+        modelService.renameDataModel("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", nmodel_basic_inner);
     }
 
     @Test
@@ -1552,7 +1570,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testUpdateDataModelStatus_ModelNotExist_Exception() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Can’t find model named \"nmodel_basic222\". Please check and try again.");
+        thrown.expectMessage(MODEL_ID_NOT_EXIST.getMsg("nmodel_basic222"));
         modelService.updateDataModelStatus("nmodel_basic222", "default", "OFFLINE");
     }
 
@@ -1609,9 +1627,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testGetRelatedModels_HasNoErrorJobs() {
-        NExecutableManager executableManager = Mockito.mock(NExecutableManager.class);
-        Mockito.when(modelService.getExecutableManager("default")).thenReturn(executableManager);
-        Mockito.when(executableManager.getExecutablesByStatus(ExecutableState.ERROR)).thenReturn(Lists.newArrayList());
+        NExecutableManager executableManager = mock(NExecutableManager.class);
+        when(modelService.getExecutableManager("default")).thenReturn(executableManager);
+        when(executableManager.getExecutablesByStatus(ExecutableState.ERROR)).thenReturn(Lists.newArrayList());
         List<RelatedModelResponse> responses = modelService.getRelateModels("default", "DEFAULT.TEST_KYLIN_FACT",
                 "nmodel_basic");
         Assert.assertEquals(2, responses.size());
@@ -1620,9 +1638,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testGetRelatedModels_HasErrorJobs() {
-        NExecutableManager executableManager = Mockito.mock(NExecutableManager.class);
-        Mockito.when(modelService.getExecutableManager("default")).thenReturn(executableManager);
-        Mockito.when(executableManager.getExecutablesByStatus(ExecutableState.ERROR)).thenReturn(mockJobs());
+        NExecutableManager executableManager = mock(NExecutableManager.class);
+        when(modelService.getExecutableManager("default")).thenReturn(executableManager);
+        when(executableManager.getExecutablesByStatus(ExecutableState.ERROR)).thenReturn(mockJobs());
         List<RelatedModelResponse> responses = modelService.getRelateModels("default", "DEFAULT.TEST_KYLIN_FACT",
                 "nmodel_basic_inner");
         Assert.assertEquals(1, responses.size());
@@ -1636,7 +1654,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         List<RelatedModelResponse> models2 = modelService.getRelateModels("default", "DEFAULT.TEST_KYLIN_FACT",
                 "nmodel_basic_inner");
         Assert.assertEquals(1, models2.size());
-        Mockito.doReturn(new ArrayList<>()).when(modelService).addOldParams(Mockito.anyString(), any());
+        doReturn(new ArrayList<>()).when(modelService).addOldParams(anyString(), any());
 
         val models3 = modelService.getModels("741ca86a-1f13-46da-a59f-95fb68615e3a", null, true, "default", "ADMIN",
                 Lists.newArrayList(), "DEFAULT.TEST_KYLIN_FACT", 0, 8, "last_modify", true, null, null, null, null,
@@ -1674,7 +1692,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testSuggestModel() {
         List<String> sqls = Lists.newArrayList();
-        Mockito.doReturn(false).when(modelService).isProjectNotExist(getProject());
+        doReturn(false).when(modelService).isProjectNotExist(getProject());
         val result = modelSmartService.couldAnsweredByExistedModel(getProject(), sqls);
         Assert.assertTrue(result);
     }
@@ -1690,7 +1708,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         tableManager.updateTableDesc(table);
 
         List<String> sqls = Lists.newArrayList("select order_id, count(*) from test_order group by order_id limit 1");
-        Mockito.doReturn(false).when(modelService).isProjectNotExist(getProject());
+        doReturn(false).when(modelService).isProjectNotExist(getProject());
         val result = modelSmartService.couldAnsweredByExistedModel(getProject(), sqls);
         Assert.assertTrue(result);
     }
@@ -1983,8 +2001,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dataflowManager.refreshSegment(df, segmentRange);
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage(
-                String.format(Locale.ROOT, MsgPicker.getMsg().getSEGMENT_LOCKED(), dataSegment.displayIdName()));
+        thrown.expectMessage(String.format(Locale.ROOT, SEGMENT_LOCKED.getErrorMsg().getLocalizedString(),
+                dataSegment.displayIdName()));
 
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
                 new String[] { dataSegment.getId() }, false);
@@ -1997,12 +2015,13 @@ public class ModelServiceTest extends CSVSourceTestCase {
         NDataModel modelUpdate = dataModelManager.copyForWrite(dataModel);
         modelUpdate.setManagementType(ManagementType.MODEL_BASED);
         dataModelManager.updateDataModelDesc(modelUpdate);
+        String not_exist_01 = "not_exist_01";
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Can’t find the segment by ID \"not_exist_01\". Please check and try again.");
+        thrown.expectMessage(SEGMENT_NOT_EXIST_ID.getMsg(not_exist_01));
         //refresh exception
-        modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
-                new String[] { "not_exist_01" }, false);
+        modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default", new String[] { not_exist_01 },
+                false);
     }
 
     @Test
@@ -2219,7 +2238,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dataSegment3.setSegmentRange(segmentRange);
         segments.add(dataSegment3);
 
-        update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
+        update.setToUpdateSegs(segments.toArray(new NDataSegment[0]));
         dfManager.updateDataflow(update);
 
         try {
@@ -2229,7 +2248,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
             Assert.assertEquals(
-                    "Can’t merge the selected segments, as there are gap(s) in between. Please check and try again.",
+                    "Can't merge the selected segments, as there are gap(s) in between. Please check and try again.",
                     e.getMessage());
         }
 
@@ -2252,8 +2271,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
                     new MergeSegmentParams("default", dfId, new String[] { dataSegment2.getId() }));
             Assert.fail();
         } catch (KylinException e) {
-            Assert.assertEquals("Can’t remove, refresh or merge segment \"" + dataSegment2.displayIdName()
-                    + "\", as it’s LOCKED. Please try again later.", e.getMessage());
+            Assert.assertEquals("Can't remove, refresh or merge segment \"" + dataSegment2.displayIdName()
+                    + "\", as it's LOCKED. Please try again later.", e.getMessage());
         }
         // clear segments
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
@@ -2294,9 +2313,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dfManager.updateDataflow(update);
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage(String.format(Locale.ROOT,
-                MsgPicker.getMsg().getSEGMENT_STATUS(SegmentStatusEnumToDisplay.LOADING.name()),
-                dataSegment1.displayIdName()));
+        thrown.expectMessage(
+                SEGMENT_STATUS.getMsg(dataSegment1.displayIdName(), SegmentStatusEnumToDisplay.LOADING.name()));
         modelBuildService.mergeSegmentsManually(
                 new MergeSegmentParams("default", dfId, new String[] { dataSegment1.getId(), dataSegment2.getId() }));
 
@@ -2340,8 +2358,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelBuildService.refreshSegmentById(new RefreshSegmentParams("default", "741ca86a-1f13-46da-a59f-95fb68615e3a",
                 new String[] { dataSegment2.getId() }));
         thrown.expect(KylinException.class);
-        thrown.expectMessage(
-                String.format(Locale.ROOT, MsgPicker.getMsg().getSEGMENT_LOCKED(), dataSegment2.displayIdName()));
+        thrown.expectMessage(String.format(Locale.ROOT, SEGMENT_LOCKED.getErrorMsg().getLocalizedString(),
+                dataSegment2.displayIdName()));
         //refresh exception
         modelBuildService.refreshSegmentById(new RefreshSegmentParams("default", "741ca86a-1f13-46da-a59f-95fb68615e3a",
                 new String[] { dataSegment2.getId() }));
@@ -2362,7 +2380,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testRefreshSegmentById_isNotExist() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Can’t find the segment by ID \"not_exist_01\". Please check and try again.");
+        thrown.expectMessage(SEGMENT_NOT_EXIST_ID.getMsg("not_exist_01"));
         //refresh exception
         modelBuildService.refreshSegmentById(new RefreshSegmentParams("default", "741ca86a-1f13-46da-a59f-95fb68615e3a",
                 new String[] { "not_exist_01" }));
@@ -2413,7 +2431,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         NDataModel model = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Model \"nmodel_basic\" already exists. Please rename it.");
+        thrown.expectMessage(MODEL_NAME_DUPLICATE.getMsg("nmodel_basic"));
         ModelRequest modelRequest = new ModelRequest(model);
         modelRequest.setUuid("new_model");
         modelRequest.setLastModified(0L);
@@ -4183,9 +4201,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(0, job.getPriority());
         Assert.assertTrue(((NSparkCubingJob) job).getHandler() instanceof ExecutableAddSegmentHandler);
         thrown.expectInTransaction(KylinException.class);
-        thrown.expectMessageInTransaction(String.format(Locale.ROOT,
-                MsgPicker.getMsg().getSEGMENT_STATUS(SegmentStatusEnumToDisplay.LOADING.name()), dataflowManager
-                        .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getSegments().get(0).displayIdName()));
+        thrown.expectMessageInTransaction(
+                SEGMENT_STATUS.getMsg(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getSegments()
+                        .get(0).displayIdName(), SegmentStatusEnumToDisplay.LOADING.name()));
         modelBuildService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "");
     }
 
@@ -4214,7 +4232,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
             modelBuildService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "");
         } catch (TransactionException exception) {
             Assert.assertTrue(exception.getCause() instanceof KylinException);
-            Assert.assertEquals(MsgPicker.getMsg().getADD_JOB_CHECK_FAIL(), exception.getCause().getMessage());
+            Assert.assertEquals(JOB_CREATE_CHECK_FAIL.getErrorMsg().getLocalizedString(),
+                    exception.getCause().getMessage());
         }
         val executables = getRunningExecutables(project, modelId);
         Assert.assertEquals(2, executables.size());
@@ -4611,15 +4630,15 @@ public class ModelServiceTest extends CSVSourceTestCase {
         RefreshAffectedSegmentsResponse response = new RefreshAffectedSegmentsResponse();
         response.setAffectedStart("12");
         response.setAffectedEnd("120");
-        Mockito.doReturn(response).when(modelService).getRefreshAffectedSegmentsResponse("default",
-                "DEFAULT.TEST_KYLIN_FACT", "0", "12223334");
+        doReturn(response).when(modelService).getRefreshAffectedSegmentsResponse("default", "DEFAULT.TEST_KYLIN_FACT",
+                "0", "12223334");
         modelBuildService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "12223334", "0", "12223334");
     }
 
     @Test
     public void testGetAffectedSegmentsResponse_NoSegments_Exception() throws IOException {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("No segments to refresh, please select new range and try again!");
+        thrown.expectMessage(SEGMENT_REFRESH_SELECT_RANGE_EMPTY.getMsg());
         List<NDataSegment> segments = modelService.getSegmentsByRange("a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94", "default",
                 "0", "" + Long.MAX_VALUE);
         Assert.assertTrue(CollectionUtils.isEmpty(segments));
@@ -4836,7 +4855,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testGetCubes() {
-        Mockito.doReturn(Sets.newHashSet("default")).when(modelService).getAllProjects();
+        doReturn(Sets.newHashSet("default")).when(modelService).getAllProjects();
         List<NDataModelResponse> responses = modelService.getCubes("nmodel_full_measure_test", "default");
         Assert.assertEquals(1, responses.size());
 
@@ -4961,7 +4980,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         okModel.setFilterCondition("TEST_KYLIN_FACT.SELLER_ID > 0");
         ModelRequest okModelRequest = new ModelRequest(okModel);
         okModelRequest.setProject(project);
-        Mockito.when(semanticService.convertToDataModel(okModelRequest)).thenReturn(okModel);
+        when(semanticService.convertToDataModel(okModelRequest)).thenReturn(okModel);
         okModelRequest.setPartitionDesc(null);
         modelService.checkBeforeModelSave(okModelRequest);
     }
@@ -4976,8 +4995,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelRequest.setProject(project);
         modelRequest.setRootFactTableAlias(dataModel.getRootFactTableAlias());
         modelRequest.setRootFactTableName(dataModel.getRootFactTableName());
-        Mockito.when(modelRequest.getSimplifiedDimensions()).thenReturn(new ArrayList<>(0));
-        Mockito.when(modelRequest.getDimensionNameIdMap()).thenReturn(new HashMap<>(0));
+        when(modelRequest.getSimplifiedDimensions()).thenReturn(new ArrayList<>(0));
+        when(modelRequest.getDimensionNameIdMap()).thenReturn(new HashMap<>(0));
 
         thrown.expect(KylinException.class);
         thrown.expectMessage(MsgPicker.getMsg().getTIMESTAMP_PARTITION_COLUMN_NOT_EXIST());
@@ -4994,7 +5013,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelRequest.setProject(project);
         modelRequest.setRootFactTableAlias(dataModel.getRootFactTableAlias());
         modelRequest.setRootFactTableName(dataModel.getRootFactTableName());
-        Mockito.when(modelRequest.getDimensionNameIdMap()).thenReturn(new HashMap<>(0));
+        when(modelRequest.getDimensionNameIdMap()).thenReturn(new HashMap<>(0));
         thrown.expect(KylinException.class);
         thrown.expectMessage(MsgPicker.getMsg().getTIMESTAMP_PARTITION_COLUMN_NOT_EXIST());
         modelService.validateFusionModelDimension(modelRequest);
@@ -5010,7 +5029,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelRequest.setProject(project);
         modelRequest.setRootFactTableAlias(dataModel.getRootFactTableAlias());
         modelRequest.setRootFactTableName(dataModel.getRootFactTableName());
-        Mockito.when(modelRequest.getDimensionNameIdMap()).thenReturn(new HashMap<>(0));
+        when(modelRequest.getDimensionNameIdMap()).thenReturn(new HashMap<>(0));
         try {
             modelRequest.setModelType(NDataModel.ModelType.BATCH);
             modelService.validateFusionModelDimension(modelRequest);
@@ -5218,7 +5237,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     private NDataSegment mockSegment() {
-        NDataSegment segment = Mockito.mock(NDataSegment.class);
+        NDataSegment segment = mock(NDataSegment.class);
         Map<Long, NDataLayout> layoutMap = Maps.newHashMap();
         layoutMap.put(1L, new NDataLayout());
         layoutMap.put(10001L, new NDataLayout());
@@ -5369,7 +5388,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         // normal case
         Set<String> projectManagementUsers1 = Sets.newHashSet();
         projectManagementUsers1.add("test");
-        Mockito.doReturn(projectManagementUsers1).when(accessService).getProjectManagementUsers(project);
+        doReturn(projectManagementUsers1).when(accessService).getProjectManagementUsers(project);
 
         OwnerChangeRequest ownerChangeRequest1 = new OwnerChangeRequest();
         ownerChangeRequest1.setProject(project);
@@ -5387,7 +5406,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         // empty admin users, throw exception
         Set<String> projectManagementUsers2 = Sets.newHashSet();
-        Mockito.doReturn(projectManagementUsers2).when(accessService).getProjectManagementUsers(project);
+        doReturn(projectManagementUsers2).when(accessService).getProjectManagementUsers(project);
 
         OwnerChangeRequest ownerChangeRequest = new OwnerChangeRequest();
         ownerChangeRequest.setProject(project);
@@ -5405,15 +5424,14 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         // can not found model, throw exception
         Set<String> projectManagementUsers3 = Sets.newHashSet();
-        Mockito.doReturn(projectManagementUsers3).when(accessService).getProjectManagementUsers(project);
+        doReturn(projectManagementUsers3).when(accessService).getProjectManagementUsers(project);
 
         OwnerChangeRequest ownerChangeRequest3 = new OwnerChangeRequest();
         ownerChangeRequest3.setProject(project);
         ownerChangeRequest3.setOwner(owner);
 
         String modelId = RandomUtil.randomUUIDStr();
-        thrown.expectMessage(
-                String.format(Locale.ROOT, "Model %s does not exist or broken in project %s", modelId, project));
+        thrown.expectMessage(MODEL_ID_NOT_EXIST.getMsg(modelId));
         modelService.updateModelOwner(project, modelId, ownerChangeRequest3);
 
         // test broken model, throw exception
@@ -5424,8 +5442,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         brokenModel.setBrokenReason(NDataModel.BrokenReason.SCHEMA);
         modelManager.updateDataBrokenModelDesc(brokenModel);
 
-        thrown.expectMessage(
-                String.format(Locale.ROOT, "Model %s does not exist or broken in project %s", brokenModelId, project));
+        thrown.expectMessage(MODEL_ID_NOT_EXIST.getMsg(brokenModelId));
         modelService.updateModelOwner(project, brokenModelId, ownerChangeRequest3);
     }
 
@@ -5474,9 +5491,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testConvertSegmentIdWithName_NotExistName() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage(
-                "Can’t find the segment by name \"not exist name1,not exist name2\". Please check and try again.");
-
+        thrown.expectMessage(SEGMENT_NOT_EXIST_NAME.getMsg("not exist name1,not exist name2"));
         modelService.convertSegmentIdWithName("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default", null,
                 new String[] { "not exist name1", "not exist name2" });
     }
@@ -5495,9 +5510,14 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 new String[] { "11124840-b3e3-43db-bcab-2b78da666d00" }, false);
         Assert.assertTrue(existed);
 
-        existed = modelService.checkSegmentsExistById("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default",
-                new String[] { "11124840-b3e3-43db-bcab-2b78da666d00_not" }, false);
-        Assert.assertFalse(existed);
+        try {
+            modelService.checkSegmentsExistById("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default",
+                    new String[] { "11124840-b3e3-43db-bcab-2b78da666d00_not" }, false);
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertEquals(SEGMENT_NOT_EXIST_ID.getCodeMsg("11124840-b3e3-43db-bcab-2b78da666d00_not"),
+                    e.getLocalizedMessage());
+        }
     }
 
     @Test
@@ -5505,9 +5525,15 @@ public class ModelServiceTest extends CSVSourceTestCase {
         boolean existed = modelService.checkSegmentsExistByName("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default",
                 new String[] { "20171104141833_20171105141833" }, false);
         Assert.assertTrue(existed);
-        existed = modelService.checkSegmentsExistByName("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default",
-                new String[] { "20171104141833_20171105141833_not" }, false);
-        Assert.assertFalse(existed);
+
+        try {
+            modelService.checkSegmentsExistByName("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default",
+                    new String[] { "20171104141833_20171105141833_not" }, false);
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertEquals(SEGMENT_NOT_EXIST_NAME.getCodeMsg("20171104141833_20171105141833_not"),
+                    e.getLocalizedMessage());
+        }
     }
 
     @Test
@@ -5701,10 +5727,10 @@ public class ModelServiceTest extends CSVSourceTestCase {
         ModelRequest request = new ModelRequest();
         request.setWithSecondStorage(true);
         request.setUuid(model);
-        BuildBaseIndexResponse changedResponse = Mockito.mock(BuildBaseIndexResponse.class);
+        BuildBaseIndexResponse changedResponse = mock(BuildBaseIndexResponse.class);
         Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded(eq("default"), eq(request), eq(true));
 
-        Mockito.when(changedResponse.hasTableIndexChange()).thenReturn(true);
+        when(changedResponse.hasTableIndexChange()).thenReturn(true);
         modelService.changeSecondStorageIfNeeded(project, request, true);
         Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
 
@@ -5751,9 +5777,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
         ModelRequest request = new ModelRequest();
         request.setWithSecondStorage(true);
         request.setUuid(model);
-        BuildBaseIndexResponse changedResponse = Mockito.mock(BuildBaseIndexResponse.class);
+        BuildBaseIndexResponse changedResponse = mock(BuildBaseIndexResponse.class);
         Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded(eq("default"), eq(request), eq(true));
-        Mockito.when(changedResponse.hasTableIndexChange()).thenReturn(true);
+        when(changedResponse.hasTableIndexChange()).thenReturn(true);
 
         modelService.dropModel(model, project, false);
 
@@ -5779,9 +5805,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
         ModelRequest request = new ModelRequest();
         request.setWithSecondStorage(true);
         request.setUuid(model);
-        BuildBaseIndexResponse changedResponse = Mockito.mock(BuildBaseIndexResponse.class);
+        BuildBaseIndexResponse changedResponse = mock(BuildBaseIndexResponse.class);
         Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded(eq("default"), eq(request), eq(true));
-        Mockito.when(changedResponse.hasTableIndexChange()).thenReturn(true);
+        when(changedResponse.hasTableIndexChange()).thenReturn(true);
 
         modelService.purgeModel(model, project);
 
@@ -5887,7 +5913,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val project = "streaming_test";
         val modelMgr = NDataModelManager.getInstance(getTestConfig(), project);
 
-        val partitionDesc = Mockito.mock(PartitionDesc.class);
+        val partitionDesc = mock(PartitionDesc.class);
         partitionDesc.setPartitionDateColumn(null);
         modelMgr.updateDataModel(modelId, model -> {
             model.setPartitionDesc(partitionDesc);
@@ -6037,9 +6063,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals(
-                    "The indexes included in the selected segments are not fully identical. Please build index first and try merging again.",
-                    e.getMessage());
+            Assert.assertEquals(SEGMENT_MERGE_CHECK_INDEX_ILLEGAL.getMsg(), e.getMessage());
         }
 
         // index is not aligned in segment3, segment4
@@ -6049,9 +6073,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals(
-                    "The indexes included in the selected segments are not fully identical. Please build index first and try merging again.",
-                    e.getMessage());
+            Assert.assertEquals(SEGMENT_MERGE_CHECK_INDEX_ILLEGAL.getMsg(), e.getMessage());
         }
 
         // partitions are not aligned in segment2, segment3
@@ -6061,9 +6083,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals(
-                    "The subpartitions included in the selected segments are not fully aligned. Please build the subpartitions first and try merging again.",
-                    e.getMessage());
+            Assert.assertEquals(SEGMENT_MERGE_CHECK_PARTITION_ILLEGAL.getMsg(), e.getMessage());
         }
 
         // success
@@ -6145,7 +6165,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals("Can’t add the job. Please ensure that the subpartitions are unique.", e.getMessage());
+            Assert.assertEquals(JOB_CREATE_CHECK_MULTI_PARTITION_DUPLICATE.getMsg(), e.getMessage());
             Assert.assertEquals(4, getRunningExecutables(getProject(), modelId).size());
         }
 
@@ -6164,9 +6184,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals(
-                    "Can't submit building jobs, as it exceeds the concurrency limit (5).  Please try submitting fewer jobs at a time.",
-                    e.getMessage());
+            Assert.assertEquals(JOB_CONCURRENT_SUBMIT_LIMIT.getMsg(5), e.getMessage());
             Assert.assertEquals(4, getRunningExecutables(getProject(), modelId).size());
         }
 
@@ -6206,8 +6224,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals(e.getMessage(),
-                    "Can’t add the job. Please ensure that the operation is valid for the current object.");
+            Assert.assertEquals(e.getMessage(), JOB_CREATE_CHECK_MULTI_PARTITION_ABANDON.getMsg());
         }
 
         // no target partition value in segment
@@ -6219,8 +6236,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals(e.getMessage(),
-                    "Can’t add the job. Please ensure that the operation is valid for the current object.");
+            Assert.assertEquals(e.getMessage(), JOB_CREATE_CHECK_MULTI_PARTITION_ABANDON.getMsg());
         }
 
         // no target partition value or partition id
@@ -6231,8 +6247,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals(e.getMessage(),
-                    "Can’t add the job. Please ensure that the operation is valid for the current object.");
+            Assert.assertEquals(e.getMessage(), JOB_CREATE_CHECK_MULTI_PARTITION_ABANDON.getMsg());
         }
     }
 
@@ -6530,7 +6545,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         partitionValues.add(new String[] { "p2" });
         partitionValues.add(new String[] { "p3" });
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Can’t find model named \"1\". Please check and try again.");
+        thrown.expectMessage(MODEL_ID_NOT_EXIST.getMsg("1"));
         modelService.batchUpdateMultiPartition(getProject(), modelId, partitionValues);
     }
 
@@ -6588,7 +6603,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         // model id is invalid
         assertKylinExeption(() -> {
             modelService.checkModelPermission(getProject(), "xxx");
-        }, "Can’t find model named \"xxx\". Please check and try again.");
+        }, MODEL_ID_NOT_EXIST.getMsg("xxx"));
 
         addAclTable("DEFAULT.TEST_ENCODING", "user", true);
         modelService.checkModelPermission(getProject(), "a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94");
@@ -6603,7 +6618,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals(ServerErrorCode.MODEL_NOT_EXIST.toErrorCode(), ((KylinException) e).getErrorCode());
+            Assert.assertTrue(e.getMessage().contains(MODEL_ID_NOT_EXIST.getMsg("abc")));
         }
     }
 
@@ -6625,10 +6640,10 @@ public class ModelServiceTest extends CSVSourceTestCase {
         request.setWithSecondStorage(false);
         request.setUuid(model);
         BuildBaseIndexResponse emptyResponse = new BuildBaseIndexResponse();
-        BuildBaseIndexResponse changedResponse = Mockito.mock(BuildBaseIndexResponse.class);
+        BuildBaseIndexResponse changedResponse = mock(BuildBaseIndexResponse.class);
         Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded(eq("default"), eq(request), eq(true));
 
-        Mockito.when(changedResponse.hasTableIndexChange()).thenReturn(true);
+        when(changedResponse.hasTableIndexChange()).thenReturn(true);
         modelService.changeSecondStorageIfNeeded("default", request, true);
         Assert.assertFalse(SecondStorageUtil.isModelEnable("default", model));
 
@@ -6895,17 +6910,17 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testAddBaseIndex() {
-        val modelRequest = Mockito.mock(ModelRequest.class);
-        val model = Mockito.mock(NDataModel.class);
-        val indexPlan = Mockito.mock(IndexPlan.class);
+        val modelRequest = mock(ModelRequest.class);
+        val model = mock(NDataModel.class);
+        val indexPlan = mock(IndexPlan.class);
 
-        Mockito.when(modelRequest.isWithSecondStorage()).thenReturn(false);
-        Mockito.when(model.getModelType()).thenReturn(NDataModel.ModelType.BATCH);
-        Mockito.when(modelRequest.isWithBaseIndex()).thenReturn(true);
+        when(modelRequest.isWithSecondStorage()).thenReturn(false);
+        when(model.getModelType()).thenReturn(NDataModel.ModelType.BATCH);
+        when(modelRequest.isWithBaseIndex()).thenReturn(true);
         modelService.addBaseIndex(modelRequest, model, indexPlan);
         Mockito.verify(indexPlan).createAndAddBaseIndex(model);
-        Mockito.when(modelRequest.isWithSecondStorage()).thenReturn(true);
-        Mockito.when(indexPlan.createBaseTableIndex(model)).thenReturn(null);
+        when(modelRequest.isWithSecondStorage()).thenReturn(true);
+        when(indexPlan.createBaseTableIndex(model)).thenReturn(null);
         modelService.addBaseIndex(modelRequest, model, indexPlan);
         Mockito.verify(indexPlan).createAndAddBaseIndex(anyList());
     }
@@ -7070,5 +7085,108 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         val indexResponse = modelService.updateDataModelSemantic(project, modelRequest);
         Assert.assertFalse(indexResponse.isCleanSecondStorage());
+    }
+
+    @Test
+    public void testGetModelById_throwsException() {
+        NDataModelManager dataModelManager = mock(NDataModelManager.class);
+        doReturn(dataModelManager).when(modelService).getDataModelManager(anyString());
+        when(dataModelManager.getDataModelDesc(anyString())).thenReturn(null);
+        try {
+            modelService.getModelById("TEST_MODEL_ID", "TEST_PROJECT");
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertEquals("KE-010002202: Can't find model id \"TEST_MODEL_ID\". Please check and try again.",
+                    e.toString());
+        }
+    }
+
+    @Test
+    public void testGetModelByAlias_throwsException() {
+        NDataModelManager dataModelManager = mock(NDataModelManager.class);
+        doReturn(dataModelManager).when(modelService).getDataModelManager(anyString());
+        when(dataModelManager.getDataModelDescByAlias(anyString())).thenReturn(null);
+        try {
+            modelService.getModelByAlias("TEST_MODEL_ALIAS", "TEST_PROJECT");
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertEquals("KE-010002203: Can't find model name \"TEST_MODEL_ALIAS\". Please check and try again.",
+                    e.toString());
+        }
+    }
+
+    @Test
+    public void testGetCubeWithExactModelName_throwsException() {
+        NDataModelManager dataModelManager = mock(NDataModelManager.class);
+        doReturn(dataModelManager).when(modelService).getDataModelManager(anyString());
+        when(dataModelManager.getDataModelDescByAlias(anyString())).thenReturn(null);
+        try {
+            modelService.getCubeWithExactModelName("TEST_MODEL_ALIAS", "TEST_PROJECT");
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertEquals("KE-010002203: Can't find model name \"TEST_MODEL_ALIAS\". Please check and try again.",
+                    e.toString());
+        }
+    }
+
+    @Test
+    public void testCheckAliasExist_throwsException() {
+        doReturn(false).when(modelService).checkModelAliasUniqueness(anyString(), anyString(), anyString());
+        try {
+            ReflectionTestUtils.invokeMethod(modelService, "checkAliasExist", "TEST_MODEL_ID", "TEST_MODEL_ALIAS",
+                    "TEST_PROJECT");
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertEquals("KE-010002206: Model \"TEST_MODEL_ALIAS\" already exists. Please rename it.",
+                    e.toString());
+        }
+    }
+
+    @Test
+    public void testBatchUpdateMultiPartition_throwsException() {
+        NDataModelManager dataModelManager = mock(NDataModelManager.class);
+        doReturn(dataModelManager).when(modelService).getDataModelManager(anyString());
+        when(dataModelManager.getDataModelDesc(anyString())).thenReturn(null);
+        try {
+            modelService.batchUpdateMultiPartition("TEST_PROJECT", "TEST_MODEL_ID", null);
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertEquals("KE-010002202: Can't find model id \"TEST_MODEL_ID\". Please check and try again.",
+                    e.toString());
+        }
+    }
+
+    @Test
+    public void testPrimaryCheck_throwsException() {
+        // test throwing MODEL_NOT_EXIST
+        NDataModel dataModel = null;
+        try {
+            modelService.primaryCheck(dataModel);
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertEquals("KE-010002201: Can't find model. Please check and try again.", e.toString());
+        }
+
+        // test throwing EMPTY_MODEL_NAME, modelAlias is empty
+        dataModel = mock(NDataModel.class);
+        when(dataModel.getAlias()).thenReturn(null);
+        try {
+            modelService.primaryCheck(dataModel);
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertEquals("KE-010002204: The name can't be empty.", e.toString());
+        }
+
+        // test throwing INVALID_MODEL_NAME, modelAlias is invalid
+        dataModel = mock(NDataModel.class);
+        when(dataModel.getAlias()).thenReturn("INVALID_MODEL_ALIAS_**&^()");
+        try {
+            modelService.primaryCheck(dataModel);
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertEquals(
+                    "KE-010002205: The model name \"INVALID_MODEL_ALIAS_**&^()\" is invalid. Please use letters, numbers and underlines only.",
+                    e.toString());
+        }
     }
 }

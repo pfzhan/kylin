@@ -46,6 +46,7 @@ import static io.kyligence.kap.rest.metrics.QueryMetricsContextTest.getInfluxdbF
 import static org.apache.kylin.common.QueryContext.PUSHDOWN_HIVE;
 import static org.apache.kylin.common.QueryTrace.EXECUTION;
 import static org.apache.kylin.common.QueryTrace.SPARK_JOB_EXECUTION;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_NOT_EXIST;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -364,7 +365,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals("Can't find project \"default0\". Please check and try again.", e.getMessage());
+            Assert.assertEquals(PROJECT_NOT_EXIST.getMsg("default0"), e.getMessage());
         }
     }
 

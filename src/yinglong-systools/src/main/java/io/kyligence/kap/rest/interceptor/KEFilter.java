@@ -25,7 +25,6 @@
 package io.kyligence.kap.rest.interceptor;
 
 import java.io.IOException;
-import java.util.Objects;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
@@ -37,6 +36,8 @@ import org.apache.kylin.common.QueryTrace;
 import org.apache.kylin.common.exception.ErrorCode;
 import org.apache.kylin.common.exception.ExceptionReason;
 import org.apache.kylin.common.exception.ExceptionResolve;
+import org.apache.kylin.common.exception.code.ErrorMsg;
+import org.apache.kylin.common.exception.code.ErrorSuggestion;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -47,18 +48,21 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class KEFilter extends OncePerRequestFilter {
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws IOException, ServletException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws IOException, ServletException {
         String lang = "en";
-        if (Objects.nonNull(request)) {
+        if (request != null) {
             lang = request.getHeader("Accept-Language");
         }
         MsgPicker.setMsg(lang);
         ErrorCode.setMsg(lang);
         ExceptionResolve.setLang(lang);
         ExceptionReason.setLang(lang);
+        ErrorMsg.setMsg(lang);
+        ErrorSuggestion.setMsg(lang);
 
         if (request != null && ("/kylin/api/query".equals(request.getRequestURI())
-                        || "/kylin/api/async_query".equals(request.getRequestURI()))) {
+                || "/kylin/api/async_query".equals(request.getRequestURI()))) {
             QueryContext.reset(); // reset it anyway
             QueryContext.current(); // init query context to set the timer
             QueryContext.currentTrace().startSpan(QueryTrace.HTTP_RECEPTION);

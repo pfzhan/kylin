@@ -25,7 +25,7 @@ package io.kyligence.kap.tool;
 
 import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.CANDIDATE_LOG;
 import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.LOG;
-import static org.apache.kylin.common.exception.ToolErrorCode.INVALID_SHELL_PARAMETER;
+import static org.apache.kylin.common.exception.code.ErrorCodeTool.PARAMETER_TIMESTAMP_COMPARE;
 
 import java.io.File;
 import java.util.List;
@@ -35,7 +35,6 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.joda.time.DateTime;
@@ -123,7 +122,7 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
         final long startTime = getLongOption(optionsHelper, OPTION_START_TIME, getDefaultStartTime());
         final long endTime = getLongOption(optionsHelper, OPTION_END_TIME, getDefaultEndTime());
         if (startTime >= endTime) {
-            throw new KylinException(INVALID_SHELL_PARAMETER, MsgPicker.getMsg().getINVALID_DIAG_TIME_PARAMETER());
+            throw new KylinException(PARAMETER_TIMESTAMP_COMPARE);
         }
         logger.info("Time range: start={}, end={}", startTime, endTime);
 

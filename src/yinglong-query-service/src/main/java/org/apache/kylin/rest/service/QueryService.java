@@ -51,9 +51,9 @@ import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PROJECT_NA
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_SQL_EXPRESSION;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_USER_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
-import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.SAVE_QUERY_FAILED;
-import static org.apache.kylin.common.exception.SystemErrorCode.JOBNODE_API_INVALID;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeSystem.JOB_NODE_QUERY_API_INVALID;
 import static org.apache.kylin.common.util.CheckUtil.checkCondition;
 import static org.springframework.security.acls.domain.BasePermission.ADMINISTRATION;
 
@@ -490,15 +490,14 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
         Message msg = MsgPicker.getMsg();
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         if (!kylinConfig.isQueryNode()) {
-            throw new KylinException(JOBNODE_API_INVALID, msg.getQUERY_NOT_ALLOWED());
+            throw new KylinException(JOB_NODE_QUERY_API_INVALID);
         }
         if (StringUtils.isBlank(sqlRequest.getProject())) {
             throw new KylinException(EMPTY_PROJECT_NAME, msg.getEMPTY_PROJECT_NAME());
         }
         final NProjectManager projectMgr = NProjectManager.getInstance(kylinConfig);
         if (projectMgr.getProject(sqlRequest.getProject()) == null) {
-            throw new KylinException(PROJECT_NOT_EXIST,
-                    String.format(Locale.ROOT, msg.getPROJECT_NOT_FOUND(), sqlRequest.getProject()));
+            throw new KylinException(PROJECT_NOT_EXIST, sqlRequest.getProject());
         }
         if (StringUtils.isBlank(sqlRequest.getSql())) {
             throw new KylinException(EMPTY_SQL_EXPRESSION, msg.getNULL_EMPTY_SQL());

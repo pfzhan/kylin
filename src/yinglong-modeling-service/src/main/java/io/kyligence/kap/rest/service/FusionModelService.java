@@ -208,12 +208,11 @@ public class FusionModelService extends BasicService implements TableFusionModel
                     String.format(Locale.ROOT, MsgPicker.getMsg().getFIX_STREAMING_SEGMENT()));
         }
 
-        JobInfoResponseWithFailure response = modelBuildService.addIndexesToSegments(buildSegmentsRequest.getProject(),
+        return modelBuildService.addIndexesToSegments(buildSegmentsRequest.getProject(),
                 targetModelId, buildSegmentsRequest.getSegmentIds(), buildSegmentsRequest.getIndexIds(),
                 buildSegmentsRequest.isParallelBuildBySegment(), buildSegmentsRequest.getPriority(),
                 buildSegmentsRequest.isPartialBuild(), buildSegmentsRequest.getYarnQueue(),
                 buildSegmentsRequest.getTag());
-        return response;
     }
 
     private NDataModel getBatchModel(String fusionModelId, String project) {
