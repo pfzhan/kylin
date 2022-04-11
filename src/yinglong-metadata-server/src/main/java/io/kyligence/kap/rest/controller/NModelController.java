@@ -40,6 +40,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -57,6 +58,7 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
@@ -76,6 +78,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.exception.LookupTableException;
 import io.kyligence.kap.rest.constant.ModelAttributeEnum;
 import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
@@ -710,20 +713,41 @@ public class NModelController extends NBasicController {
             HttpServletResponse response) throws IOException {
         String projectName = checkProjectName(project);
 
-        String host = KylinConfig.getInstanceFromEnv().getModelExportHost();
-        Integer port = KylinConfig.getInstanceFromEnv().getModelExportPort() == -1 ? null
-                : KylinConfig.getInstanceFromEnv().getModelExportPort();
-
-        host = host == null ? serverHost : host;
-        port = port == null ? serverPort : port;
-
-        host = host == null ? request.getServerName() : host;
-        port = port == null ? request.getServerPort() : port;
+        String host = getHost(serverHost, request.getServerName());
+        Integer port = getPort(serverPort, request.getServerPort());
 
         BISyncModel syncModel = modelService.exportModel(projectName, modelId, exportAs, element, host, port);
 
-        String fileName = String.format(Locale.ROOT, "%s_%s_%s", projectName,
-                modelService.getModelById(modelId, projectName).getAlias(),
+        dumpSyncModel(modelId, exportAs, projectName, syncModel, response);
+    }
+
+    @ApiOperation(value = "biExport", tags = { "QE" })
+    @GetMapping(value = "/bi_export")
+    @ResponseBody
+    public void biExport(@RequestParam("model") String modelId, @RequestParam(value = "project") String project,
+            @RequestParam(value = "export_as") SyncContext.BI exportAs,
+            @RequestParam(value = "element", required = false, defaultValue = "AGG_INDEX_COL") SyncContext.ModelElement element,
+            @RequestParam(value = "server_host", required = false) String serverHost,
+            @RequestParam(value = "server_port", required = false) Integer serverPort, HttpServletRequest request,
+            HttpServletResponse response) throws IOException {
+        String projectName = checkProjectName(project);
+
+        String host = getHost(serverHost, request.getServerName());
+        Integer port = getPort(serverPort, request.getServerPort());
+
+        BISyncModel syncModel = AclPermissionUtil.isAdmin()
+                ? modelService.exportModel(projectName, modelId, exportAs, element, host, port)
+                : modelService.biExportCustomModel(projectName, modelId, exportAs, element, host, port);
+
+        dumpSyncModel(modelId, exportAs, projectName, syncModel, response);
+    }
+
+    private void dumpSyncModel(String modelId, SyncContext.BI exportAs, String projectName, BISyncModel syncModel,
+            HttpServletResponse response) throws IOException {
+        NDataModelManager manager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), projectName);
+        NDataModel dataModel = manager.getDataModelDesc(modelId);
+        String alias = dataModel.getAlias();
+        String fileName = String.format(Locale.ROOT, "%s_%s_%s", projectName, alias,
                 new SimpleDateFormat("yyyyMMddHHmmss", Locale.getDefault(Locale.Category.FORMAT)).format(new Date()));
         switch (exportAs) {
         case TABLEAU_CONNECTOR_TDS:
@@ -738,6 +762,19 @@ public class NModelController extends NBasicController {
         syncModel.dump(response.getOutputStream());
         response.getOutputStream().flush();
         response.getOutputStream().close();
+    }
+
+    private String getHost(String serverHost, String serverName) {
+        String host = KylinConfig.getInstanceFromEnv().getModelExportHost();
+        host = Optional.ofNullable(Optional.ofNullable(host).orElse(serverHost)).orElse(serverName);
+        return host;
+    }
+
+    private Integer getPort(Integer serverPort, Integer requestServerPort) {
+        Integer port = KylinConfig.getInstanceFromEnv().getModelExportPort() == -1 ? null
+                : KylinConfig.getInstanceFromEnv().getModelExportPort();
+        port = Optional.ofNullable(Optional.ofNullable(port).orElse(serverPort)).orElse(requestServerPort);
+        return port;
     }
 
     @ApiOperation(value = "updateMultiPartitionMapping", tags = { "QE" }, notes = "Add URL: {model}")

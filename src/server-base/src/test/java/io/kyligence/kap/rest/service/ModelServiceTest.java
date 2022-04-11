@@ -55,6 +55,7 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -76,6 +77,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.TreeMap;
@@ -154,9 +156,11 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.google.common.base.Charsets;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.google.common.io.CharStreams;
 import com.google.common.primitives.Longs;
 
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
@@ -265,6 +269,8 @@ import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
 import io.kyligence.kap.streaming.jobs.StreamingJobListener;
 import io.kyligence.kap.streaming.manager.StreamingJobManager;
+import io.kyligence.kap.tool.bisync.SyncContext;
+import io.kyligence.kap.tool.bisync.tableau.TableauDatasourceModel;
 import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
@@ -2681,6 +2687,103 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(1, normalResponse.getOptimalModels().size());
         OpenModelRecResponse openModelRecResponse = normalResponse.getOptimalModels().get(0);
         Assert.assertEquals("CONSTANT", openModelRecResponse.getAlias());
+    }
+
+    @Test
+    public void testOptimizedModelWithModelViewSql() {
+        String project = "newten";
+        val projectMgr = NProjectManager.getInstance(getTestConfig());
+        projectMgr.updateProject(project,
+                copyForWrite -> copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN));
+        String sql1 = "select test_order.order_id,buyer_id from test_order group by test_order.order_id,buyer_id";
+        val request = smartRequest(project, sql1);
+        request.setForce2CreateNewModel(false);
+        OpenAccSqlResponse normalResponse = modelSmartService.suggestAndOptimizeModels(request);
+        Assert.assertEquals(1, normalResponse.getCreatedModels().size());
+
+        // use model view sql, can suggest optimized model
+        getTestConfig().setProperty("kylin.query.auto-model-view-enabled", "true");
+        String sql2 = String.format("select order_id from %s.%s group by order_id", project,
+                normalResponse.getCreatedModels().get(0).getAlias());
+        val request2 = smartRequest(project, sql2);
+        request2.setForce2CreateNewModel(false);
+        OpenAccSqlResponse normalResponse1 = modelSmartService.suggestAndOptimizeModels(request2);
+        Assert.assertEquals(1, normalResponse1.getOptimizedModels().size());
+        Assert.assertEquals(normalResponse.getCreatedModels().get(0).getAlias(),
+                normalResponse1.getOptimizedModels().get(0).getAlias());
+    }
+
+    @Test
+    public void testOptimizedModelWithJoinViewModel() {
+        String project = "newten";
+        val projectMgr = NProjectManager.getInstance(getTestConfig());
+        projectMgr.updateProject(project,
+                copyForWrite -> copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN));
+        String sql1 = "select test_order.order_id,buyer_id from test_order group by test_order.order_id,buyer_id";
+        String sql2 = "select order_id,seller_id from test_kylin_fact group by order_id,seller_id";
+        val request = smartRequest(project, sql1);
+        request.getSqls().add(sql2);
+        request.setForce2CreateNewModel(false);
+        OpenAccSqlResponse normalResponse = modelSmartService.suggestAndOptimizeModels(request);
+        Assert.assertEquals(2, normalResponse.getCreatedModels().size());
+
+        // use two view model join sql, can suggest two optimized model
+        getTestConfig().setProperty("kylin.query.auto-model-view-enabled", "true");
+        String sql3 = String.format(
+                "select * from (select order_id as a from %s.%s group by order_id ) t1 join"
+                        + " (select order_id as b from %s.%s group by order_id) t2 on t1.a = t2.b",
+                project, normalResponse.getCreatedModels().get(0).getAlias(), project,
+                normalResponse.getCreatedModels().get(1).getAlias());
+        val request2 = smartRequest(project, sql3);
+        request2.setForce2CreateNewModel(false);
+        OpenAccSqlResponse normalResponse1 = modelSmartService.suggestAndOptimizeModels(request2);
+        Assert.assertEquals(2, normalResponse1.getOptimizedModels().size());
+        Assert.assertEquals(normalResponse1.getOptimizedModels().get(0).getAlias(),
+                normalResponse.getCreatedModels().get(0).getAlias());
+        Assert.assertEquals(normalResponse1.getOptimizedModels().get(1).getAlias(),
+                normalResponse.getCreatedModels().get(1).getAlias());
+    }
+
+    @Test
+    public void testOptimizedModelWithCloneViewModel() {
+        String project = "newten";
+        val projectMgr = NProjectManager.getInstance(getTestConfig());
+        projectMgr.updateProject(project,
+                copyForWrite -> copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN));
+        String sql1 = "select test_order.order_id,buyer_id from test_order group by test_order.order_id,buyer_id";
+        val request = smartRequest(project, sql1);
+        request.setForce2CreateNewModel(false);
+        OpenAccSqlResponse normalResponse = modelSmartService.suggestAndOptimizeModels(request);
+        Assert.assertEquals(1, normalResponse.getCreatedModels().size());
+
+        String sql2 = "select order_id,seller_id from test_kylin_fact group by order_id,seller_id";
+        request.getSqls().add(sql2);
+        request.setForce2CreateNewModel(true);
+        OpenAccSqlResponse normalResponse1 = modelSmartService.suggestAndOptimizeModels(request);
+        Assert.assertEquals(2, normalResponse1.getCreatedModels().size());
+        Optional<OpenModelRecResponse> test_order = normalResponse1.getCreatedModels().stream()
+                .filter(e -> e.getAlias().contains("TEST_ORDER")).findAny();
+        Assert.assertTrue(test_order.isPresent());
+
+        getTestConfig().setProperty("kylin.query.auto-model-view-enabled", "true");
+        String sql3 = String.format(
+                "select * from (select order_id as a from %s.%s group by order_id ) t1 join"
+                        + " (select order_id as b from %s.%s group by order_id) t2 on t1.a = t2.b",
+                project, normalResponse.getCreatedModels().get(0).getAlias(), project, test_order.get().getAlias());
+        String sql4 = "select seller_id from test_kylin_fact group by seller_id";
+        String sql5 = "select test_order.order_id from test_order group by test_order.order_id";
+        val request2 = smartRequest(project, sql3);
+        request2.setForce2CreateNewModel(false);
+        request2.getSqls().add(sql4);
+        request2.getSqls().add(sql5);
+        OpenAccSqlResponse normalResponse2 = modelSmartService.suggestAndOptimizeModels(request2);
+        Assert.assertEquals(3, normalResponse2.getOptimizedModels().size());
+        Assert.assertEquals(normalResponse2.getOptimizedModels().get(0).getAlias(),
+                normalResponse1.getCreatedModels().get(0).getAlias());
+        Assert.assertEquals(normalResponse2.getOptimizedModels().get(1).getAlias(),
+                normalResponse1.getCreatedModels().get(1).getAlias());
+        Assert.assertEquals(normalResponse2.getOptimizedModels().get(2).getAlias(),
+                normalResponse.getCreatedModels().get(0).getAlias());
     }
 
     @Test
@@ -7189,4 +7292,118 @@ public class ModelServiceTest extends CSVSourceTestCase {
                     e.toString());
         }
     }
+
+    public void testBuildHasPermissionSourceSyncModel() throws Exception {
+        Set<String> groups = new HashSet<>();
+        groups.add("g1");
+        val project = "default";
+        val modelId = "cb596712-3a09-46f8-aea1-988b43fe9b6c";
+        prepareBasic(project);
+        SecurityContextHolder.getContext()
+                .setAuthentication(new TestingAuthenticationToken("u1", "ANALYST", Constant.ROLE_ANALYST));
+        TableauDatasourceModel datasource_all_cols = (TableauDatasourceModel) modelService.exportCustomModel(project,
+                modelId, SyncContext.BI.TABLEAU_CONNECTOR_TDS, SyncContext.ModelElement.ALL_COLS, "localhost", 8080,
+                groups);
+        ByteArrayOutputStream outStream1 = new ByteArrayOutputStream();
+        datasource_all_cols.dump(outStream1);
+        Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector_permission.tds"),
+                outStream1.toString(Charset.defaultCharset().name()));
+
+        TableauDatasourceModel datasource_agg_index_col = (TableauDatasourceModel) modelService.exportCustomModel(
+                project, modelId, SyncContext.BI.TABLEAU_CONNECTOR_TDS, SyncContext.ModelElement.AGG_INDEX_COL,
+                "localhost", 8080, groups);
+        ByteArrayOutputStream outStream2 = new ByteArrayOutputStream();
+        datasource_agg_index_col.dump(outStream2);
+        Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector_permission.tds"),
+                outStream2.toString(Charset.defaultCharset().name()));
+
+        TableauDatasourceModel datasource = (TableauDatasourceModel) modelService.exportCustomModel(project, modelId,
+                SyncContext.BI.TABLEAU_CONNECTOR_TDS, SyncContext.ModelElement.AGG_INDEX_AND_TABLE_INDEX_COL,
+                "localhost", 8080, groups);
+        ByteArrayOutputStream outStream3 = new ByteArrayOutputStream();
+        datasource.dump(outStream3);
+        Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector_permission.tds"),
+                outStream3.toString(Charset.defaultCharset().name()));
+    }
+
+    @Test
+    public void testExportModel() throws Exception {
+        val project = "default";
+        val modelId = "cb596712-3a09-46f8-aea1-988b43fe9b6c";
+        prepareBasic(project);
+        TableauDatasourceModel datasource1 = (TableauDatasourceModel) modelService.exportModel(project, modelId,
+                SyncContext.BI.TABLEAU_CONNECTOR_TDS, SyncContext.ModelElement.AGG_INDEX_AND_TABLE_INDEX_COL,
+                "localhost", 8080);
+        ByteArrayOutputStream outStream4 = new ByteArrayOutputStream();
+        datasource1.dump(outStream4);
+        Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector.tds"),
+                outStream4.toString(Charset.defaultCharset().name()));
+    }
+
+    private String getExpectedTds(String path) throws IOException {
+        return CharStreams.toString(new InputStreamReader(getClass().getResourceAsStream(path), Charsets.UTF_8));
+    }
+
+    private void prepareBasic(String project) {
+        AclTCRManager manager = AclTCRManager.getInstance(getTestConfig(), project);
+
+        AclTCR u1a1 = new AclTCR();
+        AclTCR.Table u1t1 = new AclTCR.Table();
+        AclTCR.ColumnRow u1cr1 = new AclTCR.ColumnRow();
+        AclTCR.Column u1c1 = new AclTCR.Column();
+        u1c1.addAll(Arrays.asList("ID1", "ID2", "ID3"));
+        u1cr1.setColumn(u1c1);
+
+        AclTCR.ColumnRow u1cr2 = new AclTCR.ColumnRow();
+        AclTCR.Column u1c2 = new AclTCR.Column();
+        u1c2.addAll(Arrays.asList("ID1", "NAME1", "NAME2", "NAME3"));
+        u1cr2.setColumn(u1c2);
+        u1t1.put("DEFAULT.TEST_MEASURE", u1cr1);
+        u1t1.put("DEFAULT.TEST_MEASURE1", u1cr2);
+        u1a1.setTable(u1t1);
+        manager.updateAclTCR(u1a1, "u1", true);
+
+        AclTCR g1a1 = new AclTCR();
+        AclTCR.Table g1t1 = new AclTCR.Table();
+        AclTCR.ColumnRow g1cr1 = new AclTCR.ColumnRow();
+        AclTCR.Column g1c1 = new AclTCR.Column();
+        g1c1.addAll(Arrays.asList("ID1", "ID2", "ID3", "ID4"));
+        g1cr1.setColumn(g1c1);
+        g1t1.put("DEFAULT.TEST_MEASURE", g1cr1);
+        g1a1.setTable(g1t1);
+        manager.updateAclTCR(g1a1, "g1", false);
+    }
+
+    @Test
+    public void testCheckTablePermission() {
+        val project = "default";
+        val modelId = "cb596712-3a09-46f8-aea1-988b43fe9b6c";
+        thrown.expect(KylinException.class);
+        thrown.expectMessage(MsgPicker.getMsg().getTABLE_NO_COLUMNS_PERMISSION());
+
+        AclTCRManager manager = AclTCRManager.getInstance(getTestConfig(), project);
+        Set<String> columns = new HashSet<>();
+        columns.add("DEFAULT.TEST_MEASURE1.NAME1");
+        columns.add("DEFAULT.TEST_MEASURE1.NAME2");
+        columns.add("DEFAULT.TEST_MEASURE1.NAME3");
+
+        AclTCR u1a1 = new AclTCR();
+        AclTCR.Table u1t1 = new AclTCR.Table();
+        AclTCR.ColumnRow u1cr1 = new AclTCR.ColumnRow();
+        AclTCR.Column u1c1 = new AclTCR.Column();
+        u1cr1.setColumn(u1c1);
+
+        AclTCR.ColumnRow u1cr2 = new AclTCR.ColumnRow();
+        AclTCR.Column u1c2 = new AclTCR.Column();
+        u1c2.addAll(Arrays.asList("NAME1", "NAME2", "NAME3"));
+        u1cr2.setColumn(u1c2);
+        u1t1.put("DEFAULT.TEST_MEASURE", u1cr1);
+        u1t1.put("DEFAULT.TEST_MEASURE1", u1cr2);
+        u1a1.setTable(u1t1);
+        manager.updateAclTCR(u1a1, "u1", true);
+        SecurityContextHolder.getContext()
+                .setAuthentication(new TestingAuthenticationToken("u1", "ANALYST", Constant.ROLE_ANALYST));
+        modelService.checkTableHasColumnPermission(project, modelId, columns);
+    }
+
 }

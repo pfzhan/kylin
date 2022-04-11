@@ -50,6 +50,31 @@ echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit
 cat > build/CHANGELOG.md <<'EOL'
 ### Release History
 
+#### Kyligence Enterprise 4.5.11.0 release note
+
+**Enhancement**
+
+- The information about the metadata database and table are encrypted in the cookie to ensure security
+- Provides APIs for creating models, model online/offline
+- Index data in tiered storage and index data in DFS have the same change behavior
+- Display grouped node information when tiered storage high-availability deployment mode
+
+**Bugfix**
+
+- On the build job list page, you cannot search and filter based on the refresh snapshot task object name
+- When the system manages snapshots, it is allowed to use the specified spark conf parameters for refreshing snapshots during building, to avoid building failures caused by insufficient resources
+- Fix security vulnerability
+- Expansion rate display error
+- Model view uses the with as statement. When the query field is a subquery, the query reports an error
+- Non-UTC time zone, Segment Pruning result is incorrect
+- When repairing the Broken model, add base index is checked on the save page, but the base index is not generated
+- Tiered storage does not support pushdown of queries that do not contain 'order by' but contain 'limit' statements to Clickhouse
+- In the tiered storage high-availability deployment mode, when there is one abnormal node in multiple groups of nodes, the query may not be routed to the normal node, resulting in the inability to use the tiered storage to answer the query
+- Unable to stop query on Azure China cloud environment
+- For query that hits the model, when the query result set is too large and the spark task fails, the query should not pushdown any more
+- SQL modeling, upload the sql text and then modify the sql statement, click the "Save and Continue" button, the metric of the new model created is the metric before the modification
+- After the model state is restored from the Broken state to the Online state, the original optimization suggestions are displayed on the details page without data
+
 #### Kyligence Enterprise 4.5.10.0 release note
 
 **Enhancement**
