@@ -348,6 +348,11 @@ public abstract class KylinConfigBase implements Serializable {
 
     protected Path makeQualified(Path path) {
         try {
+            String schemal = path.toUri().getScheme();
+            //serverless would change scheme to s3 but s3FileSystem is removed from hadoop-aws-3.2.0.jar
+            if (path.toUri().getScheme().equals("s3")) {
+                path = new Path(path.toUri().getPath().replace("s3", "s3a"));
+            }
             FileSystem fs = path.getFileSystem(HadoopUtil.getCurrentConfiguration());
             return fs.makeQualified(path);
         } catch (IOException e) {
@@ -1671,6 +1676,7 @@ public abstract class KylinConfigBase implements Serializable {
     /**
      * The threshold for cartesian product partition number is
      * executor instance num * executor core num * cartesian-partition-num-threshold-factor
+     *
      * @return
      */
     public int getCartesianPartitionNumThresholdFactor() {
@@ -3284,6 +3290,11 @@ public abstract class KylinConfigBase implements Serializable {
 
     public boolean isRemoveLdapCustomSecurityLimitEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.security.remove-ldap-custom-security-limit-enabled", "false"));
+    }
+
+    public String getSparkBuildJobHandlerClassName() {
+        return getOptional("kylin.engine.spark.build-job-handler-class-name",
+                "io.kyligence.kap.engine.spark.job.DefaultSparkBuildJobJobHandler");
     }
 
     public boolean useDynamicS3RoleCredentialInTable() {

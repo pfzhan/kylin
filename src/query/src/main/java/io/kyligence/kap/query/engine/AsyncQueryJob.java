@@ -24,17 +24,17 @@
 
 package io.kyligence.kap.query.engine;
 
+import static org.apache.kylin.query.util.AsyncQueryUtil.ASYNC_QUERY_JOB_ID_PRE;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import io.kyligence.kap.engine.spark.job.NSparkExecutable;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.QueryContext;
-import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.BufferedLogger;
 import org.apache.kylin.common.util.CliCommandExecutor;
@@ -43,6 +43,7 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.ExecuteResult;
 import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.query.util.QueryParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,10 +54,10 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
+import io.kyligence.kap.engine.spark.job.DefaultSparkBuildJobHandler;
+import io.kyligence.kap.engine.spark.job.NSparkExecutable;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import lombok.val;
-
-import static org.apache.kylin.query.util.AsyncQueryUtil.ASYNC_QUERY_JOB_ID_PRE;
 
 public class AsyncQueryJob extends NSparkExecutable {
 
@@ -78,6 +79,11 @@ public class AsyncQueryJob extends NSparkExecutable {
 
     public AsyncQueryJob(Object notSetId) {
         super(notSetId);
+    }
+
+    @Override
+    protected void initHandler() {
+        sparkJobHandler = new DefaultSparkBuildJobHandler();
     }
 
     @Override

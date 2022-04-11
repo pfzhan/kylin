@@ -24,19 +24,16 @@
 
 package io.kyligence.kap.engine.spark.application;
 
-import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.engine.spark.job.StageType.WAITE_FOR_RESOURCE;
 import static io.kyligence.kap.engine.spark.utils.SparkConfHelper.COUNT_DISTICT;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
@@ -49,20 +46,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.http.HttpHeaders;
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.methods.HttpPut;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -200,32 +188,7 @@ public abstract class SparkApplication implements Application {
         if (config.isUTEnv()) {
             return true;
         }
-        String serverAddress = System.getProperty("spark.driver.rest.server.address", "127.0.0.1:7070");
-        String requestApi = String.format(Locale.ROOT, "http://%s%s", serverAddress, url);
-
-        try {
-            Long timeout = config.getUpdateJobInfoTimeout();
-            RequestConfig defaultRequestConfig = RequestConfig.custom().setSocketTimeout(timeout.intValue())
-                    .setConnectTimeout(timeout.intValue()).setConnectionRequestTimeout(timeout.intValue())
-                    .setStaleConnectionCheckEnabled(true).build();
-            CloseableHttpClient httpClient = HttpClients.custom().setDefaultRequestConfig(defaultRequestConfig).build();
-            HttpPut httpPut = new HttpPut(requestApi);
-            httpPut.addHeader(HttpHeaders.CONTENT_TYPE, HTTP_VND_APACHE_KYLIN_JSON);
-            httpPut.setEntity(new StringEntity(json, StandardCharsets.UTF_8));
-
-            HttpResponse response = httpClient.execute(httpPut);
-            int code = response.getStatusLine().getStatusCode();
-            if (code == HttpStatus.SC_OK) {
-                return true;
-            } else {
-                InputStream inputStream = response.getEntity().getContent();
-                String responseContent = IOUtils.toString(inputStream);
-                logger.warn("update spark job failed, info: {}", responseContent);
-            }
-        } catch (Exception e) {
-            logger.error("http request {} failed!", requestApi, e);
-        }
-        return false;
+        return true;
     }
 
     public String readArgsFromHDFS() {

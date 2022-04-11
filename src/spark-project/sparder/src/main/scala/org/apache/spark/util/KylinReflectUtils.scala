@@ -24,6 +24,7 @@
 package org.apache.spark.util
 
 import org.apache.spark.sql.internal.StaticSQLConf.CATALOG_IMPLEMENTATION
+import org.apache.spark.util.Utils.getContextOrSparkClassLoader
 import org.apache.spark.{SPARK_VERSION, SparkContext}
 
 import scala.reflect.runtime._
@@ -48,14 +49,18 @@ object KylinReflectUtils {
   }
 
   def createObject(className: String, conArgs: Object*): (Any, Class[_]) = {
-    val clazz = Utils.classForName(className)
+    // scalastyle:off classforname
+    val clazz = Class.forName(className, true, getContextOrSparkClassLoader);
+    // scalastyle:on classforname
     val ctor = clazz.getConstructors.head
     ctor.setAccessible(true)
     (ctor.newInstance(conArgs: _*), clazz)
   }
 
   def createObject(className: String): (Any, Class[_]) = {
-    val clazz = Utils.classForName(className)
+    // scalastyle:off classforname
+    val clazz = Class.forName(className, true, getContextOrSparkClassLoader);
+    // scalastyle:on classforname
     val ctor = clazz.getConstructors.head
     ctor.setAccessible(true)
     (ctor.newInstance(), clazz)
