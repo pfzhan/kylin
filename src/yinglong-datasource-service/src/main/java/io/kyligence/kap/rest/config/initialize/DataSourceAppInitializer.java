@@ -23,16 +23,16 @@
  */
 package io.kyligence.kap.rest.config.initialize;
 
-import io.kyligence.kap.common.constant.Constant;
-import io.kyligence.kap.metadata.epoch.EpochOrchestrator;
-import io.kyligence.kap.rest.source.DataSourceState;
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Component;
+
+import io.kyligence.kap.common.constant.Constant;
+import io.kyligence.kap.rest.source.DataSourceState;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
@@ -44,12 +44,9 @@ public class DataSourceAppInitializer implements InitializingBean {
     @Override
     public void afterPropertiesSet() throws Exception {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
-        if (kylinConfig.isJobNode()) {
-            new EpochOrchestrator(kylinConfig);
-            if (kylinConfig.getLoadHiveTablenameEnabled()) {
-                taskScheduler.scheduleWithFixedDelay(DataSourceState.getInstance(),
-                        kylinConfig.getLoadHiveTablenameIntervals() * Constant.SECOND);
-            }
+        if (kylinConfig.isJobNode() && kylinConfig.getLoadHiveTablenameEnabled()) {
+            taskScheduler.scheduleWithFixedDelay(DataSourceState.getInstance(),
+                    kylinConfig.getLoadHiveTablenameIntervals() * Constant.SECOND);
         }
     }
 }

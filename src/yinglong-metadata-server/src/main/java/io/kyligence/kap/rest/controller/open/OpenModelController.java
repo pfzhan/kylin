@@ -23,29 +23,16 @@
  */
 package io.kyligence.kap.rest.controller.open;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
-import io.kyligence.kap.metadata.cube.model.IndexEntity;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.rest.constant.ModelAttributeEnum;
-import io.kyligence.kap.rest.controller.NBasicController;
-import io.kyligence.kap.rest.controller.NModelController;
-import io.kyligence.kap.rest.request.ModelParatitionDescRequest;
-import io.kyligence.kap.rest.request.ModelUpdateRequest;
-import io.kyligence.kap.rest.request.MultiPartitionMappingRequest;
-import io.kyligence.kap.rest.request.PartitionColumnRequest;
-import io.kyligence.kap.rest.request.UpdateMultiPartitionValueRequest;
-import io.kyligence.kap.rest.response.IndexResponse;
-import io.kyligence.kap.rest.response.NModelDescResponse;
-import io.kyligence.kap.rest.response.OpenGetIndexResponse;
-import io.kyligence.kap.rest.response.OpenGetIndexResponse.IndexDetail;
-import io.kyligence.kap.rest.service.FusionIndexService;
-import io.kyligence.kap.rest.service.ModelService;
-import io.kyligence.kap.tool.bisync.SyncContext;
-import io.swagger.annotations.ApiOperation;
-import lombok.val;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -66,14 +53,30 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
-import java.util.stream.Collectors;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.rest.constant.ModelAttributeEnum;
+import io.kyligence.kap.rest.controller.NBasicController;
+import io.kyligence.kap.rest.controller.NModelController;
+import io.kyligence.kap.rest.request.ModelParatitionDescRequest;
+import io.kyligence.kap.rest.request.ModelUpdateRequest;
+import io.kyligence.kap.rest.request.MultiPartitionMappingRequest;
+import io.kyligence.kap.rest.request.PartitionColumnRequest;
+import io.kyligence.kap.rest.request.UpdateMultiPartitionValueRequest;
+import io.kyligence.kap.rest.response.IndexResponse;
+import io.kyligence.kap.rest.response.NModelDescResponse;
+import io.kyligence.kap.rest.response.OpenGetIndexResponse;
+import io.kyligence.kap.rest.response.OpenGetIndexResponse.IndexDetail;
+import io.kyligence.kap.rest.service.FusionIndexService;
+import io.kyligence.kap.rest.service.ModelService;
+import io.kyligence.kap.tool.bisync.SyncContext;
+import io.swagger.annotations.ApiOperation;
+import lombok.val;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
@@ -341,6 +344,20 @@ public class OpenModelController extends NBasicController {
         String projectName = checkProjectName(project);
         String modelId = getModel(modelAlias, projectName).getId();
         modelController.exportModel(modelId, projectName, exportAs, element, host, port, request, response);
+    }
+
+    @ApiOperation(value = "bi export", tags = { "QE" })
+    @GetMapping(value = "/bi_export")
+    @ResponseBody
+    public void biExport(@RequestParam("model_name") String modelAlias, @RequestParam(value = "project") String project,
+            @RequestParam(value = "export_as") SyncContext.BI exportAs,
+                         @RequestParam(value = "element", required = false, defaultValue = "AGG_INDEX_COL") SyncContext.ModelElement element,
+                         @RequestParam(value = "server_host", required = false) String host,
+                         @RequestParam(value = "server_port", required = false) Integer port, HttpServletRequest request,
+                         HttpServletResponse response) throws IOException {
+        String projectName = checkProjectName(project);
+        String modelId = getModel(modelAlias, projectName).getId();
+        modelController.biExport(modelId, projectName, exportAs, element, host, port, request, response);
     }
 
     @ApiOperation(value = "updateModelName", tags = { "AI" })

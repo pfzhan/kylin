@@ -53,7 +53,8 @@ public class ModelSelectContext extends AbstractSemiContext {
     public ChainedProposer createProposers() {
         ImmutableList<AbstractProposer> proposers = ImmutableList.of(//
                 new SQLAnalysisProposer(this), //
-                new ModelSelectProposer(this));
+                new ModelSelectProposer(this), //
+                new ViewModelSelectProposer(this));
         return new ChainedProposer(this, proposers);
     }
 

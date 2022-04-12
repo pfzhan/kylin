@@ -2032,4 +2032,9 @@ public class CnMessage extends Message {
     public String getLDAP_USER_DATA_SOURCE_CONFIG_ERROR() {
         return "LDAP 连接错误，请检查 LDAP 配置信息！";
     }
+
+    @Override
+    public String getTABLE_NO_COLUMNS_PERMISSION() {
+        return "请向表中的列添加权限! ";
+    }
 }

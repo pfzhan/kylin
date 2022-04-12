@@ -294,7 +294,7 @@ export default class BatchMeasureModal extends Vue {
         if (column.SUM.value && !column.SUM.isShouldDisable) {
           // 如果存在同名的，添加上表别名，如果不同名，就是列名+函数
           const measure = {
-            name: this.checkHasSameName(allMeasureArr, column.name, column) ? column.name + column.table_alias : column.name,
+            name: this.checkHasSameName(allMeasureArr, column.name + '_SUM', column) ? column.name + '_SUM_' + column.table_alias : column.name + '_SUM',
             guid: sampleGuid(),
             expression: 'SUM',
             parameter_value: [{type: 'column', value: column.table_alias + '.' + (column.column ?? column.columnName)}],

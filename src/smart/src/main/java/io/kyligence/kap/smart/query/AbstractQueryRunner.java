@@ -29,11 +29,16 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfig.SetAndUnsetThreadLocalConfig;
 import org.apache.kylin.common.util.NamedThreadFactory;
@@ -136,6 +141,28 @@ public abstract class AbstractQueryRunner implements Closeable {
     public abstract KylinConfig prepareConfig() throws IOException;
 
     public abstract void cleanupConfig(KylinConfig config) throws IOException;
+
+    public Map<String, List<OLAPContext>> filterModelViewOLAPContexts() {
+        List<OLAPContext> modeViewOlapContextList = Lists.newArrayList();
+        olapContexts.forEach((sql, olapContextList) -> {
+            List<OLAPContext> modelViewOlapContexts = olapContextList.stream()
+                    .filter(e -> StringUtils.isNotEmpty(e.getModelAlias())).collect(Collectors.toList());
+            if (CollectionUtils.isEmpty(modelViewOlapContexts)) {
+                return;
+            }
+            modelViewOlapContexts.forEach(e -> e.sql = sql);
+            modeViewOlapContextList.addAll(modelViewOlapContexts);
+        });
+        return modeViewOlapContextList.stream().collect(Collectors.groupingBy(OLAPContext::getModelAlias));
+    }
+
+    public Map<String, Collection<OLAPContext>> filterNonModelViewOlapContexts() {
+        return olapContexts.entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey, v -> v.getValue().stream()
+                                .filter(e -> StringUtils.isEmpty(e.getModelAlias())).collect(Collectors.toList()),
+                        (k1, k2) -> k1, LinkedHashMap::new));
+    }
 
     @Override
     public void close() {

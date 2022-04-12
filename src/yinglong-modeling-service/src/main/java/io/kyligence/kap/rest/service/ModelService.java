@@ -106,6 +106,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.SecondStorageConfig;
 import org.apache.kylin.common.exception.JobErrorCode;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.exception.code.ErrorCodeServer;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -3832,6 +3833,12 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                 : dataModelDesc.getPartitionDesc().getPartitionDateFormat();
     }
 
+    public BISyncModel biExportCustomModel(String projectName, String modelId, SyncContext.BI targetBI,
+            SyncContext.ModelElement modelElement, String host, int port) {
+        Set<String> groups = getCurrentUserGroups();
+        return exportCustomModel(projectName, modelId, targetBI, modelElement, host, port, groups);
+    }
+
     public BISyncModel exportModel(String projectName, String modelId, SyncContext.BI targetBI,
             SyncContext.ModelElement modelElement, String host, int port) {
         NDataflow dataflow = getDataflowManager(projectName).getDataflow(modelId);
@@ -3841,6 +3848,30 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         checkModelExportPermission(projectName, modelId);
         checkModelPermission(projectName, modelId);
 
+        SyncContext syncContext = getSyncContext(projectName, modelId, targetBI, modelElement, host, port);
+
+        return BISyncTool.dumpToBISyncModel(syncContext);
+    }
+
+    public BISyncModel exportCustomModel(String projectName, String modelId, SyncContext.BI targetBI,
+            SyncContext.ModelElement modelElement, String host, int port, Set<String> groups) {
+        String currentUserName = aclEvaluate.getCurrentUserName();
+        NDataflow dataflow = getDataflowManager(projectName).getDataflow(modelId);
+        if (dataflow.getStatus() == RealizationStatusEnum.BROKEN) {
+            throw new KylinException(ServerErrorCode.MODEL_BROKEN,
+                    "The model is broken and cannot be exported TDS file");
+        }
+        Set<String> authTables = getAllAuthTables(projectName, groups, currentUserName);
+        Set<String> authColumns = getAllAuthColumns(projectName, groups, currentUserName);
+        checkTableHasColumnPermission(projectName, modelId, authColumns);
+
+        SyncContext syncContext = getSyncContext(projectName, modelId, targetBI, modelElement, host, port);
+
+        return BISyncTool.dumpHasPermissionToBISyncModel(syncContext, authTables, authColumns);
+    }
+
+    private SyncContext getSyncContext(String projectName, String modelId, SyncContext.BI targetBI,
+            SyncContext.ModelElement modelElement, String host, int port) {
         SyncContext syncContext = new SyncContext();
         syncContext.setProjectName(projectName);
         syncContext.setModelId(modelId);
@@ -3850,8 +3881,54 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         syncContext.setPort(port);
         syncContext.setDataflow(getDataflowManager(projectName).getDataflow(modelId));
         syncContext.setKylinConfig(getProjectManager().getProject(projectName).getConfig());
+        return syncContext;
+    }
 
-        return BISyncTool.dumpToBISyncModel(syncContext);
+    public void checkTableHasColumnPermission(String project, String modeId, Set<String> authColumns) {
+        if (AclPermissionUtil.isAdmin()) {
+            return;
+        }
+        aclEvaluate.checkProjectReadPermission(project);
+
+        NDataModel model = getDataModelManager(project).getDataModelDesc(modeId);
+        long jointCount = model.getJoinTables().stream()
+                .filter(table -> authColumns
+                        .containsAll(Arrays.stream(table.getJoin().getPrimaryKeyColumns())
+                                .map(TblColRef::getCanonicalName).collect(Collectors.toSet()))
+                        && authColumns.containsAll(Arrays.stream(table.getJoin().getForeignKeyColumns())
+                                .map(TblColRef::getCanonicalName).collect(Collectors.toSet())))
+                .count();
+        long singleTableCount = model.getAllTables().stream().filter(ref -> ref.getColumns().stream()
+                .map(TblColRef::getCanonicalName).collect(Collectors.toSet()).stream().anyMatch(authColumns::contains))
+                .count();
+
+        if (jointCount != model.getJoinTables().size() || singleTableCount == 0) {
+            throw new KylinException(ServerErrorCode.INVALID_TABLE_AUTH,
+                    MsgPicker.getMsg().getTABLE_NO_COLUMNS_PERMISSION());
+        }
+
+    }
+
+    private Set<String> getAllAuthTables(String project, Set<String> groups, String user) {
+        Set<String> allAuthTables = Sets.newHashSet();
+        AclTCRDigest auths = getAclTCRManager(project).getAuthTablesAndColumns(project, user, true);
+        allAuthTables.addAll(auths.getTables());
+        for (String group : groups) {
+            auths = getAclTCRManager(project).getAuthTablesAndColumns(project, group, false);
+            allAuthTables.addAll(auths.getTables());
+        }
+        return allAuthTables;
+    }
+
+    private Set<String> getAllAuthColumns(String project, Set<String> groups, String user) {
+        Set<String> allAuthColumns = Sets.newHashSet();
+        AclTCRDigest auths = getAclTCRManager(project).getAuthTablesAndColumns(project, user, true);
+        allAuthColumns.addAll(auths.getColumns());
+        for (String group : groups) {
+            auths = getAclTCRManager(project).getAuthTablesAndColumns(project, group, false);
+            allAuthColumns.addAll(auths.getColumns());
+        }
+        return allAuthColumns;
     }
 
     private void checkModelExportPermission(String project, String modeId) {

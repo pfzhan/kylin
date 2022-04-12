@@ -1796,4 +1796,8 @@ public class Message {
     public String getLDAP_USER_DATA_SOURCE_CONFIG_ERROR() {
         return "LDAP connection error, please check LDAP configuration!";
     }
+
+    public String getTABLE_NO_COLUMNS_PERMISSION() {
+        return "Please add permissions to columns in the table!";
+    }
 }

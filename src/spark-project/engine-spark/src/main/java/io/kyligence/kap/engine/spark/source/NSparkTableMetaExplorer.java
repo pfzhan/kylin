@@ -33,6 +33,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.Sets;
+import org.apache.commons.jnet.Installer;
+import org.apache.hadoop.fs.FsUrlStreamHandlerFactory;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.catalyst.TableIdentifier;
 import org.apache.spark.sql.catalyst.catalog.CatalogTable;
@@ -179,6 +181,7 @@ public class NSparkTableMetaExplorer implements Serializable {
     private void checkTableIsValid(CatalogTable tableMetadata, TableIdentifier tableIdentifier, String tableName) {
         if (CatalogTableType.VIEW().equals(tableMetadata.tableType())) {
             try {
+                Installer.setURLStreamHandlerFactory(new FsUrlStreamHandlerFactory());
                 SparderEnv.getSparkSession().table(tableIdentifier).queryExecution().analyzed();
             } catch (Throwable e) {
                 logger.error("Error for parser view: " + tableName, e);
