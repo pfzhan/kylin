@@ -64,10 +64,12 @@ import io.kyligence.kap.rest.constant.ModelAttributeEnum;
 import io.kyligence.kap.rest.controller.NBasicController;
 import io.kyligence.kap.rest.controller.NModelController;
 import io.kyligence.kap.rest.request.ModelParatitionDescRequest;
+import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.ModelUpdateRequest;
 import io.kyligence.kap.rest.request.MultiPartitionMappingRequest;
 import io.kyligence.kap.rest.request.PartitionColumnRequest;
 import io.kyligence.kap.rest.request.UpdateMultiPartitionValueRequest;
+import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
 import io.kyligence.kap.rest.response.IndexResponse;
 import io.kyligence.kap.rest.response.NModelDescResponse;
 import io.kyligence.kap.rest.response.OpenGetIndexResponse;
@@ -91,6 +93,7 @@ public class OpenModelController extends NBasicController {
     private static final String LAST_MODIFY = "last_modified";
     private static final String USAGE = "usage";
     private static final String DATA_SIZE = "data_size";
+    private static final String ALIAS = "alias";
     private static final Set<String> INDEX_SORT_BY_SET = ImmutableSet.of(USAGE, LAST_MODIFY, DATA_SIZE);
     private static final Set<String> INDEX_SOURCE_SET = Arrays.stream(IndexEntity.Source.values()).map(Enum::name)
             .collect(Collectors.toSet());
@@ -105,6 +108,15 @@ public class OpenModelController extends NBasicController {
 
     @Autowired
     private ModelService modelService;
+
+    @ApiOperation(value = "createModel", tags = { "AI" })
+    @PostMapping
+    @ResponseBody
+    public EnvelopeResponse<BuildBaseIndexResponse> createModel(@RequestBody ModelRequest modelRequest) {
+        modelRequest.setProject(checkProjectName(modelRequest.getProject()));
+        checkRequiredArg(ALIAS, modelRequest.getRawAlias());
+        return modelController.createModel(modelRequest);
+    }
 
     @ApiOperation(value = "getModels", tags = { "AI" })
     @GetMapping(value = "")

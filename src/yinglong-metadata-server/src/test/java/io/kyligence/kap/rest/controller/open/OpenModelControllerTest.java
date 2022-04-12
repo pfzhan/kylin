@@ -32,6 +32,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
+import io.kyligence.kap.rest.request.ModelRequest;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -43,6 +44,7 @@ import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -501,5 +503,40 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(openModelController).updateModelStatus(modelName, modelUpdateRequest);
+    }
+
+    @Test
+    public void testCreateModel() throws Exception {
+        String project = "default";
+        String modelName = "model1";
+        ModelRequest modelRequest = new ModelRequest();
+        modelRequest.setProject(project);
+        modelRequest.setAlias(modelName);
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models")
+                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(modelRequest))
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(openModelController).createModel(modelRequest);
+    }
+
+    @Test
+    public void testCreateModelFailed() throws Exception {
+        ModelRequest modelRequest = new ModelRequest();
+
+        // Test throwing EMPTY_PROJECT_NAME
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models")
+                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(modelRequest))
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().is5xxServerError())
+                .andExpect(MockMvcResultMatchers.content().string(Matchers.containsString(ServerErrorCode.EMPTY_PROJECT_NAME.toErrorCode().getCodeString())));
+
+        // Test throwing INVALID_PARAMETER
+        modelRequest.setProject("default");
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models")
+                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(modelRequest))
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().is5xxServerError())
+                .andExpect(MockMvcResultMatchers.content().string(Matchers.containsString(ServerErrorCode.INVALID_PARAMETER.toErrorCode().getCodeString())));
     }
 }

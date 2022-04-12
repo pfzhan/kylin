@@ -1295,6 +1295,10 @@ public class NDataModel extends RootPersistentEntity {
         return this.alias;
     }
 
+    public String getRawAlias() {
+        return alias;
+    }
+
     public Set<String> getComputedColumnNames() {
         Set<String> ccColumnNames = Sets.newHashSet();
         for (ComputedColumnDesc cc : this.getComputedColumnDescs()) {
