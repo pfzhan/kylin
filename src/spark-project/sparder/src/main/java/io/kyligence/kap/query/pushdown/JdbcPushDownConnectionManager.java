@@ -37,11 +37,11 @@ public class JdbcPushDownConnectionManager {
 
     private volatile static JdbcPushDownConnectionManager manager = null;
 
-    static JdbcPushDownConnectionManager getConnectionManager() throws ClassNotFoundException {
+    static JdbcPushDownConnectionManager getConnectionManager(KylinConfig config) throws ClassNotFoundException {
         if (manager == null) {
             synchronized (JdbcPushDownConnectionManager.class) {
                 if (manager == null) {
-                    manager = new JdbcPushDownConnectionManager(KylinConfig.getInstanceFromEnv());
+                    manager = new JdbcPushDownConnectionManager(config);
                 }
             }
         }

@@ -47,7 +47,7 @@ public class PushDownRunnerJdbcImpl implements IPushDownRunner {
     @Override
     public void init(KylinConfig config) {
         try {
-            manager = JdbcPushDownConnectionManager.getConnectionManager();
+            manager = JdbcPushDownConnectionManager.getConnectionManager(config);
         } catch (Exception e) {
             throw new RuntimeException(e.getMessage(), e);
         }
