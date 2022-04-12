@@ -29,12 +29,25 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableList;
+import io.kyligence.kap.rest.service.IndexPlanService;
+import io.kyligence.kap.rest.service.ModelBuildService;
+import io.kyligence.kap.rest.service.ModelSemanticHelper;
+import io.kyligence.kap.rest.service.ModelService;
+import io.kyligence.kap.rest.service.NUserGroupService;
+import io.kyligence.kap.secondstorage.management.request.ProjectLoadRequest;
+import io.kyligence.kap.secondstorage.management.request.ProjectRecoveryResponse;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.apache.kylin.rest.service.AccessService;
+import org.apache.kylin.rest.service.IUserGroupService;
+import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.AclUtil;
 import org.apache.spark.sql.SparkSession;
 import org.junit.Assert;
 import org.junit.Before;
@@ -59,6 +72,10 @@ import io.kyligence.kap.secondstorage.test.EnableTestUser;
 import io.kyligence.kap.secondstorage.test.SharedSparkSession;
 import io.kyligence.kap.secondstorage.test.utils.JobWaiter;
 import lombok.val;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.springframework.test.util.ReflectionTestUtils;
 
 public class IncrementalTest implements JobWaiter {
     private static final String modelName = "test_table_index";
@@ -86,9 +103,44 @@ public class IncrementalTest implements JobWaiter {
     private SecondStorageEndpoint secondStorageEndpoint = new SecondStorageEndpoint();
     private IndexDataConstructor indexDataConstructor;
 
+    @InjectMocks
+    private ModelService modelService = Mockito.spy(new ModelService());
+
+    @Mock
+    private final AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
+
+    @Mock
+    private final AccessService accessService = Mockito.spy(AccessService.class);
+
+    @Mock
+    protected IUserGroupService userGroupService = Mockito.spy(NUserGroupService.class);
+
+    @Mock
+    private final ModelBuildService modelBuildService = Mockito.spy(ModelBuildService.class);
+
+    @Mock
+    private final ModelSemanticHelper modelSemanticHelper = Mockito.spy(new ModelSemanticHelper());
+
+    @Mock
+    private final IndexPlanService indexPlanService = Mockito.spy(new IndexPlanService());
+
+    @Mock
+    private final AclUtil aclUtil = Mockito.spy(AclUtil.class);
+
     @Before
     public void setUp() {
+        ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
+
+        ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
+        ReflectionTestUtils.setField(modelService, "accessService", accessService);
+        ReflectionTestUtils.setField(modelService, "userGroupService", userGroupService);
+        ReflectionTestUtils.setField(modelService, "indexPlanService", indexPlanService);
+        ReflectionTestUtils.setField(modelService, "semanticUpdater", modelSemanticHelper);
+        ReflectionTestUtils.setField(modelService, "modelBuildService", modelBuildService);
+
         secondStorageEndpoint.setSecondStorageService(secondStorageService);
+        secondStorageEndpoint.setModelService(modelService);
+        secondStorageService.setModelService(modelService);
         indexDataConstructor = new IndexDataConstructor(project);
     }
 
@@ -148,5 +200,35 @@ public class IncrementalTest implements JobWaiter {
         val tableFlowManager = SecondStorageUtil.tableFlowManager(KylinConfig.getInstanceFromEnv(), project);
         val expectSegments = dataflowManager.getDataflow(modelId).getSegments().stream().map(NDataSegment::getId).collect(Collectors.toSet());
         Assert.assertTrue(tableFlowManager.orElseThrow(null).get(modelId).orElseThrow(null).getTableDataList().get(0).containSegments(expectSegments));
+    }
+
+    @Test
+    public void testSegmentNoDataAndProjectReload() throws Exception {
+        buildIncrementalLoadQuery("2012-01-01", "2012-01-02");
+        buildIncrementalLoadQuery("2012-01-02", "2012-01-03");
+        // clean first segment
+        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+
+        dataflowManager.updateDataflowDetailsLayouts(dataflowManager.getDataflow(modelId).getFirstSegment(), Collections.emptyList());
+
+        val request = new ProjectLoadRequest();
+        request.setProjects(ImmutableList.of(project));
+
+        EnvelopeResponse<List<ProjectRecoveryResponse>> response = secondStorageEndpoint.projectLoad(request);
+        Assert.assertEquals("000", response.getCode());
+        Assert.assertNotNull(response.getData());
+        Assert.assertEquals(1, response.getData().size());
+        Assert.assertNotNull(response.getData().get(0).getSubmittedModels());
+        Assert.assertEquals(1, response.getData().get(0).getSubmittedModels().size());
+
+        response.getData().forEach(res -> res.getJobs().forEach(job -> waitJobEnd(getProject(), job.getJobId())));
+
+        dataflowManager.getDataflow(modelId).getSegments().forEach(segment -> dataflowManager.updateDataflowDetailsLayouts(segment, Collections.emptyList()));
+        response = secondStorageEndpoint.projectLoad(request);
+        Assert.assertEquals("000", response.getCode());
+        Assert.assertNotNull(response.getData());
+        Assert.assertEquals(1, response.getData().size());
+        Assert.assertNotNull(response.getData().get(0).getFailedModels());
+        Assert.assertEquals(1, response.getData().get(0).getFailedModels().size());
     }
 }
