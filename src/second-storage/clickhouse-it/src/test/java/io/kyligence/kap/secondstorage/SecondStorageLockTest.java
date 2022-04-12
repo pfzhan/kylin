@@ -137,6 +137,7 @@ import java.util.stream.Collectors;
 import static io.kyligence.kap.newten.clickhouse.ClickHouseUtils.configClickhouseWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -368,6 +369,7 @@ public class SecondStorageLockTest implements JobWaiter {
             checkSecondStorageMetadata(existTablePlanLayoutIds, existTableDataLayoutIds);
             checkSecondStorageSegmentMetadata(getAllSegmentIds(), layout01);
             checkSecondStorageSegmentMetadata(getAllSegmentIds(), layout02);
+            checkSegmentDisplayNodes(replica, clickhouse.length / replica);
 
             // removed old index
             indexPlanService.removeIndexes(getProject(), modelId, ImmutableSet.of(layout01));
@@ -678,6 +680,17 @@ public class SecondStorageLockTest implements JobWaiter {
                 segmentIds.toArray(new String[]{})));
 
         waitJobFinish(getProject(), jobInfo.getJobId());
+    }
+
+    private void checkSegmentDisplayNodes(int replica, int shardCnt) {
+        List<NDataSegmentResponse> segments = modelService.getSegmentsResponse(modelId, getProject(), "0", "" + (Long.MAX_VALUE - 1), null,
+                null, null, false, null, false);
+        segments.forEach(segment -> {
+            assertEquals(shardCnt, segment.getSecondStorageNodes().size());
+            assertNotNull(segment.getSecondStorageNodes().values());
+            assertTrue(segment.getSecondStorageNodes().values().stream().findFirst().isPresent());
+            assertEquals(replica, segment.getSecondStorageNodes().values().stream().findFirst().get().size());
+        });
     }
 
     @Data

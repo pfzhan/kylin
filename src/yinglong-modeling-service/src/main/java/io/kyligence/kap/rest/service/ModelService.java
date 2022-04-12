@@ -1020,7 +1020,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                             }));
             segmentResponseList.forEach(segment -> {
                 if (tablePartitions.containsKey(segment.getId())) {
-                    val nodes = new ArrayList<String>();
+                    val nodes = new HashSet<String>();
                     Long sizes = 0L;
                     var partitions = tablePartitions.get(segment.getId());
                     for (TablePartition partition : partitions) {
@@ -1033,7 +1033,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                     } catch (Exception e) {
                         log.error("setSecondStorageSize failed", e);
                     }
-                    Map<String, List<SecondStorageNode>> pairs = SecondStorageUtil.convertNodesToPairs(nodes);
+                    Map<String, List<SecondStorageNode>> pairs = SecondStorageUtil.convertNodesToPairs(new ArrayList<>(nodes));
                     segment.setSecondStorageNodes(pairs);
                 } else {
                     segment.setSecondStorageNodes(Collections.emptyMap());
