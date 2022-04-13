@@ -82,9 +82,10 @@ import lombok.val;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
-import static org.apache.kylin.common.exception.ServerErrorCode.MULTI_PARTITION_DISABLE;
 import static org.apache.kylin.common.exception.ServerErrorCode.UNSUPPORTED_STREAMING_OPERATION;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.INDEX_PARAMETER_INVALID;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_MULTI_PARTITION_DISABLE;
 
 @Controller
 @RequestMapping(value = "/api/models", produces = { HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
@@ -201,8 +202,8 @@ public class OpenModelController extends NBasicController {
                 if (INDEX_STATUS_SET.contains(s)) {
                     statuses.add(IndexEntity.Status.valueOf(s));
                 } else {
-                    throw new KylinException(ServerErrorCode.INVALID_INDEX_STATUS_TYPE,
-                            MsgPicker.getMsg().getINDEX_STATUS_TYPE_ERROR());
+                    throw new KylinException(INDEX_PARAMETER_INVALID, "status",
+                            String.join(", ", INDEX_STATUS_SET));
                 }
             }
         });
@@ -220,8 +221,8 @@ public class OpenModelController extends NBasicController {
                 if (INDEX_SOURCE_SET.contains(s)) {
                     sourceList.add(IndexEntity.Source.valueOf(s));
                 } else {
-                    throw new KylinException(ServerErrorCode.INVALID_INDEX_SOURCE_TYPE,
-                            MsgPicker.getMsg().getINDEX_SOURCE_TYPE_ERROR());
+                    throw new KylinException(INDEX_PARAMETER_INVALID, "sources",
+                            String.join(", ", INDEX_SOURCE_SET));
                 }
             }
         });
@@ -239,8 +240,8 @@ public class OpenModelController extends NBasicController {
         if (INDEX_SORT_BY_SET.contains(sortBy)) {
             return sortBy;
         }
-        throw new KylinException(ServerErrorCode.INVALID_INDEX_SORT_BY_FIELD,
-                MsgPicker.getMsg().getINDEX_SORT_BY_ERROR());
+        throw new KylinException(INDEX_PARAMETER_INVALID, "sort_by",
+                String.join(", ", INDEX_SORT_BY_SET));
     }
 
     @VisibleForTesting
@@ -397,7 +398,7 @@ public class OpenModelController extends NBasicController {
         ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(project);
         if (!projectInstance.getConfig().isMultiPartitionEnabled()) {
-            throw new KylinException(MULTI_PARTITION_DISABLE, projectInstance.getName());
+            throw new KylinException(PROJECT_MULTI_PARTITION_DISABLE, projectInstance.getName());
         }
     }
 

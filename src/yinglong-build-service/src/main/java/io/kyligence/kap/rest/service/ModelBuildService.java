@@ -25,12 +25,12 @@
 package io.kyligence.kap.rest.service;
 
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PARTITION_COLUMN;
-import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JOB;
 import static org.apache.kylin.common.exception.ServerErrorCode.PARTITION_VALUE_NOT_SUPPORT;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CONCURRENT_SUBMIT_LIMIT;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_CHECK_MULTI_PARTITION_ABANDON;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_CHECK_MULTI_PARTITION_DUPLICATE;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_CHECK_MULTI_PARTITION_EMPTY;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -404,15 +404,14 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
             return;
         }
         if (params.isNeedBuild() && CollectionUtils.isEmpty(params.getMultiPartitionValues())) {
-            throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_CHECK_MULTI_PARTITION_EMPTY());
+            throw new KylinException(JOB_CREATE_CHECK_MULTI_PARTITION_EMPTY);
         }
         if (!params.isNeedBuild() && !CollectionUtils.isEmpty(params.getMultiPartitionValues())) {
-            throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_CHECK_MULTI_PARTITION_ABANDON());
+            throw new KylinException(JOB_CREATE_CHECK_MULTI_PARTITION_ABANDON);
         }
         for (String[] values : params.getMultiPartitionValues()) {
             if (values.length != model.getMultiPartitionDesc().getColumns().size()) {
-                throw new KylinException(FAILED_CREATE_JOB,
-                        MsgPicker.getMsg().getADD_JOB_CHECK_MULTI_PARTITION_ABANDON());
+                throw new KylinException(JOB_CREATE_CHECK_MULTI_PARTITION_ABANDON);
             }
         }
     }

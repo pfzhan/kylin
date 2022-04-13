@@ -24,6 +24,7 @@
 package io.kyligence.kap.rest.controller.open;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.INDEX_PARAMETER_INVALID;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -31,11 +32,13 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
+import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableSet;
 import io.kyligence.kap.rest.request.ModelRequest;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.metadata.model.Segments;
@@ -113,6 +116,15 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
     private OpenModelController openModelController = Mockito.spy(new OpenModelController());
 
     private final Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
+
+    private static final String LAST_MODIFY = "last_modified";
+    private static final String USAGE = "usage";
+    private static final String DATA_SIZE = "data_size";
+    private static final Set<String> INDEX_SORT_BY_SET = ImmutableSet.of(USAGE, LAST_MODIFY, DATA_SIZE);
+    private static final Set<String> INDEX_SOURCE_SET = Arrays.stream(IndexEntity.Source.values()).map(Enum::name)
+            .collect(Collectors.toSet());
+    private static final Set<String> INDEX_STATUS_SET = Arrays.stream(IndexEntity.Status.values()).map(Enum::name)
+            .collect(Collectors.toSet());
 
     @Before
     public void setup() {
@@ -421,7 +433,8 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
             OpenModelController.checkSources(Lists.newArrayList("ab"));
         } catch (KylinException e) {
             Assert.assertEquals("999", e.getCode());
-            Assert.assertEquals(MsgPicker.getMsg().getINDEX_SOURCE_TYPE_ERROR(), e.getMessage());
+            Assert.assertEquals(INDEX_PARAMETER_INVALID.getCodeMsg("sources",
+                    String.join(", ", INDEX_SOURCE_SET)), e.getLocalizedMessage());
         }
     }
 
@@ -438,7 +451,8 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
             OpenModelController.checkIndexStatus(Lists.newArrayList("ab"));
         } catch (KylinException e) {
             Assert.assertEquals("999", e.getCode());
-            Assert.assertEquals(MsgPicker.getMsg().getINDEX_STATUS_TYPE_ERROR(), e.getMessage());
+            Assert.assertEquals(INDEX_PARAMETER_INVALID.getCodeMsg("status",
+                    String.join(", ", INDEX_STATUS_SET)), e.getLocalizedMessage());
         }
     }
 
@@ -454,7 +468,8 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
             OpenModelController.checkIndexSortBy("ab");
         } catch (KylinException e) {
             Assert.assertEquals("999", e.getCode());
-            Assert.assertEquals(MsgPicker.getMsg().getINDEX_SORT_BY_ERROR(), e.getMessage());
+            Assert.assertEquals(INDEX_PARAMETER_INVALID.getCodeMsg("sort_by",
+                    String.join(", ", INDEX_SORT_BY_SET)), e.getLocalizedMessage());
         }
     }
 
