@@ -133,9 +133,12 @@ object SparkSqlClient {
       if (config.isQuerySparkJobTraceEnabled) jobTrace.jobFinished()
       val fieldList = df.schema.map(field => SparderTypeUtil.convertSparkFieldToJavaField(field)).asJava
       val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(df.queryExecution.executedPlan)
+      val (jobCount, stageCount, taskCount) = QueryMetricUtils.collectTaskRelatedMetrics(jobGroup, ss.sparkContext)
       QueryContext.current().getMetrics.setScanRows(scanRows)
       QueryContext.current().getMetrics.setScanBytes(scanBytes)
-
+      QueryContext.current().getMetrics.setQueryJobCount(jobCount)
+      QueryContext.current().getMetrics.setQueryStageCount(stageCount)
+      QueryContext.current().getMetrics.setQueryTaskCount(taskCount)
       (
         () => new java.util.Iterator[JList[String]] {
           override def hasNext: Boolean = resultRows.hasNext

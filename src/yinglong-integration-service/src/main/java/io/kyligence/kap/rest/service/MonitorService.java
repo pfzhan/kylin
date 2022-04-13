@@ -229,6 +229,9 @@ public class MonitorService extends BasicService {
     }
 
     public String fetchAndMergeSparkMetrics() {
+        if (!SparderEnv.isSparkAvailable()) {
+            return "";
+        }
         String executorMetricsInfo = "";
         if (KylinConfig.getInstanceFromEnv().isSpark3ExecutorPrometheusEnabled()) {
             executorMetricsInfo = SparkPrometheusMetrics.fetchExecutorMetricsInfo(SparderEnv.getSparkSession().sparkContext().applicationId());

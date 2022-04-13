@@ -65,6 +65,9 @@ public class QueryMetrics extends SchedulerEventNotifier {
     protected long totalScanBytes;
     protected long totalScanCount;
     protected long resultRowCount;
+    protected long queryJobCount;
+    protected long queryStageCount;
+    protected long queryTaskCount;
 
     protected boolean isPushdown;
     protected String engineType;

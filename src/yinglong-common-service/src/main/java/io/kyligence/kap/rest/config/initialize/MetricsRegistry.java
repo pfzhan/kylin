@@ -35,11 +35,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.common.event.ModelAddEvent;
-import io.kyligence.kap.common.persistence.metadata.JdbcDataSource;
-import io.micrometer.core.instrument.Gauge;
-import io.micrometer.core.instrument.Meter;
-import io.micrometer.core.instrument.MeterRegistry;
+import javax.sql.DataSource;
+
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -47,20 +44,26 @@ import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.util.SpringContext;
+import org.apache.spark.sql.SparderEnv;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.RatioGauge;
 import com.codahale.metrics.jvm.GarbageCollectorMetricSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.common.event.ModelAddEvent;
 import io.kyligence.kap.common.metrics.MetricsCategory;
 import io.kyligence.kap.common.metrics.MetricsGroup;
 import io.kyligence.kap.common.metrics.MetricsName;
 import io.kyligence.kap.common.metrics.MetricsTag;
 import io.kyligence.kap.common.metrics.prometheus.PrometheusMetrics;
+import io.kyligence.kap.common.persistence.metadata.JdbcDataSource;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.storage.ProjectStorageInfoCollector;
@@ -75,13 +78,12 @@ import io.kyligence.kap.metadata.user.NKylinUserManager;
 import io.kyligence.kap.query.util.LoadCounter;
 import io.kyligence.kap.query.util.LoadDesc;
 import io.kyligence.kap.rest.service.ProjectService;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.Meter;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.sql.DataSource;
 
 @Slf4j
 public class MetricsRegistry {
@@ -156,15 +158,55 @@ public class MetricsRegistry {
                                     }
                                 }
                                 return count;
-                            }).tags(MetricsTag.STATE.getVal(), state, MetricsTag.POOL.getVal(), "dbcp2", MetricsTag.TYPE.getVal(), driver).strongReference(true)
-                            .register(meterRegistry));
+                            }).tags(MetricsTag.STATE.getVal(), state, MetricsTag.POOL.getVal(), "dbcp2",
+                                    MetricsTag.TYPE.getVal(), driver)
+                            .strongReference(true).register(meterRegistry));
         }
-        Gauge.builder(PrometheusMetrics.SPARK_TASKS.getValue(), LoadCounter.getInstance(), LoadCounter::getPendingTaskCount)
-                .tags(MetricsTag.STATE.getVal(), "pending").strongReference(true).register(meterRegistry);
-        Gauge.builder(PrometheusMetrics.SPARK_TASKS.getValue(), LoadCounter.getInstance(), LoadCounter::getRunningTaskCount)
-                .tags(MetricsTag.STATE.getVal(), "running").strongReference(true).register(meterRegistry);
-        Gauge.builder(PrometheusMetrics.SPARK_TASK_UTILIZATION.getValue(), LoadCounter.getInstance(), load -> load.getRunningTaskCount() * 1.0 / load.getSlotCount())
+
+        Gauge.builder(PrometheusMetrics.SPARDER_UP.getValue(), () -> SparderEnv.isSparkAvailable() ? 1 : 0)
                 .strongReference(true).register(meterRegistry);
+
+        Gauge.builder(PrometheusMetrics.SPARK_TASKS.getValue(), LoadCounter.getInstance(),
+                e -> SparderEnv.isSparkAvailable() ? e.getPendingTaskCount() : 0)
+                .tags(MetricsTag.STATE.getVal(), MetricsTag.PENDING.getVal()).strongReference(true)
+                .register(meterRegistry);
+        Gauge.builder(PrometheusMetrics.SPARK_TASKS.getValue(), LoadCounter.getInstance(),
+                e -> SparderEnv.isSparkAvailable() ? e.getRunningTaskCount() : 0)
+                .tags(MetricsTag.STATE.getVal(), MetricsTag.RUNNING.getVal()).strongReference(true)
+                .register(meterRegistry);
+        Gauge.builder(PrometheusMetrics.SPARK_TASK_UTILIZATION.getValue(), LoadCounter.getInstance(),
+                e -> SparderEnv.isSparkAvailable() ? e.getRunningTaskCount() * 1.0 / e.getSlotCount() : 0)
+                .strongReference(true).register(meterRegistry);
+    }
+
+    public static void registerProjectPrometheusMetrics(KylinConfig kylinConfig, String project) {
+        if (!kylinConfig.isPrometheusMetricsEnabled()) {
+            return;
+        }
+        MeterRegistry meterRegistry = SpringContext.getBean(MeterRegistry.class);
+        ProjectService projectService = SpringContext.getBean(ProjectService.class);
+        Tags projectTag = Tags.of(MetricsTag.PROJECT.getVal(), project);
+        Gauge.builder(PrometheusMetrics.STORAGE_BYTES.getValue(),
+                () -> projectService.getStorageVolumeInfoResponse(project).getTotalStorageSize()).tags(projectTag)
+                .register(meterRegistry);
+
+        ProjectStorageInfoCollector collector = new ProjectStorageInfoCollector(
+                Lists.newArrayList(StorageInfoEnum.GARBAGE_STORAGE));
+        StorageVolumeInfo storageVolumeInfo = collector.getStorageVolumeInfo(kylinConfig, project);
+        Gauge.builder(PrometheusMetrics.GARBAGE_BYTES.getValue(), storageVolumeInfo::getGarbageStorageSize)
+                .tags(projectTag).register(meterRegistry);
+
+        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
+        Gauge.builder(PrometheusMetrics.JOB_COUNTS.getValue(),
+                () -> Objects.isNull(scheduler.getContext()) ? 0
+                        : scheduler.getContext().getRunningJobs().values().stream()
+                                .filter(job -> ExecutableState.READY.equals(job.getOutput().getState())).count())
+                .tags(projectTag).tags(MetricsTag.STATE.getVal(), MetricsTag.PENDING.getVal()).register(meterRegistry);
+        Gauge.builder(PrometheusMetrics.JOB_COUNTS.getValue(),
+                () -> Objects.isNull(scheduler.getContext()) ? 0
+                        : scheduler.getContext().getRunningJobs().values().stream()
+                                .filter(job -> ExecutableState.RUNNING.equals(job.getOutput().getState())).count())
+                .tags(projectTag).tags(MetricsTag.STATE.getVal(), MetricsTag.RUNNING.getVal()).register(meterRegistry);
     }
 
     public static void registerHostMetrics(String host) {

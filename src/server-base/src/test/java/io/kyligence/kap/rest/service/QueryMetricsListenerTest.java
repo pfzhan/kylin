@@ -30,13 +30,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import io.kyligence.kap.common.metrics.prometheus.PrometheusMetrics;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.query.QueryHistoryInfo;
-import io.kyligence.kap.metadata.query.QueryMetrics;
-import io.micrometer.core.instrument.Meter;
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.rest.service.QueryService;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -53,8 +46,15 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.common.metrics.MetricsCategory;
 import io.kyligence.kap.common.metrics.MetricsGroup;
 import io.kyligence.kap.common.metrics.MetricsName;
+import io.kyligence.kap.common.metrics.prometheus.PrometheusMetrics;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.query.QueryHistoryInfo;
+import io.kyligence.kap.metadata.query.QueryMetrics;
 import io.kyligence.kap.rest.config.initialize.QueryMetricsListener;
+import io.micrometer.core.instrument.Meter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import lombok.val;
 
 public class QueryMetricsListenerTest extends NLocalFileMetadataTestCase {
@@ -199,18 +199,27 @@ public class QueryMetricsListenerTest extends NLocalFileMetadataTestCase {
         Mockito.when(queryMetrics.getRealizationMetrics()).thenReturn(Collections.emptyList());
         KylinConfig.getInstanceFromEnv().setProperty("kylin.metrics.prometheus-enabled", "false");
         queryMetricsListener.recordQueryPrometheusMetric(queryMetrics, modelManager, meterRegistry);
-        Collection<Meter> meters1 = meterRegistry.find(PrometheusMetrics.QUERY_SCAN_BYTES.getValue()).meters();
+        Collection<Meter> meters1 = meterRegistry.getMeters();
         Assert.assertEquals(0, meters1.size());
 
         KylinConfig.getInstanceFromEnv().setProperty("kylin.metrics.prometheus-enabled", "true");
         queryMetricsListener.recordQueryPrometheusMetric(queryMetrics, modelManager, meterRegistry);
-        Collection<Meter> meters2 = meterRegistry.find(PrometheusMetrics.QUERY_SCAN_BYTES.getValue()).meters();
-        Assert.assertEquals(0, meters2.size());
+        Collection<Meter> meters2 = meterRegistry.find(PrometheusMetrics.QUERY_SECONDS.getValue()).meters();
+        Assert.assertEquals(1, meters2.size());
 
         Mockito.when(queryMetrics.isIndexHit()).thenReturn(true);
+        Mockito.when(queryMetrics.isSucceed()).thenReturn(true);
         queryMetricsListener.recordQueryPrometheusMetric(queryMetrics, modelManager, meterRegistry);
         Collection<Meter> meters3 = meterRegistry.find(PrometheusMetrics.QUERY_SCAN_BYTES.getValue()).meters();
-        Assert.assertNotEquals(0, meters3.size());
+        Collection<Meter> meters4 = meterRegistry.find(PrometheusMetrics.QUERY_JOBS.getValue()).meters();
+        Collection<Meter> meters5 = meterRegistry.find(PrometheusMetrics.QUERY_STAGES.getValue()).meters();
+        Collection<Meter> meters6 = meterRegistry.find(PrometheusMetrics.QUERY_TASKS.getValue()).meters();
+        Collection<Meter> meters7 = meterRegistry.find(PrometheusMetrics.QUERY_RESULT_ROWS.getValue()).meters();
+        Assert.assertEquals(1, meters3.size());
+        Assert.assertEquals(1, meters4.size());
+        Assert.assertEquals(1, meters5.size());
+        Assert.assertEquals(1, meters6.size());
+        Assert.assertEquals(1, meters7.size());
     }
 
 }

@@ -23,22 +23,34 @@
  */
 package io.kyligence.kap.common.metrics.prometheus;
 
-import lombok.Getter;
-
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import lombok.Getter;
+
 @Getter
 public enum PrometheusMetrics {
 
-    JVM_DB_CONNECTIONS("ke_db_connections", Type.INSTANCE_METRIC),
+    JVM_DB_CONNECTIONS("ke_db_connections", Type.INSTANCE_METRIC), //
 
-    SPARK_TASKS("spark_tasks", Type.INSTANCE_METRIC),
-    SPARK_TASK_UTILIZATION("spark_tasks_utilization", Type.INSTANCE_METRIC),
+    SPARK_TASKS("spark_tasks", Type.INSTANCE_METRIC), //
+    SPARK_TASK_UTILIZATION("spark_tasks_utilization", Type.INSTANCE_METRIC), //
 
-    QUERY_SECONDS("ke_queries_seconds", Type.PROJECT_METRIC),
-    QUERY_SCAN_BYTES("ke_queries_scan_bytes", Type.PROJECT_METRIC),
+    QUERY_SECONDS("ke_queries_seconds", Type.PROJECT_METRIC), //
+    QUERY_SCAN_BYTES("ke_queries_scan_bytes", Type.PROJECT_METRIC), //
+    QUERY_RESULT_ROWS("ke_queries_result_rows", Type.PROJECT_METRIC), //
+    QUERY_JOBS("ke_queries_jobs", Type.PROJECT_METRIC), //
+    QUERY_STAGES("ke_queries_stages", Type.PROJECT_METRIC), //
+    QUERY_TASKS("ke_queries_tasks", Type.PROJECT_METRIC), //
+
+    STORAGE_BYTES("ke_storage_bytes", Type.PROJECT_METRIC), //
+    GARBAGE_BYTES("ke_garbage_bytes", Type.PROJECT_METRIC), //
+
+    SPARDER_UP("ke_sparder_up", Type.INSTANCE_METRIC), //
+
+    JOB_COUNTS("ke_job_counts", Type.PROJECT_METRIC), //
+    JOB_MINUTES("ke_job_minutes", Type.PROJECT_METRIC), //
 
     MODEL_BUILD_DURATION("ke_model_build_minutes", Type.PROJECT_METRIC | Type.MODEL_METRIC);
 
