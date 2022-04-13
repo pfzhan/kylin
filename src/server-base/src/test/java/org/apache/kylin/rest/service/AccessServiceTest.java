@@ -394,14 +394,14 @@ public class AccessServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetGrantedProjectsOfUser() throws IOException {
         List<String> result = accessService.getGrantedProjectsOfUser("ADMIN");
-        Assert.assertEquals(25, result.size());
+        Assert.assertEquals(26, result.size());
     }
 
     @Test
     public void testGetGrantedProjectsOfUserOrGroup() throws IOException {
         // admin user
         List<String> result = accessService.getGrantedProjectsOfUserOrGroup("ADMIN", true);
-        Assert.assertEquals(25, result.size());
+        Assert.assertEquals(26, result.size());
 
         // normal user
         result = accessService.getGrantedProjectsOfUserOrGroup("ANALYST", true);
@@ -443,7 +443,7 @@ public class AccessServiceTest extends NLocalFileMetadataTestCase {
         Mockito.when(userService.isGlobalAdmin("ADMIN")).thenReturn(true);
         List<SidPermissionWithAclResponse> responses = accessService.getUserOrGroupAclPermissions(projects, "ADMIN",
                 true);
-        Assert.assertEquals(25, responses.size());
+        Assert.assertEquals(26, responses.size());
         Assert.assertTrue(responses.stream().allMatch(response -> "ADMIN".equals(response.getProjectPermission())));
 
         // test normal group
