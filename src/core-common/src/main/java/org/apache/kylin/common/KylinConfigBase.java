@@ -518,7 +518,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public int getSecondStorageLoadDeduplicationWindow() {
-        return Integer.parseInt(getOptional("kylin.second-storage.load-deduplication-window", "10000"));
+        return Integer.parseInt(getOptional("kylin.second-storage.load-deduplication-window", "0"));
     }
 
     public int getSecondStorageLoadRetry() {

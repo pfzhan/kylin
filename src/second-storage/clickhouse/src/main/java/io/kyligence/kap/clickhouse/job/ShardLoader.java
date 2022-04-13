@@ -41,6 +41,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 
 import java.sql.Date;
@@ -309,6 +310,11 @@ public class ShardLoader {
     }
 
     private boolean needRetry(int retry, int maxRetry, Exception e) {
-        return e != null && retry <= maxRetry;
+        if (e == null || retry > maxRetry)
+            return false;
+
+        String msg = e.getMessage();
+        return StringUtils.containsIgnoreCase(msg, "broken pipe")
+                || StringUtils.containsIgnoreCase(msg, "connection reset");
     }
 }
