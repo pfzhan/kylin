@@ -622,6 +622,30 @@ public class SecondStorageService extends BasicService implements SecondStorageU
         return Lists.newArrayList(models);
     }
 
+    public List<String> getAllSecondStoragrJobs() {
+        List<ProjectInstance> projects = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).listAllProjects();
+        for (ProjectInstance project : projects) {
+            List<String> allJobs = getProjectSecondStorageJobs(project.getName());
+            if (!allJobs.isEmpty()) {
+                return allJobs;
+            }
+        }
+        return Collections.emptyList();
+    }
+
+    public List<String> getProjectSecondStorageJobs(String project) {
+        if (SecondStorageUtil.isProjectEnable(project)) {
+            val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            return executableManager.getJobs().stream()
+                    .map(executableManager::getJob)
+                    .filter(job -> SecondStorageUtil.RELATED_JOBS.contains(job.getJobType()))
+                    .filter(job -> SecondStorageUtil.RUNNING_STATE.contains(job.getStatus()))
+                    .map(job -> job.getId())
+                    .collect(Collectors.toList());
+        }
+        return Collections.emptyList();
+    }
+
     public void isProjectAdmin(String project) {
         if (!KylinConfig.getInstanceFromEnv().isUTEnv()) {
             aclEvaluate.checkProjectAdminPermission(project);

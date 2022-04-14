@@ -875,8 +875,14 @@ public class SecondStorageLockTest implements JobWaiter {
         request.setProject(getProject());
         request.setModel(modelId);
         request.setSegmentIds(segments);
+        EnvelopeResponse<List<String>> jobs = secondStorageEndpoint.getAllSecondStoragrJobs();
+        assertEquals("000", jobs.getCode());
+        assertEquals(0, jobs.getData().size());
         EnvelopeResponse<JobInfoResponse> res = secondStorageEndpoint.loadStorage(request);
         assertEquals("000", res.getCode());
+        EnvelopeResponse<List<String>> jobs1 = secondStorageEndpoint.getProjectSecondStorageJobs(getProject());
+        assertEquals("000", jobs1.getCode());
+        assertEquals(1, jobs1.getData().size());
         for (JobInfoResponse.JobInfo job : res.getData().getJobs()) {
             waitJobFinish(getProject(), job.getJobId());
         }

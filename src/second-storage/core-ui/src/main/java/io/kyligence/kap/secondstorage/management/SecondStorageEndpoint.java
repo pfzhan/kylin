@@ -203,6 +203,18 @@ public class SecondStorageEndpoint extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, secondStorageService.lockList(project), "");
     }
 
+    @GetMapping(value = "/jobs/all", produces = {HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
+    @ResponseBody
+    public EnvelopeResponse<List<String>> getAllSecondStoragrJobs() {
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, secondStorageService.getAllSecondStoragrJobs(), "");
+    }
+
+    @GetMapping(value = "/jobs/project", produces = {HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
+    @ResponseBody
+    public EnvelopeResponse<List<String>> getProjectSecondStorageJobs(String project) {
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, secondStorageService.getProjectSecondStorageJobs(project), "");
+    }
+
     @PostMapping(value = "/sizeInNode")
     public EnvelopeResponse<Void> sizeInNode(@RequestBody SecondStorageMetadataRequest request) {
         checkProjectName(request.getProject());
