@@ -701,6 +701,16 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
+    @ApiOperation(value = "validateNewModelAlias", tags = { "QE" })
+    @GetMapping(value = "/{model:.+}/export/validation")
+    @ResponseBody
+    public EnvelopeResponse<Boolean> validateExport(@PathVariable("model") String modelId,
+            @RequestParam(value = "project") String project) {
+        String projectName = checkProjectName(project);
+        val validResult = modelService.validateExport(projectName, modelId);
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, validResult, "");
+    }
+
     @ApiOperation(value = "export model", tags = { "QE" }, notes = "Add URL: {model}")
     @GetMapping(value = "/{model:.+}/export")
     @ResponseBody

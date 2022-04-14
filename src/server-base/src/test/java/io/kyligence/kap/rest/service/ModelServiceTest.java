@@ -7406,4 +7406,29 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelService.checkTableHasColumnPermission(project, modelId, columns);
     }
 
+    @Test
+    public void testCheckDuplicateName() {
+        boolean result = modelService.validateExport("duplicate", "00596712-3a09-46f8-aea1-988b43fe9b6c");
+        Assert.assertTrue(result);
+
+        assertKylinExeption(() -> modelService.validateExport("duplicate", "0aa20c32-87b2-8431-6861-d7026c6a5d0a"), //
+                String.format(Locale.ROOT, //
+                        MsgPicker.getMsg().getDUPLICATED_MODEL_COLUMN_AND_MEASURE_NAME(), "ID2", "ID2"));
+
+        assertKylinExeption(() -> modelService.validateExport("duplicate", "0b1e35c2-1ffe-3283-4f15-66d5e0cd4a77"), //
+                String.format(Locale.ROOT, //
+                        MsgPicker.getMsg().getDUPLICATED_DIMENSION_NAME_AND_MEASURE_NAME(), "ID1_NAME", "ID1_NAME"));
+
+        assertKylinExeption(() -> modelService.validateExport("duplicate", "0c8bacb5-e367-104a-970c-9431298b35d9"), //
+                String.format(Locale.ROOT, //
+                        MsgPicker.getMsg().getDUPLICATED_DIMENSION_COLUMN_AND_MEASURE_NAME(), "ID1", "ID1"));
+
+        assertKylinExeption(() -> modelService.validateExport("duplicate", "0eab6754-23cf-8e98-0567-376e32dafb44"), //
+                String.format(Locale.ROOT, //
+                        MsgPicker.getMsg().getDUPLICATED_MODEL_COLUMN_AND_MEASURE_NAME(), "CC_PRICE1", "CC_PRICE1"));
+
+        assertKylinExeption(() -> modelService.validateExport("duplicate", "0fe62234-a97a-da7d-ba76-dfee6b8bada1"), //
+                String.format(Locale.ROOT, //
+                        MsgPicker.getMsg().getDUPLICATED_DIMENSION_NAME_AND_MEASURE_NAME(), "CC_PRICE1", "CC_PRICE1"));
+    }
 }

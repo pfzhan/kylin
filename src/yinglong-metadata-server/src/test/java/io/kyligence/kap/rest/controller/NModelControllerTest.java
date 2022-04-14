@@ -748,4 +748,14 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
     }
+
+    @Test
+    public void testValidateExport() throws Exception {
+        when(modelService.validateExport("default", "model1")).thenReturn(true);
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/{model}/export/validation", "model1")
+                .param("project", "default").contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+        Mockito.verify(nModelController).validateExport("model1", "default");
+    }
 }
