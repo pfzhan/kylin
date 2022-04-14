@@ -1,8 +1,0 @@
-name: public返回指定用户组的用户列表
-request:
-  headers:
-    Content-Type: application/json;charset=utf-8
-    accept: application/vnd.apache.kylin-v4-public+json
-    authorization: Basic $role
-  method: GET
-  url: user_group/group_members/ROLE_ADMIN?page_size=10&page_offset=0

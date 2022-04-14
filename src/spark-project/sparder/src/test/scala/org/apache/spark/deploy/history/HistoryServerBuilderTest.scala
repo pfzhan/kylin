@@ -23,11 +23,11 @@
  */
 package org.apache.spark.deploy.history
 
-import java.io.File
-
 import org.apache.commons.io.FileUtils
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.common.{SharedSparkSession, SparderBaseFunSuite}
+
+import java.io.File
 
 class HistoryServerBuilderTest extends SparderBaseFunSuite with SharedSparkSession {
   test("test create spark history server") {

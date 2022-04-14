@@ -5,12 +5,12 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>kap-query-common</artifactId>
     <packaging>jar</packaging>
-    <name>KAP - Query</name>
+    <name>KAP - Query Common</name>
     <url>http://kyligence.io</url>
     <description>Kyligence Query Engine</description>
 
     <parent>
-        <artifactId>ke</artifactId>
+        <artifactId>ke-open-core</artifactId>
         <groupId>io.kyligence.ke</groupId>
         <version>4.0.0-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
@@ -36,10 +36,6 @@
         <dependency>
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-core-storage</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-core-metadata-ext</artifactId>
         </dependency>
     </dependencies>
     <build>

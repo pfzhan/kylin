@@ -36,7 +36,7 @@
     <description>REST Service and RPC Server</description>
 
     <parent>
-        <artifactId>ke</artifactId>
+        <artifactId>ke-open-core</artifactId>
         <groupId>io.kyligence.ke</groupId>
         <version>4.0.0-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
@@ -50,10 +50,6 @@
         </dependency>
         <dependency>
             <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-smart-server</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
             <artifactId>yinglong-data-loading-server</artifactId>
         </dependency>
         <dependency>
@@ -64,10 +60,10 @@
             <groupId>io.kyligence.yinglong</groupId>
             <artifactId>yinglong-metadata-server</artifactId>
         </dependency>
-        <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-license-service</artifactId>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>io.kyligence.ke</groupId>-->
+<!--            <artifactId>kap-license-service</artifactId>-->
+<!--        </dependency>-->
         <dependency>
             <groupId>io.kyligence.yinglong</groupId>
             <artifactId>yinglong-common-server</artifactId>

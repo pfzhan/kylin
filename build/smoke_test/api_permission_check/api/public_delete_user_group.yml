@@ -1,8 +1,0 @@
-name: public删除用户组
-request:
-  headers:
-    Content-Type: application/json;charset=utf-8
-    accept: application/vnd.apache.kylin-v4-public+json
-    authorization: Basic $role
-  method: DELETE
-  url: user_group/test_public_group

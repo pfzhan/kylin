@@ -1,8 +1,0 @@
-name: public获取项目级访问权限
-request:
-  headers:
-    Content-Type: application/json;charset=utf-8
-    accept: application/vnd.apache.kylin-v4-public+json
-    authorization: Basic $role
-  method: GET
-  url: access/project?project=$project_name

@@ -1,8 +1,0 @@
-name: public删除用户
-request:
-  headers:
-    Content-Type: application/json;charset=utf-8
-    accept: application/vnd.apache.kylin-v4-public+json
-    authorization: Basic $role
-  method: DELETE
-  url: user/$user_id

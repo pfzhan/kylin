@@ -35,7 +35,7 @@
 
     <parent>
         <groupId>io.kyligence.ke</groupId>
-        <artifactId>ke</artifactId>
+        <artifactId>ke-open-core</artifactId>
         <version>4.0.0-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
@@ -48,7 +48,7 @@
         <!-- provided -->
         <dependency>
             <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-core-metadata-ext</artifactId>
+            <artifactId>kap-core-metadata</artifactId>
         </dependency>
         <dependency>
             <groupId>io.kyligence.ke</groupId>

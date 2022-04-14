@@ -37,17 +37,12 @@
 
     <parent>
         <groupId>io.kyligence.ke</groupId>
-        <artifactId>ke</artifactId>
+        <artifactId>ke-open-core</artifactId>
         <version>4.0.0-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
     <dependencies>
-        <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-smart-server</artifactId>
-            <scope>test</scope>
-        </dependency>
         <dependency>
             <groupId>io.kyligence.yinglong</groupId>
             <artifactId>yinglong-streaming-service</artifactId>
@@ -79,12 +74,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-core-metadata-ext</artifactId>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>io.kyligence.yinglong</groupId>
             <artifactId>yinglong-common-service</artifactId>
             <type>test-jar</type>
@@ -112,10 +101,6 @@
             <artifactId>kap-datasource-sdk</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-smart</artifactId>
-        </dependency>
         <!-- these plug-in modules, should not have API dependencies -->
 
         <dependency>

@@ -1,8 +1,0 @@
-name: public删除项目级访问权限
-request:
-  headers:
-    Content-Type: application/json;charset=utf-8
-    accept: application/vnd.apache.kylin-v4-public+json
-    authorization: Basic $role
-  method: DELETE
-  url: access/project?type=user&name=$user&project=$project_name

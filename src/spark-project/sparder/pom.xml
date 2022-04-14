@@ -39,7 +39,7 @@
     </properties>
 
     <parent>
-        <artifactId>ke</artifactId>
+        <artifactId>ke-open-core</artifactId>
         <groupId>io.kyligence.ke</groupId>
         <version>4.0.0-SNAPSHOT</version>
         <relativePath>../../../pom.xml</relativePath>
