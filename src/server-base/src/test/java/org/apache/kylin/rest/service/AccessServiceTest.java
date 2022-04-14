@@ -553,6 +553,15 @@ public class AccessServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testGetProjectUsersAndGroups() throws IOException {
+        AclEntity ae = accessService.getAclEntity(AclEntityType.PROJECT_INSTANCE,
+                "1eaca32a-a33e-4b69-83dd-0bb8b1f8c91b");
+        Map<String, List<String>> map = accessService.getProjectUsersAndGroups(ae);
+        Assert.assertTrue(map.get("user").contains("ADMIN"));
+        Assert.assertTrue(map.get("group").contains("ROLE_ADMIN"));
+    }
+
+    @Test
     public void testAclWithUnNaturalOrder() {
         AclEntity ae = accessService.getAclEntity(AclEntityType.PROJECT_INSTANCE,
                 "1eaca32a-a33e-4b69-83dd-0bb8b1f8c91b");
