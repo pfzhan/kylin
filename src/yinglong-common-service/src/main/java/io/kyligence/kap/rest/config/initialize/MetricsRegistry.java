@@ -200,11 +200,6 @@ public class MetricsRegistry {
         Gauge.builder(PrometheusMetrics.JOB_COUNTS.getValue(),
                 () -> Objects.isNull(scheduler.getContext()) ? 0
                         : scheduler.getContext().getRunningJobs().values().stream()
-                                .filter(job -> ExecutableState.READY.equals(job.getOutput().getState())).count())
-                .tags(projectTag).tags(MetricsTag.STATE.getVal(), MetricsTag.PENDING.getVal()).register(meterRegistry);
-        Gauge.builder(PrometheusMetrics.JOB_COUNTS.getValue(),
-                () -> Objects.isNull(scheduler.getContext()) ? 0
-                        : scheduler.getContext().getRunningJobs().values().stream()
                                 .filter(job -> ExecutableState.RUNNING.equals(job.getOutput().getState())).count())
                 .tags(projectTag).tags(MetricsTag.STATE.getVal(), MetricsTag.RUNNING.getVal()).register(meterRegistry);
     }
