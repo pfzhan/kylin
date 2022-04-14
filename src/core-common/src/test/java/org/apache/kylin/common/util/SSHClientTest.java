@@ -44,8 +44,10 @@ package org.apache.kylin.common.util;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.nio.charset.Charset;
 
+import com.jcraft.jsch.Session;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.junit.Assert;
@@ -104,5 +106,16 @@ public class SSHClientTest {
         tmpFile.deleteOnExit();
         FileUtils.write(tmpFile, "test_scp", Charset.defaultCharset());
         ssh.scpFileToRemote(tmpFile.getAbsolutePath(), "/tmp");
+    }
+
+    @Test
+    public void testRemoveKerberosPromption() throws Exception{
+        SSHClient ssh = new SSHClient(this.hostname, this.port, this.username, this.password);
+        Method newJSchSession = ssh.getClass().getDeclaredMethod("newJSchSession");
+        newJSchSession.setAccessible(true);
+        Session s = (Session)newJSchSession.invoke(ssh);
+        Assert.assertEquals("no", s.getConfig("StrictHostKeyChecking"));
+        Assert.assertEquals("publickey,keyboard-interactive,password", s.getConfig("PreferredAuthentications"));
+
     }
 }
