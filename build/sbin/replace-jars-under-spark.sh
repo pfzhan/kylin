@@ -28,7 +28,7 @@ source ${KYLIN_HOME}/sbin/prepare-hadoop-env.sh
 
 BYPASS=${SPARK_HOME}/jars/replace-jars-bypass
 
-# only replace when has Kerberos
+# replace when has Kerberos, or can't get the value (eg: in FI platform)
 kerberosEnabled=`${KYLIN_HOME}/bin/get-properties.sh kylin.kerberos.enabled`
 if [[ "${kerberosEnabled}" == "false" || -f ${BYPASS} ]]
 then

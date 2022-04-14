@@ -147,6 +147,8 @@ function fetchKylinHadoopConf() {
             checkAndCopyFile $APACHE_HADOOP_CONF_DIR/topology.map
             checkAndCopyFile $APACHE_HADOOP_CONF_DIR/ssl-client.xml
             checkAndCopyFile $APACHE_HADOOP_CONF_DIR/hadoop-env.sh
+            checkAndCopyFile $APACHE_HADOOP_CONF_DIR/cmt.xml
+            checkAndCopyFile $APACHE_HADOOP_CONF_DIR/mountTable.xml
 
             mysql_connector_jar_dir="${KYLIN_HOME}/lib/ext/"
             if [ -z "$(find ${mysql_connector_jar_dir} -maxdepth 1 -name 'mysql-connector-*.jar')" ]; then
