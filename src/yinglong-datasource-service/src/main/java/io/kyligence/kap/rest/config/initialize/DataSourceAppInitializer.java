@@ -24,7 +24,6 @@
 package io.kyligence.kap.rest.config.initialize;
 
 import io.kyligence.kap.common.constant.Constant;
-import io.kyligence.kap.metadata.epoch.EpochOrchestrator;
 import io.kyligence.kap.rest.source.DataSourceState;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -45,7 +44,6 @@ public class DataSourceAppInitializer implements InitializingBean {
     public void afterPropertiesSet() throws Exception {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         if (kylinConfig.isJobNode()) {
-            new EpochOrchestrator(kylinConfig);
             if (kylinConfig.getLoadHiveTablenameEnabled()) {
                 taskScheduler.scheduleWithFixedDelay(DataSourceState.getInstance(),
                         kylinConfig.getLoadHiveTablenameIntervals() * Constant.SECOND);
