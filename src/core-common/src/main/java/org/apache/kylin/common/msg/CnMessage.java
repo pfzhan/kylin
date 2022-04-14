@@ -1940,7 +1940,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getPROJECT_LOCKED() {
-        return "当前项目中有正在进行的分层存储重分布任务，请稍后再试。";
+        return "当前项目的分层存储中正在进行数据迁移，请稍后重试。";
     }
 
     @Override

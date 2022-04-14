@@ -1712,7 +1712,7 @@ public class Message {
     }
 
     public String getPROJECT_LOCKED() {
-        return "There is tiered storage rebalance job running in progress, please try again later.";
+        return "Data migration is in progress in the current project's tiered storage, please try again later.";
     }
 
     public String getFIX_STREAMING_SEGMENT() {
