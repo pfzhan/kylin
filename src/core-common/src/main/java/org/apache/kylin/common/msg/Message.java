@@ -1619,6 +1619,18 @@ public class Message {
         return "Can’t turn off the tiered storage at the moment. Project “%s” has an ongoing job, Please try again later.\\n";
     }
 
+    public String getSECOND_STORAGE_PROJECT_ENABLED() {
+        return "Loading failed, the project %s does not have tiered storage enabled.";
+    }
+
+    public String getSECOND_STORAGE_MODEL_ENABLED() {
+        return "Loading failed, the model %s does not have tiered storage enabled.";
+    }
+
+    public String getSECOND_STORAGE_SEGMENT_WITHOUT_BASE_INDEX() {
+        return "The base table index is missing in the segments, please add and try again.";
+    }
+
     public String getJOB_RESTART_FAILED() {
         return "Tiered storage task doesn't support restart.\n";
     }
@@ -1799,5 +1811,9 @@ public class Message {
 
     public String getTABLE_NO_COLUMNS_PERMISSION() {
         return "Please add permissions to columns in the table!";
+    }
+
+    public String getPARAMETER_IS_REQUIRED() {
+        return "'%s' is required.";
     }
 }

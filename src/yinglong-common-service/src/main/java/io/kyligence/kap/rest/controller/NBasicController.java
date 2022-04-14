@@ -261,7 +261,8 @@ public class NBasicController {
 
     protected void checkRequiredArg(String fieldName, Object fieldValue) {
         if (fieldValue == null || StringUtils.isEmpty(String.valueOf(fieldValue))) {
-            throw new KylinException(INVALID_PARAMETER, String.format(Locale.ROOT, "'%s' is required.", fieldName));
+            throw new KylinException(INVALID_PARAMETER,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getPARAMETER_IS_REQUIRED(), fieldName));
         }
     }
 

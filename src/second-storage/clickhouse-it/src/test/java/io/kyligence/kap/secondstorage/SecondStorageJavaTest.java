@@ -82,6 +82,7 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.mockito.Mockito;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 
 import java.io.IOException;
@@ -126,6 +127,7 @@ public class SecondStorageJavaTest implements JobWaiter {
 
     @Before
     public void setUp() {
+        ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
         secondStorageEndpoint.setSecondStorageService(secondStorageService);
         secondStorageService.setAclEvaluate(aclEvaluate);
         openSecondStorageEndpoint.setSecondStorageService(secondStorageService);

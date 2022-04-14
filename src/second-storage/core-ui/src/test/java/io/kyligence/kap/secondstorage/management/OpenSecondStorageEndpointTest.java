@@ -102,7 +102,7 @@ public class OpenSecondStorageEndpointTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.post("/api/storage/segments").content(param)
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
         Mockito.verify(openSecondStorageEndpoint).loadStorage(Mockito.any(StorageRequest.class));
     }

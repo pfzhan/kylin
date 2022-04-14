@@ -28,6 +28,7 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.rest.controller.NBasicController;
 import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.service.ModelService;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import io.kyligence.kap.secondstorage.management.request.ProjectLoadResponse;
 import io.kyligence.kap.secondstorage.management.request.ProjectRecoveryResponse;
 import io.kyligence.kap.secondstorage.management.request.RecoverRequest;
@@ -37,6 +38,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_SEGMENT_PARAMETER;
+import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_PROJECT_STATUS_ERROR;
 
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -97,6 +99,7 @@ public class OpenSecondStorageEndpoint extends NBasicController {
         String modelId = modelService.getModelDesc(request.getModelName(), request.getProject()).getUuid();
         request.setModel(modelId);
 
+        checkSecondStorageEnabled(request);
         checkSegmentParms(request.getSegmentIds().toArray(new String[0]),
                 request.getSegmentNames().toArray(new String[0]));
         return secondStorageEndpoint.loadStorage(request);
@@ -111,6 +114,7 @@ public class OpenSecondStorageEndpoint extends NBasicController {
         String modelId = modelService.getModelDesc(request.getModelName(), request.getProject()).getUuid();
         request.setModel(modelId);
 
+        checkSecondStorageEnabled(request);
         checkSegmentParms(request.getSegmentIds().toArray(new String[0]),
                 request.getSegmentNames().toArray(new String[0]));
         List<String> segIds = convertSegmentIdWithName(request);
@@ -122,10 +126,24 @@ public class OpenSecondStorageEndpoint extends NBasicController {
         String[] segIds = modelService.convertSegmentIdWithName(request.getModel(), request.getProject(),
                 request.getSegmentIds().toArray(new String[0]),
                 request.getSegmentNames().toArray(new String[0]));
+        modelService.checkSegmentsExistById(request.getModel(), request.getProject(), segIds);
+
         if (segIds == null)
             throw new KylinException(INVALID_SEGMENT_PARAMETER, MsgPicker.getMsg().getEMPTY_SEGMENT_PARAMETER());
 
         return Lists.newArrayList(segIds);
+    }
+
+    private void checkSecondStorageEnabled(StorageRequest request) {
+        if (!SecondStorageUtil.isProjectEnable(request.getProject())) {
+            throw new KylinException(SECOND_STORAGE_PROJECT_STATUS_ERROR,
+                    MsgPicker.getMsg().getSECOND_STORAGE_PROJECT_ENABLED(), request.getProject());
+        }
+
+        if (!SecondStorageUtil.isModelEnable(request.getProject(), request.getModel())) {
+            throw new KylinException(SECOND_STORAGE_PROJECT_STATUS_ERROR,
+                    MsgPicker.getMsg().getSECOND_STORAGE_MODEL_ENABLED(), request.getModelName());
+        }
     }
 
     @PostMapping(value = "/recovery/model", produces = {HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})

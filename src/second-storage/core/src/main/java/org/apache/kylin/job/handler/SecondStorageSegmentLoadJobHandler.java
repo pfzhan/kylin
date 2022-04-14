@@ -31,6 +31,8 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
+
+import static org.apache.kylin.common.exception.ServerErrorCode.BASE_TABLE_INDEX_NOT_AVAILABLE;
 import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_ADD_JOB_FAILED;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.job.exception.JobSubmissionException;
@@ -40,7 +42,6 @@ import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.factory.JobFactory;
 import org.apache.kylin.job.model.JobParam;
-import org.msgpack.core.Preconditions;
 
 import java.util.HashSet;
 import java.util.List;
@@ -65,7 +66,11 @@ public class SecondStorageSegmentLoadJobHandler extends AbstractJobHandler {
                         .stream().map(NDataLayout::getLayout).anyMatch(SecondStorageUtil::isBaseTableIndex))
                 .map(NDataSegment::getId)
                 .collect(Collectors.toList());
-        Preconditions.checkState(!hasBaseIndexSegmentIds.isEmpty(), "segments " + jobParam.getTargetSegments() + " don't have base index. Please build base table index firstly");
+
+        if (hasBaseIndexSegmentIds.isEmpty()) {
+            throw new KylinException(BASE_TABLE_INDEX_NOT_AVAILABLE,
+                    MsgPicker.getMsg().getSECOND_STORAGE_SEGMENT_WITHOUT_BASE_INDEX());
+        }
 
         return JobFactory.createJob(STORAGE_JOB_FACTORY,
                 new JobFactory.JobBuildParams(
