@@ -150,6 +150,8 @@
         <spring.boot.version>2.6.3</spring.boot.version>
         <spring-session.version>2.6.1-kylin-r2</spring-session.version>
         <spring.framework.security.extensions.version>1.0.10.RELEASE</spring.framework.security.extensions.version>
+        <spring-jdbc.version>5.3.15</spring-jdbc.version>
+        <spring-beans.version>5.3.18</spring-beans.version>
         <opensaml.version>2.6.6</opensaml.version>
         <aspectj.version>1.8.9</aspectj.version>
         <unboundid-ldapsdk.version>3.1.1</unboundid-ldapsdk.version>
@@ -301,6 +303,7 @@
 
         <jersey.version>2.35</jersey.version>
         <validation.api.version>2.0.1.Final</validation.api.version>
+        <jackson-databind.version>2.13.2.1</jackson-databind.version>
     </properties>
 
     <modules>
@@ -2128,6 +2131,25 @@
                 <version>${spring-session.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-beans</artifactId>
+                <version>${spring-beans.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-jdbc</artifactId>
+                <version>${spring-jdbc.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.springframework</groupId>
+                        <artifactId>spring-beans</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
+
             <!-- Spring Security -->
             <dependency>
                 <groupId>org.springframework.security.extensions</groupId>
@@ -2626,6 +2648,11 @@
                 <groupId>javax.validation</groupId>
                 <artifactId>validation-api</artifactId>
                 <version>${validation.api.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson-databind.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
