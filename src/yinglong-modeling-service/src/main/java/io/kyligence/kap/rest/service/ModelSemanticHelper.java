@@ -47,6 +47,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.CommonErrorCode;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.QueryErrorCode;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
@@ -71,7 +72,6 @@ import org.apache.kylin.metadata.model.UpdateImpact;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.metadata.model.tool.JoinDescNonEquiCompBean;
 import org.apache.kylin.metadata.model.tool.NonEquiJoinConditionVisitor;
-import org.apache.kylin.query.exception.QueryErrorCode;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.apache.kylin.rest.util.SpringContext;
@@ -107,6 +107,7 @@ import io.kyligence.kap.metadata.model.util.scd2.SCD2Exception;
 import io.kyligence.kap.metadata.model.util.scd2.SCD2NonEquiCondSimplification;
 import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinDesc;
 import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinTableDesc;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
 import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.rest.request.ModelRequest;
@@ -115,7 +116,7 @@ import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import io.kyligence.kap.rest.util.SCD2SimplificationConvertUtil;
 import io.kyligence.kap.secondstorage.SecondStorageUpdater;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
-import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
+import io.kyligence.kap.engine.spark.utils.ComputedColumnEvalUtil;
 import lombok.Setter;
 import lombok.val;
 import lombok.var;
@@ -126,7 +127,7 @@ import lombok.extern.slf4j.Slf4j;
 public class ModelSemanticHelper extends BasicService {
 
     @Setter
-    @Autowired
+    @Autowired(required = false)
     private ModelSmartSupporter modelSmartSupporter;
 
     private static final Logger logger = LoggerFactory.getLogger(ModelSemanticHelper.class);
@@ -164,7 +165,7 @@ public class ModelSemanticHelper extends BasicService {
         dataModel.setAllNamedColumns(convertNamedColumns(modelRequest.getProject(), dataModel, modelRequest));
 
         dataModel.initJoinDesc(KylinConfig.getInstanceFromEnv(),
-                getTableManager(modelRequest.getProject()).getAllTablesMap());
+                getManager(NTableMetadataManager.class, modelRequest.getProject()).getAllTablesMap());
         convertNonEquiJoinCond(dataModel, modelRequest);
         dataModel.setModelType(dataModel.getModelTypeFromTable());
         return dataModel;
@@ -247,7 +248,7 @@ public class ModelSemanticHelper extends BasicService {
 
         HashSet<JoinDescNonEquiCompBean> scd2NonEquiCondSets = new HashSet<>();
 
-        val projectKylinConfig = getProjectManager().getProject(dataModel.getProject()).getConfig();
+        val projectKylinConfig = getManager(NProjectManager.class).getProject(dataModel.getProject()).getConfig();
         boolean isScd2Enabled = projectKylinConfig.isQueryNonEquiJoinModelEnabled();
 
         for (int i = 0; i < requestJoinTableDescs.size(); i++) {
@@ -381,7 +382,7 @@ public class ModelSemanticHelper extends BasicService {
         Map<String, ComputedColumnDesc> ccMap = dataModel.getComputedColumnDescs().stream()
                 .collect(Collectors.toMap(ComputedColumnDesc::getFullName, Function.identity()));
         List<ComputedColumnDesc> orderedCCList = Lists.newArrayList();
-        NDataModel originModel = getDataModelManager(project).getDataModelDesc(dataModel.getUuid());
+        NDataModel originModel = getManager(NDataModelManager.class, project).getDataModelDesc(dataModel.getUuid());
         if (originModel != null && !originModel.isBroken()) {
             originModel.getAllNamedColumns().stream().filter(NamedColumn::isExist)
                     .filter(column -> ccMap.containsKey(column.getAliasDotColumn())) //
@@ -475,13 +476,13 @@ public class ModelSemanticHelper extends BasicService {
         val expectedModel = convertToDataModel(request);
 
         String project = request.getProject();
-        val allTables = getTableManager(project).getAllTablesMap();
+        val allTables = getManager(NTableMetadataManager.class, project).getAllTablesMap();
         val initialAllTables = expectedModel.getExtendedTables(allTables);
         expectedModel.init(KylinConfig.getInstanceFromEnv(), initialAllTables);
         Map<String, String> matchAlias = getAliasTransformMap(originModel, expectedModel);
         updateModelColumnForTableAliasModify(expectedModel, matchAlias);
 
-        List<NDataModel> allModels = getDataflowManager(project).listUnderliningDataModels();
+        List<NDataModel> allModels = getManager(NDataflowManager.class, project).listUnderliningDataModels();
         expectedModel.init(KylinConfig.getInstanceFromEnv(), allTables, allModels, project, false, saveCheck);
 
         originModel.setJoinTables(expectedModel.getJoinTables());
@@ -914,8 +915,8 @@ public class ModelSemanticHelper extends BasicService {
     }
 
     public SegmentRange getSegmentRangeByModel(String project, String modelId, String start, String end) {
-        TableRef tableRef = getDataModelManager(project).getDataModelDesc(modelId).getRootFactTable();
-        TableDesc tableDesc = getTableManager(project).getTableDesc(tableRef.getTableIdentity());
+        TableRef tableRef = getManager(NDataModelManager.class, project).getDataModelDesc(modelId).getRootFactTable();
+        TableDesc tableDesc = getManager(NTableMetadataManager.class, project).getTableDesc(tableRef.getTableIdentity());
         return SourceFactory.getSource(tableDesc).getSegmentRange(start, end);
     }
 

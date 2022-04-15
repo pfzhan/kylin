@@ -24,9 +24,54 @@
 
 package io.kyligence.kap.secondstorage.management;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_NODE_NOT_AVAILABLE;
+import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_PROJECT_LOCK_FAIL;
+import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_PROJECT_STATUS_ERROR;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Properties;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.SecondStorageConfig;
+import org.apache.kylin.common.exception.JobErrorCode;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.job.SecondStorageJobParamUtil;
+import org.apache.kylin.job.constant.JobStatusEnum;
+import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.handler.SecondStorageIndexCleanJobHandler;
+import org.apache.kylin.job.handler.SecondStorageModelCleanJobHandler;
+import org.apache.kylin.job.handler.SecondStorageProjectCleanJobHandler;
+import org.apache.kylin.job.handler.SecondStorageSegmentCleanJobHandler;
+import org.apache.kylin.job.manager.JobManager;
+import org.apache.kylin.job.model.JobParam;
+import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.rest.service.BasicService;
+import org.apache.kylin.rest.util.AclEvaluate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.util.CollectionUtils;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.guava20.shaded.common.collect.ImmutableList;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -72,47 +117,6 @@ import io.kyligence.kap.secondstorage.metadata.TablePartition;
 import io.kyligence.kap.secondstorage.response.TableSyncResponse;
 import io.kyligence.kap.secondstorage.util.SecondStorageJobUtil;
 import lombok.val;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.SecondStorageConfig;
-import org.apache.kylin.common.exception.JobErrorCode;
-import org.apache.kylin.common.exception.KylinException;
-import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_NODE_NOT_AVAILABLE;
-import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_PROJECT_LOCK_FAIL;
-import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_PROJECT_STATUS_ERROR;
-import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.job.SecondStorageJobParamUtil;
-import org.apache.kylin.job.constant.JobStatusEnum;
-import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.handler.SecondStorageIndexCleanJobHandler;
-import org.apache.kylin.job.handler.SecondStorageModelCleanJobHandler;
-import org.apache.kylin.job.handler.SecondStorageProjectCleanJobHandler;
-import org.apache.kylin.job.handler.SecondStorageSegmentCleanJobHandler;
-import org.apache.kylin.job.model.JobParam;
-import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.rest.service.BasicService;
-import org.apache.kylin.rest.util.AclEvaluate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.util.CollectionUtils;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Properties;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 public class SecondStorageService extends BasicService implements SecondStorageUpdater {
     private static final Logger logger = LoggerFactory.getLogger(SecondStorageService.class);
@@ -394,13 +398,13 @@ public class SecondStorageService extends BasicService implements SecondStorageU
     private String triggerProjectClean(String project) {
         val jobHandler = new SecondStorageProjectCleanJobHandler();
         final JobParam param = SecondStorageJobParamUtil.projectCleanParam(project, getUsername());
-        return getJobManager(project).addJob(param, jobHandler);
+        return getManager(JobManager.class, project).addJob(param, jobHandler);
     }
 
     private String triggerModelClean(String project, String model) {
         val jobHandler = new SecondStorageModelCleanJobHandler();
         final JobParam param = SecondStorageJobParamUtil.modelCleanParam(project, model, getUsername());
-        return getJobManager(project).addJob(param, jobHandler);
+        return getManager(JobManager.class, project).addJob(param, jobHandler);
     }
 
     @Transaction(project = 0)
@@ -411,7 +415,7 @@ public class SecondStorageService extends BasicService implements SecondStorageU
         SecondStorageUtil.cleanSegments(project, model, segIds);
         val jobHandler = new SecondStorageSegmentCleanJobHandler();
         final JobParam param = SecondStorageJobParamUtil.segmentCleanParam(project, model, getUsername(), segIds);
-        return getJobManager(project).addJob(param, jobHandler);
+        return getManager(JobManager.class, project).addJob(param, jobHandler);
     }
 
     @Transaction(project = 0)
@@ -421,7 +425,7 @@ public class SecondStorageService extends BasicService implements SecondStorageU
 
         val jobHandler = new SecondStorageIndexCleanJobHandler();
         final JobParam param = SecondStorageJobParamUtil.layoutCleanParam(project, modelId, getUsername(), needDeleteLayoutIds, Collections.emptySet());
-        return getJobManager(project).addJob(param, jobHandler);
+        return getManager(JobManager.class, project).addJob(param, jobHandler);
     }
 
     public List<ProjectLock> lockList(String project) {
@@ -520,7 +524,7 @@ public class SecondStorageService extends BasicService implements SecondStorageU
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         List<TableFlow> tableFlows = SecondStorageUtil.listTableFlow(config, project);
         NDataModelManager modelManager = NDataModelManager.getInstance(config, project);
-        NDataflowManager dataflowManager = getDataflowManager(project);
+        NDataflowManager dataflowManager = getManager(NDataflowManager.class, project);
         SecondStorageProjectModelSegment projectModelSegment = new SecondStorageProjectModelSegment();
         Map<String, SecondStorageModelSegment> modelSegmentMap = new HashMap<>();
         for(TableFlow tableFlow : tableFlows) {
@@ -629,7 +633,7 @@ public class SecondStorageService extends BasicService implements SecondStorageU
         if (isEnabled(project, modelId)) {
             return;
         }
-        val indexPlanManager = getIndexPlanManager(project);
+        val indexPlanManager = getManager(NIndexPlanManager.class, project);
         final IndexPlan indexPlan = indexPlanManager.getIndexPlan(modelId);
         if (!indexPlan.containBaseTableLayout() && !indexPlan.getModel().getEffectiveDimensions().isEmpty()) {
             indexPlanManager.updateIndexPlan(modelId, copied -> {

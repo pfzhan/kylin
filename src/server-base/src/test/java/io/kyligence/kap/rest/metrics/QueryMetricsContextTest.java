@@ -29,7 +29,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import io.kyligence.kap.metadata.query.QueryHistoryInfo;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -39,7 +38,6 @@ import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.query.exception.UserStopQueryException;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.util.QueryParams;
-import org.apache.kylin.query.util.QueryUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -57,9 +55,11 @@ import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.query.QueryHistory;
+import io.kyligence.kap.metadata.query.QueryHistoryInfo;
 import io.kyligence.kap.metadata.query.QueryMetrics;
 import io.kyligence.kap.metadata.query.QueryMetricsContext;
 import io.kyligence.kap.query.engine.QueryExec;
+import io.kyligence.kap.query.util.KapQueryUtil;
 import lombok.val;
 
 public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
@@ -69,10 +69,10 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
     private String massageSql(QueryContext queryContext) {
 
         String defaultSchema = new QueryExec(queryContext.getProject(), KylinConfig.getInstanceFromEnv()).getDefaultSchemaName();
-        QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(queryContext.getProject()),
+        QueryParams queryParams = new QueryParams(KapQueryUtil.getKylinConfig(queryContext.getProject()),
                 queryContext.getUserSQL(), queryContext.getProject(), queryContext.getLimit(), queryContext.getOffset(),
                 defaultSchema, false);
-        return QueryUtil.massageSql(queryParams);
+        return KapQueryUtil.massageSql(queryParams);
     }
 
     @Rule

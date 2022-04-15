@@ -35,7 +35,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.annotations.VisibleForTesting;
 import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.kylin.common.KapConfig;
@@ -56,6 +55,7 @@ import org.apache.spark.SparkException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
@@ -65,7 +65,8 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.metadata.query.StructField;
 import io.kyligence.kap.query.engine.data.QueryResult;
-import io.kyligence.kap.query.engine.mask.QueryResultMasks;
+import io.kyligence.kap.query.mask.QueryResultMasks;
+import io.kyligence.kap.query.util.KapQueryUtil;
 import lombok.val;
 
 public class QueryRoutingEngine {
@@ -95,7 +96,7 @@ public class QueryRoutingEngine {
                     queryParams.setSql(queryParams.getPrepareSql());
                 }
 
-                String correctedSql = QueryUtil.massageSql(queryParams);
+                String correctedSql = KapQueryUtil.massageSql(queryParams);
 
                 //CAUTION: should not change sqlRequest content!
                 QueryContext.current().getMetrics().setCorrectedSql(correctedSql);
@@ -221,7 +222,7 @@ public class QueryRoutingEngine {
             sqlString = QueryUtil.addLimit(sqlString);
         }
 
-        String massagedSql = QueryUtil.normalMassageSql(KylinConfig.getInstanceFromEnv(), sqlString,
+        String massagedSql = KapQueryUtil.normalMassageSql(KylinConfig.getInstanceFromEnv(), sqlString,
                 queryParams.getLimit(), queryParams.getOffset());
         if (isPrepareStatementWithParams(queryParams)) {
             QueryContext.current().getMetrics().setCorrectedSql(massagedSql);

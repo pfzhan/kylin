@@ -64,6 +64,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
@@ -143,7 +144,7 @@ public class ProjectSmartService extends BasicService implements ProjectSmartSer
             break;
         }
         boolean updateFrequencyChange = isChangeFreqRule(project, ruleName, request);
-        getFavoriteRuleManager(project).updateRule(conds, isEnabled, ruleName);
+        getManager(FavoriteRuleManager.class, project).updateRule(conds, isEnabled, ruleName);
         if (updateFrequencyChange) {
             recommendationTopNUpdateScheduler.reScheduleProject(project);
         }
@@ -163,9 +164,8 @@ public class ProjectSmartService extends BasicService implements ProjectSmartSer
         aclEvaluate.checkProjectWritePermission(project);
         FAVORITE_RULE_NAMES.forEach(ruleName -> updateSingleRule(project, ruleName, request));
 
-        NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project).listAllModels().forEach(model -> {
-            projectModelSupporter.onModelUpdate(project, model.getUuid());
-        });
+        NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project).listAllModels().forEach(model ->
+                projectModelSupporter.onModelUpdate(project, model.getUuid()));
     }
 
     public ProjectStatisticsResponse getProjectStatistics(String project) {
@@ -191,7 +191,7 @@ public class ProjectSmartService extends BasicService implements ProjectSmartSer
 
         Map<String, Set<Integer>> modelToRecMap = getModelToRecMap(project);
         response.setModelSize(modelToRecMap.size());
-        if (getProjectManager().getProject(project).isSemiAutoMode()) {
+        if (getManager(NProjectManager.class).getProject(project).isSemiAutoMode()) {
             Set<Integer> allRecSet = Sets.newHashSet();
             modelToRecMap.values().forEach(allRecSet::addAll);
             response.setAcceptableRecSize(allRecSet.size());
@@ -245,6 +245,9 @@ public class ProjectSmartService extends BasicService implements ProjectSmartSer
                     AsyncTaskManager.getInstance(KylinConfig.getInstanceFromEnv(), project).save(accTask);
                     return null;
                 }, project);
+                if (e instanceof InterruptedException) {
+                    Thread.currentThread().interrupt();
+                }
             }
         }
 
@@ -271,11 +274,11 @@ public class ProjectSmartService extends BasicService implements ProjectSmartSer
         QueryHistoryTaskScheduler scheduler = QueryHistoryTaskScheduler.getInstance(project);
         if (scheduler.hasStarted()) {
             log.info("Schedule QueryHistoryAccelerateRunner job, project [{}].", project);
-            Future future = scheduler.scheduleImmediately(scheduler.new QueryHistoryAccelerateRunner(false));
+            Future<?> future = scheduler.scheduleImmediately(scheduler.new QueryHistoryAccelerateRunner(false));
             try {
                 future.get();
             } catch (InterruptedException e) {
-                log.warn("Interrupted!", e);
+                log.error("Accelerate failed with interruption", e);
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
                 log.error("Accelerate failed", e);
@@ -286,11 +289,11 @@ public class ProjectSmartService extends BasicService implements ProjectSmartSer
     public void updateStatMetaImmediately(String project) {
         QueryHistoryTaskScheduler scheduler = QueryHistoryTaskScheduler.getInstance(project);
         if (scheduler.hasStarted()) {
-            Future future = scheduler.scheduleImmediately(scheduler.new QueryHistoryMetaUpdateRunner());
+            Future<?> future = scheduler.scheduleImmediately(scheduler.new QueryHistoryMetaUpdateRunner());
             try {
                 future.get();
             } catch (InterruptedException e) {
-                log.warn("Interrupted!", e);
+                log.error("updateStatMeta failed with interruption", e);
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
                 log.error("updateStatMeta failed", e);
@@ -299,15 +302,15 @@ public class ProjectSmartService extends BasicService implements ProjectSmartSer
     }
 
     private int getFavoriteRuleSize(String project) {
-        if (!getProjectManager().getProject(project).isSemiAutoMode()) {
+        if (!getManager(NProjectManager.class).getProject(project).isSemiAutoMode()) {
             return -1;
         }
 
-        return (int) getFavoriteRuleManager(project).listAll().stream().filter(FavoriteRule::isEnabled).count();
+        return (int) getManager(FavoriteRuleManager.class, project).listAll().stream().filter(FavoriteRule::isEnabled).count();
     }
 
     private int[] getRecPatternCount(String project) {
-        if (!getProjectManager().getProject(project).isSemiAutoMode()) {
+        if (!getManager(NProjectManager.class).getProject(project).isSemiAutoMode()) {
             return new int[] { -1, -1, -1 };
         }
         int[] array = new int[3];
@@ -336,13 +339,13 @@ public class ProjectSmartService extends BasicService implements ProjectSmartSer
     }
 
     private int[] getApprovedRecsCount(String project) {
-        ProjectInstance projectInstance = getProjectManager().getProject(project);
+        ProjectInstance projectInstance = getManager(NProjectManager.class).getProject(project);
         if (!projectInstance.isSemiAutoMode()) {
             return new int[] { -1, -1, -1 };
         }
 
         int[] allApprovedRecs = new int[3];
-        NIndexPlanManager indexPlanManager = getIndexPlanManager(project);
+        NIndexPlanManager indexPlanManager = getManager(NIndexPlanManager.class, project);
         for (IndexPlan indexPlan : indexPlanManager.listAllIndexPlans()) {
             if (!indexPlan.isBroken()) {
                 allApprovedRecs[0] += indexPlan.getApprovedAdditionalRecs();
@@ -379,12 +382,12 @@ public class ProjectSmartService extends BasicService implements ProjectSmartSer
         Preconditions.checkArgument(StringUtils.isNotEmpty(project));
         aclEvaluate.checkProjectReadPermission(project);
 
-        List<NDataModel> dataModels = getDataModelManager(project).listAllModels().stream()
+        List<NDataModel> dataModels = getManager(NDataModelManager.class, project).listAllModels().stream()
                 .filter(model -> model.isBroken() || !model.fusionModelBatchPart())
                 .filter(NDataModelManager::isModelAccessible).collect(Collectors.toList());
         Map<String, Set<Integer>> map = Maps.newHashMap();
         dataModels.forEach(model -> map.putIfAbsent(model.getId(), Sets.newHashSet()));
-        if (getProjectManager().getProject(project).isSemiAutoMode()) {
+        if (getManager(NProjectManager.class).getProject(project).isSemiAutoMode()) {
             OptRecManagerV2 optRecManager = OptRecManagerV2.getInstance(project);
             for (NDataModel model : dataModels) {
                 OptRecV2 optRecV2 = optRecManager.loadOptRecV2(model.getUuid());
@@ -471,6 +474,6 @@ public class ProjectSmartService extends BasicService implements ProjectSmartSer
         Preconditions.checkArgument(StringUtils.isNotEmpty(project));
         Preconditions.checkArgument(StringUtils.isNotEmpty(ruleName));
 
-        return getFavoriteRuleManager(project).getOrDefaultByName(ruleName);
+        return getManager(FavoriteRuleManager.class, project).getOrDefaultByName(ruleName);
     }
 }

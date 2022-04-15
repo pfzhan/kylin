@@ -309,6 +309,7 @@
     <modules>
         <module>src/core-job</module>
         <module>src/core-storage</module>
+        <module>src/query-common</module>
         <module>src/query</module>
         <module>src/kap-it</module>
         <module>src/smart</module>
@@ -333,7 +334,6 @@
         <module>src/second-storage/clickhouse</module>
         <module>src/second-storage/clickhouse-it</module>
         <!-- yinglong modules -->
-        <module>src/yinglong-enterprise-core-metadata</module>
         <module>src/yinglong-systools</module>
         <!-- yinglong service -->
         <module>src/yinglong-modeling-service</module>
@@ -360,6 +360,8 @@
         <module>src/yinglong-query-booter</module>
         <module>src/yinglong-common-booter</module>
 
+        <module>src/core-metadata-extensions</module>
+        <module>src/query-extensions</module>
     </modules>
 
     <dependencyManagement>
@@ -514,12 +516,18 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.yinglong</groupId>
+                <artifactId>yinglong-data-loading-booter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.yinglong</groupId>
                 <artifactId>yinglong-query-server</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.kyligence.yinglong</groupId>
                 <artifactId>yinglong-query-booter</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.kyligence.yinglong</groupId>
@@ -613,11 +621,6 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
-                <artifactId>yinglong-enterprise-core-metadata</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-core-job</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -633,6 +636,11 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
+                <artifactId>kap-query-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-query</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -644,6 +652,16 @@
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-license-service</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.ke</groupId>
+                <artifactId>kap-core-metadata-ext</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.ke</groupId>
+                <artifactId>kap-query-ext</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -694,6 +712,18 @@
                 <type>test-jar</type>
             </dependency>
             <dependency>
+                <groupId>io.kyligence.yinglong</groupId>
+                <artifactId>yinglong-modeling-service</artifactId>
+                <version>${project.version}</version>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.ke</groupId>
+                <artifactId>kap-second-storage-clickhouse</artifactId>
+                <version>${project.version}</version>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
                 <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-core-metadata</artifactId>
                 <version>${project.version}</version>
@@ -701,7 +731,7 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
-                <artifactId>yinglong-enterprise-core-metadata</artifactId>
+                <artifactId>kap-core-metadata-ext</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
             </dependency>
@@ -3017,6 +3047,11 @@
                         <failIfWarning>true</failIfWarning>
                         <includeOptional>true</includeOptional>
                     </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>javacc-maven-plugin</artifactId>
+                    <version>2.6</version>
                 </plugin>
             </plugins>
         </pluginManagement>

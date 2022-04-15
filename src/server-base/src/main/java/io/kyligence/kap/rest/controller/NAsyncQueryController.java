@@ -39,14 +39,13 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 
-import com.alibaba.ttl.TtlRunnable;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.QueryErrorCode;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.query.exception.NAsyncQueryIllegalParamException;
-import org.apache.kylin.query.exception.QueryErrorCode;
 import org.apache.kylin.query.util.AsyncQueryUtil;
 import org.apache.kylin.rest.exception.ForbiddenException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -70,6 +69,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.alibaba.ttl.TtlRunnable;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.rest.request.AsyncQuerySQLRequest;

@@ -176,7 +176,7 @@ public class QueryHistoryTaskScheduler {
             QueryHistoryIdOffsetManager qhIdOffsetManager = QueryHistoryIdOffsetManager
                     .getInstance(KylinConfig.getInstanceFromEnv(), project);
             List<QueryHistory> queryHistoryList = queryHistoryDAO.queryQueryHistoriesByIdOffset(
-                    qhIdOffsetManager.get().getQueryHistoryStatMetaUpdateIdOffset(), batchSize, project);
+                    qhIdOffsetManager.get().getStatMetaUpdateOffset(), batchSize, project);
             resetIdOffset(queryHistoryList);
             return queryHistoryList;
         }
@@ -220,7 +220,7 @@ public class QueryHistoryTaskScheduler {
                 // update id offset
                 QueryHistoryIdOffset queryHistoryIdOffset = QueryHistoryIdOffsetManager
                         .getInstance(KylinConfig.getInstanceFromEnv(), project).get();
-                queryHistoryIdOffset.setQueryHistoryStatMetaUpdateIdOffset(maxId);
+                queryHistoryIdOffset.setStatMetaUpdateOffset(maxId);
                 QueryHistoryIdOffsetManager.getInstance(config, project).save(queryHistoryIdOffset);
 
                 // update snpashot hit count
@@ -343,7 +343,7 @@ public class QueryHistoryTaskScheduler {
             QueryHistoryIdOffsetManager qhIdOffsetManager = QueryHistoryIdOffsetManager
                     .getInstance(KylinConfig.getInstanceFromEnv(), project);
             List<QueryHistory> queryHistoryList = queryHistoryDAO.queryQueryHistoriesByIdOffset(
-                    qhIdOffsetManager.get().getQueryHistoryIdOffset(), batchSize, project);
+                    qhIdOffsetManager.get().getOffset(), batchSize, project);
             resetIdOffset(queryHistoryList);
             return queryHistoryList;
         }
@@ -407,7 +407,7 @@ public class QueryHistoryTaskScheduler {
                 // update id offset
                 QueryHistoryIdOffset queryHistoryIdOffset = QueryHistoryIdOffsetManager
                         .getInstance(KylinConfig.getInstanceFromEnv(), project).get();
-                queryHistoryIdOffset.setQueryHistoryIdOffset(maxId);
+                queryHistoryIdOffset.setOffset(maxId);
                 QueryHistoryIdOffsetManager.getInstance(config, project).save(queryHistoryIdOffset);
                 return 0;
             }, project);
@@ -434,10 +434,10 @@ public class QueryHistoryTaskScheduler {
                 KylinConfig config = KylinConfig.getInstanceFromEnv();
                 QueryHistoryIdOffsetManager manager = QueryHistoryIdOffsetManager.getInstance(config, project);
                 QueryHistoryIdOffset queryHistoryIdOffset = manager.get();
-                if (queryHistoryIdOffset.getQueryHistoryIdOffset() > maxId
-                        || queryHistoryIdOffset.getQueryHistoryStatMetaUpdateIdOffset() > maxId) {
-                    queryHistoryIdOffset.setQueryHistoryIdOffset(maxId);
-                    queryHistoryIdOffset.setQueryHistoryStatMetaUpdateIdOffset(maxId);
+                if (queryHistoryIdOffset.getOffset() > maxId
+                        || queryHistoryIdOffset.getStatMetaUpdateOffset() > maxId) {
+                    queryHistoryIdOffset.setOffset(maxId);
+                    queryHistoryIdOffset.setStatMetaUpdateOffset(maxId);
                     manager.save(queryHistoryIdOffset);
                 }
                 needResetOffset = false;

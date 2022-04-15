@@ -974,6 +974,16 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.capacity.notification-enabled", FALSE));
     }
 
+    public String getQueryExtensionFactory() {
+        return getOptional("kylin.extension.query.factory",
+                "io.kyligence.kap.query.QueryExtensionFactoryEnterprise");
+    }
+
+    public String getMetadataExtensionFactory() {
+        return getOptional("kylin.extension.metadata.factory",
+                "io.kyligence.kap.metadata.MetadataExtensionFactoryEnterprise");
+    }
+
     public double getOverCapacityThreshold() {
         return Double.parseDouble(getOptional("kylin.capacity.over-capacity-threshold", "80")) / 100;
     }

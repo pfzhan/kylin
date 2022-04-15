@@ -30,10 +30,10 @@ import java.util.Objects;
 import javax.annotation.Nonnull;
 
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.QueryErrorCode;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
-import org.apache.kylin.query.exception.QueryErrorCode;
 
 import com.google.common.base.Preconditions;
 

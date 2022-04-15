@@ -26,7 +26,6 @@ package io.kyligence.kap.query.engine.exec.sparder;
 
 import java.util.List;
 
-import io.kyligence.kap.query.engine.exec.ExecuteResult;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.rel.RelNode;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -36,22 +35,24 @@ import org.apache.kylin.common.QueryTrace;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPRel;
+import org.apache.spark.SparkException;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.query.engine.exec.ExecuteResult;
 import io.kyligence.kap.query.engine.exec.QueryPlanExec;
 import io.kyligence.kap.query.engine.meta.MutableDataContext;
 import io.kyligence.kap.query.engine.meta.SimpleDataContext;
 import io.kyligence.kap.query.relnode.ContextUtil;
 import io.kyligence.kap.query.relnode.KapContext;
 import io.kyligence.kap.query.relnode.KapRel;
+import io.kyligence.kap.query.runtime.SparkEngine;
 import io.kyligence.kap.query.util.QueryContextCutter;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.spark.SparkException;
 
 /**
  * implement and execute a physical plan with Sparder
@@ -96,17 +97,8 @@ public class SparderQueryPlanExec implements QueryPlanExec {
      * @return
      */
     private ExecuteResult doExecute(RelNode rel, DataContext dataContext) {
-        // create SparkEngine with reflection since kap-sparder is dependent on kap-query
-        // so that kap-query cannot reference classes from kap-sparder normally
-        // TODO refactor to remove cyclical dependency between kap-query and kap-sparder
-        String queryEngineClazz = System.getProperty("kylin-query-engine",
-                "io.kyligence.kap.query.runtime.SparkEngine");
-        try {
-            QueryEngine queryEngine = (QueryEngine) Class.forName(queryEngineClazz).newInstance();
-            return internalCompute(queryEngine, dataContext, rel.getInput(0));
-        } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
-            throw new IllegalStateException(e);
-        }
+        QueryEngine queryEngine = new SparkEngine();
+        return internalCompute(queryEngine, dataContext, rel.getInput(0));
     }
 
     private static boolean forceTableIndexAtException(Exception e) {

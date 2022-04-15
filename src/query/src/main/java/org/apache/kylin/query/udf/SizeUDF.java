@@ -43,6 +43,7 @@
 package org.apache.kylin.query.udf;
 
 import org.apache.calcite.linq4j.function.Parameter;
+import org.apache.kylin.common.exception.CalciteNotSupportException;
 
 public class SizeUDF {
 

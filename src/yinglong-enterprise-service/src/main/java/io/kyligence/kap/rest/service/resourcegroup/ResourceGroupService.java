@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.service.resourcegroup;
 
+import io.kyligence.kap.metadata.resourcegroup.ResourceGroupManager;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,7 +44,7 @@ public class ResourceGroupService extends BasicService {
     @Transaction
     public void updateResourceGroup(ResourceGroupRequest request) {
         aclEvaluate.checkIsGlobalAdmin();
-        val manager = getResourceGroupManager();
+        val manager = getManager(ResourceGroupManager.class);
         manager.updateResourceGroup(copyForWrite -> {
             copyForWrite.setResourceGroupEnabled(request.isResourceGroupEnabled());
             copyForWrite.setResourceGroupEntities(request.getResourceGroupEntities());
@@ -53,7 +54,7 @@ public class ResourceGroupService extends BasicService {
     }
 
     public ResourceGroup getResourceGroup() {
-        val manager = getResourceGroupManager();
+        val manager = getManager(ResourceGroupManager.class);
         return manager.getResourceGroup();
     }
 }

@@ -32,6 +32,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.exception.KylinException;
@@ -88,7 +89,7 @@ public class TableExtService extends BasicService {
         return ugi.doAs(new PrivilegedExceptionAction<LoadTableResponse>() {
             @Override
             public LoadTableResponse run() throws Exception {
-                ProjectInstance projectInstance = getProjectManager().getProject(project);
+                ProjectInstance projectInstance = getManager(NProjectManager.class).getProject(project);
 
                 List<Pair<TableDesc, TableExtDesc>> extractTableMeta = tableService.extractTableMeta(tables, project);
                 LoadTableResponse tableResponse = new LoadTableResponse();
@@ -142,7 +143,7 @@ public class TableExtService extends BasicService {
     @Transaction(project = 1)
     public void removeJobIdFromTableExt(String jobId, String project) {
         aclEvaluate.checkProjectOperationPermission(project);
-        NTableMetadataManager tableMetadataManager = getTableManager(project);
+        NTableMetadataManager tableMetadataManager = getManager(NTableMetadataManager.class, project);
         for (TableDesc desc : tableMetadataManager.listAllTables()) {
             TableExtDesc extDesc = tableMetadataManager.getTableExtIfExists(desc);
             if (extDesc == null) {
@@ -161,7 +162,7 @@ public class TableExtService extends BasicService {
     public LoadTableResponse loadTablesByDatabase(String project, final String[] databases) throws Exception {
         aclEvaluate.checkProjectWritePermission(project);
         LoadTableResponse loadTableByDatabaseResponse = new LoadTableResponse();
-        NTableMetadataManager tableManager = getTableManager(project);
+        NTableMetadataManager tableManager = getManager(NTableMetadataManager.class, project);
         for (final String database : databases) {
             List<String> tables = tableService.getSourceTableNames(project, database, "");
             List<String> identities = tables.stream().map(s -> database + "." + s)
@@ -182,7 +183,7 @@ public class TableExtService extends BasicService {
     }
 
     private void checkBeforeLoadTable(TableDesc tableDesc, String project) {
-        NTableMetadataManager tableMetadataManager = getTableManager(project);
+        NTableMetadataManager tableMetadataManager = getManager(NTableMetadataManager.class, project);
         TableDesc originTableDesc = tableMetadataManager.getTableDesc(tableDesc.getIdentity());
         if (originTableDesc != null && (originTableDesc.getSourceType() == ISourceAware.ID_STREAMING
                 || tableDesc.getSourceType() == ISourceAware.ID_STREAMING)) {

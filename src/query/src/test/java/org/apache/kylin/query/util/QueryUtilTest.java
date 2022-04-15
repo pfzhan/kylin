@@ -59,14 +59,15 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.query.util.ConvertToComputedColumn;
+import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.query.util.SparkSQLFunctionConverter;
 
 public class QueryUtilTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setUp() throws Exception {
-        QueryUtil.queryTransformers = Collections.emptyList();
-        QueryUtil.pushDownConverters = Collections.emptyList();
+        KapQueryUtil.queryTransformers = Collections.emptyList();
+        KapQueryUtil.pushDownConverters = Collections.emptyList();
         this.createTestMetadata();
     }
 
@@ -83,12 +84,12 @@ public class QueryUtilTest extends NLocalFileMetadataTestCase {
 
             String sql = "SELECT * FROM TABLE";
             QueryParams queryParams1 = new QueryParams(config, sql, "", 100, 20, "", true);
-            String newSql = QueryUtil.massageSql(queryParams1);
+            String newSql = KapQueryUtil.massageSql(queryParams1);
             Assert.assertEquals("SELECT * FROM TABLE\nLIMIT 100\nOFFSET 20", newSql);
 
             String sql2 = "SELECT SUM({fn convert(0, INT)}) from TABLE";
             QueryParams queryParams2 = new QueryParams(config, sql2, "", 0, 0, "", true);
-            String newSql2 = QueryUtil.massageSql(queryParams2);
+            String newSql2 = KapQueryUtil.massageSql(queryParams2);
             Assert.assertEquals("SELECT SUM({fn convert(0, INT)}) from TABLE", newSql2);
         }
     }
@@ -102,22 +103,22 @@ public class QueryUtilTest extends NLocalFileMetadataTestCase {
             config.setProperty("kylin.query.transformers", "io.kyligence.kap.query.util.ConvertToComputedColumn");
             QueryParams queryParams1 = new QueryParams(config, "SELECT price * item_count FROM test_kylin_fact",
                     "default", 0, 0, "DEFAULT", true);
-            String newSql1 = QueryUtil.massageSql(queryParams1);
+            String newSql1 = KapQueryUtil.massageSql(queryParams1);
             Assert.assertEquals("SELECT TEST_KYLIN_FACT.DEAL_AMOUNT FROM test_kylin_fact", newSql1);
             QueryParams queryParams2 = new QueryParams(config,
                     "SELECT price * item_count,DEAL_AMOUNT FROM test_kylin_fact", "default", 0, 0, "DEFAULT", true);
-            newSql1 = QueryUtil.massageSql(queryParams2);
+            newSql1 = KapQueryUtil.massageSql(queryParams2);
             Assert.assertEquals("SELECT TEST_KYLIN_FACT.DEAL_AMOUNT,DEAL_AMOUNT FROM test_kylin_fact", newSql1);
 
             // disable ConvertToComputedColumn
             config.setProperty("kylin.query.transformers", "");
             QueryParams queryParams3 = new QueryParams(config, "SELECT price * item_count FROM test_kylin_fact",
                     "default", 0, 0, "DEFAULT", true);
-            String newSql2 = QueryUtil.massageSql(queryParams3);
+            String newSql2 = KapQueryUtil.massageSql(queryParams3);
             Assert.assertEquals("SELECT price * item_count FROM test_kylin_fact", newSql2);
             QueryParams queryParams4 = new QueryParams(config,
                     "SELECT price * item_count,DEAL_AMOUNT FROM test_kylin_fact", "default", 0, 0, "DEFAULT", false);
-            newSql2 = QueryUtil.massageSql(queryParams4);
+            newSql2 = KapQueryUtil.massageSql(queryParams4);
             Assert.assertEquals("SELECT price * item_count,DEAL_AMOUNT FROM test_kylin_fact", newSql2);
         }
     }
@@ -147,7 +148,7 @@ public class QueryUtilTest extends NLocalFileMetadataTestCase {
         String expected = "select TEST_KYLIN_FACT.TMP_CC from test_kylin_fact left join TEST_CATEGORY_GROUPINGS "
                 + "on TEST_KYLIN_FACT.LEAF_CATEG_ID = TEST_CATEGORY_GROUPINGS.LEAF_CATEG_ID and  TEST_KYLIN_FACT.LSTG_SITE_ID = TEST_CATEGORY_GROUPINGS.SITE_ID";
         QueryParams queryParams = new QueryParams(config, sql, "default", 0, 0, "DEFAULT", true);
-        String result = QueryUtil.massageSql(queryParams);
+        String result = KapQueryUtil.massageSql(queryParams);
         Assert.assertEquals(expected, result);
 
         // join condition is colName = colName
@@ -156,7 +157,7 @@ public class QueryUtilTest extends NLocalFileMetadataTestCase {
         String expected2 = "select TEST_KYLIN_FACT.TMP_CC from test_kylin_fact left join TEST_CATEGORY_GROUPINGS "
                 + "on TEST_KYLIN_FACT.LEAF_CATEG_ID = TEST_CATEGORY_GROUPINGS.LEAF_CATEG_ID and LSTG_SITE_ID = SITE_ID";
         QueryParams queryParams2 = new QueryParams(config, sql2, "default", 0, 0, "DEFAULT", true);
-        String result2 = QueryUtil.massageSql(queryParams2);
+        String result2 = KapQueryUtil.massageSql(queryParams2);
         Assert.assertEquals(expected2, result2);
 
         // join condition is colName = colName
@@ -167,7 +168,7 @@ public class QueryUtilTest extends NLocalFileMetadataTestCase {
                 + "ON \"DEFAULT\".TEST_KYLIN_FACT.LEAF_CATEG_ID = \"DEFAULT\".TEST_CATEGORY_GROUPINGS.LEAF_CATEG_ID "
                 + "AND  \"DEFAULT\".TEST_KYLIN_FACT.LSTG_SITE_ID = \"DEFAULT\".TEST_CATEGORY_GROUPINGS.SITE_ID";
         QueryParams queryParams3 = new QueryParams(config, sql3, "default", 0, 0, "DEFAULT", true);
-        String result3 = QueryUtil.massageSql(queryParams3);
+        String result3 = KapQueryUtil.massageSql(queryParams3);
         Assert.assertEquals(expected3, result3);
     }
 
@@ -183,7 +184,7 @@ public class QueryUtilTest extends NLocalFileMetadataTestCase {
 
             QueryParams queryParams = new QueryParams("", sql, "default", false);
             queryParams.setKylinConfig(config);
-            String massagedSql = QueryUtil.massagePushDownSql(queryParams);
+            String massagedSql = KapQueryUtil.massagePushDownSql(queryParams);
             String expectedSql = "SELECT `Z_PROVDASH_UM_ED`.`GENDER` AS `GENDER`,\n"
                     + "SUM(CAST(0 AS BIGINT)) AS `sum_Calculation_336925569152049156_ok`\n"
                     + "FROM `POPHEALTH_ANALYTICS`.`Z_PROVDASH_UM_ED` `Z_PROVDASH_UM_ED`";
@@ -197,27 +198,27 @@ public class QueryUtilTest extends NLocalFileMetadataTestCase {
         try (SetAndUnsetThreadLocalConfig autoUnset = KylinConfig.setAndUnsetThreadLocalConfig(config)) {
 
             config.setProperty("kylin.query.transformers", DefaultQueryTransformer.class.getCanonicalName());
-            Assert.assertEquals(0, QueryUtil.queryTransformers.size());
-            QueryUtil.initQueryTransformersIfNeeded(config, true);
-            Assert.assertEquals(1, QueryUtil.queryTransformers.size());
-            Assert.assertTrue(QueryUtil.queryTransformers.get(0) instanceof DefaultQueryTransformer);
+            Assert.assertEquals(0, KapQueryUtil.queryTransformers.size());
+            KapQueryUtil.initQueryTransformersIfNeeded(config, true);
+            Assert.assertEquals(1, KapQueryUtil.queryTransformers.size());
+            Assert.assertTrue(KapQueryUtil.queryTransformers.get(0) instanceof DefaultQueryTransformer);
 
             config.setProperty("kylin.query.transformers", KeywordDefaultDirtyHack.class.getCanonicalName());
-            QueryUtil.initQueryTransformersIfNeeded(config, true);
-            Assert.assertEquals(1, QueryUtil.queryTransformers.size());
-            Assert.assertTrue(QueryUtil.queryTransformers.get(0) instanceof KeywordDefaultDirtyHack);
+            KapQueryUtil.initQueryTransformersIfNeeded(config, true);
+            Assert.assertEquals(1, KapQueryUtil.queryTransformers.size());
+            Assert.assertTrue(KapQueryUtil.queryTransformers.get(0) instanceof KeywordDefaultDirtyHack);
 
-            QueryUtil.initQueryTransformersIfNeeded(config, false);
-            Assert.assertEquals(1, QueryUtil.queryTransformers.size());
-            Assert.assertTrue(QueryUtil.queryTransformers.get(0) instanceof KeywordDefaultDirtyHack);
+            KapQueryUtil.initQueryTransformersIfNeeded(config, false);
+            Assert.assertEquals(1, KapQueryUtil.queryTransformers.size());
+            Assert.assertTrue(KapQueryUtil.queryTransformers.get(0) instanceof KeywordDefaultDirtyHack);
 
             config.setProperty("kylin.query.transformers", DefaultQueryTransformer.class.getCanonicalName() + ","
                     + ConvertToComputedColumn.class.getCanonicalName());
-            QueryUtil.initQueryTransformersIfNeeded(config, true);
-            Assert.assertEquals(2, QueryUtil.queryTransformers.size());
-            QueryUtil.initQueryTransformersIfNeeded(config, false);
-            Assert.assertEquals(1, QueryUtil.queryTransformers.size());
-            Assert.assertTrue(QueryUtil.queryTransformers.get(0) instanceof DefaultQueryTransformer);
+            KapQueryUtil.initQueryTransformersIfNeeded(config, true);
+            Assert.assertEquals(2, KapQueryUtil.queryTransformers.size());
+            KapQueryUtil.initQueryTransformersIfNeeded(config, false);
+            Assert.assertEquals(1, KapQueryUtil.queryTransformers.size());
+            Assert.assertTrue(KapQueryUtil.queryTransformers.get(0) instanceof DefaultQueryTransformer);
         }
     }
 
@@ -351,7 +352,7 @@ public class QueryUtilTest extends NLocalFileMetadataTestCase {
         String sql = "select sum(cast(CC1 as double)) from test_kylin_fact";
         String expected = "select SUM(\"TEST_KYLIN_FACT\".\"PRICE\" + 1) from test_kylin_fact";
         QueryParams queryParams = new QueryParams(config, sql, "default", 0, 0, "DEFAULT", true);
-        Assert.assertEquals(expected, QueryUtil.massageSqlAndExpandCC(queryParams));
+        Assert.assertEquals(expected, KapQueryUtil.massageSqlAndExpandCC(queryParams));
     }
 
     @Test
@@ -369,14 +370,14 @@ public class QueryUtilTest extends NLocalFileMetadataTestCase {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         String sql1 = "select EXTRACT(minute FROM lineorder.lo_orderdate) from lineorder inner join customer on lineorder.lo_custkey = customer.c_custkey";
         QueryParams queryParams1 = new QueryParams(config, sql1, "cc_test", 0, 0, "ssb", true);
-        String newSql1 = QueryUtil.massageSql(queryParams1);
+        String newSql1 = KapQueryUtil.massageSql(queryParams1);
         Assert.assertEquals(
                 "select LINEORDER.CC_EXTRACT from lineorder inner join customer on lineorder.lo_custkey = customer.c_custkey",
                 newSql1);
 
         String sql2 = "select {fn convert(lineorder.lo_orderkey, double)} from lineorder inner join customer on lineorder.lo_custkey = customer.c_custkey";
         QueryParams queryParams2 = new QueryParams(config, sql2, "cc_test", 0, 0, "ssb", true);
-        String newSql2 = QueryUtil.massageSql(queryParams2);
+        String newSql2 = KapQueryUtil.massageSql(queryParams2);
         Assert.assertEquals(
                 "select LINEORDER.CC_CAST_LO_ORDERKEY from lineorder inner join customer on lineorder.lo_custkey = customer.c_custkey",
                 newSql2);
@@ -388,7 +389,7 @@ public class QueryUtilTest extends NLocalFileMetadataTestCase {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         String sql1 = "select TRANS_ID as test_limit, ORDER_ID as test_offset from TEST_KYLIN_FACT group by TRANS_ID, ORDER_ID";
         QueryParams queryParams1 = new QueryParams(config, sql1, "default", 5, 2, "DEFAULT", true);
-        String newSql1 = QueryUtil.massageSql(queryParams1);
+        String newSql1 = KapQueryUtil.massageSql(queryParams1);
         Assert.assertEquals(
                 "select TRANS_ID as test_limit, ORDER_ID as test_offset from TEST_KYLIN_FACT group by TRANS_ID, ORDER_ID\n"
                         + "LIMIT 5\n" + "OFFSET 2",
@@ -396,7 +397,7 @@ public class QueryUtilTest extends NLocalFileMetadataTestCase {
 
         String sql2 = "select TRANS_ID as test_limit, ORDER_ID as test_offset from TEST_KYLIN_FACT group by TRANS_ID, ORDER_ID limit 10 offset 3";
         QueryParams queryParams2 = new QueryParams(config, sql2, "cc_test", 5, 2, "ssb", true);
-        String newSql2 = QueryUtil.massageSql(queryParams2);
+        String newSql2 = KapQueryUtil.massageSql(queryParams2);
         Assert.assertEquals(
                 "select TRANS_ID as test_limit, ORDER_ID as test_offset from TEST_KYLIN_FACT group by TRANS_ID, ORDER_ID "
                         + "limit 10 offset 3",
@@ -404,7 +405,7 @@ public class QueryUtilTest extends NLocalFileMetadataTestCase {
 
         String sql3 = "(select TRANS_ID as test_limit, ORDER_ID as test_offset from TEST_KYLIN_FACT group by TRANS_ID, ORDER_ID)limit 10 offset 3";
         QueryParams queryParams3 = new QueryParams(config, sql3, "cc_test", 5, 2, "ssb", true);
-        String newSql3 = QueryUtil.massageSql(queryParams3);
+        String newSql3 = KapQueryUtil.massageSql(queryParams3);
         Assert.assertEquals(
                 "(select TRANS_ID as test_limit, ORDER_ID as test_offset from TEST_KYLIN_FACT group by TRANS_ID, ORDER_ID)"
                         + "limit 10 offset 3",
@@ -425,7 +426,7 @@ public class QueryUtilTest extends NLocalFileMetadataTestCase {
 
             QueryParams queryParams = new QueryParams("", sql, "default", false);
             queryParams.setKylinConfig(config);
-            String massagedSql = QueryUtil.massagePushDownSql(queryParams);
+            String massagedSql = KapQueryUtil.massagePushDownSql(queryParams);
             String expectedSql = "SELECT `Z_PROVDASH_UM_ED`.`GENDER` AS `GENDER`, "
                     + "SUM(CAST(0 AS BIGINT)) AS `sum_Calculation_336925569152049156_ok`\n"
                     + "FROM `POPHEALTH_ANALYTICS`.`Z_PROVDASH_UM_ED` AS `Z_PROVDASH_UM_ED`\n" + "LIMIT 1";

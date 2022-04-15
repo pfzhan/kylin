@@ -40,6 +40,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.AclEntity;
@@ -170,7 +171,7 @@ public class NAccessController extends NBasicController {
             checkRequiredArg("model", modelId);
             whole.addAll(accessService.getProjectManagementUsers(project));
 
-            NDataModel model = projectService.getDataModelManager(project).getDataModelDesc(modelId);
+            NDataModel model = projectService.getManager(NDataModelManager.class, project).getDataModelDesc(modelId);
             if (Objects.isNull(model) || model.isBroken()) {
                 throw new KylinException(MODEL_ID_NOT_EXIST, modelId);
             }

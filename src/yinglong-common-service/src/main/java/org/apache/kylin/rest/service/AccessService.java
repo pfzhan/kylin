@@ -142,7 +142,7 @@ public class AccessService extends BasicService {
     @Qualifier("userService")
     protected UserService userService;
 
-    @Autowired
+    @Autowired(required = false)
     @Qualifier("aclTCRService")
     private AclTCRServiceSupporter aclTCRService;
 
@@ -331,7 +331,7 @@ public class AccessService extends BasicService {
             return;
         }
         // revoke user's project permission
-        List<ProjectInstance> projectInstances = getProjectManager().listAllProjects();
+        List<ProjectInstance> projectInstances = getManager(NProjectManager.class).listAllProjects();
         for (ProjectInstance pi : projectInstances) {
             // after KYLIN-2760, only project ACL will work, so entity type is always ProjectInstance.
             AclEntity ae = getAclEntity("ProjectInstance", pi.getUuid());

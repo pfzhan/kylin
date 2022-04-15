@@ -23,6 +23,13 @@
  */
 package io.kyligence.kap.rest.controller.open;
 
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
+import static org.apache.kylin.common.exception.ServerErrorCode.UNSUPPORTED_STREAMING_OPERATION;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.INDEX_PARAMETER_INVALID;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_MULTI_PARTITION_DISABLE;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -59,6 +66,7 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.constant.ModelAttributeEnum;
 import io.kyligence.kap.rest.controller.NBasicController;
@@ -79,13 +87,6 @@ import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.tool.bisync.SyncContext;
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
-
-import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
-import static org.apache.kylin.common.exception.ServerErrorCode.UNSUPPORTED_STREAMING_OPERATION;
-import static org.apache.kylin.common.exception.code.ErrorCodeServer.INDEX_PARAMETER_INVALID;
-import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_NOT_EXIST;
-import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_MULTI_PARTITION_DISABLE;
 
 @Controller
 @RequestMapping(value = "/api/models", produces = { HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
@@ -246,7 +247,7 @@ public class OpenModelController extends NBasicController {
 
     @VisibleForTesting
     public NDataModel getModel(String modelAlias, String project) {
-        NDataModel model = modelService.getDataModelManager(project).listAllModels().stream() //
+        NDataModel model = modelService.getManager(NDataModelManager.class, project).listAllModels().stream() //
                 .filter(dataModel -> dataModel.getUuid().equals(modelAlias) //
                         || dataModel.getAlias().equalsIgnoreCase(modelAlias))
                 .findFirst().orElse(null);
@@ -388,7 +389,7 @@ public class OpenModelController extends NBasicController {
     @PutMapping(value = "/{model_name}/status")
     @ResponseBody
     public EnvelopeResponse<String> updateModelStatus(@PathVariable("model_name") String modelAlias,
-                                                      @RequestBody ModelUpdateRequest modelRenameRequest) {
+            @RequestBody ModelUpdateRequest modelRenameRequest) {
         String projectName = checkProjectName(modelRenameRequest.getProject());
         String modelId = getModel(modelAlias, projectName).getId();
         return modelController.updateModelStatus(modelId, modelRenameRequest);

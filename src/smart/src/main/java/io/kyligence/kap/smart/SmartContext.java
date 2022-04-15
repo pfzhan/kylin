@@ -29,6 +29,7 @@ import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 
+import io.kyligence.kap.engine.spark.utils.ComputedColumnEvalUtil;
 import io.kyligence.kap.guava20.shaded.common.collect.ImmutableList;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -39,7 +40,6 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.util.ExpandableMeasureUtil;
 import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.smart.model.ModelTree;
-import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
 import lombok.Getter;
 
 @Getter

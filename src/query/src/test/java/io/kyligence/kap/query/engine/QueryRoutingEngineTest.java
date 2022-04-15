@@ -27,14 +27,17 @@ package io.kyligence.kap.query.engine;
 import static io.kyligence.kap.query.engine.QueryRoutingEngine.SPARK_JOB_FAILED;
 import static io.kyligence.kap.query.engine.QueryRoutingEngine.SPARK_MEM_LIMIT_EXCEEDED;
 
-import io.kyligence.kap.common.persistence.transaction.TransactionException;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.QueryErrorCode;
 import org.apache.kylin.common.persistence.InMemResourceStore;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.metadata.realization.NoStreamingRealizationFoundException;
-import org.apache.kylin.query.exception.QueryErrorCode;
 import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.source.adhocquery.PushdownResult;
 import org.apache.spark.SparkException;
@@ -45,11 +48,9 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
+import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-
-import java.sql.Date;
-import java.sql.Time;
-import java.sql.Timestamp;
+import io.kyligence.kap.query.QueryExtension;
 
 public class QueryRoutingEngineTest extends NLocalFileMetadataTestCase {
 
@@ -61,11 +62,15 @@ public class QueryRoutingEngineTest extends NLocalFileMetadataTestCase {
     public void setup() throws Exception {
         this.createTestMetadata();
         pushdownCount = 0;
+        // Use default Factory for Open Core
+        QueryExtension.setFactory(new QueryExtension.Factory());
     }
 
     @After
     public void tearDown() throws Exception {
         this.cleanupTestMetadata();
+        // Unset Factory for Open Core
+        QueryExtension.setFactory(null);
     }
 
     @Test

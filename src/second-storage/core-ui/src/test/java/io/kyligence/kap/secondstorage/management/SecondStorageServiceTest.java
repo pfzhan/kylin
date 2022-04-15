@@ -72,7 +72,7 @@ public class SecondStorageServiceTest extends NLocalFileMetadataTestCase {
     public void setUp() throws Exception {
         PowerMockito.mockStatic(UserGroupInformation.class);
         UserGroupInformation userGroupInformation = Mockito.mock(UserGroupInformation.class);
-        PowerMockito.when(UserGroupInformation.getCurrentUser()).thenReturn(userGroupInformation);
+        PowerMockito.when(UserGroupInformation.getCurrentUser()).thenAnswer(invocation -> userGroupInformation);
         overwriteSystemProp("HADOOP_USER_NAME", "root");
         Unsafe.setProperty("kylin.external-storage.cluster.config", "src/test/resources/test.yaml");
         SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -89,7 +89,8 @@ public class SecondStorageServiceTest extends NLocalFileMetadataTestCase {
     public void listAvailableNodes() {
         PowerMockito.mockStatic(NProjectManager.class);
         val projectManager = Mockito.mock(NProjectManager.class);
-        PowerMockito.when(NProjectManager.getInstance(Mockito.any(KylinConfig.class))).thenReturn(projectManager);
+        PowerMockito.when(NProjectManager.getInstance(Mockito.any(KylinConfig.class)))
+                .thenAnswer(invocation -> projectManager);
         Mockito.when(projectManager.listAllProjects()).thenReturn(Collections.emptyList());
         ClusterInfo cluster = new ClusterInfo();
         Map<String, List<Node>> clusterNodes = new HashMap<>();
@@ -144,7 +145,8 @@ public class SecondStorageServiceTest extends NLocalFileMetadataTestCase {
     public void projecLoad() {
         PowerMockito.mockStatic(NProjectManager.class);
         val projectManager = Mockito.mock(NProjectManager.class);
-        PowerMockito.when(NProjectManager.getInstance(Mockito.any(KylinConfig.class))).thenReturn(projectManager);
+        PowerMockito.when(NProjectManager.getInstance(Mockito.any(KylinConfig.class)))
+                .thenAnswer(invocation -> projectManager);
         Mockito.when(projectManager.listAllProjects()).thenReturn(Collections.emptyList());
 
         

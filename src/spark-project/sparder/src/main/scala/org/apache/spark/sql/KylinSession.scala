@@ -25,17 +25,13 @@ package org.apache.spark.sql
 import java.io.File
 import java.net.URI
 import java.nio.file.Paths
-import java.sql.SQLException
 
 import io.kyligence.kap.common.util.Unsafe
-import io.kyligence.kap.metadata.project.NProjectManager
-import io.kyligence.kap.query.engine.QueryExec
 import io.kyligence.kap.query.util.ExtractFactory
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.security.UserGroupInformation
 import org.apache.kylin.common.util.HadoopUtil
 import org.apache.kylin.common.{KapConfig, KylinConfig}
-import org.apache.kylin.query.util.{QueryParams, QueryUtil}
 import org.apache.spark.internal.Logging
 import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
 import org.apache.spark.sql.SparkSession.Builder
@@ -46,7 +42,6 @@ import org.apache.spark.util.{KylinReflectUtils, Utils}
 import org.apache.spark.{SparkConf, SparkContext}
 
 import scala.collection.JavaConverters._
-import scala.util.{Failure, Success, Try}
 
 class KylinSession(
                     @transient val sc: SparkContext,
@@ -99,41 +94,6 @@ class KylinSession(
     result.sessionState // force copy of SessionState
     result
   }
-
-  def singleQuery(sql: String, project: String): DataFrame = {
-    val prevRunLocalConf = Unsafe.setProperty("kylin.query.engine.run-constant-query-locally", "FALSE")
-    try {
-      val projectKylinConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv).getProject(project).getConfig
-      val queryExec = new QueryExec(project, projectKylinConfig)
-      val queryParams = new QueryParams(QueryUtil.getKylinConfig(project),
-        sql, project, 0, 0, queryExec.getDefaultSchemaName, true)
-      val convertedSql = QueryUtil.massageSql(queryParams)
-      queryExec.executeQuery(convertedSql)
-    } finally {
-      if (prevRunLocalConf == null) {
-        Unsafe.clearProperty("kylin.query.engine.run-constant-query-locally")
-      } else {
-        Unsafe.setProperty("kylin.query.engine.run-constant-query-locally", prevRunLocalConf)
-      }
-    }
-    SparderEnv.getDF
-  }
-
-  def sql(project: String, sqlText: String): DataFrame = {
-    Try {
-      singleQuery(sqlText, project)
-    } match {
-      case Success(result_df) =>
-        result_df
-      case Failure(e) =>
-        if (e.isInstanceOf[SQLException]) {
-          sql(sqlText)
-        } else {
-          throw e
-        }
-    }
-  }
-
 }
 
 object KylinSession extends Logging {

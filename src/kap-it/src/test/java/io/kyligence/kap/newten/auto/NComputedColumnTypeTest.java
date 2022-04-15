@@ -42,7 +42,7 @@ import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.query.util.KapQueryUtil;
-import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
+import io.kyligence.kap.engine.spark.utils.ComputedColumnEvalUtil;
 
 public class NComputedColumnTypeTest extends NLocalWithSparkSessionTest {
 

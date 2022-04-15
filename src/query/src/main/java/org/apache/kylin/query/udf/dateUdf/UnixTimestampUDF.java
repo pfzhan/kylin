@@ -47,7 +47,7 @@ import java.sql.Timestamp;
 
 import org.apache.calcite.linq4j.function.Parameter;
 import org.apache.calcite.sql.type.NotConstant;
-import org.apache.kylin.query.udf.CalciteNotSupportException;
+import org.apache.kylin.common.exception.CalciteNotSupportException;
 
 public class UnixTimestampUDF implements NotConstant {
 

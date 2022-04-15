@@ -39,7 +39,6 @@ import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.query.SlowQueryDetector;
 import org.apache.kylin.query.util.QueryParams;
-import org.apache.kylin.query.util.QueryUtil;
 import org.apache.spark.sql.SparderEnv;
 import org.junit.After;
 import org.junit.Assert;
@@ -54,6 +53,7 @@ import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.query.pushdown.SparkSqlClient;
 import io.kyligence.kap.query.runtime.plan.ResultPlan;
+import io.kyligence.kap.query.util.KapQueryUtil;
 import lombok.val;
 
 public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
@@ -166,9 +166,9 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
             long t = System.currentTimeMillis();
             String sql = FileUtils
                     .readFileToString(new File("src/test/resources/query/sql_timeout/query03.sql"), "UTF-8").trim();
-            QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(getProject()), sql, getProject(), 0, 0,
+            QueryParams queryParams = new QueryParams(KapQueryUtil.getKylinConfig(getProject()), sql, getProject(), 0, 0,
                     "DEFAULT", true);
-            QueryUtil.massageSql(queryParams);
+            KapQueryUtil.massageSql(queryParams);
             String error = "TestSQLMassageTimeoutCancelJob fail, query cost:" + (System.currentTimeMillis() - t)
                     + " ms, need compute:" + SparderEnv.needCompute();
             logger.error(error);

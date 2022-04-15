@@ -47,24 +47,23 @@
     <dependencies>
         <!-- provided -->
         <dependency>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-common</artifactId>
-        </dependency>
-        <dependency>
             <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-core-metadata</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>yinglong-enterprise-core-metadata</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-external-curator</artifactId>
+            <artifactId>kap-core-metadata-ext</artifactId>
         </dependency>
         <dependency>
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-external-curator-test</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-core-common</artifactId>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-common</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.zookeeper</groupId>
@@ -79,12 +78,6 @@
         </dependency>
 
         <!--Env & Test-->
-        <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-core-common</artifactId>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>

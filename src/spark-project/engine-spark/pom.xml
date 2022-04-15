@@ -72,10 +72,6 @@
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-spark-common</artifactId>
         </dependency>
-        <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-query</artifactId>
-        </dependency>
 
         <dependency>
             <groupId>io.kyligence.ke</groupId>

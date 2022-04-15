@@ -671,7 +671,7 @@ public class OptRecService extends BasicService {
         }
 
         BaseIndexUpdateHelper baseIndexUpdater = new BaseIndexUpdateHelper(
-                getDataModelManager(project).getDataModelDesc(modelId), false);
+                getManager(NDataModelManager.class, project).getDataModelDesc(modelId), false);
         Map<Integer, String> userDefinedRecNameMap = request.getNames();
         RecApproveContext approveContext = new RecApproveContext(project, modelId, userDefinedRecNameMap);
         approveRecItemsToRemoveLayout(request, approveContext);
@@ -698,7 +698,7 @@ public class OptRecService extends BasicService {
         }
         modelIds.forEach(modelId -> modelService.checkModelPermission(project, modelId));
         List<RecToIndexResponse> responseList = Lists.newArrayList();
-        List<NDataflow> dataflowList = getDataflowManager(project).listAllDataflows();
+        List<NDataflow> dataflowList = getManager(NDataflowManager.class, project).listAllDataflows();
         for (NDataflow df : dataflowList) {
             if (df.getStatus() != RealizationStatusEnum.ONLINE || df.getModel().isBroken()) {
                 continue;
@@ -719,7 +719,7 @@ public class OptRecService extends BasicService {
     public List<RecToIndexResponse> batchApprove(String project, String recActionType) {
         aclEvaluate.checkProjectWritePermission(project);
         List<RecToIndexResponse> responseList = Lists.newArrayList();
-        List<NDataflow> dataflowList = getDataflowManager(project).listAllDataflows();
+        List<NDataflow> dataflowList = getManager(NDataflowManager.class, project).listAllDataflows();
         for (NDataflow df : dataflowList) {
             if (df.getStatus() != RealizationStatusEnum.ONLINE || df.getModel().isBroken()) {
                 continue;
@@ -755,7 +755,7 @@ public class OptRecService extends BasicService {
         } else {
             throw new KylinException(UNSUPPORTED_REC_OPERATION_TYPE, OptRecService.OPERATION_ERROR_MSG);
         }
-        NDataModel model = getDataModelManager(project).getDataModelDesc(modelId);
+        NDataModel model = getManager(NDataModelManager.class, project).getDataModelDesc(modelId);
         BaseIndexUpdateHelper baseIndexUpdater = new BaseIndexUpdateHelper(model, false);
         approveRecItemsToRemoveLayout(request, approveContext);
         approveRecItemsToAddLayout(request, approveContext);
@@ -1042,7 +1042,7 @@ public class OptRecService extends BasicService {
             OptRecV2 optRecV2) {
         List<OptRecLayoutResponse> layoutRecResponseList = Lists.newArrayList();
 
-        NDataflowManager dfManager = getDataflowManager(project);
+        NDataflowManager dfManager = getManager(NDataflowManager.class, project);
         NDataflow dataflow = dfManager.getDataflow(modelId);
         recItems.forEach(rawRecItem -> {
             boolean isAdd = rawRecItem.getType() == RawRecItem.RawRecType.ADDITIONAL_LAYOUT;

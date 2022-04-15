@@ -41,7 +41,7 @@
  */
 package org.apache.kylin.query.exception;
 
-import static org.apache.kylin.query.exception.QueryErrorCode.BUSY_QUERY;
+import static org.apache.kylin.common.exception.QueryErrorCode.BUSY_QUERY;
 
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.code.ErrorCodeProducer;

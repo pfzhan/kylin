@@ -71,14 +71,13 @@ import io.kyligence.kap.common.util.Unsafe;
  * 
  */
 public class PasswordPlaceholderConfigurer extends PropertyPlaceholderConfigurer {
-    private final static Set<String> passwordWhiteList = Sets.newHashSet("kylin.security.user-password-encoder");
+    private static final Set<String> passwordWhiteList = Sets.newHashSet("kylin.security.user-password-encoder");
 
     /**
      * The PasswordPlaceholderConfigurer will read Kylin properties as the Spring resource
      */
     public PasswordPlaceholderConfigurer() throws IOException {
         Resource[] resources = new Resource[1];
-        //Properties prop = KylinConfig.getKylinProperties();
         Properties prop = getAllKylinProperties();
         String propString = null;
         try(StringBuilderWriter writer = new StringBuilderWriter()){
@@ -104,6 +103,7 @@ public class PasswordPlaceholderConfigurer extends PropertyPlaceholderConfigurer
         return allProps;
     }
 
+    @Override
     protected String resolvePlaceholder(String placeholder, Properties props) {
         if (placeholder.toLowerCase(Locale.ROOT).contains("password") && !passwordWhiteList.contains(placeholder)) {
             try {

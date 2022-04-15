@@ -43,6 +43,7 @@ import java.util.Set;
 
 import javax.validation.Valid;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -244,7 +245,7 @@ public class NProjectController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<Boolean> cleanupProjectStorage(@PathVariable(value = "project") String project)
             throws Exception {
-        ProjectInstance projectInstance = projectService.getProjectManager().getProject(project);
+        ProjectInstance projectInstance = projectService.getManager(NProjectManager.class).getProject(project);
         if (projectInstance == null) {
             throw new KylinException(PROJECT_NOT_EXIST, project);
         }

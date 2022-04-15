@@ -158,7 +158,6 @@ import io.kyligence.kap.common.hystrix.NCircuitBreaker;
 import io.kyligence.kap.common.logging.SetLogCategory;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.util.AddressUtil;
-import io.kyligence.kap.engine.spark.job.AsyncQueryJob;
 import io.kyligence.kap.metadata.acl.AclTCR;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -168,12 +167,14 @@ import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryMetricsContext;
 import io.kyligence.kap.metadata.query.StructField;
+import io.kyligence.kap.query.engine.AsyncQueryJob;
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.query.engine.QueryRoutingEngine;
 import io.kyligence.kap.query.engine.SchemaMetaData;
 import io.kyligence.kap.query.engine.data.QueryResult;
 import io.kyligence.kap.query.engine.data.TableSchema;
 import io.kyligence.kap.query.exception.NotSupportedSQLException;
+import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.query.util.QueryModelPriorities;
 import io.kyligence.kap.rest.aspect.Transaction;
 import io.kyligence.kap.rest.cluster.ClusterManager;
@@ -233,7 +234,7 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
             slowQueryDetector.queryStart(sqlRequest.getStopId());
             markHighPriorityQueryIfNeeded();
 
-            QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(sqlRequest.getProject()),
+            QueryParams queryParams = new QueryParams(KapQueryUtil.getKylinConfig(sqlRequest.getProject()),
                     sqlRequest.getSql(), sqlRequest.getProject(), sqlRequest.getLimit(), sqlRequest.getOffset(), true,
                     sqlRequest.getExecuteAs(), sqlRequest.isForcedToPushDown(), sqlRequest.isForcedToIndex(),
                     QueryUtils.isPrepareStatementWithParams(sqlRequest), sqlRequest.isPartialMatchIndex(),

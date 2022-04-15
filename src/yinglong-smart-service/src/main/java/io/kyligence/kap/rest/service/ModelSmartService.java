@@ -40,12 +40,12 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.QueryErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.job.InMemoryJobRunner;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.TblColRef;
-import org.apache.kylin.query.exception.QueryErrorCode;
 import org.apache.kylin.rest.request.OpenSqlAccelerateRequest;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -68,6 +68,7 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.util.scd2.SCD2SqlConverter;
 import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinDesc;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.LayoutRecDetailResponse;
 import io.kyligence.kap.rest.response.OpenAccSqlResponse;
@@ -383,7 +384,7 @@ public class ModelSmartService extends BasicService implements ModelSmartSupport
             throw new KylinException(PROJECT_NOT_EXIST,
                     String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
         }
-        KylinConfig kylinConfig = getProjectManager().getProject(project).getConfig();
+        KylinConfig kylinConfig = getManager(NProjectManager.class).getProject(project).getConfig();
         AbstractContext proposeContext = new ModelSelectContext(kylinConfig, project, sqls.toArray(new String[0]));
         ProposerJob.propose(proposeContext,
                 (config, runnerType, projectName, resources) -> new InMemoryJobRunner(config, projectName, resources));
@@ -408,7 +409,7 @@ public class ModelSmartService extends BasicService implements ModelSmartSupport
         if (CollectionUtils.isEmpty(sqls)) {
             return null;
         }
-        KylinConfig kylinConfig = getProjectManager().getProject(project).getConfig();
+        KylinConfig kylinConfig = getManager(NProjectManager.class).getProject(project).getConfig();
         checkBatchSqlSize(kylinConfig, sqls);
         AbstractContext proposeContext;
         String[] sqlArray = sqls.toArray(new String[0]);

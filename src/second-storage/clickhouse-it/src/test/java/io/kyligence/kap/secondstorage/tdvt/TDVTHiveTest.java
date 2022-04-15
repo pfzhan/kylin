@@ -23,28 +23,24 @@
  */
 package io.kyligence.kap.secondstorage.tdvt;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import io.kyligence.kap.common.util.Unsafe;
-import io.kyligence.kap.engine.spark.IndexDataConstructor;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.util.ExecAndComp;
-import io.kyligence.kap.newten.clickhouse.ClickHouseUtils;
-import io.kyligence.kap.secondstorage.SecondStorageUtil;
-import io.kyligence.kap.secondstorage.test.ClickHouseClassRule;
-import io.kyligence.kap.secondstorage.test.EnableClickHouseJob;
-import io.kyligence.kap.secondstorage.test.EnableTestUser;
-import io.kyligence.kap.secondstorage.test.SetTimeZone;
-import io.kyligence.kap.secondstorage.test.SharedSparkSession;
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
+import static io.kyligence.kap.clickhouse.ClickHouseConstants.CONFIG_CLICKHOUSE_QUERY_CATALOG;
+import static io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest.populateSSWithCSVData;
+
+import java.io.File;
+import java.io.IOException;
+import java.net.URL;
+import java.util.Collection;
+import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.query.util.QueryParams;
-import org.apache.kylin.query.util.QueryUtil;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparderEnv;
@@ -61,20 +57,26 @@ import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.testcontainers.containers.JdbcDatabaseContainer;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+
+import io.kyligence.kap.common.util.Unsafe;
+import io.kyligence.kap.engine.spark.IndexDataConstructor;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.newten.clickhouse.ClickHouseUtils;
+import io.kyligence.kap.query.util.KapQueryUtil;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
+import io.kyligence.kap.secondstorage.test.ClickHouseClassRule;
+import io.kyligence.kap.secondstorage.test.EnableClickHouseJob;
+import io.kyligence.kap.secondstorage.test.EnableTestUser;
+import io.kyligence.kap.secondstorage.test.SetTimeZone;
+import io.kyligence.kap.secondstorage.test.SharedSparkSession;
+import io.kyligence.kap.util.ExecAndComp;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 import scala.math.Ordering;
-
-import java.io.File;
-import java.io.IOException;
-import java.net.URL;
-import java.util.Collection;
-import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import static io.kyligence.kap.clickhouse.ClickHouseConstants.CONFIG_CLICKHOUSE_QUERY_CATALOG;
-import static io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest.populateSSWithCSVData;
 
 @RunWith(Parameterized.class)
 @Slf4j
@@ -209,8 +211,8 @@ public class TDVTHiveTest {
 
     private String runWithHive(String sqlStatement) {
         QueryParams queryParams = new QueryParams(project, sqlStatement, "default", false);
-        queryParams.setKylinConfig(QueryUtil.getKylinConfig(project));
-        String afterConvert = QueryUtil.massagePushDownSql(queryParams);
+        queryParams.setKylinConfig(KapQueryUtil.getKylinConfig(project));
+        String afterConvert = KapQueryUtil.massagePushDownSql(queryParams);
         // Table schema comes from csv and DATABASE.TABLE is not supported.
         String sqlForSpark = ExecAndComp.removeDataBaseInSql(afterConvert);
         Dataset<Row> plan = ExecAndComp.querySparkSql(sqlForSpark);

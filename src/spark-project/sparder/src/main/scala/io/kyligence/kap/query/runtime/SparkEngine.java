@@ -25,7 +25,8 @@
 package io.kyligence.kap.query.runtime;
 
 
-import io.kyligence.kap.query.engine.exec.ExecuteResult;
+import java.util.List;
+
 import org.apache.calcite.DataContext;
 import org.apache.calcite.rel.RelNode;
 import org.apache.kylin.common.KapConfig;
@@ -38,11 +39,10 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
 
+import io.kyligence.kap.query.engine.exec.ExecuteResult;
 import io.kyligence.kap.query.engine.exec.sparder.QueryEngine;
+import io.kyligence.kap.query.mask.QueryResultMasks;
 import io.kyligence.kap.query.runtime.plan.ResultPlan;
-import io.kyligence.kap.query.engine.mask.QueryResultMasks;
-
-import java.util.List;
 
 public class SparkEngine implements QueryEngine {
     private static final Logger log = LoggerFactory.getLogger(SparkEngine.class);

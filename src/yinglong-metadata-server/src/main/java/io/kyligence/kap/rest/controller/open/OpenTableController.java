@@ -55,6 +55,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.google.common.annotations.VisibleForTesting;
 
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.rest.controller.NBasicController;
 import io.kyligence.kap.rest.controller.NTableController;
 import io.kyligence.kap.rest.request.DateRangeRequest;
@@ -87,7 +88,7 @@ public class OpenTableController extends NBasicController {
 
     @VisibleForTesting
     public TableDesc getTable(String project, String tableName) {
-        TableDesc table = tableService.getTableManager(project).getTableDesc(tableName);
+        TableDesc table = tableService.getManager(NTableMetadataManager.class, project).getTableDesc(tableName);
         if (null == table) {
             throw new KylinException(INVALID_TABLE_NAME,
                     String.format(Locale.ROOT, MsgPicker.getMsg().getTABLE_NOT_FOUND(), tableName));

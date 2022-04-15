@@ -29,20 +29,18 @@ import java.nio.file.Files;
 import java.sql.SQLException;
 import java.util.List;
 
-import io.kyligence.kap.util.ExecAndComp;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.QueryErrorCode;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
-import org.apache.kylin.query.exception.QueryErrorCode;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.query.util.QueryParams;
-import org.apache.kylin.query.util.QueryUtil;
 import org.apache.spark.sql.AnalysisException;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
@@ -54,6 +52,8 @@ import org.junit.Test;
 import com.google.common.base.Throwables;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.query.util.KapQueryUtil;
+import io.kyligence.kap.util.ExecAndComp;
 import lombok.val;
 
 public class NBadQueryAndPushDownTest extends NLocalWithSparkSessionTest {
@@ -261,7 +261,7 @@ public class NBadQueryAndPushDownTest extends NLocalWithSparkSessionTest {
             int offset, SQLException sqlException, boolean isForced) throws Exception {
         populateSSWithCSVData(KylinConfig.getInstanceFromEnv(), prjName, SparderEnv.getSparkSession());
         String pushdownSql = ExecAndComp.removeDataBaseInSql(sql);
-        String massagedSql = QueryUtil.normalMassageSql(KylinConfig.getInstanceFromEnv(), pushdownSql, limit, offset);
+        String massagedSql = KapQueryUtil.normalMassageSql(KylinConfig.getInstanceFromEnv(), pushdownSql, limit, offset);
         QueryParams queryParams = new QueryParams(prjName, massagedSql, "DEFAULT", BackdoorToggles.getPrepareOnly(),
                 sqlException, isForced, true, limit, offset);
         Pair<List<List<String>>, List<SelectedColumnMeta>> result = PushDownUtil.tryPushDownQuery(queryParams);

@@ -30,6 +30,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_NA
 import java.io.IOException;
 import java.util.Locale;
 
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -115,7 +116,7 @@ public class OpenSampleController extends BaseController {
 
     @VisibleForTesting
     protected TableDesc getTable(String project, String tableName) {
-        TableDesc table = tableService.getTableManager(project).getTableDesc(tableName);
+        TableDesc table = tableService.getManager(NTableMetadataManager.class, project).getTableDesc(tableName);
         if (null == table) {
             throw new KylinException(INVALID_TABLE_NAME,
                     String.format(Locale.ROOT, MsgPicker.getMsg().getTABLE_NOT_FOUND(), tableName));

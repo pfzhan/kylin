@@ -211,7 +211,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         model.setUuid(modelId);
         model.setAlias(modelName);
         val modelManager = Mockito.mock(NDataModelManager.class);
-        Mockito.when(modelService.getDataModelManager(Mockito.anyString())).thenReturn(modelManager);
+        Mockito.when(modelService.getManager(NDataModelManager.class, project)).thenReturn(modelManager);
         Mockito.when(modelManager.listAllModels()).thenReturn(Lists.newArrayList(model));
 
         Mockito.when(fusionIndexService.getIndexesWithRelatedTables(Mockito.any(), Mockito.any(), Mockito.any(),

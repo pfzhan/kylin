@@ -44,102 +44,13 @@
 
     <dependencies>
         <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-query</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>javax.servlet</groupId>
-                    <artifactId>servlet-api</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>javax.servlet.jsp</groupId>
-                    <artifactId>jsp-api</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-engine-spark</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-external-swagger</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-tool</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-source-jdbc</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-streaming</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-datasource-sdk</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-common-service</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-datasource-service</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-modeling-service</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-query-service</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-build-service</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-smart-service</artifactId>
-        </dependency>
-        <!--for ut-->
-        <dependency>
             <groupId>io.kyligence.yinglong</groupId>
             <artifactId>yinglong-smart-server</artifactId>
             <scope>test</scope>
         </dependency>
-
-        <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-systools</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>yinglong-enterprise-core-metadata</artifactId>
-        </dependency>
-
         <dependency>
             <groupId>io.kyligence.yinglong</groupId>
             <artifactId>yinglong-streaming-service</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-enterprise-service</artifactId>
         </dependency>
         <dependency>
             <groupId>io.kyligence.yinglong</groupId>
@@ -148,6 +59,52 @@
         <dependency>
             <groupId>io.kyligence.yinglong</groupId>
             <artifactId>yinglong-integration-service</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-core-common</artifactId>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-core-metadata</artifactId>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-core-job</artifactId>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-core-metadata-ext</artifactId>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.yinglong</groupId>
+            <artifactId>yinglong-common-service</artifactId>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.yinglong</groupId>
+            <artifactId>yinglong-systools</artifactId>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>  
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-external-swagger</artifactId>
+        </dependency>
+        <!-- second storage -->
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-second-storage-clickhouse</artifactId>
+            <scope>test</scope>
         </dependency>
 
         <!-- these plug-in modules, should not have API dependencies -->
@@ -168,6 +125,10 @@
         <dependency>
             <groupId>com.jayway.jsonpath</groupId>
             <artifactId>json-path</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
         </dependency>
 
         <!-- Spring Core -->
@@ -349,36 +310,6 @@
 
         <!-- Test & Env -->
         <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-core-common</artifactId>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-core-job</artifactId>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-core-metadata</artifactId>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>yinglong-enterprise-core-metadata</artifactId>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-common-service</artifactId>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
             <scope>test</scope>
@@ -457,18 +388,10 @@
             <groupId>org.springframework</groupId>
             <artifactId>spring-web</artifactId>
         </dependency>
-        <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-core-job</artifactId>
-        </dependency>
 
         <dependency>
             <groupId>org.yaml</groupId>
             <artifactId>snakeyaml</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-smart</artifactId>
         </dependency>
         <!-- hadoop -->
         <dependency>
@@ -527,12 +450,6 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- second storage -->
-        <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-second-storage-clickhouse</artifactId>
-            <scope>test</scope>
-        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-actuator-autoconfigure</artifactId>
@@ -545,6 +462,12 @@
         <dependency>
             <groupId>io.kyligence.yinglong</groupId>
             <artifactId>yinglong-systools</artifactId>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-second-storage-clickhouse</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
