@@ -31,9 +31,9 @@ source build/script_newten/functions.sh
 
 rm -rf build/spark
 
-spark_pkg_name="spark-newten-3.2.0-4.x-r59"
+spark_pkg_name="spark-newten-3.2.0-4.x-r60"
 spark_pkg_file_name="${spark_pkg_name}.tgz"
-spark_pkg_md5="596804d3235e5c28b57c5b3d1ac87016"
+spark_pkg_md5="f7c5beb6a94704c6d41f55bed00457e1"
 
 checkDownloadSparkVersion ${spark_pkg_name}
 
@@ -50,7 +50,8 @@ else
     fi
 fi
 
-tar -zxf build/${spark_pkg_file_name} -C build/ || { exit 1; }
+mkdir -p  build/${spark_pkg_name}
+tar -zxf build/${spark_pkg_file_name} -C build/${spark_pkg_name} --strip-components 1 || { exit 1; }
 mv build/${spark_pkg_name} build/spark
 
 # Remove unused components in Spark
