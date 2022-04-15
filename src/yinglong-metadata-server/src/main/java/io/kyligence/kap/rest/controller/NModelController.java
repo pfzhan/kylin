@@ -744,6 +744,7 @@ public class NModelController extends NBasicController {
         String host = getHost(serverHost, request.getServerName());
         Integer port = getPort(serverPort, request.getServerPort());
 
+        modelService.validateExport(projectName, modelId);
         BISyncModel syncModel = AclPermissionUtil.isAdmin()
                 ? modelService.exportModel(projectName, modelId, exportAs, element, host, port)
                 : modelService.biExportCustomModel(projectName, modelId, exportAs, element, host, port);
