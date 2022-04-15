@@ -294,7 +294,7 @@ public class ShardLoader {
                 exception = null;
             } catch (SQLException e) {
                 exception = e;
-                if (retry > maxRetry)
+                if (!needRetry(retry, maxRetry, exception))
                     throw exception;
             }
 
@@ -314,7 +314,8 @@ public class ShardLoader {
             return false;
 
         String msg = e.getMessage();
-        return StringUtils.containsIgnoreCase(msg, "broken pipe")
-                || StringUtils.containsIgnoreCase(msg, "connection reset");
+        return (StringUtils.containsIgnoreCase(msg, "broken pipe")
+                || StringUtils.containsIgnoreCase(msg, "connection reset"))
+                && StringUtils.containsIgnoreCase(msg, "HTTPSession");
     }
 }

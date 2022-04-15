@@ -279,7 +279,7 @@ public class SecondStorageLockTest implements JobWaiter {
     public void testSegmentLoadWithRetry(int replica, JdbcDatabaseContainer<?>... clickhouse) throws Exception {
         PowerMockito.mockStatic(InsertInto.class);
         PowerMockito.when(InsertInto.insertInto(Mockito.anyString(), Mockito.anyString()))
-                .thenAnswer((Answer<InsertInto>) invocation -> new InsertInto(TableIdentifier.table("def", "tab")));
+                .thenThrow(new SQLException("broken pipe HTTPSession"));
 
         final String catalog = "default";
         Unsafe.setProperty(ClickHouseLoad.SOURCE_URL, getSourceUrl());
@@ -303,6 +303,44 @@ public class SecondStorageLockTest implements JobWaiter {
             PowerMockito.doCallRealMethod().when(InsertInto.class);
             InsertInto.insertInto(Mockito.anyString(), Mockito.anyString());
             waitJobFinish(getProject(), jobId);
+            return true;
+        });
+    }
+
+    @Test
+    public void testSegmentLoadWithoutRetry() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse()) {
+            testSegmentLoadWithoutRetry(1, clickhouse1);
+        }
+    }
+
+    public void testSegmentLoadWithoutRetry(int replica, JdbcDatabaseContainer<?>... clickhouse) throws Exception {
+        PowerMockito.mockStatic(InsertInto.class);
+        PowerMockito.when(InsertInto.insertInto(Mockito.anyString(), Mockito.anyString()))
+                .thenAnswer((Answer<InsertInto>) invocation -> new InsertInto(TableIdentifier.table("def", "tab")));
+
+        final String catalog = "default";
+        Unsafe.setProperty(ClickHouseLoad.SOURCE_URL, getSourceUrl());
+        Unsafe.setProperty(ClickHouseLoad.ROOT_PATH, getLocalWorkingDirectory());
+
+        configClickhouseWith(clickhouse, replica, catalog, () -> {
+            secondStorageService.changeProjectSecondStorageState(getProject(), SecondStorageNodeHelper.getAllPairs(), true);
+            Assert.assertEquals(clickhouse.length, SecondStorageUtil.listProjectNodes(getProject()).size());
+            secondStorageService.changeModelSecondStorageState(getProject(), modelId, true);
+            setQuerySession(catalog, clickhouse[0].getJdbcUrl(), clickhouse[0].getDriverClassName());
+
+            buildIncrementalLoadQuery(); // build table index
+            checkHttpServer(); // check http server
+
+            val segments = new HashSet<>(getDataFlow().getSegments());
+            AbstractJobHandler localHandler = new SecondStorageSegmentLoadJobHandler();
+            JobParam jobParam = SecondStorageJobParamUtil.of(getProject(), getDataFlow().getModel().getUuid(), "ADMIN",
+                    segments.stream().map(NDataSegment::getId));
+            String jobId = ClickHouseUtils.simulateJobMangerAddJob(jobParam, localHandler);
+            TimeUnit.MILLISECONDS.sleep(20000);
+            PowerMockito.doCallRealMethod().when(InsertInto.class);
+            InsertInto.insertInto(Mockito.anyString(), Mockito.anyString());
+            waitJobEnd(getProject(), jobId);
             return true;
         });
     }
