@@ -32,6 +32,7 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.secondstorage.SecondStorageConstants;
 import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
+import io.kyligence.kap.secondstorage.SecondStorageQueryRouteUtil;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import io.kyligence.kap.secondstorage.config.ConfigOption;
 import io.kyligence.kap.secondstorage.config.DefaultSecondStorageProperties;
@@ -47,6 +48,7 @@ import io.kyligence.kap.secondstorage.ddl.exp.TableIdentifier;
 import io.kyligence.kap.secondstorage.metadata.MetadataOperator;
 import io.kyligence.kap.secondstorage.metadata.NodeGroup;
 import io.kyligence.kap.secondstorage.metadata.SegmentFileStatus;
+import io.kyligence.kap.secondstorage.metadata.TableData;
 import io.kyligence.kap.secondstorage.metadata.TableFlow;
 import io.kyligence.kap.secondstorage.metadata.TablePartition;
 import io.kyligence.kap.secondstorage.response.SizeInNodeResponse;
@@ -103,13 +105,17 @@ public class ClickHouseMetadataOperator implements MetadataOperator {
 
         Set<String> tables = tableFlows.stream()
                 .flatMap(x -> x.getTableDataList().stream())
-                .map(y -> y.getTable())
+                .map(TableData::getTable)
                 .collect(Collectors.toSet());
 
-        Map<String, String> tableCreateSqlMap = new HashMap();
+        Map<String, String> tableCreateSqlMap = new HashMap<>();
 
         String databaseCreateSql = null;
         for (String node : nodes) {
+            if (!SecondStorageQueryRouteUtil.getNodeStatus(node)) {
+                continue;
+            }
+
             try (ClickHouse clickHouse = new ClickHouse(SecondStorageNodeHelper.resolve(node))) {
                 if (databaseCreateSql == null) {
                     int existCode = clickHouse.query(new ExistsDatabase(database).toSql(), ExistsQueryParser.EXISTS).get(0);
@@ -134,6 +140,10 @@ public class ClickHouseMetadataOperator implements MetadataOperator {
         }
         databaseCreateSql = SecondStorageSqlUtils.addIfNotExists(databaseCreateSql, "DATABASE");
         for (String node : nodes) {
+            if (!SecondStorageQueryRouteUtil.getNodeStatus(node)) {
+                continue;
+            }
+
             try (ClickHouse clickHouse = new ClickHouse(SecondStorageNodeHelper.resolve(node))) {
                 clickHouse.apply(databaseCreateSql);
                 for (String sql : tableCreateSqlMap.values()) {

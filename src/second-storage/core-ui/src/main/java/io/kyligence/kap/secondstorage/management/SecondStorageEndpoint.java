@@ -25,10 +25,12 @@
 package io.kyligence.kap.secondstorage.management;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.rest.controller.NBasicController;
 import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.service.ModelService;
+import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import io.kyligence.kap.secondstorage.enums.LockTypeEnum;
 import io.kyligence.kap.secondstorage.management.request.ModelEnableRequest;
@@ -36,6 +38,7 @@ import io.kyligence.kap.secondstorage.management.request.ProjectCleanRequest;
 import io.kyligence.kap.secondstorage.management.request.ProjectEnableRequest;
 import io.kyligence.kap.secondstorage.management.request.ProjectLoadRequest;
 import io.kyligence.kap.secondstorage.management.request.ProjectLockOperateRequest;
+import io.kyligence.kap.secondstorage.management.request.ProjectNodeRequest;
 import io.kyligence.kap.secondstorage.management.request.ProjectRecoveryResponse;
 import io.kyligence.kap.secondstorage.management.request.ProjectTableSyncResponse;
 import io.kyligence.kap.secondstorage.management.request.SecondStorageMetadataRequest;
@@ -43,6 +46,7 @@ import io.kyligence.kap.secondstorage.management.request.StorageRequest;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -50,6 +54,7 @@ import org.apache.kylin.common.exception.KylinException;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
+
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -68,6 +73,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
@@ -147,6 +153,31 @@ public class SecondStorageEndpoint extends NBasicController {
         JobInfoResponse jobInfoResponse = new JobInfoResponse();
         jobInfoResponse.setJobs(Collections.singletonList(jobInfo.orElse(null)));
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, jobInfoResponse, "");
+    }
+
+    @ApiOperation(value = "deleteProjectNodes")
+    @DeleteMapping(value = "/project/state", produces = {HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
+    public EnvelopeResponse<List<String>> deleteProjectNodes(ProjectNodeRequest request) {
+        checkProjectName(request.getProject());
+
+        if (!SecondStorageUtil.isProjectEnable(request.getProject())) {
+            throw new KylinException(INVALID_PARAMETER, String.format(Locale.ROOT, "Project %s is not enable second storage", request.getProject()));
+        }
+
+        if (CollectionUtils.isEmpty(request.getShardNames())) {
+            throw new KylinException(INVALID_PARAMETER, "shard_names is empty");
+        }
+
+        List<String> shards = SecondStorageNodeHelper.getAllPairs();
+        if (!shards.containsAll(request.getShardNames())) {
+            throw new KylinException(INVALID_PARAMETER, String.format(Locale.ROOT, "Second storage shard names not contains %s", request.getShardNames()));
+        }
+
+        if (shards.size() == request.getShardNames().size()) {
+            throw new KylinException(INVALID_PARAMETER, String.format(Locale.ROOT, "Second storage shard names not contains %s", request.getShardNames()));
+        }
+
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, this.secondStorageService.deleteProjectSecondStorageNode(request.getProject(), request.getShardNames(), request.isForce()), "");
     }
 
     @ApiOperation(value = "disableProjectStorageValidation")

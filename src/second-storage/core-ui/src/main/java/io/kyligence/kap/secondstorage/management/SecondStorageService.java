@@ -28,6 +28,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.guava20.shaded.common.collect.ImmutableList;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -146,6 +147,12 @@ public class SecondStorageService extends BasicService implements SecondStorageU
         return SecondStorageUtil.isModelEnable(project, modelId);
     }
 
+    public Manager<TableFlow> getTableFlowManager(String project) {
+        val tableFlowManager = SecondStorageUtil.tableFlowManager(KylinConfig.getInstanceFromEnv(), project);
+        Preconditions.checkState(tableFlowManager.isPresent());
+        return tableFlowManager.get();
+    }
+
     public Optional<TableFlow> getTableFlow(String project, String modelId) {
         val tableFlowManager = SecondStorageUtil.tableFlowManager(KylinConfig.getInstanceFromEnv(), project);
         Preconditions.checkState(tableFlowManager.isPresent());
@@ -248,6 +255,54 @@ public class SecondStorageService extends BasicService implements SecondStorageU
             jobInfo = new JobInfoResponse.JobInfo(JobTypeEnum.SECOND_STORAGE_NODE_CLEAN.name(), jobId);
         }
         return Optional.ofNullable(jobInfo);
+    }
+
+    @Transaction(project = 0)
+    public List<String> deleteProjectSecondStorageNode(String project, List<String> shardNames, boolean force) {
+        aclEvaluate.checkProjectAdminPermission(project);
+
+        if (!SecondStorageUtil.isProjectEnable(project)) {
+            return Collections.emptyList();
+        }
+
+        boolean isLocked = LockTypeEnum.locked(LockTypeEnum.LOAD.name(), SecondStorageUtil.getProjectLocks(project));
+
+        if (!isLocked) {
+            lockOperate(project, Collections.singletonList(LockTypeEnum.LOAD.name()), LockOperateTypeEnum.LOCK.name());
+        }
+
+        try {
+            return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+                List<String> requiredDeleteNodeNames = shardNames.stream()
+                        .flatMap(shardName -> SecondStorageNodeHelper.getPair(shardName).stream()).collect(Collectors.toList());
+
+                val nodeManager = SecondStorageUtil.nodeGroupManager(getConfig(), project);
+                Preconditions.checkState(nodeManager.isPresent());
+
+                for (val nodeGroup : nodeManager.get().listAll()) {
+                    nodeGroup.update(copied -> {
+                        val nodeBuffer = Lists.newArrayList(copied.getNodeNames());
+                        nodeBuffer.removeAll(requiredDeleteNodeNames);
+                        copied.setNodeNames(nodeBuffer);
+                    });
+                }
+
+                if (force) {
+                    getTableFlowManager(project).listAll()
+                            .forEach(tableFlow -> tableFlow.update(TableFlow::cleanTableData));
+                    return ImmutableList.of(triggerProjectClean(project));
+                } else {
+                    List<TableFlow> tableFlowList = SecondStorageUtil.listTableFlow(getConfig(), project);
+                    tableFlowList.forEach(tableFlow -> tableFlow.update(t -> t.removeNodes(requiredDeleteNodeNames)));
+
+                    return Collections.emptyList();
+                }
+            }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID);
+        } finally {
+            if (!isLocked) {
+                lockOperate(project, Collections.singletonList(LockTypeEnum.LOAD.name()), LockOperateTypeEnum.UNLOCK.name());
+            }
+        }
     }
 
     public void enableProjectSecondStorage(String project, List<String> pairs) {

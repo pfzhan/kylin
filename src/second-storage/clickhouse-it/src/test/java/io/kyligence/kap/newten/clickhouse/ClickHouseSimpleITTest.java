@@ -52,6 +52,8 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import io.kyligence.kap.secondstorage.management.OpenSecondStorageEndpoint;
+import io.kyligence.kap.guava20.shaded.common.collect.ImmutableMap;
+import io.kyligence.kap.secondstorage.management.request.ProjectTableSyncResponse;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.time.DateUtils;
@@ -296,6 +298,84 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
         try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse();
                 JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse()) {
             build_load_query("testSingleShardDoubleReplica", false, 2, null, clickhouse1, clickhouse2);
+        }
+    }
+
+    @Test
+    public void testOneReplicaWithClickhouseDown() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse3 = ClickHouseUtils.startClickHouse()) {
+            build_load_query("testOneReplicaWithClickhouseDown", false, false, 1, null, null, clickhouse1, clickhouse2);
+
+            Assertions.assertTrue(SecondStorageUtil.tableFlowManager(getTestConfig(), getProject()).isPresent());
+            Assertions.assertTrue(SecondStorageUtil.tableFlowManager(getTestConfig(), getProject()).get().get(cubeName).isPresent());
+            TableFlow tableFlow = SecondStorageUtil.tableFlowManager(getTestConfig(), getProject()).get().get(cubeName).get();
+
+            tableFlow.getTableDataList().forEach(tableData -> {
+                tableData.getPartitions().forEach(partition -> {
+                    Assertions.assertEquals(2, partition.getShardNodes().size());
+                });
+            });
+
+            ClickHouseUtils.internalConfigClickHouse(new JdbcDatabaseContainer[]{clickhouse1, clickhouse2, clickhouse3}, 1);
+            secondStorageService.changeProjectSecondStorageState(getProject(), ImmutableList.of("pair2"), true);
+            Assert.assertEquals(3, SecondStorageUtil.listProjectNodes(getProject()).size());
+
+            clickhouse2.stop();
+            Map<String, Map<String, Boolean>> nodeStatusMap = ImmutableMap.of("pair1", ImmutableMap.of("node01", false));
+            secondStorageEndpoint.updateNodeStatus(nodeStatusMap);
+
+            EnvelopeResponse<ProjectTableSyncResponse> response = secondStorageEndpoint.tableSync(getProject());
+            Assertions.assertEquals(response.getCode(), "000");
+
+            tableFlow = SecondStorageUtil.tableFlowManager(getTestConfig(), getProject()).get().get(cubeName).get();
+            tableFlow.getTableDataList().forEach(tableData -> {
+                tableData.getPartitions().forEach(partition -> {
+                    Assertions.assertEquals(3, partition.getShardNodes().size());
+                    Assertions.assertEquals(0, partition.getSizeInNode().get("node01"));
+                    Assertions.assertEquals(0, partition.getSizeInNode().get("node02"));
+                });
+            });
+        }
+    }
+
+    @Test
+    public void testTwoReplicaWithClickhouseDown() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse3 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse4 = ClickHouseUtils.startClickHouse()) {
+            build_load_query("testTwoReplicaWithClickhouseDown", false, false, 2, null, null, clickhouse1, clickhouse2, clickhouse3, clickhouse4);
+
+            Assertions.assertTrue(SecondStorageUtil.tableFlowManager(getTestConfig(), getProject()).isPresent());
+            Assertions.assertTrue(SecondStorageUtil.tableFlowManager(getTestConfig(), getProject()).get().get(cubeName).isPresent());
+            TableFlow tableFlow = SecondStorageUtil.tableFlowManager(getTestConfig(), getProject()).get().get(cubeName).get();
+
+            tableFlow.getTableDataList().forEach(tableData -> {
+                tableData.getPartitions().forEach(partition -> {
+                    Assertions.assertEquals(2, partition.getShardNodes().size());
+                });
+            });
+
+            clickhouse1.stop();
+            Map<String, Map<String, Boolean>> nodeStatusMap = ImmutableMap.of("pair0", ImmutableMap.of("node00", false));
+            secondStorageEndpoint.updateNodeStatus(nodeStatusMap);
+
+            EnvelopeResponse<ProjectTableSyncResponse> response = secondStorageEndpoint.tableSync(getProject());
+            Assertions.assertEquals(response.getCode(), "000");
+
+            tableFlow = SecondStorageUtil.tableFlowManager(getTestConfig(), getProject()).get().get(cubeName).get();
+            tableFlow.getTableDataList().forEach(tableData -> {
+                tableData.getPartitions().forEach(partition -> {
+                    Assertions.assertEquals(2, partition.getShardNodes().size());
+                    if (partition.getShardNodes().contains("node00")) {
+                        Assertions.assertEquals(0, partition.getSizeInNode().get("node00"));
+                    }
+                });
+            });
+
+            secondStorageEndpoint.updateNodeStatus(ImmutableMap.of("pair0", ImmutableMap.of("node00", true)));
         }
     }
 
