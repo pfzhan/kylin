@@ -684,25 +684,27 @@ public class SecondStorageService extends BasicService implements SecondStorageU
     public List<String> getAllSecondStoragrJobs() {
         List<ProjectInstance> projects = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).listAllProjects();
         for (ProjectInstance project : projects) {
-            List<String> allJobs = getProjectSecondStorageJobs(project.getName());
-            if (!allJobs.isEmpty()) {
-                return allJobs;
+            if (SecondStorageUtil.isProjectEnable(project.getName())) {
+                List<String> allJobs = getProjectSecondStorageJobs(project.getName());
+                if (!allJobs.isEmpty()) {
+                    return allJobs;
+                }
             }
         }
         return Collections.emptyList();
     }
 
     public List<String> getProjectSecondStorageJobs(String project) {
-        if (SecondStorageUtil.isProjectEnable(project)) {
-            val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-            return executableManager.getJobs().stream()
-                    .map(executableManager::getJob)
-                    .filter(job -> SecondStorageUtil.RELATED_JOBS.contains(job.getJobType()))
-                    .filter(job -> SecondStorageUtil.RUNNING_STATE.contains(job.getStatus()))
-                    .map(job -> job.getId())
-                    .collect(Collectors.toList());
+        if (!SecondStorageUtil.isProjectEnable(project)) {
+            throw new KylinException(SECOND_STORAGE_PROJECT_STATUS_ERROR, String.format(Locale.ROOT, "'%s' not enable second storage.", project));
         }
-        return Collections.emptyList();
+        val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        return executableManager.getJobs().stream()
+                .map(executableManager::getJob)
+                .filter(job -> SecondStorageUtil.RELATED_JOBS.contains(job.getJobType()))
+                .filter(job -> SecondStorageUtil.RUNNING_STATE.contains(job.getStatus()))
+                .map(job -> job.getId())
+                .collect(Collectors.toList());
     }
 
     public void isProjectAdmin(String project) {

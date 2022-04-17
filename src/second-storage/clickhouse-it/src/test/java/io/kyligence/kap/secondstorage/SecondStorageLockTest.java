@@ -148,6 +148,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static io.kyligence.kap.newten.clickhouse.ClickHouseUtils.configClickhouseWith;
+import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_PROJECT_STATUS_ERROR;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -475,6 +476,15 @@ public class SecondStorageLockTest implements JobWaiter {
                     }
             );
         }));
+    }
+
+    @Test
+    public void testProjectSecondStorageJobs() {
+        try {
+            EnvelopeResponse<List<String>> jobs2 = secondStorageEndpoint.getProjectSecondStorageJobs("error");
+        } catch (KylinException e) {
+            assertEquals(SECOND_STORAGE_PROJECT_STATUS_ERROR.toErrorCode(), e.getErrorCode());
+        }
     }
 
     public void testSegmentLoadWithoutRetry() throws Exception {
