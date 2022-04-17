@@ -117,6 +117,12 @@ public class NSparkCubingUtilTest extends NLocalWithSparkSessionTest {
                 "TEST_KYLIN_FACT_0_DOT_0_LSTG_FORMAT_NAME+'-0.8'"));
         Assert.assertTrue(isEqualsConvertedString("TEST_KYLIN_FACT.LSTG_FORMAT_NAME+'TEST_KYLIN_FACT.LSTG_FORMAT_NAME*0.8'",
                         "TEST_KYLIN_FACT_0_DOT_0_LSTG_FORMAT_NAME+'TEST_KYLIN_FACT.LSTG_FORMAT_NAME*0.8'"));
+
+        Assert.assertTrue(isEqualsConvertedString("default_test.sumtwonum(7, `TEST_FUNCTIONS`.`PRICE2`) + default_test.sumtwonum(7, TEST_FUNCTIONS.PRICE2) ",
+                "default_test.sumtwonum(7, TEST_FUNCTIONS_0_DOT_0_PRICE2) + default_test.sumtwonum(7, TEST_FUNCTIONS_0_DOT_0_PRICE2) "));
+
+        Assert.assertTrue(isEqualsConvertedString("default_test.sumtwonum(max(case when default_test.sumtwonum(A.account_id,1)= 0 then 'adf.d kylin.adfad adf' else 'ky.lin' end), A.seller_id)",
+                "default_test.sumtwonum(max(case when default_test.sumtwonum(A_0_DOT_0_account_id,1)= 0 then 'adf.d kylin.adfad adf' else 'ky.lin' end), A_0_DOT_0_seller_id)"));
     }
 
     private boolean isEqualsConvertedString(String original, String converted) {
