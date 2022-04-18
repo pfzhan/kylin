@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.secondstorage.management;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_NODE_NOT_AVAILABLE;
 import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_PROJECT_LOCK_FAIL;
 import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_PROJECT_STATUS_ERROR;
@@ -380,6 +381,15 @@ public class SecondStorageService extends BasicService implements SecondStorageU
 
         if (!SecondStorageUtil.isProjectEnable(project)) {
             return Collections.emptyList();
+        }
+
+        Manager<NodeGroup> nodeGroupManager = SecondStorage.nodeGroupManager(getConfig(), project);
+        List<NodeGroup> nodeGroups = nodeGroupManager.listAll();
+
+        Map<String, List<NodeData>> shards = convertNodeGroupToPairs(nodeGroups);
+
+        if (shards.size() == shardNames.size()) {
+            throw new KylinException(INVALID_PARAMETER, String.format(Locale.ROOT, "Second storage shard names contains all %s", shardNames));
         }
 
         boolean isLocked = LockTypeEnum.locked(LockTypeEnum.LOAD.name(), SecondStorageUtil.getProjectLocks(project));
