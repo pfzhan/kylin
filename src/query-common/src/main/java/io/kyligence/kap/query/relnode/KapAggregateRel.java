@@ -25,7 +25,6 @@
 package io.kyligence.kap.query.relnode;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -71,7 +70,6 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.model.MultiPartitionDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.query.util.ICutContextStrategy;
-import lombok.Getter;
 
 /**
  *
@@ -84,8 +82,6 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
     private Set<TblColRef> groupByInnerColumns = new HashSet<>(); // inner columns in group keys, for CC generation
 
     private Set<OLAPContext> subContexts = Sets.newHashSet();
-    @Getter
-    private Map<TblColRef, TblColRef> groupCCColRewriteMapping = new HashMap<>(); // map the group by col with CC expr to its CC column
 
     public KapAggregateRel(RelOptCluster cluster, RelTraitSet traits, RelNode child, boolean indicator,
             ImmutableBitSet groupSet, List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls)
@@ -212,10 +208,10 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
         ColumnRowType inputColumnRowType = ((OLAPRel) getInput()).getColumnRowType();
         for (int i = groupSet.nextSetBit(0); i >= 0; i = groupSet.nextSetBit(i + 1)) {
             TblColRef originalColumn = inputColumnRowType.getColumnByIndex(i);
-            if (groupCCColRewriteMapping.containsKey(originalColumn)) {
-                groups.add(groupCCColRewriteMapping.get(originalColumn));
+            if (null != this.context && this.context.getGroupCCColRewriteMapping().containsKey(originalColumn)) {
+                groups.add(this.context.getGroupCCColRewriteMapping().get(originalColumn));
                 groupKeys
-                        .add(inputColumnRowType.getIndexByName(groupCCColRewriteMapping.get(originalColumn).getName()));
+                        .add(inputColumnRowType.getIndexByName(this.context.getGroupCCColRewriteMapping().get(originalColumn).getName()));
             } else {
                 Set<TblColRef> sourceColumns = inputColumnRowType.getSourceColumnsByIndex(i);
                 groups.addAll(sourceColumns);
@@ -229,7 +225,7 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
     }
 
     public void reBuildGroups(Map<TblColRef, TblColRef> colReplacementMapping) {
-        this.groupCCColRewriteMapping = colReplacementMapping;
+        this.context.setGroupCCColRewriteMapping(colReplacementMapping);
         ColumnRowType inputColumnRowType = ((OLAPRel) this.getInput()).getColumnRowType();
         Set<TblColRef> groups = new HashSet<>();
         for (int i = this.getGroupSet().nextSetBit(0); i >= 0; i = this.getGroupSet().nextSetBit(i + 1)) {
@@ -412,7 +408,7 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
     private boolean isDimExactlyMatch(Set<String> groupByCols, Set<String> cuboidDimSet) {
         return groupByCols.equals(cuboidDimSet) && isSimpleGroupType()
                 && (this.context.getInnerGroupByColumns().isEmpty()
-                        || !this.context.getGroupCCColRewriteMapping().isEmpty());
+                || !this.context.getGroupCCColRewriteMapping().isEmpty());
 
     }
 
@@ -429,7 +425,6 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
     @Override
     protected void buildRewriteFieldsAndMetricsColumns() {
         super.buildRewriteFieldsAndMetricsColumns();
-        this.context.setGroupCCColRewriteMapping(this.groupCCColRewriteMapping);
     }
 
     /**
