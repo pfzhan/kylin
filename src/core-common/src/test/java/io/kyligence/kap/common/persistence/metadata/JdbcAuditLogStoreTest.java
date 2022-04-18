@@ -64,13 +64,13 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @MetadataInfo(onlyProps = true)
 @JdbcMetadataInfo
-public class JdbcAuditLogStoreTest {
+class JdbcAuditLogStoreTest {
 
     private static final String LOCAL_INSTANCE = "127.0.0.1";
     private final Charset charset = Charset.defaultCharset();
 
     @Test
-    public void testUpdateResourceWithLog(JdbcInfo info) throws Exception {
+    void testUpdateResourceWithLog(JdbcInfo info) throws Exception {
         UnitOfWork.doInTransactionWithRetry(() -> {
             val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
             store.checkAndPutResource("/p1/abc", ByteSource.wrap("abc".getBytes(charset)), -1);
@@ -119,7 +119,7 @@ public class JdbcAuditLogStoreTest {
     }
 
     @Test
-    public void testRestore(JdbcInfo info) throws Exception {
+    void testRestore(JdbcInfo info) throws Exception {
         val workerStore = ResourceStore.getKylinMetaStore(getTestConfig());
         workerStore.checkAndPutResource("/UUID", new StringEntity(RandomUtil.randomUUIDStr()), StringEntity.serializer);
         Assert.assertEquals(1, workerStore.listResourcesRecursively("/").size());

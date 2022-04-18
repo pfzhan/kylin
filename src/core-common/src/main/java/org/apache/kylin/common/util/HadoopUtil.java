@@ -42,6 +42,8 @@
 
 package org.apache.kylin.common.util;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.FILE_NOT_EXIST;
+
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -49,8 +51,13 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileStatus;
@@ -59,6 +66,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.io.Writable;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.storage.IStorageProvider;
 import org.slf4j.Logger;
@@ -227,11 +235,13 @@ public class HadoopUtil {
         return new String[] { database, tableName };
     }
 
-    public static void deletePath(Configuration conf, Path path) throws IOException {
+    public static boolean deletePath(Configuration conf, Path path) throws IOException {
         FileSystem fs = FileSystem.get(path.toUri(), conf);
         if (fs.exists(path)) {
-            fs.delete(path, true);
+            return fs.delete(path, true);
         }
+
+        return false;
     }
 
     public static byte[] toBytes(Writable writable) {
@@ -294,5 +304,34 @@ public class HadoopUtil {
                 .newInstance(KylinConfig.getInstanceFromEnv().getStorageProvider());
         logger.trace("Use provider:{}", provider.getClass().getCanonicalName());
         return provider.getContentSummary(fileSystem, path);
+    }
+
+    public static List<FileStatus> getFileStatusPathsFromHDFSDir(String resPath, boolean isFile) {
+        try {
+            FileSystem fs = HadoopUtil.getWorkingFileSystem();
+            Path path = new Path(resPath);
+            FileStatus[] fileStatus = fs.listStatus(path);
+            if (isFile) {
+                return Stream.of(fileStatus).filter(FileStatus::isFile).collect(Collectors.toList());
+            } else {
+                return Stream.of(fileStatus).filter(FileStatus::isDirectory).collect(Collectors.toList());
+            }
+        } catch (IOException e) {
+            throw new KylinException(FILE_NOT_EXIST,
+                    String.format(Locale.ROOT, "get file paths from hdfs [%s] failed!", resPath), e);
+        }
+    }
+
+    public static void mkdirIfNotExist(String resPath) {
+        FileSystem fs = HadoopUtil.getWorkingFileSystem();
+        Path path = new Path(resPath);
+        try {
+            if (!fs.exists(path)) {
+                fs.mkdirs(path);
+            }
+        } catch (IOException e) {
+            ExceptionUtils.rethrow(new IOException(String.format(Locale.ROOT, "mkdir %s error", resPath), e));
+        }
+
     }
 }

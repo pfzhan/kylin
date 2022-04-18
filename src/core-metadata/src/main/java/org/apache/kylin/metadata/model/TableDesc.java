@@ -626,6 +626,10 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
         this.kafkaConfig = kafkaConfig;
     }
 
+    public boolean isKafkaTable() {
+        return getSourceType() == ISourceAware.ID_STREAMING && getKafkaConfig() != null;
+    }
+
     public String getTableAlias() {
         if (kafkaConfig != null && kafkaConfig.hasBatchTable()) {
             return kafkaConfig.getBatchTable();

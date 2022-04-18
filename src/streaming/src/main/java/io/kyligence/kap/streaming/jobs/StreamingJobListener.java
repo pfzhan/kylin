@@ -24,22 +24,29 @@
 
 package io.kyligence.kap.streaming.jobs;
 
-import com.google.common.collect.Sets;
-import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
-import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
-import io.kyligence.kap.streaming.event.StreamingJobDropEvent;
-import io.kyligence.kap.streaming.event.StreamingJobKillEvent;
-import io.kyligence.kap.streaming.jobs.scheduler.StreamingScheduler;
-import io.kyligence.kap.streaming.manager.StreamingJobManager;
-import io.kyligence.kap.streaming.util.JobKiller;
-import io.kyligence.kap.streaming.util.MetaInfoUpdater;
-import lombok.val;
+import java.io.IOException;
+
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.spark.launcher.SparkAppHandle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
+import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
+import io.kyligence.kap.streaming.event.StreamingJobDropEvent;
+import io.kyligence.kap.streaming.event.StreamingJobKillEvent;
+import io.kyligence.kap.streaming.event.StreamingJobMetaCleanEvent;
+import io.kyligence.kap.streaming.jobs.scheduler.StreamingScheduler;
+import io.kyligence.kap.streaming.manager.StreamingJobManager;
+import io.kyligence.kap.streaming.util.JobKiller;
+import io.kyligence.kap.streaming.util.MetaInfoUpdater;
+import lombok.val;
 
 public class StreamingJobListener implements SparkAppHandle.Listener {
     private static final Logger logger = LoggerFactory.getLogger(StreamingJobListener.class);
@@ -123,5 +130,24 @@ public class StreamingJobListener implements SparkAppHandle.Listener {
         val mergeJobId = StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_MERGE.toString());
         mgr.deleteStreamingJob(buildJobId);
         mgr.deleteStreamingJob(mergeJobId);
+    }
+
+    @Subscribe
+    public void onStreamingJobMetaCleanEvent(StreamingJobMetaCleanEvent streamingJobMetaCleanEvent) {
+        val deletedPath = streamingJobMetaCleanEvent.getDeletedMetaPath();
+        if (CollectionUtils.isEmpty(deletedPath)) {
+            logger.debug("path list is empty, skip to delete.");
+            return;
+        }
+
+        logger.info("begin to delete streaming meta path size:{}", deletedPath.size());
+        deletedPath.forEach(path -> {
+            try {
+                val deleteSuccess = HadoopUtil.deletePath(HadoopUtil.getCurrentConfiguration(), path);
+                logger.debug("delete streaming meta {} path:{}", deleteSuccess, path);
+            } catch (IOException e) {
+                logger.warn("delete streaming meta path:{} error", path, e);
+            }
+        });
     }
 }

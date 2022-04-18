@@ -65,10 +65,6 @@ import java.util.stream.Stream;
 
 import javax.servlet.http.HttpServletRequest;
 
-import io.kyligence.kap.metadata.acl.AclTCRManager;
-import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
-import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
-import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -142,6 +138,7 @@ import io.kyligence.kap.engine.spark.utils.HDFSUtils;
 import io.kyligence.kap.guava20.shaded.common.graph.Graph;
 import io.kyligence.kap.guava20.shaded.common.graph.Graphs;
 import io.kyligence.kap.metadata.acl.AclTCR;
+import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
@@ -166,7 +163,10 @@ import io.kyligence.kap.metadata.model.schema.SchemaNodeType;
 import io.kyligence.kap.metadata.model.schema.SchemaUtil;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
+import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import io.kyligence.kap.metadata.streaming.KafkaConfig;
+import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
 import io.kyligence.kap.rest.aspect.Transaction;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.constant.JobInfoEnum;
@@ -417,7 +417,7 @@ public class TableService extends BasicService {
     private TableDescResponse getTableResponse(TableDesc table, String project) {
         TableDescResponse tableDescResponse = new TableDescResponse(table);
         TableExtDesc tableExtDesc = getManager(NTableMetadataManager.class, project).getTableExtIfExists(table);
-        if (table.getKafkaConfig() != null) {
+        if (table.isKafkaTable()) {
             tableDescResponse.setKafkaBootstrapServers(table.getKafkaConfig().getKafkaBootstrapServers());
             tableDescResponse.setSubscribe(table.getKafkaConfig().getSubscribe());
             tableDescResponse.setBatchTable(table.getKafkaConfig().getBatchTable());
@@ -783,7 +783,7 @@ public class TableService extends BasicService {
                     "Can not find the column:%s in table:%s, project:%s", partitionColumn, table, project));
         }
         try {
-            if (tableDesc.getKafkaConfig() != null) {
+            if (tableDesc.isKafkaTable()) {
                 List<ByteBuffer> messages = kafkaService.getMessages(tableDesc.getKafkaConfig(), project, 0);
                 if (messages == null || messages.isEmpty()) {
                     throw new KylinException(EMPTY_TABLE,
