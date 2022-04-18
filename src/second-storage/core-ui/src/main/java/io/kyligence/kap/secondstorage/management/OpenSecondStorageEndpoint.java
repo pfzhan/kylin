@@ -55,6 +55,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 
 @RestController
 @RequestMapping(value = "/api/storage", produces = {HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
@@ -137,12 +138,13 @@ public class OpenSecondStorageEndpoint extends NBasicController {
     private void checkSecondStorageEnabled(StorageRequest request) {
         if (!SecondStorageUtil.isProjectEnable(request.getProject())) {
             throw new KylinException(SECOND_STORAGE_PROJECT_STATUS_ERROR,
-                    MsgPicker.getMsg().getSECOND_STORAGE_PROJECT_ENABLED(), request.getProject());
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getSECOND_STORAGE_PROJECT_ENABLED(), request.getProject()));
+
         }
 
         if (!SecondStorageUtil.isModelEnable(request.getProject(), request.getModel())) {
             throw new KylinException(SECOND_STORAGE_PROJECT_STATUS_ERROR,
-                    MsgPicker.getMsg().getSECOND_STORAGE_MODEL_ENABLED(), request.getModelName());
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getSECOND_STORAGE_MODEL_ENABLED(), request.getModelName()));
         }
     }
 
