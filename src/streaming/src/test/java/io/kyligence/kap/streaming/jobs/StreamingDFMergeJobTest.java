@@ -114,7 +114,8 @@ public class StreamingDFMergeJobTest extends StreamingTestCase {
         val dataset = flatTable.generateStreamingDataset(config);
         val builder = new StreamingDFBuildJob(PROJECT);
 
-        val streamingEntry = new StreamingEntry(new String[] { PROJECT, DATAFLOW_ID, "1000", "" });
+        val streamingEntry = new StreamingEntry();
+        streamingEntry.parseParams(new String[] { PROJECT, DATAFLOW_ID, "1000", "", "xx" });
         streamingEntry.setSparkSession(ss);
         val sr1 = createSegmentRange(0L, 10L, 3, 100L, 200);
         val microBatchEntry = new MicroBatchEntry(dataset, 0, "SSB_TOPIC_0_DOT_0_LO_PARTITIONCOLUMN", flatTable, df,

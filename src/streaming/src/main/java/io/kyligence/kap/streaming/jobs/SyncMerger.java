@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.streaming.jobs;
 
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
@@ -103,7 +104,7 @@ public class SyncMerger {
                 String url = "/streaming_jobs/dataflow/segment/deletion";
                 StreamingSegmentRequest req = new StreamingSegmentRequest(mergeJobEntry.project(),
                         mergeJobEntry.dataflowId());
-                req.setRemoveSegment(mergeJobEntry.unMergedSegments());
+                req.setRemoveSegment(Collections.singletonList(mergeJobEntry.afterMergeSegment()));
                 req.setJobType(JobTypeEnum.STREAMING_MERGE.name());
                 val jobId = StreamingUtils.getJobId(mergeJobEntry.dataflowId(), req.getJobType());
                 req.setJobExecutionId(JobExecutionIdHolder.getJobExecutionId(jobId));

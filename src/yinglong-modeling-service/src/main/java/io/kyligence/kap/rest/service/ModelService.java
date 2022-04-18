@@ -1667,8 +1667,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         if (!StringUtils.isEmpty(rootFactTableName)
                 && (modelType != NDataModel.ModelType.BATCH && modelType != NDataModel.ModelType.STREAMING)) {
             val mgr = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), modelRequest.getProject());
-            val TableDesc = mgr.getTableDesc(rootFactTableName);
-            if (TableDesc != null && TableDesc.getKafkaConfig() != null && TableDesc.getKafkaConfig().hasBatchTable()) {
+            val tableDesc = mgr.getTableDesc(rootFactTableName);
+            if (tableDesc != null && tableDesc.isKafkaTable() && tableDesc.getKafkaConfig().hasBatchTable()) {
                 val fullColumnName = modelRequest.getPartitionDesc().getPartitionDateColumn();
                 val columnName = fullColumnName.substring(fullColumnName.indexOf(".") + 1);
                 val hasPartitionColumn = modelRequest.getSimplifiedDimensions().stream()
