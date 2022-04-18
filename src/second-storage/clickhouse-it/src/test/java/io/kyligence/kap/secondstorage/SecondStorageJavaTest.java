@@ -138,12 +138,12 @@ public class SecondStorageJavaTest implements JobWaiter {
     @Test
     public void testModelUpdate() throws Exception {
         buildModel();
-        secondStorageService.onUpdate(project, modelId);
+        secondStorageService.updateIndex(project, modelId);
         val manager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         Assert.assertTrue(manager.getAllExecutables().stream().noneMatch(ClickHouseModelCleanJob.class::isInstance));
-        secondStorageService.disableModelSecondStorage(project, modelId);
+        secondStorageService.disableModel(project, modelId);
         int jobNum = manager.getAllExecutables().size();
-        secondStorageService.onUpdate(project, modelId);
+        secondStorageService.updateIndex(project, modelId);
         Assert.assertEquals(jobNum, manager.getAllExecutables().size());
     }
 
@@ -222,7 +222,7 @@ public class SecondStorageJavaTest implements JobWaiter {
         val request = new RecoverRequest();
         request.setProject(project);
         request.setModelName(modelName);
-        val jobId = secondStorageService.disableModelSecondStorage(project, modelId);
+        val jobId = secondStorageService.disableModel(project, modelId);
         waitJobFinish(project, jobId);
         openSecondStorageEndpoint.recoverModel(request);
         Assert.fail();
@@ -295,11 +295,11 @@ public class SecondStorageJavaTest implements JobWaiter {
         val segs = dataflow.getQueryableSegments().stream().map(NDataSegment::getId).collect(Collectors.toList());
         val segmentResponse = new NDataSegmentResponse(dataflow, dataflow.getFirstSegment());
         Assert.assertFalse(segmentResponse.isHasBaseTableIndexData());
-        secondStorageService.onUpdate(project, modelId);
+        secondStorageService.updateIndex(project, modelId);
 
-        secondStorageService.disableModelSecondStorage(project, modelId);
+        secondStorageService.disableModel(project, modelId);
         secondStorageService.enableModelSecondStorage(project, modelId);
-        secondStorageService.onUpdate(project, modelId);
+        secondStorageService.updateIndex(project, modelId);
         secondStorageService.enableModelSecondStorage(project, modelId);
         Assert.assertTrue(SecondStorageUtil.isModelEnable(project, modelId));
     }
@@ -501,7 +501,7 @@ public class SecondStorageJavaTest implements JobWaiter {
         val jobCnt = manager.getAllExecutables().stream()
                 .filter(ClickHouseModelCleanJob.class::isInstance)
                 .filter(job -> modelId.equals(job.getTargetModelId())).count();
-        secondStorageService.onUpdate(project, modelId, false);
+        secondStorageService.updateIndex(project, modelId);
         Assert.assertEquals(jobCnt, manager.getAllExecutables().stream()
                 .filter(ClickHouseModelCleanJob.class::isInstance)
                 .filter(job -> modelId.equals(job.getTargetModelId())).count());

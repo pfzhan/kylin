@@ -259,33 +259,4 @@ public class ModelServiceWithSecondStorageTest extends NLocalFileMetadataTestCas
                 .collect(Collectors.toList()));
         return JsonUtil.readValue(JsonUtil.writeValueAsString(request), ModelRequest.class);
     }
-
-    @Test
-    public void testChangeSegWithSecondStorage() throws Exception {
-        val model = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        val project = "default";
-        MockSecondStorage.mock("default", new ArrayList<>(), this);
-        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            indexPlanManager.updateIndexPlan(model, indexPlan -> {
-                indexPlan.createAndAddBaseIndex(indexPlan.getModel());
-            });
-            return null;
-        }, project);
-        SecondStorageUtil.initModelMetaData(project, model);
-        Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
-
-        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        NDataModel modelAll = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-
-        val modelRequest = prepare();
-        modelRequest.setWithSecondStorage(false);
-        modelRequest.setWithBaseIndex(true);
-        modelRequest.setSaveOnly(true);
-        modelRequest.getSimplifiedDimensions().addAll(modelAll.getAllNamedColumns().stream()
-                .filter(x -> "DIM_UPD_USER".equalsIgnoreCase(x.getName())).collect(Collectors.toList()));
-
-        val indexResponse = modelService.updateDataModelSemantic(project, modelRequest);
-        Assert.assertTrue(indexResponse.isCleanSecondStorage());
-    }
 }
