@@ -674,7 +674,7 @@ public class SecondStorageLockTest implements JobWaiter {
     @Test
     public void testProjectSecondStorageJobs() {
         try {
-            EnvelopeResponse<List<String>> jobs2 = secondStorageEndpoint.getProjectSecondStorageJobs("error");
+            secondStorageEndpoint.getProjectSecondStorageJobs("error");
         } catch (KylinException e) {
             assertEquals(SECOND_STORAGE_PROJECT_STATUS_ERROR.toErrorCode(), e.getErrorCode());
         }

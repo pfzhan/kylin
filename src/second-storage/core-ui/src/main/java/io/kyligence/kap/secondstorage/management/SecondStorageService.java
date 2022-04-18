@@ -800,7 +800,8 @@ public class SecondStorageService extends BasicService implements SecondStorageU
 
     public List<String> getProjectSecondStorageJobs(String project) {
         if (!SecondStorageUtil.isProjectEnable(project)) {
-            throw new KylinException(SECOND_STORAGE_PROJECT_STATUS_ERROR, String.format(Locale.ROOT, "'%s' not enable second storage.", project));
+            throw new KylinException(SECOND_STORAGE_PROJECT_STATUS_ERROR,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getSECOND_STORAGE_PROJECT_ENABLED(), project));
         }
         val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         return executableManager.getJobs().stream()

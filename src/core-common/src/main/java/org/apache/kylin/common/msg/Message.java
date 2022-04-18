@@ -1620,11 +1620,11 @@ public class Message {
     }
 
     public String getSECOND_STORAGE_PROJECT_ENABLED() {
-        return "Loading failed, the project %s does not have tiered storage enabled.";
+        return "The project %s does not have tiered storage enabled.";
     }
 
     public String getSECOND_STORAGE_MODEL_ENABLED() {
-        return "Loading failed, the model %s does not have tiered storage enabled.";
+        return "The model %s does not have tiered storage enabled.";
     }
 
     public String getSECOND_STORAGE_SEGMENT_WITHOUT_BASE_INDEX() {
