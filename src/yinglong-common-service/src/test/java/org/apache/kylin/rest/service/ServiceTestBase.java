@@ -141,7 +141,7 @@ public class ServiceTestBase extends NLocalFileMetadataTestCase {
     public static class SpringConfig {
         @Bean
         public SecondStorageUpdater getSecondStorageUpdater() {
-            return Mockito.mock(SecondStorageUpdater.class, invocationOnMock -> "onUpdate".equals(invocationOnMock.getMethod().getName()));
+            return Mockito.mock(SecondStorageUpdater.class, invocationOnMock -> "");
         }
     }
 }
