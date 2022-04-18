@@ -525,6 +525,12 @@ public class SecondStorageLockTest implements JobWaiter {
             val clickhouse = new JdbcDatabaseContainer[]{clickhouse1};
             int replica = 1;
             configClickhouseWith(clickhouse, replica, catalog, () -> {
+                ProjectNodeRequest request = new ProjectNodeRequest();
+                request.setProject("wrong");
+                Assertions.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, null));
+                request.setProject(getProject());
+                Assertions.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, null));
+
                 List<String> allPairs = SecondStorageNodeHelper.getAllPairs();
                 secondStorageService.changeProjectSecondStorageState(getProject(), allPairs, true);
                 Assert.assertEquals(clickhouse.length, SecondStorageUtil.listProjectNodes(getProject()).size());
@@ -541,30 +547,9 @@ public class SecondStorageLockTest implements JobWaiter {
                 EnvelopeResponse<ProjectTableSyncResponse> response = secondStorageEndpoint.tableSync(getProject());
                 Assertions.assertEquals("000", response.getCode());
 
-                ProjectNodeRequest request = new ProjectNodeRequest();
-                request.setProject("wrong");
-                Assertions.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request));
+                deleteShardParamsCheck(request);
 
-                request.setProject(getProject());
-                Assertions.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request));
-
-                request.setShardNames(Collections.emptyList());
-                Assertions.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request));
-
-                request.setShardNames(ImmutableList.of("test"));
-                Assertions.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request));
-
-                request.setShardNames(ImmutableList.of("pair0", "test"));
-                Assertions.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request));
-
-                request.setShardNames(ImmutableList.of("pair0", "pair1"));
-                Assertions.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request));
-
-                request.setShardNames(ImmutableList.of("pair0"));
-                Assertions.assertThrows(TransactionException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request));
-
-                request.setShardNames(ImmutableList.of("pair1"));
-                EnvelopeResponse<List<String>> res1 = this.secondStorageEndpoint.deleteProjectNodes(request);
+                EnvelopeResponse<List<String>> res1 = this.secondStorageEndpoint.deleteProjectNodes(request, ImmutableList.of("pair1"));
                 assertEquals("000", res1.getCode());
                 assertTrue(res1.getData().isEmpty());
                 checkDeletedStatus(Collections.singletonList("pair0"), Collections.singletonList("pair1"));
@@ -580,9 +565,9 @@ public class SecondStorageLockTest implements JobWaiter {
 
                 secondStorageService.lockOperate(getProject(), Collections.singletonList(LockTypeEnum.LOAD.name()), LockOperateTypeEnum.LOCK.name());
 
-                request.setShardNames(ImmutableList.of("pair0"));
                 request.setForce(true);
-                EnvelopeResponse<List<String>> res2 = this.secondStorageEndpoint.deleteProjectNodes(request);
+                List<String> shardNames = ImmutableList.of("pair0");
+                EnvelopeResponse<List<String>> res2 = this.secondStorageEndpoint.deleteProjectNodes(request, shardNames);
                 assertEquals("000", res2.getCode());
                 assertFalse(res2.getData().isEmpty());
                 checkDeletedStatus(Collections.singletonList("pair1"), Collections.singletonList("pair0"));
@@ -623,9 +608,8 @@ public class SecondStorageLockTest implements JobWaiter {
 
                 ProjectNodeRequest request = new ProjectNodeRequest();
                 request.setProject(getProject());
-                request.setShardNames(ImmutableList.of("pair1"));
                 request.setForce(true);
-                EnvelopeResponse<List<String>> res2 = this.secondStorageEndpoint.deleteProjectNodes(request);
+                EnvelopeResponse<List<String>> res2 = this.secondStorageEndpoint.deleteProjectNodes(request, ImmutableList.of("pair1"));
                 assertEquals("000", res2.getCode());
                 assertFalse(res2.getData().isEmpty());
                 checkDeletedStatus(Collections.singletonList("pair0"), Collections.singletonList("pair1"));
@@ -636,6 +620,26 @@ public class SecondStorageLockTest implements JobWaiter {
                 return true;
             });
         }
+    }
+
+    private void deleteShardParamsCheck(ProjectNodeRequest request) {
+        request.setProject(getProject());
+        Assertions.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, null));
+
+        List<String> shardNames1 = Collections.emptyList();
+        Assertions.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, shardNames1));
+
+        List<String> shardNames2 = ImmutableList.of("test");
+        Assertions.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, shardNames2));
+
+        List<String> shardNames3 = ImmutableList.of("pair0", "test");
+        Assertions.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, shardNames3));
+
+        List<String> shardNames4 = ImmutableList.of("pair0", "pair1");
+        Assertions.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, shardNames4));
+
+        List<String> shardNames5 = ImmutableList.of("pair0");
+        Assertions.assertThrows(TransactionException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, shardNames5));
     }
 
     private void checkDeletedStatus(List<String> shards, List<String> deletedShards) {
