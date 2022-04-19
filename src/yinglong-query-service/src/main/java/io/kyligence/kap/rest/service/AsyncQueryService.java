@@ -73,9 +73,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Component("asyncQueryService")
@@ -119,13 +117,14 @@ public class AsyncQueryService extends BasicService {
                         new InputStreamReader(is, Charset.defaultCharset()))) {
             fileInfo.setFormat(bufferedReader.readLine());
             fileInfo.setEncode(bufferedReader.readLine());
+            fileInfo.setSeparator(bufferedReader.readLine());
             fileInfo.setFileName(bufferedReader.readLine());
             return fileInfo;
         }
     }
 
     public void retrieveSavedQueryResult(String project, String queryId, boolean includeHeader,
-            HttpServletResponse response, String fileFormat, String encode) throws IOException {
+            HttpServletResponse response, String fileFormat, String encode, String separator) throws IOException {
         checkStatus(queryId, QueryStatus.SUCCESS, project, MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
 
         FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
@@ -150,8 +149,8 @@ public class AsyncQueryService extends BasicService {
             }
             switch (fileFormat) {
             case "csv":
-                CSVExcelWriter csvExcelWriter = new CSVExcelWriter();
-                processCSV(outputStream, dataPath, includeHeader, columnNames, csvExcelWriter);
+                CSVWriter csvWriter = new CSVWriter();
+                processCSV(outputStream, dataPath, includeHeader, columnNames, csvWriter, separator);
                 break;
             case "json":
                 processJSON(outputStream, dataPath, encode);
@@ -351,14 +350,15 @@ public class AsyncQueryService extends BasicService {
         return null;
     }
 
-    private void processCSV(OutputStream outputStream, Path dataPath, boolean includeHeader, String columnNames, CSVExcelWriter excelWriter)
+    private void processCSV(OutputStream outputStream, Path dataPath,
+                            boolean includeHeader, String columnNames, CSVWriter excelWriter, String separator)
             throws IOException {
         FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
         FileStatus[] fileStatuses = fileSystem.listStatus(dataPath);
         if (includeHeader) {
             IOUtils.copy(IOUtils.toInputStream(columnNames), outputStream);
         }
-        excelWriter.writeData(fileStatuses, outputStream);
+        excelWriter.writeData(fileStatuses, outputStream, separator);
     }
 
     private void processJSON(OutputStream outputStream, Path dataPath, String encode) throws IOException {
@@ -399,11 +399,24 @@ public class AsyncQueryService extends BasicService {
 
     @Getter
     @Setter
-    @AllArgsConstructor
-    @NoArgsConstructor
     public static class FileInfo {
         private String format;
         private String encode;
         private String fileName;
+        private String separator;
+
+        public FileInfo() {
+        }
+
+        public FileInfo(String format, String encode, String fileName, String separator) {
+            this.format = format;
+            this.encode = encode;
+            this.fileName = fileName;
+            this.separator = separator;
+        }
+
+        public FileInfo(String format, String encode, String fileName) {
+            this(format, encode, fileName, ",");
+        }
     }
 }
