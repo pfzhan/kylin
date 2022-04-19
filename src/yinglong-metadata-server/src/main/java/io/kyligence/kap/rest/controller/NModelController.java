@@ -725,6 +725,7 @@ public class NModelController extends NBasicController {
         String host = getHost(serverHost, request.getServerName());
         Integer port = getPort(serverPort, request.getServerPort());
 
+        modelService.validateExport(projectName, modelId);
         BISyncModel syncModel = modelService.exportModel(projectName, modelId, exportAs, element, host, port);
 
         dumpSyncModel(modelId, exportAs, projectName, syncModel, response);
