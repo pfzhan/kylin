@@ -31,8 +31,6 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.model.FusionModelManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -56,9 +54,11 @@ import io.kyligence.kap.metadata.cube.model.IndexEntity.Range;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.model.RuleBasedIndex;
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
 import io.kyligence.kap.metadata.model.FusionModel;
+import io.kyligence.kap.metadata.model.FusionModelManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.rest.aspect.Transaction;
@@ -86,18 +86,10 @@ public class FusionIndexService extends BasicService {
             final UpdateRuleBasedCuboidRequest request) {
         val model = getManager(NDataModelManager.class, project).getDataModelDesc(request.getModelId());
         if (model.fusionModelStreamingPart()) {
-            FusionModel fusionModel = getManager(FusionModelManager.class, project).getFusionModel(request.getModelId());
-            String batchId = fusionModel.getBatchModel().getUuid();
-            UpdateRuleBasedCuboidRequest batchCopy = JsonUtil.deepCopyQuietly(request,
-                    UpdateRuleBasedCuboidRequest.class);
-            UpdateRuleBasedCuboidRequest streamingCopy = JsonUtil.deepCopyQuietly(request,
-                    UpdateRuleBasedCuboidRequest.class);
-            batchCopy.setModelId(batchId);
-            batchCopy.setAggregationGroups(getBatchAggGroup(request.getAggregationGroups()));
-            streamingCopy.setAggregationGroups(getStreamingAggGroup(request.getAggregationGroups()));
-
-            indexPlanService.updateRuleBasedCuboid(project, batchCopy);
-            return indexPlanService.updateRuleBasedCuboid(project, streamingCopy);
+            UpdateRuleBasedCuboidRequest batchRequest = convertBatchUpdateRuleReq(request);
+            UpdateRuleBasedCuboidRequest streamingRequest = convertStreamUpdateRuleReq(request);
+            indexPlanService.updateRuleBasedCuboid(project, batchRequest);
+            return indexPlanService.updateRuleBasedCuboid(project, streamingRequest);
         }
         return indexPlanService.updateRuleBasedCuboid(project, request);
     }
@@ -299,9 +291,9 @@ public class FusionIndexService extends BasicService {
             UpdateRuleBasedCuboidRequest batchRequest = convertBatchUpdateRuleReq(request);
             UpdateRuleBasedCuboidRequest streamRequest = convertStreamUpdateRuleReq(request);
 
-            val batchResponse = batchRequest == null ? AggIndexResponse.empty()
+            val batchResponse = isEmptyAggregationGroups(batchRequest) ? AggIndexResponse.empty()
                     : indexPlanService.calculateAggIndexCount(batchRequest);
-            val streamResponse = streamRequest == null ? AggIndexResponse.empty()
+            val streamResponse = isEmptyAggregationGroups(streamRequest) ? AggIndexResponse.empty()
                     : indexPlanService.calculateAggIndexCount(streamRequest);
 
             return AggIndexResponse.combine(batchResponse, streamResponse, request.getAggregationGroups().stream()
@@ -316,9 +308,9 @@ public class FusionIndexService extends BasicService {
             UpdateRuleBasedCuboidRequest batchRequest = convertBatchUpdateRuleReq(request);
             UpdateRuleBasedCuboidRequest streamRequest = convertStreamUpdateRuleReq(request);
 
-            val batchResponse = batchRequest == null ? DiffRuleBasedIndexResponse.empty()
+            val batchResponse = isEmptyAggregationGroups(batchRequest) ? DiffRuleBasedIndexResponse.empty()
                     : indexPlanService.calculateDiffRuleBasedIndex(batchRequest);
-            val streamResponse = streamRequest == null ? DiffRuleBasedIndexResponse.empty()
+            val streamResponse = isEmptyAggregationGroups(streamRequest) ? DiffRuleBasedIndexResponse.empty()
                     : indexPlanService.calculateDiffRuleBasedIndex(streamRequest);
             checkStreamingAggEnabled(streamResponse, request.getProject(), request.getModelId());
             return DiffRuleBasedIndexResponse.combine(batchResponse, streamResponse);
@@ -334,22 +326,20 @@ public class FusionIndexService extends BasicService {
         return response;
     }
 
+    private boolean isEmptyAggregationGroups(UpdateRuleBasedCuboidRequest request) {
+        return CollectionUtils.isEmpty(request.getAggregationGroups());
+    }
+
     private UpdateRuleBasedCuboidRequest convertStreamUpdateRuleReq(UpdateRuleBasedCuboidRequest request) {
         UpdateRuleBasedCuboidRequest streamRequest = JsonUtil.deepCopyQuietly(request,
                 UpdateRuleBasedCuboidRequest.class);
         streamRequest.setAggregationGroups(getStreamingAggGroup(streamRequest.getAggregationGroups()));
-        if (CollectionUtils.isEmpty(streamRequest.getAggregationGroups())) {
-            return null;
-        }
         return streamRequest;
     }
 
     private UpdateRuleBasedCuboidRequest convertBatchUpdateRuleReq(UpdateRuleBasedCuboidRequest request) {
         val batchRequest = JsonUtil.deepCopyQuietly(request, UpdateRuleBasedCuboidRequest.class);
         batchRequest.setAggregationGroups(getBatchAggGroup(batchRequest.getAggregationGroups()));
-        if (CollectionUtils.isEmpty(batchRequest.getAggregationGroups())) {
-            return null;
-        }
         FusionModel fusionModel = getManager(FusionModelManager.class, request.getProject()).getFusionModel(request.getModelId());
         batchRequest.setModelId(fusionModel.getBatchModel().getUuid());
         return batchRequest;
