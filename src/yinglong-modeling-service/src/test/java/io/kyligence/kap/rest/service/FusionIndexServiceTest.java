@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.service;
 import static org.hamcrest.Matchers.is;
 
 import java.util.Arrays;
+import java.util.Collections;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -44,7 +45,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.junit.rules.TemporaryFolder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -88,9 +88,6 @@ public class FusionIndexServiceTest extends SourceTestCase {
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
-    @Rule
-    public TemporaryFolder temporaryFolder = new TemporaryFolder();
-
     @Before
     public void setup() {
         overwriteSystemProp("HADOOP_USER_NAME", "root");
@@ -109,9 +106,16 @@ public class FusionIndexServiceTest extends SourceTestCase {
     }
 
     private UpdateRuleBasedCuboidRequest createUpdateRuleRequest(String project, String modelId,
-            NAggregationGroup aggregationGroup, boolean restoreDelIndex) {
+            boolean restoreDelIndex, NAggregationGroup... aggregationGroup) {
         return UpdateRuleBasedCuboidRequest.builder().project(project).modelId(modelId)
-                .aggregationGroups(Lists.newArrayList(aggregationGroup)).restoreDeletedIndex(restoreDelIndex).build();
+                .aggregationGroups(Lists.newArrayList(aggregationGroup)).isLoadData(false).schedulerVersion(2)
+                .restoreDeletedIndex(restoreDelIndex).build();
+    }
+
+    private NAggregationGroup mkAggGroup(Integer[] dimensions, Integer[] measures) {
+        NAggregationGroup aggregationGroup = mkAggGroup(dimensions);
+        aggregationGroup.setMeasures(measures);
+        return aggregationGroup;
     }
 
     private NAggregationGroup mkAggGroup(Integer... dimension) {
@@ -133,7 +137,7 @@ public class FusionIndexServiceTest extends SourceTestCase {
         NAggregationGroup aggregationGroup = mkAggGroup(0);
         aggregationGroup.setIndexRange(Range.HYBRID);
         IndexPlan saved = fusionIndexService.updateRuleBasedCuboid("streaming_test",
-                createUpdateRuleRequest("streaming_test", modelId, aggregationGroup, false)).getFirst();
+                createUpdateRuleRequest("streaming_test", modelId, false, aggregationGroup)).getFirst();
 
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "streaming_test");
 
@@ -146,7 +150,8 @@ public class FusionIndexServiceTest extends SourceTestCase {
 
         aggregationGroup = mkAggGroup(0, 11);
         aggregationGroup.setIndexRange(Range.HYBRID);
-        val updateRuleRequest = createUpdateRuleRequest("streaming_test", modelId, aggregationGroup, true);
+        val updateRuleRequest = createUpdateRuleRequest("streaming_test", modelId,
+                true, aggregationGroup);
 
         saved = fusionIndexService.updateRuleBasedCuboid("streaming_test", updateRuleRequest).getFirst();
         Assert.assertEquals(3, saved.getRuleBaseLayouts().size());
@@ -154,6 +159,24 @@ public class FusionIndexServiceTest extends SourceTestCase {
 
         val rule1 = fusionIndexService.getRule("streaming_test", modelId);
         Assert.assertEquals(1, rule1.getAggregationGroups().size());
+    }
+
+    @Test
+    public void testUpdateRuleWithStreamingAndHybridAggGroups() {
+        val fusionId = "4965c827-fbb4-4ea1-a744-3f341a3b030d";
+
+        NAggregationGroup streamingAggGroup = mkAggGroup(new Integer[]{0},
+                new Integer[]{100000, 100001, 100002, 100003, 100004});
+        streamingAggGroup.setIndexRange(Range.STREAMING);
+        NAggregationGroup fusionAggGroup = mkAggGroup(new Integer[]{0},
+                new Integer[]{100000, 100001, 100003, 100004});
+        fusionAggGroup.setIndexRange(Range.HYBRID);
+        val request = createUpdateRuleRequest("streaming_test", fusionId, false, streamingAggGroup, fusionAggGroup);
+        fusionIndexService.updateRuleBasedCuboid("streaming_test", request);
+        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "streaming_test");
+        val indexPlan = indexPlanManager.getIndexPlan(fusionId);
+        Assert.assertFalse(indexPlan.isBroken());
+        Assert.assertEquals(2, indexPlan.getRuleBasedIndex().getLayoutIdMapping().size());
     }
 
     @Test
@@ -183,7 +206,7 @@ public class FusionIndexServiceTest extends SourceTestCase {
         NAggregationGroup aggregationGroup = mkAggGroup(0);
         aggregationGroup.setIndexRange(Range.BATCH);
         IndexPlan saved = fusionIndexService.updateRuleBasedCuboid("streaming_test",
-                createUpdateRuleRequest("streaming_test", modelId, aggregationGroup, false)).getFirst();
+                createUpdateRuleRequest("streaming_test", modelId, false, aggregationGroup)).getFirst();
 
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "streaming_test");
 
@@ -196,7 +219,7 @@ public class FusionIndexServiceTest extends SourceTestCase {
 
         aggregationGroup = mkAggGroup(0, 11);
         aggregationGroup.setIndexRange(Range.BATCH);
-        val updateRuleRequest = createUpdateRuleRequest("streaming_test", modelId, aggregationGroup, true);
+        val updateRuleRequest = createUpdateRuleRequest("streaming_test", modelId, true, aggregationGroup);
 
         saved = fusionIndexService.updateRuleBasedCuboid("streaming_test", updateRuleRequest).getFirst();
         Assert.assertEquals(0, saved.getRuleBaseLayouts().size());
@@ -214,7 +237,7 @@ public class FusionIndexServiceTest extends SourceTestCase {
         NAggregationGroup aggregationGroup = mkAggGroup(0);
         aggregationGroup.setIndexRange(Range.STREAMING);
         IndexPlan saved = fusionIndexService.updateRuleBasedCuboid("streaming_test",
-                createUpdateRuleRequest("streaming_test", modelId, aggregationGroup, false)).getFirst();
+                createUpdateRuleRequest("streaming_test", modelId, false, aggregationGroup)).getFirst();
 
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "streaming_test");
 
@@ -227,7 +250,7 @@ public class FusionIndexServiceTest extends SourceTestCase {
 
         aggregationGroup = mkAggGroup(0, 11);
         aggregationGroup.setIndexRange(Range.STREAMING);
-        val updateRuleRequest = createUpdateRuleRequest("streaming_test", modelId, aggregationGroup, true);
+        val updateRuleRequest = createUpdateRuleRequest("streaming_test", modelId, true, aggregationGroup);
 
         saved = fusionIndexService.updateRuleBasedCuboid("streaming_test", updateRuleRequest).getFirst();
         Assert.assertEquals(3, saved.getRuleBaseLayouts().size());
@@ -496,6 +519,11 @@ public class FusionIndexServiceTest extends SourceTestCase {
         Assert.assertThat(response.getAggIndexCounts().get(0).getResult(), is(6L));
         Assert.assertThat(response.getAggIndexCounts().get(1).getResult(), is(1L));
         Assert.assertThat(response.getAggIndexCounts().get(2).getResult(), is(1L));
+
+        val request1 = UpdateRuleBasedCuboidRequest.builder().project("streaming_test").modelId(modelId)
+                .aggregationGroups(Collections.emptyList()).build();
+        AggIndexResponse response1 = fusionIndexService.calculateAggIndexCount(request1);
+        Assert.assertEquals(0, response1.getAggIndexCounts().size());
     }
 
     @Test
@@ -536,6 +564,12 @@ public class FusionIndexServiceTest extends SourceTestCase {
         Assert.assertThat(response.getIncreaseLayouts(), is(10));
         Assert.assertThat(response.getDecreaseLayouts(), is(0));
         Assert.assertThat(response.getRollbackLayouts(), is(0));
+
+        val request1 = UpdateRuleBasedCuboidRequest.builder().project("streaming_test").modelId(modelId)
+                .aggregationGroups(Collections.emptyList()).build();
+        val response1 = fusionIndexService.calculateDiffRuleBasedIndex(request1);
+        Assert.assertEquals(0, response1.getIncreaseLayouts().shortValue());
+        Assert.assertEquals(0, response1.getDecreaseLayouts().shortValue());
     }
 
     @Test
