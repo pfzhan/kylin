@@ -754,6 +754,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         Mockito.doReturn(syncModel).when(modelService).exportModel(project, modelName,
                 SyncContext.BI.TABLEAU_CONNECTOR_TDS, SyncContext.ModelElement.AGG_INDEX_AND_TABLE_INDEX_COL,
                 "localhost", 8080);
+        when(modelService.validateExport("default", "model1")).thenReturn(true);
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models/{model}/export", modelName).param("project", project)
                 .param("export_as", "TABLEAU_CONNECTOR_TDS").param("element", "AGG_INDEX_AND_TABLE_INDEX_COL")
                 .param("server_host", "localhost").param("server_port", "8080").contentType(MediaType.APPLICATION_JSON)
