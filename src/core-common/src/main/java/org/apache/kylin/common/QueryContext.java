@@ -252,6 +252,9 @@ public class QueryContext implements Closeable {
         private String server;
         private long resultRowCount;
         private String queryMsg;
+        private long queryJobCount;
+        private long queryStageCount;
+        private long queryTaskCount;
 
         // sourceScanXxx from Parquet
         private AtomicLong sourceScanBytes = new AtomicLong();
