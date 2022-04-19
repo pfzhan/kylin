@@ -22,8 +22,6 @@
 
 package io.kyligence.kap.it
 
-import java.io.File
-import java.util.TimeZone
 import io.kyligence.kap.common.util.{TestUtils, Unsafe}
 import io.kyligence.kap.common.{CompareSupport, JobSupport, QuerySupport, SSSource}
 import io.kyligence.kap.engine.spark.IndexDataWarehouse
@@ -40,9 +38,10 @@ import org.apache.spark.sql.execution.utils.SchemaProcessor
 import org.apache.spark.sql.execution.{KylinFileSourceScanExec, LayoutFileSourceScanExec}
 import org.apache.spark.sql.{DataFrame, SparderEnv}
 
+import java.io.File
+import java.util.TimeZone
 import java.util.concurrent.Executors
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor, Future}
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
 class TestQueryAndBuildFunSuite
   extends SparderBaseFunSuite
@@ -59,8 +58,6 @@ class TestQueryAndBuildFunSuite
   case class FolderInfo(folder: String, filter: List[String] = List(), checkOrder: Boolean = false)
 
   val defaultTimeZone: TimeZone = TimeZone.getDefault
-
-  implicit val ec: ExecutionContextExecutor = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(3))
 
   val queryFolders = List(
     FolderInfo("sql", List("query105.sql", "query131.sql", "query138.sql")),
@@ -134,15 +131,13 @@ class TestQueryAndBuildFunSuite
   }
 
   override def beforeAll(): Unit = {
-    Unsafe.setProperty("calcite.keep-in-clause", "true")
-    Unsafe.setProperty("kylin.dictionary.null-encoding-opt-threshold", "1")
-//    val timeZones = Array("GMT", "GMT+8", "CST")
-//    val timeZoneStr = timeZones.apply((System.currentTimeMillis() % 3).toInt)
+    super.beforeAll()
+    overwriteSystemProp("calcite.keep-in-clause", "true")
+    overwriteSystemProp("kylin.dictionary.null-encoding-opt-threshold", "1")
+    overwriteSystemProp("kylin.query.spark-job-trace-enabled", "false")
     val timeZoneStr = "GMT+8"
     TimeZone.setDefault(TimeZone.getTimeZone(timeZoneStr))
     logInfo(s"Current time zone set to $timeZoneStr")
-
-    super.beforeAll()
     NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv, DEFAULT_PROJECT)
       .updateDataflow(DF_NAME, Updater(RealizationStatusEnum.OFFLINE))
     KylinConfig.getInstanceFromEnv.setProperty("kylin.query.pushdown.runner-class-name", "")
@@ -159,7 +154,6 @@ class TestQueryAndBuildFunSuite
       .updateDataflow(DF_NAME, Updater(RealizationStatusEnum.ONLINE))
     SparderEnv.cleanCompute()
     TimeZone.setDefault(defaultTimeZone)
-    Unsafe.clearProperty("calcite.keep-in-clause")
   }
 
   test("buildKylinFact") {
@@ -229,10 +223,10 @@ class TestQueryAndBuildFunSuite
 
   test("non-equal join with is not distinct from condition") {
     val result = isNotDistinctFrom
-            .flatMap { folder =>
-              queryFolder(folder, List("left"))
-            }
-            .filter(_ != null)
+      .flatMap { folder =>
+        queryFolder(folder, List("left"))
+      }
+      .filter(_ != null)
     if (result.nonEmpty) {
       print(result)
     }
@@ -255,7 +249,7 @@ class TestQueryAndBuildFunSuite
   }
 
   private def queryFolder(folderInfo: FolderInfo, joinType: List[String]): List[String] = {
-    val futures = QueryFetcher
+    QueryFetcher
       .fetchQueries(QueryConstants.KAP_SQL_BASE_DIR + folderInfo.folder)
       .filter { tp =>
         !folderInfo.filter.contains(new File(tp._1).getName)
@@ -263,20 +257,15 @@ class TestQueryAndBuildFunSuite
       .flatMap {
         case (fileName: String, query: String) =>
           joinType.map { joinType =>
-//            Future[String] {
-              runAndCompare(query, DEFAULT_PROJECT, joinType.toUpperCase, fileName, folderInfo.checkOrder)
-//            }
+            runAndCompare(query, DEFAULT_PROJECT, joinType.toUpperCase, fileName, folderInfo.checkOrder)
           }
       }
-    // scalastyle:off
-//    val result = Await.result(Future.sequence(futures.toList), Duration.Inf)
-    // scalastyle:on
-//    result
-    List()
+      .filter(_ != null)
+      .toList
   }
 
   private def queryFolderWithoutCompare(folderInfo: FolderInfo) = {
-    val futures = QueryFetcher
+    QueryFetcher
       .fetchQueries(QueryConstants.KAP_SQL_BASE_DIR + folderInfo.folder)
       .filter { tp =>
         !folderInfo.filter.contains(new File(tp._1).getName)
@@ -285,22 +274,17 @@ class TestQueryAndBuildFunSuite
         case (fileName: String, query: String) =>
           joinTypes.map { joinType =>
             val afterChangeJoin = changeJoinType(query, joinType)
-
-            Future[String] {
-              try {
-                singleQuery(afterChangeJoin, DEFAULT_PROJECT).collect()
-                null
-              } catch {
-                case exception: Throwable =>
-                  s"$fileName \n$query \n${ThrowableUtil.stackTraceToString(exception)} "
-              }
+            try {
+              singleQuery(afterChangeJoin, DEFAULT_PROJECT).collect()
+              null
+            } catch {
+              case exception: Throwable =>
+                s"$fileName \n$query \n${ThrowableUtil.stackTraceToString(exception)} "
             }
           }
       }
-    // scalastyle:off
-    val result = Await.result(Future.sequence(futures.toList), Duration.Inf)
-    // scalastyle:on
-    result
+      .filter(_ != null)
+      .toList
   }
 
   def build(): Unit = {
@@ -308,7 +292,7 @@ class TestQueryAndBuildFunSuite
       logInfo("Direct query")
       val config = KylinConfig.getInstanceFromEnv
       new IndexDataWarehouse(config, getProject, "")
-        .reuseBuildData(new File( "../examples/buildKylinFact"))
+        .reuseBuildData(new File("../examples/buildKylinFact"))
     } else {
       buildFourSegementAndMerge("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
       buildFourSegementAndMerge("741ca86a-1f13-46da-a59f-95fb68615e3a")

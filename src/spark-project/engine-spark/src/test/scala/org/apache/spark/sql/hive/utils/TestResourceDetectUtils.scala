@@ -81,7 +81,9 @@ class TestResourceDetectUtils extends SparderBaseFunSuite {
         out.write(contents.apply(i).getBytes(Charset.defaultCharset()))
         out.close()
       }
-      val l = ResourceDetectUtils.getResourceSize(files.head, files.last)
+      var l = ResourceDetectUtils.getResourceSize(false, files.head, files.last)
+      assert(l == contents.map(_.getBytes(Charset.defaultCharset()).length).sum)
+      l = ResourceDetectUtils.getResourceSize(true, files.head, files.last)
       assert(l == contents.map(_.getBytes(Charset.defaultCharset()).length).sum)
     } finally {
       Utils.deleteRecursively(tempDir)
@@ -105,7 +107,8 @@ class TestResourceDetectUtils extends SparderBaseFunSuite {
       }
       import scala.collection.JavaConverters._
 
-     val l = resourcePaths.values().asScala.map(path => ResourceDetectUtils.getResourceSize(new Path(path.get(0)))).max
+      val l = resourcePaths.values().asScala.map(path => ResourceDetectUtils.getResourceSize(false,
+        new Path(path.get(0)))).max
       assert(l == contents.last.getBytes(Charset.defaultCharset()).length)
     } finally {
       Utils.deleteRecursively(tempDir)

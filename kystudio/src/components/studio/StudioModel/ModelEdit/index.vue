@@ -368,88 +368,90 @@
 
     <!-- 编辑模型table遮罩 -->
     <div class="full-screen-cover" v-event-stop @click="cancelTableEdit" v-if="showTableCoverDiv"></div>
-    <transition name="slide-fade">
-      <!-- 编辑table 快捷按钮 -->
-      <div v-guide.modelActionPanel class="fast-action-box" v-event-stop @click="cancelTableEdit" :class="{'edge-right': currentEditTable.drawSize.isInRightEdge}" :style="tableBoxToolStyleNoZoom(currentEditTable.drawSize)" v-if="currentEditTable && showTableCoverDiv">
-        <div v-if="currentEditTable.kind === 'FACT' || modelInstance.checkTableCanSwitchFact(currentEditTable.guid)">
-          <div class="action switch" :class="{'disabled': currentEditTable.source_type === 1}" v-if="currentEditTable.kind === 'FACT'" @click.stop="changeTableType(currentEditTable)"><i class="el-icon-ksd-switch"></i>
-            <span>{{$t('switchLookup')}}</span>
-          </div>
-          <div class="action switch" v-if="modelInstance.checkTableCanSwitchFact(currentEditTable.guid)" @click.stop="changeTableType(currentEditTable)"><i class="el-icon-ksd-switch"></i>
-            <span >{{$t('switchFact')}}</span>
-          </div>
-        </div>
-        <div v-show="showEditAliasForm">
-          <div class="alias-form" v-event-stop:click>
-            <el-form :model="formTableAlias" :rules="aliasRules" ref="aliasForm" @submit.native="()=> {return false}">
-              <el-form-item prop="currentEditAlias">
-              <el-input v-model="formTableAlias.currentEditAlias" size="mini" @click.stop @keyup.enter.native="saveEditTableAlias"></el-input>
-              <input type="text" style="display:none" />
-              <el-button type="primary" size="mini" icon="el-icon-check" @click.stop="saveEditTableAlias"></el-button><el-button size="mini" @click.stop="cancelEditAlias" icon="el-icon-close" plain></el-button>
-              </el-form-item>
-            </el-form>
-          </div>
-        </div>
-        <div v-show="!showEditAliasForm && currentEditTable.kind!=='FACT'">
-          <div class="action">
-            <div @click.stop="openEditAliasForm"><i class="el-icon-ksd-table_edit"></i> {{$t('editTableAlias')}}</div>
-          </div>
-        </div>
-        <template v-if="!showEditAliasForm">
-          <el-popover
-            popper-class="fast-action-popper"
-            style="z-index:100001"
-            ref="popover5"
-            placement="top"
-            width="160"
-            v-model="delTipVisible">
-            <p>{{$t('delTableTip')}}</p>
-            <div style="text-align: right; margin: 0">
-              <el-button size="mini" type="info" text @click="delTipVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
-              <el-button type="primary" size="mini" @click.enter="delTable">{{$t('kylinLang.common.ok')}}</el-button>
+    <div class="edit-table-layout" v-if="showTableCoverDiv" v-event-stop @click.self="cancelTableEdit">
+      <!-- 被编辑table clone dom -->
+      <div class="table-box fast-action-temp-table" v-guide.actionTable :id="currentEditTable.guid + 'temp'" v-event-stop :class="{isLookup:currentEditTable.kind==='LOOKUP'}" :style="tableBoxStyleNoZoom(currentEditTable.drawSize)">
+        <transition name="slide-fade">
+          <!-- 编辑table 快捷按钮 -->
+          <div v-guide.modelActionPanel class="fast-action-box" v-event-stop @click="cancelTableEdit" :class="{'edge-right': currentEditTable.drawSize.isInRightEdge}" v-if="currentEditTable">
+            <div v-if="currentEditTable.kind === 'FACT' || modelInstance.checkTableCanSwitchFact(currentEditTable.guid)">
+              <div class="action switch" :class="{'disabled': currentEditTable.source_type === 1}" v-if="currentEditTable.kind === 'FACT'" @click.stop="changeTableType(currentEditTable)"><i class="el-icon-ksd-switch"></i>
+                <span>{{$t('switchLookup')}}</span>
+              </div>
+              <div class="action switch" v-if="modelInstance.checkTableCanSwitchFact(currentEditTable.guid)" @click.stop="changeTableType(currentEditTable)"><i class="el-icon-ksd-switch"></i>
+                <span >{{$t('switchFact')}}</span>
+              </div>
             </div>
-          </el-popover>
-          <div class="action del" v-if="!modelInstance.checkTableCanDel(currentEditTable.guid)" @click.stop="showDelTableTip"  v-popover:popover5><i class="el-icon-ksd-table_delete"></i> {{$t('deleteTable')}}</div>
-          <div class="action del" v-else @click.stop="delTable"><i class="el-icon-ksd-table_delete"></i> {{$t('deleteTable')}}</div>
-        </template>
-      </div>
-    </transition>
-    <!-- 被编辑table clone dom -->
-    <div class="table-box fast-action-temp-table" v-guide.actionTable :id="currentEditTable.guid + 'temp'" v-event-stop v-if="showTableCoverDiv" :class="{isLookup:currentEditTable.kind==='LOOKUP'}" :style="tableBoxStyleNoZoom(currentEditTable.drawSize)">
-      <div class="table-title" :data-zoom="modelRender.zoom"  v-drag:change.left.top="currentEditTable.drawSize">
-        <span @click.stop="changeTableType(currentEditTable)">
-          <i class="el-icon-ksd-fact_table kind" v-if="currentEditTable.kind==='FACT'"></i>
-          <i v-else class="el-icon-ksd-lookup_table kind"></i>
-        </span>
-        <span class="alias-span name">{{currentEditTable.alias}}</span>
-        <span class="setting-icon guide-setting" @click="cancelTableEdit"><i class="el-icon-ksd-table_setting"></i></span>
-      </div>
-      <div class="column-search-box"><el-input prefix-icon="el-ksd-icon-search_22" v-model="currentEditTable.filterColumnChar" @input="currentEditTable.filterColumns()" size="small"></el-input></div>
-      <div class="column-list-box" v-scroll v-if="currentEditTable.showColumns.length">
-        <ul >
-          <li class="column-li" :class="{'column-li-cc': col.is_computed_column}"  v-for="col in currentEditTable.showColumns" :key="col.name">
-            <span class="ksd-nobr-text">
-              <span class="col-type-icon"> <i class="el-icon-ksd-fkpk_big is-pfk" v-show="col.isPFK"></i><i :class="columnTypeIconMap(col.datatype)"></i></span>
-              <span class="col-name">{{col.name}}</span>
-            </span>
-            <!-- <span class="li-type ky-option-sub-info">{{col.datatype}}</span> -->
-          </li>
-          <template v-if="currentEditTable.kind=== 'FACT'">
-            <li class="column-li column-li-cc"  v-for="col in modelRender.computed_columns" :key="col.name">
+            <div v-show="showEditAliasForm">
+              <div class="alias-form" v-event-stop:click>
+                <el-form :model="formTableAlias" :rules="aliasRules" ref="aliasForm" @submit.native="()=> {return false}">
+                  <el-form-item prop="currentEditAlias">
+                  <el-input v-model="formTableAlias.currentEditAlias" size="mini" @click.stop @keyup.enter.native="saveEditTableAlias"></el-input>
+                  <input type="text" style="display:none" />
+                  <el-button type="primary" size="mini" icon="el-icon-check" @click.stop="saveEditTableAlias"></el-button><el-button size="mini" @click.stop="cancelEditAlias" icon="el-icon-close" plain></el-button>
+                  </el-form-item>
+                </el-form>
+              </div>
+            </div>
+            <div v-show="!showEditAliasForm && currentEditTable.kind!=='FACT'">
+              <div class="action">
+                <div @click.stop="openEditAliasForm"><i class="el-icon-ksd-table_edit"></i> {{$t('editTableAlias')}}</div>
+              </div>
+            </div>
+            <template v-if="!showEditAliasForm">
+              <el-popover
+                popper-class="fast-action-popper"
+                style="z-index:100001"
+                ref="popover5"
+                placement="top"
+                width="160"
+                v-model="delTipVisible">
+                <p>{{$t('delTableTip')}}</p>
+                <div style="text-align: right; margin: 0">
+                  <el-button size="mini" type="info" text @click="delTipVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
+                  <el-button type="primary" size="mini" @click.enter="delTable">{{$t('kylinLang.common.ok')}}</el-button>
+                </div>
+              </el-popover>
+              <div class="action del" v-if="!modelInstance.checkTableCanDel(currentEditTable.guid)" @click.stop="showDelTableTip"  v-popover:popover5><i class="el-icon-ksd-table_delete"></i> {{$t('deleteTable')}}</div>
+              <div class="action del" v-else @click.stop="delTable"><i class="el-icon-ksd-table_delete"></i> {{$t('deleteTable')}}</div>
+            </template>
+          </div>
+      </transition>
+        <div class="table-title" :data-zoom="modelRender.zoom"  v-drag:change.left.top="currentEditTable.drawSize">
+          <span @click.stop="changeTableType(currentEditTable)">
+            <i class="el-icon-ksd-fact_table kind" v-if="currentEditTable.kind==='FACT'"></i>
+            <i v-else class="el-icon-ksd-lookup_table kind"></i>
+          </span>
+          <span class="alias-span name">{{currentEditTable.alias}}</span>
+          <span class="setting-icon guide-setting" @click="cancelTableEdit"><i class="el-icon-ksd-table_setting"></i></span>
+        </div>
+        <div class="column-search-box"><el-input prefix-icon="el-ksd-icon-search_22" v-model="currentEditTable.filterColumnChar" @input="currentEditTable.filterColumns()" size="small"></el-input></div>
+        <div class="column-list-box" v-scroll v-if="currentEditTable.showColumns.length">
+          <ul >
+            <li class="column-li" :class="{'column-li-cc': col.is_computed_column}"  v-for="col in currentEditTable.showColumns" :key="col.name">
               <span class="ksd-nobr-text">
-                <span class="col-type-icon"><i class="el-icon-ksd-fkpk_big is-pfk" v-show="col.isPFK"></i><i :class="columnTypeIconMap(col.datatype)"></i></span>
-                <span class="col-name">{{col.columnName}}</span>
+                <span class="col-type-icon"> <i class="el-icon-ksd-fkpk_big is-pfk" v-show="col.isPFK"></i><i :class="columnTypeIconMap(col.datatype)"></i></span>
+                <span class="col-name">{{col.name}}</span>
               </span>
               <!-- <span class="li-type ky-option-sub-info">{{col.datatype}}</span> -->
             </li>
-          </template>
-          <li class="li-load-more" v-if="currentEditTable.hasMoreColumns" @click="currentEditTable.loadMoreColumns()">{{$t('kylinLang.common.loadMore')}}</li>
-        </ul>
+            <template v-if="currentEditTable.kind=== 'FACT'">
+              <li class="column-li column-li-cc"  v-for="col in modelRender.computed_columns" :key="col.name">
+                <span class="ksd-nobr-text">
+                  <span class="col-type-icon"><i class="el-icon-ksd-fkpk_big is-pfk" v-show="col.isPFK"></i><i :class="columnTypeIconMap(col.datatype)"></i></span>
+                  <span class="col-name">{{col.columnName}}</span>
+                </span>
+                <!-- <span class="li-type ky-option-sub-info">{{col.datatype}}</span> -->
+              </li>
+            </template>
+            <li class="li-load-more" v-if="currentEditTable.hasMoreColumns" @click="currentEditTable.loadMoreColumns()">{{$t('kylinLang.common.loadMore')}}</li>
+          </ul>
+        </div>
+        <kap-nodata v-else :content="$t('kylinLang.common.noResults')"></kap-nodata>
+        <!-- 拖动操纵 -->
+        <DragBar :dragData="currentEditTable.drawSize"/>
+        <!-- 拖动操纵 -->
       </div>
-      <kap-nodata v-else :content="$t('kylinLang.common.noResults')"></kap-nodata>
-      <!-- 拖动操纵 -->
-      <DragBar :dragData="currentEditTable.drawSize"/>
-      <!-- 拖动操纵 -->
     </div>
     <el-dialog
       :title="$t('kylinLang.common.tip')"
@@ -858,6 +860,11 @@ export default class ModelEdit extends Vue {
     this.showTableCoverDiv = true
     this.showEditAliasForm = false
     this.delTipVisible = false
+    this.$nextTick(() => {
+      const dom = this.$el.querySelector('.edit-table-layout')
+      const modelEdit = this.$el.querySelector('.model-edit')
+      dom && (dom.style.cssText = modelEdit?.style.cssText ?? '')
+    })
   }
   // 保存table的别名
   saveEditTableAlias () {
@@ -1141,6 +1148,7 @@ export default class ModelEdit extends Vue {
   // 拖动画布
   dragBox (x, y) {
     this.$nextTick(() => {
+      this.modelInstance.getSysInfo()
       this.modelInstance.moveModelPosition(x, y)
     })
   }
@@ -1642,22 +1650,22 @@ export default class ModelEdit extends Vue {
   get tableBoxStyleNoZoom () {
     return (drawSize) => {
       if (drawSize) {
-        let zoom = this.modelRender.zoom / 10
-        return {'z-index': drawSize.zIndex, width: drawSize.width + 'px', height: drawSize.height + 'px', left: drawSize.left * zoom + this.modelRender.zoomXSpace + 'px', top: drawSize.top * zoom + this.modelRender.zoomYSpace + 'px'}
+        // let zoom = this.modelRender.zoom / 10
+        return {'z-index': drawSize.zIndex, width: drawSize.width + 'px', height: drawSize.height + 'px', left: drawSize.left + 'px', top: drawSize.top + 'px'}
       }
     }
   }
-  get tableBoxToolStyleNoZoom () {
-    return (drawSize) => {
-      if (drawSize) {
-        let zoom = this.modelRender.zoom / 10
-        if (drawSize.isInRightEdge) {
-          return {left: drawSize.left * zoom + this.modelRender.zoomXSpace - 230 + 'px', top: drawSize.top * zoom + this.modelRender.zoomYSpace + 'px'}
-        }
-        return {left: this.currentEditTable.drawSize.width + drawSize.left * zoom + this.modelRender.zoomXSpace + 'px', top: drawSize.top * zoom + this.modelRender.zoomYSpace + 'px'}
-      }
-    }
-  }
+  // get tableBoxToolStyleNoZoom () {
+  //   return (drawSize) => {
+  //     if (drawSize) {
+  //       let zoom = this.modelRender.zoom / 10
+  //       if (drawSize.isInRightEdge) {
+  //         return {left: drawSize.left - 230 + 'px', top: drawSize.top + 'px'}
+  //       }
+  //       return {left: this.currentEditTable.drawSize.width + drawSize.left + 'px', top: drawSize.top + 'px'}
+  //     }
+  //   }
+  // }
   get searchResultData () {
     return groupData(this.modelGlobalSearchResult, 'kind')
   }
@@ -1744,6 +1752,13 @@ export default class ModelEdit extends Vue {
     })
   }
 
+  setModelBoundStyle () {
+    const { left, top } = this.modelRender.marginClient ?? {left: 0, top: 0}
+    const dom = this.$el.querySelector('.model-edit')
+    if (!dom) return
+    dom.style.cssText += `margin-left: ${left}px; margin-top: ${top}px`
+  }
+
   async mounted () {
     this.globalLoading.show()
     this.$el.onselectstart = function (e) {
@@ -1817,6 +1832,7 @@ export default class ModelEdit extends Vue {
         })
       }
     })
+    this.setModelBoundStyle()
     if (localStorage.getItem('isFirstAddModel') === 'true') {
       await this.showGuide()
     }
@@ -2171,20 +2187,22 @@ export default class ModelEdit extends Vue {
     background-color: rgba(24, 32, 36, 0.7);
   }
   .fast-action-box {
-    width:210px;
+    width: 210px;
+    left: 230px;
+    color: @fff;
+    position: absolute;
+    z-index: 100001;
+    margin-left:10px;
     .el-form-item__content {
       line-height: 0;
     }
     &.edge-right {
+      text-align: right;
+      left: -230px;
       .el-form-item__error {
         text-align: left;
       }
-      text-align: right;
     }
-    color:@fff;
-    position: absolute;
-    z-index: 100001;
-    margin-left:10px;
     div {
       margin-bottom:5px;
     }
@@ -2717,6 +2735,14 @@ export default class ModelEdit extends Vue {
     .model-edit {
       height: 100%;
       position:relative;
+    }
+    .edit-table-layout {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 100000;
     }
     .box-css();
     .table-box {

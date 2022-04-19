@@ -38,6 +38,7 @@ public interface QueryEngine {
      * @param dataContext
      * @param relNode
      * @return
+     * @deprecated
      */
     @Deprecated
     List<List<String>> compute(DataContext dataContext, RelNode relNode);

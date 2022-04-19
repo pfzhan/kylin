@@ -27,13 +27,10 @@ package io.kyligence.kap.tool;
 import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasourceParameters;
 import static io.kyligence.kap.tool.garbage.StorageCleaner.ANSI_RED;
 import static io.kyligence.kap.tool.garbage.StorageCleaner.ANSI_RESET;
-import static org.apache.kylin.common.exception.ToolErrorCode.DIRECTORY_NOT_EXIST;
-import static org.apache.kylin.common.exception.ToolErrorCode.EMPTY_JOB_PARAMETER;
-import static org.apache.kylin.common.exception.ToolErrorCode.EMPTY_PROJECT_PARAMETER;
-import static org.apache.kylin.common.exception.ToolErrorCode.EMPTY_TABLE_PARAMETER;
-import static org.apache.kylin.common.exception.ToolErrorCode.INVALID_SHELL_PARAMETER;
-import static org.apache.kylin.common.exception.ToolErrorCode.PROJECT_PARAMETER_NOT_EXIST;
-import static org.apache.kylin.common.exception.ToolErrorCode.TABLE_PARAMETER_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeTool.PARAMETER_EMPTY;
+import static org.apache.kylin.common.exception.code.ErrorCodeTool.PARAMETER_NOT_SPECIFY;
+import static org.apache.kylin.common.exception.code.ErrorCodeTool.PARAMETER_TIMESTAMP_NOT_SPECIFY;
+import static org.apache.kylin.common.exception.code.ErrorCodeTool.PATH_NOT_EXISTS;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -162,16 +159,16 @@ public class AuditLogTool extends ExecutableApplication {
 
     private void extractJob(OptionsHelper optionsHelper, final String dir) throws Exception {
         if (!optionsHelper.hasOption(OPTION_PROJECT)) {
-            throw new KylinException(PROJECT_PARAMETER_NOT_EXIST, "'-project' specify project name");
+            throw new KylinException(PARAMETER_NOT_SPECIFY, "-project");
         }
         val project = optionsHelper.getOptionValue(OPTION_PROJECT);
         if (StringUtils.isEmpty(project)) {
-            throw new KylinException(EMPTY_PROJECT_PARAMETER, "project name shouldn't be empty");
+            throw new KylinException(PARAMETER_EMPTY, "project");
         }
 
         val jobId = optionsHelper.getOptionValue(OPTION_JOB);
         if (StringUtils.isEmpty(jobId)) {
-            throw new KylinException(EMPTY_JOB_PARAMETER, "job id shouldn't be empty");
+            throw new KylinException(PARAMETER_EMPTY, "job");
         }
         AbstractExecutable job = NExecutableManager.getInstance(kylinConfig, project).getJob(jobId);
         long startTs = job.getStartTime();
@@ -183,10 +180,10 @@ public class AuditLogTool extends ExecutableApplication {
 
     private void extractFull(OptionsHelper optionsHelper, final String dir) throws Exception {
         if (!optionsHelper.hasOption(OPTION_START_TIME)) {
-            throw new KylinException(INVALID_SHELL_PARAMETER, "'-startTime' specify start timestamp (milliseconds)");
+            throw new KylinException(PARAMETER_TIMESTAMP_NOT_SPECIFY, "-startTime");
         }
         if (!optionsHelper.hasOption(OPTION_END_TIME)) {
-            throw new KylinException(INVALID_SHELL_PARAMETER, "'-endTime' specify end timestamp (milliseconds)");
+            throw new KylinException(PARAMETER_TIMESTAMP_NOT_SPECIFY, "-endTime");
         }
         long startTs = Long.parseLong(optionsHelper.getOptionValue(OPTION_START_TIME));
         long endTs = Long.parseLong(optionsHelper.getOptionValue(OPTION_END_TIME));
@@ -197,16 +194,16 @@ public class AuditLogTool extends ExecutableApplication {
 
     private void restore(OptionsHelper optionsHelper, final String dir) throws Exception {
         if (!optionsHelper.hasOption(OPTION_TABLE)) {
-            throw new KylinException(TABLE_PARAMETER_NOT_EXIST, "'-table' specify table name");
+            throw new KylinException(PARAMETER_NOT_SPECIFY, "-table");
         }
         val table = optionsHelper.getOptionValue(OPTION_TABLE);
         if (StringUtils.isEmpty(table)) {
-            throw new KylinException(EMPTY_TABLE_PARAMETER, "table name shouldn't be empty");
+            throw new KylinException(PARAMETER_EMPTY, "table");
         }
 
         File dirFile = Paths.get(dir).toFile();
         if (!dirFile.exists()) {
-            throw new KylinException(DIRECTORY_NOT_EXIST, "Directory not exists: " + dir);
+            throw new KylinException(PATH_NOT_EXISTS, dir);
         }
 
         val url = kylinConfig.getMetadataUrl();
@@ -241,7 +238,8 @@ public class AuditLogTool extends ExecutableApplication {
         auditLogFile.getParentFile().mkdirs();
         long fromId = Long.MAX_VALUE;
         int batchSize = KylinConfig.getInstanceFromEnv().getAuditLogBatchSize();
-        batchSize = Math.min(MAX_BATCH_SIZE, batchSize);//Prevent OOM
+        //Prevent OOM
+        batchSize = Math.min(MAX_BATCH_SIZE, batchSize);
         logger.info("Audit log batch size is {}.", batchSize);
         try (JdbcAuditLogStore auditLogStore = new JdbcAuditLogStore(kylinConfig,
                 kylinConfig.getAuditLogBatchTimeout());

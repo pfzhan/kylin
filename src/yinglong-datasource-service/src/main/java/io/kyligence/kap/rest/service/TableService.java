@@ -32,11 +32,12 @@ import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_REFRESH_C
 import static org.apache.kylin.common.exception.ServerErrorCode.FILE_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_COMPUTED_COLUMN_EXPRESSION;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARTITION_COLUMN;
-import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
-import static org.apache.kylin.common.exception.ServerErrorCode.ON_GOING_JOB_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
-import static org.apache.kylin.common.exception.ServerErrorCode.RELOAD_TABLE_FAILED;
 import static org.apache.kylin.common.exception.ServerErrorCode.TABLE_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_ID_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.TABLE_RELOAD_HAVING_NOT_FINAL_JOB;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.TABLE_RELOAD_MODEL_RETRY;
 import static org.apache.kylin.job.execution.JobTypeEnum.SNAPSHOT_BUILD;
 import static org.apache.kylin.job.execution.JobTypeEnum.SNAPSHOT_REFRESH;
 
@@ -245,7 +246,7 @@ public class TableService extends BasicService {
         //get table not fuzzy,can use getTableDesc(tableName)
         if (StringUtils.isNotEmpty(tableName) && !isFuzzy) {
             val tableDesc = nTableMetadataManager.getTableDesc(database + "." + tableName);
-            if (tableDesc != null)
+            if (tableDesc != null && NTableMetadataManager.isTableAccessible(tableDesc))
                 tables.add(tableDesc);
         } else {
             tables.addAll(nTableMetadataManager.listAllTables().stream().filter(tableDesc -> {
@@ -258,10 +259,12 @@ public class TableService extends BasicService {
                     return true;
                 }
                 return tableDesc.getName().toLowerCase(Locale.ROOT).contains(tableName.toLowerCase(Locale.ROOT));
-            }).sorted(this::compareTableDesc).collect(Collectors.toList()));
+            }).filter(NTableMetadataManager::isTableAccessible).sorted(this::compareTableDesc)
+                    .collect(Collectors.toList()));
         }
         return getTablesResponse(tables, project, withExt);
     }
+
     public int compareTableDesc(TableDesc table1, TableDesc table2) {
         if (table1.isTop() == table2.isTop()) {
             if (table1.isIncrementLoading() == table2.isIncrementLoading()) {
@@ -332,6 +335,7 @@ public class TableService extends BasicService {
         String[] result = saved.toArray(new String[saved.size()]);
         return result;
     }
+
     public List<Pair<TableDesc, TableExtDesc>> extractTableMeta(String[] tables, String project) {
         // de-dup
         SetMultimap<String, String> databaseTables = LinkedHashMultimap.create();
@@ -1125,8 +1129,7 @@ public class TableService extends BasicService {
 
         NDataModel model = dataModelManager.getDataModelDesc(modelId);
         if (model == null) {
-            throw new KylinException(MODEL_NOT_EXIST,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelId));
+            throw new KylinException(MODEL_ID_NOT_EXIST, modelId);
         }
         val segmentConfig = NSegmentConfigHelper.getModelSegmentConfig(project, modelId);
         Preconditions.checkState(segmentConfig != null);
@@ -1163,8 +1166,7 @@ public class TableService extends BasicService {
 
         NDataModel model = dataModelManager.getDataModelDesc(modelId);
         if (model == null) {
-            throw new KylinException(MODEL_NOT_EXIST,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelId));
+            throw new KylinException(MODEL_ID_NOT_EXIST, modelId);
         }
         if (ManagementType.MODEL_BASED == model.getManagementType()) {
             NDataModel modelUpdate = dataModelManager.copyForWrite(model);
@@ -1426,8 +1428,8 @@ public class TableService extends BasicService {
         OptRecManagerV2.getInstance(projectName).discardAll(model.getId());
 
         try {
-            modelService.onUpdateDataModel(model, removeAffected, changeTypeAffected,
-                    projectName, context.getTableDesc());
+            modelService.onUpdateDataModel(model, removeAffected, changeTypeAffected, projectName,
+                    context.getTableDesc());
         } catch (TransactionException e) {
             Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);
             String tableName = context.getTableDesc().getName();
@@ -1437,8 +1439,7 @@ public class TableService extends BasicService {
                         MsgPicker.getMsg().getRELOAD_TABLE_CC_RETRY(), root.getMessage(), tableName, columnNames));
             } else if (root instanceof KylinException
                     && ((KylinException) root).getErrorCode() == QueryErrorCode.SCD2_COMMON_ERROR.toErrorCode()) {
-                throw new KylinException(RELOAD_TABLE_FAILED, String.format(Locale.ROOT,
-                        MsgPicker.getMsg().getRELOAD_TABLE_MODEL_RETRY(), tableName, columnNames, model.getAlias()));
+                throw new KylinException(TABLE_RELOAD_MODEL_RETRY, tableName, columnNames, model.getAlias());
             }
             throw e;
         }
@@ -1592,9 +1593,8 @@ public class TableService extends BasicService {
     private void checkEffectedJobs(TableDesc newTableDesc) {
         List<String> targetSubjectList = getEffectedJobs(newTableDesc, JobInfoEnum.JOB_TARGET_SUBJECT);
         if (CollectionUtils.isNotEmpty(targetSubjectList)) {
-            throw new KylinException(ON_GOING_JOB_EXIST,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getTABLE_RELOAD_HAVING_NOT_FINAL_JOB(),
-                            StringUtils.join(targetSubjectList.iterator(), ",")));
+            throw new KylinException(TABLE_RELOAD_HAVING_NOT_FINAL_JOB,
+                    StringUtils.join(targetSubjectList.iterator(), ","));
         }
     }
 
@@ -1793,7 +1793,9 @@ public class TableService extends BasicService {
         List<TableDesc> tables = tableManager.listAllTables();
         Set<String> loadedDatabases = new HashSet<>();
         for (TableDesc table : tables) {
-            loadedDatabases.add(table.getDatabase());
+            if (NTableMetadataManager.isTableAccessible(table)) {
+                loadedDatabases.add(table.getDatabase());
+            }
         }
         return loadedDatabases;
     }
@@ -2060,8 +2062,7 @@ public class TableService extends BasicService {
         aclEvaluate.checkProjectReadPermission(project);
         NDataModel model = getManager(NDataModelManager.class, project).getDataModelDescByAlias(modelAlias);
         if (Objects.isNull(model)) {
-            throw new KylinException(MODEL_NOT_EXIST,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelAlias));
+            throw new KylinException(MODEL_NAME_NOT_EXIST, modelAlias);
         }
         List<String> usedTableNames = Lists.newArrayList();
         usedTableNames.add(model.getRootFactTableName());

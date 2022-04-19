@@ -121,6 +121,7 @@ export default class SchemaModels {
       this.$set(this._mount, 'all_measures', this.all_measures)
       this.$set(this._mount, 'dimensions', this.dimensions)
       this.$set(this._mount, 'zoom', this.canvas && this.canvas.zoom || modelRenderConfig.zoom)
+      this.$set(this._mount, 'marginClient', this.canvas && this.canvas.marginClient || modelRenderConfig.marginClient)
       this.$set(this._mount, 'zoomXSpace', 0)
       this.$set(this._mount, 'zoomYSpace', 0)
       this.$set(this._mount, 'tableIndexColumns', this.tableIndexColumns)

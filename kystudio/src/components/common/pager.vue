@@ -12,13 +12,13 @@
 	</div>
 </template>
 <script>
-import { pageCount } from '../../config'
+import { bigPageCount } from '../../config'
 export default {
   name: 'pager',
   props: ['perPageSize', 'totalSize', 'curPage', 'totalSum', 'noBackground', 'layout'],
   data () {
     return {
-      pageSize: this.perPageSize || pageCount,
+      pageSize: this.perPageSize || bigPageCount,
       currentPage: this.curPage || 1,
       hasBackground: !(this.noBackground || false)
     }

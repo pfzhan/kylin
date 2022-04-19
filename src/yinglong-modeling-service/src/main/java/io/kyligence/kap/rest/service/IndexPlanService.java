@@ -23,6 +23,10 @@
  */
 package io.kyligence.kap.rest.service;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
+import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.INDEX_DUPLICATE;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -38,6 +42,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.secondstorage.SecondStorageUpdater;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -64,6 +70,7 @@ import org.apache.kylin.rest.response.AggIndexResponse;
 import org.apache.kylin.rest.response.DiffRuleBasedIndexResponse;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.SpringContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -184,7 +191,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
             return new Pair<>(indexPlanManager.getIndexPlan(originIndexPlan.getUuid()), response);
         } catch (Exception e) {
             logger.error("Update agg index failed...", e);
-            throw new KylinException(ServerErrorCode.FAILED_UPDATE_AGG_INDEX, e);
+            throw e;
         }
     }
 
@@ -205,7 +212,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
             return createTableIndex(project, request);
         } catch (Exception e) {
             logger.error("Update table index failed...", e);
-            throw new KylinException(ServerErrorCode.FAILED_UPDATE_TABLE_INDEX, e);
+            throw e;
         }
     }
 
@@ -259,7 +266,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
         IndexPlan indexPlan = indexPlanManager.getIndexPlan(modelId);
         for (LayoutEntity cuboidLayout : indexPlan.getAllLayouts()) {
             if (cuboidLayout.equals(newLayout) && cuboidLayout.isManual()) {
-                throw new KylinException(ServerErrorCode.DUPLICATE_INDEX, MsgPicker.getMsg().getDUPLICATE_LAYOUT());
+                throw new KylinException(INDEX_DUPLICATE);
             }
         }
         int layoutIndex = indexPlan.getWhitelistLayouts().indexOf(newLayout);
@@ -357,7 +364,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
             Set<Integer> invalidMeasures) {
         aclEvaluate.checkProjectWritePermission(project);
         if (CollectionUtils.isEmpty(ids)) {
-            throw new KylinException(ServerErrorCode.INVALID_PARAMETER, MsgPicker.getMsg().getLAYOUT_LIST_IS_EMPTY());
+            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getLAYOUT_LIST_IS_EMPTY());
         }
 
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
@@ -370,7 +377,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
                 .map(String::valueOf).collect(Collectors.joining(","));
 
         if (StringUtils.isNotEmpty(notExistsLayoutIds)) {
-            throw new KylinException(ServerErrorCode.INVALID_PARAMETER,
+            throw new KylinException(INVALID_PARAMETER,
                     String.format(Locale.ROOT, MsgPicker.getMsg().getLAYOUT_NOT_EXISTS(), notExistsLayoutIds));
         }
 
@@ -387,6 +394,8 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
         });
 
         modelChangeSupporters.forEach(listener -> listener.onUpdate(project, modelId));
+
+        updateSecondStorage(project, modelId);
     }
 
     private void removeAggGroup(Set<Integer> invalidDimensions, Set<Integer> invalidMeasures, IndexPlan indexPlan) {
@@ -539,7 +548,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
         val dimensions = model.getDimensionNameIdMap();
         for (String shardByColumn : request.getShardByColumns()) {
             if (!dimensions.containsKey(shardByColumn)) {
-                throw new KylinException(ServerErrorCode.PERMISSION_DENIED,
+                throw new KylinException(PERMISSION_DENIED,
                         String.format(Locale.ROOT, MsgPicker.getMsg().getCOLUMU_IS_NOT_DIMENSION(), shardByColumn));
             }
         }
@@ -1205,6 +1214,14 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
             response.setNeedCreateBaseTableIndex(true);
         }
         return response;
+    }
+
+    @Transaction(project = 0)
+    private void updateSecondStorage(String project, String modelId) {
+        if (SecondStorageUtil.isModelEnable(project, modelId)) {
+            SecondStorageUpdater updater = SpringContext.getBean(SecondStorageUpdater.class);
+            updater.onUpdate(project, modelId);
+        }
     }
 
     @Override

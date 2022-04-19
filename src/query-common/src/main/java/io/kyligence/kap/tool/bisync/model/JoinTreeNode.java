@@ -57,27 +57,29 @@ public class JoinTreeNode {
     public List<JoinTableDesc> iteratorAsList() {
         if (this.value == null) {
             return null;
-        } else {
-            Deque<JoinTreeNode> nodeDeque = new LinkedList<>();
-            List<JoinTableDesc> elements = new LinkedList<>();
-            nodeDeque.push(this);
-            breadthSerialize(nodeDeque, elements);
-            return elements;
-        }
+        } 
+        
+        Deque<JoinTreeNode> nodeDeque = new LinkedList<>();
+        List<JoinTableDesc> elements = new LinkedList<>();
+        nodeDeque.push(this);
+        breadthSerialize(nodeDeque, elements);
+        return elements;
+        
     }
 
     private void breadthSerialize(Deque<JoinTreeNode> nodeDeque, List<JoinTableDesc> elements) {
-        if (nodeDeque.size() == 0) {
+        if (nodeDeque.isEmpty()) {
             return;
-        } else {
-            JoinTreeNode node = nodeDeque.removeFirst();
-            elements.add(node.getValue());
-            if (node.getChildNodes() != null) {
-                for (JoinTreeNode childNode : node.getChildNodes()) {
-                    nodeDeque.addLast(childNode);
-                }
+        } 
+        
+        JoinTreeNode node = nodeDeque.removeFirst();
+        elements.add(node.getValue());
+        if (node.getChildNodes() != null) {
+            for (JoinTreeNode childNode : node.getChildNodes()) {
+                nodeDeque.addLast(childNode);
             }
-            breadthSerialize(nodeDeque, elements);
         }
+        breadthSerialize(nodeDeque, elements);
+        
     }
 }

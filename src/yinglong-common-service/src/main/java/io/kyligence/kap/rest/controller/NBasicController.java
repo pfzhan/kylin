@@ -34,10 +34,11 @@ import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_DOWNLOAD_
 import static org.apache.kylin.common.exception.ServerErrorCode.INCORRECT_PROJECT_MODE;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_RANGE;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_SEGMENT_PARAMETER;
-import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.UNSUPPORTED_STREAMING_OPERATION;
-import static org.apache.kylin.common.exception.ServerErrorCode.USER_UNAUTHORIZED;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_CONFLICT_PARAMETER;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_EMPTY_PARAMETER;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.USER_UNAUTHORIZED;
 import static org.apache.kylin.metadata.model.PartitionDesc.transformTimestamp2Format;
 
 import java.io.File;
@@ -68,6 +69,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigBase;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.DateFormat;
@@ -147,8 +149,7 @@ public class NBasicController {
             }
         }
 
-        throw new KylinException(PROJECT_NOT_EXIST,
-                String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
+        throw new KylinException(PROJECT_NOT_EXIST, project);
     }
 
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -260,7 +261,8 @@ public class NBasicController {
 
     protected void checkRequiredArg(String fieldName, Object fieldValue) {
         if (fieldValue == null || StringUtils.isEmpty(String.valueOf(fieldValue))) {
-            throw new KylinException(INVALID_PARAMETER, String.format(Locale.ROOT, "'%s' is required.", fieldName));
+            throw new KylinException(INVALID_PARAMETER,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getPARAMETER_IS_REQUIRED(), fieldName));
         }
     }
 
@@ -275,9 +277,7 @@ public class NBasicController {
     public List<String> makeUserNameCaseInSentive(List<String> userNames) {
         List<String> names = Lists.newArrayList();
         if (CollectionUtils.isNotEmpty(userNames)) {
-            userNames.forEach(name -> {
-                names.add(makeUserNameCaseInSentive(name));
-            });
+            userNames.forEach(name -> names.add(makeUserNameCaseInSentive(name)));
             userNames = names;
         }
         return userNames;
@@ -329,6 +329,7 @@ public class NBasicController {
             try {
                 inputStream.close();
             } catch (IOException ignore) {
+                //empty
             }
         }
     }
@@ -359,7 +360,7 @@ public class NBasicController {
         return data;
     }
 
-    public List<?> getDataNoEnvelopeResponse(List<?> result, int offset, int limit){
+    public List<?> getDataNoEnvelopeResponse(List<?> result, int offset, int limit) {
         return PagingUtil.cutPage(result, offset, limit);
     }
 
@@ -371,8 +372,7 @@ public class NBasicController {
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         ProjectInstance prjInstance = projectManager.getProject(project);
         if (prjInstance == null) {
-            throw new KylinException(PROJECT_NOT_EXIST,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
+            throw new KylinException(PROJECT_NOT_EXIST, project);
         }
         return prjInstance.getName();
     }
@@ -400,12 +400,12 @@ public class NBasicController {
 
         //both not empty
         if (ArrayUtils.isNotEmpty(ids) && ArrayUtils.isNotEmpty(names)) {
-            throw new KylinException(INVALID_SEGMENT_PARAMETER, MsgPicker.getMsg().getCONFLICT_SEGMENT_PARAMETER());
+            throw new KylinException(SEGMENT_CONFLICT_PARAMETER);
         }
 
         //both empty
         if (ArrayUtils.isEmpty(ids) && ArrayUtils.isEmpty(names)) {
-            throw new KylinException(INVALID_SEGMENT_PARAMETER, MsgPicker.getMsg().getEMPTY_SEGMENT_PARAMETER());
+            throw new KylinException(SEGMENT_EMPTY_PARAMETER);
         }
     }
 
@@ -580,4 +580,11 @@ public class NBasicController {
         }
     }
 
+    public void checkStreamingEnabled() {
+        val conf = KylinConfig.getInstanceFromEnv();
+        if (!conf.streamingEnabled()) {
+            throw new KylinException(ServerErrorCode.UNSUPPORTED_STREAMING_OPERATION,
+                    MsgPicker.getMsg().getStreamingDisabled());
+        }
+    }
 }

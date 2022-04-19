@@ -421,4 +421,9 @@ public class FusionModelServiceTest extends SourceTestCase {
         fusionModelService.setModelUpdateEnabled(DataResult.get(Arrays.asList(models.get(0)), 1));
         Assert.assertFalse(models.get(0).isModelUpdateEnabled());
     }
+
+    @Test
+    public void testModelExists() {
+        Assert.assertTrue(fusionModelService.modelExists("stream_merge1", "streaming_test"));
+    }
 }

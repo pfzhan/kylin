@@ -109,6 +109,11 @@ public class ModelQueryService extends BasicService implements ModelQuerySupport
             modelTripleList.removeIf(t -> !t.getDataModel().getUuid().equals(elem.getModelId()));
         }
 
+        if (!KylinConfig.getInstanceFromEnv().streamingEnabled()) {
+            modelTripleList = modelTripleList.parallelStream().filter(t ->
+                    !t.getDataModel().isStreaming()).collect(Collectors.toList());
+        }
+
         if (!modelAttributeSet.isEmpty()) {
             val isProjectEnable = SecondStorageUtil.isProjectEnable(elem.getProjectName());
             modelTripleList = modelTripleList.parallelStream()

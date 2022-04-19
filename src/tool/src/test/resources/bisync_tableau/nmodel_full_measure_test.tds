@@ -3,7 +3,7 @@
   <connection class="federated">
     <named-connections>
       <named-connection caption="localhost" name="kyligence_odbc.06xjot407mgsfe1bnnyt60p4vjuf">
-        <connection class="kyligence_odbc" dbname="default" odbc-connect-string-extras="PROJECT=default;CUBE=nmodel_full_measure_test" port="7070" schema="DEFAULT" server="localhost" username="ADMIN"/>
+        <connection class="kyligence_odbc" dbname="" odbc-connect-string-extras="PROJECT=default;CUBE=nmodel_full_measure_test" port="7070" schema="DEFAULT" server="localhost" username="ADMIN" vendor1="default" vendor2="nmodel_full_measure_test"/>
       </named-connection>
     </named-connections>
     <relation join="left" type="join">
@@ -109,7 +109,7 @@
   <column caption="COUNT_STAR" datatype="integer" name="[COUNT_STAR]" role="measure" type="quantitative">
     <calculation class="tableau" formula="COUNT(*)"/>
   </column>
-  <column caption="SUM_1" datatype="integer" name="[SUM_1]" role="measure" type="quantitative">
+  <column caption="求和" datatype="integer" name="[SUM_1]" role="measure" type="quantitative">
     <calculation class="tableau" formula="SUM(1)"/>
   </column>
   <column caption="SUM_2" datatype="real" name="[SUM_2]" role="measure" type="quantitative">

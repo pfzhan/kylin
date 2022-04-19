@@ -98,11 +98,19 @@ public enum LockTypeEnum {
         if (CollectionUtils.isEmpty(requestLocks) || CollectionUtils.isEmpty(existLocks)) {
             return false;
         }
+
         Set<String> requestLockSet = new HashSet<>(requestLocks);
+
+        if (requestLockSet.contains(LockTypeEnum.ALL.name()) && !existLocks.isEmpty()) {
+            return true;
+        }
+
         Set<String> existLockSet = new HashSet<>(existLocks);
+
         if (existLockSet.contains(LockTypeEnum.ALL.name()) || CollectionUtils.intersection(requestLockSet, existLockSet).size() > 0) {
             return true;
         }
+
         return false;
     }
 

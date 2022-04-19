@@ -53,11 +53,13 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import lombok.val;
 import scala.collection.JavaConversions;
-import scala.collection.JavaConverters;
+
+import static org.apache.spark.sql.hive.utils.ResourceDetectUtils.getResourceSize;
+import static scala.collection.JavaConverters.asScalaIteratorConverter;
 
 
 /**
- * After KE 4.3, we use {@link io.kyligence.kap.engine.spark.job.RDSegmentBuildJob} to detect build resource
+ * @deprecated After KE 4.3, we use {@link io.kyligence.kap.engine.spark.job.RDSegmentBuildJob} to detect build resource
  */
 @Deprecated
 public class ResourceDetectBeforeCubingJob extends SparkApplication {
@@ -105,7 +107,7 @@ public class ResourceDetectBeforeCubingJob extends SparkApplication {
                 List<Path> paths = JavaConversions
                         .seqAsJavaList(ResourceDetectUtils.getPaths(dataset.queryExecution().sparkPlan()));
                 resourceSize.put(String.valueOf(source.getLayoutId()),
-                    ResourceDetectUtils.getResourceSize(JavaConverters.asScalaIteratorConverter(paths.iterator()).asScala().toSeq()));
+                        getResourceSize(config.isConcurrencyFetchDataSourceSize(), asScalaIteratorConverter(paths.iterator()).asScala().toSeq()));
 
                 layoutLeafTaskNums.put(String.valueOf(source.getLayoutId()), Integer.parseInt(leafNodeNum));
             }

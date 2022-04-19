@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.service;
 
 import static io.kyligence.kap.common.constant.Constants.KE_VERSION;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_ID_NOT_EXIST;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -385,8 +386,7 @@ public class MetaStoreServiceTest extends ServiceTestBase {
     public void testExportNotExistsModel() throws Exception {
         String notExistsUuid = RandomUtil.randomUUIDStr();
         thrown.expect(KylinException.class);
-        thrown.expectMessage(String.format(Locale.ROOT, "Can’t find model named \"%s\". Please check and try again.",
-                notExistsUuid));
+        thrown.expectMessage(MODEL_ID_NOT_EXIST.getMsg(notExistsUuid));
         metaStoreService.getCompressedModelMetadata(getProject(), Lists.newArrayList(notExistsUuid), false, false,
                 false);
     }

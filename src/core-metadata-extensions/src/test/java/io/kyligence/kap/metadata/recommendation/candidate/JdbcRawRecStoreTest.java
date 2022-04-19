@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.metadata.recommendation.candidate;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.List;
 
 import org.apache.ibatis.session.SqlSession;
@@ -119,18 +121,18 @@ public class JdbcRawRecStoreTest extends NLocalFileMetadataTestCase {
         recItem.setCreateTime(ccRecItemV2.getCreateTime());
         recItem.setDependIDs(new int[] { 1, 2 });
         jdbcRawRecStore.save(recItem);
-        Assert.assertEquals(1, recItem.getId());
+        assertEquals(1, recItem.getId());
 
         // save CC rec item again
         ccRecItemV2.setCreateTime(1000);
         recItem.setCreateTime(10000L);
         recItem.setSemanticVersion(2);
         jdbcRawRecStore.save(recItem);
-        Assert.assertEquals(2, recItem.getId());
+        assertEquals(2, recItem.getId());
         recItem.setCreateTime(20000L);
         recItem.setSemanticVersion(1);
         jdbcRawRecStore.save(recItem);
-        Assert.assertEquals(3, recItem.getId());
+        assertEquals(3, recItem.getId());
 
         // create and save dimension rec item
         RawRecItem dimRecItem = new RawRecItem("test", "abc", 1, RawRecItem.RawRecType.DIMENSION);
@@ -140,7 +142,7 @@ public class JdbcRawRecStoreTest extends NLocalFileMetadataTestCase {
         dimRecItem.setDependIDs(new int[] { 1 });
         dimRecItem.setUniqueFlag("d__TABLE$1");
         jdbcRawRecStore.save(dimRecItem);
-        Assert.assertEquals(4, dimRecItem.getId());
+        assertEquals(4, dimRecItem.getId());
 
         // create and save measure rec item
         RawRecItem measureRawRecItem = new RawRecItem("test", "abc", 1, RawRecItem.RawRecType.MEASURE);
@@ -150,7 +152,7 @@ public class JdbcRawRecStoreTest extends NLocalFileMetadataTestCase {
         measureRawRecItem.setRecEntity(measureRecItemV2);
         measureRawRecItem.setUniqueFlag("m__TABLE$1");
         jdbcRawRecStore.save(measureRawRecItem);
-        Assert.assertEquals(5, measureRawRecItem.getId());
+        assertEquals(5, measureRawRecItem.getId());
 
         // create and save layout rec item
         RawRecItem layoutRawRecItem = new RawRecItem("test", "abc", 1, RawRecItem.RawRecType.ADDITIONAL_LAYOUT);
@@ -160,7 +162,7 @@ public class JdbcRawRecStoreTest extends NLocalFileMetadataTestCase {
         layoutRawRecItem.setRecEntity(layoutRecItemV2);
         layoutRawRecItem.setUniqueFlag("z7a0c38e-0fb0-480c-80e1-03039364991f");
         jdbcRawRecStore.save(layoutRawRecItem);
-        Assert.assertEquals(6, layoutRawRecItem.getId());
+        assertEquals(6, layoutRawRecItem.getId());
 
         // update
         final List<RawRecItem> rawRecItems = jdbcRawRecStore.listAll("test", "abc", 1, 10);
@@ -168,28 +170,28 @@ public class JdbcRawRecStoreTest extends NLocalFileMetadataTestCase {
         jdbcRawRecStore.update(rawRecItems);
 
         // validate
-        Assert.assertEquals(5, rawRecItems.size());
-        Assert.assertEquals(1, jdbcRawRecStore.listAll("test", "abc", 2, 10).size());
-        Assert.assertEquals(6, jdbcRawRecStore.listAll("test", "abc", 10).size());
-        Assert.assertEquals(1, rawRecItems.get(0).getId());
-        Assert.assertEquals(RawRecItem.RawRecType.COMPUTED_COLUMN, rawRecItems.get(0).getType());
-        Assert.assertEquals(1.0, rawRecItems.get(0).getCost(), 0.1);
+        assertEquals(5, rawRecItems.size());
+        assertEquals(1, jdbcRawRecStore.listAll("test", "abc", 2, 10).size());
+        assertEquals(6, jdbcRawRecStore.listAll("test", "abc", 10).size());
+        assertEquals(1, rawRecItems.get(0).getId());
+        assertEquals(RawRecItem.RawRecType.COMPUTED_COLUMN, rawRecItems.get(0).getType());
+        assertEquals(1.0, rawRecItems.get(0).getCost(), 0.1);
 
-        Assert.assertEquals(3, rawRecItems.get(1).getId());
-        Assert.assertEquals(RawRecItem.RawRecType.COMPUTED_COLUMN, rawRecItems.get(1).getType());
-        Assert.assertEquals(3.0, rawRecItems.get(1).getCost(), 0.1);
+        assertEquals(3, rawRecItems.get(1).getId());
+        assertEquals(RawRecItem.RawRecType.COMPUTED_COLUMN, rawRecItems.get(1).getType());
+        assertEquals(3.0, rawRecItems.get(1).getCost(), 0.1);
 
-        Assert.assertEquals(4, rawRecItems.get(2).getId());
-        Assert.assertEquals(RawRecItem.RawRecType.DIMENSION, rawRecItems.get(2).getType());
-        Assert.assertEquals(4.0, rawRecItems.get(2).getCost(), 0.1);
+        assertEquals(4, rawRecItems.get(2).getId());
+        assertEquals(RawRecItem.RawRecType.DIMENSION, rawRecItems.get(2).getType());
+        assertEquals(4.0, rawRecItems.get(2).getCost(), 0.1);
 
-        Assert.assertEquals(5, rawRecItems.get(3).getId());
-        Assert.assertEquals(RawRecItem.RawRecType.MEASURE, rawRecItems.get(3).getType());
-        Assert.assertEquals(5.0, rawRecItems.get(3).getCost(), 0.1);
+        assertEquals(5, rawRecItems.get(3).getId());
+        assertEquals(RawRecItem.RawRecType.MEASURE, rawRecItems.get(3).getType());
+        assertEquals(5.0, rawRecItems.get(3).getCost(), 0.1);
 
-        Assert.assertEquals(6, rawRecItems.get(4).getId());
-        Assert.assertEquals(RawRecItem.RawRecType.ADDITIONAL_LAYOUT, rawRecItems.get(4).getType());
-        Assert.assertEquals(6.0, rawRecItems.get(4).getCost(), 0.1);
+        assertEquals(6, rawRecItems.get(4).getId());
+        assertEquals(RawRecItem.RawRecType.ADDITIONAL_LAYOUT, rawRecItems.get(4).getType());
+        assertEquals(6.0, rawRecItems.get(4).getCost(), 0.1);
     }
 
     @Test
@@ -209,7 +211,7 @@ public class JdbcRawRecStoreTest extends NLocalFileMetadataTestCase {
         List<RawRecItem> recList = Lists.newArrayList(ccRawRecItem1, ccRawRecItem2);
         jdbcRawRecStore.batchAddOrUpdate(recList);
         List<RawRecItem> allRawRecItems = jdbcRawRecStore.queryAll();
-        Assert.assertEquals(2, allRawRecItems.size());
+        assertEquals(2, allRawRecItems.size());
 
         // create and batch save CC rec item again
         RawRecItem ccRawRecItem3 = new RawRecItem("test", "abc", 1, RawRecItem.RawRecType.COMPUTED_COLUMN);
@@ -223,7 +225,7 @@ public class JdbcRawRecStoreTest extends NLocalFileMetadataTestCase {
         ccRawRecItem4.setUniqueFlag("5 * TEST_KYLIN_FACT.PRICE");
         ccRawRecItem4.setDependIDs(new int[] { 1 });
         jdbcRawRecStore.batchAddOrUpdate(Lists.newArrayList(ccRawRecItem3, ccRawRecItem4));
-        Assert.assertEquals(4, jdbcRawRecStore.queryAll().size());
+        assertEquals(4, jdbcRawRecStore.queryAll().size());
 
         // create and save dimension rec item
         RawRecItem dimRecItem = new RawRecItem("test", "abc", 1, RawRecItem.RawRecType.DIMENSION);
@@ -233,7 +235,7 @@ public class JdbcRawRecStoreTest extends NLocalFileMetadataTestCase {
         dimRecItem.setDependIDs(new int[] { 1 });
         dimRecItem.setUniqueFlag("d__TABLE$1");
         jdbcRawRecStore.batchAddOrUpdate(Lists.newArrayList(dimRecItem));
-        Assert.assertEquals(5, dimRecItem.getId());
+        assertEquals(5, dimRecItem.getId());
 
         // create and save measure rec item
         RawRecItem measureRawRecItem = new RawRecItem("test", "abc", 1, RawRecItem.RawRecType.MEASURE);
@@ -243,7 +245,7 @@ public class JdbcRawRecStoreTest extends NLocalFileMetadataTestCase {
         measureRawRecItem.setRecEntity(measureRecItemV2);
         measureRawRecItem.setUniqueFlag("m__TABLE$1");
         jdbcRawRecStore.batchAddOrUpdate(Lists.newArrayList(measureRawRecItem));
-        Assert.assertEquals(6, measureRawRecItem.getId());
+        assertEquals(6, measureRawRecItem.getId());
 
         // create and save layout rec item
         RawRecItem layoutRawRecItem = new RawRecItem("test", "abc", 1, RawRecItem.RawRecType.ADDITIONAL_LAYOUT);
@@ -253,7 +255,7 @@ public class JdbcRawRecStoreTest extends NLocalFileMetadataTestCase {
         layoutRawRecItem.setRecEntity(layoutRecItemV2);
         layoutRawRecItem.setUniqueFlag("z7a0c38e-0fb0-480c-80e1-03039364991f");
         jdbcRawRecStore.batchAddOrUpdate(Lists.newArrayList(layoutRawRecItem));
-        Assert.assertEquals(7, layoutRawRecItem.getId());
+        assertEquals(7, layoutRawRecItem.getId());
 
         // update
         allRawRecItems = jdbcRawRecStore.queryAll();
@@ -262,33 +264,33 @@ public class JdbcRawRecStoreTest extends NLocalFileMetadataTestCase {
 
         // validate
         allRawRecItems = jdbcRawRecStore.queryAll();
-        Assert.assertEquals(1, allRawRecItems.get(0).getId(), 0.1);
-        Assert.assertEquals(RawRecItem.RawRecType.COMPUTED_COLUMN, allRawRecItems.get(0).getType());
-        Assert.assertEquals(1, allRawRecItems.get(0).getCost(), 0.1);
+        assertEquals(1, allRawRecItems.get(0).getId(), 0.1);
+        assertEquals(RawRecItem.RawRecType.COMPUTED_COLUMN, allRawRecItems.get(0).getType());
+        assertEquals(1, allRawRecItems.get(0).getCost(), 0.1);
 
-        Assert.assertEquals(2, allRawRecItems.get(1).getId(), 0.1);
-        Assert.assertEquals(RawRecItem.RawRecType.COMPUTED_COLUMN, allRawRecItems.get(1).getType());
-        Assert.assertEquals(2, allRawRecItems.get(1).getCost(), 0.1);
+        assertEquals(2, allRawRecItems.get(1).getId(), 0.1);
+        assertEquals(RawRecItem.RawRecType.COMPUTED_COLUMN, allRawRecItems.get(1).getType());
+        assertEquals(2, allRawRecItems.get(1).getCost(), 0.1);
 
-        Assert.assertEquals(3, allRawRecItems.get(2).getId(), 0.1);
-        Assert.assertEquals(RawRecItem.RawRecType.COMPUTED_COLUMN, allRawRecItems.get(2).getType());
-        Assert.assertEquals(3, allRawRecItems.get(2).getCost(), 0.1);
+        assertEquals(3, allRawRecItems.get(2).getId(), 0.1);
+        assertEquals(RawRecItem.RawRecType.COMPUTED_COLUMN, allRawRecItems.get(2).getType());
+        assertEquals(3, allRawRecItems.get(2).getCost(), 0.1);
 
-        Assert.assertEquals(4, allRawRecItems.get(3).getId(), 0.1);
-        Assert.assertEquals(RawRecItem.RawRecType.COMPUTED_COLUMN, allRawRecItems.get(3).getType());
-        Assert.assertEquals(4, allRawRecItems.get(3).getCost(), 0.1);
+        assertEquals(4, allRawRecItems.get(3).getId(), 0.1);
+        assertEquals(RawRecItem.RawRecType.COMPUTED_COLUMN, allRawRecItems.get(3).getType());
+        assertEquals(4, allRawRecItems.get(3).getCost(), 0.1);
 
-        Assert.assertEquals(5, allRawRecItems.get(4).getId(), 0.1);
-        Assert.assertEquals(RawRecItem.RawRecType.DIMENSION, allRawRecItems.get(4).getType());
-        Assert.assertEquals(5, allRawRecItems.get(4).getCost(), 0.1);
+        assertEquals(5, allRawRecItems.get(4).getId(), 0.1);
+        assertEquals(RawRecItem.RawRecType.DIMENSION, allRawRecItems.get(4).getType());
+        assertEquals(5, allRawRecItems.get(4).getCost(), 0.1);
 
-        Assert.assertEquals(6, allRawRecItems.get(5).getId(), 0.1);
-        Assert.assertEquals(RawRecItem.RawRecType.MEASURE, allRawRecItems.get(5).getType());
-        Assert.assertEquals(6, allRawRecItems.get(5).getCost(), 0.1);
+        assertEquals(6, allRawRecItems.get(5).getId(), 0.1);
+        assertEquals(RawRecItem.RawRecType.MEASURE, allRawRecItems.get(5).getType());
+        assertEquals(6, allRawRecItems.get(5).getCost(), 0.1);
 
-        Assert.assertEquals(7, allRawRecItems.get(6).getId(), 0.1);
-        Assert.assertEquals(RawRecItem.RawRecType.ADDITIONAL_LAYOUT, allRawRecItems.get(6).getType());
-        Assert.assertEquals(7, allRawRecItems.get(6).getCost(), 0.1);
+        assertEquals(7, allRawRecItems.get(6).getId(), 0.1);
+        assertEquals(RawRecItem.RawRecType.ADDITIONAL_LAYOUT, allRawRecItems.get(6).getType());
+        assertEquals(7, allRawRecItems.get(6).getCost(), 0.1);
 
         // test semantic version of model not exist
         RawRecItem recItem = jdbcRawRecStore.queryById(7);
@@ -329,20 +331,20 @@ public class JdbcRawRecStoreTest extends NLocalFileMetadataTestCase {
         prepare();
 
         // before delete
-        Assert.assertEquals(3, jdbcRawRecStore.queryAll().size());
+        assertEquals(3, jdbcRawRecStore.queryAll().size());
 
         // after delete
         jdbcRawRecStore.deleteByProject(TO_BE_DELETE);
-        Assert.assertEquals(1, jdbcRawRecStore.queryAll().size());
-        Assert.assertEquals("other", jdbcRawRecStore.queryAll().get(0).getProject());
+        assertEquals(1, jdbcRawRecStore.queryAll().size());
+        assertEquals("other", jdbcRawRecStore.queryAll().get(0).getProject());
     }
 
     @Test
     public void testDeleteAll() {
         prepare();
-        Assert.assertEquals(3, jdbcRawRecStore.queryAll().size());
+        assertEquals(3, jdbcRawRecStore.queryAll().size());
         jdbcRawRecStore.deleteAll();
-        Assert.assertEquals(0, jdbcRawRecStore.queryAll().size());
+        assertEquals(0, jdbcRawRecStore.queryAll().size());
     }
 
     @Test
@@ -372,12 +374,12 @@ public class JdbcRawRecStoreTest extends NLocalFileMetadataTestCase {
         jdbcRawRecStore.save(recItem3);
 
         // before delete
-        Assert.assertEquals(3, jdbcRawRecStore.queryAll().size());
+        assertEquals(3, jdbcRawRecStore.queryAll().size());
 
         // after delete
         jdbcRawRecStore.cleanForDeletedProject(Lists.newArrayList("other"));
-        Assert.assertEquals(1, jdbcRawRecStore.queryAll().size());
-        Assert.assertEquals("other", jdbcRawRecStore.queryAll().get(0).getProject());
+        assertEquals(1, jdbcRawRecStore.queryAll().size());
+        assertEquals("other", jdbcRawRecStore.queryAll().get(0).getProject());
     }
 
 }

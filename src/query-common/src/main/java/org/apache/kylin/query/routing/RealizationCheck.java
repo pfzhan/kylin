@@ -67,15 +67,19 @@ public class RealizationCheck {
     }
 
     public void addCapableCube(IRealization realization) {
+        //empty
     }
 
     public void addIncapableCube(IRealization realization) {
+        //empty
     }
 
     public void addIncapableCube(IRealization realization, IncapableReason incapableReason) {
+        //empty
     }
 
     public void addCubeIncapableReason(IRealization realization, IncapableReason incapableReason) {
+        //empty
     }
 
     public Map<NDataModel, Map<String, String>> getCapableModels() {
@@ -107,15 +111,7 @@ public class RealizationCheck {
     }
 
     public boolean isCubeCapable() {
-        //TODO
         return true;
-        //        for (Boolean capability : cubeCapabilities.values()) {
-        //            if (capability) {
-        //                return true;
-        //            }
-        //        }
-        //
-        //        return cubeIncapableReasons.isEmpty();
     }
 
     public boolean isCapable() {

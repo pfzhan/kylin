@@ -62,9 +62,9 @@ import io.kyligence.kap.rest.response.OpenValidationResponse;
 import io.kyligence.kap.rest.response.SuggestionResponse;
 import io.kyligence.kap.rest.service.ModelSmartService;
 import io.kyligence.kap.smart.AbstractContext;
-import io.kyligence.kap.smart.ModelCreateContextOfSemiV2;
-import io.kyligence.kap.smart.ModelReuseContextOfSemiV2;
-import io.kyligence.kap.smart.ModelSelectContextOfSemiV2;
+import io.kyligence.kap.smart.ModelCreateContext;
+import io.kyligence.kap.smart.ModelReuseContext;
+import io.kyligence.kap.smart.ModelSelectContext;
 import lombok.val;
 import lombok.var;
 
@@ -111,7 +111,7 @@ public class OpenSmartModelControllerTest extends NLocalFileMetadataTestCase {
     public void testCouldAnsweredByExistedModel() throws Exception {
         List<String> sqls = Lists.newArrayList("select price, count(*) from test_kylin_fact limit 1");
         FavoriteRequest favoriteRequest = new FavoriteRequest("default", sqls);
-        AbstractContext proposeContext = new ModelSelectContextOfSemiV2(getTestConfig(), favoriteRequest.getProject(),
+        AbstractContext proposeContext = new ModelSelectContext(getTestConfig(), favoriteRequest.getProject(),
                 sqls.toArray(new String[0]));
         Mockito.doReturn(proposeContext).when(modelSmartService).probeRecommendation(favoriteRequest.getProject(),
                 favoriteRequest.getSqls());
@@ -141,7 +141,7 @@ public class OpenSmartModelControllerTest extends NLocalFileMetadataTestCase {
         OpenSqlAccelerateRequest favoriteRequest = new OpenSqlAccelerateRequest("default", sqls, null);
 
         // reuse existed model
-        AbstractContext context = new ModelCreateContextOfSemiV2(getTestConfig(), favoriteRequest.getProject(),
+        AbstractContext context = new ModelCreateContext(getTestConfig(), favoriteRequest.getProject(),
                 sqls.toArray(new String[0]));
         val result = new SuggestionResponse(Lists.newArrayList(), Lists.newArrayList());
         Mockito.doReturn(context).when(modelSmartService).suggestModel(favoriteRequest.getProject(), sqls, false,
@@ -161,7 +161,7 @@ public class OpenSmartModelControllerTest extends NLocalFileMetadataTestCase {
         OpenSqlAccelerateRequest favoriteRequest = new OpenSqlAccelerateRequest("default", sqls, null);
 
         // reuse existed model
-        AbstractContext context = new ModelReuseContextOfSemiV2(getTestConfig(), favoriteRequest.getProject(),
+        AbstractContext context = new ModelReuseContext(getTestConfig(), favoriteRequest.getProject(),
                 sqls.toArray(new String[0]));
         val result = new SuggestionResponse(Lists.newArrayList(), Lists.newArrayList());
         Mockito.doReturn(context).when(modelSmartService).suggestModel(favoriteRequest.getProject(), sqls, true, false);
@@ -180,7 +180,7 @@ public class OpenSmartModelControllerTest extends NLocalFileMetadataTestCase {
         OpenSqlAccelerateRequest favoriteRequest = new OpenSqlAccelerateRequest("default", sqls, null);
 
         // reuse existed model
-        AbstractContext context = new ModelReuseContextOfSemiV2(getTestConfig(), favoriteRequest.getProject(),
+        AbstractContext context = new ModelReuseContext(getTestConfig(), favoriteRequest.getProject(),
                 sqls.toArray(new String[0]));
         val result = new SuggestionResponse(Lists.newArrayList(), Lists.newArrayList());
         Mockito.doReturn(context).when(modelSmartService).suggestModel(favoriteRequest.getProject(), sqls, true, false);

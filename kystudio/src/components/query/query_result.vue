@@ -129,7 +129,7 @@
                   </el-table-column>
                 </el-table>
 
-                <kap-pager v-on:handleCurrentChange='pageSizeChange' :curPage="currentPage+1" class="ksd-center ksd-mtb-16" ref="pager" :refTag="pageRefTags.queryResultPager" :totalSize="modelsTotal"></kap-pager>
+                <kap-pager v-on:handleCurrentChange='pageSizeChange' :curPage="currentPage+1" class="ksd-center ksd-mtb-16" ref="pager" :refTag="pageRefTags.queryResultPager" :perPageSize="pageSize" :totalSize="modelsTotal"></kap-pager>
               </template>
             </div>
             <form name="export" class="exportTool" action="/kylin/api/query/format/csv" method="post">
@@ -210,7 +210,7 @@ import { Component, Watch } from 'vue-property-decorator'
 import { mapActions, mapGetters } from 'vuex'
 import { scToFloat, showNull, handleSuccessAsync } from '../../util/index'
 import { hasRole, transToGmtTime, handleError } from '../../util/business'
-import { pageRefTags } from 'config'
+import { pageRefTags, pageCount } from 'config'
 import { getOptions, compareDataSize } from './handler'
 import IndexDetails from '../studio/StudioModel/ModelList/ModelAggregate/indexDetails'
 import ModelAggregate from '../studio/StudioModel/ModelList/ModelAggregate/index.vue'
@@ -356,7 +356,7 @@ export default class queryResult extends Vue {
   project = ''
   limit = ''
   showDetail = false
-  pageSize = +localStorage.getItem(this.pageRefTags.queryResultPager) || 10
+  pageSize = +localStorage.getItem(this.pageRefTags.queryResultPager) || pageCount
   currentPage = 0
   modelsTotal = this.extraoption.results && this.extraoption.results.length
   timer = null

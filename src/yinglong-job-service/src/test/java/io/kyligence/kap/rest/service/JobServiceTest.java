@@ -24,9 +24,13 @@
 
 package io.kyligence.kap.rest.service;
 
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_ACTION_ILLEGAL;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_STATUS_ILLEGAL;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_UPDATE_STATUS_FAILED;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.eq;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -56,9 +60,9 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.RandomUtil;
+import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.dao.ExecutablePO;
@@ -70,6 +74,7 @@ import org.apache.kylin.job.execution.ChainedStageExecutable;
 import org.apache.kylin.job.execution.DefaultOutput;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.FiveSecondSucceedTestExecutable;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.execution.StageBase;
 import org.apache.kylin.job.execution.SucceedChainedTestExecutable;
@@ -214,7 +219,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
             AbstractExecutable exe = executableManager.fromPO(po);
             Mockito.when(executableManager.getJob(po.getId())).thenReturn(exe);
         }
-
+        getTestConfig().setProperty("kylin.streaming.enabled", "false");
         // test size
         List<String> jobNames = Lists.newArrayList();
         JobFilter jobFilter = new JobFilter(Lists.newArrayList(), jobNames, 4, "", "", "default", "", true);
@@ -287,6 +292,9 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(3, jobs13.getValue().size());
 
         String jobId = jobs13.getValue().get(0).getId();
+        for (ExecutablePO job : mockJobs) {
+            job.setJobType(JobTypeEnum.TABLE_SAMPLING);
+        }
         jobFilter.setKey(jobId);
         DataResult<List<ExecutableResponse>> jobs14 = jobService.listJobs(jobFilter, 0, 10);
         Assert.assertTrue(jobs14.getValue().size() == 1 && jobs14.getValue().get(0).getId().equals(jobId));
@@ -308,7 +316,6 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(executableManager, "executableDao", executableDao);
         val mockJobs = mockDetailJobs(true);
         Mockito.when(executableDao.getJobs(Mockito.anyLong(), Mockito.anyLong())).thenReturn(mockJobs);
-
         {
             List<String> jobNames = Lists.newArrayList();
             JobFilter jobFilter = new JobFilter(Lists.newArrayList(), jobNames, 0, "", "", "default", "total_duration",
@@ -322,6 +329,19 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
             Assert.assertEquals(3, copyDurationList.size());
             Assert.assertEquals(totalDurationArrays, copyDurationList);
         }
+
+        for (int i = 0; i < 3; i++) {
+            if (i < 2) {
+                mockJobs.get(i).setJobType(JobTypeEnum.SECOND_STORAGE_NODE_CLEAN);
+            } else {
+                mockJobs.get(i).setJobType(JobTypeEnum.TABLE_SAMPLING);
+            }
+        }
+        List<String> jobNames = Lists.newArrayList();
+        JobFilter jobFilter = new JobFilter(Lists.newArrayList(), jobNames, 0, "", "default", "default", "",
+                false);
+        List<ExecutableResponse> jobs = jobService.listJobs(jobFilter);
+        Assert.assertEquals(2, jobs.size());
     }
 
     private List<ProjectInstance> mockProjects() {
@@ -936,7 +956,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         manager.updateJobOutput(executable.getId(), ExecutableState.SUCCEED, null, null, null);
         Assert.assertEquals(ExecutableState.SUCCEED, executable.getStatus());
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Can’t DISCARD job");
+        thrown.expectMessage(JOB_UPDATE_STATUS_FAILED.getMsg("DISCARD", executable.getId(), ExecutableState.SUCCEED));
         jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "DISCARD",
                 Lists.newArrayList());
     }
@@ -1065,6 +1085,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
             }
             job1.setCreateTime(executable.getCreateTime());
             job1.getOutput().setCreateTime(executable.getCreateTime());
+            job1.getOutput().getInfo().put("applicationid", "app000");
 
             job1.setType("org.apache.kylin.job.execution.SucceedChainedTestExecutable");
             job1.setProject(executable.getProject());
@@ -1117,7 +1138,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         mockJob.setTasks(tasks);
 
         jobOutput.setEndTime(lastEndTime);
-        Mockito.when(executableDao.getJobByUuid(mockJob.getId())).thenReturn(mockJob);
+        Mockito.when(executableDao.getJobByUuid(eq(mockJob.getId()))).thenReturn(mockJob);
         return mockJob;
     }
 
@@ -1293,7 +1314,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
     public void testCheckJobStatus() {
         jobService.checkJobStatus(Lists.newArrayList("RUNNING"));
         thrown.expect(KylinException.class);
-        thrown.expectMessage(MsgPicker.getMsg().getILLEGAL_JOB_STATE());
+        thrown.expectMessage(JOB_STATUS_ILLEGAL.getMsg());
         jobService.checkJobStatus("UNKNOWN");
     }
 
@@ -1304,8 +1325,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         request.setAction("PAUSE");
         jobService.checkJobStatusAndAction(request);
         thrown.expect(KylinException.class);
-        thrown.expectMessage(String.format(Locale.ROOT, MsgPicker.getMsg().getILLEGAL_JOB_ACTION(), "RUNNING",
-                "DISCARD, PAUSE, RESTART"));
+        thrown.expectMessage(JOB_ACTION_ILLEGAL.getMsg("RUNNING", "DISCARD, PAUSE, RESTART"));
         jobService.checkJobStatusAndAction("RUNNING", "RESUME");
     }
 
@@ -1358,5 +1378,26 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         jobService.killExistApplication(executable);
 
         jobService.killExistApplication(getProject(), executable.getId());
+    }
+
+    @Test
+    public void testHistoryTrackerUrl() {
+        getTestConfig().setProperty("kylin.history-server.enable", "true");
+        AbstractExecutable task = new FiveSecondSucceedTestExecutable();
+        task.setProject("default");
+        DefaultOutput stepOutput = new DefaultOutput();
+        stepOutput.setState(ExecutableState.RUNNING);
+        stepOutput.setExtra(new HashMap<>());
+        Map<String, String> waiteTimeMap = new HashMap<>();
+        ExecutableState jobState = ExecutableState.RUNNING;
+        ExecutableStepResponse result = jobService.parseToExecutableStep(task, stepOutput, waiteTimeMap, jobState);
+        assert !result.getInfo().containsKey(ExecutableConstants.SPARK_HISTORY_APP_URL);
+        stepOutput.getExtra().put(ExecutableConstants.YARN_APP_ID, "app-id");
+        result = jobService.parseToExecutableStep(task, stepOutput, waiteTimeMap, jobState);
+        assert result.getInfo().containsKey(ExecutableConstants.SPARK_HISTORY_APP_URL);
+        getTestConfig().setProperty("kylin.history-server.enable", "false");
+        result = jobService.parseToExecutableStep(task, stepOutput, waiteTimeMap, jobState);
+        assert !result.getInfo().containsKey(ExecutableConstants.SPARK_HISTORY_APP_URL);
+
     }
 }

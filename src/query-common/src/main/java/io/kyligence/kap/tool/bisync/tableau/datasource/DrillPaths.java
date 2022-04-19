@@ -67,12 +67,7 @@ public class DrillPaths {
         }
         if (getDrillPathList() != null && thatDrillPathList != null
                 && getDrillPathList().size() == thatDrillPathList.size()) {
-            Comparator<DrillPath> drillPathComparator = new Comparator<DrillPath>() {
-                @Override
-                public int compare(DrillPath o1, DrillPath o2) {
-                    return o1.getName().compareTo(o2.getName());
-                }
-            };
+            Comparator<DrillPath> drillPathComparator = (o1, o2) -> o1.getName().compareTo(o2.getName());
             Collections.sort(getDrillPathList(), drillPathComparator);
             Collections.sort(thatDrillPathList, drillPathComparator);
 

@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_NOT_EXIST;
 
 import java.util.List;
 import java.util.Locale;
@@ -482,7 +483,7 @@ public class ResourceGroupControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Can't find project \"213\". Please check and try again.");
+        thrown.expectMessage(PROJECT_NOT_EXIST.getMsg("213"));
         resourceGroupController.updateResourceGroup(request);
     }
 

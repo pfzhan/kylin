@@ -29,6 +29,7 @@ import static io.kyligence.kap.smart.model.GreedyModelTreesBuilderTest.smartUtHo
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.kylin.common.KylinConfig;
@@ -48,6 +49,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.query.util.QueryAliasMatcher;
+import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.model.ModelTree;
 import io.kyligence.kap.smart.util.AccelerationContextUtil;
 import lombok.val;
@@ -519,6 +521,8 @@ public class ModelSelectProposerTest extends NLocalWithSparkSessionTest {
 
         String alias1 = context1.getModelContexts().get(0).getTargetModel().getAlias();
         String alias2 = context2.getModelContexts().get(0).getTargetModel().getAlias();
+        String uuid1 = context1.getModelContexts().get(0).getTargetModel().getUuid();
+        String uuid2 = context2.getModelContexts().get(0).getTargetModel().getUuid();
 
         String sql3 = "SELECT /*+ MODEL_PRIORITY(" + alias1 + ")*/ TRANS_ID,sum(TRANS_ID)" //
                 + "FROM test_kylin_fact group by  TRANS_ID";
@@ -532,8 +536,15 @@ public class ModelSelectProposerTest extends NLocalWithSparkSessionTest {
         context3.setCanCreateNewModel(true);
         runSuggestModelAndSave(context3);
         Assert.assertEquals(2, context3.getModelContexts().size());
-        Assert.assertEquals(alias1, context3.getModelContexts().get(0).getTargetModel().getAlias());
-        Assert.assertEquals(alias2, context3.getModelContexts().get(1).getTargetModel().getAlias());
+        Assert.assertEquals(uuid1, getAcceleratedModelId(context3, sql3));
+        Assert.assertEquals(uuid2, getAcceleratedModelId(context3, sql4));
+        Assert.assertEquals(uuid1, getAcceleratedModelId(context3, sql5));
+    }
+
+    private String getAcceleratedModelId(AbstractContext context, String sql) {
+        AccelerateInfo accelerateInfo = context.getAccelerateInfoMap().get(sql);
+        Set<AccelerateInfo.QueryLayoutRelation> relatedLayouts = accelerateInfo.getRelatedLayouts();
+        return relatedLayouts.iterator().next().getModelId();
     }
 
     @Test

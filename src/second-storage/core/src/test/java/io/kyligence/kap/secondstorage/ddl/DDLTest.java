@@ -28,6 +28,8 @@ import io.kyligence.kap.secondstorage.ddl.exp.ColumnWithType;
 import io.kyligence.kap.secondstorage.ddl.exp.TableIdentifier;
 import org.junit.Test;
 
+import java.sql.SQLException;
+
 import static org.junit.Assert.assertEquals;
 
 public class DDLTest {
@@ -64,13 +66,13 @@ public class DDLTest {
     }
 
     @Test
-    public void testInsertInto() {
+    public void testInsertInto() throws SQLException {
         final InsertInto insertInto = InsertInto.insertInto("pufa", "xx").from("pufa", "ut");
         assertEquals("INSERT INTO `pufa`.`xx` SELECT * FROM `pufa`.`ut`", insertInto.toSql());
     }
 
     @Test
-    public void testInsertIntoValue() {
+    public void testInsertIntoValue() throws SQLException {
         final InsertInto insertInto =
                 InsertInto.insertInto("pufa", "xx").set("column1", 42).set(
                         "column2", "xyz");

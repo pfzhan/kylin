@@ -53,6 +53,9 @@ import io.kyligence.kap.query.util.RexUtils;
 import io.kyligence.kap.util.CalciteSystemProperty;
 
 public class ContextUtil {
+    private ContextUtil() {
+    }
+
     /**
      * used for collect a rel node's all subContext, which contain the context of itself
      *
@@ -222,7 +225,7 @@ public class ContextUtil {
     }
 
     private static boolean areSubJoinRelsSameType(RelNode kapRel, OLAPContext subContext, JoinRelType expectedJoinType,
-            Class joinCondClz) {
+            Class<?> joinCondClz) {
         OLAPContext ctx = ((KapRel) kapRel).getContext();
         if (ctx != null && ctx != subContext)
             return false;
@@ -242,7 +245,7 @@ public class ContextUtil {
             }
             return false;
         }
-        return kapRel.getInputs().size() == 0
+        return kapRel.getInputs().isEmpty()
                 || areSubJoinRelsSameType(kapRel.getInput(0), subContext, expectedJoinType, joinCondClz);
     }
 

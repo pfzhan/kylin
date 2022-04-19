@@ -51,6 +51,7 @@ import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.source.adhocquery.PushdownResult;
+import org.apache.spark.SparkException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,6 +75,7 @@ public class QueryRoutingEngine {
 
     // reference org.apache.spark.deploy.yarn.YarnAllocator.memLimitExceededLogMessage
     public static final String SPARK_MEM_LIMIT_EXCEEDED = "Container killed by YARN for exceeding memory limits";
+    public static final String SPARK_JOB_FAILED = "Job aborted due to stage failure";
 
     public QueryResult queryWithSqlMassage(QueryParams queryParams) throws Exception {
         QueryContext.current().setAclInfo(queryParams.getAclInfo());
@@ -150,6 +152,10 @@ public class QueryRoutingEngine {
         }
 
         if (e.getCause() instanceof NoStreamingRealizationFoundException) {
+            return false;
+        }
+
+        if (e.getCause() instanceof SparkException && e.getCause().getMessage().contains(SPARK_JOB_FAILED)) {
             return false;
         }
 

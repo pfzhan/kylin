@@ -28,7 +28,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.query.relnode.OLAPContext;
@@ -53,8 +52,7 @@ public class JoinProposer extends AbstractModelProposer {
         Map<String, JoinTableDesc> joinTables = new HashMap<>();
 
         // step 1. produce unique aliasMap
-        TableAliasGenerator.TableAliasDict dict = TableAliasGenerator
-                .generateCommonDictForSpecificModel(KylinConfig.getInstanceFromEnv(), project);
+        TableAliasGenerator.TableAliasDict dict = TableAliasGenerator.generateCommonDictForSpecificModel(project);
         Map<TableRef, String> uniqueTblAliasMap = GreedyModelTreesBuilder.TreeBuilder
                 .getUniqueTblAliasBasedOnPosInGraph(modelDesc.getJoinsGraph(), dict);
         for (OLAPContext ctx : modelTree.getOlapContexts()) {

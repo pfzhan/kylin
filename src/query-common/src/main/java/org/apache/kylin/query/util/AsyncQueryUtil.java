@@ -64,6 +64,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Lists;
 
 public class AsyncQueryUtil {
+    private AsyncQueryUtil() {
+    }
 
     private static final Logger logger = LoggerFactory.getLogger(AsyncQueryUtil.class);
 

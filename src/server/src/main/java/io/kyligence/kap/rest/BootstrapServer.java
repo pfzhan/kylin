@@ -48,9 +48,12 @@ import org.springframework.context.annotation.ImportResource;
 import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.session.config.annotation.web.http.EnableSpringHttpSession;
 import org.springframework.session.web.http.CookieSerializer;
 import org.springframework.session.web.http.DefaultCookieSerializer;
 
+import io.kyligence.kap.guava20.shaded.common.hash.Hashing;
+import io.kyligence.kap.guava20.shaded.common.base.Charsets;
 import io.kyligence.kap.common.util.EncryptUtil;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import lombok.val;
@@ -62,6 +65,7 @@ import lombok.val;
 @EnableCaching
 @EnableDiscoveryClient
 @LoadBalancerClient(name = "spring-boot-provider", configuration = io.kyligence.kap.rest.LoadBalanced.class)
+@EnableSpringHttpSession
 public class BootstrapServer implements ApplicationListener<ApplicationEvent> {
 
     private static final Logger logger = LoggerFactory.getLogger(BootstrapServer.class);
@@ -108,6 +112,7 @@ public class BootstrapServer implements ApplicationListener<ApplicationEvent> {
         String cookieName = url.getIdentifier()
                 + (url.getParameter("url") == null ? "" : "_" + url.getParameter("url"));
         cookieName = cookieName.replaceAll("\\W", "_");
+        cookieName = Hashing.sha256().newHasher().putString(cookieName, Charsets.UTF_8).hash().toString();
         serializer.setCookieName(cookieName);
         return serializer;
     }

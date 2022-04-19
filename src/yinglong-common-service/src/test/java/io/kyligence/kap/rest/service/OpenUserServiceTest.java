@@ -42,6 +42,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -69,6 +70,10 @@ public class OpenUserServiceTest extends NLocalFileMetadataTestCase {
     @Autowired
     @Qualifier("userGroupService")
     private OpenUserGroupService userGroupService;
+
+    @Autowired
+    @Qualifier("customAuthProvider")
+    private AuthenticationProvider authenticationProvider;
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
@@ -193,5 +198,15 @@ public class OpenUserServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(groupUsers.containsKey(Constant.ROLE_ANALYST));
         Assert.assertTrue(groupUsers.get(Constant.ROLE_ADMIN).contains("admin"));
         Assert.assertTrue(groupUsers.get(Constant.ROLE_ANALYST).contains("test"));
+    }
+
+    @Test
+    public void testBeanInit() {
+        Assert.assertTrue(userService.getClass().getName()
+                .startsWith("io.kyligence.kap.rest.service.StaticUserService"));
+        Assert.assertTrue(userGroupService.getClass().getName()
+                .startsWith("io.kyligence.kap.rest.service.StaticUserGroupService"));
+        Assert.assertTrue(authenticationProvider.getClass().getName()
+                .startsWith("io.kyligence.kap.rest.security.StaticAuthenticationProvider"));
     }
 }

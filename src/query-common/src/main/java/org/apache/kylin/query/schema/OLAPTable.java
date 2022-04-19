@@ -44,7 +44,6 @@ package org.apache.kylin.query.schema;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -55,7 +54,6 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.query.QueryExtension;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.linq4j.Enumerable;
@@ -102,6 +100,7 @@ import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.query.QueryExtension;
 import lombok.val;
 
 /**
@@ -110,8 +109,8 @@ public class OLAPTable extends AbstractQueryableTable implements TranslatableTab
 
     protected static final Logger logger = LoggerFactory.getLogger(OLAPTable.class);
 
-    private static Map<String, SqlTypeName> SQLTYPE_MAPPING = new HashMap<String, SqlTypeName>();
-    private static Map<String, SqlTypeName> REGEX_SQLTYPE_MAPPING = new HashMap<String, SqlTypeName>();
+    private static Map<String, SqlTypeName> SQLTYPE_MAPPING = new HashMap<>();
+    private static Map<String, SqlTypeName> REGEX_SQLTYPE_MAPPING = new HashMap<>();
 
     static {
         SQLTYPE_MAPPING.put("char", SqlTypeName.CHAR);
@@ -253,7 +252,7 @@ public class OLAPTable extends AbstractQueryableTable implements TranslatableTab
         List<ColumnDesc> metricColumns = Lists.newArrayList();
         List<MeasureDesc> countMeasures = mgr.listEffectiveRewriteMeasures(olapSchema.getProjectName(),
                 sourceTable.getIdentity());
-        HashSet<String> metFields = new HashSet<String>();
+        HashSet<String> metFields = new HashSet<>();
         for (MeasureDesc m : countMeasures) {
 
             FunctionDesc func = m.getFunction();
@@ -270,12 +269,7 @@ public class OLAPTable extends AbstractQueryableTable implements TranslatableTab
             }
         }
 
-        Collections.sort(tableColumns, new Comparator<ColumnDesc>() {
-            @Override
-            public int compare(ColumnDesc o1, ColumnDesc o2) {
-                return o1.getZeroBasedIndex() - o2.getZeroBasedIndex();
-            }
-        });
+        Collections.sort(tableColumns, (o1, o2) -> o1.getZeroBasedIndex() - o2.getZeroBasedIndex());
         return Lists.newArrayList(Iterables.concat(tableColumns, metricColumns));
     }
 
@@ -397,7 +391,7 @@ public class OLAPTable extends AbstractQueryableTable implements TranslatableTab
 
     @Override
     public Statistic getStatistic() {
-        List<ImmutableBitSet> keys = new ArrayList<ImmutableBitSet>();
+        List<ImmutableBitSet> keys = new ArrayList<>();
         return Statistics.of(100, keys);
     }
 

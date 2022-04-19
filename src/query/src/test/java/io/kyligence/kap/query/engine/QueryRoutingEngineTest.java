@@ -24,13 +24,20 @@
 
 package io.kyligence.kap.query.engine;
 
+import static io.kyligence.kap.query.engine.QueryRoutingEngine.SPARK_JOB_FAILED;
 import static io.kyligence.kap.query.engine.QueryRoutingEngine.SPARK_MEM_LIMIT_EXCEEDED;
 
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.QueryErrorCode;
 import org.apache.kylin.common.persistence.InMemResourceStore;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.metadata.realization.NoStreamingRealizationFoundException;
 import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.source.adhocquery.PushdownResult;
 import org.apache.spark.SparkException;
@@ -41,6 +48,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
+import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.query.QueryExtension;
 
@@ -80,15 +88,44 @@ public class QueryRoutingEngineTest extends NLocalFileMetadataTestCase {
 
         Mockito.doAnswer(invocation -> {
             pushdownCount++;
-            Assert.assertTrue(
-                    ResourceStore.getKylinMetaStore(kylinconfig) instanceof InMemResourceStore);
+            Assert.assertTrue(ResourceStore.getKylinMetaStore(kylinconfig) instanceof InMemResourceStore);
             return PushdownResult.emptyResult();
         }).when(queryRoutingEngine).tryPushDownSelectQuery(Mockito.any(), Mockito.any(), Mockito.anyBoolean());
 
         queryRoutingEngine.queryWithSqlMassage(queryParams);
         Assert.assertTrue(QueryContext.current().getQueryTagInfo().isPushdown());
-
         Assert.assertEquals(1, pushdownCount);
+
+        //to cover force push down
+        queryParams.setForcedToPushDown(true);
+
+        Mockito.doAnswer(invocation -> {
+            pushdownCount++;
+            Assert.assertTrue(ResourceStore.getKylinMetaStore(kylinconfig) instanceof InMemResourceStore);
+            return PushdownResult.emptyResult();
+        }).when(queryRoutingEngine).tryPushDownSelectQuery(Mockito.any(), Mockito.any(), Mockito.anyBoolean());
+
+        queryRoutingEngine.queryWithSqlMassage(queryParams);
+        Assert.assertTrue(QueryContext.current().getQueryTagInfo().isPushdown());
+        Assert.assertEquals(2, pushdownCount);
+
+        // Throw Exception When push down
+        Mockito.doThrow(new KylinException(QueryErrorCode.SCD2_DUPLICATE_JOIN_COL, "")).when(queryRoutingEngine)
+                .tryPushDownSelectQuery(Mockito.any(), Mockito.any(), Mockito.anyBoolean());
+        try {
+            queryRoutingEngine.queryWithSqlMassage(queryParams);
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+        }
+
+        Mockito.doThrow(new Exception("")).when(queryRoutingEngine).tryPushDownSelectQuery(Mockito.any(), Mockito.any(),
+                Mockito.anyBoolean());
+        try {
+            queryRoutingEngine.queryWithSqlMassage(queryParams);
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof RuntimeException);
+        }
+
     }
 
     @Test
@@ -119,4 +156,72 @@ public class QueryRoutingEngineTest extends NLocalFileMetadataTestCase {
                     || e.getCause().getMessage().contains(SPARK_MEM_LIMIT_EXCEEDED));
         }
     }
+
+    @Test
+    public void testThrowExceptionWhenSparkJobFailed() throws Exception {
+        final String sql = "select * from success_table_2";
+        final String project = "default";
+        KylinConfig kylinconfig = KylinConfig.getInstanceFromEnv();
+
+        QueryParams queryParams = new QueryParams();
+        queryParams.setProject(project);
+        queryParams.setSql(sql);
+        queryParams.setKylinConfig(kylinconfig);
+        queryParams.setSelect(true);
+        //to cover PrepareStatement
+        queryParams.setPrepare(true);
+        queryParams.setPrepareStatementWithParams(true);
+        PrepareSqlStateParam[] params = new PrepareSqlStateParam[11];
+        params[0] = new PrepareSqlStateParam(String.class.getName(), "1");
+        params[1] = new PrepareSqlStateParam(Integer.class.getName(), "1");
+        params[2] = new PrepareSqlStateParam(Short.class.getName(), "1");
+        params[3] = new PrepareSqlStateParam(Long.class.getName(), "1");
+        params[4] = new PrepareSqlStateParam(Float.class.getName(), "1.1");
+        params[5] = new PrepareSqlStateParam(Double.class.getName(), "1.1");
+        params[6] = new PrepareSqlStateParam(Boolean.class.getName(), "1");
+        params[7] = new PrepareSqlStateParam(Byte.class.getName(), "1");
+        params[8] = new PrepareSqlStateParam(Date.class.getName(), "2022-02-22");
+        params[9] = new PrepareSqlStateParam(Time.class.getName(), "22:22:22");
+        params[10] = new PrepareSqlStateParam(Timestamp.class.getName(), "2022-02-22 22:22:22.22");
+        queryParams.setParams(params);
+
+        Mockito.doThrow(
+                new TransactionException("", new Throwable(new SparkException("Job aborted due to stage failure: "))))
+                .when(queryRoutingEngine).execute(Mockito.anyString(), Mockito.any());
+
+        try {
+            queryRoutingEngine.queryWithSqlMassage(queryParams);
+        } catch (Exception e) {
+            Assert.assertTrue(
+                    e.getCause() instanceof SparkException || e.getCause().getCause() instanceof SparkException);
+            Assert.assertTrue(e.getCause().getMessage().contains(SPARK_JOB_FAILED)
+                    || e.getCause().getCause().getMessage().contains(SPARK_JOB_FAILED));
+            Assert.assertFalse(QueryContext.current().getQueryTagInfo().isPushdown());
+        }
+    }
+
+    @Test
+    public void testThrowExceptionWhenNoStreamingRealizationFound() throws Exception {
+        final String sql = "select * from success_table_2";
+        final String project = "default";
+        KylinConfig kylinconfig = KylinConfig.getInstanceFromEnv();
+
+        QueryParams queryParams = new QueryParams();
+        queryParams.setProject(project);
+        queryParams.setSql(sql);
+        queryParams.setKylinConfig(kylinconfig);
+        queryParams.setSelect(true);
+
+        Mockito.doThrow(new TransactionException("", new Throwable(new NoStreamingRealizationFoundException(""))))
+                .when(queryRoutingEngine).execute(Mockito.anyString(), Mockito.any());
+
+        try {
+            queryRoutingEngine.queryWithSqlMassage(queryParams);
+        } catch (Exception e) {
+            Assert.assertTrue(e.getCause() instanceof NoStreamingRealizationFoundException
+                    || e.getCause().getCause() instanceof NoStreamingRealizationFoundException);
+            Assert.assertFalse(QueryContext.current().getQueryTagInfo().isPushdown());
+        }
+    }
+
 }

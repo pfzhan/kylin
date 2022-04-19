@@ -24,12 +24,15 @@
 
 package io.kyligence.kap.metadata.model.exception;
 
-import org.apache.kylin.common.exception.ErrorCodeSupplier;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.code.ErrorCodeProducer;
 
 public class IllegalCCExpressionException extends KylinException {
-    public IllegalCCExpressionException(ErrorCodeSupplier code, String msg) {
+    public IllegalCCExpressionException(org.apache.kylin.common.exception.ErrorCodeSupplier code, String msg) {
         super(code, msg);
     }
 
+    public IllegalCCExpressionException(ErrorCodeProducer errorCodeProducer, Object... args) {
+        super(errorCodeProducer, args);
+    }
 }

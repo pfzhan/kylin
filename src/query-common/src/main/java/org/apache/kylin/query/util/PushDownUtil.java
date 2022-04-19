@@ -194,7 +194,7 @@ public class PushDownUtil {
         // pushdown
         List<List<String>> returnRows = PushDownUtil.selectPartitionColumn(sql, project).getFirst();
 
-        if (returnRows.size() == 0 || returnRows.get(0).get(0) == null || returnRows.get(0).get(1) == null)
+        if (returnRows.isEmpty() || returnRows.get(0).get(0) == null || returnRows.get(0).get(1) == null)
             throw new BadRequestException(String.format(Locale.ROOT, MsgPicker.getMsg().getNO_DATA_IN_TABLE(), table));
 
         result.setFirst(returnRows.get(0).get(0));
@@ -286,13 +286,20 @@ public class PushDownUtil {
         return false;
     }
 
-    public static String calcStart(String start, SegmentRange coveredRange) {
+    public static String calcStart(String start, SegmentRange<?> coveredRange) {
         if (coveredRange != null) {
             start = coveredRange.getEnd().toString();
         }
         return start;
     }
 
+    /**
+     * 
+     * @param queryParams
+     * @return
+     * @throws Exception
+     * @deprecated
+     */
     @Deprecated
     public static Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownQuery(QueryParams queryParams) throws Exception {
         val results = tryPushDownQueryToIterator(queryParams);

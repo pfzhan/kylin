@@ -52,9 +52,7 @@ import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
-import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Values;
@@ -66,7 +64,6 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.kylin.metadata.model.TblColRef;
 
-import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
@@ -83,15 +80,8 @@ public class OLAPValuesRel extends Values implements OLAPRel {
             final ImmutableList<ImmutableList<RexLiteral>> tuples) {
         final RelMetadataQuery mq = cluster.getMetadataQuery();
         final RelTraitSet traitSet = cluster.traitSetOf(CONVENTION)
-                .replaceIfs(RelCollationTraitDef.INSTANCE, new Supplier<List<RelCollation>>() {
-                    public List<RelCollation> get() {
-                        return RelMdCollation.values(mq, rowType, tuples);
-                    }
-                }).replaceIf(RelDistributionTraitDef.INSTANCE, new Supplier<RelDistribution>() {
-                    public RelDistribution get() {
-                        return RelMdDistribution.values(rowType, tuples);
-                    }
-                });
+                .replaceIfs(RelCollationTraitDef.INSTANCE, () -> RelMdCollation.values(mq, rowType, tuples))
+                .replaceIf(RelDistributionTraitDef.INSTANCE, () -> RelMdDistribution.values(rowType, tuples));
         return new OLAPValuesRel(cluster, rowType, tuples, traitSet);
     }
 

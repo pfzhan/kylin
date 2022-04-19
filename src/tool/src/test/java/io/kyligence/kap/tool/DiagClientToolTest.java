@@ -23,12 +23,13 @@
  */
 package io.kyligence.kap.tool;
 
+import static org.apache.kylin.common.exception.code.ErrorCodeTool.PARAMETER_TIMESTAMP_COMPARE;
+
 import java.io.File;
 import java.io.IOException;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.ZipFileUtils;
 import org.junit.After;
 import org.junit.Assert;
@@ -99,7 +100,7 @@ public class DiagClientToolTest extends NLocalFileMetadataTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e.getCause() instanceof KylinException);
-            Assert.assertEquals(e.getCause().getMessage(), MsgPicker.getMsg().getINVALID_DIAG_TIME_PARAMETER());
+            Assert.assertEquals(e.getCause().getMessage(), PARAMETER_TIMESTAMP_COMPARE.getMsg());
         }
 
     }

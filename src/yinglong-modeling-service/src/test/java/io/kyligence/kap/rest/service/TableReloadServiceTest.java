@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.rest.service;
 
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.TABLE_RELOAD_HAVING_NOT_FINAL_JOB;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.CoreMatchers.is;
 
@@ -1090,7 +1091,8 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
             Assert.fail();
         } catch (TransactionException e) {
             Assert.assertTrue(e.getCause() instanceof RuntimeException);
-            Assert.assertTrue(e.getCause().getMessage().contains("KE-010007008(Ongoing Jobs)"));
+            Assert.assertEquals(TABLE_RELOAD_HAVING_NOT_FINAL_JOB.getCodeMsg("DEFAULT.TEST_ORDER"),
+                    e.getCause().getMessage());
         }
     }
 
@@ -1562,7 +1564,6 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
 
         Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
     }
-
 
     private void prepareTableExt(String tableIdentity) {
         val tableManager = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);

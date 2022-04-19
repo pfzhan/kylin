@@ -91,7 +91,7 @@
           </template>
       </el-table-column>
     </el-table>
-    <kap-pager :totalSize="modelListSize" :curPage="filter.page_offset+1" v-on:handleCurrentChange='currentChange' ref="modleConfigPager" :refTag="pageRefTags.modleConfigPager" class="ksd-mtb-10 ksd-center" ></kap-pager>
+    <kap-pager :totalSize="modelListSize" :perPageSize="filter.page_size" :curPage="filter.page_offset+1" v-on:handleCurrentChange='currentChange' ref="modleConfigPager" :refTag="pageRefTags.modleConfigPager" class="ksd-mtb-10 ksd-center" ></kap-pager>
     <el-dialog :title="modelSettingTitle" :visible.sync="editModelSetting" width="480px" class="model-setting-dialog" @closed="handleClosed" :close-on-press-escape="false" :close-on-click-modal="false">
       <el-form ref="form" label-position="top" size="medium" label-width="80px" :model="modelSettingForm" :rules="rules">
         <el-form-item :label="modelTableTitle">
@@ -127,7 +127,19 @@
         </el-form-item>
         <el-form-item :label="$t('retentionThreshold')" v-if="step=='stepTwo'&&modelSettingForm.settingItem==='Retention Threshold'">
           <el-input v-model="modelSettingForm.retentionThreshold.retention_range_number" v-number="modelSettingForm.retentionThreshold.retention_range_number" :placeholder="$t('kylinLang.common.pleaseInput')" class="retention-input"></el-input>
-          <span class="ksd-ml-10">{{$t(modelSettingForm.retentionThreshold.retention_range_type.toLowerCase())}}</span>
+          <!-- <span class="ksd-ml-10">{{$t(modelSettingForm.retentionThreshold.retention_range_type.toLowerCase())}}</span> -->
+          <el-select
+            class="ksd-ml-10"
+            style="width: 100px;"
+            v-model="modelSettingForm.retentionThreshold.retention_range_type"
+            :placeholder="$t('kylinLang.common.pleaseChoose')">
+            <el-option
+              v-for="type in retentionTypes.filter(it => it !== 'WEEK')"
+              :key="type"
+              :label="$t(type.toLowerCase())"
+              :value="type">
+            </el-option>
+          </el-select>
         </el-form-item>
         <el-form-item :label="settingMap[modelSettingForm.settingItem]" v-if="step=='stepTwo'&&modelSettingForm.settingItem.indexOf('spark.')!==-1">
           <el-input v-model="modelSettingForm[modelSettingForm.settingItem]" v-number="modelSettingForm[modelSettingForm.settingItem]" :placeholder="$t('kylinLang.common.pleaseInput')" class="retention-input"></el-input><span
@@ -182,6 +194,7 @@ import locales from './locales'
 import { pageCount, pageRefTags } from '../../../config'
 import { handleSuccess, transToGmtTime, kapConfirm } from '../../../util/business'
 import { handleSuccessAsync, handleError, objectClone, ArrayFlat } from '../../../util/index'
+import { retentionTypes } from '../handler'
 
 const initialSettingForm = JSON.stringify({
   name: '',
@@ -221,6 +234,7 @@ const initialSettingForm = JSON.stringify({
 })
 export default class SettingStorage extends Vue {
   pageRefTags = pageRefTags
+  retentionTypes = retentionTypes
   modelList = []
   modelListSize = 0
   filter = {
@@ -280,15 +294,16 @@ export default class SettingStorage extends Vue {
     }
   }
   get availableRetentionRange () {
-    let largestRange = null
-    const modelAutoMergeRanges = this.activeRow && this.activeRow.auto_merge_time_ranges || []
-    const autoMergeRanges = this.isEdit ? this.modelSettingForm.autoMerge : modelAutoMergeRanges
-    this.units.forEach(unit => {
-      if (autoMergeRanges.includes(unit.value)) {
-        largestRange = unit.value
-      }
-    })
-    return largestRange || ''
+    // let largestRange = null
+    // const modelAutoMergeRanges = this.activeRow && this.activeRow.auto_merge_time_ranges || []
+    // const autoMergeRanges = this.isEdit ? this.modelSettingForm.autoMerge : modelAutoMergeRanges
+    // this.units.forEach(unit => {
+    //   if (autoMergeRanges.includes(unit.value)) {
+    //     largestRange = unit.value
+    //   }
+    // })
+    // return largestRange || ''
+    return 'DAY'
   }
   validateSettingItem (rule, value, callback) {
     const autoMergeRanges = this.activeRow && this.activeRow.auto_merge_time_ranges || []
@@ -313,7 +328,7 @@ export default class SettingStorage extends Vue {
   }
   get rules () {
     return {
-      settingItem: [{ validator: this.validateSettingItem, message: this.$t('pleaseSetAutoMerge') }]
+      // settingItem: [{ validator: this.validateSettingItem, message: this.$t('pleaseSetAutoMerge') }]
     }
   }
   handleClosed () {

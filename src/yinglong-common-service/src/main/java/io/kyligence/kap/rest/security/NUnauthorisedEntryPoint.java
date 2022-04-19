@@ -27,7 +27,8 @@ package io.kyligence.kap.rest.security;
 import static org.apache.kylin.common.exception.ServerErrorCode.LOGIN_FAILED;
 import static org.apache.kylin.common.exception.ServerErrorCode.USER_DATA_SOURCE_CONNECTION_FAILED;
 import static org.apache.kylin.common.exception.ServerErrorCode.USER_LOCKED;
-import static org.apache.kylin.common.exception.ServerErrorCode.USER_UNAUTHORIZED;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.USER_LOGIN_FAILED;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.USER_UNAUTHORIZED;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -64,7 +65,7 @@ public class NUnauthorisedEntryPoint implements AuthenticationEntryPoint {
             return;
         } else if (exception instanceof InsufficientAuthenticationException) {
             setErrorResponse(request, response, HttpServletResponse.SC_UNAUTHORIZED,
-                    new KylinException(USER_UNAUTHORIZED, MsgPicker.getMsg().getINSUFFICIENT_AUTHENTICATION()));
+                    new KylinException(USER_UNAUTHORIZED));
             return;
         } else if (exception instanceof DisabledException) {
             setErrorResponse(request, response, HttpServletResponse.SC_UNAUTHORIZED,
@@ -94,7 +95,7 @@ public class NUnauthorisedEntryPoint implements AuthenticationEntryPoint {
         }
 
         setErrorResponse(request, response, HttpServletResponse.SC_UNAUTHORIZED,
-                new KylinException(LOGIN_FAILED, exception.getMessage()));
+                new KylinException(USER_LOGIN_FAILED));
     }
 
     public void setErrorResponse(HttpServletRequest request, HttpServletResponse response, int statusCode, Exception ex)

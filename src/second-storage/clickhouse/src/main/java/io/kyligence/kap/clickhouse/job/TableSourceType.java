@@ -41,7 +41,11 @@ public enum TableSourceType {
 
         @Override
         public String transformFileUrl(String file, String sitePath, URI rootPath) {
-            Preconditions.checkArgument(file.startsWith("hdfs"), "file %s should start with hdfs", file);
+            Preconditions.checkArgument(file.startsWith("hdfs") || file.startsWith("viewfs"),
+                    "file %s should start with hdfs or viewfs", file);
+            if (file.startsWith("viewfs")){
+                file = ViewFsTransform.getInstance().generateFileUrl(file);
+            }
             return String.format(Locale.ROOT, "HDFS('%s' , Parquet)", file);
         }
     },

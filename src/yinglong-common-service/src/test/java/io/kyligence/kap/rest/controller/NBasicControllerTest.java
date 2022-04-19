@@ -25,6 +25,10 @@
 package io.kyligence.kap.rest.controller;
 
 import static org.apache.kylin.common.exception.CommonErrorCode.UNKNOWN_ERROR_CODE;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.USER_AUTH_INFO_NOTFOUND;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -35,6 +39,7 @@ import java.util.Locale;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.rest.exception.ForbiddenException;
 import org.apache.kylin.rest.exception.NotFoundException;
@@ -74,7 +79,7 @@ public class NBasicControllerTest extends NLocalFileMetadataTestCase {
 
         Mockito.when(fixtureController.request()).thenThrow(new RuntimeException(), new ForbiddenException(),
                 new NotFoundException(StringUtils.EMPTY), new AccessDeniedException(StringUtils.EMPTY),
-                new UnauthorizedException(), new KylinException(UNKNOWN_ERROR_CODE, StringUtils.EMPTY));
+                new UnauthorizedException(USER_AUTH_INFO_NOTFOUND), new KylinException(UNKNOWN_ERROR_CODE, StringUtils.EMPTY));
         createTestMetadata();
     }
 
@@ -108,6 +113,16 @@ public class NBasicControllerTest extends NLocalFileMetadataTestCase {
         // assert handleErrorCode
         mockMvc.perform(MockMvcRequestBuilders.get("/api/handleErrors"))
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError());
+    }
+
+    @Test
+    public void testGetProject_throwsException() {
+        try {
+            nBasicController.getProject(null);
+        } catch (Exception e) {
+            assertTrue(e instanceof KylinException);
+            assertEquals(PROJECT_NOT_EXIST.getCodeMsg(null), e.getLocalizedMessage());
+        }
     }
 
     @Test
@@ -212,4 +227,33 @@ public class NBasicControllerTest extends NLocalFileMetadataTestCase {
         nBasicController.checkParamLength("tag", param, 1000);
     }
 
+    @Test
+    public void testCheckStreamingEnabled() {
+        thrown.expect(KylinException.class);
+        thrown.expectMessage(MsgPicker.getMsg().getStreamingDisabled());
+        getTestConfig().setProperty("kylin.streaming.enabled", "false");
+        nBasicController.checkStreamingEnabled();
+    }
+
+    @Test
+    public void testCheckSegmentParms_throwsException() {
+        String[] ids = new String[] {"TEST_ID1"};
+        String[] names = new String[] {"TEST_NAME1"};
+
+        // test throwing SEGMENT_CONFLICT_PARAMETER
+        try {
+            nBasicController.checkSegmentParms(ids, names);
+        } catch (Exception e) {
+            assertTrue(e instanceof KylinException);
+            assertEquals("KE-010022214: Can't enter segment ID and name at the same time. Please re-enter.", e.toString());
+        }
+
+        // test throwing SEGMENT_EMPTY_PARAMETER
+        try {
+            nBasicController.checkSegmentParms(null, null);
+        } catch (Exception e) {
+            assertTrue(e instanceof KylinException);
+            assertEquals("KE-010022215: Please enter segment ID or name.", e.toString());
+        }
+    }
 }

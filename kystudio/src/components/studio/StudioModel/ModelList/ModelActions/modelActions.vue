@@ -272,18 +272,20 @@
       </div>
       <div v-if="Object.keys(currentModel.second_storage_nodes).length">
         <div class="font-medium">{{$t('node')}}</div>
-        <ul  v-if="Object.keys(currentModel.second_storage_nodes).length === 1">
-          <li v-for="n in currentModel.second_storage_nodes[Object.keys(currentModel.second_storage_nodes)[0]]" :key="n.name">
-            <span>{{n.name}}</span>
-            <span class="ip-span">{{n.ip}}:{{n.port}}</span>
-          </li>
-        </ul>
-        <ul v-else>
+        <ul>
           <li v-for="(gn, j) in Object.values(currentModel.second_storage_nodes)" :key="j">
-            (<span v-for="(n, i) in gn" :key="n.name">
-              <span>{{n.name}}</span>
-              <span class="ip-span">{{n.ip}}:{{n.port}}</span><span v-if="i !== gn.length -1" >, </span>
-            </span>)
+            <span v-if="gn.length > 1">
+              (<span v-for="(n, i) in gn" :key="n.name">
+                <span>{{n.name}}</span>
+                <span class="ip-span">{{n.ip}}:{{n.port}}</span><span v-if="i !== gn.length -1" >, </span>
+              </span>)
+            </span>
+            <span v-else>
+              <span v-for="n2 in gn" :key="n2.name">
+                <span>{{n2.name}}</span>
+                <span class="ip-span">{{n2.ip}}:{{n2.port}}</span>
+              </span>
+            </span>
           </li>
         </ul>
       </div>

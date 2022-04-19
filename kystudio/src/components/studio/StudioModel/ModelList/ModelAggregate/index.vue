@@ -282,7 +282,7 @@
                 </el-table-column>
               </el-table>
             </div>
-            <kap-pager class="ksd-center ksd-mtb-10" ref="indexPager" :refTag="pageRefTags.indexPager" :totalSize="totalSize" :curPage="filterArgs.page_offset+1" v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
+            <kap-pager class="ksd-center ksd-mtb-10" ref="indexPager" :perPageSize="filterArgs.page_size" :refTag="pageRefTags.indexPager" :totalSize="totalSize" :curPage="filterArgs.page_offset+1" v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
           </div>
         </el-card>
         <!-- <recommendations :modelDesc="model" @accept="acceptRecommend" v-if="switchIndexValue === 'rec'"/> -->
@@ -307,7 +307,7 @@ import FlowerChart from '../../../../common/FlowerChart'
 import TreemapChart from '../../../../common/TreemapChart'
 import { handleSuccessAsync } from '../../../../../util'
 import { handleError, kapConfirm, transToServerGmtTime } from '../../../../../util/business'
-import { speedProjectTypes, pageRefTags } from 'config'
+import { speedProjectTypes, pageRefTags, pageCount } from 'config'
 import { BuildIndexStatus } from '../../../../../config/model'
 // import ConfirmSegment from '../ConfirmSegment/ConfirmSegment.vue'
 // import AggregateModal from './AggregateModal/index.vue'
@@ -420,7 +420,7 @@ export default class ModelAggregate extends Vue {
   indexUpdateEnabled = true
   filterArgs = {
     page_offset: 0,
-    page_size: +localStorage.getItem(this.pageRefTags.indexPager) || 10,
+    page_size: +localStorage.getItem(this.pageRefTags.indexPager) || pageCount,
     key: '',
     sort_by: '',
     reverse: '',
@@ -433,7 +433,7 @@ export default class ModelAggregate extends Vue {
   statusArr = ['NO_BUILD', 'ONLINE', 'LOCKED', 'BUILDING']
   detailType = ''
   currentPage = 0
-  currentCount = +localStorage.getItem(this.pageRefTags.IndexDetailPager) || 10
+  currentCount = +localStorage.getItem(this.pageRefTags.IndexDetailPager) || pageCount
   totalTableIndexColumnSize = 0
   isFullLoaded = false
   indexDetailTitle = ''
@@ -484,7 +484,7 @@ export default class ModelAggregate extends Vue {
   async changeModelTab (name) {
     // 切换tab 时需要重刷列表
     this.filterArgs.page_offset = 0
-    this.filterArgs.page_size = +localStorage.getItem(this.pageRefTags.indexPager) || 10
+    this.filterArgs.page_size = +localStorage.getItem(this.pageRefTags.indexPager) || pageCount
     this.filterArgs.key = ''
     this.indexLoading = true
     await this.freshIndexGraph()

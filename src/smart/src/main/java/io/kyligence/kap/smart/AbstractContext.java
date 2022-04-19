@@ -24,9 +24,12 @@
 
 package io.kyligence.kap.smart;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.parser.SqlParseException;
@@ -36,6 +39,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
+import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.util.QueryUtil;
 
 import com.google.common.base.Preconditions;
@@ -71,8 +75,7 @@ public abstract class AbstractContext {
     private final SmartConfig smartConfig;
     private final String project;
     private final String[] sqlArray;
-    private final ChainedProposer preProcessProposers;
-    private final ChainedProposer processProposers;
+    private final ChainedProposer proposers;
     private final ExtraMetaInfo extraMeta = new ExtraMetaInfo();
 
     private final List<NDataModel> relatedModels = Lists.newArrayList();
@@ -90,6 +93,7 @@ public abstract class AbstractContext {
     private Map<String, AccelerateInfo> accelerateInfoMap = Maps.newHashMap();
     @Getter(lazy = true)
     private final Map<String, RawRecItem> existingNonLayoutRecItemMap = Maps.newHashMap();
+    private final Map<String, Collection<OLAPContext>> modelViewOLAPContextMap = Maps.newHashMap();
 
     @Setter
     private boolean skipEvaluateCC;
@@ -100,8 +104,7 @@ public abstract class AbstractContext {
         this.smartConfig = SmartConfig.wrap(kylinConfig);
         this.project = project;
         this.sqlArray = sqlArray;
-        this.preProcessProposers = createPreProcessProposers();
-        this.processProposers = createTransactionProposers();
+        this.proposers = createProposers();
         this.partialMatch = false;
         this.partialMatchNonEqui = false;
         filterSqlRelatedModelsAndTables();
@@ -117,9 +120,7 @@ public abstract class AbstractContext {
 
     public abstract void changeModelMainType(NDataModel model);
 
-    public abstract ChainedProposer createTransactionProposers();
-
-    public abstract ChainedProposer createPreProcessProposers();
+    public abstract ChainedProposer createProposers();
 
     public abstract void saveMetadata();
 
@@ -133,10 +134,12 @@ public abstract class AbstractContext {
         Set<NDataModel> models = Sets.newHashSet();
         Set<String> tableIdentities = Sets.newHashSet();
         Map<String, Set<NDataModel>> tableToModelsMap = Maps.newHashMap();
+        Map<String, NDataModel> modelViewToModelMap = Maps.newHashMap();
         getAllModels().forEach(model -> {
             if (model.isBroken()) {
                 return;
             }
+            modelViewToModelMap.put((model.getProject() + "." + model.getAlias()).toUpperCase(Locale.ROOT), model);
             for (TableRef tableRef : model.getAllTables()) {
                 tableToModelsMap.putIfAbsent(tableRef.getTableIdentity(), Sets.newHashSet());
                 tableToModelsMap.get(tableRef.getTableIdentity()).add(model);
@@ -153,7 +156,11 @@ public abstract class AbstractContext {
         // related tables from sql + related tables from baseModels
         Preconditions.checkNotNull(sqlArray);
         for (String sql : sqlArray) {
-            Set<String> sqlRelatedTableIdentities = extractTables(sql, allTableMap);
+            List<SqlIdentifier> sqlIdentifiers = extractSqlIdentifier(sql);
+            Set<String> sqlRelatedTableIdentities = extractTable(sqlIdentifiers, allTableMap);
+            Set<NDataModel> sqlRelatedViewModels = extractViewModel(sqlIdentifiers, modelViewToModelMap);
+            models.addAll(sqlRelatedViewModels);
+            tableIdentities.addAll(extractViewModelTable(sqlRelatedViewModels));
             tableIdentities.addAll(sqlRelatedTableIdentities);
             sqlRelatedTableIdentities.forEach(tableIdentity -> {
                 Set<NDataModel> relatedModels = tableToModelsMap.getOrDefault(tableIdentity, Sets.newHashSet());
@@ -181,22 +188,34 @@ public abstract class AbstractContext {
         return tableNameMap;
     }
 
-    private Set<String> extractTables(String sql, Map<String, Set<String>> tableNameMap) {
-        String normalizedSql = QueryUtil.normalizeForTableDetecting(project, sql);
-        Set<String> allRelatedTables = Sets.newHashSet();
+    private Set<String> extractTable(List<SqlIdentifier> sqlIdentifiers, Map<String, Set<String>> tableNameMap) {
+        return sqlIdentifiers.stream().map(id -> tableNameMap.getOrDefault(id.toString(), Sets.newHashSet()))
+                .flatMap(Collection::stream).collect(Collectors.toSet());
+    }
+
+    private Set<NDataModel> extractViewModel(List<SqlIdentifier> sqlIdentifiers,
+            Map<String, NDataModel> modelViewToModelMap) {
+        return sqlIdentifiers.stream().filter(id -> modelViewToModelMap.containsKey(id.toString()))
+                .map(id -> modelViewToModelMap.get(id.toString())).collect(Collectors.toSet());
+    }
+
+    private Set<String> extractViewModelTable(Set<NDataModel> sqlRelatedViewModels) {
+        return sqlRelatedViewModels.stream()
+                .map(model -> model.getAllTables().stream().map(TableRef::getTableIdentity).collect(Collectors.toSet()))
+                .flatMap(Collection::stream).collect(Collectors.toSet());
+    }
+
+    private List<SqlIdentifier> extractSqlIdentifier(String sql) {
         try {
-            List<SqlIdentifier> allSqlIdentifier = SqlNodeExtractor.getAllSqlIdentifier(normalizedSql);
-            allSqlIdentifier.forEach(id -> {
-                Set<String> orDefault = tableNameMap.getOrDefault(id.toString(), Sets.newHashSet());
-                allRelatedTables.addAll(orDefault);
-            });
+            String normalizedSql = QueryUtil.normalizeForTableDetecting(project, sql);
+            return SqlNodeExtractor.getAllSqlIdentifier(normalizedSql);
         } catch (SqlParseException e) {
             log.info("extract error, sql is: {}", sql, e);
             AccelerateInfo accelerateInfo = new AccelerateInfo();
             accelerateInfo.setFailedCause(e);
             accelerateInfoMap.put(sql, accelerateInfo);
+            return Lists.newArrayList();
         }
-        return allRelatedTables;
     }
 
     protected List<NDataModel> getAllModels() {
@@ -213,7 +232,7 @@ public abstract class AbstractContext {
     }
 
     public boolean needCollectRecommendations() {
-        return this instanceof ModelReuseContextOfSemiV2;
+        return this instanceof ModelReuseContext;
     }
 
     public void handleExceptionAfterModelSelect() {
@@ -275,7 +294,7 @@ public abstract class AbstractContext {
 
         private Map<String, String> loadUniqueContentToFlag() {
             Map<String, String> result = Maps.newHashMap();
-            if (!(getProposeContext() instanceof AbstractSemiContextV2) || getTargetModel() == null) {
+            if (!(getProposeContext() instanceof AbstractSemiContext) || getTargetModel() == null) {
                 return result;
             }
 

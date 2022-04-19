@@ -41,6 +41,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KylinConfig;
 
 import java.sql.Date;
 import java.sql.SQLException;
@@ -48,6 +50,8 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.kyligence.kap.clickhouse.job.DataLoader.columns;
@@ -71,6 +75,8 @@ public class ShardLoader {
     private final boolean incremental;
     private final List<Date> targetPartitions;
     private final List<Date> committedPartition = new ArrayList<>();
+    private final Set<String> needDropPartition;
+    private final Set<String> needDropTable;
 
     public ShardLoader(ShardLoadContext context) throws SQLException {
         this.clickHouse = new ClickHouse(context.jdbcURL);
@@ -86,6 +92,8 @@ public class ShardLoader {
         this.destTempTableName = context.executableId + "@" + destTableName + "_" + NameUtil.TEMP_TABLE_FLAG + "_tmp";
         this.likeTempTableName = context.executableId + "@" + destTableName + "_" + NameUtil.TEMP_TABLE_FLAG + "_ke_like";
         this.targetPartitions = context.targetPartitions;
+        this.needDropPartition = context.needDropPartition;
+        this.needDropTable = context.needDropTable;
     }
 
     private void commitIncrementalLoad() throws SQLException {
@@ -112,7 +120,7 @@ public class ShardLoader {
         createTable(likeTempTableName, layout, partitionColumn, false);
     }
 
-    public List<String> loadDataIntoTempTable(List<String> history, AtomicBoolean stopped) throws SQLException {
+    public List<String> loadDataIntoTempTable(List<String> history, AtomicBoolean stopped) throws Exception {
         // 2 insert into temp
         List<String> completeFiles = new ArrayList<>();
         for (int index = 0; index < parquetFiles.size(); index++) {
@@ -162,6 +170,8 @@ public class ShardLoader {
         String partitionColumn;
         String partitionFormat;
         List<Date> targetPartitions;
+        Set<String> needDropPartition;
+        Set<String> needDropTable;
     }
 
     public void cleanIncrementLoad() throws SQLException {
@@ -178,6 +188,15 @@ public class ShardLoader {
                     new AlterTable.ManipulatePartition(dateFormat.format(partition),
                             AlterTable.PartitionOperation.DROP));
             clickHouse.apply(alterTable.toSql(render));
+
+            if (needDropPartition != null) {
+                for (String table : needDropPartition) {
+                    alterTable = new AlterTable(TableIdentifier.table(database, table),
+                            new AlterTable.ManipulatePartition(dateFormat.format(partition),
+                                    AlterTable.PartitionOperation.DROP));
+                    clickHouse.apply(alterTable.toSql(render));
+                }
+            }
         }
     }
 
@@ -202,6 +221,12 @@ public class ShardLoader {
         }
         dropTable(destTempTableName);
         dropTable(likeTempTableName);
+
+        if (needDropTable != null) {
+            for (String table : needDropTable) {
+                dropTable(table);
+            }
+        }
     }
 
     public void cleanUpQuietly(boolean keepInsertTempTable) {
@@ -219,7 +244,8 @@ public class ShardLoader {
         final ClickHouseCreateTable mergeTable = ClickHouseCreateTable.createCKTable(database, table)
                 .columns(columns(layout, partitionBy, addPrefix))
                 .partitionBy(addPrefix && partitionBy != null ? getPrefixColumn(partitionBy) : partitionBy)
-                .engine(Engine.DEFAULT);
+                .engine(Engine.DEFAULT)
+                .deduplicationWindow(KylinConfig.getInstanceFromEnv().getSecondStorageLoadDeduplicationWindow());
         clickHouse.apply(mergeTable.toSql(render));
     }
 
@@ -227,7 +253,8 @@ public class ShardLoader {
         final ClickHouseCreateTable mergeTable = ClickHouseCreateTable.createCKTableIgnoreExist(database, table)
                 .columns(columns(layout, partitionBy, addPrefix))
                 .partitionBy(addPrefix && partitionBy != null ? getPrefixColumn(partitionBy) : partitionBy)
-                .engine(Engine.DEFAULT);
+                .engine(Engine.DEFAULT)
+                .deduplicationWindow(KylinConfig.getInstanceFromEnv().getSecondStorageLoadDeduplicationWindow());
         clickHouse.apply(mergeTable.toSql(render));
     }
 
@@ -236,17 +263,59 @@ public class ShardLoader {
         clickHouse.apply(dropSQL);
     }
 
-    private void loadOneFile(String destTable, String parquetFile, String srcTable) throws SQLException {
+    private void loadOneFile(String destTable, String parquetFile, String srcTable) throws Exception {
         dropTable(srcTable);
         try {
-            final ClickHouseCreateTable likeTable = ClickHouseCreateTable.createCKTable(database, srcTable)
+             final ClickHouseCreateTable likeTable = ClickHouseCreateTable.createCKTable(database, srcTable)
                     .likeTable(database, likeTempTableName).engine(tableEngine.apply(parquetFile));
             clickHouse.apply(likeTable.toSql(render));
 
-            final InsertInto insertInto = InsertInto.insertInto(database, destTable).from(database, srcTable);
-            clickHouse.apply(insertInto.toSql(render));
+            insertDataWithRetry(destTable, srcTable);
         } finally {
             dropTable(srcTable);
         }
+    }
+
+    private void insertDataWithRetry(String destTable, String srcTable) throws Exception {
+        int interval = KylinConfig.getInstanceFromEnv().getSecondStorageLoadRetryInterval();
+        int maxRetry = KylinConfig.getInstanceFromEnv().getSecondStorageLoadRetry();
+
+        int retry = 0;
+        Exception exception = null;
+        do {
+            if (retry > 0) {
+                pauseOnRetry(retry, interval);
+                log.info("Retrying for the {}th time ", retry);
+            }
+
+            try {
+                final InsertInto insertInto = InsertInto.insertInto(database, destTable).from(database, srcTable);
+                clickHouse.apply(insertInto.toSql(render));
+                exception = null;
+            } catch (SQLException e) {
+                exception = e;
+                if (!needRetry(retry, maxRetry, exception))
+                    throw exception;
+            }
+
+            retry++;
+        } while (needRetry(retry, maxRetry, exception));
+    }
+
+    // pauseOnRetry should only works when retry has been triggered
+    private void pauseOnRetry(int retry, int interval) throws InterruptedException {
+        long time = retry + 1L;
+        log.info("Pause {} milliseconds before retry", time * interval);
+        TimeUnit.MILLISECONDS.sleep(time * interval);
+    }
+
+    private boolean needRetry(int retry, int maxRetry, Exception e) {
+        if (e == null || retry > maxRetry)
+            return false;
+
+        String msg = e.getMessage();
+        return (StringUtils.containsIgnoreCase(msg, "broken pipe")
+                || StringUtils.containsIgnoreCase(msg, "connection reset"))
+                && StringUtils.containsIgnoreCase(msg, "HTTPSession");
     }
 }

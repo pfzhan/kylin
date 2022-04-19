@@ -42,7 +42,8 @@
 
 package org.apache.kylin.job.common;
 
-import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JOB;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_CHECK_INDEX_FAIL;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_CHECK_MULTI_PARTITION_EMPTY;
 
 import java.util.HashSet;
 import java.util.Map;
@@ -53,7 +54,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.exception.code.ErrorCodeProducer;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.model.JobParam;
 
@@ -108,7 +109,7 @@ public abstract class ExecutableUtil {
             return;
         }
         if (CollectionUtils.isEmpty(jobParam.getTargetPartitions())) {
-            throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_CHECK_MULTI_PARTITION_EMPTY());
+            throw new KylinException(JOB_CREATE_CHECK_MULTI_PARTITION_EMPTY);
         }
         Set<JobBucket> buckets = Sets.newHashSet();
         NDataflowManager dfm = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), jobParam.getProject());
@@ -135,7 +136,7 @@ public abstract class ExecutableUtil {
     public void checkLayoutsNotEmpty(JobParam jobParam) {
         if (CollectionUtils.isEmpty(jobParam.getProcessLayouts())) {
             log.warn("JobParam {} is no longer valid because no layout awaits building", jobParam);
-            throw new KylinException(FAILED_CREATE_JOB, getCheckIndexFailedMessage());
+            throw new KylinException(getCheckIndexErrorCode());
         }
     }
 
@@ -143,8 +144,8 @@ public abstract class ExecutableUtil {
         return layouts.stream().filter(layout -> !layout.isToBeDeleted()).collect(Collectors.toSet());
     }
 
-    public String getCheckIndexFailedMessage() {
-        return MsgPicker.getMsg().getADD_JOB_CHECK_INDEX_FAIL();
+    public ErrorCodeProducer getCheckIndexErrorCode() {
+        return JOB_CREATE_CHECK_INDEX_FAIL;
     }
 
     public void computeLayout(JobParam jobParam) {

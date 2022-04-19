@@ -327,6 +327,7 @@
           :background="false"
           :curPage="currentPage+1"
           :totalSize="configList.length"
+          :perPageSize="pageCount"
           @handleCurrentChange="handleCurrentChange">
         </kap-pager>
       </div>
@@ -345,7 +346,7 @@ import { kapConfirm } from 'util/business'
 import { apiUrl } from '../../../config'
 import { validate, _getJobAlertSettings, _getDefaultDBSettings, _getYarnNameSetting, _getSecStorageSetting, _getExposeCCSetting, _getSnapshotSetting, _getKerberosSettings } from './handler'
 import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
-import { pageRefTags } from 'config'
+import { pageRefTags, pageCount } from 'config'
 
 @Component({
   components: {
@@ -416,6 +417,7 @@ export default class SettingAdvanced extends Vue {
   pageSize = 10
   convertedProperties = []
   pageRefTags = pageRefTags
+  pageCount = pageCount
 
   dbList = []
   nodes = []

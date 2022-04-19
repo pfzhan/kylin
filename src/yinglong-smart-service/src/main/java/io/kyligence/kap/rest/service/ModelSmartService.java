@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.rest.service;
 
-
 import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.SQL_NUMBER_EXCEEDS_LIMIT;
 
@@ -78,9 +77,9 @@ import io.kyligence.kap.rest.response.SuggestionResponse;
 import io.kyligence.kap.rest.response.SuggestionResponse.ModelRecResponse;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.AbstractContext.ModelContext;
-import io.kyligence.kap.smart.ModelCreateContextOfSemiV2;
-import io.kyligence.kap.smart.ModelReuseContextOfSemiV2;
-import io.kyligence.kap.smart.ModelSelectContextOfSemiV2;
+import io.kyligence.kap.smart.ModelCreateContext;
+import io.kyligence.kap.smart.ModelReuseContext;
+import io.kyligence.kap.smart.ModelSelectContext;
 import io.kyligence.kap.smart.ProposerJob;
 import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
@@ -250,7 +249,8 @@ public class ModelSmartService extends BasicService implements ModelSmartSupport
         return modelRecResponse;
     }
 
-    private void collectResponseOfOptimalModels(ModelContext modelContext, Map<String, AccelerateInfo> errorOrOptimalAccelerateInfoMap,
+    private void collectResponseOfOptimalModels(ModelContext modelContext,
+            Map<String, AccelerateInfo> errorOrOptimalAccelerateInfoMap,
             List<ModelRecResponse> responseOfOptimalModels) {
         Map<Long, Set<String>> layoutIdToSqlSetMap = mapLayoutToErrorOrOptimalSqlSet(modelContext,
                 errorOrOptimalAccelerateInfoMap);
@@ -332,9 +332,8 @@ public class ModelSmartService extends BasicService implements ModelSmartSupport
         return layoutToSqlSetMap;
     }
 
-
     private SuggestionResponse saveModelAndRecommendations(AbstractContext proposeContext,
-                                                           OpenSqlAccelerateRequest request) {
+            OpenSqlAccelerateRequest request) {
         SuggestionResponse innerResponse = buildModelSuggestionResponse(proposeContext);
         List<ModelRequest> modelRequests = convertToModelRequest(innerResponse.getNewModels(), request);
         modelService.checkNewModels(request.getProject(), modelRequests);
@@ -355,7 +354,7 @@ public class ModelSmartService extends BasicService implements ModelSmartSupport
     }
 
     private SuggestionResponse saveModelAndApproveRecommendations(AbstractContext proposeContext,
-                                                                  OpenSqlAccelerateRequest request) {
+            OpenSqlAccelerateRequest request) {
         SuggestionResponse innerResponse = buildModelSuggestionResponse(proposeContext);
         List<ModelRequest> modelRequests = convertToModelRequest(innerResponse.getNewModels(), request);
         modelService.checkNewModels(request.getProject(), modelRequests);
@@ -369,7 +368,7 @@ public class ModelSmartService extends BasicService implements ModelSmartSupport
     }
 
     private List<ModelRequest> convertToModelRequest(List<ModelRecResponse> newModels,
-                                                     OpenSqlAccelerateRequest request) {
+            OpenSqlAccelerateRequest request) {
         return newModels.stream().map(modelResponse -> {
             ModelRequest modelRequest = new ModelRequest(modelResponse);
             modelRequest.setIndexPlan(modelResponse.getIndexPlan());
@@ -386,8 +385,7 @@ public class ModelSmartService extends BasicService implements ModelSmartSupport
                     String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
         }
         KylinConfig kylinConfig = getManager(NProjectManager.class).getProject(project).getConfig();
-        AbstractContext proposeContext = new ModelSelectContextOfSemiV2(kylinConfig, project,
-                sqls.toArray(new String[0]));
+        AbstractContext proposeContext = new ModelSelectContext(kylinConfig, project, sqls.toArray(new String[0]));
         ProposerJob.propose(proposeContext,
                 (config, runnerType, projectName, resources) -> new InMemoryJobRunner(config, projectName, resources));
         return proposeContext;
@@ -406,7 +404,7 @@ public class ModelSmartService extends BasicService implements ModelSmartSupport
     }
 
     public AbstractContext suggestModel(String project, List<String> sqls, boolean reuseExistedModel,
-                                        boolean createNewModel) {
+            boolean createNewModel) {
         aclEvaluate.checkProjectWritePermission(project);
         if (CollectionUtils.isEmpty(sqls)) {
             return null;
@@ -416,11 +414,11 @@ public class ModelSmartService extends BasicService implements ModelSmartSupport
         AbstractContext proposeContext;
         String[] sqlArray = sqls.toArray(new String[0]);
         if (SmartConfig.wrap(kylinConfig).getModelOptRule().equalsIgnoreCase(AbstractJoinRule.APPEND)) {
-            proposeContext = new ModelReuseContextOfSemiV2(kylinConfig, project, sqlArray, true);
+            proposeContext = new ModelReuseContext(kylinConfig, project, sqlArray, true);
         } else if (reuseExistedModel) {
-            proposeContext = new ModelReuseContextOfSemiV2(kylinConfig, project, sqlArray, createNewModel);
+            proposeContext = new ModelReuseContext(kylinConfig, project, sqlArray, createNewModel);
         } else {
-            proposeContext = new ModelCreateContextOfSemiV2(kylinConfig, project, sqlArray);
+            proposeContext = new ModelCreateContext(kylinConfig, project, sqlArray);
         }
         return ProposerJob.propose(proposeContext,
                 (config, runnerType, projectName, resources) -> new InMemoryJobRunner(config, projectName, resources));
@@ -455,7 +453,7 @@ public class ModelSmartService extends BasicService implements ModelSmartSupport
     }
 
     private void collectResponseOfReusedModels(AbstractContext.ModelContext modelContext,
-                                               List<ModelRecResponse> responseOfReusedModels) {
+            List<ModelRecResponse> responseOfReusedModels) {
         Map<Long, Set<String>> layoutToSqlSet = mapLayoutToSqlSet(modelContext);
         Map<String, ComputedColumnDesc> oriCCMap = Maps.newHashMap();
         List<ComputedColumnDesc> oriCCList = modelContext.getOriginModel().getComputedColumnDescs();
@@ -538,7 +536,7 @@ public class ModelSmartService extends BasicService implements ModelSmartSupport
     }
 
     private void collectResponseOfNewModels(AbstractContext context, AbstractContext.ModelContext modelContext,
-                                            List<ModelRecResponse> responseOfNewModels) {
+            List<ModelRecResponse> responseOfNewModels) {
         val sqlList = context.getAccelerateInfoMap().entrySet().stream()//
                 .filter(entry -> entry.getValue().getRelatedLayouts().stream()//
                         .anyMatch(relation -> relation.getModelId().equals(modelContext.getTargetModel().getId())))
@@ -574,12 +572,12 @@ public class ModelSmartService extends BasicService implements ModelSmartSupport
 
     @Override
     public JoinDesc suggNonEquiJoinModel(final KylinConfig kylinConfig, final String project,
-                                          final JoinDesc modelJoinDesc, final SimplifiedJoinDesc requestJoinDesc) {
+            final JoinDesc modelJoinDesc, final SimplifiedJoinDesc requestJoinDesc) {
         String nonEquiSql = SCD2SqlConverter.INSTANCE.genSCD2SqlStr(modelJoinDesc,
                 requestJoinDesc.getSimplifiedNonEquiJoinConditions());
 
         BackdoorToggles.addToggle(BackdoorToggles.QUERY_NON_EQUI_JOIN_MODEL_ENABLED, "true");
-        AbstractContext context = new ModelCreateContextOfSemiV2(kylinConfig, project, new String[] { nonEquiSql });
+        AbstractContext context = new ModelCreateContext(kylinConfig, project, new String[] { nonEquiSql });
         SmartMaster smartMaster = new SmartMaster(context);
         smartMaster.executePropose();
 

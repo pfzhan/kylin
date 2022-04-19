@@ -24,15 +24,10 @@
 
 package io.kyligence.kap.query.util;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.common.util.CollectionUtil;
-import io.kyligence.kap.metadata.model.ComputedColumnDesc;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.alias.ExpressionComparator;
-import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
-import io.kyligence.kap.query.relnode.KapAggregateRel;
-import lombok.val;
-import lombok.var;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.calcite.sql.SqlNode;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KapConfig;
@@ -44,9 +39,16 @@ import org.apache.kylin.query.relnode.TableColRefWithRel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.common.util.CollectionUtil;
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.alias.ExpressionComparator;
+import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
+import io.kyligence.kap.query.relnode.KapAggregateRel;
+import lombok.val;
+import lombok.var;
 
 public class ComputedColumnRewriter {
 
@@ -159,7 +161,7 @@ public class ComputedColumnRewriter {
 
                     CollectionUtil.find(
                             ctx.firstTableScan.getColumnRowType().getAllColumns(),
-                            (colRef) -> colRef.getColumnDesc().equals(ccCols[0])
+                            colRef -> colRef.getColumnDesc().equals(ccCols[0])
                     ).ifPresent(ccColRef -> {
                                 relColReplacementMapping.putIfAbsent(
                                         tableColRefWIthRel.getRelNodeAs(KapAggregateRel.class), new HashMap<>());
@@ -181,8 +183,6 @@ public class ComputedColumnRewriter {
     }
 
     private static void rewriteFilterInnerCol(OLAPContext ctx, NDataModel model, QueryAliasMatchInfo matchInfo) {
-        if (CollectionUtils.isEmpty(model.getComputedColumnDescs()))
-            return;
-        //todo
+        //empty
     }
 }

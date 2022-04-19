@@ -56,6 +56,7 @@ import org.apache.kylin.job.execution.ExecuteResult;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -120,7 +121,7 @@ public class AsyncQueryJobTest extends NLocalFileMetadataTestCase {
         }
     }
 
-    @org.junit.Ignore
+    @Ignore
     @Test
     public void testDumpMetadataAndCreateArgsFile() throws ExecuteException, IOException {
         QueryParams queryParams = new QueryParams("default", "select 1", "", false, true, true);

@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.secondstorage.config;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.kyligence.kap.common.util.EncryptUtil;
 
 public class Node {
@@ -32,6 +33,7 @@ public class Node {
     private int port;
     private String user;
     private String password;
+    @JsonProperty("sshPort")
     private int sshPort;
 
 

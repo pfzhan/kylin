@@ -28,6 +28,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.junit.After;
 import org.junit.Assert;
@@ -301,5 +303,39 @@ public class SourceUsageServiceTest extends NLocalFileMetadataTestCase {
                     usedColumns.stream().map(TblColRef::getCanonicalName).sorted().collect(Collectors.joining(",")));
             return null;
         }, UnitOfWork.GLOBAL_UNIT);
+    }
+
+    @Test
+    public void testIsAllSegmentsEmptyFromDataflow() {
+        Assert.assertTrue(sourceUsageService.isAllSegmentsEmptyFromDataflow(null));
+
+        NDataflow dataflow = new NDataflow();
+        Assert.assertTrue(sourceUsageService.isAllSegmentsEmptyFromDataflow(dataflow));
+
+        NDataSegment dataSegment = new NDataSegment();
+        Segments<NDataSegment> segments = new Segments<>();
+        segments.add(dataSegment);
+        dataflow.setSegments(segments);
+        Assert.assertTrue(sourceUsageService.isAllSegmentsEmptyFromDataflow(dataflow));
+
+        NDataSegment dataSegmentCount0 = new NDataSegment();
+        dataSegmentCount0.setSourceCount(0);
+        dataSegmentCount0.setStatus(SegmentStatusEnum.READY);
+        segments.add(dataSegmentCount0);
+        Assert.assertTrue(sourceUsageService.isAllSegmentsEmptyFromDataflow(dataflow));
+
+        NDataSegment dataSegmentCountLt0 = new NDataSegment();
+        dataSegmentCountLt0.setSourceCount(-1);
+        dataSegmentCountLt0.setStatus(SegmentStatusEnum.READY);
+        segments.add(dataSegmentCountLt0);
+        Assert.assertTrue(sourceUsageService.isAllSegmentsEmptyFromDataflow(dataflow));
+
+        NDataSegment dataSegmentCountGt0 = new NDataSegment();
+        dataSegmentCountGt0.setSourceCount(1);
+        dataSegmentCountGt0.setStatus(SegmentStatusEnum.READY);
+        segments.add(dataSegmentCountGt0);
+        Assert.assertFalse(sourceUsageService.isAllSegmentsEmptyFromDataflow(dataflow));
+
+        Assert.assertEquals(4, dataflow.getSegments().size());
     }
 }

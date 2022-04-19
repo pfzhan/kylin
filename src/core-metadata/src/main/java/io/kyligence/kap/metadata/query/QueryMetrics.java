@@ -108,6 +108,14 @@ public class QueryMetrics extends SchedulerEventNotifier {
         return QueryHistory.QUERY_HISTORY_SUCCEEDED.equals(queryStatus);
     }
 
+    public boolean isSecondStorage() {
+        for (RealizationMetrics metrics: getRealizationMetrics()) {
+            if (metrics.isSecondStorage)
+                return true;
+        }
+        return false;
+    }
+
     @Getter
     @Setter
     // fields in this class are columns in InfluxDB table which records down query history's realization info

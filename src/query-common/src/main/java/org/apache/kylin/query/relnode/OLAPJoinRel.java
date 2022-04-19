@@ -202,8 +202,6 @@ public class OLAPJoinRel extends EnumerableJoin implements OLAPRel {
         }
 
         if (!this.hasSubQuery) {
-            //            this.context.allColumns.clear();
-
             // build JoinDesc
             Preconditions.checkState(this.getCondition() instanceof RexCall, "Cartesian Join is not supported.");
 
@@ -229,7 +227,7 @@ public class OLAPJoinRel extends EnumerableJoin implements OLAPRel {
     }
 
     protected ColumnRowType buildColumnRowType() {
-        List<TblColRef> columns = new ArrayList<TblColRef>();
+        List<TblColRef> columns = new ArrayList<>();
         List<Set<TblColRef>> sourceColumns = new ArrayList<>();
 
         OLAPRel olapLeft = (OLAPRel) this.left;
@@ -255,10 +253,10 @@ public class OLAPJoinRel extends EnumerableJoin implements OLAPRel {
     protected JoinDesc buildJoin(RexCall condition) {
         Map<TblColRef, TblColRef> joinColumns = translateJoinColumn(condition);
 
-        List<String> pks = new ArrayList<String>();
-        List<TblColRef> pkCols = new ArrayList<TblColRef>();
-        List<String> fks = new ArrayList<String>();
-        List<TblColRef> fkCols = new ArrayList<TblColRef>();
+        List<String> pks = new ArrayList<>();
+        List<TblColRef> pkCols = new ArrayList<>();
+        List<String> fks = new ArrayList<>();
+        List<TblColRef> fkCols = new ArrayList<>();
         for (Map.Entry<TblColRef, TblColRef> columnPair : joinColumns.entrySet()) {
             TblColRef fromCol = columnPair.getKey();
             TblColRef toCol = columnPair.getValue();
@@ -351,7 +349,7 @@ public class OLAPJoinRel extends EnumerableJoin implements OLAPRel {
 
                 // find missed rewrite fields
                 int paramIndex = this.rowType.getFieldList().size();
-                List<RelDataTypeField> newFieldList = new LinkedList<RelDataTypeField>();
+                List<RelDataTypeField> newFieldList = new LinkedList<>();
                 for (Map.Entry<String, RelDataType> rewriteField : this.context.rewriteFields.entrySet()) {
                     String fieldName = rewriteField.getKey();
                     if (this.rowType.getField(fieldName, true, false) == null) {

@@ -111,11 +111,15 @@ public class KapJoinRel extends OLAPJoinRel implements KapRel {
         olapContextImplementor.visitChild(getInput(1), this, rightState);
 
         if (leftState.hasModelView() || rightState.hasModelView()) {
-            olapContextImplementor.allocateContext((KapRel) getInput(0), this);
-            leftState.setHasFreeTable(false);
+            if (leftState.hasFreeTable()) {
+                olapContextImplementor.allocateContext((KapRel) getInput(0), this);
+                leftState.setHasFreeTable(false);
+            }
 
-            olapContextImplementor.allocateContext((KapRel) getInput(1), this);
-            rightState.setHasFreeTable(false);
+            if (rightState.hasFreeTable()) {
+                olapContextImplementor.allocateContext((KapRel) getInput(1), this);
+                rightState.setHasFreeTable(false);
+            }
         }
 
         // special case for left join
@@ -265,7 +269,7 @@ public class KapJoinRel extends OLAPJoinRel implements KapRel {
                     .flatMap(e -> Stream.of(e.getKey(), e.getValue())).collect(Collectors.toSet());
             joinCols.stream()
                     .flatMap(e -> e.getSourceColumns().stream())
-                    .filter(colRef -> context.belongToContextTables(colRef))
+                    .filter(context::belongToContextTables)
                     .forEach(colRef -> {
                         context.getSubqueryJoinParticipants().add(colRef);
                         context.allColumns.add(colRef);

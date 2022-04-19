@@ -68,9 +68,6 @@ import io.kyligence.kap.query.util.RexUtils;
 import io.kyligence.kap.util.FilterConditionExpander;
 
 public class KapFilterRel extends OLAPFilterRel implements KapRel {
-    private static final String DATE = "date";
-    private static final String TIMESTAMP = "timestamp";
-
     private Set<OLAPContext> subContexts = Sets.newHashSet();
 
     private boolean belongToPreAggContext = false;

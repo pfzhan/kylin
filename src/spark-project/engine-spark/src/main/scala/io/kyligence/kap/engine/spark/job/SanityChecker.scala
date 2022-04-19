@@ -27,7 +27,8 @@ package io.kyligence.kap.engine.spark.job
 import io.kyligence.kap.engine.spark.utils.LogEx
 import io.kyligence.kap.metadata.cube.model.{IndexEntity, LayoutEntity}
 import org.apache.kylin.common.KylinConfig
-import org.apache.kylin.common.exception.{JobErrorCode, KylinException}
+import org.apache.kylin.common.exception.KylinException
+import org.apache.kylin.common.exception.code.ErrorCodeJob.SANITY_CHECK_ERROR
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.datasource.storage.StorageListener
 import org.apache.spark.sql.functions.{col, sum}
@@ -61,8 +62,7 @@ class SanityChecker(expect: Long) extends StorageListener with LogEx {
 
   private def checkRowCount(dfRowCount: Long, parentRowCount: Long, layout: LayoutEntity): Unit = {
     if (dfRowCount != parentRowCount) {
-      throw new KylinException(JobErrorCode.SANITY_CHECK_ERROR,
-        s"${layout.getId} build failed, it's row count $dfRowCount != $parentRowCount")
+      throw new KylinException(SANITY_CHECK_ERROR, layout.getId + "")
     }
   }
 }

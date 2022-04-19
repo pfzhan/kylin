@@ -3,6 +3,7 @@ import $ from 'jquery'
 import Scrollbar from 'smooth-scrollbar'
 import store from '../store'
 import { stopPropagation, on } from 'util/event'
+import { closestElm } from 'util'
 // import commonTip from 'components/common/common_tip'
 import ElementUI from 'kyligence-ui'
 const nodeList = []
@@ -420,7 +421,7 @@ Vue.directive('drag', {
     oDiv.onmousedown = (ev) => {
       let info = JSON.parse(JSON.stringify(dragInfo))
       let zoom = el.getAttribute('data-zoom') || 10
-      // ev.stopPropagation()
+      ev.stopPropagation()
       ev.preventDefault()
       let offsetX = ev.clientX
       let offsetY = ev.clientY
@@ -501,13 +502,31 @@ Vue.directive('drag', {
             }
           }
         }
-
-        const { width, height, right, left, top, zIndex } = info
-        if ([...oDiv.classList].includes('drag-bar')) {
-          parent = parent.parentElement
+        if (closestElm(oDiv, '.model-edit-outer')) {
+          const { width, height, right, left, top, zIndex } = info
+          if ([...oDiv.classList].includes('drag-bar')) {
+            parent = parent.parentElement
+          }
+          if ([...oDiv.classList].includes('model-edit-outer')) {
+            const child = oDiv.querySelector('.model-edit')
+            if (!child) return
+            const mL = child.offsetLeft ?? 0
+            const mT = child.offsetTop ?? 0
+            child.style.cssText += `margin-left: ${mL + x}px; margin-top: ${mT + y}px`
+          }
+          const cloneId = parent.getAttribute('id')
+          if (cloneId && /temp$/.test(cloneId)) {
+            const targetDom = document.getElementById(`${cloneId.replace(/temp$/, '')}`)
+            targetDom && (targetDom.style.cssText += `width: ${width}px; height: ${height}px; right: ${right ? right + 'px' : null}; left: ${left ? left + 'px' : null}; top: ${top}px; z-index: ${zIndex}`)
+          }
+          parent && (parent.style.cssText += `width: ${width}px; height: ${height}px; right: ${right ? right + 'px' : null}; left: ${left ? left + 'px' : null}; top: ${top}px; z-index: ${zIndex}`)
+        } else {
+          Object.keys(info).forEach(item => {
+            dragInfo[item] = info[item]
+          })
         }
-        parent && (parent.style.cssText = `width: ${width}px; height: ${height}px; right: ${right ? right + 'px' : null}; left: ${left ? left + 'px' : null}; top: ${top}px; z-index: ${zIndex}`)
-        callback && callback(x, y, boxW, boxH, info)
+
+        callback && callback(x, y, boxW, boxH, info, oDiv)
       }
       document.onmouseup = function () {
         el.className = el.className.replace(/ky-[a-z]+-ing/g, '').replace(/\s+$/, '')

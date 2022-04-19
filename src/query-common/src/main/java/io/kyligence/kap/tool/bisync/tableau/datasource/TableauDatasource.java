@@ -173,12 +173,7 @@ public class TableauDatasource implements Serializable {
             return true;
         }
         if (getColumns() != null && thatColumnList != null && getColumns().size() == thatColumnList.size()) {
-            Comparator<Column> columnComparator = new Comparator<Column>() {
-                @Override
-                public int compare(Column o1, Column o2) {
-                    return o1.getName().compareTo(o2.getName());
-                }
-            };
+            Comparator<Column> columnComparator = (o1, o2) -> o1.getName().compareTo(o2.getName());
             Collections.sort(getColumns(), columnComparator);
             Collections.sort(thatColumnList, columnComparator);
 

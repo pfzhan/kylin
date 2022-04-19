@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.query.engine;
 
-
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -44,6 +43,7 @@ import org.apache.kylin.rest.constant.Constant;
 
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.query.QueryExtension;
 import io.kyligence.kap.query.engine.view.ViewAnalyzer;
@@ -73,6 +73,7 @@ class ProjectSchemaFactory {
         Set<String> groups = Objects.nonNull(aclInfo) ? aclInfo.getGroups() : null;
         schemasMap = QueryExtension.getFactory().getSchemaMapExtension().getAuthorizedTablesAndColumns(kylinConfig,
                 projectName, aclDisabledOrIsAdmin(aclInfo), user, groups);
+        removeStreamingTables(schemasMap);
         modelsMap = NDataflowManager.getInstance(kylinConfig, projectName).getModelsGroupbyTable();
 
         // "database" in TableDesc correspond to our schema
@@ -85,6 +86,15 @@ class ProjectSchemaFactory {
             majoritySchemaName = DatabaseDesc.getDefaultDatabaseByMaxTables(schemasMap);
         }
         defaultSchemaName = majoritySchemaName;
+    }
+
+    /**
+     * remove streaming tables when streaming function is disabled
+     */
+    private void removeStreamingTables(Map<String, List<TableDesc>> schemasMap) {
+        schemasMap.values().stream().forEach(tableDescList -> tableDescList
+                .removeIf(tableDesc -> !NTableMetadataManager.isTableAccessible(tableDesc)));
+        schemasMap.keySet().removeIf(key -> CollectionUtils.isEmpty(schemasMap.get(key)));
     }
 
     private boolean aclDisabledOrIsAdmin(QueryContext.AclInfo aclInfo) {
@@ -129,8 +139,8 @@ class ProjectSchemaFactory {
             if (schema.getTable(model.getAlias(), false) == null) {
                 viewSchema.addModel(plus, model);
             } else {
-                log.warn("Auto model view creation for {}.{} failed, name collision with source tables",
-                        viewSchemaName, viewSchemaName);
+                log.warn("Auto model view creation for {}.{} failed, name collision with source tables", viewSchemaName,
+                        viewSchemaName);
             }
         }
     }

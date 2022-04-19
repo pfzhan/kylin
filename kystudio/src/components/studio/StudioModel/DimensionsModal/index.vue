@@ -287,7 +287,7 @@
                 width="110">
               </el-table-column>
             </el-table>
-            <kap-pager class="ksd-center ksd-mtb-10" ref="pager" :refTag="pageRefTags.dimensionPager" :curPage="filterArgs.pageOffset+1" :totalSize="searchTotalSize"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
+            <kap-pager class="ksd-center ksd-mtb-10" ref="pager" :perPageSize="filterArgs.pageSize" :refTag="pageRefTags.dimensionPager" :curPage="filterArgs.pageOffset+1" :totalSize="searchTotalSize"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
           </div>
         </div>
       </div>
@@ -382,7 +382,7 @@ export default class DimensionsModal extends Vue {
   }
 
   get flattenLookupTables () {
-    return this.modelDesc.anti_flatten_lookups || []
+    return this.modelDesc?.anti_flatten_lookups ?? []
   }
 
   get unflattenComputedColumns () {

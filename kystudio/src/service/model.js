@@ -259,6 +259,9 @@ export default {
   validateModelName: (para) => {
     return Vue.resource(apiUrl + 'models/validate_model').save(para)
   },
+  newModelNameValidate: (para) => {
+    return Vue.resource(apiUrl + 'models/name/validation').save(para)
+  },
   addAggIndexAdvanced: (para) => {
     return Vue.resource(apiUrl + 'models/' + para.model_id + '/agg_indices/shard_columns').save(para)
   },

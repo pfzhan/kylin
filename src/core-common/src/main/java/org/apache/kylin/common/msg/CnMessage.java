@@ -1829,6 +1829,21 @@ public class CnMessage extends Message {
     }
 
     @Override
+    public String getSECOND_STORAGE_PROJECT_ENABLED() {
+        return "加载失败，项目 %s 未开启分层存储。";
+    }
+
+    @Override
+    public String getSECOND_STORAGE_MODEL_ENABLED() {
+        return "加载失败，模型 %s 未开启分层存储。";
+    }
+
+    @Override
+    public String getSECOND_STORAGE_SEGMENT_WITHOUT_BASE_INDEX() {
+        return "Segment 中缺少基础明细索引，请添加后重试。";
+    }
+
+    @Override
     public String getJOB_RESTART_FAILED() {
         return "分层存储任务不支持重启操作。\n";
     }
@@ -1910,7 +1925,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getSECOND_STORAGE_NODE_NOT_AVAILABLE() {
-        return "当前无法开启分层存储，节点已被使用。请刷新页面后重试。";
+        return "无法添加节点。节点不存在或被其他项目占用，请修改后重试";
     }
 
     @Override
@@ -1925,12 +1940,17 @@ public class CnMessage extends Message {
 
     @Override
     public String getPROJECT_LOCKED() {
-        return "当前项目中有正在进行的分层存储重分布任务，请稍后再试。";
+        return "当前项目的分层存储中正在进行数据迁移，请稍后重试。";
     }
 
     @Override
     public String getFIX_STREAMING_SEGMENT() {
         return "无法修复流数据模型的 Segment。";
+    }
+
+    @Override
+    public String getStreamingDisabled() {
+        return "只有 Kyligence 高级版才能使用批流一体功能，请联系 Kyligence 客户经理升级 License。";
     }
 
     @Override
@@ -2026,5 +2046,30 @@ public class CnMessage extends Message {
     @Override
     public String getLDAP_USER_DATA_SOURCE_CONFIG_ERROR() {
         return "LDAP 连接错误，请检查 LDAP 配置信息！";
+    }
+
+    @Override
+    public String getTABLE_NO_COLUMNS_PERMISSION() {
+        return "请向表中的列添加权限! ";
+    }
+
+    @Override
+    public String getPARAMETER_IS_REQUIRED() {
+        return "找不到 '%s'。";
+    }
+
+    @Override
+    public String getDUPLICATED_DIMENSION_NAME_AND_MEASURE_NAME() {
+        return "维度名 %s 与度量名 %s 重复，无法导出 TDS。请去除重名后再重试。";
+    }
+
+    @Override
+    public String getDUPLICATED_DIMENSION_COLUMN_AND_MEASURE_NAME() {
+        return "维度的列名 %s 与度量名 %s 重复，无法导出 TDS。请去除重名后再重试。";
+    }
+
+    @Override
+    public String getDUPLICATED_MODEL_COLUMN_AND_MEASURE_NAME() {
+        return "模型中的列名 %s 与度量名 %s 重复，无法导出 TDS。请去除重名后再重试。";
     }
 }

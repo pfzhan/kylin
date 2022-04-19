@@ -25,8 +25,8 @@ package io.kyligence.kap.metadata.model;
 
 import static org.apache.kylin.common.exception.CommonErrorCode.UNKNOWN_ERROR_CODE;
 
-import org.apache.kylin.common.exception.ErrorCodeSupplier;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.code.ErrorCodeProducer;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -51,8 +51,8 @@ public class BadModelException extends KylinException {
     @JsonProperty
     private String badCC;//tell caller which cc is bad
 
-    public BadModelException(ErrorCodeSupplier errorCodeSupplier, String message, CauseType causeType, String advise, String conflictingModel,
-            String badCC) {
+    public BadModelException(org.apache.kylin.common.exception.ErrorCodeSupplier errorCodeSupplier, String message, CauseType causeType, String advise,
+                             String conflictingModel, String badCC) {
         super(errorCodeSupplier, message);
         this.causeType = causeType;
         this.advise = advise;
@@ -60,7 +60,17 @@ public class BadModelException extends KylinException {
         this.badCC = badCC;
     }
 
-    public BadModelException(String message, CauseType causeType, String advise, String conflictingModel, String badCC) {
+    public BadModelException(ErrorCodeProducer nerrorCodeProducer, CauseType causeType, String advise,
+                             String conflictingModel, String badCC, Object... args) {
+        super(nerrorCodeProducer, args);
+        this.causeType = causeType;
+        this.advise = advise;
+        this.conflictingModel = conflictingModel;
+        this.badCC = badCC;
+    }
+
+    public BadModelException(String message, CauseType causeType, String advise, String conflictingModel,
+            String badCC) {
         this(UNKNOWN_ERROR_CODE, message, causeType, advise, conflictingModel, badCC);
     }
 

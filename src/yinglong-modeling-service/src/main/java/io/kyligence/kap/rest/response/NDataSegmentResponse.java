@@ -28,6 +28,7 @@ import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
+import lombok.val;
 import org.apache.kylin.job.common.SegmentUtil;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.metadata.model.SegmentStatusEnumToDisplay;
@@ -126,9 +127,13 @@ public class NDataSegmentResponse extends NDataSegment {
         hasBaseAggIndex = segment.getIndexPlan().containBaseAggLayout();
         hasBaseTableIndex = segment.getIndexPlan().containBaseTableLayout();
         if (segment.getIndexPlan().getBaseTableLayout() != null) {
-            NDataLayout baseTableIndexData = segment.getSegDetails()
-                    .getLayoutById(segment.getIndexPlan().getBaseTableLayout().getId());
-            hasBaseTableIndexData = baseTableIndexData != null && baseTableIndexData.getFileCount() > 0;
+            val indexPlan = segment.getDataflow().getIndexPlan();
+            long segmentFileCount = segment.getSegDetails().getLayouts().stream()
+                    .filter(layout -> indexPlan.getLayoutEntity(layout.getLayoutId()).isBaseIndex())
+                    .mapToLong(NDataLayout::getFileCount)
+                    .sum();
+
+            hasBaseTableIndexData = segmentFileCount > 0;
         } else {
             hasBaseTableIndexData = false;
         }

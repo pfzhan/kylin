@@ -27,31 +27,29 @@ package io.kyligence.kap.smart;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.model.util.ExpandableMeasureUtil;
-import io.kyligence.kap.query.util.KapQueryUtil;
-import io.kyligence.kap.engine.spark.utils.ComputedColumnEvalUtil;
 import org.apache.kylin.common.KylinConfig;
 
-import com.google.common.collect.ImmutableList;
-
+import io.kyligence.kap.engine.spark.utils.ComputedColumnEvalUtil;
+import io.kyligence.kap.guava20.shaded.common.collect.ImmutableList;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.util.ExpandableMeasureUtil;
+import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.smart.model.ModelTree;
 import lombok.Getter;
 
 @Getter
 public class SmartContext extends AbstractContext {
 
-    private ExpandableMeasureUtil expandableMeasureUtil =
-            new ExpandableMeasureUtil((model, ccDesc) -> {
-                String ccExpression = KapQueryUtil.massageComputedColumn(model, model.getProject(), ccDesc, null);
-                ccDesc.setInnerExpression(ccExpression);
-                ComputedColumnEvalUtil.evaluateExprAndType(model, ccDesc);
-            });
+    private final ExpandableMeasureUtil expandableMeasureUtil = new ExpandableMeasureUtil((model, ccDesc) -> {
+        String ccExpression = KapQueryUtil.massageComputedColumn(model, model.getProject(), ccDesc, null);
+        ccDesc.setInnerExpression(ccExpression);
+        ComputedColumnEvalUtil.evaluateExprAndType(model, ccDesc);
+    });
 
     public SmartContext(KylinConfig kylinConfig, String project, String[] sqls) {
         super(kylinConfig, project, sqls);
@@ -137,7 +135,7 @@ public class SmartContext extends AbstractContext {
     }
 
     @Override
-    public ChainedProposer createTransactionProposers() {
+    public ChainedProposer createProposers() {
         ImmutableList<AbstractProposer> proposers = ImmutableList.of(//
                 new SQLAnalysisProposer(this), //
                 new ModelSelectProposer(this), //
@@ -149,10 +147,5 @@ public class SmartContext extends AbstractContext {
                 new IndexPlanShrinkProposer(this) //
         );
         return new ChainedProposer(this, proposers);
-    }
-
-    @Override
-    public ChainedProposer createPreProcessProposers() {
-        return new ChainedProposer(this, ImmutableList.of());
     }
 }

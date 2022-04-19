@@ -42,17 +42,15 @@
 
 package org.apache.kylin.rest.exception;
 
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.code.ErrorCodeProducer;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 @ResponseStatus(value = HttpStatus.UNAUTHORIZED)
-public class UnauthorizedException extends RuntimeException {
+public class UnauthorizedException extends KylinException {
 
-    public UnauthorizedException() {
-        super();
-    }
-
-    public UnauthorizedException(String message) {
-        super(message);
+    public UnauthorizedException(ErrorCodeProducer errorCodeProducer, Object... args) {
+        super(errorCodeProducer, args);
     }
 }

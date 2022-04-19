@@ -248,7 +248,7 @@
       </div>
     </template>
     <div slot="footer" class="dialog-footer ky-no-br-space">
-      <div class="ksd-fleft" style="display: flex;" v-if="modelInstance && !isStreamModel && !modelDesc.with_second_storage && !this.isHaveNoDimMeas && !(modelInstance.has_base_table_index && modelInstance.has_base_agg_index)">
+      <div class="ksd-fleft" style="display: flex;" v-if="modelInstance && modelInstance.status !== 'BROKEN' && !isStreamModel && !modelDesc.with_second_storage && !this.isHaveNoDimMeas && !(modelInstance.has_base_table_index && modelInstance.has_base_agg_index)">
         <el-checkbox v-model="addBaseIndex">
           <span>{{$t('addBaseIndexCheckBox')}}</span>
         </el-checkbox>
@@ -825,7 +825,7 @@ export default class ModelPartitionModal extends Vue {
           }
         })
       }, (errorRes) => {
-        this.filterErrorMsg = errorRes.data.msg
+        this.filterErrorMsg = errorRes.data.msg ?? errorRes.data.message
         this.isLoadingSave = false
         this.$nextTick(() => {
           this.$el.querySelector('.error-msg-box') && this.$el.querySelector('.error-msg-box').scrollIntoView()

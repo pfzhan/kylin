@@ -26,7 +26,7 @@ package io.kyligence.kap.newten;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.ConcurrentNavigableMap;
+import java.util.Map;
 
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.rex.RexExecutorImpl;
@@ -91,8 +91,8 @@ public class SegmentPruningFilterTest extends NLocalWithSparkSessionTest {
         NDataflow dataflow = dataflowManager.getDataflow(dataflowId);
         AbstractQueryRunner queryRunner1 = new QueryRunnerBuilder(project, kylinConfig, new String[] { sql }).build();
         queryRunner1.execute();
-        ConcurrentNavigableMap<Integer, Collection<OLAPContext>> olapContexts = queryRunner1.getOlapContexts();
-        OLAPContext context = olapContexts.get(0).iterator().next();
+        Map<String, Collection<OLAPContext>> olapContexts = queryRunner1.getOlapContexts();
+        OLAPContext context = olapContexts.get(sql).iterator().next();
         TblColRef filterColumn = context.filterColumns.iterator().next();
         dataflow.getModel().getPartitionDesc().setPartitionDateColumnRef(filterColumn);
         CalciteSchema rootSchema = new QueryExec(project, kylinConfig).getRootSchema();

@@ -44,9 +44,14 @@ package org.apache.kylin.query.exception;
 import static org.apache.kylin.common.exception.QueryErrorCode.BUSY_QUERY;
 
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.code.ErrorCodeProducer;
 
 public class BusyQueryException extends KylinException {
     public BusyQueryException(String msg) {
         super(BUSY_QUERY, msg);
+    }
+
+    public BusyQueryException(ErrorCodeProducer errorCodeProducer, Object... args) {
+        super(errorCodeProducer, args);
     }
 }

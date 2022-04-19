@@ -24,16 +24,33 @@
 
 package io.kyligence.kap.tool.bisync;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.model.NDataModel;
-import lombok.val;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.Charset;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.ModelJoinRelationTypeEnum;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.google.common.base.Charsets;
+import com.google.common.collect.Sets;
+import com.google.common.io.CharStreams;
+
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.acl.AclTCR;
+import io.kyligence.kap.metadata.acl.AclTCRDigest;
+import io.kyligence.kap.metadata.acl.AclTCRManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.tool.bisync.tableau.TableauDatasourceModel;
+import lombok.val;
 
 public class SyncModelBuilderTest extends NLocalFileMetadataTestCase {
 
@@ -82,7 +99,266 @@ public class SyncModelBuilderTest extends NLocalFileMetadataTestCase {
 
         Assert.assertEquals(model.getAllMeasures().size(), syncModel.getMetrics().size());
         val syncMeasure = syncModel.getMetrics().get(0).getMeasure();
-        val modelMeasure = model.getAllMeasures().stream().filter(m -> m.getId() == syncMeasure.getId()).findFirst().get();
+        val modelMeasure = model.getAllMeasures().stream().filter(m -> m.getId() == syncMeasure.getId()).findFirst()
+                .get();
         Assert.assertEquals(modelMeasure, syncMeasure);
+    }
+
+    @Test
+    public void testBuildHasPermissionSourceSyncModel() throws Exception {
+        Set<String> groups = new HashSet<>();
+        groups.add("g1");
+        val project = "default";
+        val modelId = "82fa7671-a935-45f5-8779-85703601f49a";
+        val syncContext = SyncModelTestUtil.createSyncContext(project, modelId, KylinConfig.getInstanceFromEnv());
+        syncContext.setModelElement(SyncContext.ModelElement.ALL_COLS);
+        prepareBasic(project);
+
+        Set<String> allAuthTables = Sets.newHashSet();
+        Set<String> allAuthColumns = Sets.newHashSet();
+        AclTCRManager aclTCRManager = AclTCRManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        AclTCRDigest auths = aclTCRManager.getAuthTablesAndColumns(project, "u1", true);
+        allAuthTables.addAll(auths.getTables());
+        allAuthColumns.addAll(auths.getColumns());
+        for (String group : groups) {
+            auths = aclTCRManager.getAuthTablesAndColumns(project, group, false);
+            allAuthTables.addAll(auths.getTables());
+            allAuthColumns.addAll(auths.getColumns());
+        }
+
+        TableauDatasourceModel datasource = (TableauDatasourceModel) BISyncTool
+                .dumpHasPermissionToBISyncModel(syncContext, allAuthTables, allAuthColumns);
+        ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+        datasource.dump(outStream);
+        Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector_permission.tds"),
+                outStream.toString(Charset.defaultCharset().name()));
+
+        syncContext.setModelElement(SyncContext.ModelElement.AGG_INDEX_AND_TABLE_INDEX_COL);
+        TableauDatasourceModel datasource1 = (TableauDatasourceModel) BISyncTool
+                .dumpHasPermissionToBISyncModel(syncContext, allAuthTables, allAuthColumns);
+        ByteArrayOutputStream outStream1 = new ByteArrayOutputStream();
+        datasource1.dump(outStream1);
+        Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector_permission.tds"),
+                outStream1.toString(Charset.defaultCharset().name()));
+
+        syncContext.setModelElement(SyncContext.ModelElement.AGG_INDEX_COL);
+        TableauDatasourceModel datasource2 = (TableauDatasourceModel) BISyncTool
+                .dumpHasPermissionToBISyncModel(syncContext, allAuthTables, allAuthColumns);
+        ByteArrayOutputStream outStream2 = new ByteArrayOutputStream();
+        datasource2.dump(outStream2);
+        Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector_permission.tds"),
+                outStream2.toString(Charset.defaultCharset().name()));
+
+        val syncContext1 = SyncModelTestUtil.createSyncContext(project, "89af4ee2-2cdb-4b07-b39e-4c29856309aa",
+                KylinConfig.getInstanceFromEnv());
+        syncContext1.setModelElement(SyncContext.ModelElement.AGG_INDEX_COL);
+        TableauDatasourceModel datasource3 = (TableauDatasourceModel) BISyncTool
+                .dumpHasPermissionToBISyncModel(syncContext1, allAuthTables, allAuthColumns);
+        ByteArrayOutputStream outStream3 = new ByteArrayOutputStream();
+        datasource3.dump(outStream3);
+        Assert.assertEquals(
+                getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector_table_index_permission.tds"),
+                outStream3.toString(Charset.defaultCharset().name()));
+    }
+
+    @Test
+    public void testBuildSyncModelType() throws Exception {
+        val project = "default";
+        val modelId = "cb596712-3a09-46f8-aea1-988b43fe9b6c";
+        val syncContext = SyncModelTestUtil.createSyncContext(project, modelId, KylinConfig.getInstanceFromEnv());
+        syncContext.setModelElement(SyncContext.ModelElement.ALL_COLS);
+        prepareBasic(project);
+
+        TableauDatasourceModel datasource = (TableauDatasourceModel) BISyncTool.dumpToBISyncModel(syncContext);
+        ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+        datasource.dump(outStream);
+        Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector.tds"),
+                outStream.toString(Charset.defaultCharset().name()));
+
+        syncContext.setModelElement(SyncContext.ModelElement.AGG_INDEX_AND_TABLE_INDEX_COL);
+        TableauDatasourceModel datasource1 = (TableauDatasourceModel) BISyncTool.dumpToBISyncModel(syncContext);
+        ByteArrayOutputStream outStream1 = new ByteArrayOutputStream();
+        datasource1.dump(outStream1);
+        Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector.tds"),
+                outStream1.toString(Charset.defaultCharset().name()));
+
+        syncContext.setModelElement(SyncContext.ModelElement.AGG_INDEX_COL);
+        TableauDatasourceModel datasource2 = (TableauDatasourceModel) BISyncTool.dumpToBISyncModel(syncContext);
+        ByteArrayOutputStream outStream2 = new ByteArrayOutputStream();
+        datasource2.dump(outStream2);
+        Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector.tds"),
+                outStream2.toString(Charset.defaultCharset().name()));
+
+        val syncContext1 = SyncModelTestUtil.createSyncContext(project, "89af4ee2-2cdb-4b07-b39e-4c29856309aa",
+                KylinConfig.getInstanceFromEnv());
+        syncContext1.setModelElement(SyncContext.ModelElement.AGG_INDEX_COL);
+        TableauDatasourceModel datasource3 = (TableauDatasourceModel) BISyncTool.dumpToBISyncModel(syncContext1);
+        ByteArrayOutputStream outStream3 = new ByteArrayOutputStream();
+        datasource3.dump(outStream3);
+        Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.table_index_connector.tds"),
+                outStream3.toString(Charset.defaultCharset().name()));
+    }
+
+    @Test
+    public void testCheckCC() throws Exception {
+        Set<String> groups = new HashSet<>();
+        groups.add("g1");
+        val project = "default";
+        val modelId = "741ca86a-1f13-46da-a59f-95fb68615e3a";
+        prepareBasic(project);
+        Set<String> allAuthTables = Sets.newHashSet();
+        Set<String> allAuthColumns = Sets.newHashSet();
+        AclTCRManager aclTCRManager = AclTCRManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        AclTCRDigest auths = aclTCRManager.getAuthTablesAndColumns(project, "u1", true);
+        allAuthTables.addAll(auths.getTables());
+        allAuthColumns.addAll(auths.getColumns());
+        for (String group : groups) {
+            auths = aclTCRManager.getAuthTablesAndColumns(project, group, false);
+            allAuthTables.addAll(auths.getTables());
+            allAuthColumns.addAll(auths.getColumns());
+        }
+        val cc_syncContext = SyncModelTestUtil.createSyncContext(project, modelId, KylinConfig.getInstanceFromEnv());
+        cc_syncContext.setModelElement(SyncContext.ModelElement.ALL_COLS);
+        TableauDatasourceModel datasource3 = (TableauDatasourceModel) BISyncTool
+                .dumpHasPermissionToBISyncModel(cc_syncContext, allAuthTables, allAuthColumns);
+        ByteArrayOutputStream outStream3 = new ByteArrayOutputStream();
+        datasource3.dump(outStream3);
+        Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector_cc.tds"),
+                outStream3.toString(Charset.defaultCharset().name()));
+    }
+
+    @Test
+    public void testHierarchies() throws Exception {
+        Set<String> groups = new HashSet<>();
+        groups.add("g1");
+        val project = "default";
+        val modelId = "82fa7671-a935-45f5-8779-85703601f49a";
+        prepareBasic(project);
+        Set<String> allAuthTables = Sets.newHashSet();
+        Set<String> allAuthColumns = Sets.newHashSet();
+        AclTCRManager aclTCRManager = AclTCRManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        AclTCRDigest auths = aclTCRManager.getAuthTablesAndColumns(project, "u1", true);
+        allAuthTables.addAll(auths.getTables());
+        allAuthColumns.addAll(auths.getColumns());
+        for (String group : groups) {
+            auths = aclTCRManager.getAuthTablesAndColumns(project, group, false);
+            allAuthTables.addAll(auths.getTables());
+            allAuthColumns.addAll(auths.getColumns());
+        }
+        val cc_syncContext = SyncModelTestUtil.createSyncContext(project, modelId, KylinConfig.getInstanceFromEnv());
+        cc_syncContext.setModelElement(SyncContext.ModelElement.ALL_COLS);
+        TableauDatasourceModel datasource3 = (TableauDatasourceModel) BISyncTool
+                .dumpHasPermissionToBISyncModel(cc_syncContext, allAuthTables, allAuthColumns);
+        ByteArrayOutputStream outStream3 = new ByteArrayOutputStream();
+        datasource3.dump(outStream3);
+        Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector_hierarchies.tds"),
+                outStream3.toString(Charset.defaultCharset().name()));
+    }
+
+    @Test
+    public void testNoHierarchies() throws Exception {
+        Set<String> groups = new HashSet<>();
+        groups.add("g1");
+        val project = "default";
+        val modelId = "82fa7671-a935-45f5-8779-85703601f49a";
+        prepareBasicNoHierarchies(project);
+        Set<String> allAuthTables = Sets.newHashSet();
+        Set<String> allAuthColumns = Sets.newHashSet();
+        AclTCRManager aclTCRManager = AclTCRManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        AclTCRDigest auths = aclTCRManager.getAuthTablesAndColumns(project, "u1", true);
+        allAuthTables.addAll(auths.getTables());
+        allAuthColumns.addAll(auths.getColumns());
+        for (String group : groups) {
+            auths = aclTCRManager.getAuthTablesAndColumns(project, group, false);
+            allAuthTables.addAll(auths.getTables());
+            allAuthColumns.addAll(auths.getColumns());
+        }
+        val cc_syncContext = SyncModelTestUtil.createSyncContext(project, modelId, KylinConfig.getInstanceFromEnv());
+        cc_syncContext.setModelElement(SyncContext.ModelElement.ALL_COLS);
+        TableauDatasourceModel datasource3 = (TableauDatasourceModel) BISyncTool
+                .dumpHasPermissionToBISyncModel(cc_syncContext, allAuthTables, allAuthColumns);
+        ByteArrayOutputStream outStream3 = new ByteArrayOutputStream();
+        datasource3.dump(outStream3);
+        Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector_no_hierarchies.tds"),
+                outStream3.toString(Charset.defaultCharset().name()));
+    }
+
+    private String getExpectedTds(String path) throws IOException {
+        return CharStreams.toString(new InputStreamReader(getClass().getResourceAsStream(path), Charsets.UTF_8));
+    }
+
+    private void prepareBasic(String project) {
+        AclTCRManager manager = AclTCRManager.getInstance(getTestConfig(), project);
+
+        AclTCR u1a1 = new AclTCR();
+        AclTCR.Table u1t1 = new AclTCR.Table();
+        AclTCR.ColumnRow u1cr1 = new AclTCR.ColumnRow();
+        AclTCR.Column u1c1 = new AclTCR.Column();
+        u1c1.addAll(Arrays.asList("ORDER_ID", "PRICE", "CAL_DT", "PRICE", "ITEM_COUNT", "LEAF_CATEG_ID"));
+        u1cr1.setColumn(u1c1);
+
+        AclTCR.ColumnRow u1cr2 = new AclTCR.ColumnRow();
+        AclTCR.Column u1c2 = new AclTCR.Column();
+        u1c2.addAll(Arrays.asList("ORDER_ID", "TEST_TIME_ENC", "TEST_DATE_ENC"));
+        u1cr2.setColumn(u1c2);
+        u1t1.put("DEFAULT.TEST_KYLIN_FACT", u1cr1);
+        u1t1.put("DEFAULT.TEST_ORDER", u1cr2);
+        u1a1.setTable(u1t1);
+        manager.updateAclTCR(u1a1, "u1", true);
+
+        AclTCR g1a1 = new AclTCR();
+        AclTCR.Table g1t1 = new AclTCR.Table();
+        AclTCR.ColumnRow g1cr1 = new AclTCR.ColumnRow();
+        AclTCR.Column g1c1 = new AclTCR.Column();
+        g1c1.addAll(Arrays.asList("ORDER_ID", "PRICE", "CAL_DT", "TRANS_ID"));
+        g1cr1.setColumn(g1c1);
+        g1t1.put("DEFAULT.TEST_MEASURE", g1cr1);
+        g1a1.setTable(g1t1);
+        manager.updateAclTCR(g1a1, "g1", false);
+    }
+
+    private void prepareBasicNoHierarchies(String project) {
+        AclTCRManager manager = AclTCRManager.getInstance(getTestConfig(), project);
+
+        AclTCR u1a1 = new AclTCR();
+        AclTCR.Table u1t1 = new AclTCR.Table();
+        AclTCR.ColumnRow u1cr1 = new AclTCR.ColumnRow();
+        AclTCR.Column u1c1 = new AclTCR.Column();
+        u1c1.addAll(Arrays.asList("ORDER_ID", "PRICE", "CAL_DT", "PRICE", "ITEM_COUNT"));
+        u1cr1.setColumn(u1c1);
+
+        AclTCR.ColumnRow u1cr2 = new AclTCR.ColumnRow();
+        AclTCR.Column u1c2 = new AclTCR.Column();
+        u1c2.addAll(Arrays.asList("ORDER_ID", "TEST_TIME_ENC", "TEST_DATE_ENC"));
+        u1cr2.setColumn(u1c2);
+        u1t1.put("DEFAULT.TEST_KYLIN_FACT", u1cr1);
+        u1t1.put("DEFAULT.TEST_ORDER", u1cr2);
+        u1a1.setTable(u1t1);
+        manager.updateAclTCR(u1a1, "u1", true);
+
+        AclTCR g1a1 = new AclTCR();
+        AclTCR.Table g1t1 = new AclTCR.Table();
+        AclTCR.ColumnRow g1cr1 = new AclTCR.ColumnRow();
+        AclTCR.Column g1c1 = new AclTCR.Column();
+        g1c1.addAll(Arrays.asList("ORDER_ID", "PRICE", "CAL_DT", "TRANS_ID"));
+        g1cr1.setColumn(g1c1);
+        g1t1.put("DEFAULT.TEST_MEASURE", g1cr1);
+        g1a1.setTable(g1t1);
+        manager.updateAclTCR(g1a1, "g1", false);
+    }
+
+    @Test
+    public void testRenameColumnName() {
+        val project = "default";
+        val modelId = "741ca86a-1f13-46da-a59f-95fb68615e3a";
+        Set<String> columns = Sets.newHashSet();
+        columns.add("DEFAULT.TEST_KYLIN_FACT.ORDER_ID");
+        columns.add("TEST_KYLIN_FACT.TEST_TIME_ENC");
+        val cc_syncContext = SyncModelTestUtil.createSyncContext(project, modelId, KylinConfig.getInstanceFromEnv());
+        Set<String> set = new SyncModelBuilder(cc_syncContext).renameColumnName(columns);
+        Set<String> expectColumns = Sets.newHashSet();
+        expectColumns.add("TEST_KYLIN_FACT.ORDER_ID");
+        expectColumns.add("TEST_KYLIN_FACT.TEST_TIME_ENC");
+        Assert.assertEquals(set, expectColumns);
     }
 }

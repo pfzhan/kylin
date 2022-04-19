@@ -116,7 +116,7 @@
         class="ksd-center ksd-mtb-10" ref="pager"
         :refTag="pageRefTags.projectPager"
         :totalSize="projectsTotal"
-        :perPageSize="20"
+        :perPageSize="filterData.page_size"
         :curPage="filterData.page_offset+1"
         @handleCurrentChange="handleCurrentChange">
       </kap-pager>
@@ -163,7 +163,7 @@ import modeList from './model_list'
 import accessEdit from './access_edit'
 import filterEdit from './filter_edit'
 import projectConfig from './project_config'
-import { permissions, projectCfgs, pageRefTags } from '../../config/index'
+import { permissions, projectCfgs, pageRefTags, bigPageCount } from '../../config/index'
 import { handleSuccessAsync } from '../../util'
 import { handleSuccess, handleError, transToGmtTime, hasPermission, hasRole, kapConfirm } from '../../util/business'
 export default {
@@ -299,7 +299,7 @@ export default {
         })
         this.loadProjects(this.filterData)
       } catch (e) {
-        this.$message({ message: e.body.msg, type: 'error' })
+        this.$message({ message: e.body.msg ?? e.body.message, type: 'error' })
         this.changeLoading = false
         this.changeOwnerVisible = false
       }
@@ -337,7 +337,7 @@ export default {
       projectWidth: '440px',
       filterData: {
         page_offset: 0,
-        page_size: +localStorage.getItem(pageRefTags.projectPager) || 20,
+        page_size: +localStorage.getItem(pageRefTags.projectPager) || bigPageCount,
         exact: false,
         project: '',
         permission: 'ADMINISTRATION'

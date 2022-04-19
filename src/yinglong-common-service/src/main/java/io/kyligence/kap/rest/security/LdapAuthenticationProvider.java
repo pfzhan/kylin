@@ -26,7 +26,8 @@
 
 package io.kyligence.kap.rest.security;
 
-import org.apache.kylin.common.msg.MsgPicker;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.USER_LOGIN_FAILED;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,13 +73,13 @@ public class LdapAuthenticationProvider implements AuthenticationProvider {
         try {
             auth = authenticationProvider.authenticate(authentication);
         } catch (BadCredentialsException e) {
-            throw new BadCredentialsException(MsgPicker.getMsg().getUSER_AUTH_FAILED(), e);
+            throw new BadCredentialsException(USER_LOGIN_FAILED.getMsg(), e);
         } catch (AuthenticationException ae) {
             logger.error("Failed to auth user: {}", authentication.getName(), ae);
             throw ae;
         } catch (IncorrectResultSizeDataAccessException e) {
             logger.error("Ldap username {} is not unique", authentication.getName());
-            throw new BadCredentialsException(MsgPicker.getMsg().getUSER_AUTH_FAILED(), e);
+            throw new BadCredentialsException(USER_LOGIN_FAILED.getMsg(), e);
         }
 
         if (auth.getDetails() == null) {

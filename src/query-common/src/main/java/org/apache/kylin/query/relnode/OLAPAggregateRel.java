@@ -100,7 +100,7 @@ import com.google.common.collect.Sets;
  */
 public class OLAPAggregateRel extends Aggregate implements OLAPRel {
 
-    final static Map<String, String> AGGR_FUNC_MAP = new HashMap<String, String>();
+    final static Map<String, String> AGGR_FUNC_MAP = new HashMap<>();
 
     static {
         AGGR_FUNC_MAP.put("SUM", "SUM");
@@ -354,7 +354,7 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
         // only rewrite the innermost aggregation
         if (needRewrite()) {
             // rewrite the aggCalls
-            this.rewriteAggCalls = new ArrayList<AggregateCall>(aggCalls.size());
+            this.rewriteAggCalls = new ArrayList<>(aggCalls.size());
             for (int i = 0; i < this.aggCalls.size(); i++) {
                 AggregateCall aggCall = this.aggCalls.get(i);
                 if (SqlStdOperatorTable.GROUPING == aggCall.getAggregation()) {
@@ -525,9 +525,8 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
         }
 
         // rebuild aggregate call
-        AggregateCall newAggCall = new AggregateCall(newAgg, false, newArgList, fieldType, callName);
+        return new AggregateCall(newAgg, false, newArgList, fieldType, callName);
 
-        return newAggCall;
     }
 
     /**
@@ -547,8 +546,8 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
         RelDataTypeFactory typeFactory = getCluster().getTypeFactory();
         SqlIdentifier sqlIdentifier = new SqlIdentifier(funcName, new SqlParserPos(1, 1));
         AggregateFunction aggFunction = AggregateFunctionImpl.create(customAggFuncClz);
-        List<RelDataType> argTypes = new ArrayList<RelDataType>();
-        List<SqlTypeFamily> typeFamilies = new ArrayList<SqlTypeFamily>();
+        List<RelDataType> argTypes = new ArrayList<>();
+        List<SqlTypeFamily> typeFamilies = new ArrayList<>();
         for (FunctionParameter o : aggFunction.getParameters()) {
             final RelDataType type = o.getType(typeFactory);
             argTypes.add(type);

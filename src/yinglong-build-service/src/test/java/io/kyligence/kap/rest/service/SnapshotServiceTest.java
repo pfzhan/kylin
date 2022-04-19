@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.rest.service;
 
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_CHECK_FAIL;
+
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -190,7 +192,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(tables, Sets.newHashSet(tableNameOfSamplingJob1, tableNameOfSamplingJob2));
 
         // refresh failed
-        String expected = "Can’t submit the job at the moment, as a building job for the same object already exists. Please try again later.";
+        String expected = JOB_CREATE_CHECK_FAIL.getMsg();
         String actual = "";
         try {
             snapshotService.buildSnapshots(PROJECT, databases, tables, Maps.newHashMap(), true, 3, null, null);
@@ -333,9 +335,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
             snapshotService.buildSnapshots(PROJECT, Sets.newHashSet(table), Maps.newHashMap(), false, 3, null, null);
         } catch (TransactionException e) {
             Assert.assertTrue(e.getCause() instanceof JobSubmissionException);
-            Assert.assertEquals(
-                    "Can’t submit the job at the moment, as a building job for the same object already exists. Please try again later.",
-                    (e.getCause()).getMessage());
+            Assert.assertEquals(JOB_CREATE_CHECK_FAIL.getMsg(), (e.getCause()).getMessage());
         }
     }
 
@@ -419,6 +419,10 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("SSB", database.getDbname());
         Assert.assertEquals("CUSTOMER", ((TableNameResponse) database.getTables().get(0)).getTableName());
         Assert.assertEquals(false, ((TableNameResponse) database.getTables().get(0)).isLoaded());
+        getTestConfig().setProperty("kylin.streaming.enabled", "false");
+        response = snapshotService.getTables("streaming_test", "", 0, Integer.MAX_VALUE);
+        Assert.assertEquals(1, response.getDatabases().size());
+        Assert.assertEquals(1, database.getTables().size());
     }
 
     @Test
@@ -619,5 +623,6 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         SnapshotConfigRequest request = new SnapshotConfigRequest();
         request.setSnapshotManualManagementEnabled(true);
         projectService.updateSnapshotConfig(PROJECT, request);
+        projectService.updateSnapshotConfig("streaming_test", request);
     }
 }

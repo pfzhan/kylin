@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.controller;
 
 import static org.apache.kylin.common.exception.CommonErrorCode.UNKNOWN_ERROR_CODE;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.USER_AUTH_INFO_NOTFOUND;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -78,7 +79,7 @@ public class BaseControllerTest extends NLocalFileMetadataTestCase {
 
         Mockito.when(handleErrorController.request()).thenThrow(new RuntimeException(), new ForbiddenException(),
                 new NotFoundException(StringUtils.EMPTY), new AccessDeniedException(StringUtils.EMPTY),
-                new UnauthorizedException(), new KylinException(UNKNOWN_ERROR_CODE, StringUtils.EMPTY));
+                new UnauthorizedException(USER_AUTH_INFO_NOTFOUND), new KylinException(UNKNOWN_ERROR_CODE, StringUtils.EMPTY));
         createTestMetadata();
     }
 

@@ -252,7 +252,7 @@ import { Component } from 'vue-property-decorator'
 import { transToGmtTime, postCloudUrlMessage } from 'util/business'
 import { mapActions, mapState, mapGetters } from 'vuex'
 import { handleSuccessAsync, handleError, getQueryString, ArrayFlat } from '../../../../../../util'
-import { pageRefTags, NamedRegex1, NamedRegex } from 'config'
+import { pageRefTags, NamedRegex1, NamedRegex, pageCount } from 'config'
 import filterElements from '../../../../../../filter/index'
 
 @Component({
@@ -451,7 +451,7 @@ export default class IndexList extends Vue {
     sort_by: '',
     reverse: false,
     key: '',
-    page_size: +localStorage.getItem(this.pageRefTags.recommendationsPager) || 10
+    page_size: +localStorage.getItem(this.pageRefTags.recommendationsPager) || pageCount
   }
   typeList = ['ADD_AGG_INDEX', 'REMOVE_AGG_INDEX', 'ADD_TABLE_INDEX', 'REMOVE_TABLE_INDEX']
   source = ['imported', 'query_history']

@@ -1176,6 +1176,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         assertMemoryRestore(currMem);
     }
 
+    @Repeat(3)
     @Test
     public void testJobPauseAndResume() {
         val currMem = NDefaultScheduler.currentAvailableMem();

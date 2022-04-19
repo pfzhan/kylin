@@ -63,6 +63,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  */
 public interface OLAPRel extends RelNode {
@@ -101,7 +103,7 @@ public interface OLAPRel extends RelNode {
 
         private Stack<RelNode> parentNodeStack = new Stack<>();
         private int ctxSeq = 0;
-        private Stack<OLAPContext> ctxStack = new Stack<OLAPContext>();
+        private Stack<OLAPContext> ctxStack = new Stack<>();
         private boolean newOLAPContextRequired = false;
 
         public void visitChild(RelNode input, RelNode parentNode) {
@@ -173,8 +175,7 @@ public interface OLAPRel extends RelNode {
             if (input instanceof OLAPTableScan) {
                 OLAPTableScan tableScan = (OLAPTableScan) input;
                 if (tableScan.getColumnRowType() != null) { // implementedOLAP() was done, meaning it is shared
-                    OLAPTableScan copy = (OLAPTableScan) tableScan.copy(tableScan.getTraitSet(), tableScan.getInputs());
-                    return copy;
+                    return (OLAPTableScan) tableScan.copy(tableScan.getTraitSet(), tableScan.getInputs());
                 }
             }
             return null;
@@ -212,10 +213,7 @@ public interface OLAPRel extends RelNode {
             }
 
             String realRootFact = ctx.realization.getModel().getRootFactTable().getTableIdentity();
-            if (ctx.firstTableScan.getTableName().equals(realRootFact))
-                return true;
-
-            return false;
+            return ctx.firstTableScan.getTableName().equals(realRootFact);
         }
     }
 
@@ -224,13 +222,14 @@ public interface OLAPRel extends RelNode {
     /**
      * implementor for java generation
      */
+    @Slf4j
     public static class JavaImplementor extends EnumerableRelImplementor {
 
         private IdentityHashMap<EnumerableRel, OLAPContext> relContexts = Maps.newIdentityHashMap();
         private boolean calciteDebug = System.getProperty("calcite.debug") != null;
 
         public JavaImplementor(EnumerableRelImplementor enumImplementor) {
-            super(enumImplementor.getRexBuilder(), new LinkedHashMap<String, Object>());
+            super(enumImplementor.getRexBuilder(), new LinkedHashMap<>());
         }
 
         public EnumerableRel createEnumerable(OLAPRel parent) {
@@ -257,7 +256,7 @@ public interface OLAPRel extends RelNode {
                     context = ((OLAPRel) child).getContext();
                 else
                     context = relContexts.get(child);
-                System.out.println(context + " - " + child);
+                log.info(context + " - " + child);
             }
 
             return super.visitChild(parent, ordinal, child, prefer);

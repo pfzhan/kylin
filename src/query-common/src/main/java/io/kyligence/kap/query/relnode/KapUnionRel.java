@@ -126,7 +126,6 @@ public class KapUnionRel extends OLAPUnionRel implements KapRel {
         if (context != null) {
             this.rowType = this.deriveRowType();
         }
-        //        this.columnRowType = buildColumnRowType();
     }
 
     @Override

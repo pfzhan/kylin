@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.service;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -211,6 +212,26 @@ public class QueryMetricsListenerTest extends NLocalFileMetadataTestCase {
         queryMetricsListener.recordQueryPrometheusMetric(queryMetrics, modelManager, meterRegistry);
         Collection<Meter> meters3 = meterRegistry.find(PrometheusMetrics.QUERY_SCAN_BYTES.getValue()).meters();
         Assert.assertNotEquals(0, meters3.size());
+
+        Mockito.when(queryMetrics.isSecondStorage()).thenReturn(true);
+        queryMetricsListener.recordQueryPrometheusMetric(queryMetrics, modelManager, meterRegistry);
+        Collection<Meter> meters4 = meterRegistry.find(PrometheusMetrics.QUERY_SECONDS.getValue()).meters();
+        Assert.assertNotEquals(0, meters4.size());
     }
 
+    @Test
+    public void testSecondStorageQueryPrometheusMetric() {
+        QueryMetrics queryMetrics = new QueryMetrics("111111");
+        List<QueryMetrics.RealizationMetrics> realizationList = new ArrayList<>();
+        QueryHistoryInfo queryHistoryInfo1 = new QueryHistoryInfo(true, 3, true);
+        queryHistoryInfo1.setRealizationMetrics(realizationList);
+        queryMetrics.setQueryHistoryInfo(queryHistoryInfo1);
+        Assert.assertEquals(false, queryMetrics.isSecondStorage());
+
+        QueryMetrics.RealizationMetrics realization = new QueryMetrics.RealizationMetrics("20000001", "TABLE_INDEX",
+                "111111", null);
+        realization.setSecondStorage(true);
+        realizationList.add(realization);
+        Assert.assertEquals(true, queryMetrics.isSecondStorage());
+    }
 }

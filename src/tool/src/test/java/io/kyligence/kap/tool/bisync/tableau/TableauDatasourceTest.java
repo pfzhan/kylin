@@ -27,6 +27,8 @@ package io.kyligence.kap.tool.bisync.tableau;
 import com.google.common.base.Charsets;
 import com.google.common.io.CharStreams;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.tool.bisync.SyncModelBuilder;
 import io.kyligence.kap.tool.bisync.SyncModelTestUtil;
 import lombok.val;
@@ -40,6 +42,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
+import java.util.List;
 
 public class TableauDatasourceTest extends NLocalFileMetadataTestCase {
 
@@ -54,7 +57,22 @@ public class TableauDatasourceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testModelDescAddMeasuresComment() {
+        KylinConfig testConfig = getTestConfig();
+        val modelMgr = NDataModelManager.getInstance(testConfig, "default");
+
+        NDataModel dataModelDesc = modelMgr.getDataModelDesc("cb596712-3a09-46f8-aea1-988b43fe9b6c");
+        List<NDataModel.Measure> allMeasures = dataModelDesc.getAllMeasures();
+        allMeasures.get(1).setComment("求和");
+        modelMgr.updateDataModelDesc(dataModelDesc);
+
+        dataModelDesc = modelMgr.getDataModelDesc("cb596712-3a09-46f8-aea1-988b43fe9b6c");
+        Assert.assertEquals("求和", dataModelDesc.getAllMeasures().get(1).getComment());
+    }
+
+    @Test
     public void testTableauDataSource() throws IOException {
+        testModelDescAddMeasuresComment();
         val project = "default";
         val modelId = "cb596712-3a09-46f8-aea1-988b43fe9b6c";
         val syncContext = SyncModelTestUtil.createSyncContext(project, modelId, KylinConfig.getInstanceFromEnv());

@@ -58,8 +58,8 @@ import com.google.common.collect.Sets;
 /**
  */
 public class RemoveBlackoutRealizationsRule extends RoutingRule {
-    public static Set<String> blackList = Sets.newHashSet();
-    public static Set<String> whiteList = Sets.newHashSet();
+    private static Set<String> blackList = Sets.newHashSet();
+    private static Set<String> whiteList = Sets.newHashSet();
 
     private static ConcurrentHashMap<KylinConfig, IRealizationFilter> filters = new ConcurrentHashMap<>();
 

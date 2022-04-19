@@ -354,6 +354,10 @@ public class NDataModel extends RootPersistentEntity {
             String column = aliasDotColumn.split("\\.")[1];
             return column + "_" + table;
         }
+
+        public String getColumnName() {
+            return aliasDotColumn.split("\\.")[1];
+        }
     }
 
     @Data
@@ -1293,6 +1297,10 @@ public class NDataModel extends RootPersistentEntity {
             return this.uuid;
         }
         return this.alias;
+    }
+
+    public String getRawAlias() {
+        return alias;
     }
 
     public Set<String> getComputedColumnNames() {

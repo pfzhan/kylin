@@ -419,6 +419,7 @@ public class SSHClient {
             session.setPassword(password);
         }
         session.setConfig("StrictHostKeyChecking", "no");
+        session.setConfig("PreferredAuthentications", "publickey,keyboard-interactive,password");
         return session;
     }
 

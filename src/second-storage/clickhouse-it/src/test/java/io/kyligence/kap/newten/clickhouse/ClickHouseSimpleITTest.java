@@ -37,6 +37,7 @@ import java.nio.charset.Charset;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -50,11 +51,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import io.kyligence.kap.secondstorage.management.OpenSecondStorageEndpoint;
+import io.kyligence.kap.guava20.shaded.common.collect.ImmutableMap;
+import io.kyligence.kap.secondstorage.management.request.ProjectTableSyncResponse;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.time.DateUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
@@ -141,8 +146,6 @@ import io.kyligence.kap.secondstorage.ddl.ShowDatabases;
 import io.kyligence.kap.secondstorage.ddl.ShowTables;
 import io.kyligence.kap.secondstorage.enums.LockOperateTypeEnum;
 import io.kyligence.kap.secondstorage.enums.LockTypeEnum;
-import io.kyligence.kap.secondstorage.management.ProjectLock;
-import io.kyligence.kap.secondstorage.management.ProjectNode;
 import io.kyligence.kap.secondstorage.management.SecondStorageEndpoint;
 import io.kyligence.kap.secondstorage.management.SecondStorageService;
 import io.kyligence.kap.secondstorage.management.request.ModelEnableRequest;
@@ -175,6 +178,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
     @Mock
     private final AclUtil aclUtil = Mockito.spy(AclUtil.class);
 
+    private OpenSecondStorageEndpoint openSecondStorageEndpoint = new OpenSecondStorageEndpoint();
     private SecondStorageService secondStorageService = new SecondStorageService();
     private ModelService modelService = Mockito.mock(ModelService.class);
     private SecondStorageEndpoint secondStorageEndpoint = new SecondStorageEndpoint();
@@ -294,6 +298,84 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
         try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse();
                 JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse()) {
             build_load_query("testSingleShardDoubleReplica", false, 2, null, clickhouse1, clickhouse2);
+        }
+    }
+
+    @Test
+    public void testOneReplicaWithClickhouseDown() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse3 = ClickHouseUtils.startClickHouse()) {
+            build_load_query("testOneReplicaWithClickhouseDown", false, false, 1, null, null, clickhouse1, clickhouse2);
+
+            Assertions.assertTrue(SecondStorageUtil.tableFlowManager(getTestConfig(), getProject()).isPresent());
+            Assertions.assertTrue(SecondStorageUtil.tableFlowManager(getTestConfig(), getProject()).get().get(cubeName).isPresent());
+            TableFlow tableFlow = SecondStorageUtil.tableFlowManager(getTestConfig(), getProject()).get().get(cubeName).get();
+
+            tableFlow.getTableDataList().forEach(tableData -> {
+                tableData.getPartitions().forEach(partition -> {
+                    Assertions.assertEquals(2, partition.getShardNodes().size());
+                });
+            });
+
+            ClickHouseUtils.internalConfigClickHouse(new JdbcDatabaseContainer[]{clickhouse1, clickhouse2, clickhouse3}, 1);
+            secondStorageService.changeProjectSecondStorageState(getProject(), ImmutableList.of("pair2"), true);
+            Assert.assertEquals(3, SecondStorageUtil.listProjectNodes(getProject()).size());
+
+            clickhouse2.stop();
+            Map<String, Map<String, Boolean>> nodeStatusMap = ImmutableMap.of("pair1", ImmutableMap.of("node01", false));
+            secondStorageEndpoint.updateNodeStatus(nodeStatusMap);
+
+            EnvelopeResponse<ProjectTableSyncResponse> response = secondStorageEndpoint.tableSync(getProject());
+            Assertions.assertEquals(response.getCode(), "000");
+
+            tableFlow = SecondStorageUtil.tableFlowManager(getTestConfig(), getProject()).get().get(cubeName).get();
+            tableFlow.getTableDataList().forEach(tableData -> {
+                tableData.getPartitions().forEach(partition -> {
+                    Assertions.assertEquals(3, partition.getShardNodes().size());
+                    Assertions.assertEquals(0, partition.getSizeInNode().get("node01"));
+                    Assertions.assertEquals(0, partition.getSizeInNode().get("node02"));
+                });
+            });
+        }
+    }
+
+    @Test
+    public void testTwoReplicaWithClickhouseDown() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse3 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse4 = ClickHouseUtils.startClickHouse()) {
+            build_load_query("testTwoReplicaWithClickhouseDown", false, false, 2, null, null, clickhouse1, clickhouse2, clickhouse3, clickhouse4);
+
+            Assertions.assertTrue(SecondStorageUtil.tableFlowManager(getTestConfig(), getProject()).isPresent());
+            Assertions.assertTrue(SecondStorageUtil.tableFlowManager(getTestConfig(), getProject()).get().get(cubeName).isPresent());
+            TableFlow tableFlow = SecondStorageUtil.tableFlowManager(getTestConfig(), getProject()).get().get(cubeName).get();
+
+            tableFlow.getTableDataList().forEach(tableData -> {
+                tableData.getPartitions().forEach(partition -> {
+                    Assertions.assertEquals(2, partition.getShardNodes().size());
+                });
+            });
+
+            clickhouse1.stop();
+            Map<String, Map<String, Boolean>> nodeStatusMap = ImmutableMap.of("pair0", ImmutableMap.of("node00", false));
+            secondStorageEndpoint.updateNodeStatus(nodeStatusMap);
+
+            EnvelopeResponse<ProjectTableSyncResponse> response = secondStorageEndpoint.tableSync(getProject());
+            Assertions.assertEquals(response.getCode(), "000");
+
+            tableFlow = SecondStorageUtil.tableFlowManager(getTestConfig(), getProject()).get().get(cubeName).get();
+            tableFlow.getTableDataList().forEach(tableData -> {
+                tableData.getPartitions().forEach(partition -> {
+                    Assertions.assertEquals(2, partition.getShardNodes().size());
+                    if (partition.getShardNodes().contains("node00")) {
+                        Assertions.assertEquals(0, partition.getSizeInNode().get("node00"));
+                    }
+                });
+            });
+
+            secondStorageEndpoint.updateNodeStatus(ImmutableMap.of("pair0", ImmutableMap.of("node00", true)));
         }
     }
 
@@ -840,92 +922,65 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
 
     @Test
     public void testLockOperate() throws Exception {
-        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse();
-                JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse();
-                JdbcDatabaseContainer<?> clickhouse3 = ClickHouseUtils.startClickHouse();
-                JdbcDatabaseContainer<?> clickhouse4 = ClickHouseUtils.startClickHouse()) {
-            changeProjectSecondStorageState("testIncrementalCleanModel", true, 2, clickhouse1, clickhouse2, clickhouse3,
-                    clickhouse4);
-
-            EnvelopeResponse<List<ProjectNode>> projectNodesResponse1 = secondStorageEndpoint
-                    .projectNodes(getProject());
-            Assertions.assertEquals(projectNodesResponse1.getCode(), "000");
-            projectNodesResponse1.getData().stream().forEach(projectNode -> {
-                Assertions.assertEquals(projectNode.getProject(), getProject());
-                Assertions.assertEquals(projectNode.getNodes().size(), 2);
-                Assertions.assertEquals(projectNode.getNodes().get("pair0").size(), 2);
-            });
-
-            EnvelopeResponse<List<ProjectNode>> projectNodesResponse2 = secondStorageEndpoint.projectNodes(null);
-            Assertions.assertEquals(projectNodesResponse2.getCode(), "000");
-            projectNodesResponse1.getData().stream().forEach(projectNode -> {
-                if (projectNode.getProject().equals(getProject())) {
-                    Assertions.assertEquals(projectNode.getNodes().size(), 2);
-                    Assertions.assertEquals(projectNode.getNodes().get("pair0").size(), 2);
-                }
-            });
+        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse()) {
+            build_load_query("testSingleShard", false, 1, null, clickhouse1);
 
             val lockOperateRequest1 = new ProjectLockOperateRequest();
-            lockOperateRequest1.setProject(getProject());
-            lockOperateRequest1.setLockTypes(Arrays.asList(LockTypeEnum.LOAD.name()));
-            lockOperateRequest1.setOperateType(LockOperateTypeEnum.LOCK.name());
-            EnvelopeResponse envelopeResponse = secondStorageEndpoint.lockOperate(lockOperateRequest1);
-            ClickHouseSimpleITTestUtils.checkLockOperateResult(envelopeResponse,
-                    Arrays.asList(LockTypeEnum.LOAD.name()), getProject());
 
-            EnvelopeResponse<List<ProjectLock>> projectLockResponse = secondStorageEndpoint.lockList(getProject());
-            Assertions.assertEquals(projectLockResponse.getCode(), "000");
-            projectLockResponse.getData().stream().forEach(projectLock -> {
-                Assertions.assertEquals(projectLock.getProject(), getProject());
-                Assertions.assertIterableEquals(projectLock.getLockTypes(), Arrays.asList(LockTypeEnum.LOAD.name()));
-            });
+            lockOperateRequest1.setProject(getProject());
+            lockOperateRequest1.setLockTypes(Arrays.asList(LockTypeEnum.LOAD.name(), LockTypeEnum.QUERY.name()));
+            lockOperateRequest1.setOperateType(LockOperateTypeEnum.LOCK.name());
+
+            EnvelopeResponse<Void> envelopeResponse = secondStorageEndpoint.lockOperate(lockOperateRequest1);
+
+            ClickHouseSimpleITTestUtils.checkLockOperateResult(envelopeResponse,
+                    Arrays.asList(LockTypeEnum.LOAD.name(), LockTypeEnum.QUERY.name()), getProject());
 
             val lockOperateRequest2 = new ProjectLockOperateRequest();
-            lockOperateRequest2.setProject(getProject());
-            lockOperateRequest2.setLockTypes(Arrays.asList(LockTypeEnum.LOAD.name(), LockTypeEnum.QUERY.name()));
-            lockOperateRequest2.setOperateType(LockOperateTypeEnum.LOCK.name());
-            envelopeResponse = secondStorageEndpoint.lockOperate(lockOperateRequest2);
-            ClickHouseSimpleITTestUtils.checkLockOperateResult(envelopeResponse,
-                    Arrays.asList(LockTypeEnum.LOAD.name(), LockTypeEnum.QUERY.name()), getProject());
 
-            val lockOperateRequest4 = new ProjectLockOperateRequest();
-            lockOperateRequest4.setProject(getProject());
-            lockOperateRequest4.setLockTypes(Arrays.asList(LockTypeEnum.LOAD.name()));
-            lockOperateRequest4.setOperateType(LockOperateTypeEnum.UNLOCK.name());
-            envelopeResponse = secondStorageEndpoint.lockOperate(lockOperateRequest4);
-            ClickHouseSimpleITTestUtils.checkLockOperateResult(envelopeResponse,
-                    Arrays.asList(LockTypeEnum.QUERY.name()), getProject());
+            lockOperateRequest2.setProject(getProject());
+            lockOperateRequest2.setLockTypes(Collections.singletonList(LockTypeEnum.ALL.name()));
+            lockOperateRequest2.setOperateType(LockOperateTypeEnum.LOCK.name());
+
+            Assert.assertThrows(KylinException.class, () -> secondStorageEndpoint.lockOperate(lockOperateRequest2));
 
             val lockOperateRequest3 = new ProjectLockOperateRequest();
+
             lockOperateRequest3.setProject(getProject());
-            lockOperateRequest3.setLockTypes(Arrays.asList(LockTypeEnum.LOAD.name(), LockTypeEnum.ALL.name()));
-            lockOperateRequest3.setOperateType(LockOperateTypeEnum.LOCK.name());
+            lockOperateRequest3.setLockTypes(Arrays.asList(LockTypeEnum.LOAD.name(), LockTypeEnum.QUERY.name()));
+            lockOperateRequest3.setOperateType(LockOperateTypeEnum.UNLOCK.name());
+
             envelopeResponse = secondStorageEndpoint.lockOperate(lockOperateRequest3);
-            ClickHouseSimpleITTestUtils.checkLockOperateResult(envelopeResponse, Arrays.asList(LockTypeEnum.ALL.name()),
-                    getProject());
+
+            Assertions.assertEquals(envelopeResponse.getCode(), "000");
+
+            val lockOperateRequest4 = new ProjectLockOperateRequest();
+
+            lockOperateRequest4.setProject(getProject());
+            lockOperateRequest4.setLockTypes(Collections.singletonList(LockTypeEnum.ALL.name()));
+            lockOperateRequest4.setOperateType(LockOperateTypeEnum.LOCK.name());
+
+            envelopeResponse = secondStorageEndpoint.lockOperate(lockOperateRequest4);
+            ClickHouseSimpleITTestUtils.checkLockOperateResult(envelopeResponse,
+                    Collections.singletonList(LockTypeEnum.ALL.name()), getProject());
 
             val lockOperateRequest5 = new ProjectLockOperateRequest();
+
             lockOperateRequest5.setProject(getProject());
-            lockOperateRequest5.setLockTypes(Arrays.asList(LockTypeEnum.ALL.name()));
-            lockOperateRequest5.setOperateType(LockOperateTypeEnum.UNLOCK.name());
-            envelopeResponse = secondStorageEndpoint.lockOperate(lockOperateRequest5);
-            ClickHouseSimpleITTestUtils.checkLockOperateResult(envelopeResponse, Arrays.asList(), getProject());
+            lockOperateRequest5.setLockTypes(Arrays.asList(LockTypeEnum.LOAD.name(), LockTypeEnum.QUERY.name()));
+            lockOperateRequest5.setOperateType(LockOperateTypeEnum.LOCK.name());
+
+            Assert.assertThrows(KylinException.class, () -> secondStorageEndpoint.lockOperate(lockOperateRequest5));
 
             val lockOperateRequest6 = new ProjectLockOperateRequest();
-            lockOperateRequest6.setProject(getProject());
-            lockOperateRequest6.setLockTypes(Arrays.asList(LockTypeEnum.LOAD.name(), LockTypeEnum.QUERY.name()));
-            lockOperateRequest6.setOperateType(LockOperateTypeEnum.LOCK.name());
-            envelopeResponse = secondStorageEndpoint.lockOperate(lockOperateRequest6);
-            ClickHouseSimpleITTestUtils.checkLockOperateResult(envelopeResponse,
-                    Arrays.asList(LockTypeEnum.LOAD.name(), LockTypeEnum.QUERY.name()), getProject());
 
-            val lockOperateRequest7 = new ProjectLockOperateRequest();
-            lockOperateRequest7.setProject(getProject());
-            lockOperateRequest7.setLockTypes(Arrays.asList(LockTypeEnum.LOAD.name()));
-            lockOperateRequest7.setOperateType(LockOperateTypeEnum.UNLOCK.name());
-            envelopeResponse = secondStorageEndpoint.lockOperate(lockOperateRequest7);
-            ClickHouseSimpleITTestUtils.checkLockOperateResult(envelopeResponse,
-                    Arrays.asList(LockTypeEnum.QUERY.name()), getProject());
+            lockOperateRequest6.setProject(getProject());
+            lockOperateRequest6.setLockTypes(Collections.singletonList(LockTypeEnum.ALL.name()));
+            lockOperateRequest6.setOperateType(LockOperateTypeEnum.UNLOCK.name());
+
+            envelopeResponse = secondStorageEndpoint.lockOperate(lockOperateRequest6);
+
+            Assertions.assertEquals(envelopeResponse.getCode(), "000");
         }
     }
 
@@ -950,13 +1005,13 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
 
     @Test
     public void testRecoverProject() throws Exception {
-        secondStorageEndpoint.setModelService(modelService);
+        openSecondStorageEndpoint.setSecondStorageService(secondStorageService);
 
         try (JdbcDatabaseContainer<?> clickhouse = ClickHouseUtils.startClickHouse()) {
             build_load_query("testRecoverProject", false, clickhouse);
             val request = new RecoverRequest();
             request.setProject(getProject());
-            val response = secondStorageEndpoint.recoverProject(request);
+            val response = openSecondStorageEndpoint.recoverProject(request);
             Assert.assertEquals(1, response.getData().getSubmittedModels().size());
             Assert.assertEquals(0, response.getData().getFailedModels().size());
         }

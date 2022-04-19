@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,7 +42,7 @@
 
 package org.apache.kylin.job.common;
 
-import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JOB;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_EXCEPTION;
 
 import java.util.HashSet;
 import java.util.Map;
@@ -51,7 +50,6 @@ import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 
@@ -78,20 +76,18 @@ public class MergeJobUtil extends ExecutableUtil {
         NDataSegment newSeg = df.getSegment(jobParam.getSegment());
         HashSet<LayoutEntity> layouts = Sets.newHashSet();
         val oldSegs = df.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING).stream()
-                .filter(seg -> seg.getSegRange().overlaps(newSeg.getSegRange()))
-                .collect(Collectors.toList());
+                .filter(seg -> seg.getSegRange().overlaps(newSeg.getSegRange())).collect(Collectors.toList());
         if (oldSegs.size() == 0) {
             log.warn("JobParam {} is no longer valid because no old segment ready", jobParam);
-            throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_EXCEPTION());
+            throw new KylinException(JOB_CREATE_EXCEPTION);
         }
 
-        for (Map.Entry<Long, NDataLayout> cuboid : oldSegs.get(0).getLayoutsMap()
-                .entrySet()) {
+        for (Map.Entry<Long, NDataLayout> cuboid : oldSegs.get(0).getLayoutsMap().entrySet()) {
             layouts.add(cuboid.getValue().getLayout());
         }
         if (layouts.isEmpty() && !KylinConfig.getInstanceFromEnv().isUTEnv()) {
             log.warn("JobParam {} is no longer valid because no layout awaits building", jobParam);
-            throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_EXCEPTION());
+            throw new KylinException(JOB_CREATE_EXCEPTION);
         }
         jobParam.setProcessLayouts(layouts);
     }
@@ -101,7 +97,8 @@ public class MergeJobUtil extends ExecutableUtil {
         val df = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), jobParam.getProject())
                 .getDataflow(jobParam.getModel());
         NDataSegment newSeg = df.getSegment(jobParam.getSegment());
-        jobParam.setTargetPartitions(newSeg.getMultiPartitions().stream().map(SegmentPartition::getPartitionId).collect(Collectors.toSet()));
+        jobParam.setTargetPartitions(
+                newSeg.getMultiPartitions().stream().map(SegmentPartition::getPartitionId).collect(Collectors.toSet()));
     }
 
 }

@@ -36,6 +36,8 @@ import io.kyligence.kap.metadata.query.StructField;
  * extract table and column metadata from context
  */
 public class RelColumnMetaDataExtractor {
+    private RelColumnMetaDataExtractor() {
+    }
 
     public static List<StructField> getColumnMetadata(RelDataType rowType) {
         return rowType.getFieldList().stream()

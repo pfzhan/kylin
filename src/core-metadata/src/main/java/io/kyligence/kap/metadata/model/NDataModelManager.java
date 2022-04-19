@@ -24,7 +24,7 @@
 
 package io.kyligence.kap.metadata.model;
 
-import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_ID_NOT_EXIST;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -289,8 +289,7 @@ public class NDataModelManager {
     public NDataModel updateDataModel(String modelId, NDataModelUpdater updater) {
         val cached = getDataModelDesc(modelId);
         if (cached == null) {
-            throw new KylinException(MODEL_NOT_EXIST,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getMODEL_ID_NOT_EXIST(), modelId));
+            throw new KylinException(MODEL_ID_NOT_EXIST, modelId);
         }
         val copy = copyForWrite(cached);
         updater.modify(copy);
@@ -358,6 +357,10 @@ public class NDataModelManager {
     public String getModelDisplayName(String modelId) {
         NDataModel dataModelDesc = getDataModelDesc(modelId);
         return dataModelDesc == null ? "NotFoundModel(" + modelId + ")" : dataModelDesc.toString();
+    }
+
+    public static boolean isModelAccessible(NDataModel model) {
+        return KylinConfig.getInstanceFromEnv().streamingEnabled() || !model.isStreaming();
     }
 
     private NProjectManager getProjectManager() {

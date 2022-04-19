@@ -25,7 +25,7 @@
 package io.kyligence.kap.rest.service;
 
 import static io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO.fillZeroForQueryStatistics;
-import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_NOT_EXIST;
 
 import java.lang.reflect.Field;
 import java.text.SimpleDateFormat;
@@ -46,7 +46,6 @@ import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletResponse;
 
-import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.time.DateUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -83,6 +82,7 @@ import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import io.kyligence.kap.metadata.query.QueryHistoryInfo;
 import io.kyligence.kap.metadata.query.QueryHistoryRequest;
 import io.kyligence.kap.metadata.query.QueryStatistics;
+import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.QueryStatisticsResponse;
 import lombok.val;
@@ -401,9 +401,9 @@ public class QueryHistoryService extends BasicService implements AsyncTaskQueryH
             aclEvaluate.checkProjectReadPermission(project);
             Preconditions.checkArgument(StringUtils.isNotEmpty(project));
             ProjectInstance projectInstance = getManager(NProjectManager.class).getProject(project);
-            if (projectInstance == null)
-                throw new KylinException(PROJECT_NOT_EXIST,
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
+            if (projectInstance == null) {
+                throw new KylinException(PROJECT_NOT_EXIST, project);
+            }
             result.put(project, getQueryHistoryDao().getQueryMetricMeasurement());
         }
 

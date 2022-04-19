@@ -23,8 +23,9 @@
  */
 package io.kyligence.kap.metadata.project;
 
+import static org.apache.kylin.common.exception.code.ErrorCodeSystem.EPOCH_DOES_NOT_BELONG_TO_CURRENT_NODE;
+
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.ResourceStore;
 
 import io.kyligence.kap.common.persistence.metadata.JdbcMetadataStore;
@@ -61,7 +62,7 @@ public class EnhancedUnitOfWork {
         if (!config.isUTEnv() && metadataStore instanceof JdbcMetadataStore) {
             params.setEpochChecker(() -> {
                 if (!EpochManager.getInstance().checkEpochOwner(params.getUnitName())) {
-                    throw new EpochNotMatchException(MsgPicker.getMsg().getLEADERS_HANDLE_OVER(), params.getUnitName());
+                    throw new EpochNotMatchException(EPOCH_DOES_NOT_BELONG_TO_CURRENT_NODE, params.getUnitName());
                 }
                 return null;
             });

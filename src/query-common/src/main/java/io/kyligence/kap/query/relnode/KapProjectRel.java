@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.calcite.plan.RelOptCluster;
@@ -259,7 +258,7 @@ public class KapProjectRel extends OLAPProjectRel implements KapRel {
         }
 
         if (!posInTupleToCcCol.isEmpty()) {
-            List<RexNode> newProjects = new ArrayList<RexNode>(this.rewriteProjects);
+            List<RexNode> newProjects = new ArrayList<>(this.rewriteProjects);
             posInTupleToCcCol.forEach(newProjects::set);
             this.rewriteProjects = newProjects;
         }
@@ -318,11 +317,6 @@ public class KapProjectRel extends OLAPProjectRel implements KapRel {
 
         this.rewriteProjects = newExpList;
         return newFieldList;
-    }
-
-    private Map<RelDataTypeField, RexNode> computeTupleInfoFromCtx(OLAPContext context,
-            Function<OLAPContext, Map<RelDataTypeField, RexNode>> filedToExprMap) {
-        return filedToExprMap.apply(context);
     }
 
     private int findInnerColPosInPrjRelRowType(TblColRef colRef, KapProjectRel rel) {

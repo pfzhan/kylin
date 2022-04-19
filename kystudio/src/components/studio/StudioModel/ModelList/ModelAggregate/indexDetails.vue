@@ -91,7 +91,7 @@
 import Vue from 'vue'
 import locales from './locales'
 import { Component } from 'vue-property-decorator'
-import { pageRefTags } from 'config'
+import { pageRefTags, pageCount } from 'config'
 import { transToGmtTime } from '../../../../../util/business'
 
 @Component({
@@ -116,7 +116,7 @@ import { transToGmtTime } from '../../../../../util/business'
 export default class indexDetails extends Vue {
   pageRefTags = pageRefTags
   currentPage = 0
-  currentCount = +localStorage.getItem(this.pageRefTags.IndexDetailPager) || 10
+  currentCount = +localStorage.getItem(this.pageRefTags.IndexDetailPager) || pageCount
   totalTableIndexColumnSize = 0
   currentAggPage = 0
   totalAggIndexColumnSize = 0

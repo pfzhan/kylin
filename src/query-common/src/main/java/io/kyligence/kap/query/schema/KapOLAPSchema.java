@@ -57,7 +57,7 @@ public class KapOLAPSchema extends OLAPSchema {
     }
 
     private Map<String, Table> createTableMap() {
-        Map<String, Table> olapTables = new HashMap<String, Table>();
+        Map<String, Table> olapTables = new HashMap<>();
 
         for (TableDesc tableDesc : tables) {
             final String tableName = tableDesc.getName();//safe to use tableDesc.getUuid() here, it is in a DB context now

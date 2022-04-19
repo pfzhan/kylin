@@ -24,7 +24,7 @@
 package org.apache.kylin.job.handler;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JOB;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_CHECK_FAIL;
 import static org.apache.kylin.job.execution.AbstractExecutable.DEPENDENT_FILES;
 
 import java.util.HashMap;
@@ -36,7 +36,6 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.common.ExecutableUtil;
 import org.apache.kylin.job.dao.JobStatisticsManager;
@@ -143,11 +142,9 @@ public abstract class AbstractJobHandler {
             return;
         }
 
-        JobSubmissionException jobSubmissionException = new JobSubmissionException(
-                MsgPicker.getMsg().getADD_JOB_CHECK_FAIL());
+        JobSubmissionException jobSubmissionException = new JobSubmissionException(JOB_CREATE_CHECK_FAIL);
         for (String failedSeg : failedSegs) {
-            jobSubmissionException.addJobFailInfo(failedSeg,
-                    new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_CHECK_FAIL()));
+            jobSubmissionException.addJobFailInfo(failedSeg, new KylinException(JOB_CREATE_CHECK_FAIL));
         }
         throw jobSubmissionException;
     }

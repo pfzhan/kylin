@@ -91,8 +91,6 @@ public class OLAPUnionRel extends Union implements OLAPRel {
 
     @Override
     public RelWriter explainTerms(RelWriter pw) {
-        boolean contextNotNull = context != null;
-
         return super.explainTerms(pw)
                 .item("ctx", context == null ? "" : String.valueOf(context.id) + "@" + context.realization)
                 .itemIf("all", all, true);

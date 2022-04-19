@@ -113,8 +113,7 @@ public interface KapRel extends OLAPRel {
             if (input instanceof KapTableScan) {
                 KapTableScan tableScan = (KapTableScan) input;
                 if (tableScan.contextVisited) { // this node has been visited before, should copy it
-                    OLAPTableScan copy = (OLAPTableScan) tableScan.copy(tableScan.getTraitSet(), tableScan.getInputs());
-                    return copy;
+                    return (OLAPTableScan) tableScan.copy(tableScan.getTraitSet(), tableScan.getInputs());
                 }
             }
             return null;

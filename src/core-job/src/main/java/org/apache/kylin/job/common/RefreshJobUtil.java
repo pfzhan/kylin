@@ -42,7 +42,9 @@
 
 package org.apache.kylin.job.common;
 
-import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JOB;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_CHECK_INDEX_FAIL;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_CHECK_SEGMENT_READY_FAIL;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_REFRESH_CHECK_INDEX_FAIL;
 
 import java.util.HashSet;
 import java.util.List;
@@ -50,7 +52,7 @@ import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.exception.code.ErrorCodeProducer;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -83,7 +85,7 @@ public class RefreshJobUtil extends ExecutableUtil {
                         || SegmentStatusEnum.WARNING == segment.getStatus())
                 .collect(Collectors.toList());
         if (segments.size() != 1) {
-            throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_CHECK_SEGMENT_READY_FAIL());
+            throw new KylinException(JOB_CREATE_CHECK_SEGMENT_READY_FAIL);
         }
         val indexPlan = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), jobParam.getProject())
                 .getIndexPlan(jobParam.getModel());
@@ -94,7 +96,7 @@ public class RefreshJobUtil extends ExecutableUtil {
             if (refreshAll) {
                 layouts.addAll(indexPlan.getAllLayouts());
             } else if (segments.get(0).getLayoutsMap().isEmpty() && !KylinConfig.getInstanceFromEnv().isUTEnv()) {
-                throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_CHECK_INDEX_FAIL());
+                throw new KylinException(JOB_CREATE_CHECK_INDEX_FAIL);
             } else {
                 segments.get(0).getLayoutsMap().values().forEach(layout -> layouts.add(layout.getLayout()));
             }
@@ -110,8 +112,8 @@ public class RefreshJobUtil extends ExecutableUtil {
     }
 
     @Override
-    public String getCheckIndexFailedMessage() {
-        return MsgPicker.getMsg().getREFRESH_JOB_CHECK_INDEX_FAIL();
+    public ErrorCodeProducer getCheckIndexErrorCode() {
+        return JOB_REFRESH_CHECK_INDEX_FAIL;
     }
 
     @Override

@@ -43,14 +43,13 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.engine.spark.ExecutableUtils;
+import io.kyligence.kap.engine.spark.stats.utils.HiveTableRefChecker;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
-
-import static io.kyligence.kap.engine.spark.stats.utils.HiveTableRefChecker.isNeedCleanUpTransactionalTableJob;
 
 @Slf4j
 public class NTableSamplingJob extends DefaultChainedExecutableOnTable {
@@ -96,11 +95,12 @@ public class NTableSamplingJob extends DefaultChainedExecutableOnTable {
         job.setSparkYarnQueueIfEnabled(project, yarnQueue);
         job.setTag(tag);
 
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        KylinConfig globalConfig = KylinConfig.getInstanceFromEnv();
+        KylinConfig config = NProjectManager.getInstance(globalConfig).getProject(project).getConfig();
         JobStepType.RESOURCE_DETECT.createStep(job, config);
         JobStepType.SAMPLING.createStep(job, config);
-        if(isNeedCleanUpTransactionalTableJob(tableDesc.isTransactional(), tableDesc.isRangePartition(),
-                config.isReadTransactionalTableEnabled())) {
+        if (HiveTableRefChecker.isNeedCleanUpTransactionalTableJob(tableDesc.isTransactional(),
+                tableDesc.isRangePartition(), config.isReadTransactionalTableEnabled())) {
             JobStepType.CLEAN_UP_TRANSACTIONAL_TABLE.createStep(job, config);
         }
         log.info("sampling job create success on table {}", tableDesc.getIdentity());

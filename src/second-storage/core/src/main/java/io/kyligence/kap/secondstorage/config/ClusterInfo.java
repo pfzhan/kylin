@@ -69,17 +69,18 @@ public class ClusterInfo {
             List<Node> nodes = pair.getValue();
             List<Node> transformedNodes = new ArrayList<>();
             for (Object node : nodes) {
+                Node n;
                 if (!(node instanceof Node)) {
-                    transformedNodes.add(JsonUtil.readValueQuietly(
+                    n = JsonUtil.readValueQuietly(
                             JsonUtil.writeValueAsStringQuietly(node).getBytes(StandardCharsets.UTF_8),
-                            Node.class));
+                            Node.class);
                 } else {
-                    Node n = (Node) node;
-                    if (n.getSSHPort() == 0) {
-                        n.setSSHPort(22);
-                    }
-                    transformedNodes.add(n);
+                    n = (Node) node;
                 }
+                if (n.getSSHPort() == 0) {
+                    n.setSSHPort(22);
+                }
+                transformedNodes.add(n);
             }
             cluster.put(pair.getKey(), transformedNodes);
         }

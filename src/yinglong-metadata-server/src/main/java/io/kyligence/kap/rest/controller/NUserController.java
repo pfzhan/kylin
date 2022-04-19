@@ -35,6 +35,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_USER_NAM
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 import static org.apache.kylin.common.exception.ServerErrorCode.SHORT_PASSWORD;
 import static org.apache.kylin.common.exception.ServerErrorCode.USER_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.USER_AUTH_INFO_NOTFOUND;
 import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
 
 import java.io.IOException;
@@ -467,7 +468,7 @@ public class NUserController extends NBasicController {
         UserDetails data;
         val msg = MsgPicker.getMsg();
         if (authentication == null) {
-            throw new UnauthorizedException(msg.getAUTH_INFO_NOT_FOUND());
+            throw new UnauthorizedException(USER_AUTH_INFO_NOTFOUND);
         }
 
         if (authentication.getPrincipal() instanceof UserDetails) {
@@ -480,7 +481,7 @@ public class NUserController extends NBasicController {
             return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, data, "");
         }
 
-        throw new UnauthorizedException(msg.getAUTH_INFO_NOT_FOUND());
+        throw new UnauthorizedException(USER_AUTH_INFO_NOTFOUND);
     }
 
     private void checkPasswordCharacter(String password) {

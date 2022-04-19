@@ -247,7 +247,40 @@ function clearRedundantProcess {
     fi
 }
 
+function clearCrontab() {
+    if ! isCrontabUseable;then
+        return 1
+    fi
+    logrotateDir=${KYLIN_HOME}/logrotate
+    if [ -f "${logrotateDir}/cron" ]; then
+        rm -f ${logrotateDir}/cron
+    fi
+    touch ${logrotateDir}/cron
+    crontab -l | while read line
+    do
+        if [[ "$line" == *${logrotateDir}/ke* ]];then
+            continue
+        fi
+        echo "$line" >> ${logrotateDir}/cron
+    done
+    crontab ${logrotateDir}/cron
+}
+
+function isCrontabUseable() {
+    crontab -l >/dev/null 2>&1 || (echo "This user don't have permission to run crontab." && return 1)
+}
+
+function setLogRotate() {
+    auto_log_rotate_enabled=`${dir}/get-properties.sh kylin.env.log-rotate-enabled`
+    if [ -d "/etc/logrotate.d" -a ${auto_log_rotate_enabled} == "true" ] && isCrontabUseable; then
+        ${dir}/../sbin/log-rotate-cron.sh
+    else
+        ${dir}/../sbin/rotate-logs.sh
+    fi
+}
+
 function startKE(){
+    setLogRotate
     clearRedundantProcess
 
     if [ -f "${KYLIN_HOME}/pid" ]; then
@@ -287,8 +320,6 @@ function startKE(){
 
     runToolInternal io.kyligence.kap.tool.upgrade.AddInstanceColumnCLI
 
-    runToolInternal io.kyligence.kap.tool.upgrade.UpdateSessionTableColumnLengthCLI
-
     runToolInternal io.kyligence.kap.tool.security.AdminUserInitCLI
     if [[ $? == 1 ]]; then
       quit "Create Admin user failed, for more details please refer to \"\$KYLIN_HOME/logs/shell.stderr\"."
@@ -324,6 +355,7 @@ function startKE(){
 
 function stopKE(){
     sh ${KYLIN_HOME}/bin/guardian.sh stop
+    clearCrontab
 
     STOP_TIME=$(date "+%Y-%m-%d %H:%M:%S")
     if [ -f "${KYLIN_HOME}/pid" ]; then

@@ -10,7 +10,7 @@ export default {
     userGroupsList: 'User Group List',
     groupFilter: 'Search by user group name',
     userGroup: 'User Group',
-    securityProfileTip: 'The current security configuration doesn\'t allow managing users/user groups, including adding, editing, deleting, assigning, and changing passwords.'
+    securityProfileTip: 'The current mode doesn\'t allow managing users/user groups, including operations such as adding, editing, deleting, assigning, and changing passwords.'
   },
   'zh-cn': {
     newGroup: '添加用户组',
@@ -23,6 +23,6 @@ export default {
     userGroupsList: '用户组列表',
     groupFilter: '搜索用户组',
     userGroup: '用户组',
-    securityProfileTip: '当前安全配置不支持管理用户/用户组，包括新增、编辑、删除、分配，以及修改密码等。'
+    securityProfileTip: '当前模式不支持管理用户/用户组，包括新增、编辑、删除、分配及修改密码等操作。'
   }
 }

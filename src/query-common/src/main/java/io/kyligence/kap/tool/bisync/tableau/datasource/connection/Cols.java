@@ -68,12 +68,7 @@ public class Cols {
             return true;
         }
         if (getCols() != null && thatColList != null && getCols().size() == thatColList.size()) {
-            Comparator<Col> colsComparator = new Comparator<Col>() {
-                @Override
-                public int compare(Col o1, Col o2) {
-                    return o1.getKey().compareTo(o2.getKey());
-                }
-            };
+            Comparator<Col> colsComparator = (o1, o2) -> o1.getKey().compareTo(o2.getKey());
             Collections.sort(getCols(), colsComparator);
             Collections.sort(thatColList, colsComparator);
 

@@ -61,6 +61,7 @@ public class KafkaController extends NBasicController {
     @PostMapping(value = "topics", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     public EnvelopeResponse getTopics(@RequestBody StreamingRequest streamingRequest) throws IOException {
+        checkStreamingEnabled();
         KafkaConfig kafkaConfig = streamingRequest.getKafkaConfig();
         return new EnvelopeResponse(KylinException.CODE_SUCCESS,
                 kafkaService.getTopics(kafkaConfig, streamingRequest.getProject(), streamingRequest.getFuzzyKey()), "");
@@ -69,6 +70,7 @@ public class KafkaController extends NBasicController {
     @PostMapping(value = "messages", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     public EnvelopeResponse getMessages(@RequestBody StreamingRequest streamingRequest) throws IOException {
+        checkStreamingEnabled();
         KafkaConfig kafkaConfig = streamingRequest.getKafkaConfig();
         List<ByteBuffer> messages = kafkaService.getMessages(kafkaConfig, streamingRequest.getProject(),
                 streamingRequest.getClusterIndex());
@@ -82,6 +84,7 @@ public class KafkaController extends NBasicController {
     @PostMapping(value = "convert", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     public EnvelopeResponse convertMessageToFlatMap(@RequestBody StreamingRequest streamingRequest) throws IOException {
+        checkStreamingEnabled();
         KafkaConfig kafkaConfig = streamingRequest.getKafkaConfig();
         String message = streamingRequest.getMessage();
         String messageType = streamingRequest.getMessageType();

@@ -30,6 +30,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
@@ -857,4 +858,102 @@ public class SmartModelServiceTest extends SourceTestCase{
 
         Assert.assertTrue(newModel.getJoinTables().get(0).getJoin().isNonEquiJoin());
     }
+
+    @Test
+    public void testOptimizedModelWithModelViewSql() {
+        String project = "newten";
+        val projectMgr = NProjectManager.getInstance(getTestConfig());
+        projectMgr.updateProject(project,
+                copyForWrite -> copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN));
+        String sql1 = "select test_order.order_id,buyer_id from test_order group by test_order.order_id,buyer_id";
+        val request = smartRequest(project, sql1);
+        request.setForce2CreateNewModel(false);
+        OpenAccSqlResponse normalResponse = modelSmartService.suggestAndOptimizeModels(request);
+        Assert.assertEquals(1, normalResponse.getCreatedModels().size());
+
+        // use model view sql, can suggest optimized model
+        getTestConfig().setProperty("kylin.query.auto-model-view-enabled", "true");
+        String sql2 = String.format("select order_id from %s.%s group by order_id", project,
+                normalResponse.getCreatedModels().get(0).getAlias());
+        val request2 = smartRequest(project, sql2);
+        request2.setForce2CreateNewModel(false);
+        OpenAccSqlResponse normalResponse1 = modelSmartService.suggestAndOptimizeModels(request2);
+        Assert.assertEquals(1, normalResponse1.getOptimizedModels().size());
+        Assert.assertEquals(normalResponse.getCreatedModels().get(0).getAlias(),
+                normalResponse1.getOptimizedModels().get(0).getAlias());
+    }
+
+    @Test
+    public void testOptimizedModelWithJoinViewModel() {
+        String project = "newten";
+        val projectMgr = NProjectManager.getInstance(getTestConfig());
+        projectMgr.updateProject(project,
+                copyForWrite -> copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN));
+        String sql1 = "select test_order.order_id,buyer_id from test_order group by test_order.order_id,buyer_id";
+        String sql2 = "select order_id,seller_id from test_kylin_fact group by order_id,seller_id";
+        val request = smartRequest(project, sql1);
+        request.getSqls().add(sql2);
+        request.setForce2CreateNewModel(false);
+        OpenAccSqlResponse normalResponse = modelSmartService.suggestAndOptimizeModels(request);
+        Assert.assertEquals(2, normalResponse.getCreatedModels().size());
+
+        // use two view model join sql, can suggest two optimized model
+        getTestConfig().setProperty("kylin.query.auto-model-view-enabled", "true");
+        String sql3 = String.format(
+                "select * from (select order_id as a from %s.%s group by order_id ) t1 join"
+                        + " (select order_id as b from %s.%s group by order_id) t2 on t1.a = t2.b",
+                project, normalResponse.getCreatedModels().get(0).getAlias(), project,
+                normalResponse.getCreatedModels().get(1).getAlias());
+        val request2 = smartRequest(project, sql3);
+        request2.setForce2CreateNewModel(false);
+        OpenAccSqlResponse normalResponse1 = modelSmartService.suggestAndOptimizeModels(request2);
+        Assert.assertEquals(2, normalResponse1.getOptimizedModels().size());
+        Assert.assertEquals(normalResponse1.getOptimizedModels().get(0).getAlias(),
+                normalResponse.getCreatedModels().get(0).getAlias());
+        Assert.assertEquals(normalResponse1.getOptimizedModels().get(1).getAlias(),
+                normalResponse.getCreatedModels().get(1).getAlias());
+    }
+
+    @Test
+    public void testOptimizedModelWithCloneViewModel() {
+        String project = "newten";
+        val projectMgr = NProjectManager.getInstance(getTestConfig());
+        projectMgr.updateProject(project,
+                copyForWrite -> copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN));
+        String sql1 = "select test_order.order_id,buyer_id from test_order group by test_order.order_id,buyer_id";
+        val request = smartRequest(project, sql1);
+        request.setForce2CreateNewModel(false);
+        OpenAccSqlResponse normalResponse = modelSmartService.suggestAndOptimizeModels(request);
+        Assert.assertEquals(1, normalResponse.getCreatedModels().size());
+
+        String sql2 = "select order_id,seller_id from test_kylin_fact group by order_id,seller_id";
+        request.getSqls().add(sql2);
+        request.setForce2CreateNewModel(true);
+        OpenAccSqlResponse normalResponse1 = modelSmartService.suggestAndOptimizeModels(request);
+        Assert.assertEquals(2, normalResponse1.getCreatedModels().size());
+        Optional<OpenModelRecResponse> test_order = normalResponse1.getCreatedModels().stream()
+                .filter(e -> e.getAlias().contains("TEST_ORDER")).findAny();
+        Assert.assertTrue(test_order.isPresent());
+
+        getTestConfig().setProperty("kylin.query.auto-model-view-enabled", "true");
+        String sql3 = String.format(
+                "select * from (select order_id as a from %s.%s group by order_id ) t1 join"
+                        + " (select order_id as b from %s.%s group by order_id) t2 on t1.a = t2.b",
+                project, normalResponse.getCreatedModels().get(0).getAlias(), project, test_order.get().getAlias());
+        String sql4 = "select seller_id from test_kylin_fact group by seller_id";
+        String sql5 = "select test_order.order_id from test_order group by test_order.order_id";
+        val request2 = smartRequest(project, sql3);
+        request2.setForce2CreateNewModel(false);
+        request2.getSqls().add(sql4);
+        request2.getSqls().add(sql5);
+        OpenAccSqlResponse normalResponse2 = modelSmartService.suggestAndOptimizeModels(request2);
+        Assert.assertEquals(3, normalResponse2.getOptimizedModels().size());
+        Assert.assertEquals(normalResponse2.getOptimizedModels().get(0).getAlias(),
+                normalResponse1.getCreatedModels().get(0).getAlias());
+        Assert.assertEquals(normalResponse2.getOptimizedModels().get(1).getAlias(),
+                normalResponse1.getCreatedModels().get(1).getAlias());
+        Assert.assertEquals(normalResponse2.getOptimizedModels().get(2).getAlias(),
+                normalResponse.getCreatedModels().get(0).getAlias());
+    }
+
 }

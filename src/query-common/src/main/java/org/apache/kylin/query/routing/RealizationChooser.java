@@ -674,6 +674,9 @@ public class RealizationChooser {
             if (context.getModelAlias() != null && !real.getModel().getAlias().equalsIgnoreCase(context.getModelAlias())) {
                 continue;
             }
+            if (!kylinConfig.streamingEnabled() && real.getModel().isFusionModel()) {
+                continue;
+            }
             mapModelToRealizations.put(real.getModel(), real);
         }
 

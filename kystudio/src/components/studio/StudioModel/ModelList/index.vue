@@ -276,11 +276,15 @@
           :label="$t('expansionRate')"
         >
           <template slot-scope="scope">
-              <span v-if="scope.row.storage < 1073741824"><el-tooltip placement="top" :content="$t('expansionTip')"><span>-</span>
-              <span v-if="scope.row.expansion_rate !== '-1'">{{scope.row.expansion_rate}}%</span></el-tooltip></span>
-              <el-tooltip  v-else class="item" effect="dark" :content="$t('tentativeTips')" placement="top">
+            <span v-if="scope.row.storage < 1073741824">
+              <el-tooltip placement="top" :content="$t('expansionTip')"><span>-</span></el-tooltip>
+            </span>
+            <template v-else>
+              <span v-if="scope.row.expansion_rate !== '-1'">{{scope.row.expansion_rate}}%</span>
+              <el-tooltip v-else class="item" effect="dark" :content="$t('tentativeTips')" placement="top">
                 <span class="is-disabled">{{$t('tentative')}}</span>
               </el-tooltip>
+            </template>
           </template>
         </el-table-column>
         <el-table-column
@@ -302,7 +306,7 @@
         </el-table-column> -->
       </el-table>
       <!-- 分页 -->
-      <kap-pager class="ksd-center ksd-mtb-10" ref="pager" :refTag="pageRefTags.modelListPager" :curPage="filterArgs.page_offset+1" :totalSize="modelsPagerRenderData.totalSize"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
+      <kap-pager class="ksd-center ksd-mtb-10" ref="pager" :perPageSize="filterArgs.page_size" :refTag="pageRefTags.modelListPager" :curPage="filterArgs.page_offset+1" :totalSize="modelsPagerRenderData.totalSize"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
     </div>
 
     <!-- 模型构建 -->
@@ -334,7 +338,7 @@ import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
 import { mapActions, mapState, mapGetters, mapMutations } from 'vuex'
 import dayjs from 'dayjs'
-import { NamedRegex, pageRefTags } from '../../../../config'
+import { NamedRegex, pageRefTags, pageCount } from '../../../../config'
 import { ModelStatusTagType } from '../../../../config/model.js'
 import locales from './locales'
 import { handleError, kapMessage, jumpToJobs } from 'util/business'
@@ -369,7 +373,7 @@ import ModelERDiagram from '../../../common/ModelERDiagram/ModelERDiagram'
 function getDefaultFilters (that) {
   return {
     page_offset: 0,
-    page_size: +localStorage.getItem(that.pageRefTags.modelListPager) || 10,
+    page_size: +localStorage.getItem(that.pageRefTags.modelListPager) || pageCount,
     exact: false,
     model_name: '',
     sort_by: 'last_modify',

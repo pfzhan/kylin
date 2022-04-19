@@ -26,6 +26,7 @@ package io.kyligence.kap.clickhouse.job;
 
 import com.google.common.base.Preconditions;
 import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
+import io.kyligence.kap.secondstorage.SecondStorageQueryRouteUtil;
 import io.kyligence.kap.secondstorage.util.SecondStorageDateUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -54,6 +55,9 @@ public class ClickHouseTableStorageMetric {
         if (load) return;
         partitionSize = nodes.parallelStream().collect(Collectors.toMap(node -> node,
                 node -> {
+                    if (!SecondStorageQueryRouteUtil.getNodeStatus(node)) {
+                        return Collections.emptyList();
+                    }
                     try (ClickHouse clickHouse = new ClickHouse(SecondStorageNodeHelper.resolve(node))) {
                         return clickHouse.query(ClickHouseSystemQuery.queryTableStorageSize(), ClickHouseSystemQuery.TABLE_STORAGE_MAPPER);
                     } catch (SQLException sqlException) {

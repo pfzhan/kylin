@@ -318,8 +318,11 @@ public class ExecAndComp {
             log.warn("try to use cache failed, compare with spark {}", sqlPath, e);
         }
         String compareSql = getCompareSql(sqlPath);
-        if (StringUtils.isEmpty(compareSql))
+        if (StringUtils.isEmpty(compareSql)) {
             compareSql = changeJoinType(originSql, joinType);
+        } else {
+            compareSql = changeJoinType(compareSql, joinType);
+        }
 
         QueryParams queryParams = new QueryParams(prj, compareSql, "default", false);
         queryParams.setKylinConfig(KapQueryUtil.getKylinConfig(prj));

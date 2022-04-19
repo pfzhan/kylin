@@ -141,7 +141,7 @@
         </template>
       </el-table-column>
     </el-table>
-    <kap-pager :totalSize="snapshotTotal" :curPage="filter.page_offset+1"  v-on:handleCurrentChange='currentChange' ref="snapshotPager" :refTag="pageRefTags.snapshotPager" :perPageSize="20" class="ksd-mtb-16 ksd-center" ></kap-pager>
+    <kap-pager :totalSize="snapshotTotal" :curPage="filter.page_offset+1"  v-on:handleCurrentChange='currentChange' ref="snapshotPager" :refTag="pageRefTags.snapshotPager" class="ksd-mtb-16 ksd-center" ></kap-pager>
 
     <!-- 添加Snapshot -->
     <SnapshotModel v-on:reloadSnapshotList="getSnapshotList"/>
@@ -345,7 +345,7 @@ import { Component } from 'vue-property-decorator'
 import locales from './locales'
 import { handleSuccessAsync, handleError, kapConfirm, sliceNumber } from '../../../util'
 import { postCloudUrlMessage } from '../../../util/business'
-import { pageRefTags } from 'config'
+import { pageRefTags, bigPageCount } from 'config'
 import SnapshotModel from './SnapshotModel/SnapshotModel.vue'
 
 @Component({
@@ -392,7 +392,7 @@ export default class Snapshot extends Vue {
   allStatus = ['ONLINE', 'LOADING', 'REFRESHING', 'BROKEN']
   filter = {
     page_offset: 0,
-    page_size: +localStorage.getItem(this.pageRefTags.snapshotPager) || 20,
+    page_size: +localStorage.getItem(this.pageRefTags.snapshotPager) || bigPageCount,
     status: [],
     sort_by: 'last_modified_time',
     reverse: true,

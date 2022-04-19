@@ -18,6 +18,10 @@ export const modelRenderConfig = {
   tableBoxLeft: 50, // table盒子相对于左侧兄弟元素距离
   tableBoxTop: 50, // table盒子相对于顶部兄弟元素距离
   zoom: 9,
+  marginClient: {
+    left: 0,
+    top: 0
+  },
   beestViewPos: [530, 160], // 最佳可视位置
   rootBox: rootBox, // 根元素
   drawBox: '.model-edit', // 绘制区域

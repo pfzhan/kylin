@@ -84,10 +84,10 @@ public class SegmentBuildJob extends SegmentJob {
 
     @Override
     protected final void doExecute() throws Exception {
-        // tryRefreshSnapshots();
+
         REFRESH_SNAPSHOTS.create(this, null, null).toWork();
 
-        buildContext = new BuildContext(ss.sparkContext(), config);
+        buildContext = new BuildContext(getSparkSession().sparkContext(), config);
         buildContext.appStatusTracker().startMonitorBuildResourceState();
 
         try {
@@ -163,24 +163,31 @@ public class SegmentBuildJob extends SegmentJob {
     }
 
     // Copied from DFBuildJob
-    public void tryRefreshSnapshots(StageExec stageExec) throws IOException {
+    public void tryRefreshSnapshots(StageExec stageExec) throws Exception {
         SnapshotBuilder snapshotBuilder = new SnapshotBuilder(getJobId());
         if (config.isSnapshotManualManagementEnabled()) {
             log.info("Skip snapshot build in snapshot manual mode, dataflow: {}, only calculate total rows",
                     dataflowId);
-            snapshotBuilder.calculateTotalRows(ss, getDataflow(dataflowId).getModel(), getIgnoredSnapshotTables());
+            snapshotBuilder.calculateTotalRows(getSparkSession(), getDataflow(dataflowId).getModel(),
+                    getIgnoredSnapshotTables());
             stageExec.onStageSkipped();
             return;
         } else if (!needBuildSnapshots()) {
             log.info("Skip snapshot build, dataflow {}, only calculate total rows", dataflowId);
-            snapshotBuilder.calculateTotalRows(ss, getDataflow(dataflowId).getModel(), getIgnoredSnapshotTables());
+            snapshotBuilder.calculateTotalRows(getSparkSession(), getDataflow(dataflowId).getModel(),
+                    getIgnoredSnapshotTables());
             stageExec.onStageSkipped();
             return;
         }
         log.info("Refresh SNAPSHOT.");
         //snapshot building
-        snapshotBuilder.buildSnapshot(ss, getDataflow(dataflowId).getModel(), //
+        snapshotBuilder.buildSnapshot(getSparkSession(), getDataflow(dataflowId).getModel(), //
                 getIgnoredSnapshotTables());
+        if (config.isSnapshotSpecifiedSparkConf()) {
+            // exchange sparkSession for maintained sparkConf
+            log.info("exchange sparkSession using maintained sparkConf");
+            exchangeSparkSession();
+        }
         log.info("Finished SNAPSHOT.");
     }
 

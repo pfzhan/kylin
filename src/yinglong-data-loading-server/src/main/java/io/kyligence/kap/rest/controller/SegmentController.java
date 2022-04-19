@@ -25,9 +25,9 @@
 package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_SEGMENT_ID;
-import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_MERGE_SEGMENT;
-import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_REFRESH_SEGMENT;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_EMPTY_ID;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_MERGE_LESS_THAN_TWO;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_REFRESH_SELECT_EMPTY;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -36,7 +36,6 @@ import java.util.List;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -195,7 +194,7 @@ public class SegmentController extends BaseController {
             checkSegmentParams(ids, names);
             String[] idsDeleted = modelService.convertSegmentIdWithName(dataflowId, project, ids, names);
             if (ArrayUtils.isEmpty(idsDeleted)) {
-                throw new KylinException(EMPTY_SEGMENT_ID, MsgPicker.getMsg().getSEGMENT_LIST_IS_EMPTY());
+                throw new KylinException(SEGMENT_EMPTY_ID);
             }
             modelService.deleteSegmentById(dataflowId, project, idsDeleted, force);
         }
@@ -217,7 +216,7 @@ public class SegmentController extends BaseController {
 
         if (SegmentsRequest.SegmentsRequestType.REFRESH == request.getType()) {
             if (ArrayUtils.isEmpty(segIds)) {
-                throw new KylinException(FAILED_REFRESH_SEGMENT, MsgPicker.getMsg().getINVALID_REFRESH_SEGMENT());
+                throw new KylinException(SEGMENT_REFRESH_SELECT_EMPTY);
             }
             jobInfos = modelBuildService.refreshSegmentById(
                     new RefreshSegmentParams(request.getProject(), modelId, segIds, request.isRefreshAllIndexes())
@@ -227,8 +226,7 @@ public class SegmentController extends BaseController {
                             .withTag(request.getTag()));
         } else {
             if (ArrayUtils.isEmpty(segIds) || segIds.length < 2) {
-                throw new KylinException(FAILED_MERGE_SEGMENT,
-                        MsgPicker.getMsg().getINVALID_MERGE_SEGMENT_BY_TOO_LESS());
+                throw new KylinException(SEGMENT_MERGE_LESS_THAN_TWO);
             }
             val jobInfo = modelBuildService.mergeSegmentsManually(
                     new MergeSegmentParams(request.getProject(), modelId, segIds).withPriority(request.getPriority())
@@ -250,7 +248,7 @@ public class SegmentController extends BaseController {
         checkProjectName(request.getProject());
         checkParamLength("tag", request.getTag(), 1024);
         if (ArrayUtils.isEmpty(request.getIds()) || request.getIds().length < 2) {
-            throw new KylinException(FAILED_MERGE_SEGMENT, MsgPicker.getMsg().getINVALID_MERGE_SEGMENT_BY_TOO_LESS());
+            throw new KylinException(SEGMENT_MERGE_LESS_THAN_TWO);
         }
         Pair<Long, Long> merged = modelService
                 .checkMergeSegments(new MergeSegmentParams(request.getProject(), modelId, request.getIds()));

@@ -82,7 +82,7 @@ public class MonitorReporterTest extends NLocalFileMetadataTestCase {
         Awaitility.await().atMost(3, TimeUnit.SECONDS)
                 .untilAsserted(() -> Assert.assertEquals(Integer.valueOf(1), monitorReporter.getQueueSize()));
 
-        Awaitility.await().atMost(5, TimeUnit.SECONDS)
+        Awaitility.await().atMost(8, TimeUnit.SECONDS)
                 .untilAsserted(() -> Assert.assertEquals(Integer.valueOf(0), monitorReporter.getQueueSize()));
 
         monitorReporter.stopReporter();

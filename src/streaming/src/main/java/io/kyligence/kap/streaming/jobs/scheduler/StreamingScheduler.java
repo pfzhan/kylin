@@ -108,10 +108,6 @@ public class StreamingScheduler {
             throw new IllegalStateException(
                     "StreamingScheduler for project " + project + " has been initiated. Use getInstance() instead.");
         init();
-        log.debug("New StreamingScheduler created by project '{}': {}", project,
-                System.identityHashCode(StreamingScheduler.this));
-        scheduledExecutorService.scheduleWithFixedDelay(this::retryJob, 5, 1, TimeUnit.MINUTES);
-        jobStatusUpdater.schedule();
     }
 
     public static synchronized StreamingScheduler getInstance(String project) {
@@ -131,25 +127,33 @@ public class StreamingScheduler {
         if (!initialized.compareAndSet(false, true)) {
             return;
         }
-        int maxPoolSize = config.getMaxStreamingConcurrentJobLimit();
-        ThreadFactory executorThreadFactory = new BasicThreadFactory.Builder()
-                .namingPattern("StreamingJobWorker(project:" + project + ")").uncaughtExceptionHandler((t, e) -> {
-                    log.error(e.getMessage(), e);
-                    throw new RuntimeException(e);
-                }).build();
 
-        jobPool = new ThreadPoolExecutor(maxPoolSize, maxPoolSize * 2, Long.MAX_VALUE, TimeUnit.DAYS,
-                new SynchronousQueue<>(), executorThreadFactory);
+        if (config.streamingEnabled()) {
+            int maxPoolSize = config.getMaxStreamingConcurrentJobLimit();
+            ThreadFactory executorThreadFactory = new BasicThreadFactory.Builder()
+                    .namingPattern("StreamingJobWorker(project:" + project + ")").uncaughtExceptionHandler((t, e) -> {
+                        log.error(e.getMessage(), e);
+                        throw new RuntimeException(e);
+                    }).build();
+
+            jobPool = new ThreadPoolExecutor(maxPoolSize, maxPoolSize * 2, Long.MAX_VALUE, TimeUnit.DAYS,
+                    new SynchronousQueue<>(), executorThreadFactory);
+            log.debug("New StreamingScheduler created by project '{}': {}", project,
+                    System.identityHashCode(StreamingScheduler.this));
+            scheduledExecutorService.scheduleWithFixedDelay(this::retryJob, 5, 1, TimeUnit.MINUTES);
+            jobStatusUpdater.schedule();
+        }
         resumeJobs(config);
-
         hasStarted.set(true);
     }
 
     public synchronized void submitJob(String project, String modelId, JobTypeEnum jobType) {
-        String jobId = StreamingUtils.getJobId(modelId, jobType.name());
         KylinConfig config = KylinConfig.getInstanceFromEnv();
+        if (!config.streamingEnabled()) {
+            return;
+        }
+        String jobId = StreamingUtils.getJobId(modelId, jobType.name());
         var jobMeta = StreamingJobManager.getInstance(config, project).getStreamingJobByUuid(jobId);
-
         checkJobStartStatus(jobMeta, jobId);
         JobKiller.killProcess(jobMeta);
 
@@ -367,13 +371,14 @@ public class StreamingScheduler {
                 skipJobListener(project, StreamingUtils.getJobId(modelId, jobType.name()), false);
             }
             if (JobStatusEnum.RUNNING == meta.getCurrentStatus() || JobStatusEnum.STARTING == meta.getCurrentStatus()) {
-                killJob(meta.getModelId(), meta.getJobType());
+                killJob(meta.getModelId(), meta.getJobType(), JobStatusEnum.STOPPED);
                 submitJob(project, modelId, jobType);
             } else {
                 killJob(meta.getModelId(), meta.getJobType());
             }
         });
     }
+
 
     public void skipJobListener(String project, String uuid, boolean skip) {
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {

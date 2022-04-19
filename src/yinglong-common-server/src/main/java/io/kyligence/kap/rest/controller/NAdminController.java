@@ -77,6 +77,7 @@ public class NAdminController extends NBasicController {
         propertyKeys.add("kylin.favorite.import-sql-max-size");
         propertyKeys.add("kylin.model.suggest-model-sql-limit");
         propertyKeys.add("kylin.query.query-history-download-max-size");
+        propertyKeys.add("kylin.streaming.enabled");
         propertyKeys.add("kylin.model.measure-name-check-enabled");
 
         // add second storage

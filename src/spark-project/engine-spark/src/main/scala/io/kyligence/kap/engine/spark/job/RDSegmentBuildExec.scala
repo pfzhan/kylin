@@ -86,11 +86,8 @@ class RDSegmentBuildExec(private val jobContext: RDSegmentBuildJob, //
       logInfo(s"Detected source: $sourceName $leaves ${paths.asScala.mkString(",")}")
       val startTime = System.currentTimeMillis()
       logInfo(s"Detect source size start time is $startTime")
-      val resourceSize = if (config.isConcurrencyFetchDataSourceSize) {
-        ResourceDetectUtils.getResourceSizeConcurrency(paths.asScala.map(path => new Path(path)): _*)
-      } else {
-        ResourceDetectUtils.getResourceSize(paths.asScala.map(path => new Path(path)): _*)
-      }
+      val resourceSize = ResourceDetectUtils.getResourceSize(config.isConcurrencyFetchDataSourceSize,
+        paths.asScala.map(path => new Path(path)): _*)
       val endTime = System.currentTimeMillis()
       logInfo(s"Detect source size end time is $endTime")
 

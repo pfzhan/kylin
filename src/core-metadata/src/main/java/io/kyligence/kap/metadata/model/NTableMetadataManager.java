@@ -47,6 +47,7 @@ import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 import org.apache.kylin.metadata.model.ExternalFilterDesc;
+import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.slf4j.Logger;
@@ -134,8 +135,21 @@ public class NTableMetadataManager {
     }
 
     public Set<String> listDatabases() {
-        return listAllTables().stream().map(TableDesc::getDatabase).map(name -> name.toUpperCase(Locale.ROOT))
-                .collect(Collectors.toSet());
+        return listDatabases(false);
+    }
+
+    public Set<String> listDatabases(boolean filterStreamingDatabase) {
+        if (!filterStreamingDatabase) {
+            return listAllTables().stream().map(TableDesc::getDatabase).map(name -> name.toUpperCase(Locale.ROOT))
+                    .collect(Collectors.toSet());
+        }
+        return listAllTables().stream().filter(this::tableAccessible).map(TableDesc::getDatabase)
+                .map(name -> name.toUpperCase(Locale.ROOT)).collect(Collectors.toSet());
+    }
+
+    public boolean tableAccessible(TableDesc tableDesc) {
+        return KylinConfig.getInstanceFromEnv().streamingEnabled()
+                || tableDesc.getSourceType() != ISourceAware.ID_STREAMING;
     }
 
     public Map<String, TableDesc> getAllTablesMap() {
@@ -367,6 +381,15 @@ public class NTableMetadataManager {
 
     public void removeExternalFilter(String name) {
         extFilterCrud.delete(name);
+    }
+
+    /**
+     * Streaming table can't be accessed when streaming disabled
+     * @return
+     */
+    public static boolean isTableAccessible(TableDesc tableDesc) {
+        return KylinConfig.getInstanceFromEnv().streamingEnabled()
+                || tableDesc.getSourceType() != ISourceAware.ID_STREAMING;
     }
 
     private NProjectManager getProjectManager() {

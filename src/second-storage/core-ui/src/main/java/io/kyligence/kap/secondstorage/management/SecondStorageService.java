@@ -24,11 +24,58 @@
 
 package io.kyligence.kap.secondstorage.management;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_NODE_NOT_AVAILABLE;
+import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_PROJECT_LOCK_FAIL;
+import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_PROJECT_STATUS_ERROR;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Properties;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.SecondStorageConfig;
+import org.apache.kylin.common.exception.JobErrorCode;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.job.SecondStorageJobParamUtil;
+import org.apache.kylin.job.constant.JobStatusEnum;
+import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.handler.SecondStorageIndexCleanJobHandler;
+import org.apache.kylin.job.handler.SecondStorageModelCleanJobHandler;
+import org.apache.kylin.job.handler.SecondStorageProjectCleanJobHandler;
+import org.apache.kylin.job.handler.SecondStorageSegmentCleanJobHandler;
+import org.apache.kylin.job.manager.JobManager;
+import org.apache.kylin.job.model.JobParam;
+import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.rest.service.BasicService;
+import org.apache.kylin.rest.util.AclEvaluate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.util.CollectionUtils;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.guava20.shaded.common.collect.ImmutableList;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -64,53 +111,12 @@ import io.kyligence.kap.secondstorage.metadata.Manager;
 import io.kyligence.kap.secondstorage.metadata.MetadataOperator;
 import io.kyligence.kap.secondstorage.metadata.NodeGroup;
 import io.kyligence.kap.secondstorage.metadata.TableData;
+import io.kyligence.kap.secondstorage.metadata.TableEntity;
 import io.kyligence.kap.secondstorage.metadata.TableFlow;
 import io.kyligence.kap.secondstorage.metadata.TablePartition;
-import io.kyligence.kap.secondstorage.metadata.TablePlan;
 import io.kyligence.kap.secondstorage.response.TableSyncResponse;
 import io.kyligence.kap.secondstorage.util.SecondStorageJobUtil;
 import lombok.val;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.SecondStorageConfig;
-import org.apache.kylin.common.exception.JobErrorCode;
-import org.apache.kylin.common.exception.KylinException;
-import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_NODE_NOT_AVAILABLE;
-import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_PROJECT_LOCK_FAIL;
-import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_PROJECT_STATUS_ERROR;
-import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.job.SecondStorageJobParamUtil;
-import org.apache.kylin.job.constant.JobStatusEnum;
-import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.handler.SecondStorageModelCleanJobHandler;
-import org.apache.kylin.job.handler.SecondStorageProjectCleanJobHandler;
-import org.apache.kylin.job.handler.SecondStorageSegmentCleanJobHandler;
-import org.apache.kylin.job.manager.JobManager;
-import org.apache.kylin.job.model.JobParam;
-import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.rest.service.BasicService;
-import org.apache.kylin.rest.util.AclEvaluate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.util.CollectionUtils;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Properties;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 public class SecondStorageService extends BasicService implements SecondStorageUpdater {
     private static final Logger logger = LoggerFactory.getLogger(SecondStorageService.class);
@@ -143,6 +149,12 @@ public class SecondStorageService extends BasicService implements SecondStorageU
 
     public boolean isEnabled(String project, String modelId) {
         return SecondStorageUtil.isModelEnable(project, modelId);
+    }
+
+    public Manager<TableFlow> getTableFlowManager(String project) {
+        val tableFlowManager = SecondStorageUtil.tableFlowManager(KylinConfig.getInstanceFromEnv(), project);
+        Preconditions.checkState(tableFlowManager.isPresent());
+        return tableFlowManager.get();
     }
 
     public Optional<TableFlow> getTableFlow(String project, String modelId) {
@@ -247,6 +259,54 @@ public class SecondStorageService extends BasicService implements SecondStorageU
             jobInfo = new JobInfoResponse.JobInfo(JobTypeEnum.SECOND_STORAGE_NODE_CLEAN.name(), jobId);
         }
         return Optional.ofNullable(jobInfo);
+    }
+
+    @Transaction(project = 0)
+    public List<String> deleteProjectSecondStorageNode(String project, List<String> shardNames, boolean force) {
+        aclEvaluate.checkProjectAdminPermission(project);
+
+        if (!SecondStorageUtil.isProjectEnable(project)) {
+            return Collections.emptyList();
+        }
+
+        boolean isLocked = LockTypeEnum.locked(LockTypeEnum.LOAD.name(), SecondStorageUtil.getProjectLocks(project));
+
+        if (!isLocked) {
+            lockOperate(project, Collections.singletonList(LockTypeEnum.LOAD.name()), LockOperateTypeEnum.LOCK.name());
+        }
+
+        try {
+            return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+                List<String> requiredDeleteNodeNames = shardNames.stream()
+                        .flatMap(shardName -> SecondStorageNodeHelper.getPair(shardName).stream()).collect(Collectors.toList());
+
+                val nodeManager = SecondStorageUtil.nodeGroupManager(getConfig(), project);
+                Preconditions.checkState(nodeManager.isPresent());
+
+                for (val nodeGroup : nodeManager.get().listAll()) {
+                    nodeGroup.update(copied -> {
+                        val nodeBuffer = Lists.newArrayList(copied.getNodeNames());
+                        nodeBuffer.removeAll(requiredDeleteNodeNames);
+                        copied.setNodeNames(nodeBuffer);
+                    });
+                }
+
+                if (force) {
+                    getTableFlowManager(project).listAll()
+                            .forEach(tableFlow -> tableFlow.update(TableFlow::cleanTableData));
+                    return ImmutableList.of(triggerProjectClean(project));
+                } else {
+                    List<TableFlow> tableFlowList = SecondStorageUtil.listTableFlow(getConfig(), project);
+                    tableFlowList.forEach(tableFlow -> tableFlow.update(t -> t.removeNodes(requiredDeleteNodeNames)));
+
+                    return Collections.emptyList();
+                }
+            }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID);
+        } finally {
+            if (!isLocked) {
+                lockOperate(project, Collections.singletonList(LockTypeEnum.LOAD.name()), LockOperateTypeEnum.UNLOCK.name());
+            }
+        }
     }
 
     public void enableProjectSecondStorage(String project, List<String> pairs) {
@@ -358,6 +418,16 @@ public class SecondStorageService extends BasicService implements SecondStorageU
         return getManager(JobManager.class, project).addJob(param, jobHandler);
     }
 
+    @Transaction(project = 0)
+    public String triggerIndexClean(String project, String modelId, Set<Long> needDeleteLayoutIds) {
+        SecondStorageUtil.validateProjectLock(project, Collections.singletonList(LockTypeEnum.LOAD.name()));
+        Preconditions.checkState(SecondStorageUtil.isModelEnable(project, modelId));
+
+        val jobHandler = new SecondStorageIndexCleanJobHandler();
+        final JobParam param = SecondStorageJobParamUtil.layoutCleanParam(project, modelId, getUsername(), needDeleteLayoutIds, Collections.emptySet());
+        return getManager(JobManager.class, project).addJob(param, jobHandler);
+    }
+
     public List<ProjectLock> lockList(String project) {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         List<ProjectInstance> projectInstances = NProjectManager.getInstance(config)
@@ -411,6 +481,13 @@ public class SecondStorageService extends BasicService implements SecondStorageU
         }
         Manager<NodeGroup> nodeGroupManager = optionalNodeGroupManager.get();
         List<NodeGroup> nodeGroups = nodeGroupManager.listAll();
+
+        if (LockOperateTypeEnum.LOCK.name().equals(operateType)) {
+            for (NodeGroup nodeGroup : nodeGroups) {
+                LockTypeEnum.checkLocks(lockTypes, nodeGroup.getLockTypes());
+            }
+        }
+
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             nodeGroups.stream().forEach(x -> {
                 x.update(y -> {
@@ -604,6 +681,32 @@ public class SecondStorageService extends BasicService implements SecondStorageU
         return Lists.newArrayList(models);
     }
 
+    public List<String> getAllSecondStoragrJobs() {
+        List<ProjectInstance> projects = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).listAllProjects();
+        for (ProjectInstance project : projects) {
+            if (SecondStorageUtil.isProjectEnable(project.getName())) {
+                List<String> allJobs = getProjectSecondStorageJobs(project.getName());
+                if (!allJobs.isEmpty()) {
+                    return allJobs;
+                }
+            }
+        }
+        return Collections.emptyList();
+    }
+
+    public List<String> getProjectSecondStorageJobs(String project) {
+        if (!SecondStorageUtil.isProjectEnable(project)) {
+            throw new KylinException(SECOND_STORAGE_PROJECT_STATUS_ERROR, String.format(Locale.ROOT, "'%s' not enable second storage.", project));
+        }
+        val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        return executableManager.getJobs().stream()
+                .map(executableManager::getJob)
+                .filter(job -> SecondStorageUtil.RELATED_JOBS.contains(job.getJobType()))
+                .filter(job -> SecondStorageUtil.RUNNING_STATE.contains(job.getStatus()))
+                .map(job -> job.getId())
+                .collect(Collectors.toList());
+    }
+
     public void isProjectAdmin(String project) {
         if (!KylinConfig.getInstanceFromEnv().isUTEnv()) {
             aclEvaluate.checkProjectAdminPermission(project);
@@ -635,23 +738,50 @@ public class SecondStorageService extends BasicService implements SecondStorageU
         Preconditions.checkState(tableFlowManager.isPresent());
         val tableFlow = tableFlowManager.get().get(modelId);
         Preconditions.checkState(tableFlow.isPresent());
-        boolean isClean = false;
+
         if (indexPlan.getBaseTableLayout() != null) {
-            if (needClean) {
-                triggerModelClean(project, modelId);
-                isClean = true;
-            }
+            // get all layout entity contains locked index
+            Set<Long> allBaseLayout = indexPlan.getAllLayouts().stream().filter(LayoutEntity::isBaseIndex).map(LayoutEntity::getId).collect(Collectors.toSet());
+            Set<Long> needDeleteLayoutIds = new HashSet<>(allBaseLayout.size());
+
             tableFlowManager.get().get(modelId).map(tf -> {
-                tf.update(TableFlow::cleanTableData);
+                // clean unused table_data, maybe index is deleted
+                List<Long> deleteLayouts = tf.getTableDataList().stream()
+                        .map(TableData::getLayoutID)
+                        .filter(id -> !allBaseLayout.contains(id))
+                        .collect(Collectors.toList());
+                needDeleteLayoutIds.addAll(deleteLayouts);
                 return tf;
             });
+
+            if (!needDeleteLayoutIds.isEmpty()) {
+                triggerIndexClean(project, modelId, needDeleteLayoutIds);
+            }
+
             tablePlanManager.get().get(modelId).map(tp -> {
-                tp = tp.update(TablePlan::cleanTable);
+                // clean unused table_entity, maybe index is deleted
+                val deleteLayoutIds = tp.getTableMetas().stream()
+                        .filter(tableEntity -> !allBaseLayout.contains(tableEntity.getLayoutID()))
+                        .map(TableEntity::getLayoutID).collect(Collectors.toSet());
+                tp = tp.update(t -> t.cleanTable(deleteLayoutIds));
+
+                // add new base_layout if not exists
                 tp.createTableEntityIfNotExists(indexPlan.getBaseTableLayout(), true);
                 return tp;
             });
+
+            tableFlowManager.get().get(modelId).map(tf -> {
+                // clean unused table_data, maybe index is deleted
+                List<Long> deleteLayouts = tf.getTableDataList().stream()
+                        .map(TableData::getLayoutID)
+                        .filter(id -> !allBaseLayout.contains(id))
+                        .collect(Collectors.toList());
+
+                tf = tf.update(t -> t.cleanTableData(tableData -> deleteLayouts.contains(tableData.getLayoutID())));
+                return tf;
+            });
         }
-        return isClean;
+        return true;
     }
 
     public void resetStorage() {

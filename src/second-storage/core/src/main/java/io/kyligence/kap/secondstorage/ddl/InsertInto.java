@@ -27,6 +27,8 @@ import io.kyligence.kap.secondstorage.ddl.exp.TableIdentifier;
 import io.kyligence.kap.secondstorage.ddl.visitor.RenderVisitor;
 import org.apache.commons.collections.map.ListOrderedMap;
 
+import java.sql.SQLException;
+
 public class InsertInto extends DDL<InsertInto> {
 
     private final TableIdentifier table;
@@ -76,7 +78,8 @@ public class InsertInto extends DDL<InsertInto> {
         visitor.visit(this);
     }
 
-    public static InsertInto insertInto(String database, String table) {
+    // throw SQLException for test
+    public static InsertInto insertInto(String database, String table) throws SQLException {
         return new InsertInto(TableIdentifier.table(database, table));
     }
 }

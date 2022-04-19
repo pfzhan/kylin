@@ -124,6 +124,20 @@ import io.kyligence.kap.streaming.jobs.StreamingJobListener;
 import lombok.val;
 import lombok.var;
 
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CONCURRENT_SUBMIT_LIMIT;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_CHECK_FAIL;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_CHECK_MULTI_PARTITION_ABANDON;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_CHECK_MULTI_PARTITION_DUPLICATE;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_LOCKED;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_MERGE_CHECK_INDEX_ILLEGAL;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_MERGE_CHECK_PARTITION_ILLEGAL;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_NOT_EXIST_ID;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_REFRESH_SELECT_RANGE_EMPTY;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_STATUS;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 public class ModelServiceBuildTest extends SourceTestCase {
     @InjectMocks
     private final ModelService modelService = Mockito.spy(new ModelService());
@@ -280,7 +294,7 @@ public class ModelServiceBuildTest extends SourceTestCase {
         dataSegment3.setSegmentRange(segmentRange);
         segments.add(dataSegment3);
 
-        update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
+        update.setToUpdateSegs(segments.toArray(new NDataSegment[0]));
         dfManager.updateDataflow(update);
 
         try {
@@ -290,7 +304,7 @@ public class ModelServiceBuildTest extends SourceTestCase {
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
             Assert.assertEquals(
-                    "Can’t merge the selected segments, as there are gap(s) in between. Please check and try again.",
+                    "Can't merge the selected segments, as there are gap(s) in between. Please check and try again.",
                     e.getMessage());
         }
 
@@ -313,8 +327,8 @@ public class ModelServiceBuildTest extends SourceTestCase {
                     new MergeSegmentParams("default", dfId, new String[] { dataSegment2.getId() }));
             Assert.fail();
         } catch (KylinException e) {
-            Assert.assertEquals("Can’t remove, refresh or merge segment \"" + dataSegment2.displayIdName()
-                    + "\", as it’s LOCKED. Please try again later.", e.getMessage());
+            Assert.assertEquals("Can't remove, refresh or merge segment \"" + dataSegment2.displayIdName()
+                    + "\", as it's LOCKED. Please try again later.", e.getMessage());
         }
         // clear segments
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
@@ -355,9 +369,8 @@ public class ModelServiceBuildTest extends SourceTestCase {
         dfManager.updateDataflow(update);
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage(String.format(Locale.ROOT,
-                MsgPicker.getMsg().getSEGMENT_STATUS(SegmentStatusEnumToDisplay.LOADING.name()),
-                dataSegment1.displayIdName()));
+        thrown.expectMessage(
+                SEGMENT_STATUS.getMsg(dataSegment1.displayIdName(), SegmentStatusEnumToDisplay.LOADING.name()));
         modelBuildService.mergeSegmentsManually(
                 new MergeSegmentParams("default", dfId, new String[] { dataSegment1.getId(), dataSegment2.getId() }));
 
@@ -401,8 +414,8 @@ public class ModelServiceBuildTest extends SourceTestCase {
         modelBuildService.refreshSegmentById(new RefreshSegmentParams("default", "741ca86a-1f13-46da-a59f-95fb68615e3a",
                 new String[] { dataSegment2.getId() }));
         thrown.expect(KylinException.class);
-        thrown.expectMessage(
-                String.format(Locale.ROOT, MsgPicker.getMsg().getSEGMENT_LOCKED(), dataSegment2.displayIdName()));
+        thrown.expectMessage(String.format(Locale.ROOT, SEGMENT_LOCKED.getErrorMsg().getLocalizedString(),
+                dataSegment2.displayIdName()));
         //refresh exception
         modelBuildService.refreshSegmentById(new RefreshSegmentParams("default", "741ca86a-1f13-46da-a59f-95fb68615e3a",
                 new String[] { dataSegment2.getId() }));
@@ -423,7 +436,7 @@ public class ModelServiceBuildTest extends SourceTestCase {
     @Test
     public void testRefreshSegmentById_isNotExist() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Can’t find the segment by ID \"not_exist_01\". Please check and try again.");
+        thrown.expectMessage(SEGMENT_NOT_EXIST_ID.getMsg("not_exist_01"));
         //refresh exception
         modelBuildService.refreshSegmentById(new RefreshSegmentParams("default", "741ca86a-1f13-46da-a59f-95fb68615e3a",
                 new String[] { "not_exist_01" }));
@@ -508,13 +521,14 @@ public class ModelServiceBuildTest extends SourceTestCase {
         Assert.assertEquals(0, job.getPriority());
         Assert.assertTrue(((NSparkCubingJob) job).getHandler() instanceof ExecutableAddSegmentHandler);
         thrown.expectInTransaction(KylinException.class);
-        thrown.expectMessageInTransaction(String.format(Locale.ROOT,
-                MsgPicker.getMsg().getSEGMENT_STATUS(SegmentStatusEnumToDisplay.LOADING.name()), dataflowManager
-                        .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getSegments().get(0).displayIdName()));
+        thrown.expectMessageInTransaction(
+                SEGMENT_STATUS.getMsg(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getSegments()
+                        .get(0).displayIdName(), SegmentStatusEnumToDisplay.LOADING.name()));
         modelBuildService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "");
     }
 
     @Test
+    @Ignore
     public void testBuildSegmentsManually_NoPartition_FullSegExisted() throws Exception {
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         val project = "default";
@@ -538,15 +552,11 @@ public class ModelServiceBuildTest extends SourceTestCase {
             modelBuildService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "");
         } catch (TransactionException exception) {
             Assert.assertTrue(exception.getCause() instanceof KylinException);
-            NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(),
-                    "default");
-            String msg = String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getSEGMENT_STATUS(SegmentStatusEnumToDisplay.LOADING.name()), dataflowManager
-                            .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getSegments().get(0).displayIdName());
-            Assert.assertEquals(msg, exception.getCause().getMessage());
+            Assert.assertEquals(JOB_CREATE_CHECK_FAIL.getErrorMsg().getLocalizedString(),
+                    exception.getCause().getMessage());
         }
         val executables = getRunningExecutables(project, modelId);
-        Assert.assertEquals(1, executables.size());
+        Assert.assertEquals(2, executables.size());
         Assert.assertTrue(((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableAddCuboidHandler);
     }
 
@@ -794,9 +804,9 @@ public class ModelServiceBuildTest extends SourceTestCase {
 
     @Test
     public void testGetRelatedModels_HasErrorJobs() {
-        NExecutableManager executableManager = Mockito.mock(NExecutableManager.class);
-        Mockito.when(modelService.getManager(NExecutableManager.class, "default")).thenReturn(executableManager);
-        Mockito.when(executableManager.getExecutablesByStatus(ExecutableState.ERROR)).thenReturn(mockJobs());
+        NExecutableManager executableManager = mock(NExecutableManager.class);
+        when(modelService.getManager(NExecutableManager.class, "default")).thenReturn(executableManager);
+        when(executableManager.getExecutablesByStatus(ExecutableState.ERROR)).thenReturn(mockJobs());
         List<RelatedModelResponse> responses = modelService.getRelateModels("default", "DEFAULT.TEST_KYLIN_FACT",
                 "nmodel_basic_inner");
         Assert.assertEquals(1, responses.size());
@@ -900,15 +910,15 @@ public class ModelServiceBuildTest extends SourceTestCase {
         RefreshAffectedSegmentsResponse response = new RefreshAffectedSegmentsResponse();
         response.setAffectedStart("12");
         response.setAffectedEnd("120");
-        Mockito.doReturn(response).when(modelService).getRefreshAffectedSegmentsResponse("default",
-                "DEFAULT.TEST_KYLIN_FACT", "0", "12223334");
+        doReturn(response).when(modelService).getRefreshAffectedSegmentsResponse("default", "DEFAULT.TEST_KYLIN_FACT",
+                "0", "12223334");
         modelBuildService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "12223334", "0", "12223334");
     }
 
     @Test
     public void testGetAffectedSegmentsResponse_NoSegments_Exception() throws IOException {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("No segments to refresh, please select new range and try again!");
+        thrown.expectMessage(SEGMENT_REFRESH_SELECT_RANGE_EMPTY.getMsg());
         List<NDataSegment> segments = modelService.getSegmentsByRange("a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94", "default",
                 "0", "" + Long.MAX_VALUE);
         Assert.assertTrue(CollectionUtils.isEmpty(segments));
@@ -1210,7 +1220,7 @@ public class ModelServiceBuildTest extends SourceTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals("Can’t add the job. Please ensure that the subpartitions are unique.", e.getMessage());
+            Assert.assertEquals(JOB_CREATE_CHECK_MULTI_PARTITION_DUPLICATE.getMsg(), e.getMessage());
             Assert.assertEquals(4, getRunningExecutables(getProject(), modelId).size());
         }
 
@@ -1229,9 +1239,7 @@ public class ModelServiceBuildTest extends SourceTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals(
-                    "Can't submit building jobs, as it exceeds the concurrency limit (5).  Please try submitting fewer jobs at a time.",
-                    e.getMessage());
+            Assert.assertEquals(JOB_CONCURRENT_SUBMIT_LIMIT.getMsg(5), e.getMessage());
             Assert.assertEquals(4, getRunningExecutables(getProject(), modelId).size());
         }
 
@@ -1271,8 +1279,7 @@ public class ModelServiceBuildTest extends SourceTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals("Can’t add the job. Please ensure that the operation is valid for the current object.",
-                    e.getMessage());
+            Assert.assertEquals(e.getMessage(), JOB_CREATE_CHECK_MULTI_PARTITION_ABANDON.getMsg());
         }
 
         // no target partition value in segment
@@ -1284,8 +1291,7 @@ public class ModelServiceBuildTest extends SourceTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals("Can’t add the job. Please ensure that the operation is valid for the current object.",
-                    e.getMessage());
+            Assert.assertEquals(e.getMessage(), JOB_CREATE_CHECK_MULTI_PARTITION_ABANDON.getMsg());
         }
 
         // no target partition value or partition id
@@ -1296,8 +1302,7 @@ public class ModelServiceBuildTest extends SourceTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals("Can’t add the job. Please ensure that the operation is valid for the current object.",
-                    e.getMessage());
+            Assert.assertEquals(e.getMessage(), JOB_CREATE_CHECK_MULTI_PARTITION_ABANDON.getMsg());
         }
     }
 
@@ -1473,9 +1478,7 @@ public class ModelServiceBuildTest extends SourceTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals(
-                    "The indexes included in the selected segments are not fully identical. Please build index first and try merging again.",
-                    e.getMessage());
+            Assert.assertEquals(SEGMENT_MERGE_CHECK_INDEX_ILLEGAL.getMsg(), e.getMessage());
         }
 
         // index is not aligned in segment3, segment4
@@ -1485,9 +1488,7 @@ public class ModelServiceBuildTest extends SourceTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals(
-                    "The indexes included in the selected segments are not fully identical. Please build index first and try merging again.",
-                    e.getMessage());
+            Assert.assertEquals(SEGMENT_MERGE_CHECK_INDEX_ILLEGAL.getMsg(), e.getMessage());
         }
 
         // partitions are not aligned in segment2, segment3
@@ -1497,9 +1498,7 @@ public class ModelServiceBuildTest extends SourceTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals(
-                    "The subpartitions included in the selected segments are not fully aligned. Please build the subpartitions first and try merging again.",
-                    e.getMessage());
+            Assert.assertEquals(SEGMENT_MERGE_CHECK_PARTITION_ILLEGAL.getMsg(), e.getMessage());
         }
 
         // success

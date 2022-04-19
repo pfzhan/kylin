@@ -48,10 +48,12 @@ import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.engine.spark.job.NResourceDetectStep;
 import io.kyligence.kap.engine.spark.job.NTableSamplingJob;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.model.MaintainModelType;
@@ -90,6 +92,44 @@ public class TableSamplingServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testSkipResourceDetectWithGlobalSettings() {
+        overwriteSystemProp("kylin.engine.steps.skip", NResourceDetectStep.class.getCanonicalName());
+        final String table1 = "DEFAULT.TEST_KYLIN_FACT";
+        Set<String> tables = Sets.newHashSet(table1);
+        tableSamplingService.sampling(tables, PROJECT, SAMPLING_ROWS, 0, null, null);
+        NExecutableManager executableManager = NExecutableManager.getInstance(getTestConfig(), PROJECT);
+        final List<AbstractExecutable> allExecutables = executableManager.getAllExecutables();
+        Assert.assertEquals(1, allExecutables.size());
+        final NTableSamplingJob samplingJob = (NTableSamplingJob) allExecutables.get(0);
+        final List<AbstractExecutable> tasks = samplingJob.getTasks();
+        Assert.assertEquals(1, tasks.size());
+        Assert.assertTrue(tasks.get(0) instanceof NTableSamplingJob.SamplingStep);
+    }
+
+    @Test
+    public void testSkipResourceDetectWithProjectSettings() {
+        NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+        projectManager.updateProject(PROJECT, copyForWrite -> {
+            LinkedHashMap<String, String> properties = copyForWrite.getOverrideKylinProps();
+            if (properties == null) {
+                properties = Maps.newLinkedHashMap();
+            }
+            properties.put("kylin.engine.steps.skip", NResourceDetectStep.class.getCanonicalName());
+            copyForWrite.setOverrideKylinProps(properties);
+        });
+        final String table1 = "DEFAULT.TEST_KYLIN_FACT";
+        Set<String> tables = Sets.newHashSet(table1);
+        tableSamplingService.sampling(tables, PROJECT, SAMPLING_ROWS, 0, null, null);
+        NExecutableManager executableManager = NExecutableManager.getInstance(getTestConfig(), PROJECT);
+        final List<AbstractExecutable> allExecutables = executableManager.getAllExecutables();
+        Assert.assertEquals(1, allExecutables.size());
+        final NTableSamplingJob samplingJob = (NTableSamplingJob) allExecutables.get(0);
+        final List<AbstractExecutable> tasks = samplingJob.getTasks();
+        Assert.assertEquals(1, tasks.size());
+        Assert.assertTrue(tasks.get(0) instanceof NTableSamplingJob.SamplingStep);
+    }
+
+    @Test
     public void testSampling() {
         final String table1 = "DEFAULT.TEST_KYLIN_FACT";
         final String table2 = "DEFAULT.TEST_ACCOUNT";
@@ -110,6 +150,7 @@ public class TableSamplingServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(tables.contains(tableNameOfSamplingJob1));
         Assert.assertEquals(PROJECT, samplingJob1.getParam(NBatchConstants.P_PROJECT_NAME));
         Assert.assertEquals("ADMIN", samplingJob1.getSubmitter());
+        Assert.assertEquals(2, ((NTableSamplingJob) job1).getTasks().size());
 
         final AbstractExecutable job2 = allExecutables.get(1);
         Assert.assertEquals(0, job2.getPriority());

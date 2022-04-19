@@ -120,6 +120,10 @@ public class IncrementalWithIntPartitionTest implements JobWaiter {
         val timeRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
         val indexes = new HashSet<>(df.getIndexPlan().getAllLayouts());
         indexDataConstructor.buildIndex(dfName, timeRange, indexes, true);
+
+        waitJobFinish(project,
+                triggerClickHouseLoadJob(project, modelId, "ADMIN",
+                        dsMgr.getDataflow(modelId).getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList())));
     }
 
 

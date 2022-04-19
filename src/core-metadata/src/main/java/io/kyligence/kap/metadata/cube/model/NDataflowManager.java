@@ -26,7 +26,9 @@ package io.kyligence.kap.metadata.cube.model;
 
 import static io.kyligence.kap.common.util.SegmentMergeStorageChecker.checkMergeSegmentThreshold;
 import static java.util.stream.Collectors.groupingBy;
-import static org.apache.kylin.common.exception.SystemErrorCode.FAILED_MERGE_SEGMENT;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_MERGE_CHECK_INDEX_ILLEGAL;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_MERGE_CHECK_PARTITION_ILLEGAL;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_MERGE_CONTAINS_GAPS;
 import static org.apache.kylin.metadata.realization.RealizationStatusEnum.ONLINE;
 
 import java.util.ArrayList;
@@ -51,7 +53,6 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
@@ -483,13 +484,13 @@ public class NDataflowManager implements IRealizationProvider {
             NDataSegment dataSegment = mergingSegments.get(i);
             NDataSegDetails details = dataSegment.getSegDetails();
             if (!firstSegDetails.checkLayoutsBeforeMerge(details))
-                throw new KylinException(FAILED_MERGE_SEGMENT, MsgPicker.getMsg().getSegmentMergeLayoutConflictError());
+                throw new KylinException(SEGMENT_MERGE_CHECK_INDEX_ILLEGAL);
         }
 
         if (!force) {
             for (int i = 0; i < mergingSegments.size() - 1; i++) {
                 if (!mergingSegments.get(i).getSegRange().connects(mergingSegments.get(i + 1).getSegRange()))
-                    throw new KylinException(FAILED_MERGE_SEGMENT, MsgPicker.getMsg().getSEGMENT_CONTAINS_GAPS());
+                    throw new KylinException(SEGMENT_MERGE_CONTAINS_GAPS);
             }
 
             List<String> emptySegment = Lists.newArrayList();
@@ -538,14 +539,13 @@ public class NDataflowManager implements IRealizationProvider {
                 .map(SegmentPartition::getPartitionId).collect(Collectors.toSet());
         mergingSegments.forEach(segment -> {
             if (MapUtils.isEmpty(segment.getLayoutsMap())) {
-                throw new KylinException(FAILED_MERGE_SEGMENT, MsgPicker.getMsg().getSegmentMergeLayoutConflictError());
+                throw new KylinException(SEGMENT_MERGE_CHECK_INDEX_ILLEGAL);
             }
             segment.getLayoutsMap().values().forEach(layout -> {
                 Set<Long> partitionsInLayout = layout.getMultiPartition().stream().map(LayoutPartition::getPartitionId)
                         .collect(Collectors.toSet());
                 if (!partitionsInLayout.equals(partitions)) {
-                    throw new KylinException(FAILED_MERGE_SEGMENT,
-                            MsgPicker.getMsg().getSegmentMergePartitionConflictError());
+                    throw new KylinException(SEGMENT_MERGE_CHECK_PARTITION_ILLEGAL);
                 }
             });
         });

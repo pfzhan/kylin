@@ -38,10 +38,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*/
+ */
 
 package org.apache.kylin.metadata.model.tool;
-
 
 import static org.apache.calcite.sql.SqlDialect.EMPTY_CONTEXT;
 
@@ -83,17 +82,19 @@ public class CalciteParser {
 
     private static final String SQL_PREFIX = "select ";
     private static final String SQL_SUFFIX = " from t";
+    private static final String QUOTE = Quoting.DOUBLE_QUOTE.string;
+
     private static final Cache<String, SqlNode> expCache = CacheBuilder.newBuilder().maximumSize(10000)
             .expireAfterWrite(10, TimeUnit.MINUTES).build();
-
 
     public static SqlNode parse(String sql) throws SqlParseException {
         return parse(sql, null);
     }
 
     public static SqlNode parse(String sql, String project) throws SqlParseException {
-        KylinConfig kylinConfig = StringUtils.isNotEmpty(project) ? NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
-                .getProject(project).getConfig() : KylinConfig.getInstanceFromEnv();
+        KylinConfig kylinConfig = StringUtils.isNotEmpty(project)
+                ? NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project).getConfig()
+                : KylinConfig.getInstanceFromEnv();
         SqlParser.ConfigBuilder parserBuilder = SqlParser.configBuilder()
                 .setIdentifierMaxLength(kylinConfig.getMaxModelDimensionMeasureNameLength());
         if (kylinConfig.getSourceNameCaseSensitiveEnabled()) {
@@ -122,7 +123,7 @@ public class CalciteParser {
         return selectList.get(0);
     }
 
-    public static SqlNode getReadonlyExpNode(String expr){
+    public static SqlNode getReadonlyExpNode(String expr) {
         SqlNode sqlNode = expCache.getIfPresent(expr);
         if (sqlNode == null) {
             sqlNode = getExpNode(expr);
@@ -306,17 +307,23 @@ public class CalciteParser {
             String aliasInExpr = sqlIdentifier.names.get(0);
             String col = sqlIdentifier.names.get(1);
             String renamedAlias = renaming.get(aliasInExpr);
-            Preconditions.checkNotNull(renamedAlias,
-                    "rename for alias " + aliasInExpr + " in expr (" + expr + ") is not found");
-            sql = sql.substring(0, start) + renamedAlias + "." + col + sql.substring(end);
+            Preconditions.checkNotNull(renamedAlias, "rename for alias {} in expr ({}) is not found", aliasInExpr,
+                    expr);
+            sql = sql.substring(0, start) //
+                    + quote(renamedAlias) + "." + quote(col) //
+                    + sql.substring(end);
         }
 
         return sql.substring(SQL_PREFIX.length(), sql.length() - SQL_SUFFIX.length());
     }
 
+    private static String quote(String key) {
+        return QUOTE + key + QUOTE;
+    }
+
     public static String transformDoubleQuote(String expr) throws SqlParseException {
         SqlParser.ConfigBuilder parserBuilder = SqlParser.configBuilder().setQuoting(Quoting.BACK_TICK);
-        SqlParser sqlParser = SqlParser.create("select " + expr, parserBuilder.build());
+        SqlParser sqlParser = SqlParser.create(SQL_PREFIX + expr, parserBuilder.build());
         SqlSelect select = (SqlSelect) sqlParser.parseQuery();
         return select.getSelectList().getList().get(0)
                 .toSqlString(new SqlDialect(EMPTY_CONTEXT.withIdentifierQuoteString("\""))).toString();

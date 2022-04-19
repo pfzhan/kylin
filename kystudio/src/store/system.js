@@ -131,9 +131,15 @@ export default {
           commit(types.INIT_SPEC)
           resolve(response.data)
         }, (res) => {
-          reject()
-          Vue.config.lang = localStorage.getItem('kystudio_lang') ? localStorage.getItem('kystudio_lang') : 'en'
-          handleError(res)
+          reject(res)
+          if (window.kapVm.$route.path === '/') {
+            window.localStorage.setItem('loginIn', false)
+            window.kapVm.$router.replace('/access/login')
+          }
+          if (res.status !== 401) {
+            Vue.config.lang = localStorage.getItem('kystudio_lang') ? localStorage.getItem('kystudio_lang') : 'en'
+            handleError(res)
+          }
         })
       })
     },

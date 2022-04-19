@@ -910,7 +910,6 @@ public class KylinConfigBaseTest {
                 "org.apache.spark.metrics.sink.PrometheusServlet", "org.apache.spark.metrics.sink.PrometheusServlet"));
         map.put("getSpark3DriverPrometheusServletPath",
                 new PropertiesEntity("kylin.storage.columnar.spark-conf.spark.metrics.conf.*.sink.prometheusServlet.path", "/metrics/prometheus", "/metrics/prometheus"));
-        map.put("isUpdateSessionTableAutomatically", new PropertiesEntity("kylin.web.session.table.auto-upgrade", "true", true));
     }
 
     @Test

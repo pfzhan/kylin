@@ -27,8 +27,8 @@ package io.kyligence.kap.rest.controller;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_USER_NAME;
-import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_ID_NOT_EXIST;
 import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
 
 import java.io.IOException;
@@ -70,7 +70,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -174,8 +173,7 @@ public class NAccessController extends NBasicController {
 
             NDataModel model = projectService.getManager(NDataModelManager.class, project).getDataModelDesc(modelId);
             if (Objects.isNull(model) || model.isBroken()) {
-                throw new KylinException(MODEL_NOT_EXIST,
-                        "Model " + modelId + "does not exist or broken in project " + project);
+                throw new KylinException(MODEL_ID_NOT_EXIST, modelId);
             }
             whole.remove(model.getOwner());
         }
@@ -209,13 +207,10 @@ public class NAccessController extends NBasicController {
     @GetMapping(value = "/{uuid:.+}/all", produces = { HTTP_VND_APACHE_KYLIN_JSON,
             HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
-    public EnvelopeResponse<Map<String, List<String>>> getProjectUsersAndGroups(@PathVariable("uuid") String uuid) {
+    public EnvelopeResponse<Map<String, List<String>>> getProjectUsersAndGroups(@PathVariable("uuid") String uuid)
+            throws IOException {
         AclEntity ae = accessService.getAclEntity(AclEntityType.PROJECT_INSTANCE, uuid);
-        Map<String, List<String>> result = Maps.newHashMap();
-        List<String> users = accessService.getAllAclSids(ae, MetadataConstants.TYPE_USER);
-        List<String> groups = accessService.getAllAclSids(ae, MetadataConstants.TYPE_GROUP);
-        result.put("user", users);
-        result.put("group", groups);
+        Map<String, List<String>> result = accessService.getProjectUsersAndGroups(ae);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, result, "");
     }
 

@@ -162,15 +162,22 @@ object ResourceDetectUtils extends Logging {
     sum.get()
   }
 
-  def getResourceSize(paths: Path*): Long = {
-    paths.map(path => {
-      val fs = path.getFileSystem(HadoopUtil.getCurrentConfiguration)
-      if (fs.exists(path)) {
-        HadoopUtil.getContentSummary(fs, path).getLength
+  def getResourceSize(isConcurrencyFetchDataSourceSize: Boolean, paths: Path*): Long = {
+    val resourceSize = {
+      if (isConcurrencyFetchDataSourceSize) {
+        getResourceSizeConcurrency(paths: _*)
       } else {
-        0L
+        paths.map(path => {
+          val fs = path.getFileSystem(HadoopUtil.getCurrentConfiguration)
+          if (fs.exists(path)) {
+            HadoopUtil.getContentSummary(fs, path).getLength
+          } else {
+            0L
+          }
+        }).sum
       }
-    }).sum
+    }
+    resourceSize
   }
 
   def getMaxResourceSize(shareDir: Path): Long = {

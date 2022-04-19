@@ -1619,6 +1619,18 @@ public class Message {
         return "Can’t turn off the tiered storage at the moment. Project “%s” has an ongoing job, Please try again later.\\n";
     }
 
+    public String getSECOND_STORAGE_PROJECT_ENABLED() {
+        return "Loading failed, the project %s does not have tiered storage enabled.";
+    }
+
+    public String getSECOND_STORAGE_MODEL_ENABLED() {
+        return "Loading failed, the model %s does not have tiered storage enabled.";
+    }
+
+    public String getSECOND_STORAGE_SEGMENT_WITHOUT_BASE_INDEX() {
+        return "The base table index is missing in the segments, please add and try again.";
+    }
+
     public String getJOB_RESTART_FAILED() {
         return "Tiered storage task doesn't support restart.\n";
     }
@@ -1688,7 +1700,7 @@ public class Message {
     }
 
     public String getSECOND_STORAGE_NODE_NOT_AVAILABLE() {
-        return "Can’t turn on the tiered storage, as the nodes are unavailable. Please refresh the page and try again.";
+        return "Can't add node. The node does not exist or has been used by other project, please modify and try again.";
     }
 
     public String getBASE_TABLE_INDEX_NOT_AVAILABLE() {
@@ -1700,11 +1712,16 @@ public class Message {
     }
 
     public String getPROJECT_LOCKED() {
-        return "There is tiered storage rebalance job running in progress, please try again later.";
+        return "Data migration is in progress in the current project's tiered storage, please try again later.";
     }
 
     public String getFIX_STREAMING_SEGMENT() {
         return "Can’t fix segment in streaming model.";
+    }
+
+    public String getStreamingDisabled() {
+        return "The Real-time functions can only be used under Kyligence Premium Version, "
+                + "please contact Kyligence customer manager to upgrade your license.";
     }
 
     public String getNO_STREAMING_MODEL_FOUND() {
@@ -1790,5 +1807,25 @@ public class Message {
 
     public String getLDAP_USER_DATA_SOURCE_CONFIG_ERROR() {
         return "LDAP connection error, please check LDAP configuration!";
+    }
+
+    public String getTABLE_NO_COLUMNS_PERMISSION() {
+        return "Please add permissions to columns in the table!";
+    }
+
+    public String getPARAMETER_IS_REQUIRED() {
+        return "'%s' is required.";
+    }
+
+    public String getDUPLICATED_DIMENSION_NAME_AND_MEASURE_NAME() {
+        return "There are duplicated names among dimension name %s and measure name %s. Cannot export a valid TDS file. Please correct the duplicated names and try again.";
+    }
+
+    public String getDUPLICATED_DIMENSION_COLUMN_AND_MEASURE_NAME() {
+        return "There are duplicated names among dimension column %s and measure name %s. Cannot export a valid TDS file. Please correct the duplicated names and try again.";
+    }
+
+    public String getDUPLICATED_MODEL_COLUMN_AND_MEASURE_NAME() {
+        return "There are duplicated names among model column %s and measure name %s. Cannot export a valid TDS file. Please correct the duplicated names and try again.";
     }
 }

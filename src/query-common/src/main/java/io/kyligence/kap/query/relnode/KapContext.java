@@ -31,6 +31,9 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.kylin.query.relnode.OLAPContext;
 
 public class KapContext {
+    private KapContext() {
+    }
+
     static final ThreadLocal<KapRel> _inputRel = new ThreadLocal<>();
     static final ThreadLocal<RelDataType> _resultType = new ThreadLocal<>();
 
@@ -52,7 +55,7 @@ public class KapContext {
 
     public static void clean() {
         _inputRel.set(null);
-        _resultType.set(null);
+        _resultType.remove();
     }
 
     public static void amendAllColsIfNoAgg(RelNode kapRel) {

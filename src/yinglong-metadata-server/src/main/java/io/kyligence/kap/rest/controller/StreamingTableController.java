@@ -64,6 +64,7 @@ public class StreamingTableController extends NBasicController {
     @PostMapping(value = "/table", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     public EnvelopeResponse<LoadTableResponse> saveStreamingTable(@RequestBody StreamingRequest streamingRequest) {
+        checkStreamingEnabled();
         String project = streamingRequest.getProject();
         checkProjectName(project);
         TableExtDesc tableExt = streamingTableService.getOrCreateTableExt(project, streamingRequest.getTableDesc());
@@ -88,6 +89,7 @@ public class StreamingTableController extends NBasicController {
     @PutMapping(value = "/table", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     public EnvelopeResponse<LoadTableResponse> updateStreamingTable(@RequestBody StreamingRequest streamingRequest) {
+        checkStreamingEnabled();
         String project = streamingRequest.getProject();
         checkProjectName(project);
         try {

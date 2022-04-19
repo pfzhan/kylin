@@ -58,6 +58,7 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 
 /**
  * all schema info is in KapOLAPSchema, not used anymore
+ * @deprecated
  */
 @Deprecated
 public class OLAPSchema extends AbstractSchema {
@@ -98,7 +99,7 @@ public class OLAPSchema extends AbstractSchema {
     }
 
     private Map<String, Table> buildTableMap() {
-        Map<String, Table> olapTables = new HashMap<String, Table>();
+        Map<String, Table> olapTables = new HashMap<>();
 
         for (TableDesc tableDesc : tables) {
             if (tableDesc.getDatabase().equals(schemaName)) {

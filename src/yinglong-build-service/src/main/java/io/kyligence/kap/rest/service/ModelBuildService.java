@@ -24,11 +24,13 @@
 
 package io.kyligence.kap.rest.service;
 
-import static org.apache.kylin.common.exception.ServerErrorCode.CONCURRENT_SUBMIT_JOB_LIMIT;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PARTITION_COLUMN;
-import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JOB;
 import static org.apache.kylin.common.exception.ServerErrorCode.PARTITION_VALUE_NOT_SUPPORT;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CONCURRENT_SUBMIT_LIMIT;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_CHECK_MULTI_PARTITION_ABANDON;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_CHECK_MULTI_PARTITION_DUPLICATE;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_CHECK_MULTI_PARTITION_EMPTY;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -404,15 +406,14 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
             return;
         }
         if (params.isNeedBuild() && CollectionUtils.isEmpty(params.getMultiPartitionValues())) {
-            throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_CHECK_MULTI_PARTITION_EMPTY());
+            throw new KylinException(JOB_CREATE_CHECK_MULTI_PARTITION_EMPTY);
         }
         if (!params.isNeedBuild() && !CollectionUtils.isEmpty(params.getMultiPartitionValues())) {
-            throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_CHECK_MULTI_PARTITION_ABANDON());
+            throw new KylinException(JOB_CREATE_CHECK_MULTI_PARTITION_ABANDON);
         }
         for (String[] values : params.getMultiPartitionValues()) {
             if (values.length != model.getMultiPartitionDesc().getColumns().size()) {
-                throw new KylinException(FAILED_CREATE_JOB,
-                        MsgPicker.getMsg().getADD_JOB_CHECK_MULTI_PARTITION_ABANDON());
+                throw new KylinException(JOB_CREATE_CHECK_MULTI_PARTITION_ABANDON);
             }
         }
     }
@@ -453,8 +454,7 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
         val segment = df.getSegment(segmentId);
         val duplicatePartitions = segment.findDuplicatePartitions(partitionValues);
         if (!duplicatePartitions.isEmpty()) {
-            throw new KylinException(FAILED_CREATE_JOB,
-                    MsgPicker.getMsg().getADD_JOB_CHECK_MULTI_PARTITION_DUPLICATE());
+            throw new KylinException(JOB_CREATE_CHECK_MULTI_PARTITION_DUPLICATE);
         }
         if (buildAllPartitions) {
             List<Long> oldPartitionIds = segment.getMultiPartitions().stream().map(SegmentPartition::getPartitionId)
@@ -503,8 +503,7 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
         int runningJobLimit = getConfig().getMaxConcurrentJobLimit();
         int submitJobLimit = runningJobLimit * 5;
         if (partitionSize > submitJobLimit) {
-            throw new KylinException(CONCURRENT_SUBMIT_JOB_LIMIT,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getCONCURRENT_SUBMIT_JOB_LIMIT(), submitJobLimit));
+            throw new KylinException(JOB_CONCURRENT_SUBMIT_LIMIT, submitJobLimit);
         }
     }
 
@@ -540,15 +539,14 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
             partitions = modelService.getModelById(modelId, project).getMultiPartitionDesc()
                     .getPartitionIdsByValues(param.getSubPartitionValues());
             if (partitions.isEmpty() || partitions.size() != param.getSubPartitionValues().size()) {
-                throw new KylinException(FAILED_CREATE_JOB,
-                        MsgPicker.getMsg().getADD_JOB_CHECK_MULTI_PARTITION_ABANDON());
+                throw new KylinException(JOB_CREATE_CHECK_MULTI_PARTITION_ABANDON);
             }
         }
 
         val oldPartitions = segment.getMultiPartitions().stream().map(SegmentPartition::getPartitionId)
                 .collect(Collectors.toSet());
         if (!Sets.difference(partitions, oldPartitions).isEmpty()) {
-            throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_CHECK_MULTI_PARTITION_ABANDON());
+            throw new KylinException(JOB_CREATE_CHECK_MULTI_PARTITION_ABANDON);
         }
         val jobManager = getManager(JobManager.class, project);
         JobParam jobParam = new JobParam(Sets.newHashSet(segment.getId()), null, modelId, getUsername(), partitions,

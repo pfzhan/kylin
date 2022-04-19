@@ -24,6 +24,9 @@
 
 package io.kyligence.kap.rest.service;
 
+import static io.kyligence.kap.metadata.model.NTableMetadataManager.getInstance;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_ID_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_NOT_EXIST;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -228,6 +231,21 @@ public class TableServiceTest extends CSVSourceTestCase {
         // get a not existing table desc
         tableDesc = tableService.getTableDesc("default", true, "not_exist_table", "DEFAULT", false);
         Assert.assertEquals(0, tableDesc.size());
+
+        tableDesc = tableService.getTableDesc("streaming_test", true, "", "DEFAULT", true);
+        Assert.assertEquals(2, tableDesc.size());
+        val tableMetadataManager = getInstance(getTestConfig(), "streaming_test");
+        var tableDesc1 = tableMetadataManager.getTableDesc("DEFAULT.SSB_TOPIC");
+        Assert.assertTrue(NTableMetadataManager.isTableAccessible(tableDesc1));
+        getTestConfig().setProperty("kylin.streaming.enabled", "false");
+        tableDesc = tableService.getTableDesc("streaming_test", true, "", "DEFAULT", true);
+        Assert.assertEquals(0, tableDesc.size());
+        // check kafka table
+        Assert.assertFalse(NTableMetadataManager.isTableAccessible(tableDesc1));
+
+        // check batch table
+        tableDesc1 = tableMetadataManager.getTableDesc("SSB.CUSTOMER");
+        Assert.assertTrue(NTableMetadataManager.isTableAccessible(tableDesc1));
     }
 
     @Test
@@ -923,7 +941,7 @@ public class TableServiceTest extends CSVSourceTestCase {
     @Test
     public void testGetAutoMergeConfigException() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage(String.format(Locale.ROOT, Message.getInstance().getMODEL_NOT_FOUND(), "default"));
+        thrown.expectMessage(MODEL_ID_NOT_EXIST.getMsg("default"));
         tableService.getAutoMergeConfigByModel("default", "default");
     }
 
@@ -1406,7 +1424,7 @@ public class TableServiceTest extends CSVSourceTestCase {
 
         // model not exist
         thrown.expect(KylinException.class);
-        thrown.expectMessage(String.format(Locale.ROOT, Message.getInstance().getMODEL_NOT_FOUND(), "nomodel"));
+        thrown.expectMessage(MODEL_NAME_NOT_EXIST.getMsg("nomodel"));
         tableService.getTablesOfModel(project, "nomodel");
     }
 

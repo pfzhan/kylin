@@ -127,8 +127,7 @@ public class OLAPLimitRel extends SingleRel implements OLAPRel {
 
     protected ColumnRowType buildColumnRowType() {
         OLAPRel olapChild = (OLAPRel) getInput();
-        ColumnRowType inputColumnRowType = olapChild.getColumnRowType();
-        return inputColumnRowType;
+        return olapChild.getColumnRowType();
     }
 
     @Override

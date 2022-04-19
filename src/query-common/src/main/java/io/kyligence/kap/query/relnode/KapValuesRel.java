@@ -24,14 +24,11 @@
 
 package io.kyligence.kap.query.relnode;
 
-import java.util.List;
 import java.util.Set;
 
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
-import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMdDistribution;
@@ -42,7 +39,6 @@ import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPRel;
 import org.apache.kylin.query.relnode.OLAPValuesRel;
 
-import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
@@ -60,15 +56,8 @@ public class KapValuesRel extends OLAPValuesRel implements KapRel {
             final ImmutableList<ImmutableList<RexLiteral>> tuples) {
         final RelMetadataQuery mq = cluster.getMetadataQuery();
         final RelTraitSet traitSet = cluster.traitSetOf(OLAPRel.CONVENTION)
-                .replaceIfs(RelCollationTraitDef.INSTANCE, new Supplier<List<RelCollation>>() {
-                    public List<RelCollation> get() {
-                        return RelMdCollation.values(mq, rowType, tuples);
-                    }
-                }).replaceIf(RelDistributionTraitDef.INSTANCE, new Supplier<RelDistribution>() {
-                    public RelDistribution get() {
-                        return RelMdDistribution.values(rowType, tuples);
-                    }
-                });
+                .replaceIfs(RelCollationTraitDef.INSTANCE, () -> RelMdCollation.values(mq, rowType, tuples))
+                .replaceIf(RelDistributionTraitDef.INSTANCE, () -> RelMdDistribution.values(rowType, tuples));
         return new KapValuesRel(cluster, rowType, tuples, traitSet);
     }
 
@@ -90,13 +79,12 @@ public class KapValuesRel extends OLAPValuesRel implements KapRel {
 
     @Override
     public void implementCutContext(ICutContextStrategy.CutContextImplementor implementor) {
-        return;
+        // empty
     }
 
     @Override
     public void implementOLAP(OLAPImplementor olapContextImplementor) {
         // donot need to collect olapInfo
-        return;
     }
 
     @Override

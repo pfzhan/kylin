@@ -31,10 +31,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import com.google.common.collect.Sets;
-import io.kyligence.kap.engine.spark.job.KylinBuildEnv;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.util.JsonUtil;
@@ -52,10 +48,14 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
-import io.kyligence.kap.engine.spark.NSparkBasicTest;
+import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.engine.spark.job.KylinBuildEnv;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 
-public class SparkApplicationTest extends NSparkBasicTest {
+public class SparkApplicationTest extends NLocalWithSparkSessionTest {
 
     File tempDir = new File("./temp/");
     File file1 = new File(tempDir, "temp1_" + ResourceDetectUtils.fileName());
@@ -138,8 +138,7 @@ public class SparkApplicationTest extends NSparkBasicTest {
     @Test
     public void testCheckRangePartitionTableIsExist() throws Exception {
         KylinBuildEnv.getOrCreate(getTestConfig());
-        NTableMetadataManager tableMgr = NTableMetadataManager
-                .getInstance(getTestConfig(), "tdh");
+        NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getTestConfig(), "tdh");
         TableDesc fact = tableMgr.getTableDesc("TDH_TEST.LINEORDER_PARTITION");
         fact.setTransactional(true);
 

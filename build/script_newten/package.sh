@@ -49,6 +49,78 @@ echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit
 
 cat > build/CHANGELOG.md <<'EOL'
 ### Release History
+
+#### Kyligence Enterprise 4.5.11.0 release note
+
+**Enhancement**
+
+- The information about the metadata database and table are encrypted in the cookie to ensure security
+- Provides APIs for creating models, model online/offline
+- Index data in tiered storage and index data in DFS have the same change behavior
+- Display grouped node information when tiered storage high-availability deployment mode
+
+**Bugfix**
+
+- On the build job list page, you cannot search and filter based on the refresh snapshot task object name
+- When the system manages snapshots, it is allowed to use the specified spark conf parameters for refreshing snapshots during building, to avoid building failures caused by insufficient resources
+- Fix security vulnerability
+- Expansion rate display error
+- Model view uses the with as statement. When the query field is a subquery, the query reports an error
+- Non-UTC time zone, Segment Pruning result is incorrect
+- When repairing the Broken model, add base index is checked on the save page, but the base index is not generated
+- Tiered storage does not support pushdown of queries that do not contain 'order by' but contain 'limit' statements to Clickhouse
+- In the tiered storage high-availability deployment mode, when there is one abnormal node in multiple groups of nodes, the query may not be routed to the normal node, resulting in the inability to use the tiered storage to answer the query
+- Unable to stop query on Azure China cloud environment
+- For query that hits the model, when the query result set is too large and the spark task fails, the query should not pushdown any more
+- SQL modeling, upload the sql text and then modify the sql statement, click the "Save and Continue" button, the metric of the new model created is the metric before the modification
+- After the model state is restored from the Broken state to the Online state, the original optimization suggestions are displayed on the details page without data
+
+#### Kyligence Enterprise 4.5.10.0 release note
+
+**Enhancement**
+
+- Support to use tiered storage when View File System is enabled on open source Hadoop v.2.7.2
+- Add a measure description field to support synchronizing the comment of the source table field
+- Hide or disable unnecessary features in integrated mode with LDAP
+- Chinese text appears on the English prompt page of the excessive amount of license data
+- Support to configure the parameter that skip the resource detection step
+- When there are many small files in the partition table, the detection resource time of sampling table data job is reduced.
+- When there are many tables and columns in the model, improve the freeze phenomenon when editing the model
+- Add the system level parameter to support to enable or disable the Real-time function
+- Support to delete the base table index when tiered storage is enabled
+- When offset is used for query paging, the query can be pushed down to tiered storage
+- When order by + limit is used for query sorting, the query can be pushed down to tiered storage
+- For segment retention setting, the logic of model level and project level settings is different
+
+**Bugfix**
+
+- Fix security vulnerabilities
+- Because kylin.out log files have no automatic cleaning strategy, the disk is full
+- Incomplete description of how Hive transaction tables are used in the manual
+- When querying fields of type char(n), the index query results are inconsistent with Hive query results
+- Cannot hit the aggregate index when group by constant in SQL which contains join subquery
+- Upgrade from 4.3 to 4.5, and Kerberos is enabled (parameter of ZooKeeper client is not configured), and the global dictionary fails to be build.
+- When the nameservice in Hadoop's hdfs-site.xml file contains uppercase letters, the data loading to the tiered storage fails
+- The sorting of the number of rows and the expansion rate in the model list don't take effect, and it is modified to remove the sorting function
+- In LDAP integration mode, fixed issue of an error message displayed on the login page when you log in for the first time or restart
+- SQL optimization fails to recommend the expected computed column when the dimension column on which the computed column depends contains a keyword
+- In LDAP integration mode , two CN users cannot mapping to permission
+- In LDAP integration mode , creating ADMIN user is not allowed
+- After deleting the join column of the model dimension table in the source table, the model is broken, but the model cannot be saved after modifying the join column of the model
+- When the model contains dimensions with the same column names in multiple tables, exporting the model and then importing fails
+- When the partition column is of string type, the latest data range is incorrect
+- The same database name in different databases in the kylin.metadata.url can not be recognized as a new database
+- In LDAP integration mode, optimized the error message when using incorrect password to connect LDAP
+- In LDAP integration mode, connecting LDAP by using incorrect username then restart service successful , error message has been optimized
+- In the Huawei fusioninsight-C90 cluster read-write separation environment, the Nameservice scheme is not modified, and an error is reported when loading the view table
+- The add project, Add user group button styles are changed to the same as the Add user button styles
+- In LDAP integration mode, adding prompt message when login if LDAP service exception
+- In LDAP integration mode, due to LDAP service exception, the front-end page is blank after the user cache is invalid
+- In LDAP integration mode, Invalid users with the same name were synchronized to the user group list
+- When the user with query permission uses the API of "delete query result file according to query_id", the corresponding result file can be deleted successfully
+- When Using async query API and the select column in SQL containning parentheses, the query will report an error
+- When the MySQL metabase is in cluster mode, it will report an error when entering the query history page at the query node of Kyligence Enterprise
+
 #### Kyligence Enterprise 4.5.9 release note
 
 **Enhancement**

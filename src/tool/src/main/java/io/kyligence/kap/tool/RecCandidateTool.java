@@ -25,7 +25,10 @@ package io.kyligence.kap.tool;
 
 import static io.kyligence.kap.tool.util.ScreenPrintUtil.printlnGreen;
 import static io.kyligence.kap.tool.util.ScreenPrintUtil.printlnRed;
-import static org.apache.kylin.common.exception.ToolErrorCode.INVALID_SHELL_PARAMETER;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeTool.PARAMETER_EMPTY;
+import static org.apache.kylin.common.exception.code.ErrorCodeTool.PARAMETER_NOT_SPECIFY;
+import static org.apache.kylin.common.exception.code.ErrorCodeTool.PATH_NOT_EXISTS;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -121,15 +124,15 @@ public class RecCandidateTool extends ExecutableApplication {
     private void restore(OptionsHelper optionsHelper) throws Exception {
         val table = optionsHelper.getOptionValue(OPTION_TABLE);
         if (StringUtils.isEmpty(table)) {
-            throw new KylinException(INVALID_SHELL_PARAMETER, "table name shouldn't be empty.");
+            throw new KylinException(PARAMETER_EMPTY, "table");
         }
         String path = optionsHelper.getOptionValue(OPTION_DIR);
         if (StringUtils.isEmpty(path)) {
-            throw new KylinException(INVALID_SHELL_PARAMETER, "The parameter -dir must be set when restore.");
+            throw new KylinException(PARAMETER_NOT_SPECIFY, "-dir");
         }
         File dirFile = Paths.get(path).toFile();
         if (!dirFile.exists() || !dirFile.isDirectory()) {
-            throw new KylinException(INVALID_SHELL_PARAMETER, "Directory not exists: " + path);
+            throw new KylinException(PATH_NOT_EXISTS, path);
         }
         File[] projects = dirFile.listFiles();
         if (projects == null) {
@@ -171,7 +174,7 @@ public class RecCandidateTool extends ExecutableApplication {
         if (optionsHelper.hasOption(OPERATE_BACKUP)) {
             backup(optionsHelper);
         } else {
-            throw new KylinException(INVALID_SHELL_PARAMETER, "must add parameter backup");
+            throw new KylinException(PARAMETER_NOT_SPECIFY, "-backup");
         }
     }
 
@@ -223,8 +226,7 @@ public class RecCandidateTool extends ExecutableApplication {
         logger.info("Extract project rec candidate.");
         if (!NProjectManager.getInstance(kylinConfig).listAllProjects().stream().map(ProjectInstance::getName)
                 .collect(Collectors.toSet()).contains(project)) {
-            throw new KylinException(INVALID_SHELL_PARAMETER,
-                    String.format(Locale.ROOT, "project %s not exist.", project));
+            throw new KylinException(PROJECT_NOT_EXIST, project);
         }
         val modelIds = NDataModelManager.getInstance(kylinConfig, project).listAllModelIds();
         for (val modelId : modelIds) {
@@ -257,14 +259,15 @@ public class RecCandidateTool extends ExecutableApplication {
     }
 
     private String getProjectByModelId(String modelId) {
-        if (StringUtils.isEmpty(modelId))
-            throw new KylinException(INVALID_SHELL_PARAMETER, "parameter model is null");
+        if (StringUtils.isEmpty(modelId)) {
+            throw new KylinException(PARAMETER_EMPTY, "model");
+        }
         val projects = NProjectManager.getInstance(kylinConfig).listAllProjects();
         for (val project : projects) {
             if (NDataModelManager.getInstance(kylinConfig, project.getName()).getDataModelDesc(modelId) != null) {
                 return project.getName();
             }
         }
-        throw new KylinException(INVALID_SHELL_PARAMETER, "model id not exist");
+        throw new KylinException(PARAMETER_EMPTY, "model");
     }
 }

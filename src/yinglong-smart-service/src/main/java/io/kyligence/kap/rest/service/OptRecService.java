@@ -29,7 +29,9 @@ import static org.apache.kylin.common.exception.ServerErrorCode.REC_LIST_OUT_OF_
 import static org.apache.kylin.common.exception.ServerErrorCode.STREAMING_INDEX_UPDATE_DISABLE;
 import static org.apache.kylin.common.exception.ServerErrorCode.UNSUPPORTED_REC_OPERATION_TYPE;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -75,6 +77,7 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
+import io.kyligence.kap.metadata.recommendation.entity.CCRecItemV2;
 import io.kyligence.kap.metadata.recommendation.ref.CCRef;
 import io.kyligence.kap.metadata.recommendation.ref.DimensionRef;
 import io.kyligence.kap.metadata.recommendation.ref.LayoutRef;
@@ -269,7 +272,9 @@ public class OptRecService extends BasicService {
                     }
                 });
 
-                for (RawRecItem rawRecItem : recItems) {
+                List<RawRecItem> newRecItems = reduceDupCCRecItems(recItems);
+
+                for (RawRecItem rawRecItem : newRecItems) {
                     switch (rawRecItem.getType()) {
                     case DIMENSION:
                         writeDimensionToModel(copyForWrite, rawRecItem);
@@ -303,6 +308,47 @@ public class OptRecService extends BasicService {
                 NDataModel.checkDuplicateCC(copyForWrite.getComputedColumnDescs());
             });
             logFinishRewrite("Model");
+        }
+
+        private List<RawRecItem> reduceDupCCRecItems(List<RawRecItem> recItems) {
+            List<RawRecItem> ccRecItems = recItems.stream()
+                    .filter(rawRecItem -> rawRecItem.getType() == RawRecItem.RawRecType.COMPUTED_COLUMN)
+                    .collect(Collectors.toList());
+            if (ccRecItems.isEmpty()) {
+                return recItems;
+            }
+            List<RawRecItem> sortedCCRecItems = ccRecItems.stream()
+                    .sorted(Comparator.comparing(o -> ((CCRecItemV2) o.getRecEntity()).getCc().getInnerExpression()))
+                    .collect(Collectors.toList());
+            HashMap<Integer, Integer> dupCCRecItemMap = Maps.newHashMap();
+            int resId = sortedCCRecItems.get(0).getId();
+            for (int i = 1; i < sortedCCRecItems.size(); i++) {
+                RawRecItem curRecItem = sortedCCRecItems.get(i);
+                RawRecItem prevRecItem = sortedCCRecItems.get(i - 1);
+                String expr1 = ((CCRecItemV2) curRecItem.getRecEntity()).getCc().getInnerExpression();
+                String expr2 = ((CCRecItemV2) prevRecItem.getRecEntity()).getCc().getInnerExpression();
+                if (expr1.equalsIgnoreCase(expr2)) {
+                    dupCCRecItemMap.put(curRecItem.getId(), resId);
+                    recItems.remove(curRecItem);
+                } else {
+                    resId = curRecItem.getId();
+                }
+            }
+            if (dupCCRecItemMap.isEmpty()) {
+                return recItems;
+            }
+            return recItems.stream().map(rawRecItem -> {
+                int[] dependIDs = rawRecItem.getDependIDs();
+                dependIDs = Arrays.stream(dependIDs).map(id -> {
+                    Integer dupId = dupCCRecItemMap.get(-id);
+                    if (dupId != null) {
+                        return -dupId;
+                    }
+                    return id;
+                }).toArray();
+                rawRecItem.setDependIDs(dependIDs);
+                return rawRecItem;
+            }).collect(Collectors.toList());
         }
 
         private void writeMeasureToModel(NDataModel model, RawRecItem rawRecItem) {
@@ -437,7 +483,8 @@ public class OptRecService extends BasicService {
                     updateHandler.add(layout, rawRecItem.isAgg());
                     try (SetLogCategory logCategory = new SetLogCategory("smart")) {
                         approvedLayouts.put(layout.getId(), rawRecItem);
-                        log.info("RawRecItem({}) rewrite colOrder({}) to ({})", rawRecItem.getId(), colOrder, nColOrder);
+                        log.info("RawRecItem({}) rewrite colOrder({}) to ({})", rawRecItem.getId(), colOrder,
+                                nColOrder);
                         log.info("RawRecItem({}) rewrite shardBy({}) to ({})", rawRecItem.getId(), shardBy, nShardBy);
                         log.info("RawRecItem({}) rewrite sortBy({}) to ({})", rawRecItem.getId(), sortBy, nSortBy);
                         log.info("RawRecItem({}) rewrite partitionBy({}) to ({})", rawRecItem.getId(), partitionBy,

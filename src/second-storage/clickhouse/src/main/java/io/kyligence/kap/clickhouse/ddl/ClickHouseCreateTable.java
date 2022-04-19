@@ -39,6 +39,7 @@ public class ClickHouseCreateTable extends CreateTable<ClickHouseCreateTable> {
     private TableIdentifier likeTable;
     private String partitionBy;
     private final List<String> orderBy;
+    private int deduplicationWindow = 0;
 
     public ClickHouseCreateTable(TableIdentifier table, boolean ifNotExists) {
         super(table, ifNotExists);
@@ -53,6 +54,15 @@ public class ClickHouseCreateTable extends CreateTable<ClickHouseCreateTable> {
     }
     public String engine() {
         return engine;
+    }
+
+    public ClickHouseCreateTable deduplicationWindow(int window) {
+        this.deduplicationWindow = window;
+        return this;
+    }
+
+    public int getDeduplicationWindow() {
+        return deduplicationWindow;
     }
 
     public ClickHouseCreateTable partitionBy(String column) {

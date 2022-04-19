@@ -65,6 +65,7 @@
         :refTag="pageRefTags.authorityUserPager"
         :totalSize="totalSize"
         :curPage="pagination.page_offset+1"
+        :perPageSize="pagination.page_size"
         @handleCurrentChange="handleCurrentChange">
       </kap-pager>
     </div>
@@ -90,6 +91,7 @@
         :refTag="pageRefTags.authorityTablePager"
         :totalSize="tableTotalSize"
         :curPage="pagination1.page_offset+1"
+        :perPageSize="pagination1.page_size"
         @handleCurrentChange="handleCurrentChange1">
       </kap-pager>
     </div>
@@ -174,7 +176,7 @@ import { Component } from 'vue-property-decorator'
 import { objectClone } from '../../util'
 import { handleSuccess, handleError, kapConfirm, hasRole, hasPermissionOfProjectAccess } from '../../util/business'
 import { mapActions, mapGetters } from 'vuex'
-import { permissions, pageRefTags } from 'config'
+import { permissions, pageRefTags, pageCount } from 'config'
 import userAccess from './user_access'
 import tableAccess from './table_access'
 @Component({
@@ -296,11 +298,11 @@ export default class ProjectAuthority extends Vue {
   serarchChar = ''
   searchLoading = false
   pagination = {
-    page_size: +localStorage.getItem(this.pageRefTags.authorityUserPager) || 10,
+    page_size: +localStorage.getItem(this.pageRefTags.authorityUserPager) || pageCount,
     page_offset: 0
   }
   pagination1 = {
-    page_size: +localStorage.getItem(this.pageRefTags.authorityTablePager) || 10,
+    page_size: +localStorage.getItem(this.pageRefTags.authorityTablePager) || pageCount,
     page_offset: 0
   }
   authorizationVisible = false

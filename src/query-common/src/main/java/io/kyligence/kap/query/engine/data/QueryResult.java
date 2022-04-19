@@ -69,6 +69,7 @@ public class QueryResult {
     /**
      * This method is generally supposed to be used for testing only
      * @return
+     * @deprecated
      */
     @Deprecated
     public List<List<String>> getRows() {

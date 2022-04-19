@@ -25,8 +25,17 @@
 package io.kyligence.kap.rest.service;
 
 import static io.kyligence.kap.rest.request.MultiPartitionMappingRequest.MappingRequest;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_ID_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_DUPLICATE;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_LOCKED;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_NOT_EXIST_ID;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_NOT_EXIST_NAME;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -35,6 +44,7 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -73,7 +83,6 @@ import org.apache.commons.lang3.time.DateUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.JsonUtil;
@@ -106,7 +115,6 @@ import org.apache.kylin.util.BrokenEntityProxy;
 import org.apache.kylin.util.PasswordEncodeFactory;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
-import org.hamcrest.core.IsInstanceOf;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -123,9 +131,11 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.google.common.base.Charsets;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.google.common.io.CharStreams;
 import com.google.common.primitives.Longs;
 
 import io.kyligence.kap.clickhouse.MockSecondStorage;
@@ -206,6 +216,8 @@ import io.kyligence.kap.secondstorage.config.Node;
 import io.kyligence.kap.secondstorage.metadata.NodeGroup;
 import io.kyligence.kap.streaming.jobs.StreamingJobListener;
 import io.kyligence.kap.streaming.manager.StreamingJobManager;
+import io.kyligence.kap.tool.bisync.SyncContext;
+import io.kyligence.kap.tool.bisync.tableau.TableauDatasourceModel;
 import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
@@ -368,7 +380,7 @@ public class ModelServiceTest extends SourceTestCase {
         brokenEntity.setUuid(brokenModelId);
         brokenEntity.setMvcc(indexPlan.getMvcc());
         brokenEntity.setProject("default");
-        Mockito.doReturn(brokenEntity).when(modelService).getIndexPlan(brokenModelId, "default");
+        doReturn(brokenEntity).when(modelService).getIndexPlan(brokenModelId, "default");
 
         List<NDataModelResponse> models9 = modelService.getModels("nmodel_basic_inner", "default", false, "", null,
                 "last_modify", true, "admin", null, null);
@@ -600,7 +612,7 @@ public class ModelServiceTest extends SourceTestCase {
         mockSegments.add(segmentResponse3);
         mockSegments.add(segmentResponse2);
 
-        Mockito.doReturn(mockSegments).when(modelService).getSegmentsResponseCore(ArgumentMatchers.any(),
+        doReturn(mockSegments).when(modelService).getSegmentsResponseCore(ArgumentMatchers.any(),
                 ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(),
                 ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.anyBoolean(),
                 ArgumentMatchers.any());
@@ -718,7 +730,7 @@ public class ModelServiceTest extends SourceTestCase {
         segments = modelService.getSegmentsResponse(dataflowId, project, "0", "" + Long.MAX_VALUE, "", "", false);
         Assert.assertEquals(SegmentStatusEnumToDisplay.REFRESHING, segments.get(1).getStatusToDisplay());
     }
-    
+
     private void checkSegment(NDataSegmentResponse response, int count, int total, int byteSize, int rowCount,
             int sourceByteSize, SegmentStatusEnumToDisplay status) {
         Assert.assertEquals(count, response.getMultiPartitionCount());
@@ -783,10 +795,11 @@ public class ModelServiceTest extends SourceTestCase {
     public void testGetSegmentPartition_not_exist_id() {
         val project = "multi_level_partition";
         val dataflowId = "747f864b-9721-4b97-acde-0aa8e8656cba";
+        String not_exist_id = "not_exist_id";
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Can’t find the segment by ID \"not_exist_id\". Please check and try again.");
-        modelService.getSegmentPartitions(project, dataflowId, "not_exist_id", null, "last_modified_time", false);
+        thrown.expectMessage(SEGMENT_NOT_EXIST_ID.getMsg(not_exist_id));
+        modelService.getSegmentPartitions(project, dataflowId, not_exist_id, null, "last_modified_time", false);
     }
 
     @Test
@@ -1057,6 +1070,20 @@ public class ModelServiceTest extends SourceTestCase {
     }
 
     @Test
+    public void testDetectInvalidIndexesWithBrokenRepairCheck() throws Exception {
+        val modelRequest = JsonUtil.readValue(
+                new File("src/test/resources/ut_meta/internal_measure.model_desc/nmodel_test.json"),
+                ModelRequest.class);
+        modelRequest.setProject("default");
+        val partition = new PartitionDesc();
+        partition.setPartitionDateColumn("DEFAULT.TEST_KYLIN_FACT.TRANS_ID000");
+        partition.setPartitionDateFormat("yyyy-MM-dd");
+        modelRequest.setPartitionDesc(partition);
+        val resp = modelService.detectInvalidIndexes(modelRequest);
+        Assert.assertNotNull(resp);
+    }
+
+    @Test
     public void testExpandModelRequest() throws Exception {
         String brokenModelId = "cb596712-3a09-46f8-aea1-988b43fe9b6c";
         NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), "default");
@@ -1084,9 +1111,8 @@ public class ModelServiceTest extends SourceTestCase {
         request.setPartitionDesc(null);
         request.setProject(project);
         request.setUuid(brokenModelId);
-        NDataModel srcModel =
-                NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                        .getDataModelDescWithoutInit(brokenModelId);
+        NDataModel srcModel = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .getDataModelDescWithoutInit(brokenModelId);
         List<SimplifiedMeasure> simpleMeasureList = Lists.newArrayList();
         for (NDataModel.Measure measure : srcModel.getAllMeasures()) {
             if (measure.getType() == NDataModel.MeasureType.INTERNAL)
@@ -1109,7 +1135,7 @@ public class ModelServiceTest extends SourceTestCase {
     @Test
     public void testDropModelExceptionName() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Can’t find model named \"nmodel_basic2222\". Please check and try again.");
+        thrown.expectMessage(MODEL_ID_NOT_EXIST.getMsg("nmodel_basic2222"));
         modelService.dropModel("nmodel_basic2222", "default");
     }
 
@@ -1237,21 +1263,22 @@ public class ModelServiceTest extends SourceTestCase {
     @Test
     public void testPurgeModelExceptionName() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Can’t find model named \"nmodel_basic2222\". Please check and try again.");
+        thrown.expectMessage(MODEL_ID_NOT_EXIST.getMsg("nmodel_basic2222"));
         modelService.purgeModelManually("nmodel_basic2222", "default");
     }
 
     @Test
     public void testCloneModelException() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Model \"nmodel_basic_inner\" already exists. Please rename it.");
-        modelService.cloneModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "nmodel_basic_inner", "default");
+        String nmodel_basic_inner = "nmodel_basic_inner";
+        thrown.expectMessage(MODEL_NAME_DUPLICATE.getMsg(nmodel_basic_inner));
+        modelService.cloneModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa", nmodel_basic_inner, "default");
     }
 
     @Test
     public void testCloneModelExceptionName() {
-        thrown.expectCause(IsInstanceOf.instanceOf(KylinException.class));
-        thrown.expectMessageInTransaction("Can’t find model named \"nmodel_basic2222\". Please check and try again.");
+        thrown.expectInTransaction(KylinException.class);
+        thrown.expectMessageInTransaction(MODEL_ID_NOT_EXIST.getMsg("nmodel_basic2222"));
         modelService.cloneModel("nmodel_basic2222", "nmodel_basic_inner222", "default");
     }
 
@@ -1310,15 +1337,16 @@ public class ModelServiceTest extends SourceTestCase {
     @Test
     public void testRenameModelException() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Can’t find model named \"nmodel_basic222\". Please check and try again.");
+        thrown.expectMessage(MODEL_ID_NOT_EXIST.getMsg("nmodel_basic222"));
         modelService.renameDataModel("default", "nmodel_basic222", "new_name");
     }
 
     @Test
     public void testRenameModelException2() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Model \"nmodel_basic_inner\" already exists. Please rename it.");
-        modelService.renameDataModel("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "nmodel_basic_inner");
+        String nmodel_basic_inner = "nmodel_basic_inner";
+        thrown.expectMessage(MODEL_NAME_DUPLICATE.getMsg(nmodel_basic_inner));
+        modelService.renameDataModel("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", nmodel_basic_inner);
     }
 
     @Test
@@ -1420,7 +1448,7 @@ public class ModelServiceTest extends SourceTestCase {
     @Test
     public void testUpdateDataModelStatus_ModelNotExist_Exception() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Can’t find model named \"nmodel_basic222\". Please check and try again.");
+        thrown.expectMessage(MODEL_ID_NOT_EXIST.getMsg("nmodel_basic222"));
         modelService.updateDataModelStatus("nmodel_basic222", "default", "OFFLINE");
     }
 
@@ -1460,9 +1488,9 @@ public class ModelServiceTest extends SourceTestCase {
 
     @Test
     public void testGetRelatedModels_HasNoErrorJobs() {
-        NExecutableManager executableManager = Mockito.mock(NExecutableManager.class);
-        Mockito.when(modelService.getManager(NExecutableManager.class, "default")).thenReturn(executableManager);
-        Mockito.when(executableManager.getExecutablesByStatus(ExecutableState.ERROR)).thenReturn(Lists.newArrayList());
+        NExecutableManager executableManager = mock(NExecutableManager.class);
+        when(modelService.getManager(NExecutableManager.class, "default")).thenReturn(executableManager);
+        when(executableManager.getExecutablesByStatus(ExecutableState.ERROR)).thenReturn(Lists.newArrayList());
         List<RelatedModelResponse> responses = modelService.getRelateModels("default", "DEFAULT.TEST_KYLIN_FACT",
                 "nmodel_basic");
         Assert.assertEquals(2, responses.size());
@@ -1538,8 +1566,8 @@ public class ModelServiceTest extends SourceTestCase {
         dataflowManager.refreshSegment(df, segmentRange);
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage(
-                String.format(Locale.ROOT, MsgPicker.getMsg().getSEGMENT_LOCKED(), dataSegment.displayIdName()));
+        thrown.expectMessage(String.format(Locale.ROOT, SEGMENT_LOCKED.getErrorMsg().getLocalizedString(),
+                dataSegment.displayIdName()));
 
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
                 new String[] { dataSegment.getId() }, false);
@@ -1552,12 +1580,13 @@ public class ModelServiceTest extends SourceTestCase {
         NDataModel modelUpdate = dataModelManager.copyForWrite(dataModel);
         modelUpdate.setManagementType(ManagementType.MODEL_BASED);
         dataModelManager.updateDataModelDesc(modelUpdate);
+        String not_exist_01 = "not_exist_01";
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Can’t find the segment by ID \"not_exist_01\". Please check and try again.");
+        thrown.expectMessage(SEGMENT_NOT_EXIST_ID.getMsg(not_exist_01));
         //refresh exception
-        modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
-                new String[] { "not_exist_01" }, false);
+        modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default", new String[] { not_exist_01 },
+                false);
     }
 
     @Test
@@ -1713,7 +1742,7 @@ public class ModelServiceTest extends SourceTestCase {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         NDataModel model = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Model \"nmodel_basic\" already exists. Please rename it.");
+        thrown.expectMessage(MODEL_NAME_DUPLICATE.getMsg("nmodel_basic"));
         ModelRequest modelRequest = new ModelRequest(model);
         modelRequest.setUuid("new_model");
         modelRequest.setLastModified(0L);
@@ -1931,14 +1960,15 @@ public class ModelServiceTest extends SourceTestCase {
                 }
                 BadModelException ccException = (BadModelException) item;
                 return BadModelException.CauseType.SAME_NAME_DIFF_EXPR == ccException.getCauseType()
-                        && ccException.getAdvise().equals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT")
+                        && ccException.getAdvise()
+                                .equals("\"TEST_KYLIN_FACT\".\"PRICE\" * \"TEST_KYLIN_FACT\".\"ITEM_COUNT\"")
                         && ccException.getConflictingModel().equals("nmodel_basic_inner")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
                         && ccException.getMessage().equals(
-                        "The name of computed column 'TEST_KYLIN_FACT.DEAL_AMOUNT' has already been used in "
-                                + "model 'nmodel_basic_inner', and the expression is "
-                                + "'TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT'. "
-                                + "Please modify the expression to keep consistent, or use a different name.");
+                                "The name of computed column 'TEST_KYLIN_FACT.DEAL_AMOUNT' has already been used in "
+                                        + "model 'nmodel_basic_inner', and the expression is "
+                                        + "'\"TEST_KYLIN_FACT\".\"PRICE\" * \"TEST_KYLIN_FACT\".\"ITEM_COUNT\"'. "
+                                        + "Please modify the expression to keep consistent, or use a different name.");
 
             }
         });
@@ -2139,6 +2169,7 @@ public class ModelServiceTest extends SourceTestCase {
                         "Computed column ID_PLUS_1 is already defined in model nmodel_cc_test, no suggestion could be provided to reuse it");
             }
         });
+
         modelService.getManager(NDataModelManager.class, "default").createDataModelDesc(deserialized, "ADMIN");
         //TODO modelService.updateModelToResourceStore(deserialized, "default");
     }
@@ -2188,15 +2219,16 @@ public class ModelServiceTest extends SourceTestCase {
                 BadModelException ccException = (BadModelException) item;
                 return BadModelException.CauseType.SAME_NAME_DIFF_EXPR == ccException.getCauseType()
                         && ccException.getConflictingModel().equals("nmodel_cc_test")
-                        && "UPPER(BUYER_ACCOUNT.ACCOUNT_COUNTRY)".equals(ccException.getAdvise())
+                        && "UPPER(\"BUYER_ACCOUNT\".\"ACCOUNT_COUNTRY\")".equals(ccException.getAdvise())
                         && ccException.getBadCC().equals("BUYER_ACCOUNT.COUNTRY_UPPER")
                         && ccException.getMessage().equals(
                         "The name of computed column 'BUYER_ACCOUNT.COUNTRY_UPPER' has already been used "
                                 + "in model 'nmodel_cc_test', and the expression is "
-                                + "'UPPER(BUYER_ACCOUNT.ACCOUNT_COUNTRY)'. "
+                                + "'UPPER(\"BUYER_ACCOUNT\".\"ACCOUNT_COUNTRY\")'. "
                                 + "Please modify the expression to keep consistent, or use a different name.");
             }
         });
+
         modelService.checkComputedColumn(deserialized, "default", null);
 
     }
@@ -2301,13 +2333,13 @@ public class ModelServiceTest extends SourceTestCase {
                 }
                 BadModelException ccException = (BadModelException) item;
                 return ccException.getCauseType() == BadModelException.CauseType.SAME_NAME_DIFF_EXPR
-                        && ccException.getAdvise().equals("SUBSTR(SELLER_ACCOUNT.ACCOUNT_COUNTRY,0,1)")
+                        && ccException.getAdvise().equals("SUBSTR(\"SELLER_ACCOUNT\".\"ACCOUNT_COUNTRY\",0,1)")
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_SELLER_COUNTRY_ABBR")
                         && ccException.getMessage()
                                 .equals("The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_SELLER_COUNTRY_ABBR' "
                                         + "has already been used in model 'nmodel_basic', and the expression is "
-                                        + "'SUBSTR(SELLER_ACCOUNT.ACCOUNT_COUNTRY,0,1)'. "
+                                        + "'SUBSTR(\"SELLER_ACCOUNT\".\"ACCOUNT_COUNTRY\",0,1)'. "
                                         + "Please modify the expression to keep consistent, or use a different name.");
             }
         });
@@ -2342,13 +2374,14 @@ public class ModelServiceTest extends SourceTestCase {
                 }
                 BadModelException ccException = (BadModelException) item;
                 return ccException.getCauseType() == BadModelException.CauseType.SAME_NAME_DIFF_EXPR
-                        && ccException.getAdvise().equals("CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)")
+                        && ccException.getAdvise()
+                                .equals("CONCAT(\"SELLER_ACCOUNT\".\"ACCOUNT_ID\", \"SELLER_COUNTRY\".\"NAME\")")
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME")
                         && ccException.getMessage().equals(
                                 "The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME' "
                                         + "has already been used in model 'nmodel_basic', and the expression is "
-                                        + "'CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)'. "
+                                        + "'CONCAT(\"SELLER_ACCOUNT\".\"ACCOUNT_ID\", \"SELLER_COUNTRY\".\"NAME\")'. "
                                         + "Please modify the expression to keep consistent, or use a different name.");
             }
         });
@@ -2464,13 +2497,14 @@ public class ModelServiceTest extends SourceTestCase {
                 }
                 BadModelException ccException = (BadModelException) item;
                 return BadModelException.CauseType.SAME_NAME_DIFF_EXPR == ccException.getCauseType()
-                        && ccException.getAdvise().equals("CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)")
+                        && ccException.getAdvise()
+                                .equals("CONCAT(\"SELLER_ACCOUNT\".\"ACCOUNT_ID\", \"SELLER_COUNTRY\".\"NAME\")")
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME")
                         && ccException.getMessage().equals(
                                 "The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME' "
                                         + "has already been used in model 'nmodel_basic', and the expression is "
-                                        + "'CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)'. "
+                                        + "'CONCAT(\"SELLER_ACCOUNT\".\"ACCOUNT_ID\", \"SELLER_COUNTRY\".\"NAME\")'. "
                                         + "Please modify the expression to keep consistent, or use a different name.");
             }
         });
@@ -2595,14 +2629,15 @@ public class ModelServiceTest extends SourceTestCase {
                 }
                 BadModelException ccException = (BadModelException) item;
                 return BadModelException.CauseType.SAME_NAME_DIFF_EXPR == ccException.getCauseType()
-                        && ccException.getAdvise().equals("CONCAT(BUYER_ACCOUNT.ACCOUNT_ID, BUYER_COUNTRY.NAME)")
+                        && ccException.getAdvise()
+                                .equals("CONCAT(\"BUYER_ACCOUNT\".\"ACCOUNT_ID\", \"BUYER_COUNTRY\".\"NAME\")")
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME")
 
                         && ccException.getMessage().equals(
                                 "The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME' "
                                         + "has already been used in model 'nmodel_basic', and the expression is "
-                                        + "'CONCAT(BUYER_ACCOUNT.ACCOUNT_ID, BUYER_COUNTRY.NAME)'. "
+                                        + "'CONCAT(\"BUYER_ACCOUNT\".\"ACCOUNT_ID\", \"BUYER_COUNTRY\".\"NAME\")'. "
                                         + "Please modify the expression to keep consistent, or use a different name.");
             }
         });
@@ -2954,6 +2989,19 @@ public class ModelServiceTest extends SourceTestCase {
     }
 
     @Test
+    public void tesGetStreamingModelConfig() {
+        val project = "streaming_test";
+        val modelConfigRequest = new ModelConfigRequest();
+        modelConfigRequest.setProject(project);
+
+        var modelConfigResponses = modelService.getModelConfig(project, "");
+        Assert.assertEquals(10, modelConfigResponses.size());
+        getTestConfig().setProperty("kylin.streaming.enabled", "false");
+        modelConfigResponses = modelService.getModelConfig(project, "");
+        Assert.assertEquals(1, modelConfigResponses.size());
+    }
+
+    @Test
     public void testUpdateAndGetModelConfig() {
         val project = "default";
         val model = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
@@ -3202,7 +3250,7 @@ public class ModelServiceTest extends SourceTestCase {
 
     @Test
     public void testGetCubes() {
-        Mockito.doReturn(Sets.newHashSet("default")).when(modelService).getAllProjects();
+        doReturn(Sets.newHashSet("default")).when(modelService).getAllProjects();
         List<NDataModelResponse> responses = modelService.getCubes("nmodel_full_measure_test", "default");
         Assert.assertEquals(1, responses.size());
 
@@ -3331,7 +3379,7 @@ public class ModelServiceTest extends SourceTestCase {
         okModel.setFilterCondition("TEST_KYLIN_FACT.SELLER_ID > 0");
         ModelRequest okModelRequest = new ModelRequest(okModel);
         okModelRequest.setProject(project);
-        Mockito.when(semanticService.convertToDataModel(okModelRequest)).thenReturn(okModel);
+        when(semanticService.convertToDataModel(okModelRequest)).thenReturn(okModel);
         okModelRequest.setPartitionDesc(null);
         modelService.checkBeforeModelSave(okModelRequest);
     }
@@ -3346,8 +3394,8 @@ public class ModelServiceTest extends SourceTestCase {
         modelRequest.setProject(project);
         modelRequest.setRootFactTableAlias(dataModel.getRootFactTableAlias());
         modelRequest.setRootFactTableName(dataModel.getRootFactTableName());
-        Mockito.when(modelRequest.getSimplifiedDimensions()).thenReturn(new ArrayList<>(0));
-        Mockito.when(modelRequest.getDimensionNameIdMap()).thenReturn(new HashMap<>(0));
+        when(modelRequest.getSimplifiedDimensions()).thenReturn(new ArrayList<>(0));
+        when(modelRequest.getDimensionNameIdMap()).thenReturn(new HashMap<>(0));
 
         thrown.expect(KylinException.class);
         thrown.expectMessage(MsgPicker.getMsg().getTIMESTAMP_PARTITION_COLUMN_NOT_EXIST());
@@ -3364,7 +3412,7 @@ public class ModelServiceTest extends SourceTestCase {
         modelRequest.setProject(project);
         modelRequest.setRootFactTableAlias(dataModel.getRootFactTableAlias());
         modelRequest.setRootFactTableName(dataModel.getRootFactTableName());
-        Mockito.when(modelRequest.getDimensionNameIdMap()).thenReturn(new HashMap<>(0));
+        when(modelRequest.getDimensionNameIdMap()).thenReturn(new HashMap<>(0));
         thrown.expect(KylinException.class);
         thrown.expectMessage(MsgPicker.getMsg().getTIMESTAMP_PARTITION_COLUMN_NOT_EXIST());
         modelService.validateFusionModelDimension(modelRequest);
@@ -3380,7 +3428,7 @@ public class ModelServiceTest extends SourceTestCase {
         modelRequest.setProject(project);
         modelRequest.setRootFactTableAlias(dataModel.getRootFactTableAlias());
         modelRequest.setRootFactTableName(dataModel.getRootFactTableName());
-        Mockito.when(modelRequest.getDimensionNameIdMap()).thenReturn(new HashMap<>(0));
+        when(modelRequest.getDimensionNameIdMap()).thenReturn(new HashMap<>(0));
         try {
             modelRequest.setModelType(NDataModel.ModelType.BATCH);
             modelService.validateFusionModelDimension(modelRequest);
@@ -3588,7 +3636,7 @@ public class ModelServiceTest extends SourceTestCase {
     }
 
     private NDataSegment mockSegment() {
-        NDataSegment segment = Mockito.mock(NDataSegment.class);
+        NDataSegment segment = mock(NDataSegment.class);
         Map<Long, NDataLayout> layoutMap = Maps.newHashMap();
         layoutMap.put(1L, new NDataLayout());
         layoutMap.put(10001L, new NDataLayout());
@@ -3739,7 +3787,7 @@ public class ModelServiceTest extends SourceTestCase {
         // normal case
         Set<String> projectManagementUsers1 = Sets.newHashSet();
         projectManagementUsers1.add("test");
-        Mockito.doReturn(projectManagementUsers1).when(accessService).getProjectManagementUsers(project);
+        doReturn(projectManagementUsers1).when(accessService).getProjectManagementUsers(project);
 
         OwnerChangeRequest ownerChangeRequest1 = new OwnerChangeRequest();
         ownerChangeRequest1.setProject(project);
@@ -3757,7 +3805,7 @@ public class ModelServiceTest extends SourceTestCase {
 
         // empty admin users, throw exception
         Set<String> projectManagementUsers2 = Sets.newHashSet();
-        Mockito.doReturn(projectManagementUsers2).when(accessService).getProjectManagementUsers(project);
+        doReturn(projectManagementUsers2).when(accessService).getProjectManagementUsers(project);
 
         OwnerChangeRequest ownerChangeRequest = new OwnerChangeRequest();
         ownerChangeRequest.setProject(project);
@@ -3775,15 +3823,14 @@ public class ModelServiceTest extends SourceTestCase {
 
         // can not found model, throw exception
         Set<String> projectManagementUsers3 = Sets.newHashSet();
-        Mockito.doReturn(projectManagementUsers3).when(accessService).getProjectManagementUsers(project);
+        doReturn(projectManagementUsers3).when(accessService).getProjectManagementUsers(project);
 
         OwnerChangeRequest ownerChangeRequest3 = new OwnerChangeRequest();
         ownerChangeRequest3.setProject(project);
         ownerChangeRequest3.setOwner(owner);
 
         String modelId = RandomUtil.randomUUIDStr();
-        thrown.expectMessage(
-                String.format(Locale.ROOT, "Model %s does not exist or broken in project %s", modelId, project));
+        thrown.expectMessage(MODEL_ID_NOT_EXIST.getMsg(modelId));
         modelService.updateModelOwner(project, modelId, ownerChangeRequest3);
 
         // test broken model, throw exception
@@ -3794,8 +3841,7 @@ public class ModelServiceTest extends SourceTestCase {
         brokenModel.setBrokenReason(NDataModel.BrokenReason.SCHEMA);
         modelManager.updateDataBrokenModelDesc(brokenModel);
 
-        thrown.expectMessage(
-                String.format(Locale.ROOT, "Model %s does not exist or broken in project %s", brokenModelId, project));
+        thrown.expectMessage(MODEL_ID_NOT_EXIST.getMsg(brokenModelId));
         modelService.updateModelOwner(project, brokenModelId, ownerChangeRequest3);
     }
 
@@ -3822,9 +3868,7 @@ public class ModelServiceTest extends SourceTestCase {
     @Test
     public void testConvertSegmentIdWithName_NotExistName() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage(
-                "Can’t find the segment by name \"not exist name1,not exist name2\". Please check and try again.");
-
+        thrown.expectMessage(SEGMENT_NOT_EXIST_NAME.getMsg("not exist name1,not exist name2"));
         modelService.convertSegmentIdWithName("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default", null,
                 new String[] { "not exist name1", "not exist name2" });
     }
@@ -3843,9 +3887,14 @@ public class ModelServiceTest extends SourceTestCase {
                 new String[] { "11124840-b3e3-43db-bcab-2b78da666d00" }, false);
         Assert.assertTrue(existed);
 
-        existed = modelService.checkSegmentsExistById("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default",
-                new String[] { "11124840-b3e3-43db-bcab-2b78da666d00_not" }, false);
-        Assert.assertFalse(existed);
+        try {
+            modelService.checkSegmentsExistById("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default",
+                    new String[] { "11124840-b3e3-43db-bcab-2b78da666d00_not" }, false);
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertEquals(SEGMENT_NOT_EXIST_ID.getCodeMsg("11124840-b3e3-43db-bcab-2b78da666d00_not"),
+                    e.getLocalizedMessage());
+        }
     }
 
     @Test
@@ -3853,9 +3902,15 @@ public class ModelServiceTest extends SourceTestCase {
         boolean existed = modelService.checkSegmentsExistByName("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default",
                 new String[] { "20171104141833_20171105141833" }, false);
         Assert.assertTrue(existed);
-        existed = modelService.checkSegmentsExistByName("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default",
-                new String[] { "20171104141833_20171105141833_not" }, false);
-        Assert.assertFalse(existed);
+
+        try {
+            modelService.checkSegmentsExistByName("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default",
+                    new String[] { "20171104141833_20171105141833_not" }, false);
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertEquals(SEGMENT_NOT_EXIST_NAME.getCodeMsg("20171104141833_20171105141833_not"),
+                    e.getLocalizedMessage());
+        }
     }
 
     @Test
@@ -4049,10 +4104,10 @@ public class ModelServiceTest extends SourceTestCase {
         ModelRequest request = new ModelRequest();
         request.setWithSecondStorage(true);
         request.setUuid(model);
-        BuildBaseIndexResponse changedResponse = Mockito.mock(BuildBaseIndexResponse.class);
+        BuildBaseIndexResponse changedResponse = mock(BuildBaseIndexResponse.class);
         Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded("default", request, true);
 
-        Mockito.when(changedResponse.hasTableIndexChange()).thenReturn(true);
+        when(changedResponse.hasTableIndexChange()).thenReturn(true);
         modelService.changeSecondStorageIfNeeded(project, request, true);
         Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
 
@@ -4077,9 +4132,9 @@ public class ModelServiceTest extends SourceTestCase {
         ModelRequest request = new ModelRequest();
         request.setWithSecondStorage(true);
         request.setUuid(model);
-        BuildBaseIndexResponse changedResponse = Mockito.mock(BuildBaseIndexResponse.class);
+        BuildBaseIndexResponse changedResponse = mock(BuildBaseIndexResponse.class);
         Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded("default", request, true);
-        Mockito.when(changedResponse.hasTableIndexChange()).thenReturn(true);
+        when(changedResponse.hasTableIndexChange()).thenReturn(true);
 
         modelService.dropModel(model, project, false);
 
@@ -4105,9 +4160,9 @@ public class ModelServiceTest extends SourceTestCase {
         ModelRequest request = new ModelRequest();
         request.setWithSecondStorage(true);
         request.setUuid(model);
-        BuildBaseIndexResponse changedResponse = Mockito.mock(BuildBaseIndexResponse.class);
+        BuildBaseIndexResponse changedResponse = mock(BuildBaseIndexResponse.class);
         Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded("default", request, true);
-        Mockito.when(changedResponse.hasTableIndexChange()).thenReturn(true);
+        when(changedResponse.hasTableIndexChange()).thenReturn(true);
 
         modelService.purgeModel(model, project);
 
@@ -4213,7 +4268,7 @@ public class ModelServiceTest extends SourceTestCase {
         val project = "streaming_test";
         val modelMgr = NDataModelManager.getInstance(getTestConfig(), project);
 
-        val partitionDesc = Mockito.mock(PartitionDesc.class);
+        val partitionDesc = mock(PartitionDesc.class);
         partitionDesc.setPartitionDateColumn(null);
         modelMgr.updateDataModel(modelId, model -> {
             model.setPartitionDesc(partitionDesc);
@@ -4485,7 +4540,7 @@ public class ModelServiceTest extends SourceTestCase {
         partitionValues.add(new String[] { "p2" });
         partitionValues.add(new String[] { "p3" });
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Can’t find model named \"1\". Please check and try again.");
+        thrown.expectMessage(MODEL_ID_NOT_EXIST.getMsg("1"));
         modelService.batchUpdateMultiPartition(getProject(), modelId, partitionValues);
     }
 
@@ -4543,7 +4598,7 @@ public class ModelServiceTest extends SourceTestCase {
         // model id is invalid
         assertKylinExeption(() -> {
             modelService.checkModelPermission(getProject(), "xxx");
-        }, "Can’t find model named \"xxx\". Please check and try again.");
+        }, MODEL_ID_NOT_EXIST.getMsg("xxx"));
 
         addAclTable("DEFAULT.TEST_ENCODING", "user", true);
         modelService.checkModelPermission(getProject(), "a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94");
@@ -4558,7 +4613,7 @@ public class ModelServiceTest extends SourceTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals(ServerErrorCode.MODEL_NOT_EXIST.toErrorCode(), ((KylinException) e).getErrorCode());
+            Assert.assertTrue(e.getMessage().contains(MODEL_ID_NOT_EXIST.getMsg("abc")));
         }
     }
 
@@ -4580,10 +4635,10 @@ public class ModelServiceTest extends SourceTestCase {
         request.setWithSecondStorage(false);
         request.setUuid(model);
         BuildBaseIndexResponse emptyResponse = new BuildBaseIndexResponse();
-        BuildBaseIndexResponse changedResponse = Mockito.mock(BuildBaseIndexResponse.class);
+        BuildBaseIndexResponse changedResponse = mock(BuildBaseIndexResponse.class);
         Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded("default", request, true);
 
-        Mockito.when(changedResponse.hasTableIndexChange()).thenReturn(true);
+        when(changedResponse.hasTableIndexChange()).thenReturn(true);
         modelService.changeSecondStorageIfNeeded("default", request, true);
         Assert.assertFalse(SecondStorageUtil.isModelEnable("default", model));
 
@@ -4643,11 +4698,8 @@ public class ModelServiceTest extends SourceTestCase {
         Assert.assertNull(model.getMeasures().get(0).getColumn());
         Assert.assertNull(model.getMeasures().get(0).getComment());
         Assert.assertEquals("GMV_SUM", model.getMeasures().get(1).getName());
-        Assert.assertEquals("PRICE", model.getMeasures().get(1).getColumn());
-        Assert.assertEquals("PRICE", model.getMeasures().get(1).getComment());
-        Assert.assertEquals("TOP_SELLER", model.getMeasures().get(8).getName());
-        Assert.assertEquals("PRICE", model.getMeasures().get(8).getColumn());
-        Assert.assertEquals("PRICE", model.getMeasures().get(8).getComment());
+        Assert.assertNull(model.getMeasures().get(1).getColumn());
+        Assert.assertNull(model.getMeasures().get(1).getComment());
     }
 
     @Test
@@ -4734,17 +4786,17 @@ public class ModelServiceTest extends SourceTestCase {
 
     @Test
     public void testAddBaseIndex() {
-        val modelRequest = Mockito.mock(ModelRequest.class);
-        val model = Mockito.mock(NDataModel.class);
-        val indexPlan = Mockito.mock(IndexPlan.class);
+        val modelRequest = mock(ModelRequest.class);
+        val model = mock(NDataModel.class);
+        val indexPlan = mock(IndexPlan.class);
 
-        Mockito.when(modelRequest.isWithSecondStorage()).thenReturn(false);
-        Mockito.when(model.getModelType()).thenReturn(NDataModel.ModelType.BATCH);
-        Mockito.when(modelRequest.isWithBaseIndex()).thenReturn(true);
+        when(modelRequest.isWithSecondStorage()).thenReturn(false);
+        when(model.getModelType()).thenReturn(NDataModel.ModelType.BATCH);
+        when(modelRequest.isWithBaseIndex()).thenReturn(true);
         modelService.addBaseIndex(modelRequest, model, indexPlan);
         Mockito.verify(indexPlan).createAndAddBaseIndex(model);
-        Mockito.when(modelRequest.isWithSecondStorage()).thenReturn(true);
-        Mockito.when(indexPlan.createBaseTableIndex(model)).thenReturn(null);
+        when(modelRequest.isWithSecondStorage()).thenReturn(true);
+        when(indexPlan.createBaseTableIndex(model)).thenReturn(null);
         modelService.addBaseIndex(modelRequest, model, indexPlan);
         Mockito.verify(indexPlan).createAndAddBaseIndex(anyList());
     }
@@ -4790,4 +4842,245 @@ public class ModelServiceTest extends SourceTestCase {
         }
     }
 
+    @Test
+    public void testGetModelById_throwsException() {
+        NDataModelManager dataModelManager = mock(NDataModelManager.class);
+        doReturn(dataModelManager).when(modelService).getManager(NDataModelManager.class, "TEST_PROJECT");
+        when(dataModelManager.getDataModelDesc(anyString())).thenReturn(null);
+        try {
+            modelService.getModelById("TEST_MODEL_ID", "TEST_PROJECT");
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertEquals("KE-010002202: Can't find model id \"TEST_MODEL_ID\". Please check and try again.",
+                    e.toString());
+        }
+    }
+
+    @Test
+    public void testGetModelByAlias_throwsException() {
+        NDataModelManager dataModelManager = mock(NDataModelManager.class);
+        doReturn(dataModelManager).when(modelService).getManager(NDataModelManager.class, "TEST_PROJECT");
+        when(dataModelManager.getDataModelDescByAlias(anyString())).thenReturn(null);
+        try {
+            modelService.getModelByAlias("TEST_MODEL_ALIAS", "TEST_PROJECT");
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertEquals("KE-010002203: Can't find model name \"TEST_MODEL_ALIAS\". Please check and try again.",
+                    e.toString());
+        }
+    }
+
+    @Test
+    public void testGetCubeWithExactModelName_throwsException() {
+        NDataModelManager dataModelManager = mock(NDataModelManager.class);
+        doReturn(dataModelManager).when(modelService).getManager(NDataModelManager.class, "TEST_PROJECT");
+        when(dataModelManager.getDataModelDescByAlias(anyString())).thenReturn(null);
+        try {
+            modelService.getCubeWithExactModelName("TEST_MODEL_ALIAS", "TEST_PROJECT");
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertEquals("KE-010002203: Can't find model name \"TEST_MODEL_ALIAS\". Please check and try again.",
+                    e.toString());
+        }
+    }
+
+    @Test
+    public void testCheckAliasExist_throwsException() {
+        doReturn(false).when(modelService).checkModelAliasUniqueness(anyString(), anyString(), anyString());
+        try {
+            ReflectionTestUtils.invokeMethod(modelService, "checkAliasExist", "TEST_MODEL_ID", "TEST_MODEL_ALIAS",
+                    "TEST_PROJECT");
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertEquals("KE-010002206: Model \"TEST_MODEL_ALIAS\" already exists. Please rename it.",
+                    e.toString());
+        }
+    }
+
+    @Test
+    public void testBatchUpdateMultiPartition_throwsException() {
+        NDataModelManager dataModelManager = mock(NDataModelManager.class);
+        doReturn(dataModelManager).when(modelService).getManager(NDataModelManager.class, "TEST_PROJECT");
+        when(dataModelManager.getDataModelDesc(anyString())).thenReturn(null);
+        try {
+            modelService.batchUpdateMultiPartition("TEST_PROJECT", "TEST_MODEL_ID", null);
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertEquals("KE-010002202: Can't find model id \"TEST_MODEL_ID\". Please check and try again.",
+                    e.toString());
+        }
+    }
+
+    @Test
+    public void testPrimaryCheck_throwsException() {
+        // test throwing MODEL_NOT_EXIST
+        NDataModel dataModel = null;
+        try {
+            modelService.primaryCheck(dataModel);
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertEquals("KE-010002201: Can't find model. Please check and try again.", e.toString());
+        }
+
+        // test throwing EMPTY_MODEL_NAME, modelAlias is empty
+        dataModel = mock(NDataModel.class);
+        when(dataModel.getAlias()).thenReturn(null);
+        try {
+            modelService.primaryCheck(dataModel);
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertEquals("KE-010002204: The name can't be empty.", e.toString());
+        }
+
+        // test throwing INVALID_MODEL_NAME, modelAlias is invalid
+        dataModel = mock(NDataModel.class);
+        when(dataModel.getAlias()).thenReturn("INVALID_MODEL_ALIAS_**&^()");
+        try {
+            modelService.primaryCheck(dataModel);
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertEquals(
+                    "KE-010002205: The model name \"INVALID_MODEL_ALIAS_**&^()\" is invalid. Please use letters, numbers and underlines only.",
+                    e.toString());
+        }
+    }
+
+    public void testBuildHasPermissionSourceSyncModel() throws Exception {
+        Set<String> groups = new HashSet<>();
+        groups.add("g1");
+        val project = "default";
+        val modelId = "cb596712-3a09-46f8-aea1-988b43fe9b6c";
+        prepareBasic(project);
+        SecurityContextHolder.getContext()
+                .setAuthentication(new TestingAuthenticationToken("u1", "ANALYST", Constant.ROLE_ANALYST));
+        TableauDatasourceModel datasource_all_cols = (TableauDatasourceModel) modelService.exportCustomModel(project,
+                modelId, SyncContext.BI.TABLEAU_CONNECTOR_TDS, SyncContext.ModelElement.ALL_COLS, "localhost", 8080,
+                groups);
+        ByteArrayOutputStream outStream1 = new ByteArrayOutputStream();
+        datasource_all_cols.dump(outStream1);
+        Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector_permission.tds"),
+                outStream1.toString(Charset.defaultCharset().name()));
+
+        TableauDatasourceModel datasource_agg_index_col = (TableauDatasourceModel) modelService.exportCustomModel(
+                project, modelId, SyncContext.BI.TABLEAU_CONNECTOR_TDS, SyncContext.ModelElement.AGG_INDEX_COL,
+                "localhost", 8080, groups);
+        ByteArrayOutputStream outStream2 = new ByteArrayOutputStream();
+        datasource_agg_index_col.dump(outStream2);
+        Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector_permission.tds"),
+                outStream2.toString(Charset.defaultCharset().name()));
+
+        TableauDatasourceModel datasource = (TableauDatasourceModel) modelService.exportCustomModel(project, modelId,
+                SyncContext.BI.TABLEAU_CONNECTOR_TDS, SyncContext.ModelElement.AGG_INDEX_AND_TABLE_INDEX_COL,
+                "localhost", 8080, groups);
+        ByteArrayOutputStream outStream3 = new ByteArrayOutputStream();
+        datasource.dump(outStream3);
+        Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector_permission.tds"),
+                outStream3.toString(Charset.defaultCharset().name()));
+    }
+
+    @Test
+    public void testExportModel() throws Exception {
+        val project = "default";
+        val modelId = "cb596712-3a09-46f8-aea1-988b43fe9b6c";
+        prepareBasic(project);
+        TableauDatasourceModel datasource1 = (TableauDatasourceModel) modelService.exportModel(project, modelId,
+                SyncContext.BI.TABLEAU_CONNECTOR_TDS, SyncContext.ModelElement.AGG_INDEX_AND_TABLE_INDEX_COL,
+                "localhost", 8080);
+        ByteArrayOutputStream outStream4 = new ByteArrayOutputStream();
+        datasource1.dump(outStream4);
+        Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector.tds"),
+                outStream4.toString(Charset.defaultCharset().name()));
+    }
+
+    private String getExpectedTds(String path) throws IOException {
+        return CharStreams.toString(new InputStreamReader(getClass().getResourceAsStream(path), Charsets.UTF_8));
+    }
+
+    private void prepareBasic(String project) {
+        AclTCRManager manager = AclTCRManager.getInstance(getTestConfig(), project);
+
+        AclTCR u1a1 = new AclTCR();
+        AclTCR.Table u1t1 = new AclTCR.Table();
+        AclTCR.ColumnRow u1cr1 = new AclTCR.ColumnRow();
+        AclTCR.Column u1c1 = new AclTCR.Column();
+        u1c1.addAll(Arrays.asList("ID1", "ID2", "ID3"));
+        u1cr1.setColumn(u1c1);
+
+        AclTCR.ColumnRow u1cr2 = new AclTCR.ColumnRow();
+        AclTCR.Column u1c2 = new AclTCR.Column();
+        u1c2.addAll(Arrays.asList("ID1", "NAME1", "NAME2", "NAME3"));
+        u1cr2.setColumn(u1c2);
+        u1t1.put("DEFAULT.TEST_MEASURE", u1cr1);
+        u1t1.put("DEFAULT.TEST_MEASURE1", u1cr2);
+        u1a1.setTable(u1t1);
+        manager.updateAclTCR(u1a1, "u1", true);
+
+        AclTCR g1a1 = new AclTCR();
+        AclTCR.Table g1t1 = new AclTCR.Table();
+        AclTCR.ColumnRow g1cr1 = new AclTCR.ColumnRow();
+        AclTCR.Column g1c1 = new AclTCR.Column();
+        g1c1.addAll(Arrays.asList("ID1", "ID2", "ID3", "ID4"));
+        g1cr1.setColumn(g1c1);
+        g1t1.put("DEFAULT.TEST_MEASURE", g1cr1);
+        g1a1.setTable(g1t1);
+        manager.updateAclTCR(g1a1, "g1", false);
+    }
+
+    @Test
+    public void testCheckTablePermission() {
+        val project = "default";
+        val modelId = "cb596712-3a09-46f8-aea1-988b43fe9b6c";
+        thrown.expect(KylinException.class);
+        thrown.expectMessage(MsgPicker.getMsg().getTABLE_NO_COLUMNS_PERMISSION());
+
+        AclTCRManager manager = AclTCRManager.getInstance(getTestConfig(), project);
+        Set<String> columns = new HashSet<>();
+        columns.add("DEFAULT.TEST_MEASURE1.NAME1");
+        columns.add("DEFAULT.TEST_MEASURE1.NAME2");
+        columns.add("DEFAULT.TEST_MEASURE1.NAME3");
+
+        AclTCR u1a1 = new AclTCR();
+        AclTCR.Table u1t1 = new AclTCR.Table();
+        AclTCR.ColumnRow u1cr1 = new AclTCR.ColumnRow();
+        AclTCR.Column u1c1 = new AclTCR.Column();
+        u1cr1.setColumn(u1c1);
+
+        AclTCR.ColumnRow u1cr2 = new AclTCR.ColumnRow();
+        AclTCR.Column u1c2 = new AclTCR.Column();
+        u1c2.addAll(Arrays.asList("NAME1", "NAME2", "NAME3"));
+        u1cr2.setColumn(u1c2);
+        u1t1.put("DEFAULT.TEST_MEASURE", u1cr1);
+        u1t1.put("DEFAULT.TEST_MEASURE1", u1cr2);
+        u1a1.setTable(u1t1);
+        manager.updateAclTCR(u1a1, "u1", true);
+        SecurityContextHolder.getContext()
+                .setAuthentication(new TestingAuthenticationToken("u1", "ANALYST", Constant.ROLE_ANALYST));
+        modelService.checkTableHasColumnPermission(project, modelId, columns);
+    }
+
+    @Test
+    public void testCheckDuplicateName() {
+        boolean result = modelService.validateExport("duplicate", "00596712-3a09-46f8-aea1-988b43fe9b6c");
+        Assert.assertTrue(result);
+
+        assertKylinExeption(() -> modelService.validateExport("duplicate", "0aa20c32-87b2-8431-6861-d7026c6a5d0a"), //
+                String.format(Locale.ROOT, //
+                        MsgPicker.getMsg().getDUPLICATED_MODEL_COLUMN_AND_MEASURE_NAME(), "ID2", "ID2"));
+
+        assertKylinExeption(() -> modelService.validateExport("duplicate", "0b1e35c2-1ffe-3283-4f15-66d5e0cd4a77"), //
+                String.format(Locale.ROOT, //
+                        MsgPicker.getMsg().getDUPLICATED_DIMENSION_NAME_AND_MEASURE_NAME(), "ID1_NAME", "ID1_NAME"));
+
+        assertKylinExeption(() -> modelService.validateExport("duplicate", "0c8bacb5-e367-104a-970c-9431298b35d9"), //
+                String.format(Locale.ROOT, //
+                        MsgPicker.getMsg().getDUPLICATED_DIMENSION_COLUMN_AND_MEASURE_NAME(), "ID1", "ID1"));
+
+        assertKylinExeption(() -> modelService.validateExport("duplicate", "0eab6754-23cf-8e98-0567-376e32dafb44"), //
+                String.format(Locale.ROOT, //
+                        MsgPicker.getMsg().getDUPLICATED_MODEL_COLUMN_AND_MEASURE_NAME(), "CC_PRICE1", "CC_PRICE1"));
+
+        assertKylinExeption(() -> modelService.validateExport("duplicate", "0fe62234-a97a-da7d-ba76-dfee6b8bada1"), //
+                String.format(Locale.ROOT, //
+                        MsgPicker.getMsg().getDUPLICATED_DIMENSION_NAME_AND_MEASURE_NAME(), "CC_PRICE1", "CC_PRICE1"));
+    }
 }

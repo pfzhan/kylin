@@ -46,7 +46,7 @@ import io.kyligence.kap.query.util.QueryAliasMatchInfo;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.AbstractContext.ModelContext;
 import io.kyligence.kap.smart.ModelOptProposer;
-import io.kyligence.kap.smart.ModelReuseContextOfSemiV2;
+import io.kyligence.kap.smart.ModelReuseContext;
 import io.kyligence.kap.smart.SmartContext;
 import io.kyligence.kap.smart.query.AbstractQueryRunner;
 import io.kyligence.kap.smart.query.QueryRunnerBuilder;
@@ -81,8 +81,8 @@ public class ModelMaster {
     }
 
     public NDataModel proposeJoins(NDataModel dataModel) {
-        if (modelContext.getProposeContext() instanceof ModelReuseContextOfSemiV2) {
-            ModelReuseContextOfSemiV2 context = (ModelReuseContextOfSemiV2) modelContext.getProposeContext();
+        if (modelContext.getProposeContext() instanceof ModelReuseContext) {
+            ModelReuseContext context = (ModelReuseContext) modelContext.getProposeContext();
             if (!context.isCanCreateNewModel()) {
                 Preconditions.checkState(dataModel != null, ModelOptProposer.NO_COMPATIBLE_MODEL_MSG);
                 return dataModel;
@@ -175,12 +175,13 @@ public class ModelMaster {
             extractor.execute();
             final AbstractContext proposeContext = modelContext.getProposeContext();
             List<ModelTree> modelTrees = new GreedyModelTreesBuilder(kylinConfig, project, proposeContext) //
-                    .build(originQueryList, extractor.getAllOLAPContexts(), null);
+                    .build(extractor.filterNonModelViewOlapContexts(), null);
             ModelTree updatedModelTree = null;
             for (ModelTree modelTree : modelTrees) {
                 boolean match = proposeContext instanceof SmartContext //
                         ? modelTree.hasSameSubGraph(dataModel)
-                        : modelTree.isExactlyMatch(dataModel, proposeContext.isPartialMatch(), proposeContext.isPartialMatchNonEqui());
+                        : modelTree.isExactlyMatch(dataModel, proposeContext.isPartialMatch(),
+                                proposeContext.isPartialMatchNonEqui());
                 if (match) {
                     updatedModelTree = modelTree;
                     break;

@@ -26,7 +26,7 @@ package io.kyligence.kap.common.hystrix;
 
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_MODEL;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_PROJECT;
-import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_OBTAIN_QUERY_RESULT;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.QUERY_RESULT_OBTAIN_FAILED;
 
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -112,8 +112,7 @@ public class NCircuitBreaker {
             return;
         }
 
-        throw new KylinException(FAILED_OBTAIN_QUERY_RESULT,
-                String.format(Locale.ROOT, MsgPicker.getMsg().getQUERY_ROW_NUM_OVER_THRESHOLD(), threshold));
+        throw new KylinException(QUERY_RESULT_OBTAIN_FAILED, threshold);
     }
 
     private static boolean isEnabled() {

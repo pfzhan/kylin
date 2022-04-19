@@ -46,6 +46,7 @@ public class StreamingOlapContextTest extends NLocalWithSparkSessionTest {
     @Before
     public void setUp() throws Exception {
         staticCreateTestMetadata("src/test/resources/ut_meta/streaming");
+        getTestConfig().setProperty("kylin.streaming.enabled", "true");
     }
 
     @Override

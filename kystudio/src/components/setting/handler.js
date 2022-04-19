@@ -3,3 +3,10 @@ export const viewTypes = {
   ADVANCED: 'advanceSetting',
   MODEL: 'model'
 }
+
+export const retentionTypes = [
+  'DAY',
+  'WEEK',
+  'MONTH',
+  'YEAR'
+]

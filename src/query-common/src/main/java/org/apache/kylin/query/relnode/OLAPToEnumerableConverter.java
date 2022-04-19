@@ -63,10 +63,13 @@ import org.apache.kylin.common.util.ClassUtil;
 import com.google.common.collect.Lists;
 import org.apache.kylin.query.routing.RealizationChooser;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * If you're renaming this class, please keep it ending with OLAPToEnumerableConverter
  * see org.apache.calcite.plan.OLAPRelMdRowCount#shouldIntercept(org.apache.calcite.rel.RelNode)
  */
+@Slf4j
 public class OLAPToEnumerableConverter extends ConverterImpl implements EnumerableRel {
 
     public OLAPToEnumerableConverter(RelOptCluster cluster, RelTraitSet traits, RelNode input) {
@@ -91,8 +94,8 @@ public class OLAPToEnumerableConverter extends ConverterImpl implements Enumerab
     public Result implement(EnumerableRelImplementor enumImplementor, Prefer pref) {
         if (System.getProperty("calcite.debug") != null) {
             String dumpPlan = RelOptUtil.dumpPlan("", this, false, SqlExplainLevel.DIGEST_ATTRIBUTES);
-            System.out.println("EXECUTION PLAN BEFORE REWRITE");
-            System.out.println(dumpPlan);
+            log.info("EXECUTION PLAN BEFORE REWRITE");
+            log.info(dumpPlan);
         }
 
         // post-order travel children
@@ -104,8 +107,8 @@ public class OLAPToEnumerableConverter extends ConverterImpl implements Enumerab
 
         if (System.getProperty("calcite.debug") != null) {
             String dumpPlan = RelOptUtil.dumpPlan("", this, false, SqlExplainLevel.DIGEST_ATTRIBUTES);
-            System.out.println("EXECUTION PLAN AFTER OLAPCONTEXT IS SET");
-            System.out.println(dumpPlan);
+            log.info("EXECUTION PLAN AFTER OLAPCONTEXT IS SET");
+            log.info(dumpPlan);
         }
 
         RealizationChooser.selectLayoutCandidate(contexts);
@@ -123,8 +126,8 @@ public class OLAPToEnumerableConverter extends ConverterImpl implements Enumerab
 
         if (System.getProperty("calcite.debug") != null) {
             String dumpPlan = RelOptUtil.dumpPlan("", this, false, SqlExplainLevel.DIGEST_ATTRIBUTES);
-            System.out.println("EXECUTION PLAN AFTER REWRITE");
-            System.out.println(dumpPlan);
+            log.info("EXECUTION PLAN AFTER REWRITE");
+            log.info(dumpPlan);
             QueryContext.current().setCalcitePlan(this.copy(getTraitSet(), getInputs()));
         }
 

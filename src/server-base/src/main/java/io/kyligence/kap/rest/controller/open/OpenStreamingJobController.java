@@ -76,6 +76,7 @@ public class OpenStreamingJobController extends NBasicController {
             @RequestParam(value = "sort_by", required = false, defaultValue = "last_modified") String sortBy,
             @RequestParam(value = "reverse", required = false, defaultValue = "true") boolean reverse,
             @RequestParam(value = "job_ids", required = false, defaultValue = "") List<String> jobIds) {
+        checkStreamingEnabled();
         StreamingJobFilter jobFilter = new StreamingJobFilter(modelName, modelNames, jobTypes, statuses, project,
                 sortBy, reverse, jobIds);
         val data = streamingJobService.getStreamingJobList(jobFilter, pageOffset, pageSize);
@@ -87,6 +88,7 @@ public class OpenStreamingJobController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> updateStreamingJobStatus(
             @RequestBody StreamingJobExecuteRequest streamingJobExecuteRequest) {
+        checkStreamingEnabled();
         checkRequiredArg("action", streamingJobExecuteRequest.getAction());
         if (CollectionUtils.isEmpty(streamingJobExecuteRequest.getJobIds())) {
             throw new KylinException(EMPTY_JOB_ID, String.format(Locale.ROOT, "'%s' is required.", "job_ids"));
@@ -101,6 +103,7 @@ public class OpenStreamingJobController extends NBasicController {
     public EnvelopeResponse<StreamingJobDataStatsResponse> getStreamingJobDataStats(
             @PathVariable(value = "jobId") String jobId,
             @RequestParam(value = "time_filter", required = false, defaultValue = "30") Integer timeFilter) {
+        checkStreamingEnabled();
         val response = streamingJobService.getStreamingJobDataStats(jobId, timeFilter);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
@@ -109,6 +112,7 @@ public class OpenStreamingJobController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<List<StreamingJobRecord>> getStreamingJobRecordList(
             @RequestParam(value = "job_id") String jobId) {
+        checkStreamingEnabled();
         if (StringUtils.isEmpty(jobId)) {
             throw new KylinException(EMPTY_JOB_ID, String.format(Locale.ROOT, "'%s' is required.", "job_id"));
         }

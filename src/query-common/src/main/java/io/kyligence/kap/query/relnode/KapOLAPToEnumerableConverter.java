@@ -52,7 +52,6 @@ public class KapOLAPToEnumerableConverter extends OLAPToEnumerableConverter impl
 
     @Override
     public Result implement(EnumerableRelImplementor enumImplementor, Prefer pref) {
-        //        Thread.currentThread().setContextClassLoader(ClassLoaderUtils.getSparkClassLoader());
         OLAPRel.JavaImplementor impl = new OLAPRel.JavaImplementor(enumImplementor);
         EnumerableRel inputAsEnum = impl.createEnumerable((OLAPRel) getInput());
         this.replaceInput(0, inputAsEnum);

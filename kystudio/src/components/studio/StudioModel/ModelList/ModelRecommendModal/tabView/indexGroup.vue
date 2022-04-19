@@ -194,7 +194,7 @@
   import { Component } from 'vue-property-decorator'
   import { mapState, mapMutations, mapActions, mapGetters } from 'vuex'
   import { renderTableColumnSelected } from '../handler'
-  import { pageRefTags } from 'config'
+  import { pageRefTags, pageCount } from 'config'
   // import vuex from '../../../../store'
   import { handleError, transToGmtTime } from 'util/business'
   import { handleSuccessAsync } from 'util'
@@ -244,7 +244,7 @@
     ST = null
     expandRows = []
     curRowExpandLoading = {}
-    perPageSize = +localStorage.getItem(this.pageRefTags.indexGroupPager) || 10
+    perPageSize = +localStorage.getItem(this.pageRefTags.indexGroupPager) || pageCount
     currentPage = 0
     isShow = true
     lowFrequency = {

@@ -24,11 +24,61 @@
 
 package io.kyligence.kap.rest.controller;
 
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_MODEL;
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_DETECT_DATA_RANGE;
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_MODEL;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARTITION_COLUMN;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_RANGE;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_INVALID;
+
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.CommonErrorCode;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.KylinTimeoutException;
+import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.metadata.model.PartitionDesc;
+import org.apache.kylin.rest.response.DataResult;
+import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.apache.kylin.rest.util.AclPermissionUtil;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.exception.LookupTableException;
 import io.kyligence.kap.rest.constant.ModelAttributeEnum;
 import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
@@ -39,6 +89,7 @@ import io.kyligence.kap.rest.request.ModelCloneRequest;
 import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.ModelUpdateRequest;
+import io.kyligence.kap.rest.request.ModelValidationRequest;
 import io.kyligence.kap.rest.request.MultiPartitionMappingRequest;
 import io.kyligence.kap.rest.request.OwnerChangeRequest;
 import io.kyligence.kap.rest.request.PartitionColumnRequest;
@@ -63,53 +114,9 @@ import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.tool.bisync.BISyncModel;
 import io.kyligence.kap.tool.bisync.SyncContext;
 import io.swagger.annotations.ApiOperation;
-import lombok.extern.log4j.Log4j;
 import lombok.val;
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.exception.ExceptionUtils;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exception.CommonErrorCode;
-import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.exception.KylinTimeoutException;
-import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.metadata.model.PartitionDesc;
-import org.apache.kylin.rest.response.DataResult;
-import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-import java.util.Locale;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
-import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_MODEL;
-import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_DETECT_DATA_RANGE;
-import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_MODEL;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_MODEL_NAME;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARTITION_COLUMN;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_RANGE;
-
-@Log4j
+@Slf4j
 @Controller
 @RequestMapping(value = "/api/models", produces = { HTTP_VND_APACHE_KYLIN_JSON })
 public class NModelController extends NBasicController {
@@ -165,6 +172,16 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, filterModels, "");
     }
 
+    @ApiOperation(value = "validateNewModelAlias", tags = { "AI" })
+    @PostMapping(value = "/name/validation")
+    @ResponseBody
+    public EnvelopeResponse<Boolean> validateNewModelAlias(@RequestBody ModelValidationRequest modelRequest) {
+        checkRequiredArg("model_name", modelRequest.getModelName());
+        checkProjectName(modelRequest.getProject());
+        val exists = fusionModelService.modelExists(modelRequest.getModelName(), modelRequest.getProject());
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, exists, "");
+    }
+
     @ApiOperation(value = "offlineAllModelsInProject", tags = {
             "AI" }, notes = "Update URL: {project}; Update Param: project")
     @PutMapping(value = "/disable_all_models")
@@ -186,10 +203,9 @@ public class NModelController extends NBasicController {
     }
 
     @ApiOperation(value = "createModel", tags = { "AI" })
-    @PostMapping(value = "", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
+    @PostMapping(value = "", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse<BuildBaseIndexResponse> createModel(@RequestBody ModelRequest modelRequest)
-            throws Exception {
+    public EnvelopeResponse<BuildBaseIndexResponse> createModel(@RequestBody ModelRequest modelRequest) {
         checkProjectName(modelRequest.getProject());
         validatePartitionDesc(modelRequest.getPartitionDesc());
         String partitionDateFormat = modelRequest.getPartitionDesc() == null ? null
@@ -359,7 +375,6 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, modelService.getTableIndices(modelId, project), "");
     }
 
-
     @ApiOperation(value = "getModelJson", tags = { "AI" }, notes = "Update URL: {model}")
     @GetMapping(value = "/{model:.+}/json")
     @ResponseBody
@@ -526,8 +541,7 @@ public class NModelController extends NBasicController {
         checkRequiredArg(MODEL_ID, modelId);
         String newAlias = modelRenameRequest.getNewModelName();
         if (!StringUtils.containsOnly(newAlias, ModelService.VALID_NAME_FOR_MODEL)) {
-            throw new KylinException(INVALID_MODEL_NAME,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_MODEL_NAME(), newAlias));
+            throw new KylinException(MODEL_NAME_INVALID, newAlias);
         }
 
         fusionModelService.renameDataModel(modelRenameRequest.getProject(), modelId, newAlias);
@@ -535,7 +549,7 @@ public class NModelController extends NBasicController {
     }
 
     @ApiOperation(value = "updateModelStatus", tags = { "AI" }, notes = "Update Body: model_id, new_model_name")
-    @PutMapping(value = "/{model:.+}/status")
+    @PutMapping(value = "/{model:.+}/status", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
     public EnvelopeResponse<String> updateModelStatus(@PathVariable("model") String modelId,
             @RequestBody ModelUpdateRequest modelRenameRequest) {
@@ -587,8 +601,7 @@ public class NModelController extends NBasicController {
         checkRequiredArg(MODEL_ID, modelId);
         checkRequiredArg(NEW_MODEL_NAME, newModelName);
         if (!StringUtils.containsOnly(newModelName, ModelService.VALID_NAME_FOR_MODEL)) {
-            throw new KylinException(INVALID_MODEL_NAME,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_MODEL_NAME(), newModelName));
+            throw new KylinException(MODEL_NAME_INVALID, newModelName);
         }
         modelService.cloneModel(modelId, request.getNewModelName(), request.getProject());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
@@ -688,6 +701,16 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
+    @ApiOperation(value = "validateNewModelAlias", tags = { "QE" })
+    @GetMapping(value = "/{model:.+}/export/validation")
+    @ResponseBody
+    public EnvelopeResponse<Boolean> validateExport(@PathVariable("model") String modelId,
+            @RequestParam(value = "project") String project) {
+        String projectName = checkProjectName(project);
+        val validResult = modelService.validateExport(projectName, modelId);
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, validResult, "");
+    }
+
     @ApiOperation(value = "export model", tags = { "QE" }, notes = "Add URL: {model}")
     @GetMapping(value = "/{model:.+}/export")
     @ResponseBody
@@ -699,20 +722,42 @@ public class NModelController extends NBasicController {
             HttpServletResponse response) throws IOException {
         String projectName = checkProjectName(project);
 
-        String host = KylinConfig.getInstanceFromEnv().getModelExportHost();
-        Integer port = KylinConfig.getInstanceFromEnv().getModelExportPort() == -1 ? null
-                : KylinConfig.getInstanceFromEnv().getModelExportPort();
-
-        host = host == null ? serverHost : host;
-        port = port == null ? serverPort : port;
-
-        host = host == null ? request.getServerName() : host;
-        port = port == null ? request.getServerPort() : port;
+        String host = getHost(serverHost, request.getServerName());
+        Integer port = getPort(serverPort, request.getServerPort());
 
         BISyncModel syncModel = modelService.exportModel(projectName, modelId, exportAs, element, host, port);
 
-        String fileName = String.format(Locale.ROOT, "%s_%s_%s", projectName,
-                modelService.getModelById(modelId, projectName).getAlias(),
+        dumpSyncModel(modelId, exportAs, projectName, syncModel, response);
+    }
+
+    @ApiOperation(value = "biExport", tags = { "QE" })
+    @GetMapping(value = "/bi_export")
+    @ResponseBody
+    public void biExport(@RequestParam("model") String modelId, @RequestParam(value = "project") String project,
+            @RequestParam(value = "export_as") SyncContext.BI exportAs,
+            @RequestParam(value = "element", required = false, defaultValue = "AGG_INDEX_COL") SyncContext.ModelElement element,
+            @RequestParam(value = "server_host", required = false) String serverHost,
+            @RequestParam(value = "server_port", required = false) Integer serverPort, HttpServletRequest request,
+            HttpServletResponse response) throws IOException {
+        String projectName = checkProjectName(project);
+
+        String host = getHost(serverHost, request.getServerName());
+        Integer port = getPort(serverPort, request.getServerPort());
+
+        modelService.validateExport(projectName, modelId);
+        BISyncModel syncModel = AclPermissionUtil.isAdmin()
+                ? modelService.exportModel(projectName, modelId, exportAs, element, host, port)
+                : modelService.biExportCustomModel(projectName, modelId, exportAs, element, host, port);
+
+        dumpSyncModel(modelId, exportAs, projectName, syncModel, response);
+    }
+
+    private void dumpSyncModel(String modelId, SyncContext.BI exportAs, String projectName, BISyncModel syncModel,
+            HttpServletResponse response) throws IOException {
+        NDataModelManager manager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), projectName);
+        NDataModel dataModel = manager.getDataModelDesc(modelId);
+        String alias = dataModel.getAlias();
+        String fileName = String.format(Locale.ROOT, "%s_%s_%s", projectName, alias,
                 new SimpleDateFormat("yyyyMMddHHmmss", Locale.getDefault(Locale.Category.FORMAT)).format(new Date()));
         switch (exportAs) {
         case TABLEAU_CONNECTOR_TDS:
@@ -727,6 +772,19 @@ public class NModelController extends NBasicController {
         syncModel.dump(response.getOutputStream());
         response.getOutputStream().flush();
         response.getOutputStream().close();
+    }
+
+    private String getHost(String serverHost, String serverName) {
+        String host = KylinConfig.getInstanceFromEnv().getModelExportHost();
+        host = Optional.ofNullable(Optional.ofNullable(host).orElse(serverHost)).orElse(serverName);
+        return host;
+    }
+
+    private Integer getPort(Integer serverPort, Integer requestServerPort) {
+        Integer port = KylinConfig.getInstanceFromEnv().getModelExportPort() == -1 ? null
+                : KylinConfig.getInstanceFromEnv().getModelExportPort();
+        port = Optional.ofNullable(Optional.ofNullable(port).orElse(serverPort)).orElse(requestServerPort);
+        return port;
     }
 
     @ApiOperation(value = "updateMultiPartitionMapping", tags = { "QE" }, notes = "Add URL: {model}")

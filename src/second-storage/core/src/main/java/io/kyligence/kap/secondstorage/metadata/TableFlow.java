@@ -28,8 +28,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
@@ -124,9 +126,27 @@ public class TableFlow extends RootPersistentEntity
         Preconditions.checkArgument(HasLayoutElement.sameLayout(data, layoutEntity));
     }
 
+    public void cleanTableData(Predicate<? super TableData> filter) {
+        if (filter == null) {
+            return;
+        }
+
+        checkIsNotCachedAndShared();
+        this.tableDataList.removeIf(filter);
+    }
+
     public void cleanTableData() {
         checkIsNotCachedAndShared();
         this.tableDataList.clear();
+    }
+
+    public void removeNodes(List<String> nodeNames) {
+        if (CollectionUtils.isEmpty(nodeNames)) {
+            return;
+        }
+
+        checkIsNotCachedAndShared();
+        this.tableDataList.forEach(tableData -> tableData.removeNodes(nodeNames));
     }
 
     @Override

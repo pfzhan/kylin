@@ -24,7 +24,12 @@
 
 package io.kyligence.kap.engine.spark.job.stage
 
+import java.util.Objects
+
+import org.apache.spark.sql.{Dataset, Row}
 import org.scalatest.funsuite.AnyFunSuite
+
+import scala.collection.mutable
 
 class BuildParamTest extends AnyFunSuite {
   test("basic") {
@@ -44,5 +49,19 @@ class BuildParamTest extends AnyFunSuite {
 
     param.setSkipMaterializedFactTableView(false)
     assert(!param.isSkipMaterializedFactTableView)
+
+    param.setCachedLayoutDS(mutable.HashMap[Long, Dataset[Row]]())
+    assert(Objects.nonNull(param.getCachedLayoutDS))
+
+    param.setCachedLayoutSanity(Some(Map(1L -> 10001L)))
+    assert(param.getCachedLayoutSanity.isDefined)
+
+    param.setCachedIndexInferior(Some(Map(1L -> InferiorGroup(null, null))))
+    assert(param.getCachedIndexInferior.isDefined)
+    assert(Objects.isNull(param.getCachedIndexInferior.get(1L).tableDS))
+    assert(Objects.isNull(param.getCachedIndexInferior.get(1L).reapCount))
+    val ig = InferiorGroup.unapply(param.getCachedIndexInferior.get(1L)).get
+    assert(Objects.isNull(ig._1))
+    assert(Objects.isNull(ig._2))
   }
 }

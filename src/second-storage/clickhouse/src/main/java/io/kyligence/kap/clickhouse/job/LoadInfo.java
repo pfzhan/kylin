@@ -47,25 +47,28 @@ public class LoadInfo {
     final NDataModel model;
     final NDataSegment segment;
     final String segmentId; // it is required for updating meta after load
-    private String oldSegmentId;
+    String oldSegmentId;
     final String[] nodeNames;
     final LayoutEntity layout;
     final List<List<SegmentFileStatus>> shardFiles;
+    final TableFlow tableFlow;
 
     private String targetDatabase;
     private String targetTable;
+
+    List<TableData> containsOldSegmentTableData = new ArrayList<>(10);
 
     @SuppressWarnings("unchecked")
     private static <T> List<T> newFixedSizeList(int size) {
         return (List<T>) Arrays.asList(new Object[size]);
     }
 
-    private LoadInfo(NDataModel model, NDataSegment segment, LayoutEntity layout, String[] nodeNames) {
-        this(model, segment, null, layout, nodeNames);
+    private LoadInfo(NDataModel model, NDataSegment segment, LayoutEntity layout, String[] nodeNames, TableFlow tableFlow) {
+        this(model, segment, null, layout, nodeNames, tableFlow);
     }
 
     private LoadInfo(NDataModel model, NDataSegment segment, String oldSegmentId, LayoutEntity layout,
-            String[] nodeNames) {
+            String[] nodeNames, TableFlow tableFlow) {
         this.model = model;
         this.segment = segment;
         final int shardNumber = nodeNames.length;
@@ -77,6 +80,7 @@ public class LoadInfo {
         for (int i = 0; i < shardNumber; ++i) {
             this.shardFiles.set(i, new ArrayList<>(100));
         }
+        this.tableFlow = tableFlow;
     }
 
     /**
@@ -103,9 +107,9 @@ public class LoadInfo {
      */
 
     public static LoadInfo distribute(String[] nodeNames, NDataModel model, NDataSegment segment, FileProvider provider,
-            LayoutEntity layout) {
+            LayoutEntity layout, TableFlow tableFlow) {
         int shardNum = nodeNames.length;
-        final LoadInfo info = new LoadInfo(model, segment, layout, nodeNames);
+        final LoadInfo info = new LoadInfo(model, segment, layout, nodeNames, tableFlow);
         val it = provider.getAllFilePaths().iterator();
         int index = 0;
         while (it.hasNext()) {
@@ -128,6 +132,12 @@ public class LoadInfo {
 
     public LoadInfo setOldSegmentId(String oldSegmentId) {
         this.oldSegmentId = oldSegmentId;
+
+        this.tableFlow.getTableDataList().forEach(tableData -> {
+            if (tableData.getAllSegments().contains(oldSegmentId)) {
+                containsOldSegmentTableData.add(tableData);
+            }
+        });
         return this;
     }
 
@@ -179,6 +189,10 @@ public class LoadInfo {
     public void upsertTableData(TableFlow copied, String database, String table, PartitionType partitionType) {
         copied.upsertTableData(layout, tableData -> {
             Preconditions.checkArgument(tableData.getPartitionType() == partitionType);
+            if (tableData.getLayoutID() != layout.getId()) {
+                return;
+            }
+
             if (oldSegmentId != null) {
                 tableData.removePartitions(tablePartition -> tablePartition.getSegmentId().equals(oldSegmentId));
             }

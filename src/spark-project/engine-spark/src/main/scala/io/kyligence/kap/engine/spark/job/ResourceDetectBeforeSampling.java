@@ -39,8 +39,9 @@ public class ResourceDetectBeforeSampling extends SparkApplication implements Re
                 .seqAsJavaList(ResourceDetectUtils.getPaths(dataset.queryExecution().sparkPlan()));
 
         Map<String, Long> resourceSize = Maps.newHashMap();
-        resourceSize.put(String.valueOf(tableName), ResourceDetectUtils
-                .getResourceSize(JavaConverters.asScalaIteratorConverter(paths.iterator()).asScala().toSeq()));
+        resourceSize.put(String.valueOf(tableName),
+                ResourceDetectUtils.getResourceSize(config.isConcurrencyFetchDataSourceSize(),
+                        JavaConverters.asScalaIteratorConverter(paths.iterator()).asScala().toSeq()));
 
         Map<String, String> tableLeafTaskNums = Maps.newHashMap();
         tableLeafTaskNums.put(tableName, ResourceDetectUtils.getPartitions(dataset.queryExecution().executedPlan()));

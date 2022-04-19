@@ -24,7 +24,7 @@
 
 package io.kyligence.kap.metadata.cube.cuboid;
 
-import static org.apache.kylin.common.exception.ServerErrorCode.RULE_BASED_INDEX_METADATA_INCONSISTENT;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.RULE_BASED_INDEX_METADATA_INCONSISTENT;
 
 import java.math.BigInteger;
 import java.util.Collection;

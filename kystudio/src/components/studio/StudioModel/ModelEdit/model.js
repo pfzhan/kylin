@@ -76,6 +76,9 @@ class NModel extends Schama {
       const baseT = modelRenderConfig.baseTop
       const centerL = $(this.renderDom).width() / 2 - modelRenderConfig.tableBoxWidth / 2
       const moveL = layers[0].X - centerL
+      this.renderDom.style.cssText += `margin-left: 0; margin-top: 0;`
+      this._mount.marginClient.top = 0
+      this._mount.marginClient.left = 0
       for (let k = 0; k < layers.length; k++) {
         var currentTable = this.getTableByGuid(layers[k].guid)
         currentTable.drawSize.left = baseL - moveL + layers[k].X
@@ -463,6 +466,7 @@ class NModel extends Schama {
       canvasInfo.coordinate[ntable.alias] = ntable.getMetaCanvasInfo()
     }
     canvasInfo.zoom = this._mount.zoom
+    canvasInfo.marginClient = this._mount.marginClient
     return canvasInfo
   }
   // end
@@ -964,10 +968,12 @@ class NModel extends Schama {
     if (x !== +x || y !== +y) {
       return
     }
+    this._mount.marginClient.left += x
+    this._mount.marginClient.top += y
     for (var i in this.tables) {
       var curTable = this.tables[i]
-      curTable.drawSize.left += x
-      curTable.drawSize.top += y
+      // curTable.drawSize.left += x
+      // curTable.drawSize.top += y
       curTable.checkIsOutOfView(this._mount, curTable.drawSize, this._mount.windowWidth, this._mount.windowHeight)
     }
     this.vm.$nextTick(() => {

@@ -59,7 +59,6 @@
         class="ksd-center ksd-mtb-10" ref="pager"
         :refTag="pageRefTags.userGroupPager"
         :totalSize="groupUsersListSize"
-        :perPageSize="20"
         :curPage="pagination.page_offset+1"
         @handleCurrentChange="handleCurrentChange">
       </kap-pager>
@@ -75,7 +74,7 @@ import { Component } from 'vue-property-decorator'
 import { mapState, mapGetters, mapActions } from 'vuex'
 
 import locales from './locales'
-import { pageRefTags } from 'config'
+import { pageRefTags, bigPageCount } from 'config'
 import GroupEditModal from '../../common/GroupEditModal/index.vue'
 import { handleError, kapConfirm } from 'util/business'
 
@@ -110,7 +109,7 @@ import { handleError, kapConfirm } from 'util/business'
 export default class SecurityGroup extends Vue {
   pageRefTags = pageRefTags
   pagination = {
-    page_size: +localStorage.getItem(this.pageRefTags.userGroupPager) || 20,
+    page_size: +localStorage.getItem(this.pageRefTags.userGroupPager) || bigPageCount,
     page_offset: 0
   }
   filterName = ''

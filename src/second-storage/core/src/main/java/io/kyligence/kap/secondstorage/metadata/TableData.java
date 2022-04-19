@@ -36,6 +36,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import io.kyligence.kap.secondstorage.SecondStorageQueryRouteUtil;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.spark.sql.execution.datasources.jdbc.ShardOptions$;
@@ -235,5 +236,43 @@ public class TableData implements Serializable, WithLayout {
         }
         return allSegmentIds.containsAll(segmentIds);
     }
-    // replace?
+
+    public Set<String> getAllSegments() {
+        if (allSegmentIds == null) {
+            allSegmentIds = partitions.stream().map(TablePartition::getSegmentId).collect(Collectors.toSet());
+        }
+
+        return Collections.unmodifiableSet(allSegmentIds);
+    }
+
+    public void removeNodes(List<String> nodeNames) {
+        if (CollectionUtils.isEmpty(nodeNames)) {
+            return;
+        }
+
+        List<TablePartition> newPartitionList = getPartitions().stream().map(partition -> {
+            Map<String, Long> sizeInNode = new HashMap<>(partition.getSizeInNode());
+            Map<String, List<SegmentFileStatus>> nodeFileMap = new HashMap<>(partition.getNodeFileMap());
+            List<String> shardNodes = new ArrayList<>(partition.getShardNodes());
+
+            nodeNames.forEach(nodeName -> {
+                Preconditions.checkState(partition.getSizeInNode().getOrDefault(nodeName, 0L) == 0);
+
+                sizeInNode.remove(nodeName);
+                nodeFileMap.remove(nodeName);
+            });
+
+            shardNodes.removeAll(nodeNames);
+
+            return new TablePartition.Builder()
+                    .setId(partition.getId())
+                    .setSegmentId(partition.getSegmentId())
+                    .setShardNodes(shardNodes)
+                    .setSizeInNode(sizeInNode)
+                    .setNodeFileMap(nodeFileMap)
+                    .build();
+        }).collect(Collectors.toList());
+
+        newPartitionList.forEach(this::addPartition);
+    }
 }

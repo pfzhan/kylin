@@ -44,6 +44,7 @@ package org.apache.kylin.rest.service;
 
 import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_USER_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.USER_LOGIN_FAILED;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -147,7 +148,7 @@ public class KylinUserService implements UserService {
             managedUser = getKylinUserManager().get(userName);
         } catch (IllegalArgumentException e) {
             logger.error("exception: ", e);
-            throw new UsernameNotFoundException(msg.getUSER_AUTH_FAILED());
+            throw new UsernameNotFoundException(USER_LOGIN_FAILED.getMsg());
         }
         if (managedUser == null) {
             throw new UsernameNotFoundException(String.format(Locale.ROOT, msg.getUSER_NOT_FOUND(), userName));

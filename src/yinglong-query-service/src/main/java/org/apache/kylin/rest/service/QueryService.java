@@ -51,9 +51,9 @@ import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PROJECT_NA
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_SQL_EXPRESSION;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_USER_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
-import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.SAVE_QUERY_FAILED;
-import static org.apache.kylin.common.exception.SystemErrorCode.JOBNODE_API_INVALID;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeSystem.JOB_NODE_QUERY_API_INVALID;
 import static org.apache.kylin.common.util.CheckUtil.checkCondition;
 import static org.springframework.security.acls.domain.BasePermission.ADMINISTRATION;
 
@@ -491,15 +491,14 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
         Message msg = MsgPicker.getMsg();
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         if (!kylinConfig.isQueryNode()) {
-            throw new KylinException(JOBNODE_API_INVALID, msg.getQUERY_NOT_ALLOWED());
+            throw new KylinException(JOB_NODE_QUERY_API_INVALID);
         }
         if (StringUtils.isBlank(sqlRequest.getProject())) {
             throw new KylinException(EMPTY_PROJECT_NAME, msg.getEMPTY_PROJECT_NAME());
         }
         final NProjectManager projectMgr = NProjectManager.getInstance(kylinConfig);
         if (projectMgr.getProject(sqlRequest.getProject()) == null) {
-            throw new KylinException(PROJECT_NOT_EXIST,
-                    String.format(Locale.ROOT, msg.getPROJECT_NOT_FOUND(), sqlRequest.getProject()));
+            throw new KylinException(PROJECT_NOT_EXIST, sqlRequest.getProject());
         }
         if (StringUtils.isBlank(sqlRequest.getSql())) {
             throw new KylinException(EMPTY_SQL_EXPRESSION, msg.getNULL_EMPTY_SQL());
@@ -948,7 +947,7 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
         SchemaMetaData schemaMetaData = new SchemaMetaData(project, projectInstance.getConfig());
 
         List<TableMeta> tableMetas = new LinkedList<>();
-        SetMultimap<String, String> tbl2ccNames = collectComputedColumns(project);
+        SetMultimap<String, String> tbl2ccNames = collectComputedColumns(project, targetModelName);
         for (TableSchema tableSchema : schemaMetaData.getTables()) {
             TableMeta tblMeta = new TableMeta(tableSchema.getCatalog(), tableSchema.getSchema(), tableSchema.getTable(),
                     tableSchema.getType(), tableSchema.getRemarks(), null, null, null, null, null);
@@ -1097,7 +1096,7 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
         LinkedHashMap<String, ColumnMetaWithType> columnMap = Maps.newLinkedHashMap();
         ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(project);
-        SetMultimap<String, String> tbl2ccNames = collectComputedColumns(project);
+        SetMultimap<String, String> tbl2ccNames = collectComputedColumns(project, null);
 
         for (TableSchema tableSchema : schemaMetaData.getTables()) {
             int columnOrdinal = 1;
@@ -1146,16 +1145,24 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
                 columnOrdinal, isNullable, null, null, null, sourceDataType, "");
     }
 
-    private SetMultimap<String, String> collectComputedColumns(String project) {
+    private SetMultimap<String, String> collectComputedColumns(String project, String targetModelName) {
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         SetMultimap<String, String> tbl2ccNames = HashMultimap.create();
         projectManager.listAllRealizations(project).forEach(rea -> {
-            val upperCaseCcNames = rea.getModel().getComputedColumnNames().stream()
-                    .map(str -> str.toUpperCase(Locale.ROOT)).collect(Collectors.toList());
-            tbl2ccNames.putAll(rea.getModel().getRootFactTable().getAlias().toUpperCase(Locale.ROOT), upperCaseCcNames);
-            tbl2ccNames.putAll(rea.getModel().getRootFactTableName().toUpperCase(Locale.ROOT), upperCaseCcNames);
+            val model = rea.getModel();
+            if (StringUtils.isBlank(targetModelName) || StringUtils.equals(targetModelName, model.getAlias())) {
+                val upperCaseCcNames = model.getComputedColumnNames().stream() //
+                        .map(str -> str.toUpperCase(Locale.ROOT)).collect(Collectors.toList());
+                tbl2ccNames.putAll(rea.getModel().getRootFactTable().getAlias().toUpperCase(Locale.ROOT), upperCaseCcNames);
+                tbl2ccNames.putAll(rea.getModel().getRootFactTableName().toUpperCase(Locale.ROOT), upperCaseCcNames);
+            }
         });
         return tbl2ccNames;
+    }
+
+    @VisibleForTesting
+    public SetMultimap<String, String> collectComputedColumnsToTest(String project, String targetModelName){
+        return collectComputedColumns(project, targetModelName);
     }
 
     private boolean shouldExposeColumn(ProjectInstance projectInstance, ColumnMeta columnMeta,

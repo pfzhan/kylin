@@ -35,7 +35,6 @@ import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -65,6 +64,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
@@ -327,9 +327,12 @@ public class ProjectSmartService extends BasicService implements ProjectSmartSer
         aclEvaluate.checkProjectReadPermission(project);
         int[] arr = new int[2];
         NTableMetadataManager tblMgr = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        List<TableDesc> tables = tblMgr.listAllTables();
         Set<String> databaseSet = Sets.newHashSet();
-        tables.forEach(tableDesc -> databaseSet.add(tableDesc.getDatabase()));
+        List<TableDesc> tables = tblMgr.listAllTables().stream()
+                .filter(NTableMetadataManager::isTableAccessible).map(tableDesc -> {
+                    databaseSet.add(tableDesc.getDatabase());
+                    return tableDesc;
+                }).collect(Collectors.toList());
         arr[0] = databaseSet.size();
         arr[1] = tables.size();
         return arr;
@@ -380,7 +383,8 @@ public class ProjectSmartService extends BasicService implements ProjectSmartSer
         aclEvaluate.checkProjectReadPermission(project);
 
         List<NDataModel> dataModels = getManager(NDataModelManager.class, project).listAllModels().stream()
-                .filter(model -> model.isBroken() || !model.fusionModelBatchPart()).collect(Collectors.toList());
+                .filter(model -> model.isBroken() || !model.fusionModelBatchPart())
+                .filter(NDataModelManager::isModelAccessible).collect(Collectors.toList());
         Map<String, Set<Integer>> map = Maps.newHashMap();
         dataModels.forEach(model -> map.putIfAbsent(model.getId(), Sets.newHashSet()));
         if (getManager(NProjectManager.class).getProject(project).isSemiAutoMode()) {

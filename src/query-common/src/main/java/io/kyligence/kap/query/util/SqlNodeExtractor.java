@@ -33,7 +33,6 @@ import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -41,7 +40,6 @@ public class SqlNodeExtractor extends SqlBasicVisitor<SqlNode> {
 
     private List<SqlIdentifier> allSqlIdentifier = Lists.newArrayList();
 
-    @VisibleForTesting
     public static List<SqlIdentifier> getAllSqlIdentifier(String sql) throws SqlParseException {
         SqlNode parsed = CalciteParser.parse(sql);
         SqlNodeExtractor sqlNodeExtractor = new SqlNodeExtractor();

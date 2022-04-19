@@ -24,10 +24,10 @@
 
 package io.kyligence.kap.rest.service;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.rest.response.ProjectStatisticsResponse;
-import io.kyligence.kap.rest.service.task.RecommendationTopNUpdateScheduler;
+import static org.junit.Assert.assertEquals;
+
+import java.util.Map;
+
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.request.FavoriteRuleUpdateRequest;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -43,7 +43,11 @@ import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.util.Map;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.rest.response.ProjectStatisticsResponse;
+import io.kyligence.kap.rest.service.task.RecommendationTopNUpdateScheduler;
 
 public class ProjectSmartServiceTest extends NLocalFileMetadataTestCase {
 
@@ -90,13 +94,13 @@ public class ProjectSmartServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetFavoriteRules() {
         Map<String, Object> favoriteRuleResponse = projectSmartService.getFavoriteRules(PROJECT);
-        Assert.assertEquals(true, favoriteRuleResponse.get("count_enable"));
-        Assert.assertEquals(10.0f, favoriteRuleResponse.get("count_value"));
-        Assert.assertEquals(Lists.newArrayList("userA", "userB", "userC"), favoriteRuleResponse.get("users"));
-        Assert.assertEquals(Lists.newArrayList("ROLE_ADMIN"), favoriteRuleResponse.get("user_groups"));
-        Assert.assertEquals(5L, favoriteRuleResponse.get("min_duration"));
-        Assert.assertEquals(8L, favoriteRuleResponse.get("max_duration"));
-        Assert.assertEquals(true, favoriteRuleResponse.get("duration_enable"));
+        assertEquals(true, favoriteRuleResponse.get("count_enable"));
+        assertEquals(10.0f, favoriteRuleResponse.get("count_value"));
+        assertEquals(Lists.newArrayList("userA", "userB", "userC"), favoriteRuleResponse.get("users"));
+        assertEquals(Lists.newArrayList("ROLE_ADMIN"), favoriteRuleResponse.get("user_groups"));
+        assertEquals(5L, favoriteRuleResponse.get("min_duration"));
+        assertEquals(8L, favoriteRuleResponse.get("max_duration"));
+        assertEquals(true, favoriteRuleResponse.get("duration_enable"));
     }
 
     @Test
@@ -120,41 +124,41 @@ public class ProjectSmartServiceTest extends NLocalFileMetadataTestCase {
 
         projectSmartService.updateRegularRule(PROJECT, request);
         Map<String, Object> favoriteRuleResponse = projectSmartService.getFavoriteRules(PROJECT);
-        Assert.assertEquals(false, favoriteRuleResponse.get("duration_enable"));
-        Assert.assertEquals(false, favoriteRuleResponse.get("submitter_enable"));
-        Assert.assertEquals(Lists.newArrayList("userA", "userB", "userC", "ADMIN"), favoriteRuleResponse.get("users"));
-        Assert.assertEquals(Lists.newArrayList(), favoriteRuleResponse.get("user_groups"));
-        Assert.assertEquals(0L, favoriteRuleResponse.get("min_duration"));
-        Assert.assertEquals(10L, favoriteRuleResponse.get("max_duration"));
-        Assert.assertEquals(true, favoriteRuleResponse.get("recommendation_enable"));
-        Assert.assertEquals(30L, favoriteRuleResponse.get("recommendations_value"));
-        Assert.assertEquals(false, favoriteRuleResponse.get("excluded_tables_enable"));
-        Assert.assertEquals("", favoriteRuleResponse.get("excluded_tables"));
-        Assert.assertEquals(11, favoriteRuleResponse.get("min_hit_count"));
-        Assert.assertEquals(11, favoriteRuleResponse.get("effective_days"));
-        Assert.assertEquals(3, favoriteRuleResponse.get("update_frequency"));
+        assertEquals(false, favoriteRuleResponse.get("duration_enable"));
+        assertEquals(false, favoriteRuleResponse.get("submitter_enable"));
+        assertEquals(Lists.newArrayList("userA", "userB", "userC", "ADMIN"), favoriteRuleResponse.get("users"));
+        assertEquals(Lists.newArrayList(), favoriteRuleResponse.get("user_groups"));
+        assertEquals(0L, favoriteRuleResponse.get("min_duration"));
+        assertEquals(10L, favoriteRuleResponse.get("max_duration"));
+        assertEquals(true, favoriteRuleResponse.get("recommendation_enable"));
+        assertEquals(30L, favoriteRuleResponse.get("recommendations_value"));
+        assertEquals(false, favoriteRuleResponse.get("excluded_tables_enable"));
+        assertEquals("", favoriteRuleResponse.get("excluded_tables"));
+        assertEquals(11, favoriteRuleResponse.get("min_hit_count"));
+        assertEquals(11, favoriteRuleResponse.get("effective_days"));
+        assertEquals(3, favoriteRuleResponse.get("update_frequency"));
 
         // check excluded_tables
         request.setExcludeTablesEnable(true);
         request.setExcludedTables("a.a,b.b,c.c");
         projectSmartService.updateRegularRule(PROJECT, request);
         favoriteRuleResponse = projectSmartService.getFavoriteRules(PROJECT);
-        Assert.assertEquals(true, favoriteRuleResponse.get("excluded_tables_enable"));
-        Assert.assertEquals("a.a,b.b,c.c", favoriteRuleResponse.get("excluded_tables"));
+        assertEquals(true, favoriteRuleResponse.get("excluded_tables_enable"));
+        assertEquals("a.a,b.b,c.c", favoriteRuleResponse.get("excluded_tables"));
         // check excluded_tables
         request.setExcludeTablesEnable(false);
         request.setExcludedTables(null);
         projectSmartService.updateRegularRule(PROJECT, request);
         favoriteRuleResponse = projectSmartService.getFavoriteRules(PROJECT);
-        Assert.assertEquals(false, favoriteRuleResponse.get("excluded_tables_enable"));
-        Assert.assertEquals("", favoriteRuleResponse.get("excluded_tables"));
+        assertEquals(false, favoriteRuleResponse.get("excluded_tables_enable"));
+        assertEquals("", favoriteRuleResponse.get("excluded_tables"));
 
         // check user_groups
         request.setUserGroups(Lists.newArrayList("ROLE_ADMIN", "USER_GROUP1"));
         projectSmartService.updateRegularRule(PROJECT, request);
         favoriteRuleResponse = projectSmartService.getFavoriteRules(PROJECT);
-        Assert.assertEquals(Lists.newArrayList("userA", "userB", "userC", "ADMIN"), favoriteRuleResponse.get("users"));
-        Assert.assertEquals(Lists.newArrayList("ROLE_ADMIN", "USER_GROUP1"), favoriteRuleResponse.get("user_groups"));
+        assertEquals(Lists.newArrayList("userA", "userB", "userC", "ADMIN"), favoriteRuleResponse.get("users"));
+        assertEquals(Lists.newArrayList("ROLE_ADMIN", "USER_GROUP1"), favoriteRuleResponse.get("user_groups"));
 
         // assert if favorite rules' values are empty
         request.setFreqEnable(false);
@@ -176,29 +180,29 @@ public class ProjectSmartServiceTest extends NLocalFileMetadataTestCase {
         projectService.resetProjectConfig(PROJECT, "favorite_rule_config");
         Map<String, Object> favoriteRules = projectSmartService.getFavoriteRules(PROJECT);
 
-        Assert.assertEquals(false, favoriteRules.get("freq_enable"));
-        Assert.assertEquals(0.1f, favoriteRules.get("freq_value"));
+        assertEquals(false, favoriteRules.get("freq_enable"));
+        assertEquals(0.1f, favoriteRules.get("freq_value"));
 
-        Assert.assertEquals(true, favoriteRules.get("count_enable"));
-        Assert.assertEquals(10.0f, favoriteRules.get("count_value"));
+        assertEquals(true, favoriteRules.get("count_enable"));
+        assertEquals(10.0f, favoriteRules.get("count_value"));
 
-        Assert.assertEquals(true, favoriteRules.get("submitter_enable"));
-        Assert.assertEquals(Lists.newArrayList("ADMIN"), favoriteRules.get("users"));
-        Assert.assertEquals(Lists.newArrayList("ROLE_ADMIN"), favoriteRules.get("user_groups"));
+        assertEquals(true, favoriteRules.get("submitter_enable"));
+        assertEquals(Lists.newArrayList("ADMIN"), favoriteRules.get("users"));
+        assertEquals(Lists.newArrayList("ROLE_ADMIN"), favoriteRules.get("user_groups"));
 
-        Assert.assertEquals(false, favoriteRules.get("duration_enable"));
-        Assert.assertEquals(0L, favoriteRules.get("min_duration"));
-        Assert.assertEquals(180L, favoriteRules.get("max_duration"));
+        assertEquals(false, favoriteRules.get("duration_enable"));
+        assertEquals(0L, favoriteRules.get("min_duration"));
+        assertEquals(180L, favoriteRules.get("max_duration"));
 
-        Assert.assertEquals(true, favoriteRules.get("recommendation_enable"));
-        Assert.assertEquals(20L, favoriteRules.get("recommendations_value"));
+        assertEquals(true, favoriteRules.get("recommendation_enable"));
+        assertEquals(20L, favoriteRules.get("recommendations_value"));
 
-        Assert.assertEquals(false, favoriteRules.get("excluded_tables_enable"));
-        Assert.assertEquals("", favoriteRules.get("excluded_tables"));
+        assertEquals(false, favoriteRules.get("excluded_tables_enable"));
+        assertEquals("", favoriteRules.get("excluded_tables"));
 
-        Assert.assertEquals(30, favoriteRules.get("min_hit_count"));
-        Assert.assertEquals(2, favoriteRules.get("effective_days"));
-        Assert.assertEquals(2, favoriteRules.get("update_frequency"));
+        assertEquals(30, favoriteRules.get("min_hit_count"));
+        assertEquals(2, favoriteRules.get("effective_days"));
+        assertEquals(2, favoriteRules.get("update_frequency"));
 
     }
 
@@ -208,21 +212,21 @@ public class ProjectSmartServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(projectSmartService, "recommendationTopNUpdateScheduler",
                 recommendationTopNUpdateScheduler);
         ProjectStatisticsResponse projectStatistics = projectSmartService.getProjectStatistics("gc_test");
-        Assert.assertEquals(1, projectStatistics.getDatabaseSize());
-        Assert.assertEquals(1, projectStatistics.getTableSize());
-        Assert.assertEquals(0, projectStatistics.getLastWeekQueryCount());
-        Assert.assertEquals(0, projectStatistics.getUnhandledQueryCount());
-        Assert.assertEquals(0, projectStatistics.getAdditionalRecPatternCount());
-        Assert.assertEquals(0, projectStatistics.getRemovalRecPatternCount());
-        Assert.assertEquals(0, projectStatistics.getRecPatternCount());
-        Assert.assertEquals(7, projectStatistics.getEffectiveRuleSize());
-        Assert.assertEquals(0, projectStatistics.getApprovedRecCount());
-        Assert.assertEquals(0, projectStatistics.getApprovedAdditionalRecCount());
-        Assert.assertEquals(0, projectStatistics.getApprovedRemovalRecCount());
-        Assert.assertEquals(2, projectStatistics.getModelSize());
-        Assert.assertEquals(0, projectStatistics.getAcceptableRecSize());
+        assertEquals(1, projectStatistics.getDatabaseSize());
+        assertEquals(1, projectStatistics.getTableSize());
+        assertEquals(0, projectStatistics.getLastWeekQueryCount());
+        assertEquals(0, projectStatistics.getUnhandledQueryCount());
+        assertEquals(0, projectStatistics.getAdditionalRecPatternCount());
+        assertEquals(0, projectStatistics.getRemovalRecPatternCount());
+        assertEquals(0, projectStatistics.getRecPatternCount());
+        assertEquals(7, projectStatistics.getEffectiveRuleSize());
+        assertEquals(0, projectStatistics.getApprovedRecCount());
+        assertEquals(0, projectStatistics.getApprovedAdditionalRecCount());
+        assertEquals(0, projectStatistics.getApprovedRemovalRecCount());
+        assertEquals(2, projectStatistics.getModelSize());
+        assertEquals(0, projectStatistics.getAcceptableRecSize());
         Assert.assertFalse(projectStatistics.isRefreshed());
-        Assert.assertEquals(20, projectStatistics.getMaxRecShowSize());
+        assertEquals(20, projectStatistics.getMaxRecShowSize());
 
         FavoriteRuleUpdateRequest request = new FavoriteRuleUpdateRequest();
         request.setProject("gc_test");
@@ -237,35 +241,44 @@ public class ProjectSmartServiceTest extends NLocalFileMetadataTestCase {
         request.setUpdateFrequency("1");
         projectSmartService.updateRegularRule("gc_test", request);
         ProjectStatisticsResponse projectStatistics2 = projectSmartService.getProjectStatistics("gc_test");
-        Assert.assertEquals(7, projectStatistics2.getEffectiveRuleSize());
+        assertEquals(7, projectStatistics2.getEffectiveRuleSize());
 
         ProjectStatisticsResponse statisticsOfProjectDefault = projectSmartService.getProjectStatistics(PROJECT);
-        Assert.assertEquals(3, statisticsOfProjectDefault.getDatabaseSize());
-        Assert.assertEquals(20, statisticsOfProjectDefault.getTableSize());
-        Assert.assertEquals(0, statisticsOfProjectDefault.getLastWeekQueryCount());
-        Assert.assertEquals(0, statisticsOfProjectDefault.getUnhandledQueryCount());
-        Assert.assertEquals(-1, statisticsOfProjectDefault.getAdditionalRecPatternCount());
-        Assert.assertEquals(-1, statisticsOfProjectDefault.getRemovalRecPatternCount());
-        Assert.assertEquals(-1, statisticsOfProjectDefault.getRecPatternCount());
-        Assert.assertEquals(-1, statisticsOfProjectDefault.getEffectiveRuleSize());
-        Assert.assertEquals(-1, statisticsOfProjectDefault.getApprovedRecCount());
-        Assert.assertEquals(-1, statisticsOfProjectDefault.getApprovedAdditionalRecCount());
-        Assert.assertEquals(-1, statisticsOfProjectDefault.getApprovedRemovalRecCount());
-        Assert.assertEquals(8, statisticsOfProjectDefault.getModelSize());
-        Assert.assertEquals(-1, statisticsOfProjectDefault.getAcceptableRecSize());
+        assertEquals(3, statisticsOfProjectDefault.getDatabaseSize());
+        assertEquals(20, statisticsOfProjectDefault.getTableSize());
+        assertEquals(0, statisticsOfProjectDefault.getLastWeekQueryCount());
+        assertEquals(0, statisticsOfProjectDefault.getUnhandledQueryCount());
+        assertEquals(-1, statisticsOfProjectDefault.getAdditionalRecPatternCount());
+        assertEquals(-1, statisticsOfProjectDefault.getRemovalRecPatternCount());
+        assertEquals(-1, statisticsOfProjectDefault.getRecPatternCount());
+        assertEquals(-1, statisticsOfProjectDefault.getEffectiveRuleSize());
+        assertEquals(-1, statisticsOfProjectDefault.getApprovedRecCount());
+        assertEquals(-1, statisticsOfProjectDefault.getApprovedAdditionalRecCount());
+        assertEquals(-1, statisticsOfProjectDefault.getApprovedRemovalRecCount());
+        assertEquals(8, statisticsOfProjectDefault.getModelSize());
+        assertEquals(-1, statisticsOfProjectDefault.getAcceptableRecSize());
         Assert.assertFalse(statisticsOfProjectDefault.isRefreshed());
-        Assert.assertEquals(-1, statisticsOfProjectDefault.getMaxRecShowSize());
+        assertEquals(-1, statisticsOfProjectDefault.getMaxRecShowSize());
+
+        ProjectStatisticsResponse statsOfPrjStreamingTest = projectSmartService.getProjectStatistics("streaming_test");
+        assertEquals(2, statsOfPrjStreamingTest.getDatabaseSize());
+        assertEquals(11, statsOfPrjStreamingTest.getTableSize());
+        getTestConfig().setProperty("kylin.streaming.enabled", "false");
+        statsOfPrjStreamingTest = projectSmartService.getProjectStatistics("streaming_test");
+        assertEquals(1, statsOfPrjStreamingTest.getDatabaseSize());
+        assertEquals(6, statsOfPrjStreamingTest.getTableSize());
+
         recommendationTopNUpdateScheduler.close();
     }
 
     @Test
     public void testGetStreamingProjectStatistics() {
         ProjectStatisticsResponse projectStatistics = projectSmartService.getProjectStatistics("streaming_test");
-        Assert.assertEquals(2, projectStatistics.getDatabaseSize());
-        Assert.assertEquals(11, projectStatistics.getTableSize());
-        Assert.assertEquals(0, projectStatistics.getLastWeekQueryCount());
-        Assert.assertEquals(0, projectStatistics.getUnhandledQueryCount());
-        Assert.assertEquals(11, projectStatistics.getModelSize());
+        assertEquals(2, projectStatistics.getDatabaseSize());
+        assertEquals(11, projectStatistics.getTableSize());
+        assertEquals(0, projectStatistics.getLastWeekQueryCount());
+        assertEquals(0, projectStatistics.getUnhandledQueryCount());
+        assertEquals(11, projectStatistics.getModelSize());
     }
 
 }

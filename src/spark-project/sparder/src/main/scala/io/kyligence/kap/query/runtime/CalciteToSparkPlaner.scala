@@ -132,26 +132,27 @@ class CalciteToSparkPlaner(dataContext: DataContext) extends RelVisitor with Log
     var modelId = ""
     if (rel.getDigest == null) {
       body
-    }
-    try {
-      val layoutEntity = rel.getContext.storageContext.getCandidate.getLayoutEntity
-      layoutId = layoutEntity.getId
-      modelId = layoutEntity.getModel.getId
-    } catch {
-      case e: Throwable => logWarning(s"Calculate layoutId modelId failed ${e.getMessage}")
-    }
-    rel.recomputeDigest()
-    val digestWithoutId = KapRelUtil.getDigestWithoutRelNodeId(rel.getDigest, layoutId, modelId)
-    if (unionLayer >= 1 && TableScanPlan.cacheDf.get.containsKey(digestWithoutId)) {
-      stack.pop()
-      logInfo("Happen Optimized from cache dataframe CacheKey:" + digestWithoutId)
-      TableScanPlan.cacheDf.get.get(digestWithoutId)
     } else {
-      val df = body
-      if (unionLayer >= 1) {
-        TableScanPlan.cacheDf.get.put(digestWithoutId, df)
+      try {
+        val layoutEntity = rel.getContext.storageContext.getCandidate.getLayoutEntity
+        layoutId = layoutEntity.getId
+        modelId = layoutEntity.getModel.getId
+      } catch {
+        case e: Throwable => logWarning(s"Calculate layoutId modelId failed ex:${e.getMessage}")
       }
-      df
+      rel.recomputeDigest()
+      val digestWithoutId = KapRelUtil.getDigestWithoutRelNodeId(rel.getDigest, layoutId, modelId)
+      if (unionLayer >= 1 && TableScanPlan.cacheDf.get.containsKey(digestWithoutId)) {
+        stack.pop()
+        logInfo("Happen Optimized from cache dataframe CacheKey:" + digestWithoutId)
+        TableScanPlan.cacheDf.get.get(digestWithoutId)
+      } else {
+        val df = body
+        if (unionLayer >= 1) {
+          TableScanPlan.cacheDf.get.put(digestWithoutId, df)
+        }
+        df
+      }
     }
   }
 

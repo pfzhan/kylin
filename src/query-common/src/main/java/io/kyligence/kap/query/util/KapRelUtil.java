@@ -34,6 +34,9 @@ import org.apache.kylin.common.util.Pair;
 
 public class KapRelUtil {
 
+    private KapRelUtil() {
+    }
+
     public static String getDigestWithoutRelNodeId(String digest, long layoutId, String modelId) {
         StringBuilder digestWithoutId = new StringBuilder();
         boolean isPointToId = false;
