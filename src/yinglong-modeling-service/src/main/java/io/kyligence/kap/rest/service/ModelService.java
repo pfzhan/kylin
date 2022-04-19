@@ -2267,6 +2267,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
 
             if (SecondStorageUtil.isModelEnable(project, modelId)) {
                 SecondStorage.tableFlowManager(getConfig(), project).get(modelId).ifPresent(tableFlow -> {
+                    SecondStorageUtil.validateProjectLock(project, Collections.singletonList(LockTypeEnum.LOAD.name()));
+
                     val tablePlanManager = SecondStorageUtil.tablePlanManager(getConfig(), project);
                     Preconditions.checkState(tablePlanManager.isPresent());
                     Preconditions.checkState(tablePlanManager.get().get(modelId).isPresent());
