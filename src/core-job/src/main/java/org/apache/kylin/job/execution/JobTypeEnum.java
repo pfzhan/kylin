@@ -42,20 +42,66 @@
 
 package org.apache.kylin.job.execution;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import lombok.Getter;
+
 public enum JobTypeEnum {
-    INDEX_REFRESH, INDEX_MERGE, INDEX_BUILD, INC_BUILD, SNAPSHOT_BUILD, SNAPSHOT_REFRESH,
+    INDEX_REFRESH(Category.BUILD), //
+    INDEX_MERGE(Category.BUILD), //
+    INDEX_BUILD(Category.BUILD), //
+    INC_BUILD(Category.BUILD), //
+    SUB_PARTITION_BUILD(Category.BUILD), // 
+    SUB_PARTITION_REFRESH(Category.BUILD), //
 
-    STREAMING_MERGE, STREAMING_BUILD,
+    SNAPSHOT_BUILD(Category.SNAPSHOT), //
+    SNAPSHOT_REFRESH(Category.SNAPSHOT), //
 
-    SUB_PARTITION_BUILD, SUB_PARTITION_REFRESH, TABLE_SAMPLING, ASYNC_QUERY,
+    STREAMING_MERGE(Category.STREAMING), //
+    STREAMING_BUILD(Category.STREAMING), //
 
-    EXPORT_TO_SECOND_STORAGE, SECOND_STORAGE_MODEL_CLEAN, SECOND_STORAGE_NODE_CLEAN, SECOND_STORAGE_SEGMENT_CLEAN, SECOND_STORAGE_INDEX_CLEAN,
+    ASYNC_QUERY(Category.ASYNC_QUERY), //
 
-    STAGE;
+    EXPORT_TO_SECOND_STORAGE(Category.SECOND_STORAGE), //
+    SECOND_STORAGE_MODEL_CLEAN(Category.SECOND_STORAGE), //
+    SECOND_STORAGE_NODE_CLEAN(Category.SECOND_STORAGE), //
+    SECOND_STORAGE_SEGMENT_CLEAN(Category.SECOND_STORAGE), //
+    SECOND_STORAGE_INDEX_CLEAN(Category.SECOND_STORAGE), //
 
-    public static JobTypeEnum[] getTypesForPrometheus() {
-        // exclude snapshot and sampling
-        return new JobTypeEnum[] { INDEX_REFRESH, INDEX_MERGE, INDEX_BUILD, INC_BUILD, SUB_PARTITION_BUILD,
-                SUB_PARTITION_REFRESH };
+    TABLE_SAMPLING(Category.OTHER), STAGE(Category.OTHER);
+
+    @Getter
+    private final String category;
+
+    JobTypeEnum(String category) {
+        this.category = category;
+    }
+
+    public static class Category {
+        public static final String BUILD = "BUILD";
+        public static final String SNAPSHOT = "SNAPSHOT";
+        public static final String STREAMING = "STREAMING";
+        public static final String SECOND_STORAGE = "SECOND_STORAGE";
+        public static final String ASYNC_QUERY = "ASYNC_QUERY";
+        public static final String OTHER = "OTHER";
+
+        private Category() {
+        }
+    }
+
+    public static List<JobTypeEnum> getJobTypeByCategory(String category) {
+        return Arrays.stream(JobTypeEnum.values()).filter(e -> e.getCategory().equals(category))
+                .collect(Collectors.toList());
+    }
+
+    public static JobTypeEnum getEnumByName(String name) {
+        for (JobTypeEnum value : JobTypeEnum.values()) {
+            if (value.name().equals(name)) {
+                return value;
+            }
+        }
+        return null;
     }
 }

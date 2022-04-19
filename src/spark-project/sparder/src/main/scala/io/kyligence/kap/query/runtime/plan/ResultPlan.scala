@@ -102,8 +102,12 @@ object ResultPlan extends LogEx {
       QueryContext.current.record("collect_result")
 
       val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(df.queryExecution.executedPlan)
+      val (jobCount, stageCount, taskCount) = QueryMetricUtils.collectTaskRelatedMetrics(jobGroup, sparkContext)
       QueryContext.current().getMetrics.setScanRows(scanRows)
       QueryContext.current().getMetrics.setScanBytes(scanBytes)
+      QueryContext.current().getMetrics.setQueryJobCount(jobCount)
+      QueryContext.current().getMetrics.setQueryStageCount(stageCount)
+      QueryContext.current().getMetrics.setQueryTaskCount(taskCount)
 
       val resultTypes = rowType.getFieldList.asScala
       (() => new util.Iterator[util.List[String]] {
@@ -224,9 +228,13 @@ object ResultPlan extends LogEx {
     if (!KylinConfig.getInstanceFromEnv.isUTEnv) {
       val newExecution = QueryToExecutionIDCache.getQueryExecution(queryExecutionId)
       val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(newExecution.executedPlan)
+      val (jobCount, stageCount, taskCount) = QueryMetricUtils.collectTaskRelatedMetrics(jobGroup, sparkContext)
       logInfo(s"scanRows is ${scanRows}, scanBytes is ${scanBytes}")
       QueryContext.current().getMetrics.setScanRows(scanRows)
       QueryContext.current().getMetrics.setScanBytes(scanBytes)
+      QueryContext.current().getMetrics.setQueryJobCount(jobCount)
+      QueryContext.current().getMetrics.setQueryStageCount(stageCount)
+      QueryContext.current().getMetrics.setQueryTaskCount(taskCount)
       QueryContext.current().getMetrics.setResultRowCount(newExecution.executedPlan.metrics.get("numOutputRows")
         .map(_.value).get)
     }

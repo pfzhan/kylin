@@ -78,11 +78,12 @@ public class MetricsConfig {
         METRICS_SCHEDULED_EXECUTOR.scheduleAtFixedRate(() -> {
             Set<String> allProjects = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).listAllProjects()
                     .stream().map(ProjectInstance::getName).collect(Collectors.toSet());
-
+            
             Sets.SetView<String> newProjects = Sets.difference(allProjects, allControlledProjects);
             for (String newProject : newProjects) {
                 log.info("Register project metrics for {}", newProject);
                 MetricsRegistry.registerProjectMetrics(KylinConfig.getInstanceFromEnv(), newProject, host);
+                MetricsRegistry.registerProjectPrometheusMetrics(KylinConfig.getInstanceFromEnv(), newProject);
             }
 
             Sets.SetView<String> outDatedProjects = Sets.difference(allControlledProjects, allProjects);
