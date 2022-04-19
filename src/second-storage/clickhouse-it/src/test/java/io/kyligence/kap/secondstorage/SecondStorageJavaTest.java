@@ -33,6 +33,7 @@ import io.kyligence.kap.clickhouse.job.ClickHouse;
 import io.kyligence.kap.clickhouse.job.ClickHouseModelCleanJob;
 import io.kyligence.kap.clickhouse.job.ClickHouseSegmentCleanJob;
 import io.kyligence.kap.clickhouse.job.Engine;
+import io.kyligence.kap.clickhouse.job.LoadContext;
 import io.kyligence.kap.clickhouse.management.ClickHouseConfigLoader;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.Unsafe;
@@ -457,6 +458,20 @@ public class SecondStorageJavaTest implements JobWaiter {
         waitJobFinish(project, jobId);
         Assert.assertEquals(10000, IncrementalWithIntPartitionTest.getModelRowCount(project, modelId));
         SecondStorageUtil.checkSecondStorageData(project);
+    }
+
+    @Test
+    public void testJobPausedDeserialize() throws Exception {
+        LoadContext c1 = new LoadContext(null);
+        LoadContext c2 = new LoadContext(null);
+        c2.deserializeToString(c1.serializeToString());
+
+        c2.finishSingleFile(new LoadContext.CompletedFileKeyUtil("test", 20000010001L), "file1");
+        c2.finishSegment("segment1", new LoadContext.CompletedSegmentKeyUtil(20000010001L));
+        LoadContext c3 = new LoadContext(null);
+        c3.deserializeToString(c2.serializeToString());
+        Assert.assertTrue(c3.getHistory(new LoadContext.CompletedFileKeyUtil("test", 20000010001L)).contains("file1"));
+        Assert.assertTrue(c3.getHistorySegments(new LoadContext.CompletedSegmentKeyUtil(20000010001L)).contains("segment1"));
     }
 
     @Test(expected = KylinException.class)
