@@ -33,7 +33,6 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.execution.ExecutableState;
 
 import javax.annotation.concurrent.ThreadSafe;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -45,34 +44,34 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class LoadContext {
     public static final String CLICKHOUSE_LOAD_CONTEXT = "P_CLICKHOUSE_LOAD_CONTEXT";
 
-    private final List<String> completedSegments;
+    private final ConcurrentMap<String, List<String>> completedSegments;
     private final ConcurrentMap<String, List<String>> completedFiles;
     private final ConcurrentMap<String, List<String>> history;
-    private final List<String> historySegments;
+    private final ConcurrentMap<String, List<String>> historySegments;
     private final ClickHouseLoad job;
 
     public LoadContext(ClickHouseLoad job) {
         completedFiles = new ConcurrentHashMap<>();
-        completedSegments = new CopyOnWriteArrayList<>();
+        completedSegments = new ConcurrentHashMap<>();
         history = new ConcurrentHashMap<>();
-        historySegments = new ArrayList<>();
+        historySegments = new ConcurrentHashMap<>();
         this.job = job;
     }
 
-    public void finishSingleFile(String replicaName, String file) {
-        completedFiles.computeIfAbsent(replicaName, key -> new CopyOnWriteArrayList<>()).add(file);
+    public void finishSingleFile(CompletedFileKeyUtil keyUtil, String file) {
+        completedFiles.computeIfAbsent(keyUtil.toKey(), key -> new CopyOnWriteArrayList<>()).add(file);
     }
 
-    public void finishSegment(String segment) {
-        completedSegments.add(segment);
+    public void finishSegment(String segment, CompletedSegmentKeyUtil keyUtil) {
+        completedSegments.computeIfAbsent(keyUtil.toKey(), key -> new CopyOnWriteArrayList<>()).add(segment);
     }
 
-    public List<String> getHistory(String replicaName) {
-        return Collections.unmodifiableList(this.history.getOrDefault(replicaName, Collections.emptyList()));
+    public List<String> getHistory(CompletedFileKeyUtil keyUtil) {
+        return Collections.unmodifiableList(this.history.getOrDefault(keyUtil.toKey(), Collections.emptyList()));
     }
 
-    public List<String> getHistorySegments() {
-        return Collections.unmodifiableList(this.historySegments);
+    public List<String> getHistorySegments(CompletedSegmentKeyUtil keyUtil) {
+        return Collections.unmodifiableList(this.historySegments.getOrDefault(keyUtil.toKey(), Collections.emptyList()));
     }
 
     @SneakyThrows
@@ -94,9 +93,9 @@ public class LoadContext {
         historySegments.clear();
 
         history.putAll(historyState.getCompletedFiles() == null ? Collections.emptyMap() : historyState.getCompletedFiles());
-        historySegments.addAll(historyState.getCompletedSegments() == null ? Collections.emptyList() : historyState.getCompletedSegments());
+        historySegments.putAll(historyState.getCompletedSegments() == null ? Collections.emptyMap() : historyState.getCompletedSegments());
         completedFiles.putAll(history);
-        completedSegments.addAll(historySegments);
+        completedSegments.putAll(historySegments);
     }
 
     public ClickHouseLoad getJob() {
@@ -115,11 +114,30 @@ public class LoadContext {
     @AllArgsConstructor
     @NoArgsConstructor
     static class ContextDump {
-        private List<String> completedSegments;
-        private Map<String, List<String>> completedFiles; // kes: replicaName / value: hdfs files
+        private Map<String, List<String>> completedSegments; // CompletedSegmentKeyUtil.toKey / value: segment_ids
+        private Map<String, List<String>> completedFiles; // kes: CompletedFileKeyUtil.toKey / value: hdfs files
 
         static ContextDump getEmptyInstance() {
-            return new ContextDump(Collections.emptyList(), Collections.emptyMap());
+            return new ContextDump(Collections.emptyMap(), Collections.emptyMap());
+        }
+    }
+
+    @AllArgsConstructor
+    public static class CompletedFileKeyUtil {
+        private final String shardName;
+        private final Long layoutId;
+
+        public String toKey() {
+            return this.shardName + "_" + layoutId;
+        }
+    }
+
+    @AllArgsConstructor
+    public static class CompletedSegmentKeyUtil {
+        private final Long layoutId;
+
+        public String toKey() {
+            return String.valueOf(layoutId);
         }
     }
 }
