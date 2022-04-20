@@ -37,8 +37,8 @@ import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_SEGMENT_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_PROJECT_STATUS_ERROR;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_EMPTY_PARAMETER;
 
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -130,7 +130,7 @@ public class OpenSecondStorageEndpoint extends NBasicController {
         modelService.checkSegmentsExistById(request.getModel(), request.getProject(), segIds);
 
         if (segIds == null)
-            throw new KylinException(INVALID_SEGMENT_PARAMETER, MsgPicker.getMsg().getEMPTY_SEGMENT_PARAMETER());
+            throw new KylinException(SEGMENT_EMPTY_PARAMETER);
 
         return Lists.newArrayList(segIds);
     }

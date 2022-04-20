@@ -24,7 +24,9 @@
 
 package io.kyligence.kap.rest.service;
 
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_NOT_EXIST;
 import static org.awaitility.Awaitility.await;
+import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -954,6 +956,17 @@ public class SmartModelServiceTest extends SourceTestCase{
                 normalResponse1.getCreatedModels().get(1).getAlias());
         Assert.assertEquals(normalResponse2.getOptimizedModels().get(2).getAlias(),
                 normalResponse.getCreatedModels().get(0).getAlias());
+    }
+
+    @Test
+    public void testProbeRecommendation_throwsException() {
+        when(modelService.isProjectNotExist(Mockito.anyString())).thenReturn(true);
+        try {
+            modelSmartService.probeRecommendation("SOME_PROJECT", null);
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertEquals(PROJECT_NOT_EXIST.getCodeMsg("SOME_PROJECT"), e.getLocalizedMessage());
+        }
     }
 
 }

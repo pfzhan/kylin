@@ -53,7 +53,7 @@ import org.apache.kylin.common.exception.KylinException;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
-import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_PROJECT_STATUS_ERROR;
 
 import org.apache.kylin.common.msg.MsgPicker;
@@ -300,8 +300,7 @@ public class SecondStorageEndpoint extends NBasicController {
         val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val model = modelManager.getDataModelDescByAlias(modelName);
         if (Objects.isNull(model)) {
-            throw new KylinException(MODEL_NOT_EXIST,
-                    "Model " + modelName + " does not exist in project " + project);
+            throw new KylinException(MODEL_NAME_NOT_EXIST, modelName);
         }
     }
 }

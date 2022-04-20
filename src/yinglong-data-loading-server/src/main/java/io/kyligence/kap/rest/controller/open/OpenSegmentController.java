@@ -26,7 +26,8 @@ package io.kyligence.kap.rest.controller.open;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
-import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_MULTI_PARTITION_DISABLE;
 
 import java.util.List;
 import java.util.Locale;
@@ -102,8 +103,7 @@ public class OpenSegmentController extends BaseController {
                 .findFirst().orElse(null);
 
         if (model == null) {
-            throw new KylinException(MODEL_NOT_EXIST,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelAlias));
+            throw new KylinException(MODEL_NAME_NOT_EXIST, modelAlias);
         }
         if (model.isBroken()) {
             throw new KylinException(ServerErrorCode.MODEL_BROKEN,
@@ -290,8 +290,7 @@ public class OpenSegmentController extends BaseController {
         ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(project);
         if (!projectInstance.getConfig().isMultiPartitionEnabled()) {
-            throw new KylinException(ServerErrorCode.MULTI_PARTITION_DISABLE,
-                    MsgPicker.getMsg().getPROJECT_DISABLE_MLP());
+            throw new KylinException(PROJECT_MULTI_PARTITION_DISABLE, projectInstance.getName());
         }
     }
 

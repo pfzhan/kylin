@@ -24,8 +24,8 @@
 
 package io.kyligence.kap.rest.service;
 
-import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.SQL_NUMBER_EXCEEDS_LIMIT;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_NOT_EXIST;
 
 import java.util.List;
 import java.util.Locale;
@@ -381,8 +381,7 @@ public class ModelSmartService extends BasicService implements ModelSmartSupport
 
     public AbstractContext probeRecommendation(String project, List<String> sqls) {
         if (modelService.isProjectNotExist(project)) {
-            throw new KylinException(PROJECT_NOT_EXIST,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
+            throw new KylinException(PROJECT_NOT_EXIST, project);
         }
         KylinConfig kylinConfig = getManager(NProjectManager.class).getProject(project).getConfig();
         AbstractContext proposeContext = new ModelSelectContext(kylinConfig, project, sqls.toArray(new String[0]));

@@ -51,7 +51,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_SEGMENT_PARAMETER;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_EMPTY_PARAMETER;
 
 public class OpenSecondStorageEndpointTest extends NLocalFileMetadataTestCase {
 
@@ -115,7 +115,7 @@ public class OpenSecondStorageEndpointTest extends NLocalFileMetadataTestCase {
         try {
             openSecondStorageEndpoint.convertSegmentIdWithName(request);
         } catch (KylinException exception) {
-            Assert.assertEquals(INVALID_SEGMENT_PARAMETER.toErrorCode(), exception.getErrorCode());
+            Assert.assertEquals(SEGMENT_EMPTY_PARAMETER.getErrorCode().getCode(), exception.getErrorCode().getCodeString());
             return;
         }
         Assert.fail();
