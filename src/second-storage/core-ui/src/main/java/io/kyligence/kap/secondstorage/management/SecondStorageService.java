@@ -324,6 +324,7 @@ public class SecondStorageService extends BasicService implements SecondStorageU
     }
 
     public List<JobInfoResponse.JobInfo> importSingleModel(String project, String modelName) {
+        SecondStorageUtil.validateProjectLock(project, Collections.singletonList(LockTypeEnum.LOAD.name()));
         val config = KylinConfig.getInstanceFromEnv();
         val modelManager = NDataModelManager.getInstance(config, project);
         val model = modelManager.getDataModelDescByAlias(modelName).getUuid();
