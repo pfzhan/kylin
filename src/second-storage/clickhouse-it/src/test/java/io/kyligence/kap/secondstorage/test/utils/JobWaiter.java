@@ -78,4 +78,9 @@ public interface JobWaiter {
         handler.handle(param);
         return param.getJobId();
     }
+
+    default void waitAllJobFinish(String project) {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        NExecutableManager.getInstance(config, project).getAllExecutables().forEach(exec -> waitJobFinish(project, exec.getId()));
+    }
 }
