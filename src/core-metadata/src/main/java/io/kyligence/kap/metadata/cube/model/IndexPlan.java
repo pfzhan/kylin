@@ -318,7 +318,8 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
     }
 
     public KylinConfig getConfig() {
-        if (config == null) {
+        if(config == null){
+            // when the indexplan is not inited
             return null;
         }
 

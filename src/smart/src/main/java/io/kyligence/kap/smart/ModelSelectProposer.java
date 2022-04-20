@@ -204,8 +204,7 @@ public class ModelSelectProposer extends AbstractProposer {
     }
 
     private void initModel(NDataModel modelDesc) {
-        NTableMetadataManager manager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        modelDesc.init(KylinConfig.getInstanceFromEnv(), manager.getAllTablesMap(), Lists.newArrayList(), project);
+        modelDesc.init(KylinConfig.getInstanceFromEnv(), project, Lists.newArrayList());
     }
 
     private Comparator<NDataModel> modelSorter(ModelTree modelTree) {

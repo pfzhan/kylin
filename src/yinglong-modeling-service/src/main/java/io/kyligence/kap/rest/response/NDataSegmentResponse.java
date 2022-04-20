@@ -28,19 +28,20 @@ import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
-import lombok.val;
 import org.apache.kylin.job.common.SegmentUtil;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.metadata.model.SegmentStatusEnumToDisplay;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
+
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.secondstorage.response.SecondStorageNode;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.val;
 
 @Getter
 @Setter
@@ -108,7 +109,7 @@ public class NDataSegmentResponse extends NDataSegment {
     private boolean hasBaseTableIndexData;
 
     public NDataSegmentResponse() {
-        super();
+        super(false);
     }
 
     public NDataSegmentResponse(NDataflow dataflow, NDataSegment segment) {
@@ -150,7 +151,6 @@ public class NDataSegmentResponse extends NDataSegment {
         setStatusToDisplay(SegmentUtil.getSegmentStatusToDisplay(dataflow.getSegments(), segment, executables));
         setSourceBytesSize(segment.getSourceBytesSize());
         setLastBuildTime(segment.getLastBuildTime());
-        setSegDetails(segment.getSegDetails());
         setMaxBucketId(segment.getMaxBucketId());
         lastModifiedTime = getLastBuildTime() != 0 ? getLastBuildTime() : getCreateTime();
     }

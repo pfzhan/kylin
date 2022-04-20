@@ -208,9 +208,6 @@ public class NIndexPlanManager {
         return ResourceStore.getKylinMetaStore(this.config);
     }
 
-    public void reloadAll() {
-        crud.reloadAll();
-    }
 
     private IndexPlan save(IndexPlan indexPlan) {
         validatePlan(indexPlan);

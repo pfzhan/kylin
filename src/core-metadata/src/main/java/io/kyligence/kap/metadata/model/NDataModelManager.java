@@ -55,6 +55,7 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.hystrix.NCircuitBreaker;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
+import io.kyligence.kap.guava20.shaded.common.collect.Maps;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.exception.ModelBrokenException;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -102,8 +103,8 @@ public class NDataModelManager {
                     throw new ModelBrokenException();
                 }
 
-                model.init(config, getAllTablesMap(),
-                        listAllValidCache().stream().filter(m -> !m.isBroken()).collect(Collectors.toList()), project);
+                model.init(config, project,
+                        listAllValidCache().stream().filter(m -> !m.isBroken()).collect(Collectors.toList()));
                 postModelRepairEvent(model);
                 return model;
             }
@@ -316,19 +317,15 @@ public class NDataModelManager {
         dataModelDesc.checkSingleIncrementingLoadingTable();
         if (!dataModelDesc.getComputedColumnDescs().isEmpty()) {
             List<NDataModel> models = readAllModelsFromSystem(dataModelDesc.getProject());
-            dataModelDesc.init(config, getAllTablesMap(),
-                    models.stream().filter(model -> !model.isBroken()).collect(Collectors.toList()), project);
+            dataModelDesc.init(config, project,
+                    models.stream().filter(model -> !model.isBroken()).collect(Collectors.toList()));
         } else {
-            dataModelDesc.init(config, getAllTablesMap(), Lists.newArrayList(), project);
+            dataModelDesc.init(config, project, Lists.newArrayList());
         }
 
         crud.save(dataModelDesc);
         return dataModelDesc;
 
-    }
-
-    private Map<String, TableDesc> getAllTablesMap() {
-        return NTableMetadataManager.getInstance(config, project).getAllTablesMap();
     }
 
     /**
@@ -361,6 +358,20 @@ public class NDataModelManager {
 
     public static boolean isModelAccessible(NDataModel model) {
         return KylinConfig.getInstanceFromEnv().streamingEnabled() || !model.isStreaming();
+    }
+
+    public static Map<String, TableDesc> getRelatedTables(NDataModel dataModel, String project) {
+        Map<String, TableDesc> tableMapping = Maps.newHashMap();
+        NTableMetadataManager tableManager = NTableMetadataManager.getInstance(dataModel.getConfig(), project);
+        if (dataModel.getRootFactTableName() != null) {
+            tableMapping.put(dataModel.getRootFactTableName(),
+                    tableManager.getTableDesc(dataModel.getRootFactTableName()));
+        }
+        if (dataModel.getJoinTables() != null) {
+            dataModel.getJoinTables().forEach(joinTable -> tableMapping.put(joinTable.getTable(),
+                    tableManager.getTableDesc(joinTable.getTable())));
+        }
+        return tableMapping;
     }
 
     private NProjectManager getProjectManager() {

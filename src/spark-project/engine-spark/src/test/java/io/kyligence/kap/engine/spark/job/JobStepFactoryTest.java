@@ -142,13 +142,13 @@ public class JobStepFactoryTest extends NLocalWithSparkSessionTest {
         NDataflow flowCopy = dsMgr.getDataflow(df.getUuid()).copy();
 
         NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
-        NDataSegment firstSeg = new NDataSegment();
+        NDataSegment firstSeg = NDataSegment.empty();
         firstSeg.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2010-01-02"),
                 SegmentRange.dateToLong("2011-01-01")));
         firstSeg.setStatus(SegmentStatusEnum.READY);
         firstSeg.setId(RandomUtil.randomUUIDStr());
 
-        NDataSegment secondSeg = new NDataSegment();
+        NDataSegment secondSeg = NDataSegment.empty();
         secondSeg.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2011-01-01"),
                 SegmentRange.dateToLong("2013-01-01")));
         secondSeg.setStatus(SegmentStatusEnum.READY);
