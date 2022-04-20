@@ -54,6 +54,7 @@ import org.apache.kylin.common.exception.KylinException;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
+import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_PROJECT_STATUS_ERROR;
 
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -244,16 +245,26 @@ public class SecondStorageEndpoint extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, secondStorageService.getProjectSecondStorageJobs(project), "");
     }
 
-    @PostMapping(value = "/sizeInNode")
+    @PostMapping(value = "/sizeInNode", produces = {HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
     public EnvelopeResponse<Void> sizeInNode(@RequestBody SecondStorageMetadataRequest request) {
         checkProjectName(request.getProject());
+        if (!SecondStorageUtil.isProjectEnable(request.getProject())) {
+            throw new KylinException(SECOND_STORAGE_PROJECT_STATUS_ERROR,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getSECOND_STORAGE_PROJECT_ENABLED(), request.getProject()));
+
+        }
         secondStorageService.sizeInNode(request.getProject());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, null, "");
     }
 
-    @GetMapping(value = "/table/sync")
+    @GetMapping(value = "/table/sync", produces = {HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
     public EnvelopeResponse<ProjectTableSyncResponse> tableSync(String project) {
         checkProjectName(project);
+        if (!SecondStorageUtil.isProjectEnable(project)) {
+            throw new KylinException(SECOND_STORAGE_PROJECT_STATUS_ERROR,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getSECOND_STORAGE_PROJECT_ENABLED(), project));
+
+        }
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, secondStorageService.tableSync(project), "");
     }
 
