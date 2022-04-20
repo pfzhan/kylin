@@ -117,6 +117,9 @@ public class QueryMetricsContext extends QueryMetrics {
         }
         this.totalScanBytes = context.getMetrics().getTotalScanBytes();
         this.totalScanCount = context.getMetrics().getTotalScanRows();
+        this.queryJobCount = context.getMetrics().getQueryJobCount();
+        this.queryStageCount = context.getMetrics().getQueryStageCount();
+        this.queryTaskCount = context.getMetrics().getQueryTaskCount();
         this.isPushdown = context.getQueryTagInfo().isPushdown();
         this.isTimeout = context.getQueryTagInfo().isTimeout();
         if (context.getQueryTagInfo().isStorageCacheUsed() && context.getEngineType() != null) {

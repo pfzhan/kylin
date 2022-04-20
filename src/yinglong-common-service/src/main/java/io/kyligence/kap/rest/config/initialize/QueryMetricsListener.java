@@ -52,10 +52,8 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.query.QueryHistory;
-import io.micrometer.core.instrument.DistributionSummary;
-import io.micrometer.core.instrument.MeterRegistry;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.rest.util.SpringContext;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
@@ -68,10 +66,14 @@ import io.kyligence.kap.common.metrics.MetricsTag;
 import io.kyligence.kap.common.metrics.prometheus.PrometheusMetrics;
 import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryMetrics;
 import io.kyligence.kap.metadata.query.QueryMetricsContext;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.DistributionSummary;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tags;
 import lombok.val;
-import org.apache.kylin.rest.util.SpringContext;
 
 public class QueryMetricsListener {
 
@@ -108,6 +110,7 @@ public class QueryMetricsListener {
         if (!KylinConfig.getInstanceFromEnv().isPrometheusMetricsEnabled()) {
             return;
         }
+        Tags projectTag = Tags.of(MetricsTag.PROJECT.getVal(), queryMetric.getProjectName());
         DistributionSummary.builder(PrometheusMetrics.QUERY_SECONDS.getValue())
                 .tags(MetricsTag.PUSH_DOWN.getVal(), queryMetric.isPushdown() + "", MetricsTag.CACHE.getVal(),
                         queryMetric.isCacheHit() + "", MetricsTag.HIT_INDEX.getVal(), queryMetric.isIndexHit() + "",
@@ -120,6 +123,19 @@ public class QueryMetricsListener {
                 .sla(KylinConfig.getInstanceFromEnv().getMetricsQuerySlaSeconds())
                 .register(meterRegistry)
                 .record(queryMetric.getQueryDuration() * 1.0 / 1000);
+        
+        if (queryMetric.isSucceed()) {
+            DistributionSummary.builder(PrometheusMetrics.QUERY_RESULT_ROWS.getValue()).tags(projectTag)
+                    .distributionStatisticExpiry(Duration.ofDays(1)).register(meterRegistry)
+                    .record(queryMetric.getResultRowCount());
+
+            Counter.builder(PrometheusMetrics.QUERY_JOBS.getValue()).tags(projectTag).register(meterRegistry)
+                    .increment(queryMetric.getQueryJobCount());
+            Counter.builder(PrometheusMetrics.QUERY_STAGES.getValue()).tags(projectTag).register(meterRegistry)
+                    .increment(queryMetric.getQueryStageCount());
+            Counter.builder(PrometheusMetrics.QUERY_TASKS.getValue()).tags(projectTag).register(meterRegistry)
+                    .increment(queryMetric.getQueryTaskCount());
+        }
 
         if (queryMetric.isIndexHit()) {
             DistributionSummary.builder(PrometheusMetrics.QUERY_SCAN_BYTES.getValue())
