@@ -37,7 +37,6 @@ import java.nio.charset.Charset;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -51,15 +50,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import io.kyligence.kap.secondstorage.management.OpenSecondStorageEndpoint;
-import io.kyligence.kap.guava20.shaded.common.collect.ImmutableMap;
-import io.kyligence.kap.secondstorage.management.request.ProjectTableSyncResponse;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.time.DateUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
-import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
@@ -122,6 +117,7 @@ import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.guava20.shaded.common.collect.ImmutableList;
+import io.kyligence.kap.guava20.shaded.common.collect.ImmutableMap;
 import io.kyligence.kap.guava20.shaded.common.collect.Lists;
 import io.kyligence.kap.guava20.shaded.common.collect.Maps;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
@@ -131,7 +127,6 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
-import io.kyligence.kap.util.ExecAndComp;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.service.JobService;
 import io.kyligence.kap.rest.service.ModelService;
@@ -146,11 +141,13 @@ import io.kyligence.kap.secondstorage.ddl.ShowDatabases;
 import io.kyligence.kap.secondstorage.ddl.ShowTables;
 import io.kyligence.kap.secondstorage.enums.LockOperateTypeEnum;
 import io.kyligence.kap.secondstorage.enums.LockTypeEnum;
+import io.kyligence.kap.secondstorage.management.OpenSecondStorageEndpoint;
 import io.kyligence.kap.secondstorage.management.SecondStorageEndpoint;
 import io.kyligence.kap.secondstorage.management.SecondStorageService;
 import io.kyligence.kap.secondstorage.management.request.ModelEnableRequest;
 import io.kyligence.kap.secondstorage.management.request.ProjectEnableRequest;
 import io.kyligence.kap.secondstorage.management.request.ProjectLockOperateRequest;
+import io.kyligence.kap.secondstorage.management.request.ProjectTableSyncResponse;
 import io.kyligence.kap.secondstorage.management.request.RecoverRequest;
 import io.kyligence.kap.secondstorage.management.request.SecondStorageMetadataRequest;
 import io.kyligence.kap.secondstorage.management.request.StorageRequest;
@@ -161,6 +158,7 @@ import io.kyligence.kap.secondstorage.metadata.TableFlow;
 import io.kyligence.kap.secondstorage.metadata.TablePartition;
 import io.kyligence.kap.secondstorage.metadata.TablePlan;
 import io.kyligence.kap.secondstorage.test.utils.JobWaiter;
+import io.kyligence.kap.util.ExecAndComp;
 import lombok.SneakyThrows;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -917,70 +915,6 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
 
             secondStorageService.sizeInNode(getProject());
 
-        }
-    }
-
-    @Test
-    public void testLockOperate() throws Exception {
-        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse()) {
-            build_load_query("testSingleShard", false, 1, null, clickhouse1);
-
-            val lockOperateRequest1 = new ProjectLockOperateRequest();
-
-            lockOperateRequest1.setProject(getProject());
-            lockOperateRequest1.setLockTypes(Arrays.asList(LockTypeEnum.LOAD.name(), LockTypeEnum.QUERY.name()));
-            lockOperateRequest1.setOperateType(LockOperateTypeEnum.LOCK.name());
-
-            EnvelopeResponse<Void> envelopeResponse = secondStorageEndpoint.lockOperate(lockOperateRequest1);
-
-            ClickHouseSimpleITTestUtils.checkLockOperateResult(envelopeResponse,
-                    Arrays.asList(LockTypeEnum.LOAD.name(), LockTypeEnum.QUERY.name()), getProject());
-
-            val lockOperateRequest2 = new ProjectLockOperateRequest();
-
-            lockOperateRequest2.setProject(getProject());
-            lockOperateRequest2.setLockTypes(Collections.singletonList(LockTypeEnum.ALL.name()));
-            lockOperateRequest2.setOperateType(LockOperateTypeEnum.LOCK.name());
-
-            Assert.assertThrows(KylinException.class, () -> secondStorageEndpoint.lockOperate(lockOperateRequest2));
-
-            val lockOperateRequest3 = new ProjectLockOperateRequest();
-
-            lockOperateRequest3.setProject(getProject());
-            lockOperateRequest3.setLockTypes(Arrays.asList(LockTypeEnum.LOAD.name(), LockTypeEnum.QUERY.name()));
-            lockOperateRequest3.setOperateType(LockOperateTypeEnum.UNLOCK.name());
-
-            envelopeResponse = secondStorageEndpoint.lockOperate(lockOperateRequest3);
-
-            Assertions.assertEquals(envelopeResponse.getCode(), "000");
-
-            val lockOperateRequest4 = new ProjectLockOperateRequest();
-
-            lockOperateRequest4.setProject(getProject());
-            lockOperateRequest4.setLockTypes(Collections.singletonList(LockTypeEnum.ALL.name()));
-            lockOperateRequest4.setOperateType(LockOperateTypeEnum.LOCK.name());
-
-            envelopeResponse = secondStorageEndpoint.lockOperate(lockOperateRequest4);
-            ClickHouseSimpleITTestUtils.checkLockOperateResult(envelopeResponse,
-                    Collections.singletonList(LockTypeEnum.ALL.name()), getProject());
-
-            val lockOperateRequest5 = new ProjectLockOperateRequest();
-
-            lockOperateRequest5.setProject(getProject());
-            lockOperateRequest5.setLockTypes(Arrays.asList(LockTypeEnum.LOAD.name(), LockTypeEnum.QUERY.name()));
-            lockOperateRequest5.setOperateType(LockOperateTypeEnum.LOCK.name());
-
-            Assert.assertThrows(KylinException.class, () -> secondStorageEndpoint.lockOperate(lockOperateRequest5));
-
-            val lockOperateRequest6 = new ProjectLockOperateRequest();
-
-            lockOperateRequest6.setProject(getProject());
-            lockOperateRequest6.setLockTypes(Collections.singletonList(LockTypeEnum.ALL.name()));
-            lockOperateRequest6.setOperateType(LockOperateTypeEnum.UNLOCK.name());
-
-            envelopeResponse = secondStorageEndpoint.lockOperate(lockOperateRequest6);
-
-            Assertions.assertEquals(envelopeResponse.getCode(), "000");
         }
     }
 

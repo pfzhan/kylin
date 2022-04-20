@@ -402,24 +402,25 @@ public class StreamingJobService extends BasicService {
         }).sorted(comparator).collect(Collectors.toList());
         List<StreamingJobResponse> targetList = PagingUtil.cutPage(filterList, offset, limit).stream()
                 .collect(Collectors.toList());
-        if (targetList != null) {
+        if (CollectionUtils.isNotEmpty(targetList)) {
             Map<String, NDataModel> modelMap = getAllDataModels(jobFilter.getProject());
-            targetList.stream().forEach(entry -> {
-                val id = entry.getId();
-                val uuid = id.substring(0, id.lastIndexOf("_"));
-                val dataModel = modelMap.get(uuid);
-                if (dataModel != null) {
-                    if (dataModel.isBroken() || isBatchModelBroken(dataModel)) {
-                        entry.setModelBroken(true);
-                    } else {
-                        val mgr = indexPlanService.getManager(NIndexPlanManager.class, entry.getProject());
-                        entry.setModelIndexes(mgr.getIndexPlan(uuid).getAllLayouts().size());
-                        entry.setPartitionDesc(dataModel.getPartitionDesc());
-                    }
-                }
-            });
+            targetList.forEach(jobResponse -> setModelInfo(jobResponse, modelMap));
         }
         return new DataResult<>(targetList, filterList.size(), offset, limit);
+    }
+
+    void setModelInfo(StreamingJobResponse jobResponse, Map<String, NDataModel> modelMap) {
+        val uuid = StreamingUtils.getModelId(jobResponse.getId());
+        val dataModel = modelMap.get(uuid);
+        if (dataModel == null || dataModel.isBroken() || isBatchModelBroken(dataModel)
+                || getManager(NDataflowManager.class, jobResponse.getProject()).getDataflow(uuid)
+                        .checkBrokenWithRelatedInfo()) {
+            jobResponse.setModelBroken(true);
+            return;
+        }
+        val mgr = indexPlanService.getManager(NIndexPlanManager.class, jobResponse.getProject());
+        jobResponse.setModelIndexes(mgr.getIndexPlan(uuid).getAllLayouts().size());
+        jobResponse.setPartitionDesc(dataModel.getPartitionDesc());
     }
 
     private List<ProjectInstance> getAllProjects(String project) {

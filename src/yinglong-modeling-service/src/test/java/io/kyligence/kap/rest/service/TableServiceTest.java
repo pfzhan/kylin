@@ -600,7 +600,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         Assert.assertNotNull(buildJobMeta);
         Assert.assertNotNull(mergeJobMeta);
         for (TableDesc table : tableManager.listAllTables()) {
-            if (table.getKafkaConfig() != null
+            if (table.isKafkaTable()
                     && "P_LINEORDER_STR".equalsIgnoreCase(table.getKafkaConfig().getName())) {
                 tableService.unloadTable(project, table.getIdentity(), true);
             }

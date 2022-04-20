@@ -21,40 +21,11 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package io.kyligence.kap.streaming.jobs;
 
-package io.kyligence.kap.rest.request;
+public interface GracefulStopInterface {
 
-import java.util.Objects;
+    void setStopFlag(boolean stopFlag);
 
-import org.apache.kylin.rest.request.SQLRequest;
-
-import lombok.Getter;
-import lombok.Setter;
-
-@Getter
-@Setter
-public class AsyncQuerySQLRequest extends SQLRequest {
-
-    private String separator = ",";
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (!(o instanceof AsyncQuerySQLRequest)) {
-            return false;
-        }
-        if (!super.equals(o)) {
-            return false;
-        }
-        AsyncQuerySQLRequest that = (AsyncQuerySQLRequest) o;
-        return Objects.equals(separator, that.separator);
-    }
-
-    @Override
-    public int hashCode() {
-
-        return Objects.hash(super.hashCode(), separator);
-    }
+    boolean getStopFlag();
 }

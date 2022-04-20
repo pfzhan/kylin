@@ -51,7 +51,6 @@ import org.apache.kylin.common.exception.QueryErrorCode;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
@@ -762,12 +761,7 @@ public class ModelSemanticHelper extends BasicService {
     }
 
     public boolean doHandleSemanticUpdate(String project, String model, NDataModel originModel, String start,
-            String end) {
-        return doHandleSemanticUpdate(project, model, originModel, start, end, true).getFirst();
-    }
-
-    public Pair<Boolean, Boolean> doHandleSemanticUpdate(String project, String model, NDataModel originModel,
-            String start, String end, boolean needCleanSecondStorage) {
+                                          String end) {
         val config = KylinConfig.getInstanceFromEnv();
         val indePlanManager = NIndexPlanManager.getInstance(config, project);
         val modelMgr = NDataModelManager.getInstance(config, project);
@@ -783,9 +777,9 @@ public class ModelSemanticHelper extends BasicService {
             removeUselessDimensions(savedIndexPlan, newModel.getEffectiveDimensions().keySet(), false, config);
             modelMgr.updateDataModel(newModel.getUuid(),
                     copyForWrite -> copyForWrite.setSemanticVersion(copyForWrite.getSemanticVersion() + 1));
-            boolean isClean = handleReloadData(newModel, originModel, project, start, end, needCleanSecondStorage);
+            handleReloadData(newModel, originModel, project, start, end);
             optRecManagerV2.discardAll(model);
-            return Pair.newPair(true, isClean);
+            return true;
         }
 
         // measure changed: does not matter to auto created cuboids' data, need refresh rule based cuboids
@@ -798,9 +792,8 @@ public class ModelSemanticHelper extends BasicService {
             removeUselessDimensions(indexPlan, newModel.getEffectiveDimensions().keySet(), true, config);
         }
 
-        boolean result = hasRulebaseLayoutChange(indexPlan.getRuleBasedIndex(),
+        return hasRulebaseLayoutChange(indexPlan.getRuleBasedIndex(),
                 indePlanManager.getIndexPlan(indexPlan.getId()).getRuleBasedIndex());
-        return Pair.newPair(result, false);
     }
 
     public boolean isDimNotOnlyAdd(NDataModel originModel, NDataModel newModel) {
@@ -843,7 +836,7 @@ public class ModelSemanticHelper extends BasicService {
     }
 
     // if partitionDesc, mpCol, joinTable, FilterCondition changed, we need reload data from datasource
-    private boolean isSignificantChange(NDataModel originModel, NDataModel newModel) {
+    public boolean isSignificantChange(NDataModel originModel, NDataModel newModel) {
         return isDifferent(originModel.getPartitionDesc(), newModel.getPartitionDesc())
                 || !Objects.equals(originModel.getRootFactTable(), newModel.getRootFactTable())
                 || !originModel.getJoinsGraph().match(newModel.getJoinsGraph(), Maps.newHashMap())
@@ -920,8 +913,7 @@ public class ModelSemanticHelper extends BasicService {
         return SourceFactory.getSource(tableDesc).getSegmentRange(start, end);
     }
 
-    private boolean handleReloadData(NDataModel newModel, NDataModel oriModel, String project, String start, String end,
-            boolean needCleanSecondStorage) {
+    private void handleReloadData(NDataModel newModel, NDataModel oriModel, String project, String start, String end) {
         val config = KylinConfig.getInstanceFromEnv();
         val dataflowManager = NDataflowManager.getInstance(config, project);
         var df = dataflowManager.getDataflow(newModel.getUuid());
@@ -930,7 +922,8 @@ public class ModelSemanticHelper extends BasicService {
         dataflowManager.updateDataflow(df.getUuid(), copyForWrite -> {
             copyForWrite.setSegments(new Segments<>());
         });
-        boolean isClean = cleanModelWithSecondStorage(newModel.getUuid(), project, needCleanSecondStorage);
+
+        cleanModelWithSecondStorage(newModel.getUuid(), project);
 
         String modelId = newModel.getUuid();
         NDataModelManager modelManager = NDataModelManager.getInstance(config, project);
@@ -962,15 +955,13 @@ public class ModelSemanticHelper extends BasicService {
                 dataflowManager.fillDfManually(df, segmentRanges);
             }
         }
-        return isClean;
     }
 
-    private boolean cleanModelWithSecondStorage(String modelId, String project, boolean needCleanSecondStorage) {
+    private void cleanModelWithSecondStorage(String modelId, String project) {
         if (SecondStorageUtil.isModelEnable(project, modelId)) {
             SecondStorageUpdater updater = SpringContext.getBean(SecondStorageUpdater.class);
-            return updater.onUpdate(project, modelId, needCleanSecondStorage);
+            updater.cleanModel(project, modelId);
         }
-        return false;
     }
 
     public BuildIndexResponse handleIndexPlanUpdateRule(String project, String model, RuleBasedIndex oldRule,

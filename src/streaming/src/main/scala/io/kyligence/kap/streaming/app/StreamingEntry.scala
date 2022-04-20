@@ -24,12 +24,8 @@
 
 package io.kyligence.kap.streaming.app
 
-import java.text.SimpleDateFormat
-import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong}
-import java.util.{Locale, TimeZone}
-
-import com.google.common.base.Preconditions
-import io.kyligence.kap.engine.spark.job.{KylinBuildEnv, NSparkCubingUtil, UdfManager}
+import io.kyligence.kap.engine.spark.job.NSparkCubingUtil
+import io.kyligence.kap.guava20.shaded.common.base.Preconditions
 import io.kyligence.kap.metadata.cube.cuboid.{NSpanningTree, NSpanningTreeFactory}
 import io.kyligence.kap.metadata.cube.model.{NCubeJoinedFlatTableDesc, NDataflow, NDataflowManager}
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils
@@ -40,88 +36,69 @@ import io.kyligence.kap.streaming.jobs.{StreamingDFBuildJob, StreamingJobUtils, 
 import io.kyligence.kap.streaming.manager.StreamingJobManager
 import io.kyligence.kap.streaming.metadata.StreamingJobMeta
 import io.kyligence.kap.streaming.request.StreamingJobStatsRequest
-import io.kyligence.kap.streaming.util.{JobExecutionIdHolder, JobKiller}
+import io.kyligence.kap.streaming.util.JobKiller
 import org.apache.commons.collections.CollectionUtils
 import org.apache.commons.lang3.StringUtils
 import org.apache.kylin.common.KylinConfig
-import org.apache.kylin.common.util.TimeZoneUtils
-import org.apache.kylin.job.execution.JobTypeEnum
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.streaming.StreamingQueryListener.{QueryProgressEvent, QueryStartedEvent, QueryTerminatedEvent}
 import org.apache.spark.sql.streaming.{StreamingQueryListener, Trigger}
-import org.apache.spark.sql.{DataFrame, Dataset, Row, SparkSession, functions => F}
+import org.apache.spark.sql.{DataFrame, Dataset, Row, functions => F}
 import org.apache.spark.storage.StorageLevel
 
+import java.text.SimpleDateFormat
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong}
+import java.util.{Locale, TimeZone}
 import scala.collection.mutable.ArrayBuffer
 
 object StreamingEntry
   extends Logging {
-  var entry: StreamingEntry = null
+  var entry: StreamingEntry = _
 
   def main(args: Array[String]): Unit = {
-    entry = new StreamingEntry(args)
-
-    val buildEnv = KylinBuildEnv.getOrCreate(KylinConfig.getInstanceFromEnv)
-    entry.getOrCreateSparkSession(buildEnv.sparkConf)
-    entry.execute()
-  }
-
-  def self(): StreamingEntry = {
-    entry
+    entry = new StreamingEntry()
+    entry.execute(args)
   }
 
   def stop(): Unit = {
     if (entry != null) {
-      entry.gracefulStop.set(true)
+      entry.setStopFlag(true)
     }
   }
 }
 
-class StreamingEntry(args: Array[String]) extends StreamingApplication with Logging {
-  val (prj, dataflowId, duration, watermark) = (args(0), args(1), args(2).toInt, args(3))
-  val gracefulStop = new AtomicBoolean(false)
+class StreamingEntry
+  extends StreamingBuildApplication with Logging {
   val tableRefreshAcc = new AtomicLong()
-  var rateTriggerDuration = 60 * 1000
-  var dataflow: NDataflow = null
-  var trigger: Trigger = null
+  val rateTriggerDuration: Long = TimeUnit.MINUTES.toMillis(1)
   val minMaxBuffer = new ArrayBuffer[(Long, Long)](1)
-  var jobExecId: Integer = null
+  val gracefulStop: AtomicBoolean = new AtomicBoolean(false)
+  lazy val dataflow: NDataflow = NDataflowManager.getInstance(kylinConfig, project).getDataflow(dataflowId)
+  lazy val trigger: Trigger = if (kylinConfig.getTriggerOnce) Trigger.Once() else Trigger.ProcessingTime(durationSec * 1000)
 
-  def execute(): Unit = {
-    log.info("{}, {}, {}", prj, dataflowId, String.valueOf(duration))
-    val config = KylinConfig.getInstanceFromEnv
-    TimeZoneUtils.setDefaultTimeZone(config)
-    val jobId = StreamingUtils.getJobId(dataflowId, JobTypeEnum.STREAMING_BUILD.name)
+  def doExecute(): Unit = {
+    log.info("StreamingEntry:{}, {}, {}, {}", project, dataflowId, String.valueOf(durationSec), distMetaUrl)
+    Preconditions.checkState(NProjectManager.getInstance(kylinConfig).getProject(project) != null,
+      s"metastore can not find this project %s", project)
 
-    UdfManager.create(ss)
-    registerStreamListener(ss, config, jobId, prj, duration, minMaxBuffer)
-    jobExecId = reportApplicationInfo(config, prj, dataflowId, JobTypeEnum.STREAMING_BUILD.name, StreamingUtils.getProcessId)
-    JobExecutionIdHolder.setJobExecutionId(jobId, jobExecId)
+    registerStreamListener()
 
-    val prjMgr = NProjectManager.getInstance(config)
-    val baseCheckpointLocation = config.getStreamingBaseCheckpointLocation
-    Preconditions.checkState(baseCheckpointLocation != null, "base checkpoint location must be configured", baseCheckpointLocation)
-    val triggerOnce = config.getTriggerOnce
-
-    trigger = if (triggerOnce) Trigger.Once() else Trigger.ProcessingTime(duration * 1000)
-    Preconditions.checkState(prjMgr.getProject(prj) != null, "metastore can not find this project %s", prj)
-
-    val (query, timeColumn, streamFlatTable) = generateStreamQueryForOneModel(ss, prj, dataflowId, watermark)
-    Preconditions.checkState(query != null, s"generate query for one model failed for project:  $prj dataflowId: %s", dataflowId)
+    val (query, timeColumn, streamFlatTable) = generateStreamQueryForOneModel()
+    Preconditions.checkState(query != null, s"generate query for one model failed for project:  $project dataflowId: %s", dataflowId)
     Preconditions.checkState(timeColumn != null,
-      s"streaming query must have time partition column for project:  $prj dataflowId: %s", dataflowId)
+      s"streaming query must have time partition column for project:  $project dataflowId: %s", dataflowId)
 
-    val builder = startRealtimeBuildStreaming(streamFlatTable, timeColumn, query, baseCheckpointLocation)
-    addShutdownListener(gracefulStop, prj, jobId)
+    val builder = startRealtimeBuildStreaming(streamFlatTable, timeColumn, query)
+    addShutdownListener()
 
     startTableRefreshThread(streamFlatTable)
-    startJobExecutionIdCheckThread(gracefulStop, prj, jobExecId, jobId)
 
     while (!ss.sparkContext.isStopped) {
-      if (gracefulStop.get()) {
+      if (getStopFlag()) {
         ss.streams.active.foreach(_.stop())
         builder.shutdown()
-        gracefulStop.set(false)
+        setStopFlag(false)
         closeSparkSession()
       } else {
         ss.streams.awaitAnyTermination(10000)
@@ -133,17 +110,16 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
   }
 
   def startRealtimeBuildStreaming(streamFlatTable: CreateStreamingFlatTable, timeColumn: String,
-                                  query: Dataset[Row], baseCheckpointLocation: String):
+                                  query: Dataset[Row]):
   StreamingDFBuildJob = {
     val nSpanningTree = createSpanningTree(dataflow)
 
     logInfo(s"start query for model : ${streamFlatTable.model().toString}")
-    val builder = new StreamingDFBuildJob(prj)
+    val builder = new StreamingDFBuildJob(project)
     query
       .writeStream
       .option("checkpointLocation", baseCheckpointLocation + "/" + streamFlatTable.model().getId)
       .foreachBatch { (batchDF: DataFrame, batchId: Long) =>
-        // MetricsGroup.counterInc(MetricsName.BATCH_TIMES, MetricsCategory.MODEL, df.getModelAlias)
         // field time have overlap
         val microBatchEntry = new MicroBatchEntry(batchDF, batchId, timeColumn, streamFlatTable,
           dataflow, nSpanningTree, builder, null)
@@ -161,22 +137,22 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
     val flatTableCount: Long = batchDF.count()
     val timeColumn = microBatchEntry.timeColumn
     val minMaxTime = batchDF
-      .agg(F.max(F.col(timeColumn)), F.min(F.col(timeColumn)))
+      .agg(F.min(F.col(timeColumn)), F.max(F.col(timeColumn)))
       .collect()
       .head
     val batchId = microBatchEntry.batchId
     logInfo(s"start process batch: ${batchId} minMaxTime is ${minMaxTime}")
     if (minMaxTime.getTimestamp(0) != null && minMaxTime.getTimestamp(1) != null) {
-      val (maxTime, minTime) = (minMaxTime.getTimestamp(0).getTime, minMaxTime.getTimestamp(1).getTime)
+      val (minTime, maxTime) = (minMaxTime.getTimestamp(0).getTime, minMaxTime.getTimestamp(1).getTime)
       minMaxBuffer.append((minTime, maxTime))
-      val batchSeg = StreamingSegmentManager.allocateSegment(ss, microBatchEntry.sr, dataflowId, prj, minTime, maxTime)
+      val batchSeg = StreamingSegmentManager.allocateSegment(ss, microBatchEntry.sr, dataflowId, project, minTime, maxTime)
       if (batchSeg != null && !StringUtils.isEmpty(batchSeg.getId)) {
         microBatchEntry.streamFlatTable.seg = batchSeg
         val encodedStreamDataset = microBatchEntry.streamFlatTable.encodeStreamingDataset(batchSeg,
           microBatchEntry.df.getModel, batchDF)
         val batchBuildJob = new BuildJobEntry(
           ss,
-          prj,
+          project,
           dataflowId,
           flatTableCount,
           batchSeg,
@@ -192,12 +168,9 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
     batchDF.unpersist(true)
   }
 
-  def generateStreamQueryForOneModel(ss: SparkSession, project: String, dataflowId: String, watermark: String):
+  def generateStreamQueryForOneModel():
   (Dataset[Row], String, CreateStreamingFlatTable) = {
     val originConfig = KylinConfig.getInstanceFromEnv
-
-    val dfMgr: NDataflowManager = NDataflowManager.getInstance(originConfig, project)
-    dataflow = dfMgr.getDataflow(dataflowId)
 
     val flatTableDesc = new NCubeJoinedFlatTableDesc(dataflow.getIndexPlan)
     val nSpanningTree = createSpanningTree(dataflow)
@@ -205,7 +178,6 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
     val flatTable = CreateStreamingFlatTable(flatTableDesc, null, nSpanningTree, ss, null, partitionColumn, watermark)
 
     val streamingJobMgr = StreamingJobManager.getInstance(originConfig, project)
-    val jobId = StreamingUtils.getJobId(dataflowId, JobTypeEnum.STREAMING_BUILD.name)
     val jobMeta: StreamingJobMeta = streamingJobMgr.getStreamingJobByUuid(jobId)
     val config = StreamingJobUtils.getStreamingKylinConfig(originConfig, getJobParams(jobMeta), dataflowId, project)
     val flatDataset = flatTable.generateStreamingDataset(config)
@@ -219,18 +191,20 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
   }
 
   def startTableRefreshThread(streamFlatTable: CreateStreamingFlatTable): Unit = {
-    if (streamFlatTable.shouldRefreshTable) {
-      val tableRefreshThread = new Thread() {
-        override def run(): Unit = {
-          while (isRunning(gracefulStop)) {
-            tableRefreshAcc.getAndAdd(1)
-            StreamingUtils.sleep(rateTriggerDuration)
-          }
+    if (!streamFlatTable.shouldRefreshTable()) {
+      return
+    }
+
+    val tableRefreshThread = new Thread() {
+      override def run(): Unit = {
+        while (isRunning) {
+          tableRefreshAcc.getAndAdd(1)
+          StreamingUtils.sleep(rateTriggerDuration)
         }
       }
-      tableRefreshThread.setDaemon(true)
-      tableRefreshThread.start()
     }
+    tableRefreshThread.setDaemon(true)
+    tableRefreshThread.start()
   }
 
   def refreshTable(streamFlatTable: CreateStreamingFlatTable): Unit = {
@@ -244,8 +218,7 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
     }
   }
 
-  def registerStreamListener(ss: SparkSession, config: KylinConfig, jobId: String, projectId: String, windowSize: Int,
-                             minMaxBuffer: ArrayBuffer[(Long, Long)]): Unit = {
+  def registerStreamListener(): Unit = {
     def getTime(time: String): Long = {
       // Spark official time format
       // @param timestamp Beginning time of the trigger in ISO8601 format, i.e. UTC timestamps.
@@ -271,18 +244,18 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
         val now = System.currentTimeMillis()
         var minDataLatency = 0L
         var maxDataLatency = 0L
-        if (!minMaxBuffer.isEmpty) {
-          minDataLatency = (now - minMaxBuffer(0)._2) + windowSize * 1000
-          maxDataLatency = (now - minMaxBuffer(0)._1) + windowSize * 1000
+        if (minMaxBuffer.nonEmpty) {
+          minDataLatency = (now - minMaxBuffer(0)._1) + durationSec * 1000
+          maxDataLatency = (now - minMaxBuffer(0)._2) + durationSec * 1000
           minMaxBuffer.clear()
         }
         val durationMs = progress.durationMs.get("triggerExecution").longValue()
-        val request = new StreamingJobStatsRequest(jobId, projectId, batchRows, batchRows / windowSize, durationMs,
+        val request = new StreamingJobStatsRequest(jobId, project, batchRows, batchRows / durationSec, durationMs,
           time, minDataLatency, maxDataLatency)
-        val rest = createRestSupport(config)
+        val rest = createRestSupport(kylinConfig)
         try {
           request.setJobExecutionId(jobExecId)
-          request.setJobType(JobTypeEnum.STREAMING_BUILD.name())
+          request.setJobType(jobType.name())
           rest.execute(rest.createHttpPut("/streaming_jobs/stats"), request)
         } catch {
           case e: Exception => logError("Streaming Stats Rest Request Failed...", e)
@@ -293,7 +266,7 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
     })
   }
 
-  def addShutdownListener(stop: AtomicBoolean, project: String, jobId: String): Unit = {
+  def addShutdownListener(): Unit = {
     ss.streams.addListener(new StreamingQueryListener() {
       override def onQueryStarted(event: QueryStartedEvent): Unit = {
 
@@ -303,7 +276,7 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
         StreamingUtils.replayAuditlog()
         if (isGracefulShutdown(project, jobId)) {
           log.info("onQueryProgress begin to shutdown streaming build job (" + event + ")")
-          stop.set(true)
+          setStopFlag(true)
         }
       }
 
@@ -312,6 +285,15 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
         JobKiller.killApplication(jobId)
       }
     })
+  }
+
+
+  override def getStopFlag: Boolean = {
+    gracefulStop.get()
+  }
+
+  override def setStopFlag(stopFlag: Boolean): Unit = {
+    gracefulStop.set(stopFlag)
   }
 }
 

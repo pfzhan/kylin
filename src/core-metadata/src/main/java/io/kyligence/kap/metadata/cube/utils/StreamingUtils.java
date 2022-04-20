@@ -79,6 +79,10 @@ public class StreamingUtils {
         return modelId + "_" + jobType.toLowerCase(Locale.ROOT).substring(10);
     }
 
+    public static String getModelId(String jobId) {
+        return jobId.substring(0, jobId.lastIndexOf("_"));
+    }
+
     public static String parseStreamingDuration(String duration) {
         if (duration == null || "".equals(duration.trim())) {
             return "30";

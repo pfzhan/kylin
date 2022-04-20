@@ -93,6 +93,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import io.kyligence.kap.tool.bisync.model.MeasureDef;
+import io.kyligence.kap.guava20.shaded.common.base.Supplier;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
@@ -125,7 +126,6 @@ import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.handler.SecondStorageIndexCleanJobHandler;
-import org.apache.kylin.job.handler.SecondStorageModelCleanJobHandler;
 import org.apache.kylin.job.handler.SecondStorageSegmentCleanJobHandler;
 import org.apache.kylin.job.handler.SecondStorageSegmentLoadJobHandler;
 import org.apache.kylin.job.manager.JobManager;
@@ -1258,7 +1258,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
             EventBusFactory.getInstance().postSync(new StreamingJobDropEvent(project, modelId));
         }
 
-        cleanModelWithSecondStorage(modelId, project);
+        disableSecondStorageModel(project, modelId);
 
         val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
@@ -1282,7 +1282,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
             NDataSegment[] nDataSegments = segments.toArray(segmentsArray);
             nDataflowUpdate.setToRemoveSegs(nDataSegments);
             dataflowManager.updateDataflow(nDataflowUpdate);
-            cleanModelWithSecondStorage(modelId, project);
+            disableSecondStorageModel(project, modelId);
         }
         offlineModelIfNecessary(dataflowManager, modelId);
     }
@@ -1296,15 +1296,6 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                     String.format(Locale.ROOT, MsgPicker.getMsg().getMODEL_CAN_NOT_PURGE(), dataModelDesc.getAlias()));
         }
         purgeModel(modelId, project);
-    }
-
-    private void cleanModelWithSecondStorage(String modelId, String project) {
-        if (SecondStorageUtil.isModelEnable(project, modelId)) {
-            val jobHandler = new SecondStorageModelCleanJobHandler();
-            final JobParam param = SecondStorageJobParamUtil.modelCleanParam(project, modelId, getUsername());
-            getManager(JobManager.class, project).addJob(param, jobHandler);
-            SecondStorageUtil.disableModel(project, modelId);
-        }
     }
 
     public void cloneModel(String modelId, String newModelName, String project) {
@@ -1676,8 +1667,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         if (!StringUtils.isEmpty(rootFactTableName)
                 && (modelType != NDataModel.ModelType.BATCH && modelType != NDataModel.ModelType.STREAMING)) {
             val mgr = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), modelRequest.getProject());
-            val TableDesc = mgr.getTableDesc(rootFactTableName);
-            if (TableDesc != null && TableDesc.getKafkaConfig() != null && TableDesc.getKafkaConfig().hasBatchTable()) {
+            val tableDesc = mgr.getTableDesc(rootFactTableName);
+            if (tableDesc != null && tableDesc.isKafkaTable() && tableDesc.getKafkaConfig().hasBatchTable()) {
                 val fullColumnName = modelRequest.getPartitionDesc().getPartitionDateColumn();
                 val columnName = fullColumnName.substring(fullColumnName.indexOf(".") + 1);
                 val hasPartitionColumn = modelRequest.getSimplifiedDimensions().stream()
@@ -2276,6 +2267,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
 
             if (SecondStorageUtil.isModelEnable(project, modelId)) {
                 SecondStorage.tableFlowManager(getConfig(), project).get(modelId).ifPresent(tableFlow -> {
+                    SecondStorageUtil.validateProjectLock(project, Collections.singletonList(LockTypeEnum.LOAD.name()));
+
                     val tablePlanManager = SecondStorageUtil.tablePlanManager(getConfig(), project);
                     Preconditions.checkState(tablePlanManager.isPresent());
                     Preconditions.checkState(tablePlanManager.get().get(modelId).isPresent());
@@ -2343,8 +2336,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
             request.setPartitionDesc(partitionDesc);
             request.setSaveOnly(true);
             request.setMultiPartitionDesc(multiPartitionDesc);
-            boolean isClean = updateSecondStorageModel(project, modelId, true);
-            updateDataModelSemantic(project, request, !isClean);
+
+            updateDataModelSemantic(project, request);
         }
     }
 
@@ -2849,16 +2842,10 @@ public class ModelService extends BasicService implements TableModelSupporter, P
     }
 
     public BuildBaseIndexResponse updateDataModelSemantic(String project, ModelRequest request) {
-        return updateDataModelSemantic(project, request, true, true);
+        return updateDataModelSemantic(project, request, true);
     }
 
-    public BuildBaseIndexResponse updateDataModelSemantic(String project, ModelRequest request, boolean needClean) {
-        return updateDataModelSemantic(project, request, needClean, true);
-    }
-
-    public BuildBaseIndexResponse updateDataModelSemantic(String project, ModelRequest request, boolean needClean,
-            boolean isCheckFlat) {
-        final boolean[] isClean = { needClean };
+    public BuildBaseIndexResponse updateDataModelSemantic(String project, ModelRequest request, boolean isCheckFlat) {
         try {
             return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 aclEvaluate.checkProjectWritePermission(project);
@@ -2908,24 +2895,21 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                     checkFlatTableSql(newModel);
                 }
 
-                val result = semanticUpdater.doHandleSemanticUpdate(project, modelId, originModel, request.getStart(),
-                        request.getEnd(), isClean[0]);
-                var needBuild = result.getFirst();
-                if (result.getSecond()) {
-                    isClean[0] = false;
-                }
+                val needBuild = semanticUpdater.doHandleSemanticUpdate(project, modelId, originModel, request.getStart(),
+                        request.getEnd());
+
                 updateExcludedCheckerResult(project, request);
                 baseIndexUpdater.setSecondStorageEnabled(request.isWithSecondStorage());
-                baseIndexUpdater.setNeedCleanSecondStorage(isClean[0]);
                 BuildBaseIndexResponse baseIndexResponse = baseIndexUpdater.update(indexPlanService);
                 if (!request.isSaveOnly() && (needBuild || baseIndexResponse.hasIndexChange())) {
                     semanticUpdater.buildForModel(project, modelId);
                 }
                 modelChangeSupporters.forEach(listener -> listener.onUpdate(project, modelId));
-                if (baseIndexResponse.isCleanSecondStorage()) {
-                    isClean[0] = false;
-                }
-                changeSecondStorageIfNeeded(project, request, isClean[0]);
+
+                changeSecondStorageIfNeeded(
+                        project,
+                        request,
+                        () -> !semanticUpdater.isSignificantChange(originModel, modelManager.getDataModelDesc(modelId)));
                 return baseIndexResponse;
             }, project);
         } catch (TransactionException te) {
@@ -2937,23 +2921,32 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         }
     }
 
-    public boolean updateSecondStorageModel(String project, String modelId, boolean needCleanSecondStorage) {
-        if (SecondStorageUtil.isModelEnable(project, modelId)) {
-            SecondStorageUpdater updater = SpringContext.getBean(SecondStorageUpdater.class);
-            return updater.onUpdate(project, modelId, needCleanSecondStorage);
+    public String updateSecondStorageModel(String project, String modelId) {
+        if (!SecondStorageUtil.isModelEnable(project, modelId)) {
+            return "";
         }
-        return false;
+
+        SecondStorageUpdater updater = SpringContext.getBean(SecondStorageUpdater.class);
+        return updater.updateIndex(project, modelId);
     }
 
-    public void changeSecondStorageIfNeeded(String project, ModelRequest request, boolean needClean) {
+    private void disableSecondStorageModel(String project, String modelId) {
+        if (SecondStorageUtil.isModelEnable(project, modelId)) {
+            SecondStorageUpdater updater = SpringContext.getBean(SecondStorageUpdater.class);
+            updater.disableModel(project, modelId);
+        }
+    }
+
+    public void changeSecondStorageIfNeeded(String project, ModelRequest request, Supplier<Boolean> needClean) {
         // disable second storage
         if (request.getId() != null && SecondStorageUtil.isModelEnable(project, request.getId())
                 && !request.isWithSecondStorage()) {
             SecondStorageUtil.validateDisableModel(project, request.getId());
-            if (needClean) {
-                triggerModelClean(project, request.getId());
+            if (Boolean.TRUE.equals(needClean.get())) {
+                disableSecondStorageModel(project, request.getId());
+            } else {
+                SecondStorageUtil.disableModel(project, request.getId());
             }
-            SecondStorageUtil.disableModel(project, request.getId());
         } else if (request.getId() != null && !SecondStorageUtil.isModelEnable(project, request.getId())
                 && request.isWithSecondStorage()) {
             val indexPlanManager = getManager(NIndexPlanManager.class, project);
@@ -2965,12 +2958,6 @@ public class ModelService extends BasicService implements TableModelSupporter, P
             }
             SecondStorageUtil.initModelMetaData(project, request.getId());
         }
-    }
-
-    private void triggerModelClean(String project, String model) {
-        val jobHandler = new SecondStorageModelCleanJobHandler();
-        final JobParam param = SecondStorageJobParamUtil.modelCleanParam(project, model, BasicService.getUsername());
-        getManager(JobManager.class, project).addJob(param, jobHandler);
     }
 
     public void updateExcludedCheckerResult(String project, ModelRequest request) {
@@ -4250,7 +4237,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         setRequest(request, model, removeAffectedModel, changeTypeAffectedModel, projectName);
         request.setColumnsFetcher((tableRef, isFilterCC) -> TableRef.filterColumns(
                 tableRef.getIdentity().equals(tableDesc.getIdentity()) ? tableDesc : tableRef, isFilterCC));
-        updateDataModelSemantic(projectName, request, true, false);
+        updateDataModelSemantic(projectName, request, false);
     }
 
     @Override

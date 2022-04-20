@@ -26,7 +26,7 @@ package io.kyligence.kap.common.persistence.metadata;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.List;
+import java.util.Collection;
 import java.util.NavigableSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -133,7 +133,7 @@ public abstract class MetadataStore {
         }
     }
 
-    public void dump(ResourceStore store, List<String> resources) throws Exception {
+    public void dump(ResourceStore store, Collection<String> resources) throws Exception {
         for (String resPath : resources) {
             val raw = store.getResource(resPath);
             putResource(raw, null, UnitOfWork.DEFAULT_EPOCH_ID);

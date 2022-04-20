@@ -75,7 +75,7 @@ public class RawResource {
     private long timestamp;
     private long mvcc;
 
-    private static class ByteSourceSerializer extends JsonSerializer<ByteSource> {
+    public static class ByteSourceSerializer extends JsonSerializer<ByteSource> {
         @Override
         public void serialize(ByteSource value, JsonGenerator gen, SerializerProvider serializers)
                 throws IOException, JsonProcessingException {
@@ -84,7 +84,7 @@ public class RawResource {
         }
     }
 
-    private static class BytesourceDeserializer extends JsonDeserializer<ByteSource> {
+    public static class BytesourceDeserializer extends JsonDeserializer<ByteSource> {
         @Override
         public ByteSource deserialize(JsonParser p, DeserializationContext ctxt)
                 throws IOException, JsonProcessingException {

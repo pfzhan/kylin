@@ -4105,10 +4105,10 @@ public class ModelServiceTest extends SourceTestCase {
         request.setWithSecondStorage(true);
         request.setUuid(model);
         BuildBaseIndexResponse changedResponse = mock(BuildBaseIndexResponse.class);
-        Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded("default", request, true);
+        Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded("default", request, () -> true);
 
         when(changedResponse.hasTableIndexChange()).thenReturn(true);
-        modelService.changeSecondStorageIfNeeded(project, request, true);
+        modelService.changeSecondStorageIfNeeded(project, request, () -> true);
         Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
 
         val modelRequest = modelService.convertToRequest(modelService.getModelById(model, project));
@@ -4116,8 +4116,8 @@ public class ModelServiceTest extends SourceTestCase {
     }
 
     @Test
-    public void testDropModelWithSecondStorage() throws IOException {
-        val model = "741ca86a-1f13-46da-a59f-95fb68615e3a";
+    public void testChangePartitionDescWithSecondStorage() throws Exception {
+        val model = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         val project = "default";
         MockSecondStorage.mock("default", new ArrayList<>(), this);
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
@@ -4128,47 +4128,13 @@ public class ModelServiceTest extends SourceTestCase {
             return null;
         }, project);
         SecondStorageUtil.initModelMetaData("default", model);
-        Assert.assertTrue(indexPlanManager.getIndexPlan(model).containBaseTableLayout());
-        ModelRequest request = new ModelRequest();
-        request.setWithSecondStorage(true);
-        request.setUuid(model);
-        BuildBaseIndexResponse changedResponse = mock(BuildBaseIndexResponse.class);
-        Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded("default", request, true);
-        when(changedResponse.hasTableIndexChange()).thenReturn(true);
+        Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
 
-        modelService.dropModel(model, project, false);
-
-        val tableFlowManager = SecondStorageUtil.tableFlowManager(KylinConfig.getInstanceFromEnv(), project);
-        val tableFlow = tableFlowManager.get().get(model);
-        Assert.assertFalse(tableFlow.isPresent());
-    }
-
-    @Test
-    public void testPurgeModelWithSecondStorage() throws IOException {
-        val model = "741ca86a-1f13-46da-a59f-95fb68615e3a";
-        val project = "default";
-        MockSecondStorage.mock("default", new ArrayList<>(), this);
-        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            indexPlanManager.updateIndexPlan(model, indexPlan -> {
-                indexPlan.createAndAddBaseIndex(indexPlan.getModel());
-            });
-            return null;
-        }, project);
-        SecondStorageUtil.initModelMetaData("default", model);
-        Assert.assertTrue(indexPlanManager.getIndexPlan(model).containBaseTableLayout());
-        ModelRequest request = new ModelRequest();
-        request.setWithSecondStorage(true);
-        request.setUuid(model);
-        BuildBaseIndexResponse changedResponse = mock(BuildBaseIndexResponse.class);
-        Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded("default", request, true);
-        when(changedResponse.hasTableIndexChange()).thenReturn(true);
-
-        modelService.purgeModel(model, project);
-
-        val tableFlowManager = SecondStorageUtil.tableFlowManager(KylinConfig.getInstanceFromEnv(), project);
-        val tableFlow = tableFlowManager.get().get(model);
-        Assert.assertFalse(tableFlow.isPresent());
+        val modelRequest = prepare();
+        modelRequest.setWithSecondStorage(true);
+        modelRequest.getPartitionDesc().setPartitionDateColumn("TRANS_ID");
+        modelService.updateDataModelSemantic("default", modelRequest);
+        Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
     }
 
     @Test
@@ -4615,50 +4581,6 @@ public class ModelServiceTest extends SourceTestCase {
             Assert.assertTrue(e instanceof KylinException);
             Assert.assertTrue(e.getMessage().contains(MODEL_ID_NOT_EXIST.getMsg("abc")));
         }
-    }
-
-    @Test
-    public void changeSecondStorageIfNeeded() throws IOException {
-        val models = new ArrayList<>(modelService.listAllModelIdsInProject("default"));
-        val model = "741ca86a-1f13-46da-a59f-95fb68615e3a";
-        MockSecondStorage.mock("default", new ArrayList<>(), this);
-        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            indexPlanManager.updateIndexPlan(model, indexPlan -> {
-                indexPlan.createAndAddBaseIndex(indexPlan.getModel());
-            });
-            return null;
-        }, "default");
-        SecondStorageUtil.initModelMetaData("default", model);
-        Assert.assertTrue(indexPlanManager.getIndexPlan(model).containBaseTableLayout());
-        ModelRequest request = new ModelRequest();
-        request.setWithSecondStorage(false);
-        request.setUuid(model);
-        BuildBaseIndexResponse emptyResponse = new BuildBaseIndexResponse();
-        BuildBaseIndexResponse changedResponse = mock(BuildBaseIndexResponse.class);
-        Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded("default", request, true);
-
-        when(changedResponse.hasTableIndexChange()).thenReturn(true);
-        modelService.changeSecondStorageIfNeeded("default", request, true);
-        Assert.assertFalse(SecondStorageUtil.isModelEnable("default", model));
-
-        ModelRequest request2 = new ModelRequest();
-        request2.setWithSecondStorage(true);
-        request2.setUuid(model);
-        modelService.changeSecondStorageIfNeeded("default", request2, true);
-        Assert.assertTrue(SecondStorageUtil.isModelEnable("default", model));
-
-        ModelRequest request3 = new ModelRequest();
-        request3.setWithSecondStorage(true);
-        request3.setUuid(model);
-        modelService.changeSecondStorageIfNeeded("default", request3, true);
-        Assert.assertTrue(SecondStorageUtil.isModelEnable("default", model));
-
-        ModelRequest request4 = new ModelRequest();
-        request4.setWithSecondStorage(false);
-        request4.setUuid(model);
-        modelService.changeSecondStorageIfNeeded("default", request4, true);
-        Assert.assertFalse(SecondStorageUtil.isModelEnable("default", model));
     }
 
     @Test

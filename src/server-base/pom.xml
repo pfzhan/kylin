@@ -91,12 +91,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-systools</artifactId>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>  
-        <dependency>
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-external-swagger</artifactId>
         </dependency>
@@ -107,6 +101,21 @@
             <scope>test</scope>
         </dependency>
 
+
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-source-jdbc</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-datasource-sdk</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-smart</artifactId>
+        </dependency>
         <!-- these plug-in modules, should not have API dependencies -->
 
         <dependency>
@@ -182,10 +191,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-actuator</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-actuator-autoconfigure</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.session</groupId>

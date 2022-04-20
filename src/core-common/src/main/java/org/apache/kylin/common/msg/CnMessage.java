@@ -1830,12 +1830,12 @@ public class CnMessage extends Message {
 
     @Override
     public String getSECOND_STORAGE_PROJECT_ENABLED() {
-        return "加载失败，项目 %s 未开启分层存储。";
+        return "项目 %s 未开启分层存储。";
     }
 
     @Override
     public String getSECOND_STORAGE_MODEL_ENABLED() {
-        return "加载失败，模型 %s 未开启分层存储。";
+        return "模型 %s 未开启分层存储。";
     }
 
     @Override

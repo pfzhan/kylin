@@ -99,9 +99,12 @@ public class StreamingDFBuildJobTest extends StreamingTestCase {
         var nSpanningTree = NSpanningTreeFactory.fromLayouts(layoutEntitys, DATAFLOW_ID);
         val model = df.getModel();
         val builder = Mockito.spy(new StreamingDFBuildJob(PROJECT));
-        val streamingEntry = new StreamingEntry(new String[] { PROJECT, DATAFLOW_ID, "3000", "", "-1" });
+        val streamingEntry = new StreamingEntry();
+        streamingEntry.parseParams(new String[] { PROJECT, DATAFLOW_ID, "3000", "", "xx" });
         val ss = createSparkSession();
-        val tuple3 = streamingEntry.generateStreamQueryForOneModel(ss, PROJECT, DATAFLOW_ID, null);
+        streamingEntry.setSparkSession(ss);
+
+        val tuple3 = streamingEntry.generateStreamQueryForOneModel();
         val batchDF = tuple3._1();
         val streamFlatTable = tuple3._3();
 

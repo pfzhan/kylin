@@ -86,7 +86,6 @@ import org.apache.kylin.common.util.TimeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -549,7 +548,6 @@ public abstract class KylinConfigBase implements Serializable {
         return Long.parseLong(getOptional("kylin.metadata.audit-log.max-size", "500000"));
     }
 
-    @VisibleForTesting
     public void setMetadataUrl(String metadataUrl) {
         setProperty("kylin.metadata.url", metadataUrl);
     }
@@ -1521,6 +1519,11 @@ public abstract class KylinConfigBase implements Serializable {
     public long getStreamingJobExecutionIdCheckInterval() {
         return TimeUtil.timeStringAs(getOptional("kylin.streaming.job-execution-id-check-interval", "1m"),
                 TimeUnit.MINUTES);
+    }
+
+    public long getStreamingJobMetaRetainedTime() {
+        return TimeUtil.timeStringAs(getOptional("kylin.streaming.job-meta-retained-time", "2h"),
+                TimeUnit.MILLISECONDS);
     }
 
     public String getSparkEngineBuildStepsToSkip() {

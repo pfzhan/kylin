@@ -157,8 +157,10 @@ public class SecondStorageEndpoint extends NBasicController {
 
     @ApiOperation(value = "deleteProjectNodes")
     @DeleteMapping(value = "/project/state", produces = {HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
-    public EnvelopeResponse<List<String>> deleteProjectNodes(ProjectNodeRequest request) {
+    public EnvelopeResponse<List<String>> deleteProjectNodes(ProjectNodeRequest request,
+                                                             @RequestParam(name = "shard_names") List<String> shardNames) {
         checkProjectName(request.getProject());
+        request.setShardNames(shardNames);
 
         if (!SecondStorageUtil.isProjectEnable(request.getProject())) {
             throw new KylinException(INVALID_PARAMETER, String.format(Locale.ROOT, "Project %s is not enable second storage", request.getProject()));
@@ -170,10 +172,6 @@ public class SecondStorageEndpoint extends NBasicController {
 
         List<String> shards = SecondStorageNodeHelper.getAllPairs();
         if (!shards.containsAll(request.getShardNames())) {
-            throw new KylinException(INVALID_PARAMETER, String.format(Locale.ROOT, "Second storage shard names not contains %s", request.getShardNames()));
-        }
-
-        if (shards.size() == request.getShardNames().size()) {
             throw new KylinException(INVALID_PARAMETER, String.format(Locale.ROOT, "Second storage shard names not contains %s", request.getShardNames()));
         }
 

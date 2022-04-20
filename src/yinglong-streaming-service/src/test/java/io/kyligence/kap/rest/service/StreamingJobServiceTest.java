@@ -96,6 +96,7 @@ import io.kyligence.kap.metadata.streaming.StreamingJobStatsManager;
 import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
 import io.kyligence.kap.rest.request.StreamingJobActionEnum;
 import io.kyligence.kap.rest.request.StreamingJobFilter;
+import io.kyligence.kap.rest.response.StreamingJobResponse;
 import io.kyligence.kap.streaming.constants.StreamingConstants;
 import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import io.kyligence.kap.streaming.metadata.StreamingJobMeta;
@@ -333,6 +334,66 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(4, mgr.getIndexPlan("cd2b9a23-699c-4699-b0dd-38c9412b3dfd").getAllLayouts().size());
 
         streamingJobsStatsManager.deleteAllStreamingJobStats();
+    }
+
+    @Test
+    public void testSetModelInfo() {
+        val modelMap = new HashMap<String, NDataModel>();
+        StreamingJobManager streamingJobManager = StreamingJobManager.getInstance(getTestConfig(), PROJECT);
+        String buildJobId = StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_BUILD.name());
+        val buildMeta = streamingJobManager.getStreamingJobByUuid(buildJobId);
+
+        // test ModelIndex & PartitionDesc
+        {
+            modelMap.put(MODEL_ID, streamingJobService.getManager(NDataModelManager.class, PROJECT).getDataModelDesc("4965c827-fbb4-4ea1-a744-3f341a3b030d"));
+            val jobResponse = new StreamingJobResponse(buildMeta);
+            streamingJobService.setModelInfo(jobResponse, modelMap);
+            Assert.assertEquals(64, jobResponse.getModelIndexes().intValue());
+            Assert.assertEquals("SSB_STREAMING.LO_PARTITIONCOLUMN", jobResponse.getPartitionDesc().getPartitionDateColumn());
+        }
+
+        // condition: can't get model from modelMap
+        {
+            modelMap.clear();
+            val jobResponse = new StreamingJobResponse(buildMeta);
+            streamingJobService.setModelInfo(jobResponse, modelMap);
+            Assert.assertTrue(jobResponse.isModelBroken());
+        }
+
+        // condition: model is broken
+        {
+            val model = Mockito.spy(NDataModel.class);
+            model.setBroken(true);
+            modelMap.put(MODEL_ID, model);
+            val jobResponse = new StreamingJobResponse(buildMeta);
+            streamingJobService.setModelInfo(jobResponse, modelMap);
+            Assert.assertTrue(jobResponse.isModelBroken());
+        }
+
+        // condition: batch model is broken
+        {
+            val model = Mockito.spy(NDataModel.class);
+            modelMap.clear();
+            modelMap.put(MODEL_ID, model);
+            Mockito.when(streamingJobService.isBatchModelBroken(model)).thenReturn(true);
+            val jobResponse = new StreamingJobResponse(buildMeta);
+            streamingJobService.setModelInfo(jobResponse, modelMap);
+            Assert.assertTrue(jobResponse.isModelBroken());
+        }
+
+        // condition: dataflow is broken
+        {
+            modelMap.clear();
+            modelMap.put(MODEL_ID, Mockito.spy(NDataModel.class));
+            val dataflow = new NDataflow();
+            dataflow.setBroken(true);
+            val dataflowMgr = Mockito.spy(NDataflowManager.getInstance(getTestConfig(), PROJECT));
+            Mockito.when(streamingJobService.getManager(NDataflowManager.class, PROJECT)).thenReturn(dataflowMgr);
+            Mockito.when(dataflowMgr.getDataflow(Mockito.anyString())).thenReturn(dataflow);
+            val jobResponse = new StreamingJobResponse(buildMeta);
+            streamingJobService.setModelInfo(jobResponse, modelMap);
+            Assert.assertTrue(jobResponse.isModelBroken());
+        }
     }
 
     @Test

@@ -26,6 +26,8 @@ package io.kyligence.kap.streaming.constants;
 
 import org.apache.kylin.common.KylinConfig;
 
+import io.kyligence.kap.common.persistence.metadata.HDFSMetadataStore;
+
 public class StreamingConstants {
 
     // spark job conf
@@ -63,6 +65,8 @@ public class StreamingConstants {
     public static final String SLASH = "/";
 
     // streaming job
+    public static final String STREAMING_META_URL = "kylin.streaming.meta-scheme";
+    public static final String STREAMING_META_URL_DEFAULT = HDFSMetadataStore.HDFS_SCHEME;
     public static final String STREAMING_DURATION = "kylin.streaming.duration";
     public static final String STREAMING_CONFIG_PREFIX = "kylin.streaming.spark-conf.";
     public static final String STREAMING_DURATION_DEFAULT = "30";

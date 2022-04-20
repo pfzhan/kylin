@@ -106,4 +106,26 @@ public class NDataflowTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(strings.stream().anyMatch(path -> path.startsWith("/cc_test/table/")));
         Assert.assertTrue(strings.stream().anyMatch(path -> path.startsWith("/cc_test/table_exd/")));
     }
+
+    @Test
+    public void testCollectPrecalculationResource_Streaming() {
+        val dsMgr = NDataflowManager.getInstance(getTestConfig(), "streaming_test");
+        val df = dsMgr.getDataflow("4965c827-fbb4-4ea1-a744-3f341a3b030d");
+        val strings = df.collectPrecalculationResource();
+        Assert.assertEquals(7, strings.size());
+
+        Assert.assertTrue(strings.stream()
+                .anyMatch(path -> path.equals("/streaming_test/dataflow/4965c827-fbb4-4ea1-a744-3f341a3b030d.json")));
+        Assert.assertTrue(strings.stream().anyMatch(path -> path.startsWith(
+                "/streaming_test/dataflow_details/4965c827-fbb4-4ea1-a744-3f341a3b030d/3e560d22-b749-48c3-9f64-d4230207f120.json")));
+        Assert.assertTrue(strings.stream().anyMatch(
+                path -> path.startsWith("/streaming_test/index_plan/4965c827-fbb4-4ea1-a744-3f341a3b030d.json")));
+        Assert.assertTrue(strings.stream().anyMatch(path -> path.startsWith("/_global/project/streaming_test.json")));
+        Assert.assertTrue(strings.stream().anyMatch(
+                path -> path.startsWith("/streaming_test/model_desc/4965c827-fbb4-4ea1-a744-3f341a3b030d.json")));
+        Assert.assertTrue(
+                strings.stream().anyMatch(path -> path.startsWith("/streaming_test/table/DEFAULT.SSB_STREAMING.json")));
+        Assert.assertTrue(
+                strings.stream().anyMatch(path -> path.startsWith("/streaming_test/kafka/DEFAULT.SSB_STREAMING.json")));
+    }
 }
