@@ -33,7 +33,6 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.smart.AbstractContext;
 
 class IndexProposer extends AbstractIndexProposer {
@@ -60,8 +59,6 @@ class IndexProposer extends AbstractIndexProposer {
     // code line: namedColumn.setStatus(NDataModel.ColumnStatus.DIMENSION).
     private void initModel(NDataModel modelDesc) {
         String project = context.getProposeContext().getProject();
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
-        NTableMetadataManager manager = NTableMetadataManager.getInstance(config, project);
-        modelDesc.init(config, manager.getAllTablesMap(), Lists.newArrayList(), project);
+        modelDesc.init(KylinConfig.getInstanceFromEnv(), project, Lists.newArrayList());
     }
 }

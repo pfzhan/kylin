@@ -400,7 +400,7 @@ public class MetadataPerfTest extends NLocalFileMetadataTestCase {
         for (int i = 0; i < SEGMENT_SIZE; i++) {
             val start = LocalDate.parse("2000-01-01").plusMonths(i);
             val end = start.plusMonths(1);
-            val seg = new NDataSegment();
+            val seg = NDataSegment.empty();
             val segRange = new SegmentRange.TimePartitionedSegmentRange(start.toString(), end.toString());
             seg.setId(RandomUtil.randomUUIDStr());
             seg.setName(Segments.makeSegmentName(segRange));

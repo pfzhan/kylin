@@ -31,7 +31,6 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.smart.AbstractContext;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -64,8 +63,7 @@ public abstract class AbstractModelProposer {
     }
 
     void initModel(NDataModel modelDesc) {
-        NTableMetadataManager manager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        modelDesc.init(KylinConfig.getInstanceFromEnv(), manager.getAllTablesMap(), Lists.newArrayList(), project);
+        modelDesc.init(KylinConfig.getInstanceFromEnv(), project, Lists.newArrayList());
     }
 
     boolean isValidOlapContext(OLAPContext context) {

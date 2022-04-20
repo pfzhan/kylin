@@ -2496,8 +2496,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
             model.updateRandomUuid();
         }
 
-        model.init(getConfig(), getManager(NTableMetadataManager.class, project).getAllTablesMap(),
-                getManager(NDataflowManager.class, project).listUnderliningDataModels(), project);
+        model.init(getConfig(), project, getManager(NDataflowManager.class, project).listUnderliningDataModels());
         model.getComputedColumnDescs().forEach(cc -> {
             String innerExp = KapQueryUtil.massageComputedColumn(model, project, cc, null);
             cc.setInnerExpression(innerExp);
@@ -2617,11 +2616,9 @@ public class ModelService extends BasicService implements TableModelSupporter, P
 
     void preProcessBeforeModelSave(NDataModel model, String project) {
         if (!model.getComputedColumnDescs().isEmpty()) {
-            model.init(getConfig(), getManager(NTableMetadataManager.class, project).getAllTablesMap(),
-                    getManager(NDataflowManager.class, project).listUnderliningDataModels(), project, false, true);
+            model.init(getConfig(), project, getManager(NDataflowManager.class, project).listUnderliningDataModels(), true);
         } else {
-            model.init(getConfig(), getManager(NTableMetadataManager.class, project).getAllTablesMap(), Lists.newArrayList(), project, false,
-                    true);
+            model.init(getConfig(), project, Lists.newArrayList(), true);
         }
 
         massageModelFilterCondition(model);
@@ -2860,9 +2857,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
 
                 val copyModel = modelManager.copyForWrite(originModel);
                 UpdateImpact updateImpact = semanticUpdater.updateModelColumns(copyModel, request, true);
-                val allTables = getManager(NTableMetadataManager.class, request.getProject()).getAllTablesMap();
-                copyModel.init(modelManager.getConfig(), allTables,
-                        getManager(NDataflowManager.class, project).listUnderliningDataModels(), project);
+                copyModel.init(modelManager.getConfig(), project,
+                        getManager(NDataflowManager.class, project).listUnderliningDataModels());
 
                 BaseIndexUpdateHelper baseIndexUpdater = new BaseIndexUpdateHelper(originModel,
                         request.isWithBaseIndex());
@@ -3138,8 +3134,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         broken.setFilterCondition(modelRequest.getFilterCondition());
         broken.setJoinTables(modelRequest.getJoinTables());
         discardInvalidColumnAndMeasure(broken, modelRequest);
-        broken.init(getConfig(), getManager(NTableMetadataManager.class, project).getAllTablesMap(),
-                getManager(NDataflowManager.class, project).listUnderliningDataModels(), project);
+        broken.init(getConfig(), project, getManager(NDataflowManager.class, project).listUnderliningDataModels());
         broken.setBrokenReason(NDataModel.BrokenReason.NULL);
         String format = probeDateFormatIfNotExist(project, broken);
         return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
@@ -4166,10 +4161,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
 
     private NDataModel convertAndInitDataModel(ModelRequest request, String project) {
         NDataModel model = convertToDataModel(request);
-        Map<String, TableDesc> allTables = getManager(NTableMetadataManager.class, project).getAllTablesMap();
-        Map<String, TableDesc> initialAllTables = model.getExtendedTables(allTables);
-        model.init(KylinConfig.getInstanceFromEnv(), initialAllTables,
-                getManager(NDataflowManager.class, project).listUnderliningDataModels(), project);
+        model.init(KylinConfig.getInstanceFromEnv(), project, getManager(NDataflowManager.class, project).listUnderliningDataModels());
         for (ComputedColumnDesc cc : model.getComputedColumnDescs()) {
             String innerExp = cc.getInnerExpression();
             if (cc.getExpression().equalsIgnoreCase(innerExp)) {

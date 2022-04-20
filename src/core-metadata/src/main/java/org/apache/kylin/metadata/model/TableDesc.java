@@ -453,8 +453,10 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
                 col.init(this);
             }
         }
-        kafkaConfig = KafkaConfigManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                .getKafkaConfig(this.getIdentity());
+        if (sourceType == ISourceAware.ID_STREAMING) {
+            kafkaConfig = KafkaConfigManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                    .getKafkaConfig(this.getIdentity());
+        }
     }
 
     @Override

@@ -710,8 +710,9 @@ public class NDataModel extends RootPersistentEntity {
         initJoinColumns();
     }
 
-    public void init(KylinConfig config, Map<String, TableDesc> tables) {
+    public void init(KylinConfig config) {
         this.config = config;
+        Map<String, TableDesc> tables = getExtendedTables(NDataModelManager.getRelatedTables(this, project));
 
         initJoinTablesForUpgrade();
         initTableAlias(tables);
@@ -1007,10 +1008,6 @@ public class NDataModel extends RootPersistentEntity {
         return project;
     }
 
-    public void init(KylinConfig config, Map<String, TableDesc> originalTables, List<NDataModel> otherModels,
-            String project) {
-        init(config, originalTables, otherModels, project, false);
-    }
 
     public Map<String, TableDesc> getExtendedTables(Map<String, TableDesc> originalTables) {
         // tweak the tables according to Computed Columns defined in model
@@ -1030,19 +1027,15 @@ public class NDataModel extends RootPersistentEntity {
         return tables;
     }
 
-    public void init(KylinConfig config, Map<String, TableDesc> originalTables, List<NDataModel> otherModels,
-            String project, boolean rename) {
-        init(config, originalTables, otherModels, project, rename, false);
+    public void init(KylinConfig config, String project, List<NDataModel> otherModels) {
+        init(config, project, otherModels, false);
     }
 
-    public void init(KylinConfig config, Map<String, TableDesc> originalTables, List<NDataModel> otherModels,
-            String project, boolean rename, boolean saveCheck) {
+    public void init(KylinConfig config, String project, List<NDataModel> otherModels, boolean saveCheck) {
         this.project = project;
         this.saveCheck = saveCheck;
 
-        Map<String, TableDesc> tables = getExtendedTables(originalTables);
-
-        init(config, tables);
+        init(config);
 
         initComputedColumns(otherModels);
         this.effectiveCols = initAllNamedColumns(NamedColumn::isExist);
