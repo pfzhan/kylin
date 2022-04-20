@@ -76,6 +76,7 @@ import io.kyligence.kap.secondstorage.management.SecondStorageScheduleService;
 import io.kyligence.kap.secondstorage.management.SecondStorageService;
 import io.kyligence.kap.secondstorage.management.request.ProjectNodeRequest;
 import io.kyligence.kap.secondstorage.management.request.ProjectTableSyncResponse;
+import io.kyligence.kap.secondstorage.management.request.SecondStorageMetadataRequest;
 import io.kyligence.kap.secondstorage.management.request.StorageRequest;
 import io.kyligence.kap.secondstorage.metadata.NodeGroup;
 import io.kyligence.kap.secondstorage.metadata.PartitionType;
@@ -96,6 +97,7 @@ import lombok.var;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.SecondStorageCleanJobBuildParams;
 import org.apache.kylin.job.SecondStorageJobParamUtil;
@@ -121,7 +123,6 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.jupiter.api.Assertions;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
@@ -144,6 +145,7 @@ import java.sql.SQLException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -527,9 +529,9 @@ public class SecondStorageLockTest implements JobWaiter {
             configClickhouseWith(clickhouse, replica, catalog, () -> {
                 ProjectNodeRequest request = new ProjectNodeRequest();
                 request.setProject("wrong");
-                Assertions.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, null));
+                Assert.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, null));
                 request.setProject(getProject());
-                Assertions.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, null));
+                Assert.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, null));
 
                 List<String> allPairs = SecondStorageNodeHelper.getAllPairs();
                 secondStorageService.changeProjectSecondStorageState(getProject(), allPairs, true);
@@ -542,10 +544,10 @@ public class SecondStorageLockTest implements JobWaiter {
                 val clickhouseNew = new JdbcDatabaseContainer[]{clickhouse1, clickhouse2};
                 ClickHouseUtils.internalConfigClickHouse(clickhouseNew, replica);
                 secondStorageService.changeProjectSecondStorageState(getProject(), ImmutableList.of("pair1"), true);
-                Assert.assertEquals(clickhouseNew.length, SecondStorageUtil.listProjectNodes(getProject()).size());
+                assertEquals(clickhouseNew.length, SecondStorageUtil.listProjectNodes(getProject()).size());
 
                 EnvelopeResponse<ProjectTableSyncResponse> response = secondStorageEndpoint.tableSync(getProject());
-                Assertions.assertEquals("000", response.getCode());
+                assertEquals("000", response.getCode());
 
                 deleteShardParamsCheck(request);
 
@@ -556,12 +558,12 @@ public class SecondStorageLockTest implements JobWaiter {
 
                 assertFalse(LockTypeEnum.locked(LockTypeEnum.LOAD.name(), SecondStorageUtil.getProjectLocks(getProject())));
 
-                Assert.assertEquals(clickhouse.length, SecondStorageUtil.listProjectNodes(getProject()).size());
+                assertEquals(clickhouse.length, SecondStorageUtil.listProjectNodes(getProject()).size());
                 secondStorageService.changeProjectSecondStorageState(getProject(), ImmutableList.of("pair1"), true);
-                Assert.assertEquals(clickhouseNew.length, SecondStorageUtil.listProjectNodes(getProject()).size());
+                assertEquals(clickhouseNew.length, SecondStorageUtil.listProjectNodes(getProject()).size());
 
                 EnvelopeResponse<ProjectTableSyncResponse> response2 = secondStorageEndpoint.tableSync(getProject());
-                Assertions.assertEquals("000", response2.getCode());
+                assertEquals("000", response2.getCode());
 
                 secondStorageService.lockOperate(getProject(), Collections.singletonList(LockTypeEnum.LOAD.name()), LockOperateTypeEnum.LOCK.name());
 
@@ -581,6 +583,32 @@ public class SecondStorageLockTest implements JobWaiter {
                 return true;
             });
         }
+    }
+
+    @Test
+    public void testSizeInNode() throws Exception {
+        SecondStorageMetadataRequest request = new SecondStorageMetadataRequest();
+        request.setProject("");
+        Assert.assertThrows(
+                MsgPicker.getMsg().getEMPTY_PROJECT_NAME(),
+                KylinException.class,
+                () -> this.secondStorageEndpoint.sizeInNode(request));
+        request.setProject("123");
+        Assert.assertThrows("123", KylinException.class, () -> this.secondStorageEndpoint.sizeInNode(request));
+        request.setProject(getProject());
+        Assert.assertThrows(
+                String.format(Locale.ROOT, MsgPicker.getMsg().getSECOND_STORAGE_PROJECT_ENABLED(), getProject()),
+                KylinException.class, () -> this.secondStorageEndpoint.sizeInNode(request));
+
+        Assert.assertThrows(
+                MsgPicker.getMsg().getEMPTY_PROJECT_NAME(),
+                KylinException.class,
+                () -> this.secondStorageEndpoint.tableSync(""));
+        Assert.assertThrows("123", KylinException.class, () -> this.secondStorageEndpoint.tableSync("123"));
+        String project = getProject();
+        Assert.assertThrows(
+                String.format(Locale.ROOT, MsgPicker.getMsg().getSECOND_STORAGE_PROJECT_ENABLED(), getProject()),
+                KylinException.class, () -> this.secondStorageEndpoint.tableSync(project));
     }
 
     @Test
@@ -624,22 +652,22 @@ public class SecondStorageLockTest implements JobWaiter {
 
     private void deleteShardParamsCheck(ProjectNodeRequest request) {
         request.setProject(getProject());
-        Assertions.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, null));
+        Assert.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, null));
 
         List<String> shardNames1 = Collections.emptyList();
-        Assertions.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, shardNames1));
+        Assert.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, shardNames1));
 
         List<String> shardNames2 = ImmutableList.of("test");
-        Assertions.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, shardNames2));
+        Assert.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, shardNames2));
 
         List<String> shardNames3 = ImmutableList.of("pair0", "test");
-        Assertions.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, shardNames3));
+        Assert.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, shardNames3));
 
         List<String> shardNames4 = ImmutableList.of("pair0", "pair1");
-        Assertions.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, shardNames4));
+        Assert.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, shardNames4));
 
         List<String> shardNames5 = ImmutableList.of("pair0");
-        Assertions.assertThrows(TransactionException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, shardNames5));
+        Assert.assertThrows(TransactionException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, shardNames5));
     }
 
     private void checkDeletedStatus(List<String> shards, List<String> deletedShards) {
