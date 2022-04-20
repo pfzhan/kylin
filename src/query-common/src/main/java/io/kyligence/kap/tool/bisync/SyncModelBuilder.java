@@ -35,6 +35,7 @@ import java.util.stream.Collectors;
 import org.apache.kylin.common.util.ImmutableBitSet;
 import org.apache.kylin.cube.model.SelectRule;
 import org.apache.kylin.metadata.model.JoinTableDesc;
+import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 
@@ -146,6 +147,7 @@ public class SyncModelBuilder {
     private void markIndexedColumnsAndMeasures(Map<String, ColumnDef> columnDefMap, List<MeasureDef> measureDefs,
             IndexPlan indexPlan, SyncContext.ModelElement modelElement) {
         Set<String> colsToShow = new HashSet<>();
+        Set<String> measuresToShow = new HashSet<>();
         switch (modelElement) {
         case AGG_INDEX_COL:
             ImmutableBitSet aggDimBitSet = indexPlan.getAllIndexes().stream().filter(index -> !index.isTableIndex())
@@ -154,26 +156,40 @@ public class SyncModelBuilder {
                     .filter(entry -> aggDimBitSet.get(entry.getKey())).map(Map.Entry::getValue)
                     .collect(Collectors.toSet());
             colsToShow = tblColRefs.stream().map(TblColRef::getAliasDotName).collect(Collectors.toSet());
+            measuresToShow = indexPlan.getEffectiveMeasures().values().stream().map(MeasureDesc::getName)
+                    .collect(Collectors.toSet());
             break;
         case AGG_INDEX_AND_TABLE_INDEX_COL:
             colsToShow = indexPlan.getEffectiveDimCols().values().stream().map(TblColRef::getAliasDotName)
                     .collect(Collectors.toSet());
+            measuresToShow = indexPlan.getEffectiveMeasures().values().stream().map(MeasureDesc::getName)
+                    .collect(Collectors.toSet());
             break;
         case ALL_COLS:
             colsToShow = indexPlan.getModel().getDimensionNameIdMap().keySet();
+            measuresToShow = indexPlan.getModel().getEffectiveMeasures().values().stream().map(MeasureDesc::getName)
+                    .collect(Collectors.toSet());
+            for (MeasureDef measureDef : measureDefs) {
+                measureDef.setHidden(false);
+            }
             break;
         default:
             break;
         }
 
         colsToShow.forEach(colToShow -> columnDefMap.get(colToShow).setHidden(false));
-        measureDefs.forEach(measureDef -> measureDef.setHidden(false));
+        for (MeasureDef measureDef : measureDefs) {
+            if (measuresToShow.contains(measureDef.getMeasure().getName())) {
+                measureDef.setHidden(false);
+            }
+        }
     }
 
     private void markHasPermissionIndexedColumnsAndMeasures(Map<String, ColumnDef> columnDefMap,
             List<MeasureDef> measureDefs, IndexPlan indexPlan, SyncContext.ModelElement modelElement,
             Set<String> columns) {
         Set<String> colsToShow = Sets.newHashSet();
+        Set<String> measuresToShow = Sets.newHashSet();
         switch (modelElement) {
         case AGG_INDEX_COL:
             ImmutableBitSet aggDimBitSet = indexPlan.getAllIndexes().stream().filter(index -> !index.isTableIndex())
@@ -183,23 +199,39 @@ public class SyncModelBuilder {
                     .collect(Collectors.toSet());
             colsToShow = tblColRefs.stream().filter(column -> columns.contains(column.getCanonicalName()))
                     .map(TblColRef::getAliasDotName).collect(Collectors.toSet());
+            measuresToShow = indexPlan.getEffectiveMeasures().values().stream()
+                    .filter(measureDef -> checkMeasurePermission(columns, measureDef)).map(MeasureDesc::getName)
+                    .collect(Collectors.toSet());
             break;
         case AGG_INDEX_AND_TABLE_INDEX_COL:
             colsToShow = indexPlan.getEffectiveDimCols().values().stream()
                     .filter(column -> columns.contains(column.getCanonicalName())).map(TblColRef::getAliasDotName)
+                    .collect(Collectors.toSet());
+            measuresToShow = indexPlan.getEffectiveMeasures().values().stream()
+                    .filter(measureDef -> checkMeasurePermission(columns, measureDef)).map(MeasureDesc::getName)
                     .collect(Collectors.toSet());
             break;
         case ALL_COLS:
             colsToShow = indexPlan.getModel().getDimensionNameIdMap().keySet().stream()
                     .filter(renameColumnName(columns)::contains)
                     .collect(Collectors.toSet());
+            measuresToShow = indexPlan.getModel().getEffectiveMeasures().values().stream()
+                    .filter(measureDef -> checkMeasurePermission(columns, measureDef)).map(MeasureDesc::getName)
+                    .collect(Collectors.toSet());
+            for (MeasureDef measureDef : measureDefs) {
+                measureDef.setHidden(false);
+            }
             break;
         default:
             break;
         }
 
         colsToShow.forEach(colToShow -> columnDefMap.get(colToShow).setHidden(false));
-        measureDefs.forEach(measureDef -> measureDef.setHidden(false));
+        for (MeasureDef measureDef : measureDefs) {
+            if (measuresToShow.contains(measureDef.getMeasure().getName())) {
+                measureDef.setHidden(false);
+            }
+        }
     }
 
     Set<String> renameColumnName(Set<String> columns) {

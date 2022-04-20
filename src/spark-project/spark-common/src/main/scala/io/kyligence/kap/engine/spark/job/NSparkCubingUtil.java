@@ -51,6 +51,8 @@ public class NSparkCubingUtil {
 
     public static final String SEPARATOR = "_0_DOT_0_";
 
+    public static final String CC_SEPARATOR = "_0_DOT_CC_0_";
+
     public static final String SEPARATOR_TMP = "_0_DOT_TMP_0_";
 
     private NSparkCubingUtil() {
@@ -172,6 +174,8 @@ public class NSparkCubingUtil {
 
     private static final Pattern DOT_PATTERN = Pattern.compile("\\b([\\w`]+)\\.([\\w`]+)\\b");
 
+    private static final Pattern UDF_FUNCTION_PATTERN = Pattern.compile("\\b([\\w`]+)\\.([\\w`]+)\\b([\\(]+)");
+
     private static final Pattern LETTER_PATTERN = Pattern.compile(".*[a-zA-Z]+.*");
 
     private static final Pattern FLOATING_POINT = Pattern.compile("\\b[0-9]+.[0-9]*E[0-9]+\\b");
@@ -192,8 +196,8 @@ public class NSparkCubingUtil {
     }
 
     public static String doConvertFromDot(String withDot) {
-        Matcher m = DOT_PATTERN.matcher(withDot);
-        String withoutDot = withDot;
+        String withoutDot = doConvertComputedColumnFromDot(withDot);
+        Matcher m = DOT_PATTERN.matcher(withoutDot);
         while (m.find()) {
             String matched = m.group();
             if (LETTER_PATTERN.matcher(matched).find() && !isFloatingPointNumber(matched)) {
@@ -205,7 +209,18 @@ public class NSparkCubingUtil {
             }
         }
         withoutDot = withoutDot.replace(SEPARATOR_TMP, ".");
+        withoutDot = withoutDot.replace(CC_SEPARATOR, ".");
         return withoutDot.replace("`", "");
+    }
+
+    private static String doConvertComputedColumnFromDot(String exp) {
+        String withoutDot = exp;
+        Matcher m = UDF_FUNCTION_PATTERN.matcher(exp);
+        while (m.find()) {
+            withoutDot = m.replaceFirst("$1" + CC_SEPARATOR + "$2(");
+            m = UDF_FUNCTION_PATTERN.matcher(withoutDot);
+        }
+        return withoutDot;
     }
 
     public static boolean isFloatingPointNumber(String exp) {

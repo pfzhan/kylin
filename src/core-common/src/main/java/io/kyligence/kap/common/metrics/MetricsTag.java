@@ -24,22 +24,24 @@
 
 package io.kyligence.kap.common.metrics;
 
-
 public enum MetricsTag {
 
-    PROJECT("project"),
-    MODEL("model"),
-    JOB_TYPE("job_type"),
-    STATE("state"),
-    PUSH_DOWN("push_down"),
-    CACHE("cache"),
-    HIT_INDEX("hit_index"),
-    HIT_EXACTLY_INDEX("hit_exactly_index"),
-    SUCCEED("succeed"),
-    HIT_SNAPSHOT("hit_snapshot"),
-    TYPE("type"),
-    POOL("pool"),
-    HOST("host"),
+    PROJECT("project"), //
+    MODEL("model"), //
+    JOB_TYPE("job_type"), //
+    STATE("state"), //
+    PUSH_DOWN("push_down"), //
+    CACHE("cache"), //
+    HIT_INDEX("hit_index"), //
+    HIT_EXACTLY_INDEX("hit_exactly_index"), //
+    SUCCEED("succeed"), //
+    HIT_SNAPSHOT("hit_snapshot"), //
+    TYPE("type"), //
+    POOL("pool"), //
+    PENDING("pending"), //
+    RUNNING("running"), //
+    JOB_CATEGORY("category"), //
+    HOST("host"), //
     HIT_SECOND_STORAGE("hit_second_storage");
 
     private final String value;
