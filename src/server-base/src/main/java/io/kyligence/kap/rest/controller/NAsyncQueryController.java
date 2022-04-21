@@ -39,7 +39,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 
-import org.apache.directory.api.util.Strings;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exception.KylinException;
@@ -124,7 +124,7 @@ public class NAsyncQueryController extends NBasicController {
         final AtomicReference<String> exceptionHandle = new AtomicReference<>();
         final SecurityContext context = SecurityContextHolder.getContext();
 
-        if (Strings.isEmpty(sqlRequest.getSeparator())) {
+        if (StringUtils.isEmpty(sqlRequest.getSeparator())) {
             sqlRequest.setSeparator(",");
         }
 

@@ -355,10 +355,7 @@ public class AsyncQueryService extends BasicService {
             throws IOException {
         FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
         FileStatus[] fileStatuses = fileSystem.listStatus(dataPath);
-        if (includeHeader) {
-            IOUtils.copy(IOUtils.toInputStream(columnNames), outputStream);
-        }
-        excelWriter.writeData(fileStatuses, outputStream, separator);
+        excelWriter.writeData(fileStatuses, outputStream, columnNames, separator, includeHeader);
     }
 
     private void processJSON(OutputStream outputStream, Path dataPath, String encode) throws IOException {

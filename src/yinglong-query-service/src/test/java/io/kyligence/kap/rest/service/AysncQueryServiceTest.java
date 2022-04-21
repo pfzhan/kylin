@@ -752,7 +752,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
                 Lists.newArrayList(2, 3.123, "fo<>o"),
                 Lists.newArrayList(3, 3.124, "fo\ro")
         );
-        String expected = "1<>3.12<>foo\r\n2<>3.123<>\"fo<>o\"\r\n3<>3.124<>\"fo\ro\"\r\n";
+        String expected = "1<>3.12<>foo\n2<>3.123<>\"fo<>o\"\n3<>3.124<>\"fo\ro\"\n";
         try (StringWriter sw = new StringWriter()) {
             CSVWriter.writeCsv(rows.iterator(), sw, "<>");
             assertEquals(expected, sw.toString());
