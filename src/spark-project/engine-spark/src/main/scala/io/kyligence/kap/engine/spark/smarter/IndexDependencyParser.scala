@@ -137,7 +137,7 @@ class IndexDependencyParser(val model: NDataModel) {
     val ccList = model.getComputedColumnDescs
     val originDf = generateFullFlatTableDF(SparderEnv.getSparkSession, model)
     val colFields = originDf.schema.fields
-    val ds = originDf.selectExpr(ccList.asScala.map(_.getInnerExpression).map(NSparkCubingUtil.convertFromDot): _*)
+    val ds = originDf.selectExpr(ccList.asScala.map(_.getInnerExpression).map(NSparkCubingUtil.convertFromDotWithBackticks): _*)
     ccList.asScala.zip(ds.schema.fields).foreach(pair => {
       val ccFieldName = pair._2.name
       colFields.foreach(col => {

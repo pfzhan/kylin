@@ -24,7 +24,8 @@
 
 package io.kyligence.kap.engine.spark.job
 
-import com.google.common.collect.Maps
+import java.util
+
 import io.kyligence.kap.engine.spark.NSparkCubingEngine
 import io.kyligence.kap.engine.spark.builder.CreateFlatTable
 import io.kyligence.kap.engine.spark.source.SparkSqlUtil
@@ -67,7 +68,8 @@ class TableAnalysisJob(tableDesc: TableDesc,
       .getSourceData(tableDesc, ss, params)
       .coalesce(numPartitions)
 
-    calculateViewMetasIfNeeded(tableDesc.getIdentity)
+    val tableIdentify = tableDesc.getIdentitySqlObject.toString()
+    calculateViewMetasIfNeeded(tableIdentify)
 
     val dat = dataFrame.localLimit(rowsTakenInEachPartition)
     val sampledDataset = CreateFlatTable.changeSchemaToAliasDotName(dat, tableDesc.getIdentity)
@@ -80,25 +82,27 @@ class TableAnalysisJob(tableDesc: TableDesc,
   }
 
   def calculateViewMetasIfNeeded(tableName: String): Unit = {
-    if (ss.conf.get("spark.sql.catalogImplementation") == "hive") {
-      if (ss.catalog.tableExists(tableName)) {
-        val sparkTable = ss.catalog.getTable(tableName)
-        if (sparkTable.tableType == CatalogTableType.VIEW.name) {
-          val tables = SparkSqlUtil.getViewOrignalTables(tableName, ss)
-          if (tables.asScala.size > 1) {
-            tables.asScala.foreach(t => {
-              var oriTable = t
-              if (!t.contains(".")) {
-                oriTable = sparkTable.database + "." + t
-              }
-              val rowCnt = ss.table(oriTable).count()
-              logInfo(s"Table $oriTable true number of rows is $rowCnt")
-              TableMetaManager.putTableMeta(t, 0L, rowCnt)
-            })
-            logInfo(s"Table type ${sparkTable.tableType}, orignal table num is ${tables.asScala.size}")
-          }
-        }
+    if (ss.conf.get("spark.sql.catalogImplementation") == "hive" && ss.catalog.tableExists(tableName)) {
+      val sparkTable = ss.catalog.getTable(tableName)
+      if (sparkTable.tableType == CatalogTableType.VIEW.name) {
+        val tables = SparkSqlUtil.getViewOrignalTables(tableName, ss)
+        fetchRowCounts(sparkTable.database, sparkTable.tableType, tables)
       }
+    }
+  }
+
+  def fetchRowCounts(database: String, tableType: String, tables: util.Set[String]): Unit = {
+    if (tables.asScala.size > 1) {
+      tables.asScala.foreach(t => {
+        var oriTable = t
+        if (!t.contains(".")) {
+          oriTable = database + "." + t
+        }
+        val rowCnt = ss.table(oriTable).count()
+        logInfo(s"Table $oriTable true number of rows is $rowCnt")
+        TableMetaManager.putTableMeta(t, 0L, 0)
+      })
+      logInfo(s"Table type ${tableType}, orignal table num is ${tables.asScala.size}")
     }
   }
 

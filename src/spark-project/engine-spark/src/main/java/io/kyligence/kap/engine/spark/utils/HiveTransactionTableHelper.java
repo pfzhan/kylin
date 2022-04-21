@@ -86,7 +86,7 @@ public class HiveTransactionTableHelper {
 
         String dir = kylinConfig.getJobTmpTransactionalTableDir(project, jobId);
         String tableSuffix = jobId.substring(jobId.lastIndexOf("-")+1);
-        String tempTableName = table.getTransactionalTableIdentity().concat(tableSuffix);
+        String tempTableName = table.getTransactionalTableIdentity(tableSuffix);
         String tableDir = getTableDir(tempTableName, dir);
         checkInterTableExistFirst(table, params, kylinBuildEnv, jobId, dir, tableSuffix, tempTableName, tableDir);
         sql = checkInterTableExistSecondAndGetSql(table, params, colString, jobId, tempTableName, tableDir);

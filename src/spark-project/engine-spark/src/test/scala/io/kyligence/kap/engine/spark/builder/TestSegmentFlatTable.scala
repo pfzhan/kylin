@@ -27,7 +27,7 @@ import io.kyligence.kap.metadata.cube.cuboid.AdaptiveSpanningTree
 import io.kyligence.kap.metadata.cube.cuboid.AdaptiveSpanningTree.AdaptiveTreeBuilder
 import io.kyligence.kap.metadata.cube.model._
 import org.apache.kylin.common.KylinConfig
-import org.apache.kylin.metadata.model.{SegmentRange, TableDesc, TableRef}
+import org.apache.kylin.metadata.model.{JoinTableDesc, SegmentRange, TableDesc, TableRef, TblColRef}
 import org.apache.spark.sql.common.{LocalMetadata, SharedSparkSession, SparderBaseFunSuite}
 
 import scala.collection.JavaConverters._
@@ -66,4 +66,11 @@ class TestSegmentFlatTable extends SparderBaseFunSuite with SharedSparkSession w
     val ref = new TableRef(df.getModel, tableDesc.getName, tableDesc, false)
     assert(flatTable.newTableDS(ref) != null)
   }
+
+  test("testSegmentFlatTableCheckLength") {
+    val pk = new Array[TblColRef](3)
+    val fk = new Array[TblColRef](1)
+    assertThrows[RuntimeException]{ SegmentFlatTable.checkLength(new TableDesc(), new JoinTableDesc(), pk, fk)}
+  }
+
 }

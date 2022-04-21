@@ -1084,6 +1084,10 @@ public abstract class KylinConfigBase implements Serializable {
     // SOURCE.HIVE
     // ============================================================================
 
+    public boolean isSupportSpecialSymbolInHiveColumn() {
+        return Boolean.parseBoolean(getOptional("kylin.source.hive.support-special-symbol-in-hive-column", FALSE));
+    }
+
     public int getDefaultSource() {
         return Integer.parseInt(getOptional("kylin.source.default", "0"));
     }

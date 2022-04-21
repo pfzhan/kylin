@@ -42,11 +42,12 @@
 
 package org.apache.kylin.query.util;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
 public class PushDownUtilTest extends NLocalFileMetadataTestCase {
 
@@ -72,5 +73,17 @@ public class PushDownUtilTest extends NLocalFileMetadataTestCase {
         } catch (Exception e) {
             Assert.assertFalse(e instanceof IllegalArgumentException);
         }
+    }
+
+    @Test
+    public void testGetFormatIfNotExist() {
+        Assert.assertEquals("select `table`.`column` from `db`.`table` where `table`.`column` is not null limit 1",
+                PushDownUtil.buildSql("db.table", "table.column"));
+    }
+
+    @Test
+    public void testBuildMaxAndMinSql() {
+        Assert.assertEquals("select min(`db`.`table`), max(`db`.`table`) from `table`.`column`",
+                PushDownUtil.buildMaxAndMinSql("db.table", "table.column"));
     }
 }

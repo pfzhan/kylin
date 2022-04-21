@@ -432,23 +432,27 @@ abstract class FlatTableAndDictBase(private val jobContext: SegmentJob,
                 total = catalogStatistics.get.rowCount.get.longValue()
                 logInfo(s"Find $column's table $tableName count $total from catalog")
               } else {
-                val tableMetadataDesc = tableMetadataManager.getTableDesc(tableDesc.getTableName(column))
-                if (tableMetadataDesc != null) {
-                  val tableExtDesc = tableMetadataManager.getTableExtIfExists(tableMetadataDesc)
-                  if (tableExtDesc.getTotalRows > 0) {
-                    total = tableExtDesc.getTotalRows
-                    logInfo(s"Find $column's table $tableName count $total from table ext")
-                  } else if (tableMetadataDesc.getLastSnapshotPath != null) {
-                    val baseDir = KapConfig.getInstanceFromEnv.getMetadataWorkingDirectory
-                    val fs = HadoopUtil.getWorkingFileSystem
-                    val path = new Path(baseDir, tableMetadataDesc.getLastSnapshotPath)
-                    if (fs.exists(path)) {
-                      total = sparkSession.read.parquet(path.toString).count()
-                      logInfo(s"Calculate $column's table $tableName count $total " +
-                        s"from parquet ${tableMetadataDesc.getLastSnapshotPath}")
+                def setTotal = {
+                  val tableMetadataDesc = tableMetadataManager.getTableDesc(tableDesc.getTableName(column))
+                  if (tableMetadataDesc != null) {
+                    val tableExtDesc = tableMetadataManager.getTableExtIfExists(tableMetadataDesc)
+                    if (tableExtDesc.getTotalRows > 0) {
+                      total = tableExtDesc.getTotalRows
+                      logInfo(s"Find $column's table $tableName count $total from table ext")
+                    } else if (tableMetadataDesc.getLastSnapshotPath != null) {
+                      val baseDir = KapConfig.getInstanceFromEnv.getMetadataWorkingDirectory
+                      val fs = HadoopUtil.getWorkingFileSystem
+                      val path = new Path(baseDir, tableMetadataDesc.getLastSnapshotPath)
+                      if (fs.exists(path)) {
+                        total = sparkSession.read.parquet(path.toString).count()
+                        logInfo(s"Calculate $column's table $tableName count $total " +
+                          s"from parquet ${tableMetadataDesc.getLastSnapshotPath}")
+                      }
                     }
                   }
                 }
+
+                setTotal
               }
             }
           }
@@ -556,7 +560,7 @@ object FlatTableAndDictBase extends LogEx {
   }
 
   def wrapAlias(originDS: Dataset[Row], alias: String): Dataset[Row] = {
-    val newFields = originDS.schema.fields.map(f => convertFromDot(alias + "." + f.name)).toSeq
+    val newFields = originDS.schema.fields.map(f => convertFromDot("`" + alias + "`" + "." + "`" + f.name + "`")).toSeq
     val newDS = originDS.toDF(newFields: _*)
     logInfo(s"Wrap ALIAS ${originDS.schema.treeString} TO ${newDS.schema.treeString}")
     newDS
@@ -593,22 +597,26 @@ object FlatTableAndDictBase extends LogEx {
           .equalTo(col(convertFromDot(joinKey._2.getIdentity))))
       logInfo(s"Lookup table schema ${lookupDataset.schema.treeString}")
 
-      if (join.getNonEquiJoinCondition != null) {
-        var condition = NonEquiJoinConditionBuilder.convert(join.getNonEquiJoinCondition)
-        if (!equiConditionColPairs.isEmpty) {
-          condition = condition && equiConditionColPairs.reduce(_ && _)
-        }
-        logInfo(s"Root table ${rootFactDesc.getIdentity}, join table ${lookupDesc.getAlias}, non-equi condition: ${condition.toString()}")
-        afterJoin = afterJoin.join(lookupDataset, condition, joinType)
-      } else {
-        val condition = equiConditionColPairs.reduce(_ && _)
-        logInfo(s"Root table ${rootFactDesc.getIdentity}, join table ${lookupDesc.getAlias}, condition: ${condition.toString()}")
-        if (inferFiltersEnabled) {
-          afterJoin = afterJoin.join(FiltersUtil.inferFilters(pk, lookupDataset), condition, joinType)
-        } else {
+      def setAfterJoin = {
+        if (join.getNonEquiJoinCondition != null) {
+          var condition = NonEquiJoinConditionBuilder.convert(join.getNonEquiJoinCondition)
+          if (!equiConditionColPairs.isEmpty) {
+            condition = condition && equiConditionColPairs.reduce(_ && _)
+          }
+          logInfo(s"Root table ${rootFactDesc.getIdentity}, join table ${lookupDesc.getAlias}, non-equi condition: ${condition.toString()}")
           afterJoin = afterJoin.join(lookupDataset, condition, joinType)
+        } else {
+          val condition = equiConditionColPairs.reduce(_ && _)
+          logInfo(s"Root table ${rootFactDesc.getIdentity}, join table ${lookupDesc.getAlias}, condition: ${condition.toString()}")
+          if (inferFiltersEnabled) {
+            afterJoin = afterJoin.join(FiltersUtil.inferFilters(pk, lookupDataset), condition, joinType)
+          } else {
+            afterJoin = afterJoin.join(lookupDataset, condition, joinType)
+          }
         }
       }
+
+      setAfterJoin
     }
     afterJoin
   }
@@ -627,13 +635,19 @@ object FlatTableAndDictBase extends LogEx {
         val columnId = columnName2IdMap.apply(columnName)
         col(tp.name).alias(columnId.toString + ENCODE_SUFFIX)
     }
-    val columns = columnName2Id.map(tp => expr(tp._1).alias(tp._2.toString))
+    val columns = buildColumns(columnName2Id)
     logInfo(s"Select model column is ${columns.mkString(",")}")
     logInfo(s"Select model encoding column is ${encodeSeq.mkString(",")}")
     val selectedColumns = columns ++ encodeSeq
 
     logInfo(s"Select model all column is ${selectedColumns.mkString(",")}")
     ds.select(selectedColumns: _*)
+  }
+
+  def buildColumns(columnName2Id: mutable.Buffer[(String, Integer)]): mutable.Buffer[Column] = {
+    columnName2Id.map(tp => {
+      expr("`" + tp._1 + "`").alias(tp._2.toString)
+    })
   }
 
   private def generateLookupTableMeta(project: String,

@@ -49,6 +49,12 @@
             <artifactId>kap-external-curator</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>com.healthmarketscience.sqlbuilder</groupId>
+            <artifactId>sqlbuilder</artifactId>
+            <version>3.0.2</version>
+        </dependency>
+
         <!-- provided -->
         <dependency>
             <groupId>io.netty</groupId>
