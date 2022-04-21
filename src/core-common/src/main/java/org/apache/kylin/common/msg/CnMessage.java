@@ -1844,6 +1844,11 @@ public class CnMessage extends Message {
     }
 
     @Override
+    public String getSECOND_STORAGE_DELETE_NODE_FAILED() {
+        return "节点%s存在数据，大小为%d bytes";
+    }
+
+    @Override
     public String getJOB_RESTART_FAILED() {
         return "分层存储任务不支持重启操作。\n";
     }

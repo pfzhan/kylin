@@ -1631,6 +1631,10 @@ public class Message {
         return "The base table index is missing in the segments, please add and try again.";
     }
 
+    public String getSECOND_STORAGE_DELETE_NODE_FAILED() {
+        return "Node %s has data, size is %d bytes";
+    }
+
     public String getJOB_RESTART_FAILED() {
         return "Tiered storage task doesn't support restart.\n";
     }

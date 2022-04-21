@@ -158,6 +158,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -550,6 +551,10 @@ public class SecondStorageLockTest implements JobWaiter {
                 assertEquals("000", response.getCode());
 
                 deleteShardParamsCheck(request);
+
+                request.setForce(false);
+                val shardNames2 = ImmutableList.of("pair0");
+                assertThrows(TransactionException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, shardNames2));
 
                 EnvelopeResponse<List<String>> res1 = this.secondStorageEndpoint.deleteProjectNodes(request, ImmutableList.of("pair1"));
                 assertEquals("000", res1.getCode());
