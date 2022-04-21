@@ -77,7 +77,8 @@ public class AsyncQueryUtil {
         try {
             saveMetaData(queryContext.getProject(), columnMetas, queryContext.getQueryId());
             saveFileInfo(queryContext.getProject(), queryContext.getQueryTagInfo().getFileFormat(),
-                    queryContext.getQueryTagInfo().getFileEncode(), queryContext.getQueryTagInfo().getFileName(), queryContext.getQueryId());
+                    queryContext.getQueryTagInfo().getFileEncode(), queryContext.getQueryTagInfo().getFileName(),
+                    queryContext.getQueryId(), queryContext.getQueryTagInfo().getSeparator());
         } catch (IOException e) {
             logger.error("save async query column metadata or file info failed.", e);
         }
@@ -104,7 +105,7 @@ public class AsyncQueryUtil {
         }
     }
 
-    public static void saveFileInfo(String project, String format, String encode, String fileName, String queryId)
+    public static void saveFileInfo(String project, String format, String encode, String fileName, String queryId, String separator)
             throws IOException {
         FileSystem fileSystem = getFileSystem();
         Path asyncQueryResultDir = getAsyncQueryResultDir(project, queryId);
@@ -113,6 +114,7 @@ public class AsyncQueryUtil {
                     OutputStreamWriter osw = new OutputStreamWriter(os, Charset.defaultCharset())) {
                 osw.write(format + "\n");
                 osw.write(encode + "\n");
+                osw.write(separator + "\n");
                 osw.write(fileName);
             }
         } else {

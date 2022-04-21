@@ -40,6 +40,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
@@ -170,7 +171,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
         }).when(servletOutputStream).write(any(byte[].class), anyInt(), anyInt());
 
         SparderEnv.getSparkSession().sqlContext().setConf("spark.sql.parquet.columnNameCheck.enabled", "false");
-        asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, false, response, "csv", encodeDefault);
+        asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, false, response, "csv", encodeDefault, ",");
         List<org.apache.spark.sql.Row> rowList = ss.read()
                 .parquet(asyncQueryService.getAsyncQueryResultDir(PROJECT, queryId).toString()).collectAsList();
         List<String> result = Lists.newArrayList();
@@ -209,7 +210,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
                 return null;
             }
         }).when(servletOutputStream).write(any(byte[].class), anyInt(), anyInt());
-        asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, false, response, "csv", encodeDefault);
+        asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, false, response, "csv", encodeDefault, ",");
         List<org.apache.spark.sql.Row> rowList = ss.read().parquet(asyncQueryService.getAsyncQueryResultDir(PROJECT, queryId).toString()).collectAsList();
         List<String> result = Lists.newArrayList();
         rowList.stream().forEach(row -> {
@@ -247,7 +248,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
                 return null;
             }
         }).when(servletOutputStream).write(any(byte[].class), anyInt(), anyInt());
-        asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, false, response, "xlsx", encodeDefault);
+        asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, false, response, "xlsx", encodeDefault, ",");
         List<org.apache.spark.sql.Row> rowList = ss.read().parquet(asyncQueryService.getAsyncQueryResultDir(PROJECT, queryId).toString()).collectAsList();
         List<String> result = Lists.newArrayList();
         rowList.stream().forEach(row -> {
@@ -281,7 +282,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
             }
         }).when(servletOutputStream).write(any(byte[].class), anyInt(), anyInt());
 
-        asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, false, response, formatDefault, encodeDefault);
+        asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, false, response, formatDefault, encodeDefault, ",");
 
         assertEquals("a1,b1,c1\r\n" + "a2,b2,c2\r\n", baos.toString(StandardCharsets.UTF_8.name()));
     }
@@ -304,7 +305,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
             return null;
         }).when(servletOutputStream).write(any(byte[].class), anyInt(), anyInt());
 
-        asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, true, response, formatDefault, encodeDefault);
+        asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, true, response, formatDefault, encodeDefault, ",");
 
         assertEquals("name,age,city\n" + "a1,b1,c1\r\n" + "a2,b2,c2\r\n", baos.toString(StandardCharsets.UTF_8.name()));
     }
@@ -329,7 +330,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
             }
         }).when(servletOutputStream).write(any(byte[].class), anyInt(), anyInt());
 
-        asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, false, response, "json", encodeDefault);
+        asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, false, response, "json", encodeDefault, ",");
 
         assertEquals("[\"{'column1':'a1', 'column2':'b1'}\",\"{'column1':'a2', 'column2':'b2'}\"]",
                 baos.toString(StandardCharsets.UTF_8.name()));
@@ -355,7 +356,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
             }
         }).when(servletOutputStream).write(any(byte[].class), anyInt(), anyInt());
 
-        asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, false, response, "xlsx", encodeDefault);
+        asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, false, response, "xlsx", encodeDefault, ",");
     }
 
     @Test
@@ -551,7 +552,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
             Assert.assertEquals("KE-020040001", ((NAsyncQueryIllegalParamException) e).getErrorCode().getCodeString());
         }
         try {
-            AsyncQueryUtil.saveFileInfo(PROJECT, formatDefault, encodeDefault, fileNameDefault, queryId);
+            AsyncQueryUtil.saveFileInfo(PROJECT, formatDefault, encodeDefault, fileNameDefault, queryId, ",");
         } catch (Exception e) {
             Assert.assertTrue(e instanceof NAsyncQueryIllegalParamException);
             Assert.assertEquals("KE-020040001", ((NAsyncQueryIllegalParamException) e).getErrorCode().getCodeString());
@@ -570,7 +571,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
                 Lists.newArrayList(new SelectedColumnMeta(false, false, false, false, 1, false, Integer.MAX_VALUE, "c0",
                         "c0", null, null, null, Integer.MAX_VALUE, 128, 1, "char", false, false, false)));
         AsyncQueryUtil.saveMetaData(PROJECT, sqlResponse.getColumnMetas(), queryId);
-        AsyncQueryUtil.saveFileInfo(PROJECT, formatDefault, encodeDefault, fileNameDefault, queryId);
+        AsyncQueryUtil.saveFileInfo(PROJECT, formatDefault, encodeDefault, fileNameDefault, queryId, ",");
 
         Assert.assertEquals(SUCCESS, asyncQueryService.queryStatus(PROJECT, queryId));
     }
@@ -624,11 +625,12 @@ public class AysncQueryServiceTest extends ServiceTestBase {
     public void testSaveFileInfo() throws IOException {
         String queryId = RandomUtil.randomUUIDStr();
         asyncQueryService.saveQueryUsername(PROJECT, queryId);
-        AsyncQueryUtil.saveFileInfo(PROJECT, formatDefault, encodeDefault, fileNameDefault, queryId);
+        AsyncQueryUtil.saveFileInfo(PROJECT, formatDefault, encodeDefault, fileNameDefault, queryId, "sep");
         AsyncQueryService.FileInfo fileInfo = asyncQueryService.getFileInfo(PROJECT, queryId);
-        assertEquals(fileInfo.getFormat(), formatDefault);
-        assertEquals(fileInfo.getEncode(), encodeDefault);
-        assertEquals(fileInfo.getFileName(), fileNameDefault);
+        assertEquals(formatDefault, fileInfo.getFormat());
+        assertEquals(encodeDefault, fileInfo.getEncode());
+        assertEquals(fileNameDefault, fileInfo.getFileName());
+        assertEquals("sep", fileInfo.getSeparator());
     }
 
     @Test
@@ -743,4 +745,17 @@ public class AysncQueryServiceTest extends ServiceTestBase {
         }
     }
 
+    @Test
+    public void testCsvWriter() throws IOException {
+        List<List<Object>> rows = Lists.newArrayList(
+                Lists.newArrayList(1, 3.12, "foo"),
+                Lists.newArrayList(2, 3.123, "fo<>o"),
+                Lists.newArrayList(3, 3.124, "fo\ro")
+        );
+        String expected = "1<>3.12<>foo\n2<>3.123<>\"fo<>o\"\n3<>3.124<>\"fo\ro\"\n";
+        try (StringWriter sw = new StringWriter()) {
+            CSVWriter.writeCsv(rows.iterator(), sw, "<>");
+            assertEquals(expected, sw.toString());
+        }
+    }
 }

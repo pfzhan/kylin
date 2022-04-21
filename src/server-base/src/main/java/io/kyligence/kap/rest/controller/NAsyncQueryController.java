@@ -40,6 +40,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 
 import com.alibaba.ttl.TtlRunnable;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exception.KylinException;
@@ -122,6 +123,11 @@ public class NAsyncQueryController extends NBasicController {
         final AtomicReference<String> queryIdRef = new AtomicReference<>();
         final AtomicReference<String> exceptionHandle = new AtomicReference<>();
         final SecurityContext context = SecurityContextHolder.getContext();
+
+        if (StringUtils.isEmpty(sqlRequest.getSeparator())) {
+            sqlRequest.setSeparator(",");
+        }
+
         executorService.submit(Objects.requireNonNull(TtlRunnable.get(() -> {
             String format = sqlRequest.getFormat().toLowerCase(Locale.ROOT);
             String encode = sqlRequest.getEncode().toLowerCase(Locale.ROOT);
@@ -135,6 +141,7 @@ public class NAsyncQueryController extends NBasicController {
             queryContext.getQueryTagInfo().setFileFormat(format);
             queryContext.getQueryTagInfo().setFileEncode(encode);
             queryContext.getQueryTagInfo().setFileName(sqlRequest.getFileName());
+            queryContext.getQueryTagInfo().setSeparator(sqlRequest.getSeparator());
             queryContext.setProject(sqlRequest.getProject());
             logger.info("Start a new async query with queryId: {}", queryContext.getQueryId());
             String queryId = queryContext.getQueryId();
@@ -356,7 +363,7 @@ public class NAsyncQueryController extends NBasicController {
         }
         response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "." + format + "\"");
         asyncQueryService.retrieveSavedQueryResult(project, queryId, includeHeader || include_header, response, format,
-                encode);
+                encode, fileInfo.getSeparator());
     }
 
     @ApiOperation(value = "async query result path", tags = { "QE" })

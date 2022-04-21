@@ -35,7 +35,7 @@ import lombok.Setter;
 @Setter
 public class AsyncQuerySQLRequest extends SQLRequest {
 
-    private String separator;
+    private String separator = ",";
 
     @Override
     public boolean equals(Object o) {
