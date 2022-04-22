@@ -91,7 +91,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.tool.bisync.model.MeasureDef;
 import io.kyligence.kap.guava20.shaded.common.base.Supplier;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
