@@ -202,7 +202,8 @@ public class MultiPartitionDesc implements Serializable {
             List<String> conditions = Lists.newArrayList();
             for (int i = 0; i < columnRefs.size(); i++) {
                 final int x = i;
-                String item = columnRefs.get(x).getExpressionInSourceDB() + " in (" + //
+                String columnName = columnRefs.get(x).getSqlObjectExpressionInSourceDB().toString();
+                String item = columnName + " in (" + //
                         values.stream().map(a -> generateFormattedValue(columnRefs.get(x).getType(), a[x]))
                                 .collect(Collectors.joining(", "))
                         + ")";

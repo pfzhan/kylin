@@ -72,6 +72,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.util.SqlBuilderUtil;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.streaming.KafkaConfig;
 import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
@@ -90,7 +91,7 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
     private static final Logger logger = LoggerFactory.getLogger(TableDesc.class);
 
     private static final String TABLE_TYPE_VIEW = "VIEW";
-    private static final String materializedTableNamePrefix = "kylin_intermediate_";
+    private static final String MATERIALIZED_TABLE_NAME_PREFIX = "kylin_intermediate_";
     public static final long NOT_READY = -1;
     private static final String TRANSACTIONAL_TABLE_NAME_SUFFIX = "_hive_tx_intermediate";
 
@@ -178,7 +179,7 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
     @Getter
     @Setter
     @JsonProperty("snapshot_partitions_info")
-    private Map<String, SnapshotPartitionInfo> snapshotPartitionsInfo = Maps.newHashMap();
+    private transient Map<String, SnapshotPartitionInfo> snapshotPartitionsInfo = Maps.newHashMap();
 
     @Getter
     @Setter
@@ -283,19 +284,7 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
         for (int j = 0; j < computedColumns.length; j++) {
 
             //check name conflict
-            boolean isFreshCC = true;
-            for (int i = 0; i < existingColumns.length; i++) {
-                if (existingColumns[i].getName().equalsIgnoreCase(computedColumns[j].getName())) {
-                    // if we're adding a computed column twice, it should be allowed without producing duplicates
-                    if (!existingColumns[i].isComputedColumn()) {
-                        throw new IllegalArgumentException(String.format(Locale.ROOT,
-                                "There is already a column named %s on table %s, please change your computed column name",
-                                computedColumns[j].getName(), this.getIdentity()));
-                    } else {
-                        isFreshCC = false;
-                    }
-                }
-            }
+            boolean isFreshCC = checkNameConflict(computedColumns, existingColumns, j);
 
             if (isFreshCC) {
                 newColumns.add(computedColumns[j]);
@@ -309,6 +298,23 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
         }
         ret.columns = expandedColumns.toArray(new ColumnDesc[0]);
         return ret;
+    }
+
+    private boolean checkNameConflict(ColumnDesc[] computedColumns, ColumnDesc[] existingColumns, int j) {
+        boolean isFreshCC = true;
+        for (int i = 0; i < existingColumns.length; i++) {
+            if (existingColumns[i].getName().equalsIgnoreCase(computedColumns[j].getName())) {
+                // if we're adding a computed column twice, it should be allowed without producing duplicates
+                if (!existingColumns[i].isComputedColumn()) {
+                    throw new IllegalArgumentException(String.format(Locale.ROOT,
+                            "There is already a column named %s on table %s, please change your computed column name",
+                            computedColumns[j].getName(), this.getIdentity()));
+                } else {
+                    isFreshCC = false;
+                }
+            }
+        }
+        return isFreshCC;
     }
 
     public ColumnDesc findColumnByName(String name) {
@@ -341,6 +347,11 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
     public String getIdentity() {
         String originIdentity = getCaseSensitiveIdentity();
         return originIdentity.toUpperCase(Locale.ROOT);
+    }
+
+    public SqlBuilderUtil.SparkColumn getIdentitySqlObject() {
+        String sqlIdentity = getIdentity();
+        return new SqlBuilderUtil.SparkColumn(sqlIdentity);
     }
 
     public String getCaseSensitiveIdentity() {
@@ -485,11 +496,12 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
     }
 
     public String getMaterializedName() {
-        return materializedTableNamePrefix + database.getName() + "_" + name;
+        return MATERIALIZED_TABLE_NAME_PREFIX + database.getName() + "_" + name;
     }
 
-    public String getTransactionalTableIdentity() {
-        return (getIdentity() + TRANSACTIONAL_TABLE_NAME_SUFFIX).toUpperCase(Locale.ROOT);
+    public String getTransactionalTableIdentity(String suffix) {
+        return new SqlBuilderUtil.SparkColumn(
+                (getIdentity() + TRANSACTIONAL_TABLE_NAME_SUFFIX + suffix).toUpperCase(Locale.ROOT)).toString();
     }
 
     public String getTransactionalTableName() {

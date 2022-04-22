@@ -89,6 +89,7 @@ import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.querymeta.ColumnMeta;
+import org.apache.kylin.metadata.querymeta.ColumnMetaWithType;
 import org.apache.kylin.metadata.querymeta.TableMeta;
 import org.apache.kylin.metadata.querymeta.TableMetaWithType;
 import org.apache.kylin.metadata.realization.IRealization;
@@ -1170,6 +1171,18 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getModel().getRootFactTable().getTableDesc()
                 .setLastModified(1);
         Assert.assertTrue(QueryCacheSignatureUtil.checkCacheExpired(response, project));
+    }
+
+    @Test
+    public void testAddColsToTblMetaWithNumberSign() {
+        Map<QueryService.TableMetaIdentify, TableMetaWithType> tblMap = new HashMap<>();
+        Map<QueryService.ColumnMetaIdentify, ColumnMetaWithType> columnMetaWithTypeMap = new HashMap<>();
+        tblMap.put(new QueryService.TableMetaIdentify("default", "city"), new TableMetaWithType());
+        //        column name contain #
+        columnMetaWithTypeMap.put(new QueryService.ColumnMetaIdentify("default", "city", "n#a#me"),
+                new ColumnMetaWithType(null, null, null, null, 0, null, 0, 0, 0, 0, 0, null, null, 0, 0, 0, 0, null,
+                        null, null, null, (short) 0, null));
+        QueryService.addColsToTblMeta(tblMap, columnMetaWithTypeMap);
     }
 
     @Test

@@ -23,9 +23,11 @@
 package io.kyligence.kap.engine.spark.builder
 
 import java.util.{Locale, Objects}
+
 import com.google.common.collect.Sets
 import io.kyligence.kap.engine.spark.builder.DFBuilderHelper._
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil._
+import io.kyligence.kap.engine.spark.job.stage.build.FlatTableAndDictBase.changeSchemeToColumnId
 import io.kyligence.kap.engine.spark.job.{FiltersUtil, TableMetaManager}
 import io.kyligence.kap.engine.spark.model.SegmentFlatTableDesc
 import io.kyligence.kap.engine.spark.utils.LogEx
@@ -141,13 +143,13 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
     }
 
     /**
-      * If need to build and encode dict columns, then
-      * 1. try best to build in fact-table.
-      * 2. try best to build in lookup-tables (without cc dict).
-      * 3. try to build in fact-table.
-      *
-      * CC in lookup-tables MUST be built in flat-table.
-      */
+     * If need to build and encode dict columns, then
+     * 1. try best to build in fact-table.
+     * 2. try best to build in lookup-tables (without cc dict).
+     * 3. try to build in fact-table.
+     *
+     * CC in lookup-tables MUST be built in flat-table.
+     */
     val (dictCols, encodeCols, dictColsWithoutCc, encodeColsWithoutCc) = prepareForDict()
     val factTable = buildDictIfNeed(factTableDS, dictCols, encodeCols)
 
@@ -371,13 +373,13 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
     // If fact table is a view and its snapshot exists, that will benefit.
     logInfo(s"Load source table ${tableRef.getTableIdentity}")
     val tableDescCopy = tableRef.getTableDesc
-    if(tableDescCopy.isTransactional || tableDescCopy.isRangePartition) {
+    if (tableDescCopy.isTransactional || tableDescCopy.isRangePartition) {
       val model = tableRef.getModel
-      if(Objects.nonNull(model)) {
+      if (Objects.nonNull(model)) {
         tableDescCopy.setPartitionDesc(model.getPartitionDesc)
       }
 
-      if(Objects.nonNull(segmentRange) && Objects.nonNull(segmentRange.getStart) && Objects.nonNull(segmentRange.getEnd)) {
+      if (Objects.nonNull(segmentRange) && Objects.nonNull(segmentRange.getStart) && Objects.nonNull(segmentRange.getEnd)) {
         sparkSession.table(tableDescCopy, segmentRange.getStart.toString, segmentRange.getEnd.toString).alias(tableRef.getAlias)
       } else {
         sparkSession.table(tableDescCopy).alias(tableRef.getAlias)
@@ -505,7 +507,8 @@ object SegmentFlatTable extends LogEx {
   }
 
   def wrapAlias(originDS: Dataset[Row], alias: String): Dataset[Row] = {
-    val newFields = originDS.schema.fields.map(f => convertFromDot(alias + "." + f.name)).toSeq
+    val newFields = originDS.schema.fields.map(f => convertFromDot("`" + alias + "`" + "." + "`" + f.name + "`")).
+      toSeq
     val newDS = originDS.toDF(newFields: _*)
     logInfo(s"Wrap ALIAS ${originDS.schema.treeString} TO ${newDS.schema.treeString}")
     newDS
@@ -528,20 +531,8 @@ object SegmentFlatTable extends LogEx {
                        ss: SparkSession): Dataset[Row] = {
     var afterJoin = rootFactDataset
     val join = lookupDesc.getJoin
-    if (join != null && !StringUtils.isEmpty(join.getType)) {
-      val joinType = join.getType.toUpperCase(Locale.ROOT)
-      val pk = join.getPrimaryKeyColumns
-      val fk = join.getForeignKeyColumns
-      if (pk.length != fk.length) {
-        throw new RuntimeException(
-          s"Invalid join condition of fact table: $rootFactDesc,fk: ${fk.mkString(",")}," +
-            s" lookup table:$lookupDesc, pk: ${pk.mkString(",")}")
-      }
-      val equiConditionColPairs = fk.zip(pk).map(joinKey =>
-        col(convertFromDot(joinKey._1.getIdentity))
-          .equalTo(col(convertFromDot(joinKey._2.getIdentity))))
-      logInfo(s"Lookup table schema ${lookupDataset.schema.treeString}")
 
+    def buildAfterJoin(joinType: String, pk: Array[TblColRef], equiConditionColPairs: Array[Column]) = {
       if (join.getNonEquiJoinCondition != null) {
         var condition = NonEquiJoinConditionBuilder.convert(join.getNonEquiJoinCondition)
         if (!equiConditionColPairs.isEmpty) {
@@ -559,30 +550,28 @@ object SegmentFlatTable extends LogEx {
         }
       }
     }
+
+    if (join != null && !StringUtils.isEmpty(join.getType)) {
+      val joinType = join.getType.toUpperCase(Locale.ROOT)
+      val pk = join.getPrimaryKeyColumns
+      val fk = join.getForeignKeyColumns
+      checkLength(rootFactDesc, lookupDesc, pk, fk)
+      val equiConditionColPairs = fk.zip(pk).map(joinKey =>
+        col(convertFromDot(joinKey._1.getIdentity))
+          .equalTo(col(convertFromDot(joinKey._2.getIdentity))))
+      logInfo(s"Lookup table schema ${lookupDataset.schema.treeString}")
+
+      buildAfterJoin(joinType, pk, equiConditionColPairs)
+    }
     afterJoin
   }
 
-  def changeSchemeToColumnId(ds: Dataset[Row], tableDesc: SegmentFlatTableDesc): Dataset[Row] = {
-    val structType = ds.schema
-    val columnIds = tableDesc.getColumnIds.asScala
-    val columnName2Id = tableDesc.getColumns
-      .asScala
-      .map(column => convertFromDot(column.getIdentity))
-      .zip(columnIds)
-    val columnName2IdMap = columnName2Id.toMap
-    val encodeSeq = structType.filter(_.name.endsWith(ENCODE_SUFFIX)).map {
-      tp =>
-        val columnName = tp.name.stripSuffix(ENCODE_SUFFIX)
-        val columnId = columnName2IdMap.apply(columnName)
-        col(tp.name).alias(columnId.toString + ENCODE_SUFFIX)
+  def checkLength(rootFactDesc: TableDesc, lookupDesc: JoinTableDesc, pk: Array[TblColRef], fk: Array[TblColRef]): Unit = {
+    if (pk.length != fk.length) {
+      throw new RuntimeException(
+        s"Invalid join condition of fact table: $rootFactDesc,fk: ${fk.mkString(",")}," +
+          s" lookup table:$lookupDesc, pk: ${pk.mkString(",")}")
     }
-    val columns = columnName2Id.map(tp => expr(tp._1).alias(tp._2.toString))
-    logInfo(s"Select model column is ${columns.mkString(",")}")
-    logInfo(s"Select model encoding column is ${encodeSeq.mkString(",")}")
-    val selectedColumns = columns ++ encodeSeq
-
-    logInfo(s"Select model all column is ${selectedColumns.mkString(",")}")
-    ds.select(selectedColumns: _*)
   }
 
   private def generateLookupTableMeta(project: String,

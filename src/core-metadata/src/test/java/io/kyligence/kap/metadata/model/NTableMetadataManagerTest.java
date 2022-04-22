@@ -147,4 +147,10 @@ public class NTableMetadataManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(tables.get(0).isIncrementLoading());
     }
 
+    @Test
+    public void testGetIdentityWithBacktick() {
+        TableDesc tbl = mgrDefault.getTableDesc(tableKylinFact);
+        Assert.assertEquals("`DEFAULT`.`TEST_KYLIN_FACT`", tbl.getIdentitySqlObject().toString());
+    }
+
 }
