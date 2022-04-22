@@ -80,7 +80,7 @@ public class TableauDataSourceConverter implements BISyncModelConverter {
     @Override
     public TableauDatasourceModel convert(SyncModel sourceSyncModel, SyncContext syncContext) {
         TableauDatasource tds = getTdsTemplate(syncContext.getTargetBI());
-        fillTemplate(tds, sourceSyncModel);
+        fillTemplate(tds, sourceSyncModel, syncContext);
         return new TableauDatasourceModel(tds);
     }
 
@@ -107,9 +107,11 @@ public class TableauDataSourceConverter implements BISyncModelConverter {
         }
     }
 
-    protected void fillTemplate(TableauDatasource tds, SyncModel syncModel) {
+    protected void fillTemplate(TableauDatasource tds, SyncModel syncModel, SyncContext syncContext) {
+        String dbName = syncContext.getTargetBI() == SyncContext.BI.TABLEAU_CONNECTOR_TDS ? syncModel.getProjectName()
+                : "";
         fillConnectionProperties(tds, syncModel.getHost(), syncModel.getPort(), syncModel.getProjectName(),
-                syncModel.getModelName());
+                syncModel.getModelName(), dbName);
         Map<String, Pair<Col, ColumnDef>> colMap = fillCols(tds, syncModel.getColumnDefMap());
         fillColumns(tds, colMap);
         fillJoinTables(tds, syncModel.getJoinTree());
@@ -118,7 +120,7 @@ public class TableauDataSourceConverter implements BISyncModelConverter {
     }
 
     private void fillConnectionProperties(TableauDatasource tds, String host, String port, String project,
-            String modelName) {
+            String modelName, String dbName) {
         NamedConnection namedConnection = tds.getTableauConnection().getNamedConnectionList().getNamedConnections()
                 .get(0);
         Connection connection = namedConnection.getConnection();
@@ -128,9 +130,7 @@ public class TableauDataSourceConverter implements BISyncModelConverter {
         connection.setOdbcConnectStringExtras(connectionStr);
         connection.setServer(host);
         connection.setPort(port);
-        connection.setDbName("");
-        connection.setVendor1(project);
-        connection.setVendor2(modelName);
+        connection.setDbName(dbName);
     }
 
     private void fillCalculations(TableauDatasource tds, List<MeasureDef> metrics,
