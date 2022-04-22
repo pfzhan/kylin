@@ -948,7 +948,7 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
         SchemaMetaData schemaMetaData = new SchemaMetaData(project, projectInstance.getConfig());
 
         List<TableMeta> tableMetas = new LinkedList<>();
-        SetMultimap<String, String> tbl2ccNames = collectComputedColumns(project, targetModelName);
+        SetMultimap<String, String> tbl2ccNames = collectComputedColumns(project);
         for (TableSchema tableSchema : schemaMetaData.getTables()) {
             TableMeta tblMeta = new TableMeta(tableSchema.getCatalog(), tableSchema.getSchema(), tableSchema.getTable(),
                     tableSchema.getType(), tableSchema.getRemarks(), null, null, null, null, null);
@@ -1123,7 +1123,7 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
         LinkedHashMap<ColumnMetaIdentify, ColumnMetaWithType> columnMap = Maps.newLinkedHashMap();
         ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(project);
-        SetMultimap<String, String> tbl2ccNames = collectComputedColumns(project, null);
+        SetMultimap<String, String> tbl2ccNames = collectComputedColumns(project);
 
         for (TableSchema tableSchema : schemaMetaData.getTables()) {
             int columnOrdinal = 1;
@@ -1172,24 +1172,16 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
                 columnOrdinal, isNullable, null, null, null, sourceDataType, "");
     }
 
-    private SetMultimap<String, String> collectComputedColumns(String project, String targetModelName) {
+    private SetMultimap<String, String> collectComputedColumns(String project) {
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         SetMultimap<String, String> tbl2ccNames = HashMultimap.create();
         projectManager.listAllRealizations(project).forEach(rea -> {
-            val model = rea.getModel();
-            if (StringUtils.isBlank(targetModelName) || StringUtils.equals(targetModelName, model.getAlias())) {
-                val upperCaseCcNames = model.getComputedColumnNames().stream() //
-                        .map(str -> str.toUpperCase(Locale.ROOT)).collect(Collectors.toList());
-                tbl2ccNames.putAll(rea.getModel().getRootFactTable().getAlias().toUpperCase(Locale.ROOT), upperCaseCcNames);
-                tbl2ccNames.putAll(rea.getModel().getRootFactTableName().toUpperCase(Locale.ROOT), upperCaseCcNames);
-            }
+            val upperCaseCcNames = rea.getModel().getComputedColumnNames().stream()
+                    .map(str -> str.toUpperCase(Locale.ROOT)).collect(Collectors.toList());
+            tbl2ccNames.putAll(rea.getModel().getRootFactTable().getAlias().toUpperCase(Locale.ROOT), upperCaseCcNames);
+            tbl2ccNames.putAll(rea.getModel().getRootFactTableName().toUpperCase(Locale.ROOT), upperCaseCcNames);
         });
         return tbl2ccNames;
-    }
-
-    @VisibleForTesting
-    public SetMultimap<String, String> collectComputedColumnsToTest(String project, String targetModelName){
-        return collectComputedColumns(project, targetModelName);
     }
 
     private boolean shouldExposeColumn(ProjectInstance projectInstance, ColumnMeta columnMeta,
