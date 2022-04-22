@@ -21,40 +21,35 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package io.kyligence.kap.common.persistence.metadata;
 
-package io.kyligence.kap.rest.request;
+import java.util.List;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
-import java.util.Objects;
+import org.apache.kylin.common.KylinConfig;
 
-import org.apache.kylin.rest.request.SQLRequest;
+import io.kyligence.kap.common.persistence.AuditLog;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
-import lombok.Getter;
-import lombok.Setter;
+@Slf4j
+public class JdbcPartialAuditLogStore extends JdbcAuditLogStore {
 
-@Getter
-@Setter
-public class AsyncQuerySQLRequest extends SQLRequest {
+    private final Predicate<String> filterByResPath;
 
-    private String separator = ",";
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (!(o instanceof AsyncQuerySQLRequest)) {
-            return false;
-        }
-        if (!super.equals(o)) {
-            return false;
-        }
-        AsyncQuerySQLRequest that = (AsyncQuerySQLRequest) o;
-        return Objects.equals(separator, that.separator);
+    public JdbcPartialAuditLogStore(KylinConfig config, Predicate<String> filterByResPath) throws Exception {
+        super(config);
+        this.filterByResPath = filterByResPath;
     }
 
     @Override
-    public int hashCode() {
+    public List<AuditLog> fetch(long currentId, long size) {
+        val originAuditLog = super.fetch(currentId, size);
+        val resultAuditLog = originAuditLog.stream().filter(auditLog -> filterByResPath.test(auditLog.getResPath()))
+                .collect(Collectors.toList());
+        log.debug("fetch partial meta path {}->{}", originAuditLog.size(), resultAuditLog.size());
 
-        return Objects.hash(super.hashCode(), separator);
+        return resultAuditLog;
     }
 }

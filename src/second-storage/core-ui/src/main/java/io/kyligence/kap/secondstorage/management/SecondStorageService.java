@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.secondstorage.management;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_NODE_NOT_AVAILABLE;
 import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_PROJECT_LOCK_FAIL;
 import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_PROJECT_STATUS_ERROR;
@@ -114,6 +115,7 @@ import io.kyligence.kap.secondstorage.metadata.TableData;
 import io.kyligence.kap.secondstorage.metadata.TableEntity;
 import io.kyligence.kap.secondstorage.metadata.TableFlow;
 import io.kyligence.kap.secondstorage.metadata.TablePartition;
+import io.kyligence.kap.secondstorage.metadata.TablePlan;
 import io.kyligence.kap.secondstorage.response.TableSyncResponse;
 import io.kyligence.kap.secondstorage.util.SecondStorageJobUtil;
 import lombok.val;
@@ -140,6 +142,117 @@ public class SecondStorageService extends BasicService implements SecondStorageU
     @Autowired
     @Qualifier("modelService")
     private ModelService modelService;
+
+
+    @Override
+    @Transaction(project = 0)
+    public String updateIndex(final String project, final String modelId) {
+        if (!SecondStorageUtil.isModelEnable(project, modelId)) {
+            return null;
+        }
+
+        val tableFlowManager = SecondStorageUtil.tableFlowManager(getConfig(), project);
+        val tablePlanManager = SecondStorageUtil.tablePlanManager(getConfig(), project);
+        val indexPlanManager = NIndexPlanManager.getInstance(getConfig(), project);
+        val indexPlan = indexPlanManager.getIndexPlan(modelId);
+        Preconditions.checkState(tablePlanManager.isPresent());
+        Preconditions.checkState(tableFlowManager.isPresent());
+        val tableFlow = tableFlowManager.get().get(modelId);
+        Preconditions.checkState(tableFlow.isPresent());
+
+        if (indexPlan.getBaseTableLayout() == null) {
+            return null;
+        }
+        // get all layout entity contains locked index
+        Set<Long> allBaseLayout = indexPlan.getAllLayouts().stream().filter(LayoutEntity::isBaseIndex).map(LayoutEntity::getId).collect(Collectors.toSet());
+        Set<Long> needDeleteLayoutIds = new HashSet<>(allBaseLayout.size());
+
+        tableFlowManager.get().get(modelId).map(tf -> {
+            // clean unused table_data, maybe index is deleted
+            List<Long> deleteLayouts = tf.getTableDataList().stream()
+                    .map(TableData::getLayoutID)
+                    .filter(id -> !allBaseLayout.contains(id))
+                    .collect(Collectors.toList());
+            needDeleteLayoutIds.addAll(deleteLayouts);
+            return tf;
+        });
+
+        String jobId = null;
+        if (!needDeleteLayoutIds.isEmpty()) {
+            jobId = triggerIndexClean(project, modelId, needDeleteLayoutIds);
+        }
+
+        tablePlanManager.get().get(modelId).map(tp -> {
+            // clean unused table_entity, maybe index is deleted
+            val deleteLayoutIds = tp.getTableMetas().stream()
+                    .filter(tableEntity -> !allBaseLayout.contains(tableEntity.getLayoutID()))
+                    .map(TableEntity::getLayoutID).collect(Collectors.toSet());
+            tp = tp.update(t -> t.cleanTable(deleteLayoutIds));
+
+            // add new base_layout if not exists
+            tp.createTableEntityIfNotExists(indexPlan.getBaseTableLayout(), true);
+            return tp;
+        });
+
+        tableFlowManager.get().get(modelId).map(tf -> {
+            // clean unused table_data, maybe index is deleted
+            List<Long> deleteLayouts = tf.getTableDataList().stream()
+                    .map(TableData::getLayoutID)
+                    .filter(id -> !allBaseLayout.contains(id))
+                    .collect(Collectors.toList());
+
+            tf = tf.update(t -> t.cleanTableData(tableData -> deleteLayouts.contains(tableData.getLayoutID())));
+            return tf;
+        });
+
+        return jobId;
+    }
+
+    @Override
+    public String cleanModel(final String project, final String modelId) {
+        if (!SecondStorageUtil.isModelEnable(project, modelId)) {
+            return null;
+        }
+
+        return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+
+            val tableFlowManager = getTableFlowManager(project);
+            val tablePlanManager = SecondStorageUtil.tablePlanManager(getConfig(), project);
+            val indexPlanManager = NIndexPlanManager.getInstance(getConfig(), project);
+            val indexPlan = indexPlanManager.getIndexPlan(modelId);
+            Preconditions.checkState(tablePlanManager.isPresent());
+            val tableFlow = tableFlowManager.get(modelId);
+            Preconditions.checkState(tableFlow.isPresent());
+
+            String jobIb = null;
+            if (indexPlan.getBaseTableLayout() != null) {
+                jobIb = triggerModelClean(project, modelId);
+                tableFlowManager.get(modelId).map(tf -> {
+                    tf.update(TableFlow::cleanTableData);
+                    return tf;
+                });
+                tablePlanManager.get().get(modelId).map(tp -> {
+                    tp = tp.update(TablePlan::cleanTable);
+                    tp.createTableEntityIfNotExists(indexPlan.getBaseTableLayout(), true);
+                    return tp;
+                });
+            }
+            return jobIb;
+        }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID);
+    }
+
+    @Override
+    public String disableModel(final String project, final String modelId) {
+        if (!SecondStorageUtil.isModelEnable(project, modelId)) {
+            return null;
+        }
+
+        return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            String jobId = triggerModelClean(project, modelId);
+            SecondStorageUtil.disableModel(project, modelId);
+            return jobId;
+        }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID);
+    }
 
     public SecondStorageService setModelService(final ModelService modelService) {
         this.modelService = modelService;
@@ -235,7 +348,8 @@ public class SecondStorageService extends BasicService implements SecondStorageU
                 return null;
             }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID);
         } else {
-            val jobId = disableModelSecondStorage(project, modelId);
+            SecondStorageUtil.validateDisableModel(project, modelId);
+            val jobId = disableModel(project, modelId);
             jobInfo = new JobInfoResponse.JobInfo(JobTypeEnum.SECOND_STORAGE_NODE_CLEAN.name(), jobId);
         }
         return Optional.ofNullable(jobInfo);
@@ -267,6 +381,15 @@ public class SecondStorageService extends BasicService implements SecondStorageU
 
         if (!SecondStorageUtil.isProjectEnable(project)) {
             return Collections.emptyList();
+        }
+
+        Manager<NodeGroup> nodeGroupManager = SecondStorage.nodeGroupManager(getConfig(), project);
+        List<NodeGroup> nodeGroups = nodeGroupManager.listAll();
+
+        Map<String, List<NodeData>> shards = convertNodeGroupToPairs(nodeGroups);
+
+        if (shards.size() == shardNames.size()) {
+            throw new KylinException(INVALID_PARAMETER, String.format(Locale.ROOT, "Second storage shard names contains all %s", shardNames));
         }
 
         boolean isLocked = LockTypeEnum.locked(LockTypeEnum.LOAD.name(), SecondStorageUtil.getProjectLocks(project));
@@ -402,6 +525,7 @@ public class SecondStorageService extends BasicService implements SecondStorageU
     }
 
     private String triggerModelClean(String project, String model) {
+        SecondStorageUtil.validateProjectLock(project, Collections.singletonList(LockTypeEnum.LOAD.name()));
         val jobHandler = new SecondStorageModelCleanJobHandler();
         final JobParam param = SecondStorageJobParamUtil.modelCleanParam(project, model, getUsername());
         return getManager(JobManager.class, project).addJob(param, jobHandler);
@@ -643,16 +767,6 @@ public class SecondStorageService extends BasicService implements SecondStorageU
         SecondStorageUtil.initModelMetaData(project, modelId);
     }
 
-    public String disableModelSecondStorage(String project, String modelId) {
-        if (!isEnabled(project, modelId)) {
-            return "";
-        }
-        SecondStorageUtil.validateDisableModel(project, modelId);
-        val jobId = triggerModelClean(project, modelId);
-        SecondStorageUtil.disableModel(project, modelId);
-        return jobId;
-    }
-
     public List<String> getAllSecondStorageModel(String project) {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         val modelManager = NDataModelManager.getInstance(config, project);
@@ -696,7 +810,8 @@ public class SecondStorageService extends BasicService implements SecondStorageU
 
     public List<String> getProjectSecondStorageJobs(String project) {
         if (!SecondStorageUtil.isProjectEnable(project)) {
-            throw new KylinException(SECOND_STORAGE_PROJECT_STATUS_ERROR, String.format(Locale.ROOT, "'%s' not enable second storage.", project));
+            throw new KylinException(SECOND_STORAGE_PROJECT_STATUS_ERROR,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getSECOND_STORAGE_PROJECT_ENABLED(), project));
         }
         val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         return executableManager.getJobs().stream()
@@ -717,71 +832,6 @@ public class SecondStorageService extends BasicService implements SecondStorageU
         if (!KylinConfig.getInstanceFromEnv().isUTEnv()) {
             aclEvaluate.checkIsGlobalAdmin();
         }
-    }
-
-    @Override
-    @Transaction(project = 0)
-    public void onUpdate(final String project, final String modelId) {
-        if (!SecondStorageUtil.isModelEnable(project, modelId)) return;
-        onUpdate(project, modelId, true);
-    }
-
-    @Override
-    @Transaction(project = 0)
-    public boolean onUpdate(final String project, final String modelId, boolean needClean) {
-        if (!SecondStorageUtil.isModelEnable(project, modelId)) return false;
-        val tableFlowManager = SecondStorageUtil.tableFlowManager(getConfig(), project);
-        val tablePlanManager = SecondStorageUtil.tablePlanManager(getConfig(), project);
-        val indexPlanManager = NIndexPlanManager.getInstance(getConfig(), project);
-        val indexPlan = indexPlanManager.getIndexPlan(modelId);
-        Preconditions.checkState(tablePlanManager.isPresent());
-        Preconditions.checkState(tableFlowManager.isPresent());
-        val tableFlow = tableFlowManager.get().get(modelId);
-        Preconditions.checkState(tableFlow.isPresent());
-
-        if (indexPlan.getBaseTableLayout() != null) {
-            // get all layout entity contains locked index
-            Set<Long> allBaseLayout = indexPlan.getAllLayouts().stream().filter(LayoutEntity::isBaseIndex).map(LayoutEntity::getId).collect(Collectors.toSet());
-            Set<Long> needDeleteLayoutIds = new HashSet<>(allBaseLayout.size());
-
-            tableFlowManager.get().get(modelId).map(tf -> {
-                // clean unused table_data, maybe index is deleted
-                List<Long> deleteLayouts = tf.getTableDataList().stream()
-                        .map(TableData::getLayoutID)
-                        .filter(id -> !allBaseLayout.contains(id))
-                        .collect(Collectors.toList());
-                needDeleteLayoutIds.addAll(deleteLayouts);
-                return tf;
-            });
-
-            if (!needDeleteLayoutIds.isEmpty()) {
-                triggerIndexClean(project, modelId, needDeleteLayoutIds);
-            }
-
-            tablePlanManager.get().get(modelId).map(tp -> {
-                // clean unused table_entity, maybe index is deleted
-                val deleteLayoutIds = tp.getTableMetas().stream()
-                        .filter(tableEntity -> !allBaseLayout.contains(tableEntity.getLayoutID()))
-                        .map(TableEntity::getLayoutID).collect(Collectors.toSet());
-                tp = tp.update(t -> t.cleanTable(deleteLayoutIds));
-
-                // add new base_layout if not exists
-                tp.createTableEntityIfNotExists(indexPlan.getBaseTableLayout(), true);
-                return tp;
-            });
-
-            tableFlowManager.get().get(modelId).map(tf -> {
-                // clean unused table_data, maybe index is deleted
-                List<Long> deleteLayouts = tf.getTableDataList().stream()
-                        .map(TableData::getLayoutID)
-                        .filter(id -> !allBaseLayout.contains(id))
-                        .collect(Collectors.toList());
-
-                tf = tf.update(t -> t.cleanTableData(tableData -> deleteLayouts.contains(tableData.getLayoutID())));
-                return tf;
-            });
-        }
-        return true;
     }
 
     public void resetStorage() {

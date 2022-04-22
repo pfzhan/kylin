@@ -21,40 +21,17 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package io.kyligence.kap.streaming.event;
 
-package io.kyligence.kap.rest.request;
+import java.util.List;
 
-import java.util.Objects;
+import org.apache.hadoop.fs.Path;
 
-import org.apache.kylin.rest.request.SQLRequest;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 
-import lombok.Getter;
-import lombok.Setter;
-
-@Getter
-@Setter
-public class AsyncQuerySQLRequest extends SQLRequest {
-
-    private String separator = ",";
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (!(o instanceof AsyncQuerySQLRequest)) {
-            return false;
-        }
-        if (!super.equals(o)) {
-            return false;
-        }
-        AsyncQuerySQLRequest that = (AsyncQuerySQLRequest) o;
-        return Objects.equals(separator, that.separator);
-    }
-
-    @Override
-    public int hashCode() {
-
-        return Objects.hash(super.hashCode(), separator);
-    }
+@Data
+@AllArgsConstructor
+public class StreamingJobMetaCleanEvent {
+    List<Path> deletedMetaPath;
 }

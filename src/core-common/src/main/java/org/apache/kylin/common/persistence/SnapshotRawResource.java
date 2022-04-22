@@ -21,40 +21,35 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package org.apache.kylin.common.persistence;
 
-package io.kyligence.kap.rest.request;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-import java.util.Objects;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-import org.apache.kylin.rest.request.SQLRequest;
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class SnapshotRawResource {
 
-import lombok.Getter;
-import lombok.Setter;
+    @JsonProperty("byte_source")
+    @JsonSerialize(using = RawResource.ByteSourceSerializer.class)
+    @JsonDeserialize(using = RawResource.BytesourceDeserializer.class)
+    private ByteSource byteSource;
 
-@Getter
-@Setter
-public class AsyncQuerySQLRequest extends SQLRequest {
+    @JsonProperty("timestamp")
+    private long timestamp;
+    @JsonProperty("mvcc")
+    private long mvcc;
 
-    private String separator = ",";
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (!(o instanceof AsyncQuerySQLRequest)) {
-            return false;
-        }
-        if (!super.equals(o)) {
-            return false;
-        }
-        AsyncQuerySQLRequest that = (AsyncQuerySQLRequest) o;
-        return Objects.equals(separator, that.separator);
-    }
-
-    @Override
-    public int hashCode() {
-
-        return Objects.hash(super.hashCode(), separator);
+    public SnapshotRawResource(RawResource rawResource) {
+        this.byteSource = rawResource.getByteSource();
+        this.timestamp = rawResource.getTimestamp();
+        this.mvcc = rawResource.getMvcc();
     }
 }

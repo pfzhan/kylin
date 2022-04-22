@@ -33,6 +33,7 @@ import io.kyligence.kap.clickhouse.job.ClickHouse;
 import io.kyligence.kap.clickhouse.job.ClickHouseModelCleanJob;
 import io.kyligence.kap.clickhouse.job.ClickHouseSegmentCleanJob;
 import io.kyligence.kap.clickhouse.job.Engine;
+import io.kyligence.kap.clickhouse.job.LoadContext;
 import io.kyligence.kap.clickhouse.management.ClickHouseConfigLoader;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.Unsafe;
@@ -138,12 +139,12 @@ public class SecondStorageJavaTest implements JobWaiter {
     @Test
     public void testModelUpdate() throws Exception {
         buildModel();
-        secondStorageService.onUpdate(project, modelId);
+        secondStorageService.updateIndex(project, modelId);
         val manager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         Assert.assertTrue(manager.getAllExecutables().stream().noneMatch(ClickHouseModelCleanJob.class::isInstance));
-        secondStorageService.disableModelSecondStorage(project, modelId);
+        secondStorageService.disableModel(project, modelId);
         int jobNum = manager.getAllExecutables().size();
-        secondStorageService.onUpdate(project, modelId);
+        secondStorageService.updateIndex(project, modelId);
         Assert.assertEquals(jobNum, manager.getAllExecutables().size());
     }
 
@@ -222,7 +223,7 @@ public class SecondStorageJavaTest implements JobWaiter {
         val request = new RecoverRequest();
         request.setProject(project);
         request.setModelName(modelName);
-        val jobId = secondStorageService.disableModelSecondStorage(project, modelId);
+        val jobId = secondStorageService.disableModel(project, modelId);
         waitJobFinish(project, jobId);
         openSecondStorageEndpoint.recoverModel(request);
         Assert.fail();
@@ -295,11 +296,11 @@ public class SecondStorageJavaTest implements JobWaiter {
         val segs = dataflow.getQueryableSegments().stream().map(NDataSegment::getId).collect(Collectors.toList());
         val segmentResponse = new NDataSegmentResponse(dataflow, dataflow.getFirstSegment());
         Assert.assertFalse(segmentResponse.isHasBaseTableIndexData());
-        secondStorageService.onUpdate(project, modelId);
+        secondStorageService.updateIndex(project, modelId);
 
-        secondStorageService.disableModelSecondStorage(project, modelId);
+        secondStorageService.disableModel(project, modelId);
         secondStorageService.enableModelSecondStorage(project, modelId);
-        secondStorageService.onUpdate(project, modelId);
+        secondStorageService.updateIndex(project, modelId);
         secondStorageService.enableModelSecondStorage(project, modelId);
         Assert.assertTrue(SecondStorageUtil.isModelEnable(project, modelId));
     }
@@ -459,6 +460,20 @@ public class SecondStorageJavaTest implements JobWaiter {
         SecondStorageUtil.checkSecondStorageData(project);
     }
 
+    @Test
+    public void testJobPausedDeserialize() throws Exception {
+        LoadContext c1 = new LoadContext(null);
+        LoadContext c2 = new LoadContext(null);
+        c2.deserializeToString(c1.serializeToString());
+
+        c2.finishSingleFile(new LoadContext.CompletedFileKeyUtil("test", 20000010001L), "file1");
+        c2.finishSegment("segment1", new LoadContext.CompletedSegmentKeyUtil(20000010001L));
+        LoadContext c3 = new LoadContext(null);
+        c3.deserializeToString(c2.serializeToString());
+        Assert.assertTrue(c3.getHistory(new LoadContext.CompletedFileKeyUtil("test", 20000010001L)).contains("file1"));
+        Assert.assertTrue(c3.getHistorySegments(new LoadContext.CompletedSegmentKeyUtil(20000010001L)).contains("segment1"));
+    }
+
     @Test(expected = KylinException.class)
     public void testCheckJobRestart() throws Exception {
         buildModel();
@@ -501,7 +516,7 @@ public class SecondStorageJavaTest implements JobWaiter {
         val jobCnt = manager.getAllExecutables().stream()
                 .filter(ClickHouseModelCleanJob.class::isInstance)
                 .filter(job -> modelId.equals(job.getTargetModelId())).count();
-        secondStorageService.onUpdate(project, modelId, false);
+        secondStorageService.updateIndex(project, modelId);
         Assert.assertEquals(jobCnt, manager.getAllExecutables().stream()
                 .filter(ClickHouseModelCleanJob.class::isInstance)
                 .filter(job -> modelId.equals(job.getTargetModelId())).count());

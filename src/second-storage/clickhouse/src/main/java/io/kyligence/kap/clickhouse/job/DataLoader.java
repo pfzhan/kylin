@@ -178,7 +178,8 @@ public class DataLoader {
         }
 
         // skip segment when committed
-        if (loadContext.getHistorySegments().contains(loadInfoBatch.get(0).getSegmentId())) return false;
+        val segmentKey = new LoadContext.CompletedSegmentKeyUtil(loadInfoBatch.get(0).getLayout().getId());
+        if (loadContext.getHistorySegments(segmentKey).contains(loadInfoBatch.get(0).getSegmentId())) return false;
 
         final ExecutorService executorService = new ThreadPoolExecutor(totalJdbcNum, totalJdbcNum, 0L,
                 TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>(), new NamedThreadFactory("LoadWoker"));
@@ -191,11 +192,14 @@ public class DataLoader {
         for (ShardLoader shardLoader : shardLoaders) {
             Future<?> future = executorService.submit(() -> {
                 String replicaName = shardLoader.getClickHouse().getShardName();
+                val fileKey = new LoadContext.CompletedFileKeyUtil(replicaName, shardLoader.getLayout().getId());
                 try (SetThreadName ignored = new SetThreadName("Shard %s", replicaName)) {
                     log.info("Load parquet files into {}", replicaName);
                     shardLoader.setup(loadContext.isNewJob());
-                    val files = shardLoader.loadDataIntoTempTable(loadContext.getHistory(replicaName), stopFlag);
-                    files.forEach(file -> loadContext.finishSingleFile(replicaName, file));
+                    val files = shardLoader.loadDataIntoTempTable(
+                            loadContext.getHistory(fileKey),
+                            stopFlag);
+                    files.forEach(file -> loadContext.finishSingleFile(fileKey, file));
                     // save progress
                     return true;
                 } finally {
@@ -223,7 +227,7 @@ public class DataLoader {
                 for (ShardLoader shardLoader : shardLoaders) {
                         shardLoader.commit();
                 }
-                loadContext.finishSegment(loadInfoBatch.get(0).getSegmentId());
+                loadContext.finishSegment(loadInfoBatch.get(0).getSegmentId(), segmentKey);
             }
             SecondStorageConcurrentTestUtil.wait(SecondStorageConcurrentTestUtil.WAIT_AFTER_COMMIT);
             return paused;

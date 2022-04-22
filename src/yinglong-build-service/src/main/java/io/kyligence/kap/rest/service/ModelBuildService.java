@@ -330,8 +330,8 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
             request.setPartitionDesc(params.getPartitionDesc());
             request.setProject(params.getProject());
             request.setMultiPartitionDesc(params.getMultiPartitionDesc());
-            boolean isClean = modelService.updateSecondStorageModel(params.getProject(), request.getId(), true);
-            modelService.updateDataModelSemantic(params.getProject(), request, !isClean);
+            modelService.updateDataModelSemantic(params.getProject(), request);
+            modelService.updateSecondStorageModel(params.getProject(), request.getId());
             params.getSegmentHoles().clear();
         }
         List<JobInfoResponse.JobInfo> res = Lists.newArrayListWithCapacity(params.getSegmentHoles().size() + 2);

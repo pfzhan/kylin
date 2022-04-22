@@ -70,7 +70,7 @@ public class CreateStreamingFlatTableTest extends StreamingTestCase {
         source.post(StreamingTestConstant.KAP_SSB_STREAMING_JSON_FILE());
 
         val args = new String[] { PROJECT, DATAFLOW_ID, "5", "10 seconds" };
-        val entry = Mockito.spy(new StreamingEntry(args));
+        val entry = Mockito.spy(new StreamingEntry());
         entry.setSparkSession(createSparkSession());
         val dfMgr = NDataflowManager.getInstance(config, PROJECT);
         val dataflow = dfMgr.getDataflow(DATAFLOW_ID);

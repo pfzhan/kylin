@@ -29,6 +29,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
+import java.util.Iterator;
 import java.util.List;
 
 import org.apache.commons.io.IOUtils;
@@ -39,22 +40,20 @@ import org.apache.kylin.query.util.AsyncQueryUtil;
 import org.apache.spark.sql.SparderEnv;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.supercsv.io.CsvListWriter;
-import org.supercsv.prefs.CsvPreference;
 
-import com.clearspring.analytics.util.Lists;
 
-import lombok.val;
+import scala.collection.JavaConverters;
 
-public class CSVExcelWriter {
+public class CSVWriter {
 
     private static final Logger logger = LoggerFactory.getLogger("query");
 
-    public void writeData(FileStatus[] fileStatuses, OutputStream outputStream) throws IOException {
-        CsvListWriter csvWriter = null;
+    private static final String QUOTE_CHAR = "\"";
+    private static final String END_OF_LINE_SYMBOLS = "\r\n";
+
+    public void writeData(FileStatus[] fileStatuses, OutputStream outputStream, String separator) throws IOException {
         Writer writer = new OutputStreamWriter(outputStream, StandardCharsets.UTF_8);
         Boolean firstWrite = true;
-        csvWriter = new CsvListWriter(writer, CsvPreference.STANDARD_PREFERENCE);
         for (FileStatus fileStatus : fileStatuses) {
             if (!fileStatus.getPath().getName().startsWith("_")) {
                 if (fileStatus.getPath().getName().endsWith("parquet")) {
@@ -62,32 +61,62 @@ public class CSVExcelWriter {
                         writer.write('\uFEFF');
                         firstWrite = false;
                     }
-                    writeDataByParquet(fileStatus, csvWriter);
+                    writeDataByParquet(fileStatus, writer, separator);
                 } else {
                     writeDataByCsv(fileStatus, outputStream);
                 }
             }
         }
-        csvWriter.close();
+        writer.flush();
+        writer.close();
     }
 
-    private void writeDataByParquet(FileStatus fileStatus, CsvListWriter csvWriter) {
-        List<org.apache.spark.sql.Row> rowList = SparderEnv.getSparkSession().read()
-                .parquet(fileStatus.getPath().toString()).collectAsList();
-        rowList.stream().forEach(row -> {
-            List<String> result = Lists.newArrayList();
-            val list = row.toSeq().toList();
-            for (int i = 0; i < list.size(); i++) {
-                Object cell = list.apply(i);
+    public static void writeCsv(Iterator<List<Object>> rows, Writer writer, String separator) {
+        rows.forEachRemaining(row -> {
+            StringBuilder builder = new StringBuilder();
+
+            for (int i = 0; i < row.size(); i++) {
+                Object cell = row.get(i);
                 String column = cell == null ? "" : cell.toString();
-                result.add(column);
+
+                if (i > 0) {
+                    builder.append(separator);
+                }
+
+                final String escapedCsv = encodeCell(column, separator);
+                builder.append(escapedCsv);
             }
+            builder.append(END_OF_LINE_SYMBOLS); // EOL
             try {
-                csvWriter.write(result);
+                writer.write(builder.toString());
             } catch (IOException e) {
                 logger.error("Failed to download asyncQueryResult csvExcel by parquet", e);
             }
         });
+    }
+
+    private void writeDataByParquet(FileStatus fileStatus, Writer writer, String separator) {
+        List<org.apache.spark.sql.Row> rowList = SparderEnv.getSparkSession().read()
+                .parquet(fileStatus.getPath().toString()).collectAsList();
+        writeCsv(rowList.stream().map(row -> JavaConverters.seqAsJavaList(row.toSeq())).iterator(), writer, separator);
+    }
+
+    // the encode logic is copied from org.supercsv.encoder.DefaultCsvEncoder.encode
+    private static String encodeCell(String cell, String separator) {
+
+        boolean needQuote = cell.contains(separator) || cell.contains("\r") || cell.contains("\n");
+
+        if (cell.contains(QUOTE_CHAR)) {
+            needQuote = true;
+            // escape
+            cell = cell.replace(QUOTE_CHAR, QUOTE_CHAR + QUOTE_CHAR);
+        }
+
+        if (needQuote) {
+            return QUOTE_CHAR + cell + QUOTE_CHAR;
+        } else {
+            return cell;
+        }
     }
 
     private void writeDataByCsv(FileStatus fileStatus, OutputStream outputStream) {

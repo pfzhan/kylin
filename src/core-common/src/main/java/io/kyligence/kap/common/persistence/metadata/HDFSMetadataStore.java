@@ -25,6 +25,9 @@ package io.kyligence.kap.common.persistence.metadata;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -49,8 +52,10 @@ import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.persistence.SnapshotRawResource;
 import org.apache.kylin.common.persistence.VersionedRawResource;
 import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.common.util.JsonUtil;
 
 import io.kyligence.kap.guava20.shaded.common.base.Preconditions;
 import io.kyligence.kap.guava20.shaded.common.base.Throwables;
@@ -77,12 +82,16 @@ public class HDFSMetadataStore extends MetadataStore {
 
     private final Type type;
 
+    private final CompressHandlerInterface compressHandlerInterface;
+
     public HDFSMetadataStore(KylinConfig kylinConfig) throws IOException {
         super(kylinConfig);
         try {
             val storageUrl = kylinConfig.getMetadataUrl();
             Preconditions.checkState(HDFS_SCHEME.equals(storageUrl.getScheme()));
             type = storageUrl.getParameter("zip") != null ? Type.ZIP : Type.DIR;
+            compressHandlerInterface = storageUrl.getParameter("snapshot") != null ? new SnapShotCompressHandler()
+                    : new CompressHandler();
             String path = storageUrl.getParameter("path");
             if (path == null) {
                 path = HadoopUtil.getBackupFolder(kylinConfig);
@@ -216,20 +225,11 @@ public class HDFSMetadataStore extends MetadataStore {
             log.info("there is no resources in rootPath ({}),please check the rootPath.", rootPath);
             return;
         }
-        val compressedFile = new Path(this.rootPath, COMPRESSED_FILE);
-        try (FSDataOutputStream out = fs.create(compressedFile, true);
-                ZipOutputStream zipOut = new ZipOutputStream(new CheckedOutputStream(out, new CRC32()))) {
-            for (String resPath : resources) {
-                val raw = store.getResource(resPath);
-                compress(zipOut, raw);
-            }
-        } catch (Exception e) {
-            throw new IOException("Put compressed resource fail", e);
-        }
+        dump(store, resources);
     }
 
     @Override
-    public void dump(ResourceStore store, List<String> resources) throws Exception {
+    public void dump(ResourceStore store, Collection<String> resources) throws Exception {
         val compressedFile = new Path(this.rootPath, COMPRESSED_FILE);
         try (FSDataOutputStream out = fs.create(compressedFile, true);
                 ZipOutputStream zipOut = new ZipOutputStream(new CheckedOutputStream(out, new CRC32()))) {
@@ -254,12 +254,11 @@ public class HDFSMetadataStore extends MetadataStore {
         return data;
     }
 
-
     private void compress(ZipOutputStream out, RawResource raw) throws IOException {
         ZipEntry entry = new ZipEntry(raw.getResPath());
         entry.setTime(raw.getTimestamp());
         out.putNextEntry(entry);
-        IOUtils.copy(raw.getByteSource().openStream(), out);
+        compressHandlerInterface.write(out, raw);
     }
 
     private Path getRealHDFSPath(String resourcePath) {
@@ -310,6 +309,7 @@ public class HDFSMetadataStore extends MetadataStore {
     private final Map<String, RawResource> compressedFiles = getFilesFromCompressedFile();
 
     private Map<String, RawResource> getFilesFromCompressedFile() {
+        Preconditions.checkNotNull(compressHandlerInterface, "compress handler should not be null!");
         val res = Maps.<String, RawResource> newHashMap();
         val compressedFile = getRealHDFSPath(COMPRESSED_FILE);
         try {
@@ -324,9 +324,8 @@ public class HDFSMetadataStore extends MetadataStore {
                 if (!zipEntry.getName().startsWith("/")) {
                     continue;
                 }
-                val bs = ByteSource.wrap(IOUtils.toByteArray(zipIn));
                 long t = zipEntry.getTime();
-                val raw = new RawResource(zipEntry.getName(), bs, t, 0);
+                val raw = compressHandlerInterface.read(zipIn, zipEntry.getName(), t);
                 res.put(zipEntry.getName(), raw);
             }
             return res;
@@ -342,5 +341,38 @@ public class HDFSMetadataStore extends MetadataStore {
         }
         return getCompressedFiles().keySet().stream()
                 .anyMatch(file -> file.startsWith(path + "/") || file.equals(path));
+    }
+
+    private interface CompressHandlerInterface {
+        RawResource read(InputStream in, String resPath, long time) throws IOException;
+
+        void write(OutputStream out, RawResource raw) throws IOException;
+    }
+
+    private static class CompressHandler implements CompressHandlerInterface {
+        @Override
+        public RawResource read(InputStream in, String resPath, long time) throws IOException {
+            val bs = ByteSource.wrap(IOUtils.toByteArray(in));
+            return new RawResource(resPath, bs, time, 0);
+        }
+
+        @Override
+        public void write(OutputStream out, RawResource raw) throws IOException {
+            IOUtils.copy(raw.getByteSource().openStream(), out);
+        }
+    }
+
+    private static class SnapShotCompressHandler implements CompressHandlerInterface {
+        @Override
+        public RawResource read(InputStream in, String resPath, long time) throws IOException {
+            val snap = JsonUtil.readValue(IOUtils.toByteArray(in), SnapshotRawResource.class);
+            return new RawResource(resPath, snap.getByteSource(), snap.getTimestamp(), snap.getMvcc());
+        }
+
+        @Override
+        public void write(OutputStream out, RawResource raw) throws IOException {
+            val snapshotRawResource = new SnapshotRawResource(raw);
+            out.write(JsonUtil.writeValueAsIndentBytes(snapshotRawResource));
+        }
     }
 }

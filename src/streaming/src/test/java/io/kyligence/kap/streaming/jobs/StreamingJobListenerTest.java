@@ -23,11 +23,16 @@
  */
 package io.kyligence.kap.streaming.jobs;
 
+import java.io.File;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Locale;
 import java.util.Optional;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.JobTypeEnum;
@@ -38,11 +43,14 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.rules.TemporaryFolder;
+import org.junit.rules.TestName;
 
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
 import io.kyligence.kap.streaming.event.StreamingJobDropEvent;
 import io.kyligence.kap.streaming.event.StreamingJobKillEvent;
+import io.kyligence.kap.streaming.event.StreamingJobMetaCleanEvent;
 import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import io.kyligence.kap.streaming.util.StreamingTestCase;
 import lombok.val;
@@ -52,6 +60,12 @@ public class StreamingJobListenerTest extends StreamingTestCase {
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
+
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+    @Rule
+    public TestName testName = new TestName();
 
     private static String PROJECT = "streaming_test";
     private static String MODEL_ID = "e78a89dd-847f-4574-8afa-8768b4228b72";
@@ -204,6 +218,42 @@ public class StreamingJobListenerTest extends StreamingTestCase {
         Assert.assertNull(mergeJobMeta);
     }
 
+    @Test
+    public void testOnStreamingJobMetaCleanEvent() throws IOException {
+        File mainDir = new File(temporaryFolder.getRoot(), testName.getMethodName());
+        FileUtils.forceMkdir(mainDir);
+        Assert.assertTrue(mainDir.exists());
+
+        EventBusFactory.getInstance().postSync(
+                new StreamingJobMetaCleanEvent(Collections.singletonList(new Path(mainDir.getAbsolutePath()))));
+
+        //delete success
+        Assert.assertFalse(mainDir.exists());
+    }
+
+    @Test
+    public void testOnStreamingJobMetaCleanEvent_EmptyPath() throws IOException {
+        File mainDir = new File(temporaryFolder.getRoot(), testName.getMethodName());
+        FileUtils.forceMkdir(mainDir);
+        Assert.assertTrue(mainDir.exists());
+
+        EventBusFactory.getInstance().postSync(new StreamingJobMetaCleanEvent(Collections.emptyList()));
+
+        Assert.assertTrue(mainDir.exists());
+    }
+
+    @Test
+    public void testOnStreamingJobMetaCleanEvent_InvalidPath() throws IOException {
+        File mainDir = new File(temporaryFolder.getRoot(), testName.getMethodName());
+        FileUtils.forceMkdir(mainDir);
+        Assert.assertTrue(mainDir.exists());
+
+        EventBusFactory.getInstance().postSync(
+                new StreamingJobMetaCleanEvent(Collections.singletonList(new Path(mainDir.getAbsolutePath() + "xxx"))));
+
+        Assert.assertTrue(mainDir.exists());
+    }
+
     private SparkAppHandle mockRunningState() {
         return new AbstractSparkAppHandle() {
             @Override
@@ -268,7 +318,7 @@ public class StreamingJobListenerTest extends StreamingTestCase {
 
         @Override
         public Optional<Throwable> getError() {
-           return null;
+            return null;
         }
     };
 }

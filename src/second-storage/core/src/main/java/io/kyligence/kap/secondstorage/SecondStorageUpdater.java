@@ -25,6 +25,29 @@
 package io.kyligence.kap.secondstorage;
 
 public interface SecondStorageUpdater {
-    void onUpdate(String project, String modelId);
-    boolean onUpdate(String project, String modelId, boolean needClean);
+    /**
+     * Clean second storage model
+     * if needed, return clean job id
+     * @param project project
+     * @param modelId model id
+     * @return clean job id
+     */
+    String cleanModel(final String project, final String modelId);
+
+    /**
+     * disable model
+     * @param project project
+     * @param modelId model id
+     * @return clean job id
+     */
+    String disableModel(final String project, final String modelId);
+
+    /**
+     * Update model index
+     * if needed, return clean index id
+     * @param project project
+     * @param modelId model id
+     * @return clean index job id
+     */
+    String updateIndex(String project, String modelId);
 }

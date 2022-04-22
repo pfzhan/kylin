@@ -344,6 +344,7 @@ public class QueryContext implements Closeable {
         private String fileFormat;
         private String fileEncode;
         private String fileName;
+        private String separator;
     }
 
     @Getter
