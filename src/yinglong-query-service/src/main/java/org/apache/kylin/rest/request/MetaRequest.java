@@ -54,7 +54,7 @@ public class MetaRequest implements ProjectInsensitiveRequest {
 
     @Getter
     @Setter
-    private String cube;
+    private String modelAlias;
 
     public MetaRequest() {
     }
