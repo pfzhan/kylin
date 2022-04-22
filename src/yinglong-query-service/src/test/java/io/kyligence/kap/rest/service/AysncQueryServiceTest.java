@@ -121,6 +121,19 @@ public class AysncQueryServiceTest extends ServiceTestBase {
     }
 
     @Test
+    public void testProjectSearchByQueryId() throws IOException {
+        SQLResponse sqlResponse = mock(SQLResponse.class);
+        when(sqlResponse.isException()).thenReturn(true);
+        when(sqlResponse.getExceptionMessage()).thenReturn("some error!!!");
+
+        String queryId = RandomUtil.randomUUIDStr();
+        if (sqlResponse.isException()) {
+            AsyncQueryUtil.createErrorFlag(PROJECT, queryId, sqlResponse.getExceptionMessage());
+        }
+        assertEquals(PROJECT, asyncQueryService.searchQueryResultProject(queryId));
+    }
+
+    @Test
     public void testFailedQuery() throws IOException {
         SQLResponse sqlResponse = mock(SQLResponse.class);
         when(sqlResponse.isException()).thenReturn(true);
