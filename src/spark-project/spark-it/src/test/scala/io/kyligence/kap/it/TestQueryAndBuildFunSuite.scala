@@ -40,8 +40,9 @@ import org.apache.spark.sql.{DataFrame, SparderEnv}
 
 import java.io.File
 import java.util.TimeZone
-import java.util.concurrent.Executors
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
+
+import io.kyligence.kap.metadata.cube.model.NDataflowManager.NDataflowUpdater
+import io.kyligence.kap.metadata.cube.model.{NDataflow, NDataflowManager}
 
 class TestQueryAndBuildFunSuite
   extends SparderBaseFunSuite
