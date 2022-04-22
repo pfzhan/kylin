@@ -46,7 +46,6 @@ import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARTITIO
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARTITION_VALUES;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_SEGMENT_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_BROKEN;
-import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_EXPORT_ERROR;
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_ONLINE_ABANDON;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 import static org.apache.kylin.common.exception.ServerErrorCode.STREAMING_INDEX_UPDATE_DISABLE;
@@ -3821,49 +3820,6 @@ public class ModelService extends BasicService implements TableModelSupporter, P
             SyncContext.ModelElement modelElement, String host, int port) {
         Set<String> groups = getCurrentUserGroups();
         return exportCustomModel(projectName, modelId, targetBI, modelElement, host, port, groups);
-    }
-
-    public boolean validateExport(String projectName, String modelId) {
-        val dataModelDesc = getModelById(modelId, projectName);
-        List<MeasureDef> measureDefs = dataModelDesc.getEffectiveMeasures().values().stream().map(MeasureDef::new)
-                .collect(Collectors.toList());
-        val measures = measureDefs.stream().map(measureDef -> measureDef.getMeasure().getName())
-                .collect(Collectors.toSet());
-        val columns = dataModelDesc.getAllNamedColumns().stream()
-                .filter(column -> !column.isDimension())
-                .map(NDataModel.NamedColumn::getColumnName).collect(Collectors.toSet());
-
-        // 1. check measure snd normal column
-        val duplicateMeasureAndModelColumn = Sets.intersection(measures, columns);
-        if (org.apache.commons.collections4.CollectionUtils.isNotEmpty(duplicateMeasureAndModelColumn)) {
-            val duplicateName = duplicateMeasureAndModelColumn.stream().findFirst().orElse(null);
-            throw new KylinException(MODEL_EXPORT_ERROR, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getDUPLICATED_MODEL_COLUMN_AND_MEASURE_NAME(), duplicateName, duplicateName));
-        }
-
-        // 2. check dimension name and measure
-        val dimensionNames = dataModelDesc.getAllNamedColumns().stream()
-                .filter(NDataModel.NamedColumn::isDimension)
-                .map(NDataModel.NamedColumn::getName).collect(Collectors.toSet());
-        val duplicateDimensionNameAndMeasure = Sets.intersection(dimensionNames, measures);
-        if (org.apache.commons.collections4.CollectionUtils.isNotEmpty(duplicateDimensionNameAndMeasure)) {
-            val duplicateName = duplicateDimensionNameAndMeasure.stream().findFirst().orElse(null);
-            throw new KylinException(MODEL_EXPORT_ERROR, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getDUPLICATED_DIMENSION_NAME_AND_MEASURE_NAME(), duplicateName, duplicateName));
-        }
-
-        // 3. check dimension column and measure
-        val dimensionColumns = dataModelDesc.getEffectiveDimensions().values().stream()
-                .map(TblColRef::getColumnDesc)
-                .map(ColumnDesc::getName).collect(Collectors.toSet());
-        val duplicateDimensionColumnAndMeasure = Sets.intersection(dimensionColumns, measures);
-        if (org.apache.commons.collections4.CollectionUtils.isNotEmpty(duplicateDimensionColumnAndMeasure)) {
-            val duplicateName = duplicateDimensionColumnAndMeasure.stream().findFirst().orElse(null);
-            throw new KylinException(MODEL_EXPORT_ERROR,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getDUPLICATED_DIMENSION_COLUMN_AND_MEASURE_NAME(),
-                            duplicateName, duplicateName));
-        }
-        return true;
     }
 
     public BISyncModel exportModel(String projectName, String modelId, SyncContext.BI targetBI,
