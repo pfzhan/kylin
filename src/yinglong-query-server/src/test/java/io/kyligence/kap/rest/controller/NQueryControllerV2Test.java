@@ -25,11 +25,14 @@ package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.request.PrepareSqlRequest;
+import org.apache.kylin.rest.response.SQLResponse;
 import org.apache.kylin.rest.service.QueryService;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -46,8 +49,12 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.query.NativeQueryRealization;
+import io.kyligence.kap.metadata.query.QueryMetrics;
 import io.kyligence.kap.rest.controller.v2.NQueryControllerV2;
+import io.kyligence.kap.rest.response.SQLResponseV2;
 import io.kyligence.kap.rest.service.QueryHistoryService;
+import io.kyligence.kap.shaded.curator.org.apache.curator.shaded.com.google.common.collect.Lists;
 
 public class NQueryControllerV2Test extends NLocalFileMetadataTestCase {
 
@@ -139,5 +146,32 @@ public class NQueryControllerV2Test extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isBadRequest());
 
         Mockito.verify(nQueryControllerV2, Mockito.times(0)).prepareQuery(Mockito.any());
+    }
+
+    @Test
+    public void testSqlResponseV2() {
+        SQLResponse sqlResponse = new SQLResponse();
+        sqlResponse.setScanRows(Lists.newArrayList(50L, 10L));
+        NativeQueryRealization nativeQueryRealization1 = new NativeQueryRealization();
+        nativeQueryRealization1.setIndexType(QueryMetrics.AGG_INDEX);
+        nativeQueryRealization1.setModelAlias("modelA");
+        NativeQueryRealization nativeQueryRealization2 = new NativeQueryRealization();
+        nativeQueryRealization2.setIndexType(QueryMetrics.TABLE_INDEX);
+        nativeQueryRealization2.setModelAlias("modelB");
+        sqlResponse.setNativeRealizations(Lists.newArrayList(nativeQueryRealization1, nativeQueryRealization2));
+        SQLResponseV2 sqlResponseV2 = new SQLResponseV2(sqlResponse);
+        Assert.assertEquals(sqlResponseV2.getThrowable(), sqlResponse.getThrowable());
+        Assert.assertEquals(sqlResponseV2.getTotalScanRows(), sqlResponse.getTotalScanRows());
+        Assert.assertEquals(sqlResponseV2.getTotalScanBytes(), sqlResponse.getTotalScanBytes());
+        Assert.assertEquals(sqlResponseV2.getTotalScanCount(), sqlResponse.getTotalScanRows());
+        Assert.assertTrue(sqlResponseV2.isSparderUsed());
+        Assert.assertEquals("CUBE[name=modelA,modelB],INVERTED_INDEX[name=modelB]", sqlResponseV2.getCube());
+
+        SQLResponseV2 sqlResponseV22 = new SQLResponseV2();
+        Assert.assertFalse(sqlResponseV22.isSparderUsed());
+        Assert.assertTrue(StringUtils.isEmpty(sqlResponseV22.adapterCubeField(sqlResponseV22.getNativeRealizations())));
+        Assert.assertEquals("CUBE[name=modelA]",
+                sqlResponseV22.adapterCubeField(Lists.newArrayList(nativeQueryRealization1)));
+        Assert.assertThrows(NullPointerException.class, () -> new SQLResponseV2(null));
     }
 }
