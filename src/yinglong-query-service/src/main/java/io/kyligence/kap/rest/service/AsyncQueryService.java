@@ -182,6 +182,16 @@ public class AsyncQueryService extends BasicService {
         }
     }
 
+    public String searchQueryResultProject(String queryId) throws IOException {
+        for (ProjectInstance projectInstance : NProjectManager.getInstance(getConfig()).listAllProjects()) {
+            FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
+            if (fileSystem.exists(getAsyncQueryResultDir(projectInstance.getName(), queryId))) {
+                return projectInstance.getName();
+            }
+        }
+        return null;
+    }
+
     public QueryStatus queryStatus(String project, String queryId) throws IOException {
         Path asyncQueryResultDir = getAsyncQueryResultDir(project, queryId);
         FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
