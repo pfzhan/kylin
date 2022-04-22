@@ -701,16 +701,6 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "validateNewModelAlias", tags = { "QE" })
-    @GetMapping(value = "/{model:.+}/export/validation")
-    @ResponseBody
-    public EnvelopeResponse<Boolean> validateExport(@PathVariable("model") String modelId,
-            @RequestParam(value = "project") String project) {
-        String projectName = checkProjectName(project);
-        val validResult = modelService.validateExport(projectName, modelId);
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, validResult, "");
-    }
-
     @ApiOperation(value = "export model", tags = { "QE" }, notes = "Add URL: {model}")
     @GetMapping(value = "/{model:.+}/export")
     @ResponseBody
@@ -725,7 +715,6 @@ public class NModelController extends NBasicController {
         String host = getHost(serverHost, request.getServerName());
         Integer port = getPort(serverPort, request.getServerPort());
 
-        modelService.validateExport(projectName, modelId);
         BISyncModel syncModel = modelService.exportModel(projectName, modelId, exportAs, element, host, port);
 
         dumpSyncModel(modelId, exportAs, projectName, syncModel, response);
@@ -745,7 +734,6 @@ public class NModelController extends NBasicController {
         String host = getHost(serverHost, request.getServerName());
         Integer port = getPort(serverPort, request.getServerPort());
 
-        modelService.validateExport(projectName, modelId);
         BISyncModel syncModel = AclPermissionUtil.isAdmin()
                 ? modelService.exportModel(projectName, modelId, exportAs, element, host, port)
                 : modelService.biExportCustomModel(projectName, modelId, exportAs, element, host, port);

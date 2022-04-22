@@ -1820,16 +1820,4 @@ public class Message {
     public String getPARAMETER_IS_REQUIRED() {
         return "'%s' is required.";
     }
-
-    public String getDUPLICATED_DIMENSION_NAME_AND_MEASURE_NAME() {
-        return "There are duplicated names among dimension name %s and measure name %s. Cannot export a valid TDS file. Please correct the duplicated names and try again.";
-    }
-
-    public String getDUPLICATED_DIMENSION_COLUMN_AND_MEASURE_NAME() {
-        return "There are duplicated names among dimension column %s and measure name %s. Cannot export a valid TDS file. Please correct the duplicated names and try again.";
-    }
-
-    public String getDUPLICATED_MODEL_COLUMN_AND_MEASURE_NAME() {
-        return "There are duplicated names among model column %s and measure name %s. Cannot export a valid TDS file. Please correct the duplicated names and try again.";
-    }
 }
