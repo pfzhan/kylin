@@ -55,9 +55,6 @@ function checkQueueSettings() {
   engine_vaild=false
 
   for queue in "${queue_arr[@]}"; do
-    # In case of 'xxx.xxx.queuename'.
-    # If the queue is 'root.user.queuename', we need to get 'queuename' instead of 'root.user.queuename'.
-    queue=${queue##*.}
     if [ $queue = $kylin_storage_queue ]; then
       storage_vaild=true
     fi
