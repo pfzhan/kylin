@@ -158,6 +158,15 @@ public class NQueryControllerV2Test extends NLocalFileMetadataTestCase {
         NativeQueryRealization nativeQueryRealization2 = new NativeQueryRealization();
         nativeQueryRealization2.setIndexType(QueryMetrics.TABLE_INDEX);
         nativeQueryRealization2.setModelAlias("modelB");
+        NativeQueryRealization nativeQueryRealization3 = new NativeQueryRealization();
+        nativeQueryRealization3.setIndexType(QueryMetrics.TABLE_INDEX);
+        nativeQueryRealization3.setModelAlias("modelA");
+        NativeQueryRealization nativeQueryRealization4 = new NativeQueryRealization();
+        nativeQueryRealization4.setIndexType(QueryMetrics.AGG_INDEX);
+        nativeQueryRealization4.setModelAlias("modelB");
+        NativeQueryRealization nativeQueryRealization5 = new NativeQueryRealization();
+        nativeQueryRealization5.setIndexType(QueryMetrics.TABLE_SNAPSHOT);
+        nativeQueryRealization5.setModelAlias("modelB");
         sqlResponse.setNativeRealizations(Lists.newArrayList(nativeQueryRealization1, nativeQueryRealization2));
         SQLResponseV2 sqlResponseV2 = new SQLResponseV2(sqlResponse);
         Assert.assertEquals(sqlResponseV2.getThrowable(), sqlResponse.getThrowable());
@@ -165,13 +174,19 @@ public class NQueryControllerV2Test extends NLocalFileMetadataTestCase {
         Assert.assertEquals(sqlResponseV2.getTotalScanBytes(), sqlResponse.getTotalScanBytes());
         Assert.assertEquals(sqlResponseV2.getTotalScanCount(), sqlResponse.getTotalScanRows());
         Assert.assertTrue(sqlResponseV2.isSparderUsed());
-        Assert.assertEquals("CUBE[name=modelA,modelB],INVERTED_INDEX[name=modelB]", sqlResponseV2.getCube());
+        Assert.assertEquals("CUBE[name=modelA],INVERTED_INDEX[name=modelB]", sqlResponseV2.getCube());
 
         SQLResponseV2 sqlResponseV22 = new SQLResponseV2();
         Assert.assertFalse(sqlResponseV22.isSparderUsed());
         Assert.assertTrue(StringUtils.isEmpty(sqlResponseV22.adapterCubeField(sqlResponseV22.getNativeRealizations())));
         Assert.assertEquals("CUBE[name=modelA]",
                 sqlResponseV22.adapterCubeField(Lists.newArrayList(nativeQueryRealization1)));
+        Assert.assertEquals("CUBE[name=modelB]",
+                sqlResponseV22.adapterCubeField(Lists.newArrayList(nativeQueryRealization5)));
+        Assert.assertEquals("INVERTED_INDEX[name=modelA]",
+                sqlResponseV22.adapterCubeField(Lists.newArrayList(nativeQueryRealization3)));
+        Assert.assertEquals("CUBE[name=modelA,modelB],INVERTED_INDEX[name=modelB]", sqlResponseV22.adapterCubeField(
+                Lists.newArrayList(nativeQueryRealization1, nativeQueryRealization2, nativeQueryRealization4)));
         Assert.assertThrows(NullPointerException.class, () -> new SQLResponseV2(null));
     }
 }

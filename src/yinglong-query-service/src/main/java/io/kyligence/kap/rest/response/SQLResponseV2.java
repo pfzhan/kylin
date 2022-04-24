@@ -192,19 +192,21 @@ public class SQLResponseV2 implements Serializable {
         if (CollectionUtils.isEmpty(realizations)) {
             return "";
         }
-        List<String> relatedModelAlias = realizations.stream().map(NativeQueryRealization::getModelAlias).distinct()
-                .collect(Collectors.toList());
-        List<String> relateNonAggIndexModelAlias = realizations.stream()
-                .filter(e -> !QueryMetrics.AGG_INDEX.equals(e.getIndexType()))
+        List<String> relatedModelAlias = realizations.stream()
+                .filter(e -> !QueryMetrics.TABLE_INDEX.equals(e.getIndexType()))
+                .map(NativeQueryRealization::getModelAlias).distinct().collect(Collectors.toList());
+        List<String> relateIndexModelAlias = realizations.stream()
+                .filter(e -> QueryMetrics.TABLE_INDEX.equals(e.getIndexType()))
                 .map(NativeQueryRealization::getModelAlias).distinct().collect(Collectors.toList());
         StringBuilder stringBuilder = new StringBuilder();
         String join1 = String.join(",", relatedModelAlias);
         if (StringUtils.isNotBlank(join1)) {
             stringBuilder.append("CUBE[name=").append(join1).append("]");
         }
-        String join2 = String.join(",", relateNonAggIndexModelAlias);
-        if (StringUtils.isNotEmpty(join2)) {
-            stringBuilder.append(",INVERTED_INDEX[name=").append(join2).append("]");
+        String join2 = String.join(",", relateIndexModelAlias);
+        if (StringUtils.isNotBlank(join2)) {
+            stringBuilder.append(StringUtils.isBlank(stringBuilder.toString()) ? "" : ",")
+                    .append("INVERTED_INDEX[name=").append(join2).append("]");
         }
         return stringBuilder.toString();
     }
