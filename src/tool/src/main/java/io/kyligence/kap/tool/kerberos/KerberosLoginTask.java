@@ -131,14 +131,17 @@ public class KerberosLoginTask {
 
     private void loginNonStandardKerberos() throws IOException {
         String zkServerPrincipal = kapConfig.getKerberosZKPrincipal();
-
-        Unsafe.setProperty("zookeeper.sasl.client", "true");
+        if (Boolean.TRUE.equals(kapConfig.getPlatformZKEnable())) {
+            Unsafe.setProperty("zookeeper.sasl.client", "true");
+        }
         String jaasFilePath = kapConfig.getKerberosJaasConfPath();
         Unsafe.setProperty("java.security.auth.login.config", jaasFilePath);
         Unsafe.setProperty("java.security.krb5.conf", kapConfig.getKerberosKrb5ConfPath());
 
         KerberosLoginUtil.setJaasConf("Client", kapConfig.getKerberosPrincipal(), kapConfig.getKerberosKeytabPath());
-        KerberosLoginUtil.setZookeeperServerPrincipal(zkServerPrincipal);
+        if (Boolean.TRUE.equals(kapConfig.getPlatformZKEnable())) {
+            KerberosLoginUtil.setZookeeperServerPrincipal(zkServerPrincipal);
+        }
 
         KerberosLoginUtil.login(kapConfig.getKerberosPrincipal(), kapConfig.getKerberosKeytabPath(),
                 kapConfig.getKerberosKrb5ConfPath(), KRB_CONF);

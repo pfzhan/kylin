@@ -24,17 +24,30 @@
 ## OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ##
 
-#title=Checking Zookeeper Role
-
-source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
-
-source ${KYLIN_HOME}/sbin/init-kerberos.sh
-## init Kerberos if needed
-initKerberosIfNeeded
-
-echo "Checking Zookeeper role..."
-zk_connect_string=`${KYLIN_HOME}/bin/get-properties.sh kylin.env.zookeeper-connect-string`
-
-if [[ -z $zk_connect_string ]]; then
-    quit "Failed: Zookeeper connect string is empty, please set 'kylin.env.zookeeper-connect-string' in {KYLIN_HOME}/conf/kylin.properties"
+BYPASS=${KYLIN_HOME}/server/jars/replace-jars-bypass
+# only replace when has Kerberos
+kerberosEnabled=`${KYLIN_HOME}/bin/get-properties.sh kylin.kerberos.enabled`
+source ${KYLIN_HOME}/sbin/prepare-mrs-env.sh
+if [[ "${kerberosEnabled}" == "false" || -f ${BYPASS} ]]
+then
+    return
 fi
+
+echo "Start replacing zookeeper jars under ${KYLIN_HOME}/server/jars."
+
+zookeeper_jars=
+if [ -n "$IS_MRS_PLATFORM" ]
+then
+   zookeeper_jars=$(find $FI_ENV_PLATFORM/HDFS/hadoop/share/hadoop/common -maxdepth 2 \
+   -name "zookeeper-3.5.6-hw-ei-302*.jar" -not -name "*test*" \
+   -o -name "zookeeper-jute-3.5.6-hw-ei-302*.jar" -not -name "*test*")
+   echo "Find platform specific jars:${zookeeper_jars}, will replace with these jars under ${KYLIN_HOME}/server/jars."
+
+   for jar_file in ${zookeeper_jars}
+   do
+      `cp ${jar_file} ${KYLIN_HOME}/server/jars`
+   done
+   touch ${BYPASS}
+fi
+
+echo "Done zookeeper jars replacement under ${KYLIN_HOME}/server/jars."

@@ -28,7 +28,7 @@
 
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
 source ${KYLIN_HOME}/sbin/init-kerberos.sh
-
+source ${KYLIN_HOME}/sbin/prepare-mrs-env.sh
 ## init Kerberos if needed
 initKerberosIfNeeded
 
@@ -77,6 +77,12 @@ function checkQueueSettings() {
   submit_reg='.*SUBMIT_APPLICATIONS.*'
   storage_submit_info=$(mapred queue -showacls | awk '$1=="'$kylin_storage_queue'" {print $2}')
   engine_submit_info=$(mapred queue -showacls | awk '$1=="'$kylin_engine_queue'" {print $2}')
+
+  if [ -n "$IS_MRS_PLATFORM" ]
+  then
+    storage_submit_info=$(mapred queue -showacls | awk '$1~"'$kylin_storage_queue'" {print $2}')
+    engine_submit_info=$(mapred queue -showacls | awk '$1~"'$kylin_engine_queue'" {print $2}')
+  fi
 
   if [[ "$storage_submit_info" =~ $submit_reg ]] && [[ "$engine_submit_info" =~ $submit_reg ]]; then
     echo "'$user_name' can submit to '$kylin_storage_queue' and '$kylin_engine_queue'"
