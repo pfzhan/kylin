@@ -23,19 +23,23 @@
  */
 package io.kyligence.kap.query.engine;
 
-import java.sql.SQLException;
-
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.common.util.Unsafe;
+import io.kyligence.kap.query.util.QueryHelper;
+import lombok.val;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.spark.sql.AnalysisException;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparderEnv;
+import org.apache.spark.sql.SparkSession;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import java.sql.SQLException;
 
 public class QueryExecTest extends NLocalFileMetadataTestCase {
 
@@ -97,5 +101,41 @@ public class QueryExecTest extends NLocalFileMetadataTestCase {
                 + "       sum(case when LSTG_FORMAT_NAME in ('ABIN', 'XYZ') then 2 else null end)\n"
                 + "from TEST_KYLIN_FACT\n" + "group by CAL_DT";
         check(SQLWithNull);
+    }
+
+    @Test
+    public void testSingleQuery() throws SQLException {
+        SparderEnv.skipCompute();
+        try {
+            String sql = "select CAL_DT, count(*) from TEST_KYLIN_FACT group by CAL_DT";
+            SparkSession session = SparderEnv.getSparkSession();
+            Dataset<Row> dataset = QueryHelper.sql(session, project, sql);
+            Assert.assertNotNull(dataset);
+        } finally {
+            SparderEnv.cleanCompute();
+        }
+    }
+
+    @Test
+    public void testSingleQueryWithError() {
+        SparderEnv.skipCompute();
+        // useless, only for sonar condition coverage
+        val prevRunLocalConf = System.getProperty("kylin.query.engine.run-constant-query-locally");
+        Unsafe.clearProperty("kylin.query.engine.run-constant-query-locally");
+        Exception expectException = null;
+        try {
+            String sql = "select CAL_DT, count(*) from TEST_KYLIN_FACT group by CAL_DT_2";
+            SparkSession session = SparderEnv.getSparkSession();
+            Dataset<Row> dataset = QueryHelper.sql(session, project, sql);
+            Assert.assertNotNull(dataset);
+        } catch (Exception e) {
+            expectException = e;
+        } finally {
+            Assert.assertTrue(expectException instanceof AnalysisException);
+            SparderEnv.cleanCompute();
+            if (prevRunLocalConf != null) {
+                Unsafe.setProperty("kylin.query.engine.run-constant-query-locally", prevRunLocalConf);
+            }
+        }
     }
 }
