@@ -41,6 +41,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.StringWriter;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
@@ -644,6 +645,27 @@ public class AysncQueryServiceTest extends ServiceTestBase {
         assertEquals(encodeDefault, fileInfo.getEncode());
         assertEquals(fileNameDefault, fileInfo.getFileName());
         assertEquals("sep", fileInfo.getSeparator());
+    }
+
+    @Test
+    public void testFileInfoBackwardCompatibility() throws IOException {
+        String queryId = RandomUtil.randomUUIDStr();
+        asyncQueryService.saveQueryUsername(PROJECT, queryId);
+
+        FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
+        Path asyncQueryResultDir = AsyncQueryUtil.getAsyncQueryResultDir(PROJECT, queryId);
+        fileSystem.delete(new Path(asyncQueryResultDir, AsyncQueryUtil.getFileInfo()));
+        try (FSDataOutputStream os = fileSystem.create(new Path(asyncQueryResultDir, AsyncQueryUtil.getFileInfo()));
+             OutputStreamWriter osw = new OutputStreamWriter(os, Charset.defaultCharset())) {
+            osw.write(formatDefault + "\n");
+            osw.write(encodeDefault + "\n");
+            osw.write("foo" + "\n");
+        }
+        AsyncQueryService.FileInfo fileInfo = asyncQueryService.getFileInfo(PROJECT, queryId);
+        assertEquals(formatDefault, fileInfo.getFormat());
+        assertEquals(encodeDefault, fileInfo.getEncode());
+        assertEquals("foo", fileInfo.getFileName());
+        assertEquals(",", fileInfo.getSeparator());
     }
 
     @Test
