@@ -22,25 +22,58 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest;
+package io.kyligence.kap.job.domain;
 
-import org.mybatis.spring.annotation.MapperScan;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.cache.annotation.EnableCaching;
-import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
-import org.springframework.cloud.openfeign.EnableFeignClients;
-import org.springframework.context.annotation.ImportResource;
+import java.util.Date;
 
-@ImportResource(locations = { "applicationContext.xml", "kylinSecurity.xml" })
-@SpringBootApplication
-@EnableDiscoveryClient
-@EnableCaching
-@EnableFeignClients
-@MapperScan("io.kyligence.kap.job.dao")
-public class DataLoadingBootstrapServer {
+public class JobScheduleLock {
+    private String lockId;
 
-    public static void main(String[] args) {
-        SpringApplication.run(DataLoadingBootstrapServer.class, args);
+    private String lockInstance;
+
+    private Date lockExpireTime;
+
+    private Date createTime;
+
+    private Date updateTime;
+
+    public String getLockId() {
+        return lockId;
+    }
+
+    public void setLockId(String lockId) {
+        this.lockId = lockId;
+    }
+
+    public String getLockInstance() {
+        return lockInstance;
+    }
+
+    public void setLockInstance(String lockInstance) {
+        this.lockInstance = lockInstance;
+    }
+
+    public Date getLockExpireTime() {
+        return lockExpireTime;
+    }
+
+    public void setLockExpireTime(Date lockExpireTime) {
+        this.lockExpireTime = lockExpireTime;
+    }
+
+    public Date getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(Date createTime) {
+        this.createTime = createTime;
+    }
+
+    public Date getUpdateTime() {
+        return updateTime;
+    }
+
+    public void setUpdateTime(Date updateTime) {
+        this.updateTime = updateTime;
     }
 }

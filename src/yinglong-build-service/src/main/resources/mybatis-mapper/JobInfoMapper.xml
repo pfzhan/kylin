@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.kyligence.kap.job.mapper.JobInfoMapper">
+  <resultMap id="BaseResultMap" type="io.kyligence.kap.job.domain.JobInfo">
+    <id column="job_id" jdbcType="VARCHAR" property="jobId" />
+    <result column="job_type" jdbcType="VARCHAR" property="jobType" />
+    <result column="job_status" jdbcType="VARCHAR" property="jobStatus" />
+    <result column="project" jdbcType="VARCHAR" property="project" />
+    <result column="model_name" jdbcType="VARCHAR" property="modelName" />
+    <result column="model_id" jdbcType="VARCHAR" property="modelId" />
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+    <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
+    <result column="job_duration_millis" jdbcType="BIGINT" property="jobDurationMillis" />
+  </resultMap>
+  <resultMap extends="BaseResultMap" id="ResultMapWithBLOBs" type="io.kyligence.kap.job.domain.JobInfo">
+    <result column="job_content" jdbcType="LONGVARBINARY" property="jobContent" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    job_id, job_type, job_status, project, model_name, model_id, create_time, update_time, 
+    job_duration_millis
+  </sql>
+  <sql id="Blob_Column_List">
+    job_content
+  </sql>
+  <select id="selectByPrimaryKey" parameterType="java.lang.String" resultMap="ResultMapWithBLOBs">
+    select 
+    <include refid="Base_Column_List" />
+    ,
+    <include refid="Blob_Column_List" />
+    from job_info
+    where job_id = #{jobId,jdbcType=VARCHAR}
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.String">
+    delete from job_info
+    where job_id = #{jobId,jdbcType=VARCHAR}
+  </delete>
+  <insert id="insert" parameterType="io.kyligence.kap.job.domain.JobInfo">
+    insert into job_info (job_id, job_type, job_status, 
+      project, model_name, model_id, 
+      create_time, update_time, job_duration_millis, 
+      job_content)
+    values (#{jobId,jdbcType=VARCHAR}, #{jobType,jdbcType=VARCHAR}, #{jobStatus,jdbcType=VARCHAR}, 
+      #{project,jdbcType=VARCHAR}, #{modelName,jdbcType=VARCHAR}, #{modelId,jdbcType=VARCHAR}, 
+      #{createTime,jdbcType=TIMESTAMP}, #{updateTime,jdbcType=TIMESTAMP}, #{jobDurationMillis,jdbcType=BIGINT}, 
+      #{jobContent,jdbcType=LONGVARBINARY})
+  </insert>
+  <insert id="insertSelective" parameterType="io.kyligence.kap.job.domain.JobInfo">
+    insert into job_info
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="jobId != null">
+        job_id,
+      </if>
+      <if test="jobType != null">
+        job_type,
+      </if>
+      <if test="jobStatus != null">
+        job_status,
+      </if>
+      <if test="project != null">
+        project,
+      </if>
+      <if test="modelName != null">
+        model_name,
+      </if>
+      <if test="modelId != null">
+        model_id,
+      </if>
+      <if test="createTime != null">
+        create_time,
+      </if>
+      <if test="updateTime != null">
+        update_time,
+      </if>
+      <if test="jobDurationMillis != null">
+        job_duration_millis,
+      </if>
+      <if test="jobContent != null">
+        job_content,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="jobId != null">
+        #{jobId,jdbcType=VARCHAR},
+      </if>
+      <if test="jobType != null">
+        #{jobType,jdbcType=VARCHAR},
+      </if>
+      <if test="jobStatus != null">
+        #{jobStatus,jdbcType=VARCHAR},
+      </if>
+      <if test="project != null">
+        #{project,jdbcType=VARCHAR},
+      </if>
+      <if test="modelName != null">
+        #{modelName,jdbcType=VARCHAR},
+      </if>
+      <if test="modelId != null">
+        #{modelId,jdbcType=VARCHAR},
+      </if>
+      <if test="createTime != null">
+        #{createTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="updateTime != null">
+        #{updateTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="jobDurationMillis != null">
+        #{jobDurationMillis,jdbcType=BIGINT},
+      </if>
+      <if test="jobContent != null">
+        #{jobContent,jdbcType=LONGVARBINARY},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="io.kyligence.kap.job.domain.JobInfo">
+    update job_info
+    <set>
+      <if test="jobType != null">
+        job_type = #{jobType,jdbcType=VARCHAR},
+      </if>
+      <if test="jobStatus != null">
+        job_status = #{jobStatus,jdbcType=VARCHAR},
+      </if>
+      <if test="project != null">
+        project = #{project,jdbcType=VARCHAR},
+      </if>
+      <if test="modelName != null">
+        model_name = #{modelName,jdbcType=VARCHAR},
+      </if>
+      <if test="modelId != null">
+        model_id = #{modelId,jdbcType=VARCHAR},
+      </if>
+      <if test="createTime != null">
+        create_time = #{createTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="updateTime != null">
+        update_time = #{updateTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="jobDurationMillis != null">
+        job_duration_millis = #{jobDurationMillis,jdbcType=BIGINT},
+      </if>
+      <if test="jobContent != null">
+        job_content = #{jobContent,jdbcType=LONGVARBINARY},
+      </if>
+    </set>
+    where job_id = #{jobId,jdbcType=VARCHAR}
+  </update>
+  <update id="updateByPrimaryKeyWithBLOBs" parameterType="io.kyligence.kap.job.domain.JobInfo">
+    update job_info
+    set job_type = #{jobType,jdbcType=VARCHAR},
+      job_status = #{jobStatus,jdbcType=VARCHAR},
+      project = #{project,jdbcType=VARCHAR},
+      model_name = #{modelName,jdbcType=VARCHAR},
+      model_id = #{modelId,jdbcType=VARCHAR},
+      create_time = #{createTime,jdbcType=TIMESTAMP},
+      update_time = #{updateTime,jdbcType=TIMESTAMP},
+      job_duration_millis = #{jobDurationMillis,jdbcType=BIGINT},
+      job_content = #{jobContent,jdbcType=LONGVARBINARY}
+    where job_id = #{jobId,jdbcType=VARCHAR}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="io.kyligence.kap.job.domain.JobInfo">
+    update job_info
+    set job_type = #{jobType,jdbcType=VARCHAR},
+      job_status = #{jobStatus,jdbcType=VARCHAR},
+      project = #{project,jdbcType=VARCHAR},
+      model_name = #{modelName,jdbcType=VARCHAR},
+      model_id = #{modelId,jdbcType=VARCHAR},
+      create_time = #{createTime,jdbcType=TIMESTAMP},
+      update_time = #{updateTime,jdbcType=TIMESTAMP},
+      job_duration_millis = #{jobDurationMillis,jdbcType=BIGINT}
+    where job_id = #{jobId,jdbcType=VARCHAR}
+  </update>
+  <select id="selectByJobFilter" parameterType="io.kyligence.kap.job.rest.JobMapperFilter" resultMap="ResultMapWithBLOBs">
+    select
+    <include refid="Base_Column_List" />
+    ,
+    <include refid="Blob_Column_List" />
+    from job_info
+    <where>
+      <if test="subject != null">
+        model_id = #{subject}
+      </if>
+      <if test="project != null">
+        AND project = #{project}
+      </if>
+      <if test="queryStartTime != null">
+        AND update_time >= #{queryStartTime}
+      </if>
+      <if test="statuses != null">
+        <foreach item="item" index="index" collection="statuses" open="AND job_status in (" separator="," close=")">
+          #{item}
+        </foreach>
+      </if>
+      <if test="jobNames != null">
+        <foreach item="item" index="index" collection="jobNames" open="AND job_type in (" separator="," close=")">
+          #{item}
+        </foreach>
+      </if>
+      <if test="modelIds != null">
+        <foreach item="item" index="index" collection="modelIds" open="AND model_id in (" separator="," close=")">
+          #{item}
+        </foreach>
+      </if>
+      <if test="jobId != null">
+        AND job_id like #{jobId}
+      </if>
+    </where>
+    <if test="orderByFiled != null">
+      order by ${orderByFiled}  ${orderType}
+    </if>
+    <if test="offset!=null and limit!=null">
+      limit ${offset}, ${limit}
+    </if>
+  </select>
+</mapper>

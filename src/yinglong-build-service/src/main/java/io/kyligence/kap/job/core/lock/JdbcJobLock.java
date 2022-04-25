@@ -22,25 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest;
+package io.kyligence.kap.job.core.lock;
 
-import org.mybatis.spring.annotation.MapperScan;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.cache.annotation.EnableCaching;
-import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
-import org.springframework.cloud.openfeign.EnableFeignClients;
-import org.springframework.context.annotation.ImportResource;
-
-@ImportResource(locations = { "applicationContext.xml", "kylinSecurity.xml" })
-@SpringBootApplication
-@EnableDiscoveryClient
-@EnableCaching
-@EnableFeignClients
-@MapperScan("io.kyligence.kap.job.dao")
-public class DataLoadingBootstrapServer {
-
-    public static void main(String[] args) {
-        SpringApplication.run(DataLoadingBootstrapServer.class, args);
-    }
+public class JdbcJobLock extends JdbcJobScheduleLock implements JobLock {
 }

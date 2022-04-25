@@ -22,25 +22,31 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest;
+package io.kyligence.kap.job.mapper;
 
-import org.mybatis.spring.annotation.MapperScan;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.cache.annotation.EnableCaching;
-import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
-import org.springframework.cloud.openfeign.EnableFeignClients;
-import org.springframework.context.annotation.ImportResource;
+import org.apache.ibatis.annotations.Mapper;
 
-@ImportResource(locations = { "applicationContext.xml", "kylinSecurity.xml" })
-@SpringBootApplication
-@EnableDiscoveryClient
-@EnableCaching
-@EnableFeignClients
-@MapperScan("io.kyligence.kap.job.dao")
-public class DataLoadingBootstrapServer {
+import io.kyligence.kap.job.domain.JobInfo;
 
-    public static void main(String[] args) {
-        SpringApplication.run(DataLoadingBootstrapServer.class, args);
-    }
+import io.kyligence.kap.job.rest.JobMapperFilter;
+
+import java.util.List;
+
+@Mapper
+public interface JobInfoMapper {
+    int deleteByPrimaryKey(String jobId);
+
+    int insert(JobInfo row);
+
+    int insertSelective(JobInfo row);
+
+    JobInfo selectByPrimaryKey(String jobId);
+
+    int updateByPrimaryKeySelective(JobInfo row);
+
+    int updateByPrimaryKeyWithBLOBs(JobInfo row);
+
+    int updateByPrimaryKey(JobInfo row);
+
+    List<JobInfo> selectByJobFilter(JobMapperFilter jobMapperFilter);
 }

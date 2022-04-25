@@ -291,7 +291,12 @@ public class CnMessage extends Message {
     }
 
     @Override
-    public String getIllegalExecutableState() {
+    public String getJOB_SORT_BY_ERROR() {
+        return "参数 \"sort_by\" 仅支持 'id', 'project', 'create_time', 'last_modified', 'job_name', 'target_subject', 'total_duration'.";
+    }
+
+    @Override
+    public String getILLEGAL_EXECUTABLE_STATE() {
         return "选择的任务状态无效。请重新选择";
     }
 

@@ -308,6 +308,8 @@
         <jersey.version>2.35</jersey.version>
         <validation.api.version>2.0.1.Final</validation.api.version>
         <jackson-databind.version>2.13.2.1</jackson-databind.version>
+
+        <mybatis-spring-boot-starter.version>2.2.2</mybatis-spring-boot-starter.version>
     </properties>
 
     <modules>
