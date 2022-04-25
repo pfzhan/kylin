@@ -177,6 +177,7 @@ public class NQueryControllerV2Test extends NLocalFileMetadataTestCase {
         Assert.assertEquals("CUBE[name=modelA],INVERTED_INDEX[name=modelB]", sqlResponseV2.getCube());
 
         SQLResponseV2 sqlResponseV22 = new SQLResponseV2();
+        Assert.assertEquals(0, sqlResponseV22.getTotalScanCount());
         Assert.assertFalse(sqlResponseV22.isSparderUsed());
         Assert.assertTrue(StringUtils.isEmpty(sqlResponseV22.adapterCubeField(sqlResponseV22.getNativeRealizations())));
         Assert.assertEquals("CUBE[name=modelA]",
@@ -185,8 +186,9 @@ public class NQueryControllerV2Test extends NLocalFileMetadataTestCase {
                 sqlResponseV22.adapterCubeField(Lists.newArrayList(nativeQueryRealization5)));
         Assert.assertEquals("INVERTED_INDEX[name=modelA]",
                 sqlResponseV22.adapterCubeField(Lists.newArrayList(nativeQueryRealization3)));
-        Assert.assertEquals("CUBE[name=modelA,modelB],INVERTED_INDEX[name=modelB]", sqlResponseV22.adapterCubeField(
-                Lists.newArrayList(nativeQueryRealization1, nativeQueryRealization2, nativeQueryRealization4)));
+        Assert.assertEquals("CUBE[name=modelA],CUBE[name=modelB],INVERTED_INDEX[name=modelB]",
+                sqlResponseV22.adapterCubeField(
+                        Lists.newArrayList(nativeQueryRealization1, nativeQueryRealization2, nativeQueryRealization4)));
         Assert.assertThrows(NullPointerException.class, () -> new SQLResponseV2(null));
     }
 }

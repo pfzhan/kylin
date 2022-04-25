@@ -185,7 +185,8 @@ public class SQLResponseV2 implements Serializable {
     }
 
     public long getTotalScanCount() {
-        return QueryContext.calValueWithDefault(scanRows);
+        long totalCount = QueryContext.calValueWithDefault(scanRows);
+        return totalCount < 0 ? 0 : totalCount;
     }
 
     public String adapterCubeField(List<NativeQueryRealization> realizations) {
@@ -194,19 +195,18 @@ public class SQLResponseV2 implements Serializable {
         }
         List<String> relatedModelAlias = realizations.stream()
                 .filter(e -> !QueryMetrics.TABLE_INDEX.equals(e.getIndexType()))
-                .map(NativeQueryRealization::getModelAlias).distinct().collect(Collectors.toList());
+                .map(e -> "CUBE[name=" + e.getModelAlias() + "]").distinct().collect(Collectors.toList());
         List<String> relateIndexModelAlias = realizations.stream()
                 .filter(e -> QueryMetrics.TABLE_INDEX.equals(e.getIndexType()))
-                .map(NativeQueryRealization::getModelAlias).distinct().collect(Collectors.toList());
+                .map(e -> "INVERTED_INDEX[name=" + e.getModelAlias() + "]").distinct().collect(Collectors.toList());
         StringBuilder stringBuilder = new StringBuilder();
         String join1 = String.join(",", relatedModelAlias);
         if (StringUtils.isNotBlank(join1)) {
-            stringBuilder.append("CUBE[name=").append(join1).append("]");
+            stringBuilder.append(join1);
         }
         String join2 = String.join(",", relateIndexModelAlias);
         if (StringUtils.isNotBlank(join2)) {
-            stringBuilder.append(StringUtils.isBlank(stringBuilder.toString()) ? "" : ",")
-                    .append("INVERTED_INDEX[name=").append(join2).append("]");
+            stringBuilder.append(StringUtils.isBlank(stringBuilder.toString()) ? "" : ",").append(join2);
         }
         return stringBuilder.toString();
     }
