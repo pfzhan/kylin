@@ -117,8 +117,9 @@ public class AsyncQueryService extends BasicService {
                         new InputStreamReader(is, Charset.defaultCharset()))) {
             fileInfo.setFormat(bufferedReader.readLine());
             fileInfo.setEncode(bufferedReader.readLine());
-            fileInfo.setSeparator(bufferedReader.readLine());
             fileInfo.setFileName(bufferedReader.readLine());
+            String sep = bufferedReader.readLine();
+            fileInfo.setSeparator(sep == null ? "," : sep);
             return fileInfo;
         }
     }

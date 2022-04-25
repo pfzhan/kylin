@@ -114,8 +114,8 @@ public class AsyncQueryUtil {
                     OutputStreamWriter osw = new OutputStreamWriter(os, Charset.defaultCharset())) {
                 osw.write(format + "\n");
                 osw.write(encode + "\n");
-                osw.write(separator + "\n");
-                osw.write(fileName);
+                osw.write(fileName + "\n");
+                osw.write(separator);
             }
         } else {
             throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
