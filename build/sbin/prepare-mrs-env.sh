@@ -24,17 +24,28 @@
 ## OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ##
 
-#title=Checking Zookeeper Role
+echo "Start prepare mrs env."
 
-source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
-
-source ${KYLIN_HOME}/sbin/init-kerberos.sh
-## init Kerberos if needed
-initKerberosIfNeeded
-
-echo "Checking Zookeeper role..."
-zk_connect_string=`${KYLIN_HOME}/bin/get-properties.sh kylin.env.zookeeper-connect-string`
-
-if [[ -z $zk_connect_string ]]; then
-    quit "Failed: Zookeeper connect string is empty, please set 'kylin.env.zookeeper-connect-string' in {KYLIN_HOME}/conf/kylin.properties"
+if [ -n "$BIGDATA_HOME" ]
+then
+    export FI_ENV_PLATFORM=$BIGDATA_HOME
 fi
+
+if [ -n "$BIGDATA_CLIENT_HOME" ]
+then
+    export FI_ENV_PLATFORM=$BIGDATA_CLIENT_HOME
+fi
+
+if [ -n "$FI_ENV_PLATFORM" ]
+then
+   zookeeper_jars=$(find $FI_ENV_PLATFORM/HDFS/hadoop/share/hadoop/common -maxdepth 2 \
+   -name "zookeeper-3.5.6-hw-ei-302*.jar" -not -name "*test*" \
+   -o -name "zookeeper-jute-3.5.6-hw-ei-302*.jar" -not -name "*test*")
+
+   if [ -n "$zookeeper_jars" ]
+   then
+     export IS_MRS_PLATFORM='true'
+   fi
+fi
+
+echo "Done prepare mrs env."
