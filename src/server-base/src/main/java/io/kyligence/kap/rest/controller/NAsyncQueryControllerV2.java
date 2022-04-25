@@ -72,7 +72,7 @@ public class NAsyncQueryControllerV2 extends NBasicController {
         AsyncQuerySQLRequest sqlRequest = new AsyncQuerySQLRequest();
         sqlRequest.setProject(asyncQuerySQLRequest.getProject());
         sqlRequest.setSql(asyncQuerySQLRequest.getSql());
-        sqlRequest.setSeparator(sqlRequest.getSeparator());
+        sqlRequest.setSeparator(asyncQuerySQLRequest.getSeparator());
         sqlRequest.setFormat("csv");
         sqlRequest.setEncode("utf-8");
         sqlRequest.setFileName("result");
