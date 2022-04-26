@@ -148,6 +148,7 @@ public class QueryNodeFilter implements Filter {
         notRoutePostApiSet.add("/kylin/api/system/metadata/reload");
 
         //second storage
+        routeGetApiSet.add("/kylin/api/storage/table/sync");
         notRoutePostApiSet.add("/kylin/api/storage/config/refresh");
         notRoutePostApiSet.add("/kylin/api/storage/node/status");
     }
