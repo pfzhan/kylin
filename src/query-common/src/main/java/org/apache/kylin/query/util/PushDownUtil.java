@@ -45,7 +45,6 @@ package org.apache.kylin.query.util;
 import static org.apache.kylin.common.exception.QueryErrorCode.EMPTY_TABLE;
 
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
@@ -53,7 +52,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
 
 import javax.ws.rs.BadRequestException;
 
@@ -86,7 +84,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.util.SqlBuilderUtil;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.query.exception.NoAuthorizedColsError;
 import io.kyligence.kap.query.util.KapQueryUtil;
@@ -100,7 +97,8 @@ public class PushDownUtil {
     private PushDownUtil() {
     }
 
-    public static PushdownResult tryPushDownQueryToIterator(QueryParams queryParams) throws Exception {
+    public static PushdownResult tryPushDownQueryToIterator(QueryParams queryParams)
+            throws Exception {
 
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         val prjManager = NProjectManager.getInstance(kylinConfig);
@@ -190,7 +188,8 @@ public class PushDownUtil {
 
     public static Pair<String, String> getMaxAndMinTime(String partitionColumn, String table, String project)
             throws Exception {
-        String sql = buildMaxAndMinSql(partitionColumn, table);
+        String sql = String.format(Locale.ROOT, "select min(%s), max(%s) from %s", partitionColumn, partitionColumn,
+                table);
         Pair<String, String> result = new Pair<>();
         // pushdown
         List<List<String>> returnRows = PushDownUtil.selectPartitionColumn(sql, project).getFirst();
@@ -202,14 +201,6 @@ public class PushDownUtil {
         result.setSecond(returnRows.get(0).get(1));
 
         return result;
-    }
-
-    protected static String buildMaxAndMinSql(String partitionColumn, String table) {
-        String tableName = new SqlBuilderUtil.SparkTable(table).toString();
-        String partitionColumnName = new SqlBuilderUtil.SparkColumn(partitionColumn).toString();
-        String sql = String.format(Locale.ROOT, "select min(%s), max(%s) from %s", partitionColumnName,
-                partitionColumnName, tableName);
-        return sql;
     }
 
     public static boolean needPushdown(String start, String end) {
@@ -249,7 +240,8 @@ public class PushDownUtil {
     }
 
     public static String getFormatIfNotExist(String table, String partitionColumn, String project) throws Exception {
-        String sql = buildSql(table, partitionColumn);
+        String sql = String.format(Locale.ROOT, "select %s from %s where %s is not null limit 1", partitionColumn,
+                table, partitionColumn);
 
         // push down
         List<List<String>> returnRows = PushDownUtil.selectPartitionColumn(sql, project).getFirst();
@@ -258,15 +250,6 @@ public class PushDownUtil {
                     String.format(Locale.ROOT, MsgPicker.getMsg().getNO_DATA_IN_TABLE(), table));
 
         return returnRows.get(0).get(0);
-    }
-
-    protected static String buildSql(String table, String partitionColumn) {
-        String tableName = Arrays.stream(table.split("\\.")).map(s -> "`" + s + "`").collect(Collectors.joining("."));
-        String partitionColumnName = Arrays.stream(partitionColumn.split("\\.")).map(s -> "`" + s + "`").collect(Collectors.joining("."));
-
-        String sql = String.format(Locale.ROOT, "select %s from %s where %s is not null limit 1", partitionColumnName,
-                tableName, partitionColumnName);
-        return sql;
     }
 
     private static boolean isExpectedCause(SQLException sqlException) {
@@ -318,8 +301,7 @@ public class PushDownUtil {
      * @deprecated
      */
     @Deprecated
-    public static Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownQuery(QueryParams queryParams)
-            throws Exception {
+    public static Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownQuery(QueryParams queryParams) throws Exception {
         val results = tryPushDownQueryToIterator(queryParams);
         if (results == null) {
             return null;

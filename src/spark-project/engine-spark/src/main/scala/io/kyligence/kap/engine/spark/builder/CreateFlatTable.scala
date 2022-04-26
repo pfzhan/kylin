@@ -23,7 +23,6 @@
 package io.kyligence.kap.engine.spark.builder
 
 import java.util
-
 import com.google.common.collect.Sets
 import io.kyligence.kap.engine.spark.builder.DFBuilderHelper.{ENCODE_SUFFIX, _}
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil._
@@ -37,10 +36,8 @@ import org.apache.commons.lang3.StringUtils
 import org.apache.kylin.metadata.model._
 import org.apache.spark.sql.functions.{col, expr}
 import org.apache.spark.sql.{Dataset, Row, SparkSession}
+
 import java.util.Locale
-
-import io.kyligence.kap.engine.spark.builder.SegmentFlatTable.checkLength
-
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -235,8 +232,11 @@ object CreateFlatTable extends LogEx {
       val joinType = join.getType.toUpperCase(Locale.ROOT)
       val pk = join.getPrimaryKeyColumns
       val fk = join.getForeignKeyColumns
-      checkLength(rootFactDesc, lookupDesc, pk, fk)
-
+      if (pk.length != fk.length) {
+        throw new RuntimeException(
+          s"Invalid join condition of fact table: $rootFactDesc,fk: ${fk.mkString(",")}," +
+            s" lookup table:$lookupDesc, pk: ${pk.mkString(",")}")
+      }
       val equiConditionColPairs = fk.zip(pk).map(joinKey =>
         col(convertFromDot(joinKey._1.getIdentity))
           .equalTo(col(convertFromDot(joinKey._2.getIdentity))))
@@ -317,10 +317,9 @@ object CreateFlatTable extends LogEx {
 
   def changeSchemaToAliasDotName(original: Dataset[Row],
                                  alias: String): Dataset[Row] = {
-    val aliasConverted = convertFromDot(alias)
     val sf = original.schema.fields
     val newSchema = sf
-      .map(field => convertFromDot(aliasConverted + "." + field.name))
+      .map(field => convertFromDot(alias + "." + field.name))
       .toSeq
     val newdf = original.toDF(newSchema: _*)
     logInfo(s"After change alias from ${original.schema.treeString} to ${newdf.schema.treeString}")

@@ -135,7 +135,7 @@ public class ComputedColumnEvalUtil {
         originDf.persist();
         Dataset<Row> ds = originDf.selectExpr(computedColumns.subList(start, end).stream() //
                 .map(ComputedColumnDesc::getInnerExpression) //
-                .map(NSparkCubingUtil::convertFromDotWithBackticks).toArray(String[]::new));
+                .map(NSparkCubingUtil::convertFromDot).toArray(String[]::new));
         for (int i = start; i < end; i++) {
             String dataType = SparderTypeUtil.convertSparkTypeToSqlType(ds.schema().fields()[i - start].dataType());
             computedColumns.get(i).setDatatype(dataType);

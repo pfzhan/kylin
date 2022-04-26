@@ -55,10 +55,6 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.metadata.datatype.DataType;
 
-import com.healthmarketscience.sqlbuilder.CustomSql;
-import com.healthmarketscience.sqlbuilder.SqlObject;
-
-import io.kyligence.kap.common.util.SqlBuilderUtil;
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.Getter;
 import lombok.Setter;
@@ -272,14 +268,6 @@ public class TblColRef implements Serializable {
             return column.getComputedColumnExpr();
         }
     }
-
-    public SqlObject getSqlObjectExpressionInSourceDB() {
-        if (column.isComputedColumn())
-            return new CustomSql(column.getComputedColumnExpr());
-
-        return new SqlBuilderUtil.SparkColumn(getTableAlias(), getName());
-    }
-
 
     public String getExpressionInSourceDBWithDoubleQuote() {
         if (column.isComputedColumn())

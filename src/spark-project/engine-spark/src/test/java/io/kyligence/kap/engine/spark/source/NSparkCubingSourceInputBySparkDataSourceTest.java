@@ -25,6 +25,7 @@ package io.kyligence.kap.engine.spark.source;
 
 import java.util.List;
 
+import io.kyligence.kap.engine.spark.job.KylinBuildEnv;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.source.SourceFactory;
@@ -38,7 +39,6 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
-import io.kyligence.kap.engine.spark.job.KylinBuildEnv;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 
 public class NSparkCubingSourceInputBySparkDataSourceTest extends NLocalWithSparkSessionTest {
@@ -104,25 +104,5 @@ public class NSparkCubingSourceInputBySparkDataSourceTest extends NLocalWithSpar
         }
     }
 
-    @Test
-    public void testGetHiveSourceDataDisableAddBackTick() {
-        try {
-            KylinBuildEnv.clean();
-            KylinBuildEnv.getOrCreate(getTestConfig());
-            getTestConfig().setProperty("kylin.source.provider.9",
-                    "io.kyligence.kap.engine.spark.source.NSparkDataSource");
-            getTestConfig().setProperty("kylin.build.resource.read-transactional-table-enabled", "true");
-
-            NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getTestConfig(), "ssb");
-            TableDesc fact = tableMgr.getTableDesc("SSB.P_LINEORDER");
-            Dataset<Row> sourceData = SourceFactory
-                    .createEngineAdapter(fact, NSparkCubingEngine.NSparkCubingSource.class)
-                    .getSourceData(fact, ss, Maps.newHashMap());
-            List<Row> rows = sourceData.collectAsList();
-            Assert.assertTrue(rows != null && rows.size() > 0);
-        } catch (Exception ex) {
-            Assert.assertTrue(ex instanceof org.apache.spark.sql.AnalysisException);
-        }
-    }
 
 }

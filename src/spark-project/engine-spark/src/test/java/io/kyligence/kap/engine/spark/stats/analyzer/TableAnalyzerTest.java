@@ -25,7 +25,6 @@
 package io.kyligence.kap.engine.spark.stats.analyzer;
 
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -38,7 +37,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.engine.spark.job.TableAnalysisJob;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import lombok.val;
 import lombok.var;
@@ -50,17 +48,6 @@ public class TableAnalyzerTest extends NLocalWithSparkSessionTest {
     @Before
     public void setup() {
         tableMgr = NTableMetadataManager.getInstance(getTestConfig(), getProject());
-    }
-
-    @Test
-    public void testFetchRowCounts() {
-        try {
-            TableDesc tableDesc = tableMgr.getTableDesc("DEFAULT.TEST_KYLIN_FACT");
-            new TableAnalysisJob(tableDesc, getProject(), 1, ss, "test").fetchRowCounts("default", "test",
-                    new HashSet<>(Arrays.asList("TEST_KYLIN_FACT", "KYLIN_ACCOUNT")));
-        } catch (Exception e) {
-            //            ignore exception
-        }
     }
 
     @Test

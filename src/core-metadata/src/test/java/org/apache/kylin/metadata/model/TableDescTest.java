@@ -31,6 +31,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Locale;
+
 import static io.kyligence.kap.metadata.model.NTableMetadataManager.getInstance;
 
 public class TableDescTest extends NLocalFileMetadataTestCase {
@@ -53,10 +55,8 @@ public class TableDescTest extends NLocalFileMetadataTestCase {
         final String tableName = "DEFAULT.TEST_KYLIN_FACT";
         final TableDesc tableDesc = tableMetadataManager.getTableDesc(tableName);
         Assert.assertFalse(tableDesc.isTransactional());
-        Assert.assertEquals("`DEFAULT`.`TEST_KYLIN_FACT_HIVE_TX_INTERMEDIATE`",
-                tableDesc.getTransactionalTableIdentity(""));
-        Assert.assertEquals("`DEFAULT`.`TEST_KYLIN_FACT_HIVE_TX_INTERMEDIATE_SUFFIX`",
-                tableDesc.getTransactionalTableIdentity("_suffix"));
+        Assert.assertTrue(
+                tableDesc.getTransactionalTableIdentity().endsWith("_hive_tx_intermediate".toUpperCase(Locale.ROOT)));
     }
 
     @Test

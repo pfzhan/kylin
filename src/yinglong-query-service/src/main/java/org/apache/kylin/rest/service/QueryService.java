@@ -183,7 +183,6 @@ import io.kyligence.kap.rest.service.AclTCRServiceSupporter;
 import io.kyligence.kap.rest.service.QueryCacheManager;
 import io.kyligence.kap.rest.service.QueryHistoryScheduler;
 import lombok.AllArgsConstructor;
-import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -1039,9 +1038,8 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
         ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(project);
         SchemaMetaData schemaMetaData = new SchemaMetaData(project, projectInstance.getConfig());
-        Map<TableMetaIdentify, TableMetaWithType> tableMap = constructTableMeta(schemaMetaData, targetModelTables);
-        Map<ColumnMetaIdentify, ColumnMetaWithType> columnMap = constructTblColMeta(schemaMetaData, project,
-                targetModelColumns);
+        Map<String, TableMetaWithType> tableMap = constructTableMeta(schemaMetaData, targetModelTables);
+        Map<String, ColumnMetaWithType> columnMap = constructTblColMeta(schemaMetaData, project, targetModelColumns);
         addColsToTblMeta(tableMap, columnMap);
 
         for (NDataModel model : models) {
@@ -1075,9 +1073,9 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
                 .collect(Collectors.toList());
     }
 
-    private LinkedHashMap<TableMetaIdentify, TableMetaWithType> constructTableMeta(SchemaMetaData schemaMetaData,
+    private LinkedHashMap<String, TableMetaWithType> constructTableMeta(SchemaMetaData schemaMetaData,
             List<String> targetModelTables) {
-        LinkedHashMap<TableMetaIdentify, TableMetaWithType> tableMap = Maps.newLinkedHashMap();
+        LinkedHashMap<String, TableMetaWithType> tableMap = Maps.newLinkedHashMap();
         for (TableSchema tableSchema : schemaMetaData.getTables()) {
             TableMetaWithType tblMeta = new TableMetaWithType(tableSchema.getCatalog(), tableSchema.getSchema(),
                     tableSchema.getTable(), tableSchema.getType(), tableSchema.getRemarks(), null, null, null, null,
@@ -1085,42 +1083,17 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
 
             if (!JDBC_METADATA_SCHEMA.equalsIgnoreCase(tblMeta.getTABLE_SCHEM()) && (targetModelTables == null
                     || targetModelTables.contains(tblMeta.getTABLE_SCHEM() + "." + tblMeta.getTABLE_NAME()))) {
-                tableMap.put(new TableMetaIdentify(tblMeta.getTABLE_SCHEM(), tblMeta.getTABLE_NAME()), tblMeta);
+                tableMap.put(tblMeta.getTABLE_SCHEM() + "#" + tblMeta.getTABLE_NAME(), tblMeta);
             }
         }
 
         return tableMap;
     }
 
-    @Data
-    static class TableMetaIdentify {
-        private String tableSchema;
-        private String tableName;
+    private LinkedHashMap<String, ColumnMetaWithType> constructTblColMeta(SchemaMetaData schemaMetaData, String project,
+            List<String> targetModelColumns) {
 
-        public TableMetaIdentify(String tableSchema, String tableName) {
-            this.tableSchema = tableSchema;
-            this.tableName = tableName;
-        }
-    }
-
-    @Data
-    static class ColumnMetaIdentify {
-
-        public ColumnMetaIdentify(String tableSchema, String tableName, String columnName) {
-            this.tableSchema = tableSchema;
-            this.tableName = tableName;
-            this.columnName = columnName;
-        }
-
-        private String tableSchema;
-        private String tableName;
-        private String columnName;
-    }
-
-    private LinkedHashMap<ColumnMetaIdentify, ColumnMetaWithType> constructTblColMeta(SchemaMetaData schemaMetaData,
-            String project, List<String> targetModelColumns) {
-
-        LinkedHashMap<ColumnMetaIdentify, ColumnMetaWithType> columnMap = Maps.newLinkedHashMap();
+        LinkedHashMap<String, ColumnMetaWithType> columnMap = Maps.newLinkedHashMap();
         ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(project);
         SetMultimap<String, String> tbl2ccNames = collectComputedColumns(project);
@@ -1140,8 +1113,8 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
                         && !columnMeta.getCOLUMN_NAME().toUpperCase(Locale.ROOT).startsWith("_KY_")
                         && (targetModelColumns == null || targetModelColumns.contains(columnMeta.getTABLE_SCHEM() + "."
                                 + columnMeta.getTABLE_NAME() + "." + columnMeta.getCOLUMN_NAME()))) {
-                    columnMap.put(new ColumnMetaIdentify(columnMeta.getTABLE_SCHEM(), columnMeta.getTABLE_NAME(),
-                            columnMeta.getCOLUMN_NAME()), columnMeta);
+                    columnMap.put(columnMeta.getTABLE_SCHEM() + "#" + columnMeta.getTABLE_NAME() + "#"
+                            + columnMeta.getCOLUMN_NAME(), columnMeta);
                 }
             }
         }
@@ -1212,64 +1185,51 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
                 && tbl2ccNames.get(table.toUpperCase(Locale.ROOT)).contains(ccName.toUpperCase(Locale.ROOT));
     }
 
-    static void addColsToTblMeta(Map<TableMetaIdentify, TableMetaWithType> tblMap,
-            Map<ColumnMetaIdentify, ColumnMetaWithType> columnMetaWithTypeMap) {
-        columnMetaWithTypeMap.forEach((identify, columnMetaWithType) -> {
-            TableMetaIdentify tableMetaIdentify = new TableMetaIdentify(identify.getTableSchema(),
-                    identify.getTableName());
-            tblMap.get(tableMetaIdentify).addColumn(columnMetaWithType);
+    private void addColsToTblMeta(Map<String, TableMetaWithType> tblMap,
+            Map<String, ColumnMetaWithType> columnMetaWithTypeMap) {
+        columnMetaWithTypeMap.forEach((name, columnMetaWithType) -> {
+            String tblName = name.substring(0, name.lastIndexOf('#'));
+            tblMap.get(tblName).addColumn(columnMetaWithType);
         });
     }
 
-    private void clarifyTblTypeToFactOrLookup(NDataModel dataModelDesc,
-            Map<TableMetaIdentify, TableMetaWithType> tableMap) {
+    private void clarifyTblTypeToFactOrLookup(NDataModel dataModelDesc, Map<String, TableMetaWithType> tableMap) {
         // update table type: FACT
         for (TableRef factTable : dataModelDesc.getFactTables()) {
-            String tableSchema = factTable.getTableIdentity().split("\\.")[0];
-            String tableName = factTable.getTableIdentity().split("\\.")[1];
-            TableMetaIdentify tableMetaIdentify = new TableMetaIdentify(tableSchema, tableName);
-
-            if (tableMap.containsKey(tableMetaIdentify)) {
-                tableMap.get(tableMetaIdentify).getTYPE().add(TableMetaWithType.tableTypeEnum.FACT);
+            String factTableName = factTable.getTableIdentity().replace('.', '#');
+            if (tableMap.containsKey(factTableName)) {
+                tableMap.get(factTableName).getTYPE().add(TableMetaWithType.tableTypeEnum.FACT);
             }
         }
 
         // update table type: LOOKUP
         for (TableRef lookupTable : dataModelDesc.getLookupTables()) {
-            String tableSchema = lookupTable.getTableIdentity().split("\\.")[0];
-            String tableName = lookupTable.getTableIdentity().split("\\.")[1];
-
-            TableMetaIdentify tableMetaIdentify = new TableMetaIdentify(tableSchema, tableName);
-            if (tableMap.containsKey(tableMetaIdentify)) {
-                tableMap.get(tableMetaIdentify).getTYPE().add(TableMetaWithType.tableTypeEnum.LOOKUP);
+            String lookupTableName = lookupTable.getTableIdentity().replace('.', '#');
+            if (tableMap.containsKey(lookupTableName)) {
+                tableMap.get(lookupTableName).getTYPE().add(TableMetaWithType.tableTypeEnum.LOOKUP);
             }
         }
     }
 
-    private void clarifyPkFkCols(NDataModel dataModelDesc, Map<ColumnMetaIdentify, ColumnMetaWithType> columnMap) {
+    private void clarifyPkFkCols(NDataModel dataModelDesc, Map<String, ColumnMetaWithType> columnMap) {
         for (JoinTableDesc joinTableDesc : dataModelDesc.getJoinTables()) {
             JoinDesc joinDesc = joinTableDesc.getJoin();
             for (String pk : joinDesc.getPrimaryKey()) {
-                ColumnMetaIdentify columnMetaIdentify = getColumnMetaIdentify(dataModelDesc, pk);
-                if (columnMap.containsKey(columnMetaIdentify)) {
-                    columnMap.get(columnMetaIdentify).getTYPE().add(ColumnMetaWithType.columnTypeEnum.PK);
+                String columnIdentity = (dataModelDesc.findTable(pk.substring(0, pk.indexOf('.'))).getTableIdentity()
+                        + pk.substring(pk.indexOf('.'))).replace('.', '#');
+                if (columnMap.containsKey(columnIdentity)) {
+                    columnMap.get(columnIdentity).getTYPE().add(ColumnMetaWithType.columnTypeEnum.PK);
                 }
             }
 
             for (String fk : joinDesc.getForeignKey()) {
-                ColumnMetaIdentify columnMetaIdentify = getColumnMetaIdentify(dataModelDesc, fk);
-                if (columnMap.containsKey(columnMetaIdentify)) {
-                    columnMap.get(columnMetaIdentify).getTYPE().add(ColumnMetaWithType.columnTypeEnum.FK);
+                String columnIdentity = (dataModelDesc.findTable(fk.substring(0, fk.indexOf('.'))).getTableIdentity()
+                        + fk.substring(fk.indexOf('.'))).replace('.', '#');
+                if (columnMap.containsKey(columnIdentity)) {
+                    columnMap.get(columnIdentity).getTYPE().add(ColumnMetaWithType.columnTypeEnum.FK);
                 }
             }
         }
-    }
-
-    private ColumnMetaIdentify getColumnMetaIdentify(NDataModel dataModelDesc, String joinKey) {
-        String tableName = joinKey.substring(0, joinKey.indexOf('.'));
-        String tableSchema = dataModelDesc.findTable(tableName).getTableIdentity().split("\\.")[0];
-        String columnName = joinKey.substring(joinKey.indexOf('.') + 1);
-        return new ColumnMetaIdentify(tableSchema, tableName, columnName);
     }
 
     protected String makeErrorMsgUserFriendly(Throwable e) {
