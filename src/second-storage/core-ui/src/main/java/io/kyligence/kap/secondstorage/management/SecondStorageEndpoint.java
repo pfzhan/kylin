@@ -52,6 +52,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PROJECT_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_PROJECT_STATUS_ERROR;
@@ -270,6 +271,14 @@ public class SecondStorageEndpoint extends NBasicController {
 
     @PostMapping(value = "/project/load", produces = {HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
     public EnvelopeResponse<List<ProjectRecoveryResponse>> projectLoad(@RequestBody ProjectLoadRequest request) {
+        if (CollectionUtils.isEmpty(request.getProjects())) {
+            throw new KylinException(EMPTY_PROJECT_NAME, MsgPicker.getMsg().getEMPTY_PROJECT_NAME());
+        }
+
+        for (String project : request.getProjects()) {
+            checkProjectName(project);
+        }
+
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                 secondStorageService.projectLoadData(request.getProjects()).getLoads(), "");
     }
