@@ -1770,6 +1770,11 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.spark</groupId>
+                <artifactId>spark-network-common_2.12</artifactId>
+                <version>${spark.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.spark</groupId>
                 <artifactId>spark-streaming_2.12</artifactId>
                 <version>${spark.version}</version>
                 <scope>test</scope>

@@ -31,9 +31,14 @@ source build/script_newten/functions.sh
 
 rm -rf build/spark
 
-spark_version_pom=`mvn help:evaluate -Dexpression=spark.version | grep -E '^[0-9]+\.[0-9]+\.[0-9]+' `
-spark_pkg_name=spark-newten-"`echo ${spark_version_pom}| sed "s/-kylin//g"`"
+#spark_version_pom=`mvn help:evaluate -Dexpression=spark.version | grep -E '^[0-9]+\.[0-9]+\.[0-9]+' `
+#spark_pkg_name=spark-newten-"`echo ${spark_version_pom}| sed "s/-kylin//g"`"
+#spark_pkg_file_name="${spark_pkg_name}.tgz"
+# TODO Temporarily workaround for spark_on_k8s. The spark repo is https://github.com/xifeng/spark/commits/yinglong-spark
+spark_pkg_name="spark-newten-3.2.0-4.x-r60-yinglong-beta1"
 spark_pkg_file_name="${spark_pkg_name}.tgz"
+spark_pkg_md5="ea1def687a40d2728dd6642459e56ee4"
+
 
 if [ ! -f "build/${spark_pkg_file_name}" ]
 then

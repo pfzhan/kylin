@@ -234,6 +234,10 @@ object KylinSession extends Logging {
 
       // job node init with spark local mode, ignore the spark.master
       val isLocalMode = sparkConf.get("spark.master").startsWith("local")
+      kapConfig.getSparkConf.asScala.foreach{
+        case (k, v) =>
+          sparkConf.set(k, v)
+      }
       kapConfig.getSparkConf.asScala.filterKeys(isLocalMode && !"spark.master".equals(_)).foreach {
         case (k, v) =>
           sparkConf.set(k, v)
