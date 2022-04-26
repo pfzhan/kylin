@@ -82,7 +82,7 @@ object DFBuilderHelper extends Logging {
   def chooseSuitableCols(ds: Dataset[Row], needCheckCols: Iterable[TblColRef]): Seq[Column] = {
     needCheckCols
       .filter(ref => isColumnInTable(ref.getExpressionInSourceDB, ds))
-      .map(ref => expr(convertFromDotWithBackticks(ref.getExpressionInSourceDB)).alias(convertFromDot(ref.getIdentity)))
+      .map(ref => expr(convertFromDot(ref.getExpressionInSourceDB)).alias(convertFromDot(ref.getIdentity)))
       .toSeq
   }
 

@@ -24,10 +24,8 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -37,7 +35,6 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.StringSplitter;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.spark.sql.Column;
@@ -57,8 +54,6 @@ public class NSparkCubingUtil {
     public static final String CC_SEPARATOR = "_0_DOT_CC_0_";
 
     public static final String SEPARATOR_TMP = "_0_DOT_TMP_0_";
-
-    public static final String BACKTICK_TMP = "_0_BACKTICK_0_";
 
     private NSparkCubingUtil() {
     }
@@ -180,9 +175,10 @@ public class NSparkCubingUtil {
     private static final Pattern DOT_PATTERN = Pattern.compile("\\b([\\w`]+)\\.([\\w`]+)\\b");
 
     private static final Pattern UDF_FUNCTION_PATTERN = Pattern.compile("\\b([\\w`]+)\\.([\\w`]+)\\b([\\(]+)");
-    private static final String COLUMN_NAME_PATTERN = "[^:.`]+";
-    private static final String COLUMN_NAME_PATTERN_ONLY_WORD = "[\\w]+";
-    private static final String TABLE_NAME_PATTERN = "[a-zA-Z0-9_]+";
+
+    private static final Pattern LETTER_PATTERN = Pattern.compile(".*[a-zA-Z]+.*");
+
+    private static final Pattern FLOATING_POINT = Pattern.compile("\\b[0-9]+.[0-9]*E[0-9]+\\b");
 
     private static final char LITERAL_QUOTE = '\'';
 
@@ -191,12 +187,30 @@ public class NSparkCubingUtil {
         if (literalBegin != -1) {
             int literalEnd = withDot.indexOf(LITERAL_QUOTE, literalBegin + 1);
             if (literalEnd != -1) {
-                return doConvertFromDot(withDot.substring(0, literalBegin), false)
+                return doConvertFromDot(withDot.substring(0, literalBegin))
                         + withDot.substring(literalBegin, literalEnd + 1)
                         + convertFromDot(withDot.substring(literalEnd + 1));
             }
         }
-        return doConvertFromDot(withDot, false);
+        return doConvertFromDot(withDot);
+    }
+
+    public static String doConvertFromDot(String withDot) {
+        String withoutDot = doConvertComputedColumnFromDot(withDot);
+        Matcher m = DOT_PATTERN.matcher(withoutDot);
+        while (m.find()) {
+            String matched = m.group();
+            if (LETTER_PATTERN.matcher(matched).find() && !isFloatingPointNumber(matched)) {
+                withoutDot = m.replaceFirst("$1" + SEPARATOR + "$2");
+                m = DOT_PATTERN.matcher(withoutDot);
+            } else {
+                withoutDot = m.replaceFirst("$1" + SEPARATOR_TMP + "$2");
+                m = DOT_PATTERN.matcher(withoutDot);
+            }
+        }
+        withoutDot = withoutDot.replace(SEPARATOR_TMP, ".");
+        withoutDot = withoutDot.replace(CC_SEPARATOR, ".");
+        return withoutDot.replace("`", "");
     }
 
     private static String doConvertComputedColumnFromDot(String exp) {
@@ -209,51 +223,13 @@ public class NSparkCubingUtil {
         return withoutDot;
     }
 
-    public static String convertFromDotWithBackticks(String withDot) {
-        int literalBegin = withDot.indexOf(LITERAL_QUOTE);
-        if (literalBegin != -1) {
-            int literalEnd = withDot.indexOf(LITERAL_QUOTE, literalBegin + 1);
-            if (literalEnd != -1) {
-                return doConvertFromDot(withDot.substring(0, literalBegin), true)
-                        + withDot.substring(literalBegin, literalEnd + 1)
-                        + convertFromDot(withDot.substring(literalEnd + 1));
-            }
-        }
-        return doConvertFromDot(withDot, true);
-    }
-
-    public static String doConvertFromDot(String input, boolean addDoubleQuota) {
-        String  convertCCResult= doConvertComputedColumnFromDot(input);
-        //        find floating point, replace . with tmp_dot
-        String dot_to_tmp_dot = convertFloatingPoint(convertCCResult);
-        //        find pattern `_`.`_`,replace . with dot
-        String replaceDotBetweenBackTick = dot_to_tmp_dot;
-        replaceDotBetweenBackTick = replacePattern(replaceDotBetweenBackTick,getLetterPatternWithBacktick(),addDoubleQuota);
-        //        remove `
-        String removeBackTickResult = replaceDotBetweenBackTick.replace("`", "");
-        //        find pattern table.column, replace . with _0_DOT_0_
-        String replaceDotBetweenBackTableColumn = replacePattern(removeBackTickResult, getLetterPatternWithoutBacktick(),addDoubleQuota);
-        //         revert tmp_dot to .
-        String revertTmpDot = replaceDotBetweenBackTableColumn.replace(SEPARATOR_TMP, ".").replace(BACKTICK_TMP,"`").replace(CC_SEPARATOR, ".");
-        return revertTmpDot;
-    }
-
-    private static String replacePattern(String input,Pattern pattern,boolean addBackTick) {
-        String replace = "$1" + SEPARATOR + "$2";
-        if (addBackTick) {
-            replace = BACKTICK_TMP + replace + BACKTICK_TMP;
-        }
-        Matcher matcher = pattern.matcher(input);
-        while (matcher.find()) {
-            input = matcher.replaceFirst(replace);
-            matcher = pattern.matcher(input);
-        }
-        return input;
-    }
-
     public static boolean isFloatingPointNumber(String exp) {
+        Matcher matcher = FLOATING_POINT.matcher(exp);
+        if (!matcher.find()) {
+            return false;
+        }
         try {
-            Double.parseDouble(exp);
+            Double.parseDouble(matcher.group());
             return true;
         } catch (NumberFormatException e) {
             return false;
@@ -270,44 +246,4 @@ public class NSparkCubingUtil {
         layouts.forEach(layout -> map.put(layout.getId(), layout));
         return map;
     }
-
-    public static String convertFloatingPoint(String withDot) {
-        Matcher m = DOT_PATTERN.matcher(withDot);
-        List<Integer> positions = new ArrayList<>();
-
-        while (m.find()) {
-            String matched = m.group();
-            if (isFloatingPointNumber(matched)) {
-                positions.add(m.start() + m.group(1).length());
-            }
-        }
-        String res = "";
-        if (positions.isEmpty()) {
-            res = withDot;
-        } else {
-            int last = 0;
-            for (int i : positions) {
-                res += withDot.substring(last, i) + SEPARATOR_TMP;
-                last = i + 1;
-            }
-            res += withDot.substring(last);
-        }
-        return res;
-    }
-
-    private static Pattern getLetterPatternWithBacktick(){
-        if (KylinConfig.getInstanceFromEnv().isSupportSpecialSymbolInHiveColumn()) {
-            return Pattern.compile("(`" + TABLE_NAME_PATTERN + "`)" + "\\." + "(`" + COLUMN_NAME_PATTERN + "`)");
-        }else {
-            return Pattern.compile("(`" + TABLE_NAME_PATTERN + "`)" + "\\." + "(`" + COLUMN_NAME_PATTERN_ONLY_WORD + "`)");
-        }
-    }
-    private static Pattern getLetterPatternWithoutBacktick(){
-        if (KylinConfig.getInstanceFromEnv().isSupportSpecialSymbolInHiveColumn()) {
-            return Pattern.compile("(" + TABLE_NAME_PATTERN + ")" + "\\." + "(" + COLUMN_NAME_PATTERN + ")");
-        } else {
-            return Pattern.compile("(" + TABLE_NAME_PATTERN + ")" + "\\." + "(" + COLUMN_NAME_PATTERN_ONLY_WORD + ")");
-        }
-    }
-
 }

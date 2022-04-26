@@ -32,7 +32,6 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.sparkproject.guava.collect.Sets;
 
-import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
@@ -96,36 +95,27 @@ public class NSparkCubingUtilTest extends NLocalWithSparkSessionTest {
     }
 
     @Test
-    public void testConvert1() {
-        Assert.assertTrue(isEqualsConvertedString("`123`.`234`", "123_0_DOT_0_234"));
-        Assert.assertTrue(isEqualsConvertedString(
-                "max(case when A.account_id = 0 then 'adf.d kylin.adfad adf' else 'ky.lin' end), A.seller_id",
+    public void testConvert() {
+        Assert.assertTrue(isEqualsConvertedString("max(case when A.account_id = 0 then 'adf.d kylin.adfad adf' else 'ky.lin' end), A.seller_id",
                 "max(case when A_0_DOT_0_account_id = 0 then 'adf.d kylin.adfad adf' else 'ky.lin' end), A_0_DOT_0_seller_id"));
         Assert.assertTrue(isEqualsConvertedString("'ky.lin'", "'ky.lin'"));
         Assert.assertTrue(isEqualsConvertedString("p1.3a + 3.1E12", "p1_0_DOT_0_3a + 3.1E12"));
         Assert.assertTrue(isEqualsConvertedString("p1.3a + 3.1", "p1_0_DOT_0_3a + 3.1"));
         Assert.assertTrue(isEqualsConvertedString("3.1 + 1p1.3a1", "3.1 + 1p1_0_DOT_0_3a1"));
-        Assert.assertTrue(
-                isEqualsConvertedString("TEST_KYLIN_FACT.CAL_DT > '2017-09-12' AND TEST_KYLIN_FACT.PRICE < 9.9",
+        Assert.assertTrue(isEqualsConvertedString("TEST_KYLIN_FACT.CAL_DT > '2017-09-12' AND TEST_KYLIN_FACT.PRICE < 9.9",
                         "TEST_KYLIN_FACT_0_DOT_0_CAL_DT > '2017-09-12' AND TEST_KYLIN_FACT_0_DOT_0_PRICE < 9.9"));
         Assert.assertTrue(isEqualsConvertedString("case when  table.11col  > 0.8 then 0.2 else null end",
                 "case when  table_0_DOT_0_11col  > 0.8 then 0.2 else null end"));
         Assert.assertTrue(isEqualsConvertedString("TEST_KYLIN_FACT.PRICE*0.8", "TEST_KYLIN_FACT_0_DOT_0_PRICE*0.8"));
         Assert.assertTrue(isEqualsConvertedString("`TEST_KYLIN_FACT`.`ITEM_COUNT`*`TEST_KYLIN_FACT`.`PRICE`*0.8",
                 "TEST_KYLIN_FACT_0_DOT_0_ITEM_COUNT*TEST_KYLIN_FACT_0_DOT_0_PRICE*0.8"));
-        Assert.assertTrue(
-                isEqualsConvertedString("`TEST_KYLIN_FACT`.`PRICE`*0.8", "TEST_KYLIN_FACT_0_DOT_0_PRICE*0.8"));
-    }
-
-    @Test
-    public void testConvert2() {
+        Assert.assertTrue(isEqualsConvertedString("`TEST_KYLIN_FACT`.`PRICE`*0.8", "TEST_KYLIN_FACT_0_DOT_0_PRICE*0.8"));
         Assert.assertTrue(isEqualsConvertedString("TEST_KYLIN_FACT.PRICE-0.8", "TEST_KYLIN_FACT_0_DOT_0_PRICE-0.8"));
         Assert.assertTrue(isEqualsConvertedString("TEST_KYLIN_FACT.LSTG_FORMAT_NAME+'0.8'",
                 "TEST_KYLIN_FACT_0_DOT_0_LSTG_FORMAT_NAME+'0.8'"));
         Assert.assertTrue(isEqualsConvertedString("TEST_KYLIN_FACT.LSTG_FORMAT_NAME+'-0.8'",
                 "TEST_KYLIN_FACT_0_DOT_0_LSTG_FORMAT_NAME+'-0.8'"));
-        Assert.assertTrue(
-                isEqualsConvertedString("TEST_KYLIN_FACT.LSTG_FORMAT_NAME+'TEST_KYLIN_FACT.LSTG_FORMAT_NAME*0.8'",
+        Assert.assertTrue(isEqualsConvertedString("TEST_KYLIN_FACT.LSTG_FORMAT_NAME+'TEST_KYLIN_FACT.LSTG_FORMAT_NAME*0.8'",
                         "TEST_KYLIN_FACT_0_DOT_0_LSTG_FORMAT_NAME+'TEST_KYLIN_FACT.LSTG_FORMAT_NAME*0.8'"));
 
         Assert.assertTrue(isEqualsConvertedString("default_test.sumtwonum(7, `TEST_FUNCTIONS`.`PRICE2`) + default_test.sumtwonum(7, TEST_FUNCTIONS.PRICE2) ",
@@ -133,17 +123,9 @@ public class NSparkCubingUtilTest extends NLocalWithSparkSessionTest {
 
         Assert.assertTrue(isEqualsConvertedString("default_test.sumtwonum(max(case when default_test.sumtwonum(A.account_id,1)= 0 then 'adf.d kylin.adfad adf' else 'ky.lin' end), A.seller_id)",
                 "default_test.sumtwonum(max(case when default_test.sumtwonum(A_0_DOT_0_account_id,1)= 0 then 'adf.d kylin.adfad adf' else 'ky.lin' end), A_0_DOT_0_seller_id)"));
-        Unsafe.setProperty("kylin.source.hive.support-special-symbol-in-hive-column", "true");
-
-        Assert.assertTrue(isEqualsConvertedString("`sdf_sdf`.`#123#@_3d#`+3.4", "sdf_sdf_0_DOT_0_#123#@_3d#+3.4"));
-        Assert.assertEquals("`sdfdf_0_DOT_0_#123#@_3d#`+3.4", NSparkCubingUtil.convertFromDotWithBackticks("`sdfdf`.`#123#@_3d#`+3.4"));
-        Assert.assertTrue(isEqualsConvertedString("table.#column# >3.2", "table_0_DOT_0_#column# >3.2"));
-        Unsafe.setProperty("kylin.source.hive.support-special-symbol-in-hive-column", "false");
     }
 
     private boolean isEqualsConvertedString(String original, String converted) {
-        String res = NSparkCubingUtil.convertFromDot(original);
-        Assert.assertEquals(converted, res);
-        return true;
+        return converted.equals(NSparkCubingUtil.convertFromDot(original));
     }
 }

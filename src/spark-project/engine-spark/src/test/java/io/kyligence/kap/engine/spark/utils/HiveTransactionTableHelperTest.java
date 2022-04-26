@@ -109,10 +109,10 @@ public class HiveTransactionTableHelperTest extends NLocalWithSparkSessionTest {
         TableDesc fact = tableMgr.getTableDesc("TDH_TEST.LINEORDER_PARTITION");
         fact.setTransactional(true);
         String result = HiveTransactionTableHelper.doGetQueryHiveTemporaryTableSql(fact, Maps.newHashMap(), "LO_ORDERKEY", kylinBuildEnv);
-        Assert.assertTrue(result.startsWith("select LO_ORDERKEY from `TDH_TEST`.`LINEORDER_PARTITION_HIVE_TX_INTERMEDIATE`"));
+        Assert.assertTrue(result.startsWith("select LO_ORDERKEY from TDH_TEST.LINEORDER_PARTITION_HIVE_TX_INTERMEDIATE"));
 
         result = HiveTransactionTableHelper.doGetQueryHiveTemporaryTableSql(fact, Maps.newHashMap(), "LO_ORDERKEY, LO_LINENUMBER", kylinBuildEnv);
-        Assert.assertTrue(result.startsWith("select LO_ORDERKEY, LO_LINENUMBER from `TDH_TEST`.`LINEORDER_PARTITION_HIVE_TX_INTERMEDIATE`"));
+        Assert.assertTrue(result.startsWith("select LO_ORDERKEY, LO_LINENUMBER from TDH_TEST.LINEORDER_PARTITION_HIVE_TX_INTERMEDIATE"));
 
         PartitionDesc partitionDesc = new PartitionDesc();
         ColumnDesc columnDesc = new ColumnDesc();
@@ -130,7 +130,7 @@ public class HiveTransactionTableHelperTest extends NLocalWithSparkSessionTest {
         params.put("segmentStart", "1637387522");
         params.put("segmentEnd", "1637905922");
         result = HiveTransactionTableHelper.doGetQueryHiveTemporaryTableSql(fact, params, "LO_ORDERKEY, LO_LINENUMBER", kylinBuildEnv);
-        Assert.assertTrue(result.startsWith("select LO_ORDERKEY, LO_LINENUMBER from `TDH_TEST`.`LINEORDER_PARTITION_HIVE_TX_INTERMEDIATE`")
+        Assert.assertTrue(result.startsWith("select LO_ORDERKEY, LO_LINENUMBER from TDH_TEST.LINEORDER_PARTITION_HIVE_TX_INTERMEDIATE")
                 && result.endsWith("WHERE `LO_DATE` BETWEEN '1970-01-20 06:49:47' AND '1970-01-20 06:58:25'"));
     }
 
