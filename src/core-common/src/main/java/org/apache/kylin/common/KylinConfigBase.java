@@ -3268,6 +3268,14 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.model.check-model-dependency-health", "false"));
     }
 
+    public boolean isTableFastReload() {
+        return Boolean.parseBoolean(getOptional("kylin.table.fast-reload-enabled", TRUE));
+    }
+
+    public boolean isSkipCheckFlatTable() {
+        return Boolean.parseBoolean(getOptional("kylin.model.skip-check-flattable", FALSE));
+    }
+
     public ForceToTieredStorage getSystemForcedToTieredStorage() {
         int i = Integer.parseInt(getOptional("kylin.system.forced-to-tiered-storage", "0"));
         return ForceToTieredStorage.values()[i];

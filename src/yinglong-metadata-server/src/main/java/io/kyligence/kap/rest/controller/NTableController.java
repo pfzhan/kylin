@@ -47,7 +47,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.response.DataResult;
@@ -237,23 +236,17 @@ public class NTableController extends NBasicController {
 
         LoadTableResponse loadTableResponse = new LoadTableResponse();
         if (ArrayUtils.isNotEmpty(tableLoadRequest.getTables())) {
-            Pair<String[], Set<String>> existsAndFails = tableService.classifyDbTables(tableLoadRequest.getProject(),
-                    tableLoadRequest.getTables());
-            LoadTableResponse loadByTable = tableExtService.loadTables(existsAndFails.getFirst(),
-                    tableLoadRequest.getProject());
-            loadTableResponse.getFailed().addAll(existsAndFails.getSecond());
+            LoadTableResponse loadByTable = tableExtService.loadDbTables(tableLoadRequest.getTables(),
+                    tableLoadRequest.getProject(), false);
             loadTableResponse.getFailed().addAll(loadByTable.getFailed());
             loadTableResponse.getLoaded().addAll(loadByTable.getLoaded());
         }
 
         if (ArrayUtils.isNotEmpty(tableLoadRequest.getDatabases())) {
-            Pair<String[], Set<String>> existsAndFails = tableService.classifyDbTables(tableLoadRequest.getProject(),
-                    tableLoadRequest.getDatabases());
-            LoadTableResponse loadByDatabase = tableExtService.loadTablesByDatabase(tableLoadRequest.getProject(),
-                    existsAndFails.getFirst());
-            loadTableResponse.getFailed().addAll(existsAndFails.getSecond());
-            loadTableResponse.getFailed().addAll(loadByDatabase.getFailed());
-            loadTableResponse.getLoaded().addAll(loadByDatabase.getLoaded());
+            LoadTableResponse loadByDb = tableExtService.loadDbTables(tableLoadRequest.getDatabases(),
+                    tableLoadRequest.getProject(), true);
+            loadTableResponse.getFailed().addAll(loadByDb.getFailed());
+            loadTableResponse.getLoaded().addAll(loadByDb.getLoaded());
         }
 
         if (!loadTableResponse.getLoaded().isEmpty() && Boolean.TRUE.equals(tableLoadRequest.getNeedSampling())) {

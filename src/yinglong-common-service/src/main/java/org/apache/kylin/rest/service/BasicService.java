@@ -44,9 +44,12 @@ package org.apache.kylin.rest.service;
 
 import static io.kyligence.kap.guava20.shaded.common.net.HttpHeaders.ACCEPT_ENCODING;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -69,10 +72,12 @@ import org.springframework.web.client.RestTemplate;
 import com.google.common.base.CaseFormat;
 
 import io.kyligence.kap.common.persistence.transaction.BroadcastEventReadyNotifier;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.tool.restclient.RestClient;
-
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -125,7 +130,7 @@ public abstract class BasicService {
         return JsonUtil.readValue(response.getBody(), EnvelopeResponse.class);
     }
 
-    private ResponseEntity<byte[]> getHttpResponse(final HttpServletRequest request, String url) throws Exception {
+    private ResponseEntity<byte[]> getHttpResponse(final HttpServletRequest request, String url) throws IOException {
         val body = IOUtils.toByteArray(request.getInputStream());
         HttpHeaders headers = new HttpHeaders();
         Collections.list(request.getHeaderNames())
@@ -154,5 +159,21 @@ public abstract class BasicService {
             return false;
         }
         return true;
+    }
+
+    /**
+     * 1. model initialization only considers models with computed-columns
+     * 2. reloading table may update more than 2 models
+     * 3. reloading table may set model to status of broken and delete computed-columns, other than add computed-columns
+     * 4. in order to avoid broken models produced by the current process, get these models in UnitOfWork again
+     */
+    protected List<NDataModel> getCCRelatedModels(String project) {
+        NDataflowManager manager = NDataflowManager.getInstance(KylinConfig.readSystemKylinConfig(), project);
+        return manager.listAllDataflows(true).stream() //
+                .filter(df -> df.getModel() == null || df.checkBrokenWithRelatedInfo()
+                        || !df.getModel().getComputedColumnDescs().isEmpty()) //
+                .map(model -> getManager(NDataflowManager.class, project).getDataflow(model.getId()))
+                .filter(df -> !df.checkBrokenWithRelatedInfo()) //
+                .map(NDataflow::getModel).collect(Collectors.toList());
     }
 }

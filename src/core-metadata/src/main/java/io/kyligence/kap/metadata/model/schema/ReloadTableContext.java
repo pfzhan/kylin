@@ -28,6 +28,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 
@@ -64,17 +65,23 @@ public class ReloadTableContext {
     private TableExtDesc tableExtDesc;
 
     public AffectedModelContext getRemoveAffectedModel(String project, String modelId) {
-        return removeAffectedModels.getOrDefault(modelId, new AffectedModelContext(project, modelId, Sets.newHashSet(), true));
+        return removeAffectedModels.getOrDefault(modelId,
+                new AffectedModelContext(project, modelId, Sets.newHashSet(), true));
     }
+
     public AffectedModelContext getChangeTypeAffectedModel(String project, String modelId) {
-        return changeTypeAffectedModels.getOrDefault(modelId, new AffectedModelContext(project, modelId, Sets.newHashSet(), false));
+        return changeTypeAffectedModels.getOrDefault(modelId,
+                new AffectedModelContext(project, modelId, Sets.newHashSet(), false));
     }
 
     @Getter(lazy = true)
-    private final Set<String> removeColumnFullnames = initRemoveColumnFullnames();
+    private final Set<String> removeColumnFullnames = initRemoveColumnFullNames();
 
-    private Set<String> initRemoveColumnFullnames() {
-        return removeColumns.stream().map(col -> tableDesc.getName() + "." + col).collect(Collectors.toSet());
+    private Set<String> initRemoveColumnFullNames() {
+        return removeColumns.stream().map(col -> {
+            assert tableDesc != null;
+            return tableDesc.getName() + "." + col;
+        }).collect(Collectors.toSet());
     }
 
     public boolean isChanged(TableDesc originTableDesc) {
@@ -93,4 +100,12 @@ public class ReloadTableContext {
         return false;
     }
 
+    public boolean isOnlyAddCols() {
+        return removeColumns.isEmpty() && changeTypeColumns.isEmpty();
+    }
+
+    public boolean isNeedProcess() {
+        return CollectionUtils.isNotEmpty(addColumns) || CollectionUtils.isNotEmpty(removeColumns)
+                || CollectionUtils.isNotEmpty(changeTypeColumns);
+    }
 }

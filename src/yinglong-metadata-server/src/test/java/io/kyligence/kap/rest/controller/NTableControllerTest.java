@@ -38,7 +38,6 @@ import java.util.Set;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.response.TableRefresh;
@@ -407,14 +406,10 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
     }
 
     private void initMockito(LoadTableResponse loadTableResponse, TableLoadRequest tableLoadRequest) throws Exception {
-        String[] succTables = { "DEFAULT.TEST_ACCOUNT" };
-        String[] succDbs = { "DEFAULT" };
-        Mockito.when(tableService.classifyDbTables("default", tableLoadRequest.getTables()))
-                .thenReturn(new Pair<>(succTables, Sets.newHashSet("table1")));
-        Mockito.when(tableService.classifyDbTables("default", tableLoadRequest.getDatabases()))
-                .thenReturn(new Pair<>(succDbs, Sets.newHashSet("db1")));
-        Mockito.when(tableExtService.loadTables(succTables, "default")).thenReturn(loadTableResponse);
-        Mockito.when(tableExtService.loadTablesByDatabase("default", succDbs)).thenReturn(loadTableResponse);
+        Mockito.when(tableExtService.loadDbTables(tableLoadRequest.getTables(), "default", false))
+                .thenReturn(loadTableResponse);
+        Mockito.when(tableExtService.loadDbTables(tableLoadRequest.getDatabases(), "default", true))
+                .thenReturn(loadTableResponse);
     }
 
     @Test
@@ -446,8 +441,9 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
         final TableLoadRequest tableLoadRequest = mockLoadTableRequest();
         tableLoadRequest.setTables(null);
         tableLoadRequest.setDatabases(null);
-        Mockito.when(tableExtService.loadTables(tableLoadRequest.getTables(), "default")).thenReturn(loadTableResponse);
-        Mockito.when(tableExtService.loadTablesByDatabase("default", tableLoadRequest.getDatabases()))
+        Mockito.when(tableExtService.loadDbTables(tableLoadRequest.getTables(), "default", false))
+                .thenReturn(loadTableResponse);
+        Mockito.when(tableExtService.loadDbTables(tableLoadRequest.getDatabases(), "default", true))
                 .thenReturn(loadTableResponse);
         final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables") //
                 .contentType(MediaType.APPLICATION_JSON) //

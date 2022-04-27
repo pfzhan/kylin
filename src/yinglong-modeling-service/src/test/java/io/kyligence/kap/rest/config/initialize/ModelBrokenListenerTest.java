@@ -144,7 +144,7 @@ public class ModelBrokenListenerTest extends SourceTestCase {
                     NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelId).getSegments().size());
         });
 
-        tableExtService.loadTables(new String[] { "DEFAULT.TEST_KYLIN_FACT" }, project);
+        tableExtService.loadDbTables(new String[] { "DEFAULT.TEST_KYLIN_FACT" }, project, false);
 
         await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
             Assert.assertEquals(1,
@@ -189,7 +189,7 @@ public class ModelBrokenListenerTest extends SourceTestCase {
                     NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelId).getSegments().size());
         });
 
-        tableExtService.loadTables(new String[] { "DEFAULT.TEST_KYLIN_FACT" }, project);
+        tableExtService.loadDbTables(new String[] { "DEFAULT.TEST_KYLIN_FACT" }, project, false);
 
         await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
             val dataflow = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelId);

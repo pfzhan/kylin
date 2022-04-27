@@ -98,7 +98,10 @@ public class OpenTableController extends NBasicController {
 
     @VisibleForTesting
     public void updateDataSourceType(String project, int dataSourceType) {
-        projectService.setDataSourceType(project, String.valueOf(dataSourceType));
+        String sourceType = String.valueOf(dataSourceType);
+        if (!sourceType.equals(projectService.getDataSourceType(project))) {
+            projectService.setDataSourceType(project, sourceType);
+        }
     }
 
     @ApiOperation(value = "getTableDesc", tags = { "AI" })

@@ -29,9 +29,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.rest.service.BasicService;
@@ -57,7 +59,7 @@ public class TableSamplingService extends BasicService implements TableSamplingS
     @Override
     @Transaction(project = 1)
     public List<String> sampling(Set<String> tables, String project, int rows, int priority, String yarnQueue,
-                                 Object tag) {
+            Object tag) {
         aclEvaluate.checkProjectWritePermission(project);
         NExecutableManager execMgr = NExecutableManager.getInstance(getConfig(), project);
         NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getConfig(), project);
@@ -89,10 +91,11 @@ public class TableSamplingService extends BasicService implements TableSamplingS
     }
 
     private Map<String, AbstractExecutable> collectRunningSamplingJobs(Set<String> tables, String project) {
-        final List<AbstractExecutable> jobs = NExecutableManager.getInstance(getConfig(), project) //
-                .getAllExecutables().stream() //
-                .filter(executable -> executable instanceof NTableSamplingJob) //
-                .filter(job -> !job.getStatus().isFinalState()) //
+        final List<AbstractExecutable> jobs = NExecutableManager
+                .getInstance(KylinConfig.readSystemKylinConfig(), project).getAllJobs(0, Long.MAX_VALUE).stream()
+                .filter(job -> !ExecutableState.valueOf(job.getOutput().getStatus()).isFinalState())
+                .map(job -> getManager(NExecutableManager.class, job.getProject()).fromPO(job)) //
+                .filter(NTableSamplingJob.class::isInstance) //
                 .filter(job -> tables.contains(job.getTargetSubject())) //
                 .collect(Collectors.toList());
 

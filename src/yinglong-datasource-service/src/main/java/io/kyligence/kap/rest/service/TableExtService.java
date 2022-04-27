@@ -24,17 +24,19 @@
 
 package io.kyligence.kap.rest.service;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
+
 import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.project.NProjectManager;
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.Pair;
@@ -52,14 +54,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.rest.aspect.Transaction;
 import io.kyligence.kap.rest.response.LoadTableResponse;
 import io.kyligence.kap.rest.security.KerberosLoginManager;
-import io.kyligence.kap.rest.aspect.Transaction;
-
-import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
 
 @Component("tableExtService")
 public class TableExtService extends BasicService {
@@ -72,62 +76,109 @@ public class TableExtService extends BasicService {
     @Autowired
     private AclEvaluate aclEvaluate;
 
-    /**
-     * Load a group of  tables
-     *
-     * @return an array of table name sets:
-     * [0] : tables that loaded successfully
-     * [1] : tables that didn't load due to running sample job todo
-     * [2] : tables that didn't load due to other error
-     * @throws Exception if reading hive metadata error
-     */
-    @Transaction(project = 1, retry = 1)
-    public LoadTableResponse loadTables(String[] tables, String project) throws Exception {
+    public LoadTableResponse loadDbTables(String[] dbTables, String project, boolean isDb) throws Exception {
         aclEvaluate.checkProjectWritePermission(project);
-        UserGroupInformation ugi = KerberosLoginManager.getInstance().getProjectUGI(project);
-
-        return ugi.doAs(new PrivilegedExceptionAction<LoadTableResponse>() {
-            @Override
-            public LoadTableResponse run() throws Exception {
-                ProjectInstance projectInstance = getManager(NProjectManager.class).getProject(project);
-
-                List<Pair<TableDesc, TableExtDesc>> extractTableMeta = tableService.extractTableMeta(tables, project);
-                LoadTableResponse tableResponse = new LoadTableResponse();
-                Set<String> loaded = Sets.newLinkedHashSet();
-                Set<String> failed = Sets.newLinkedHashSet();
-                for (Pair<TableDesc, TableExtDesc> pair : extractTableMeta) {
-                    TableDesc tableDesc = pair.getFirst();
-                    TableExtDesc extDesc = pair.getSecond();
-                    String tableName = tableDesc.getIdentity();
-                    boolean ok;
-                    if (projectInstance.isProjectKerberosEnabled()) {
-                        ISourceMetadataExplorer explr = SourceFactory.getSource(projectInstance)
-                                .getSourceMetadataExplorer();
-                        if (!explr.checkTablesAccess(Sets.newHashSet(pair.getFirst().getIdentity()))) {
-                            failed.add(tableName);
-                            continue;
-                        }
-                    }
-                    try {
-                        loadTable(tableDesc, extDesc, project);
-                        ok = true;
-                    } catch (Exception ex) {
-                        logger.error("Failed to load table '" + tableName + "'\"", ex);
-                        ok = false;
-                    }
-                    (ok ? loaded : failed).add(tableName);
+        Map<String, Set<String>> dbTableMap = classifyDbTables(dbTables);
+        Set<String> existDbs = Sets.newHashSet(tableService.getSourceDbNames(project));
+        LoadTableResponse tableResponse = new LoadTableResponse();
+        List<Pair<TableDesc, TableExtDesc>> loadTables = Lists.newArrayList();
+        for (Map.Entry<String, Set<String>> entry : dbTableMap.entrySet()) {
+            String db = entry.getKey();
+            Set<String> tableSet = entry.getValue();
+            if (!existDbs.contains(db)) {
+                if (isDb) {
+                    tableResponse.getFailed().add(db);
+                } else {
+                    tableResponse.getFailed().addAll(tableSet);
                 }
-                tableResponse.setLoaded(loaded);
-                tableResponse.setFailed(failed);
-                return tableResponse;
+                continue;
             }
+            Set<String> existTables = Sets.newHashSet(tableService.getSourceTableNames(project, db, ""));
+            Set<String> failTables = Sets.newHashSet(tableSet);
+            if (!isDb) {
+                existTables.retainAll(tableSet);
+                failTables.removeAll(existTables);
+                List<String> tables = failTables.stream().map(table -> db + "." + table).collect(Collectors.toList());
+                tableResponse.getFailed().addAll(tables);
+            }
+
+            String[] tables = existTables.stream().map(table -> db + "." + table).toArray(String[]::new);
+            if (tables.length > 0)
+                loadTables.addAll(extractTableMeta(tables, project, tableResponse));
+        }
+
+        innerLoadTables(project, tableResponse, loadTables);
+        return tableResponse;
+    }
+
+    private void innerLoadTables(String project, LoadTableResponse tableResponse,
+            List<Pair<TableDesc, TableExtDesc>> loadTables) {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> { //
+            NTableMetadataManager tableManager = NTableMetadataManager.getInstance(KylinConfig.readSystemKylinConfig(),
+                    project);
+            loadTables.forEach(pair -> {
+                String tableName = pair.getFirst().getIdentity();
+                boolean success = true;
+                if (tableManager.getTableDesc(tableName) == null) {
+                    try {
+                        loadTable(pair.getFirst(), pair.getSecond(), project);
+                    } catch (Exception ex) {
+                        logger.error("Failed to load table '{}'", tableName, ex);
+                        success = false;
+                    }
+                }
+                Set<String> targetSet = success ? tableResponse.getLoaded() : tableResponse.getFailed();
+                targetSet.add(tableName);
+            });
+            return 0;
+        }, project, 1);
+    }
+
+    private List<Pair<TableDesc, TableExtDesc>> extractTableMeta(String[] tables, String project,
+            LoadTableResponse tableResponse) throws IOException, InterruptedException {
+        UserGroupInformation ugi = KerberosLoginManager.getInstance().getProjectUGI(project);
+        return ugi.doAs((PrivilegedExceptionAction<List<Pair<TableDesc, TableExtDesc>>>) () -> {
+            ProjectInstance projectInstance = getManager(NProjectManager.class).getProject(project);
+            List<Pair<TableDesc, TableExtDesc>> extractTableMetas = tableService.extractTableMeta(tables, project);
+            if (projectInstance.isProjectKerberosEnabled()) {
+                return extractTableMetas.stream().map(pair -> {
+                    TableDesc tableDesc = pair.getFirst();
+                    String tableName = tableDesc.getIdentity();
+                    ISourceMetadataExplorer explr = SourceFactory.getSource(projectInstance)
+                            .getSourceMetadataExplorer();
+                    if (!explr.checkTablesAccess(Sets.newHashSet(tableName))) {
+                        tableResponse.getFailed().add(tableName);
+                        return null;
+                    }
+                    return pair;
+                }).filter(Objects::nonNull).collect(Collectors.toList());
+            }
+            return extractTableMetas;
         });
+    }
+
+    private Map<String, Set<String>> classifyDbTables(String[] dbTables) {
+        Map<String, Set<String>> dbTableMap = Maps.newHashMap();
+        for (String str : dbTables) {
+            String db;
+            String table = null;
+            if (str.contains(".")) {
+                db = str.split("\\.", 2)[0].trim().toUpperCase(Locale.ROOT);
+                table = str.split("\\.", 2)[1].trim().toUpperCase(Locale.ROOT);
+            } else {
+                db = str.toUpperCase(Locale.ROOT);
+            }
+            Set<String> tables = dbTableMap.getOrDefault(db, Sets.newHashSet());
+            if (table != null) {
+                tables.add(table);
+            }
+            dbTableMap.put(db, tables);
+        }
+        return dbTableMap;
     }
 
     /**
      * Load given table to project
-     *
-     * @throws IOException on error
      */
     @Transaction(project = 2)
     public void loadTable(TableDesc tableDesc, TableExtDesc extDesc, String project) {
@@ -156,25 +207,6 @@ public class TableExtService extends BasicService {
             }
         }
 
-    }
-
-    @Transaction(project = 0, retry = 1)
-    public LoadTableResponse loadTablesByDatabase(String project, final String[] databases) throws Exception {
-        aclEvaluate.checkProjectWritePermission(project);
-        LoadTableResponse loadTableByDatabaseResponse = new LoadTableResponse();
-        NTableMetadataManager tableManager = getManager(NTableMetadataManager.class, project);
-        for (final String database : databases) {
-            List<String> tables = tableService.getSourceTableNames(project, database, "");
-            List<String> identities = tables.stream().map(s -> database + "." + s)
-                    .filter(t -> Objects.isNull(tableManager.getTableDesc(t))).collect(Collectors.toList());
-            if (CollectionUtils.isNotEmpty(identities)) {
-                String[] tableToLoad = new String[identities.size()];
-                LoadTableResponse loadTableResponse = loadTables(identities.toArray(tableToLoad), project);
-                loadTableByDatabaseResponse.getLoaded().addAll(loadTableResponse.getLoaded());
-                loadTableByDatabaseResponse.getFailed().addAll(loadTableResponse.getFailed());
-            }
-        }
-        return loadTableByDatabaseResponse;
     }
 
     @Transaction(project = 0, retry = 1)
