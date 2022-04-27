@@ -46,6 +46,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.rest.controller.NBasicController;
+import io.kyligence.kap.rest.response.SQLResponseV2;
 import io.swagger.annotations.ApiOperation;
 
 @RestController
@@ -70,11 +71,12 @@ public class NQueryControllerV2 extends NBasicController {
     @ApiOperation(value = "query", tags = { "QE" })
     @PostMapping(value = "", produces = { HTTP_VND_APACHE_KYLIN_V2_JSON })
     @ResponseBody
-    public EnvelopeResponse<SQLResponse> query(@Valid @RequestBody PrepareSqlRequest sqlRequest) {
+    public EnvelopeResponse<SQLResponseV2> query(@Valid @RequestBody PrepareSqlRequest sqlRequest) {
         String projectName = checkProjectName(sqlRequest.getProject());
         sqlRequest.setProject(projectName);
         SQLResponse sqlResponse = queryService.queryWithCache(sqlRequest);
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, sqlResponse, "");
+        SQLResponseV2 sqlResponseV2 = null == sqlResponse ? null : new SQLResponseV2(sqlResponse);
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, sqlResponseV2, "");
     }
 
     @ApiOperation(value = "prepareQuery", tags = { "QE" })
