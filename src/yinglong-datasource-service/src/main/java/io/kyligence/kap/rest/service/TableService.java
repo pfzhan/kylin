@@ -150,6 +150,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.model.NSegmentConfigHelper;
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -1222,7 +1223,6 @@ public class TableService extends BasicService {
         dataLoadingRangeManager.updateDataLoadingRange(dataLoadingRangeUpdate);
     }
 
-    @Transaction(project = 0, readonly = true)
     public OpenPreReloadTableResponse preProcessBeforeReloadWithoutFailFast(String project, String tableIdentity)
             throws Exception {
         aclEvaluate.checkProjectWritePermission(project);
@@ -1244,7 +1244,6 @@ public class TableService extends BasicService {
         return openPreReloadTableResponse;
     }
 
-    @Transaction(project = 0, readonly = true)
     public PreReloadTableResponse preProcessBeforeReloadWithFailFast(String project, String tableIdentity)
             throws Exception {
         aclEvaluate.checkProjectWritePermission(project);
@@ -1351,10 +1350,13 @@ public class TableService extends BasicService {
         Preconditions.checkNotNull(originTable,
                 String.format(Locale.ROOT, MsgPicker.getMsg().getTableNotFound(), tableIdentity));
 
-        val project = getManager(NProjectManager.class).getProject(projectName);
-        val context = calcReloadContext(projectName, tableIdentity, true);
-        Set<NDataModel> affectedModels = getAffectedModels(projectName, context);
         List<String> jobs = Lists.newArrayList();
+        val context = calcReloadContext(projectName, tableIdentity, true);
+        if (!context.isNeedProcess()) {
+            return jobs;
+        }
+        val project = getManager(NProjectManager.class).getProject(projectName);
+        Set<NDataModel> affectedModels = getAffectedModels(projectName, context);
         for (val model : affectedModels) {
             val jobId = updateBrokenModel(project, model, context, needBuild);
             if (StringUtils.isNotEmpty(jobId)) {
@@ -1381,18 +1383,12 @@ public class TableService extends BasicService {
         return jobs;
     }
 
-    private Set<NDataModel> getAffectedModels(String projectName, ReloadTableContext context) {
-        if ((context.getAddColumns().isEmpty() && context.getRemoveColumns().isEmpty()
-                && context.getChangeTypeColumns().isEmpty())) {
-            return Sets.newHashSet();
-        }
-        if (Objects.isNull(context.getTableDesc())) {
-            return Sets.newHashSet();
-        }
+    private Set<NDataModel> getAffectedModels(String project, ReloadTableContext context) {
         String tableIdentity = context.getTableDesc().getIdentity();
-        List<NDataModel> allHealthModels = getManager(NDataflowManager.class, projectName).listUnderliningDataModels();
-        return allHealthModels.stream().filter(modelDesc -> modelDesc.getAllTables().stream()
-                .map(TableRef::getTableIdentity).anyMatch(tableIdentity::equalsIgnoreCase)).collect(Collectors.toSet());
+        return NDataModelManager.getInstance(KylinConfig.readSystemKylinConfig(), project).listAllModels().stream() //
+                .filter(model -> !model.isBroken() && model.getAllTables().stream().map(TableRef::getTableIdentity)
+                        .anyMatch(tableIdentity::equalsIgnoreCase))
+                .collect(Collectors.toSet());
     }
 
     private String updateBrokenModel(ProjectInstance project, NDataModel model, ReloadTableContext context,
@@ -1569,8 +1565,8 @@ public class TableService extends BasicService {
         }
     }
 
-    private void checkNewColumn(Graph<SchemaNode> graph, TableDesc newTableDesc, Set<String> addColumns) {
-        Multimap<String, String> duplicatedColumns = getDuplicatedColumns(graph, newTableDesc, addColumns);
+    private void checkNewColumn(String project, String tableName, Set<String> addColumns) {
+        Multimap<String, String> duplicatedColumns = getDuplicatedColumns(project, tableName, addColumns);
         if (Objects.nonNull(duplicatedColumns) && !duplicatedColumns.isEmpty()) {
             Map.Entry<String, String> entry = duplicatedColumns.entries().iterator().next();
             throw new KylinException(DUPLICATED_COLUMN_NAME,
@@ -1578,23 +1574,17 @@ public class TableService extends BasicService {
         }
     }
 
-    private Multimap<String, String> getDuplicatedColumns(Graph<SchemaNode> graph, TableDesc newTableDesc,
-            Set<String> addColumns) {
+    private Multimap<String, String> getDuplicatedColumns(String project, String tableName, Set<String> addColumns) {
         Multimap<String, String> duplicatedColumns = HashMultimap.create();
-        List<SchemaNode> schemaNodes = graph.nodes().stream()
-                .filter(schemaNode -> SchemaNodeType.MODEL_CC == schemaNode.getType())
-                .filter(schemaNode -> addColumns.contains(schemaNode.getDetail().toUpperCase(Locale.ROOT)))
-                .collect(Collectors.toList());
-        for (SchemaNode schemaNode : schemaNodes) {
-            NDataModel model = modelService.onGetModelByAlias(schemaNode.getSubject(), newTableDesc.getProject());
-            if (newTableDesc.getIdentity().equals(model.getRootFactTableRef().getTableDesc().getIdentity())) {
-                duplicatedColumns.put(newTableDesc.getIdentity(), schemaNode.getDetail());
-            } else {
-                for (JoinTableDesc joinTable : model.getJoinTables()) {
-                    if (newTableDesc.getIdentity().equals(joinTable.getTableRef().getTableDesc().getIdentity())) {
-                        duplicatedColumns.put(newTableDesc.getIdentity(), schemaNode.getDetail());
-                        break;
-                    }
+        List<NDataModel> models = NDataModelManager.getInstance(KylinConfig.readSystemKylinConfig(), project)
+                .listAllModels();
+        for (NDataModel model : models) {
+            if (model.isBroken()) {
+                continue;
+            }
+            for (ComputedColumnDesc cc : model.getComputedColumnDescs()) {
+                if (addColumns.contains(cc.getColumnName())) {
+                    duplicatedColumns.put(tableName, cc.getColumnName());
                 }
             }
         }
@@ -1614,8 +1604,12 @@ public class TableService extends BasicService {
     }
 
     private List<String> getEffectedJobs(TableDesc newTableDesc, JobInfoEnum jobInfoType) {
-        val notFinalStateJobs = getManager(NExecutableManager.class, newTableDesc.getProject()).getAllExecutables()
-                .stream().filter(job -> !job.getStatus().isFinalState()).collect(Collectors.toList());
+        val notFinalStateJobs = NExecutableManager
+                .getInstance(KylinConfig.readSystemKylinConfig(), newTableDesc.getProject())
+                .getAllJobs(0, Long.MAX_VALUE).stream()
+                .filter(job -> !ExecutableState.valueOf(job.getOutput().getStatus()).isFinalState())
+                .map(job -> getManager(NExecutableManager.class, job.getProject()).fromPO(job))
+                .collect(Collectors.toList());
 
         List<String> effectedJobs = Lists.newArrayList();
         for (AbstractExecutable job : notFinalStateJobs) {
@@ -1661,15 +1655,16 @@ public class TableService extends BasicService {
         context.setAddColumns(diff.entriesOnlyOnLeft().keySet());
         context.setRemoveColumns(diff.entriesOnlyOnRight().keySet());
         context.setChangeTypeColumns(diff.entriesDiffering().keySet());
-
-        val dependencyGraph = SchemaUtil.dependencyGraph(project, tableIdentity);
+        if (!context.isNeedProcess()) {
+            return context;
+        }
 
         if (failFast) {
-            checkNewColumn(dependencyGraph, newTableDesc, Sets.newHashSet(context.getAddColumns()));
+            checkNewColumn(project, newTableDesc.getIdentity(), Sets.newHashSet(context.getAddColumns()));
             checkEffectedJobs(newTableDesc);
         } else {
             Set<String> duplicatedColumnsSet = Sets.newHashSet();
-            Multimap<String, String> duplicatedColumns = getDuplicatedColumns(dependencyGraph, newTableDesc,
+            Multimap<String, String> duplicatedColumns = getDuplicatedColumns(project, newTableDesc.getIdentity(),
                     Sets.newHashSet(context.getAddColumns()));
             for (Map.Entry<String, String> entry : duplicatedColumns.entries()) {
                 duplicatedColumnsSet.add(entry.getKey() + "." + entry.getValue());
@@ -1678,6 +1673,11 @@ public class TableService extends BasicService {
             context.setEffectedJobs(getEffectedJobIds(newTableDesc));
         }
 
+        if (context.isOnlyAddCols()) {
+            return context;
+        }
+
+        val dependencyGraph = SchemaUtil.dependencyGraph(project, tableIdentity);
         Map<String, Set<Pair<NDataModel.Measure, NDataModel.Measure>>> suitableColumnTypeChangedMeasuresMap = getSuitableColumnTypeChangedMeasures(
                 dependencyGraph, project, originTableDesc, diff.entriesDiffering());
 
@@ -1695,7 +1695,8 @@ public class TableService extends BasicService {
                     .collect(Collectors.groupingBy(SchemaNode::getSubject, Collectors.toSet()));
             Map<String, AffectedModelContext> modelContexts = Maps.newHashMap();
             nodesMap.forEach((key, nodes) -> {
-                val indexPlan = getManager(NIndexPlanManager.class, project).getIndexPlanByModelAlias(key);
+                val indexPlan = NIndexPlanManager.getInstance(KylinConfig.readSystemKylinConfig(), project)
+                        .getIndexPlanByModelAlias(key);
                 Set<Pair<NDataModel.Measure, NDataModel.Measure>> updateMeasures = Sets.newHashSet();
                 if (!isDelete) {
                     updateMeasures = suitableColumnTypeChangedMeasuresMap.getOrDefault(key, updateMeasures);

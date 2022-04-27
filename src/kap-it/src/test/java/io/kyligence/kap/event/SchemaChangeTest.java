@@ -270,8 +270,9 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
                 columnDesc.setId("35");
             }
         });
-        tableService.reloadTable(getProject(), TABLE_IDENTITY, false, -1, true);
-        assertSqls();
+        Pair<String, List<String>> pair = tableService.reloadTable(getProject(), TABLE_IDENTITY, false, -1, true);
+        //don't need to reload
+        Assert.assertEquals(0, pair.getSecond().size());
     }
 
     private void assertSqls() throws Exception {

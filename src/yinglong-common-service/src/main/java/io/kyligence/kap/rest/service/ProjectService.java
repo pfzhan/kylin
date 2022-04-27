@@ -31,6 +31,7 @@ import static io.kyligence.kap.common.constant.Constants.KYLIN_SOURCE_JDBC_PASS_
 import static io.kyligence.kap.common.constant.Constants.KYLIN_SOURCE_JDBC_SOURCE_ENABLE_KEY;
 import static io.kyligence.kap.common.constant.Constants.KYLIN_SOURCE_JDBC_SOURCE_NAME_KEY;
 import static io.kyligence.kap.common.constant.Constants.KYLIN_SOURCE_JDBC_USER_KEY;
+import static io.kyligence.kap.common.constant.NonCustomProjectLevelConfig.DATASOURCE_TYPE;
 import static org.apache.kylin.common.exception.ServerErrorCode.DATABASE_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_PROJECT_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_EMAIL;
@@ -202,8 +203,8 @@ public class ProjectService extends BasicService {
                     String.format(Locale.ROOT, msg.getProjectAlreadyExist(), projectName));
         }
         final String owner = SecurityContextHolder.getContext().getAuthentication().getName();
-        ProjectInstance createdProject = getManager(NProjectManager.class).createProject(projectName, owner, description,
-                overrideProps, newProject.getMaintainModelType());
+        ProjectInstance createdProject = getManager(NProjectManager.class).createProject(projectName, owner,
+                description, overrideProps, newProject.getMaintainModelType());
         logger.debug("New project created.");
         return createdProject;
     }
@@ -655,16 +656,17 @@ public class ProjectService extends BasicService {
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     @Transaction(project = 0)
     public void updateSnapshotConfig(String project, SnapshotConfigRequest snapshotConfigRequest) {
-        getManager(NProjectManager.class).updateProject(project, copyForWrite ->
-                copyForWrite.putOverrideKylinProps("kylin.snapshot.manual-management-enabled", snapshotConfigRequest.getSnapshotManualManagementEnabled().toString()));
+        getManager(NProjectManager.class).updateProject(project,
+                copyForWrite -> copyForWrite.putOverrideKylinProps("kylin.snapshot.manual-management-enabled",
+                        snapshotConfigRequest.getSnapshotManualManagementEnabled().toString()));
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     @Transaction(project = 0)
     public void updateSCD2Config(String project, SCD2ConfigRequest scd2ConfigRequest,
             ProjectModelSupporter modelService) {
-        getManager(NProjectManager.class).updateProject(project, copyForWrite ->
-                copyForWrite.putOverrideKylinProps("kylin.query.non-equi-join-model-enabled",
+        getManager(NProjectManager.class).updateProject(project,
+                copyForWrite -> copyForWrite.putOverrideKylinProps("kylin.query.non-equi-join-model-enabled",
                         scd2ConfigRequest.getScd2Enabled().toString()));
 
         if (Boolean.TRUE.equals(scd2ConfigRequest.getScd2Enabled())) {
@@ -702,9 +704,9 @@ public class ProjectService extends BasicService {
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     @Transaction(project = 0)
     public void updateComputedColumnConfig(String project, ComputedColumnConfigRequest computedColumnConfigRequest) {
-        getManager(NProjectManager.class).updateProject(project, copyForWrite ->
-                copyForWrite.putOverrideKylinProps(ProjectInstance.EXPOSE_COMPUTED_COLUMN_CONF,
-                    String.valueOf(computedColumnConfigRequest.getExposeComputedColumn())));
+        getManager(NProjectManager.class).updateProject(project,
+                copyForWrite -> copyForWrite.putOverrideKylinProps(ProjectInstance.EXPOSE_COMPUTED_COLUMN_CONF,
+                        String.valueOf(computedColumnConfigRequest.getExposeComputedColumn())));
     }
 
     @Transaction(project = 0)
@@ -839,8 +841,13 @@ public class ProjectService extends BasicService {
 
     @Transaction(project = 0)
     public void setDataSourceType(String project, String sourceType) {
-        getManager(NProjectManager.class).updateProject(project, copyForWrite ->
-                copyForWrite.putOverrideKylinProps("kylin.source.default", sourceType));
+        getManager(NProjectManager.class).updateProject(project,
+                copyForWrite -> copyForWrite.putOverrideKylinProps(DATASOURCE_TYPE.getValue(), sourceType));
+    }
+
+    public String getDataSourceType(String project) {
+        return getManager(NProjectManager.class).getProject(project).getOverrideKylinProps()
+                .get(DATASOURCE_TYPE.getValue());
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")

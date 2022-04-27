@@ -1004,7 +1004,6 @@ public class NDataModel extends RootPersistentEntity {
         return project;
     }
 
-
     public Map<String, TableDesc> getExtendedTables(Map<String, TableDesc> originalTables) {
         // tweak the tables according to Computed Columns defined in model
         Map<String, TableDesc> tables = Maps.newHashMap();
@@ -1023,17 +1022,16 @@ public class NDataModel extends RootPersistentEntity {
         return tables;
     }
 
-    public void init(KylinConfig config, String project, List<NDataModel> otherModels) {
-        init(config, project, otherModels, false);
+    public void init(KylinConfig config, String project, List<NDataModel> ccRelatedModels) {
+        init(config, project, ccRelatedModels, false);
     }
 
-    public void init(KylinConfig config, String project, List<NDataModel> otherModels, boolean saveCheck) {
+    public void init(KylinConfig config, String project, List<NDataModel> ccRelatedModels, boolean saveCheck) {
         this.project = project;
         this.saveCheck = saveCheck;
 
         init(config);
-
-        initComputedColumns(otherModels);
+        initComputedColumns(ccRelatedModels);
         this.effectiveCols = initAllNamedColumns(NamedColumn::isExist);
         this.effectiveDimensions = initAllNamedColumns(NamedColumn::isDimension);
         initAllMeasures();
@@ -1192,8 +1190,8 @@ public class NDataModel extends RootPersistentEntity {
         return getColRef(getColumnIdByColumnName(columnName));
     }
 
-    public void initComputedColumns(List<NDataModel> otherModels) {
-        Preconditions.checkNotNull(otherModels);
+    public void initComputedColumns(List<NDataModel> ccRelatedModels) {
+        Preconditions.checkNotNull(ccRelatedModels);
 
         // init
         for (ComputedColumnDesc newCC : this.computedColumnDescs) {
@@ -1219,7 +1217,7 @@ public class NDataModel extends RootPersistentEntity {
         checkCCExprHealth();
         if (config.validateComputedColumn()) {
             selfCCConflictCheck();
-            crossCCConflictCheck(otherModels);
+            crossCCConflictCheck(ccRelatedModels);
         }
     }
 
@@ -1252,10 +1250,10 @@ public class NDataModel extends RootPersistentEntity {
     }
 
     // check duplication with other models:
-    private void crossCCConflictCheck(List<NDataModel> otherModels) {
+    private void crossCCConflictCheck(List<NDataModel> ccRelatedModels) {
 
         List<Pair<ComputedColumnDesc, NDataModel>> existingCCs = Lists.newArrayList();
-        for (NDataModel otherModel : otherModels) {
+        for (NDataModel otherModel : ccRelatedModels) {
             if (!StringUtils.equals(otherModel.getUuid(), this.getUuid())) { // when update, self is already in otherModels
                 for (ComputedColumnDesc cc : otherModel.getComputedColumnDescs()) {
                     existingCCs.add(Pair.newPair(cc, otherModel));
@@ -1494,9 +1492,7 @@ public class NDataModel extends RootPersistentEntity {
     }
 
     public Set<Integer> getEffectiveInternalMeasureIds() {
-        return getEffectiveMeasures().values().stream()
-                .filter(m -> m.getType() == NDataModel.MeasureType.INTERNAL)
-                .map(NDataModel.Measure::getId)
-                .collect(Collectors.toSet());
+        return getEffectiveMeasures().values().stream().filter(m -> m.getType() == NDataModel.MeasureType.INTERNAL)
+                .map(NDataModel.Measure::getId).collect(Collectors.toSet());
     }
 }

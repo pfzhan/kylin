@@ -87,8 +87,6 @@ public class JobStatisticsManager {
                 return jobStatistics;
             }
         };
-
-        crud.reloadAll();
     }
 
     public List<JobStatistics> getAll() {
