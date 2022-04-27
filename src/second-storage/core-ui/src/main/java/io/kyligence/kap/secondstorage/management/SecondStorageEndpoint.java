@@ -271,20 +271,14 @@ public class SecondStorageEndpoint extends NBasicController {
 
     @PostMapping(value = "/project/load", produces = {HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
     public EnvelopeResponse<List<ProjectRecoveryResponse>> projectLoad(@RequestBody ProjectLoadRequest request) {
-        if (CollectionUtils.isEmpty(request.getProjects())) {
-            throw new KylinException(EMPTY_PROJECT_NAME, MsgPicker.getMsg().getEMPTY_PROJECT_NAME());
-        }
-
-        for (String project : request.getProjects()) {
-            checkProjectName(project);
-        }
-
+        checkProjects(request.getProjects());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                 secondStorageService.projectLoadData(request.getProjects()).getLoads(), "");
     }
 
     @PostMapping(value = "/project/clean", produces = {HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
     public EnvelopeResponse<Map<String, Map<String, String>>> projectClean(@RequestBody ProjectCleanRequest request) {
+        checkProjects(request.getProjects());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, secondStorageService.projectClean(request.getProjects()), "");
     }
 
@@ -310,6 +304,16 @@ public class SecondStorageEndpoint extends NBasicController {
         val model = modelManager.getDataModelDescByAlias(modelName);
         if (Objects.isNull(model)) {
             throw new KylinException(MODEL_NAME_NOT_EXIST, modelName);
+        }
+    }
+
+    public void checkProjects(List<String> projects) {
+        if (CollectionUtils.isEmpty(projects)) {
+            throw new KylinException(EMPTY_PROJECT_NAME, MsgPicker.getMsg().getEMPTY_PROJECT_NAME());
+        }
+
+        for (String project : projects) {
+            checkProjectName(project);
         }
     }
 }

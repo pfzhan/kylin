@@ -49,6 +49,8 @@ import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.AclUtil;
 import org.apache.spark.sql.SparkSession;
 import org.junit.Assert;
 import org.junit.Before;
@@ -80,6 +82,9 @@ import io.kyligence.kap.secondstorage.test.EnableTestUser;
 import io.kyligence.kap.secondstorage.test.SharedSparkSession;
 import io.kyligence.kap.secondstorage.test.utils.JobWaiter;
 import lombok.val;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.springframework.test.util.ReflectionTestUtils;
 
 public class IncrementalWithIntPartitionTest implements JobWaiter {
     static private final String modelId = "acfde546-2cc9-4eec-bc92-e3bd46d4e2ee";
@@ -106,10 +111,19 @@ public class IncrementalWithIntPartitionTest implements JobWaiter {
     private SecondStorageEndpoint secondStorageEndpoint = new SecondStorageEndpoint();
     private IndexDataConstructor indexDataConstructor;
 
+    @Mock
+    private final AclUtil aclUtil = Mockito.spy(AclUtil.class);
+
+    @Mock
+    private final AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
+
     @Before
     public void setUp() {
         secondStorageEndpoint.setSecondStorageService(secondStorageService);
         indexDataConstructor = new IndexDataConstructor(project);
+
+        ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
+        secondStorageService.setAclEvaluate(aclEvaluate);
     }
 
     private void buildIncrementalLoadQuery(String start, String end) throws Exception {

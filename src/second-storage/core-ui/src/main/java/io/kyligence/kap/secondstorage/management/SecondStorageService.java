@@ -278,6 +278,7 @@ public class SecondStorageService extends BasicService implements SecondStorageU
 
     public ProjectLoadResponse projectLoadData(List<String> projects) {
         projects.forEach(project -> {
+            aclEvaluate.checkProjectWritePermission(project);
             SecondStorageUtil.validateProjectLock(project, Arrays.asList(LockTypeEnum.LOAD.name()));
         });
         ProjectLoadResponse projectLoadResponse = new ProjectLoadResponse();
@@ -471,6 +472,7 @@ public class SecondStorageService extends BasicService implements SecondStorageU
 
     public Map<String, Map<String, String>> projectClean(List<String> projects) {
         projects.forEach(project -> {
+            aclEvaluate.checkProjectWritePermission(project);
             projectValidate(project);
         });
         Map<String, Map<String, String>> resultMap = new HashMap<>();

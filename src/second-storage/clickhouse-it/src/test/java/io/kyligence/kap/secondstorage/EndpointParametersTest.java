@@ -46,6 +46,7 @@ import io.kyligence.kap.secondstorage.management.OpenSecondStorageEndpoint;
 import io.kyligence.kap.secondstorage.management.SecondStorageEndpoint;
 import io.kyligence.kap.secondstorage.management.SecondStorageScheduleService;
 import io.kyligence.kap.secondstorage.management.SecondStorageService;
+import io.kyligence.kap.secondstorage.management.request.ProjectCleanRequest;
 import io.kyligence.kap.secondstorage.management.request.ProjectLoadRequest;
 import io.kyligence.kap.secondstorage.test.EnableScheduler;
 import io.kyligence.kap.secondstorage.test.EnableTestUser;
@@ -212,13 +213,23 @@ public class EndpointParametersTest extends SecondStorageMetadataHelperTest impl
 
 
     @Test
-    public void testLockOperate() {
+    public void testProjectLoad() {
         ProjectLoadRequest request = new ProjectLoadRequest();
         request.setProjects(ImmutableList.of());
         assertThrows(KylinException.class, () -> secondStorageEndpoint.projectLoad(request));
 
         request.setProjects(ImmutableList.of(getProject(), "123"));
         assertThrows(KylinException.class, () -> secondStorageEndpoint.projectLoad(request));
+    }
+
+    @Test
+    public void testProjectClean() {
+        ProjectCleanRequest request = new ProjectCleanRequest();
+        request.setProjects(ImmutableList.of());
+        assertThrows(KylinException.class, () -> secondStorageEndpoint.projectClean(request));
+
+        request.setProjects(ImmutableList.of(getProject(), "123"));
+        assertThrows(KylinException.class, () -> secondStorageEndpoint.projectClean(request));
     }
 
     @Override
