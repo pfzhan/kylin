@@ -24,8 +24,6 @@
 ## OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ##
 
-echo "Start prepare mrs env."
-
 if [ -n "$BIGDATA_HOME" ]
 then
     export FI_ENV_PLATFORM=$BIGDATA_HOME
@@ -47,5 +45,3 @@ then
      export IS_MRS_PLATFORM='true'
    fi
 fi
-
-echo "Done prepare mrs env."
