@@ -25,18 +25,16 @@
 package io.kyligence.kap.engine.spark.job.stage.build
 
 import java.util.Objects
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.locks.ReentrantLock
 import java.util.concurrent.{BlockingQueue, CountDownLatch, ForkJoinPool, TimeUnit}
 
-import com.google.common.collect.{Queues, Sets}
+import com.google.common.collect.Queues
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork.Callback
 import io.kyligence.kap.engine.spark.application.SparkApplication
 import io.kyligence.kap.engine.spark.builder.DictionaryBuilderHelper
 import io.kyligence.kap.engine.spark.job._
 import io.kyligence.kap.engine.spark.job.stage.build.FlatTableAndDictBase.Statistics
-import io.kyligence.kap.engine.spark.job.stage.{BuildParam, StageExec}
+import io.kyligence.kap.engine.spark.job.stage.{BuildParam, InferiorGroup, StageExec}
 import io.kyligence.kap.metadata.cube.cuboid.AdaptiveSpanningTree.TreeNode
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager.NIndexPlanUpdater
 import io.kyligence.kap.metadata.cube.model._
@@ -89,12 +87,11 @@ abstract class BuildStage(private val jobContext: SegmentJob,
   private lazy val flatTableStats: Statistics = buildParam.getFlatTableStatistics
 
   // thread unsafe
-  private var cachedLayoutSanity: Option[Map[Long, Long]] = None
+  private lazy val cachedLayoutSanity: Option[Map[Long, Long]] = buildParam.getCachedLayoutSanity
   // thread unsafe
-  private val cachedLayoutDS = mutable.HashMap[Long, Dataset[Row]]()
-
+  private lazy val cachedLayoutDS: mutable.HashMap[Long, Dataset[Row]] = buildParam.getCachedLayoutDS
   // thread unsafe
-  private var cachedIndexInferior: Map[Long, InferiorGroup] = _
+  private lazy val cachedIndexInferior: Option[Map[Long, InferiorGroup]] = buildParam.getCachedIndexInferior
 
   private lazy val datasetCacheStorageLevel = getStorageLevel
 
@@ -213,7 +210,7 @@ abstract class BuildStage(private val jobContext: SegmentJob,
       }.toMap.seq
       assert(sanityMap.keySet.size == rootNodes.size, //
         s"Collect sanity for root nodes went wrong: ${sanityMap.keySet.size} == ${rootNodes.size}")
-      cachedLayoutSanity = Some(sanityMap)
+      buildParam.setCachedLayoutSanity(Some(sanityMap))
       logInfo(s"Segment $segmentId finished build sanity cache $sanityMap.")
     } finally {
       forkJoinPool.shutdownNow()
@@ -476,10 +473,6 @@ abstract class BuildStage(private val jobContext: SegmentJob,
     }
   }
 
-  case class InferiorGroup(tableDS: Dataset[Row], reapCount: CountDownLatch //
-                           , notCached: AtomicBoolean = new AtomicBoolean(true) //
-                           , cacheLock: ReentrantLock = new ReentrantLock())
-
   // Suitable for models generated from multi index recommendations.
   // TODO Make more fantastic abstractions.
   protected def buildInferior(): Unit = {
@@ -570,14 +563,14 @@ abstract class BuildStage(private val jobContext: SegmentJob,
       return
     }
 
-    cachedIndexInferior = indexInferiorMap.toMap
+    buildParam.setCachedIndexInferior(Some(indexInferiorMap.toMap))
   }
 
   private def getCachedIndexInferior(index: IndexEntity): Option[InferiorGroup] = synchronized {
-    if (Objects.isNull(cachedIndexInferior)) {
+    if (cachedIndexInferior.isEmpty) {
       return None
     }
-    val ic = cachedIndexInferior.getOrElse(index.getId, null)
+    val ic = cachedIndexInferior.get.getOrElse(index.getId, null)
     if (Objects.isNull(ic)) {
       return None
     }

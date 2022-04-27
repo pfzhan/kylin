@@ -28,8 +28,6 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
-import io.kyligence.kap.query.optrule.CorrReduceFunctionRule;
-import io.kyligence.kap.query.optrule.KapModelViewRule;
 import org.apache.calcite.adapter.enumerable.EnumerableInterpreterRule;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.config.CalciteConnectionConfig;
@@ -81,13 +79,16 @@ import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 
 import io.kyligence.kap.query.engine.meta.PlannerContext;
+import io.kyligence.kap.query.optrule.CorrReduceFunctionRule;
 import io.kyligence.kap.query.optrule.KAPValuesRule;
+import io.kyligence.kap.query.optrule.KapAggregateReduceFunctionsRule;
 import io.kyligence.kap.query.optrule.KapAggregateRule;
 import io.kyligence.kap.query.optrule.KapFilterJoinRule;
 import io.kyligence.kap.query.optrule.KapFilterRule;
 import io.kyligence.kap.query.optrule.KapJoinRule;
 import io.kyligence.kap.query.optrule.KapLimitRule;
 import io.kyligence.kap.query.optrule.KapMinusRule;
+import io.kyligence.kap.query.optrule.KapModelViewRule;
 import io.kyligence.kap.query.optrule.KapOLAPToEnumerableConverterRule;
 import io.kyligence.kap.query.optrule.KapProjectJoinTransposeRule;
 import io.kyligence.kap.query.optrule.KapProjectMergeRule;
@@ -97,7 +98,6 @@ import io.kyligence.kap.query.optrule.KapUnionRule;
 import io.kyligence.kap.query.optrule.KapWindowRule;
 import io.kyligence.kap.query.optrule.RightJoinToLeftJoinRule;
 import io.kyligence.kap.query.optrule.SumConstantConvertRule;
-import io.kyligence.kap.query.relnode.KapAggregateReduceFunctionsRule;
 
 /**
  * factory that create optimizers and register opt rules

@@ -38,10 +38,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -111,7 +113,7 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
 
     public void revokeAclTCR(String uuid, String sid, boolean principal) {
         // permission already has been checked in AccessService#revokeAcl
-        getProjectManager().listAllProjects().stream().filter(p -> p.getUuid().equals(uuid)).findFirst()
+        getManager(NProjectManager.class).listAllProjects().stream().filter(p -> p.getUuid().equals(uuid)).findFirst()
                 .ifPresent(prj -> EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                     revokePrjAclTCR(prj.getName(), sid, principal);
                     return null;
@@ -131,20 +133,20 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
     private void revokePrjAclTCR(String project, String sid, boolean principal) {
         logger.info("revoke project table, column and row acls of project={}, sid={}, principal={}", project, sid,
                 principal);
-        getAclTCRManager(project).revokeAclTCR(sid, principal);
+        getManager(AclTCRManager.class, project).revokeAclTCR(sid, principal);
     }
 
     @Override
     @Transaction(project = 0)
     public void unloadTable(String project, String dbTblName) {
-        getAclTCRManager(project).unloadTable(dbTblName);
+        getManager(AclTCRManager.class, project).unloadTable(dbTblName);
     }
 
     @Override
     public List<AclTCRResponse> getAclTCRResponse(String project, String sid, boolean principal, boolean authorizedOnly)
             throws IOException {
         aclEvaluate.checkProjectAdminPermission(project);
-        AclTCRManager aclTCRManager = getAclTCRManager(project);
+        AclTCRManager aclTCRManager = getManager(AclTCRManager.class, project);
 
         if (hasAdminPermissionInProject(sid, principal, project)) {
             return getAclTCRResponse(project, aclTCRManager.getAllDbAclTable(project));
@@ -208,7 +210,7 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
         aclEvaluate.checkProjectAdminPermission(project);
         checkAclTCRRequest(project, requests, sid, principal, false);
         NTableMetadataManager manager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        AclTCRManager aclTCRManager = getAclTCRManager(project);
+        AclTCRManager aclTCRManager = getManager(AclTCRManager.class, project);
         AclTCR aclTCR = aclTCRManager.getAclTCR(sid, principal);
         if (aclTCR == null) {
             aclTCR = new AclTCR();
@@ -381,7 +383,7 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
                     MsgPicker.getMsg().getADMIN_PERMISSION_UPDATE_ABANDON());
         }
         checkAClTCRRequestParameterValid(manager, databases, tables, columns, requests, isIncludeAll);
-        AclTCRManager aclTCRManager = getAclTCRManager(project);
+        AclTCRManager aclTCRManager = getManager(AclTCRManager.class, project);
         AclTCR aclTCR = aclTCRManager.getAclTCR(sid, principal);
         if (aclTCR == null) {
             aclTCR = new AclTCR();
@@ -472,7 +474,7 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
     public void updateAclTCR(String uuid, List<AccessRequest> requests) {
         // permission already has been checked in AccessService#grant, batchGrant
         final boolean defaultAuthorized = KapConfig.getInstanceFromEnv().isProjectInternalDefaultPermissionGranted();
-        getProjectManager().listAllProjects().stream().filter(p -> p.getUuid().equals(uuid)).findFirst()
+        getManager(NProjectManager.class).listAllProjects().stream().filter(p -> p.getUuid().equals(uuid)).findFirst()
                 .ifPresent(prj -> EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                     requests.stream().filter(r -> StringUtils.isNotEmpty(r.getSid())).forEach(r -> {
                         AclTCR aclTCR = new AclTCR();
@@ -486,8 +488,8 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
     }
 
     private void updateAclTCR(String project, String sid, boolean principal, AclTCR aclTCR) {
-        checkDependentColumnUpdate(aclTCR, getAclTCRManager(project), sid, principal);
-        getAclTCRManager(project).updateAclTCR(aclTCR, sid, principal);
+        checkDependentColumnUpdate(aclTCR, getManager(AclTCRManager.class, project), sid, principal);
+        getManager(AclTCRManager.class, project).updateAclTCR(aclTCR, sid, principal);
     }
 
     private List<AclTCRResponse.Column> getColumns(String project, String tableIdentity, AclTCR.ColumnRow columnRow,
@@ -604,8 +606,8 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
     }
 
     private List<AclTCRResponse> getAllTablesAclTCRResponse(String project,
-            final TreeMap<String, AclTCR.Table> authorized) {
-        return getAclTCRManager(project).getAllDbAclTable(project).entrySet().stream().map(de -> {
+            final SortedMap<String, AclTCR.Table> authorized) {
+        return getManager(AclTCRManager.class, project).getAllDbAclTable(project).entrySet().stream().map(de -> {
             AclTCRResponse response = new AclTCRResponse();
             response.setDatabaseName(de.getKey());
             response.setAuthorizedTableNum(
@@ -616,7 +618,7 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
         }).collect(Collectors.toList());
     }
 
-    private List<AclTCRResponse> getAclTCRResponse(String project, TreeMap<String, AclTCR.Table> db2AclTable) {
+    private List<AclTCRResponse> getAclTCRResponse(String project, SortedMap<String, AclTCR.Table> db2AclTable) {
         return db2AclTable.entrySet().stream().map(de -> {
             AclTCRResponse response = new AclTCRResponse();
             response.setDatabaseName(de.getKey());
@@ -729,7 +731,7 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
             }
 
             if (Objects.nonNull(columnRow.getColumn())
-                    && Optional.ofNullable(getTableManager(project).getTableDesc(dbTblName).getColumns())
+                    && Optional.ofNullable(getManager(NTableMetadataManager.class, project).getTableDesc(dbTblName).getColumns())
                             .map(Arrays::stream).orElseGet(Stream::empty).map(ColumnDesc::getName)
                             .allMatch(colName -> columnRow.getColumn().contains(colName)
                                     && columnRow.getColumnSensitiveDataMask() == null
@@ -742,7 +744,7 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
             }
         });
 
-        if (getTableManager(project).listAllTables().stream().map(TableDesc::getIdentity)
+        if (getManager(NTableMetadataManager.class, project).listAllTables().stream().map(TableDesc::getIdentity)
                 .allMatch(dbTblName -> aclTCR.getTable().containsKey(dbTblName))
                 && aclTCR.getTable().entrySet().stream().allMatch(e -> Objects.isNull(e.getValue()))) {
             aclTCR.setTable(null);
@@ -760,7 +762,7 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
 
         if (requests.stream().allMatch(d -> Optional.ofNullable(d.getTables()).map(List::stream)
                 .orElseGet(Stream::empty).allMatch(AclTCRRequest.Table::isAuthorized))) {
-            getTableManager(project).listAllTables().stream().filter(t -> !aclTable.containsKey(t.getIdentity()))
+            getManager(NTableMetadataManager.class, project).listAllTables().stream().filter(t -> !aclTable.containsKey(t.getIdentity()))
                     .map(TableDesc::getIdentity).forEach(dbTblName -> aclTable.put(dbTblName, null));
         }
         aclTCR.setTable(aclTable);
@@ -771,13 +773,13 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
 
     private AclTCR mergeRequests(String project, String sid, boolean principal, List<AclTCRRequest> requests) {
         checkAclRequestParam(project, requests);
-        AclTCRManager aclTCRManager = getAclTCRManager(project);
+        AclTCRManager aclTCRManager = getManager(AclTCRManager.class, project);
         AclTCR aclTCR = aclTCRManager.getAclTCR(sid, principal);
         if (aclTCR == null) {
             aclTCR = new AclTCR();
         }
 
-        TreeMap<String, AclTCR.Table> allDbAclTable = aclTCRManager.getAllDbAclTable(project);
+        SortedMap<String, AclTCR.Table> allDbAclTable = aclTCRManager.getAllDbAclTable(project);
 
         AclTCR.Table aclTable = initTableAcl(aclTCR, allDbAclTable);
 
@@ -1150,7 +1152,7 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
 
     private Map<String, Map<String, Integer>> getDbTblColNum(String project) {
         Map<String, Map<String, Integer>> dbTblColNum = Maps.newHashMap();
-        getTableManager(project).listAllTables().forEach(tableDesc -> {
+        getManager(NTableMetadataManager.class, project).listAllTables().forEach(tableDesc -> {
             if (!dbTblColNum.containsKey(tableDesc.getDatabase())) {
                 dbTblColNum.put(tableDesc.getDatabase(), Maps.newHashMap());
             }
@@ -1199,7 +1201,7 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
 
     @VisibleForTesting
     List<TableDesc> getAuthorizedTables(String project, String user, Set<String> groups) {
-        List<AclTCR> aclTCRS = getAclTCRManager(project).getAclTCRs(user, groups);
+        List<AclTCR> aclTCRS = getManager(AclTCRManager.class, project).getAclTCRs(user, groups);
         return getTableMetadataManager(project).listAllTables().stream()
                 .filter(tableDesc -> aclTCRS.stream().anyMatch(aclTCR -> aclTCR.isAuthorized(tableDesc.getIdentity())))
                 .collect(Collectors.toList());

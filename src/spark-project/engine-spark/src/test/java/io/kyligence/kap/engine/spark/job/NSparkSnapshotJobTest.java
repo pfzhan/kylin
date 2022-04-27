@@ -28,7 +28,6 @@ import java.io.IOException;
 import java.util.Set;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -53,9 +52,9 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableSet;
 
 import io.kyligence.kap.engine.spark.ExecutableUtils;
+import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.query.engine.QueryExec;
 import lombok.val;
 
 public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
@@ -82,33 +81,6 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
     public void after() {
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
-    }
-
-    @Test
-    public void testQueryPartitionSnapshot() throws Exception {
-        String tableName = "EDW.TEST_SELLER_TYPE_DIM";
-        String partitionCol = "SELLER_TYPE_CD";
-        Set<String> partitions = ImmutableSet.of("5", "16");
-        NTableMetadataManager tableManager = NTableMetadataManager.getInstance(config, getProject());
-        TableDesc table = tableManager.getTableDesc(tableName);
-        table.setSelectedSnapshotPartitionCol(partitionCol);
-        table.setPartitionColumn(partitionCol);
-        tableManager.updateTableDesc(table);
-
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
-        NSparkSnapshotJob job = NSparkSnapshotJob.create(tableManager.getTableDesc(tableName), "ADMIN",
-                JobTypeEnum.SNAPSHOT_BUILD, RandomUtil.randomUUIDStr(), partitionCol, false, null, null, null);
-        setPartitions(job, partitions);
-        execMgr.addJob(job);
-
-        // wait job done
-        ExecutableState status = IndexDataConstructor.wait(job);
-        Assert.assertEquals(ExecutableState.SUCCEED, status);
-
-        String sql = "select * from EDW.TEST_SELLER_TYPE_DIM";
-        QueryExec queryExec = new QueryExec(getProject(), KylinConfig.getInstanceFromEnv());
-        val resultSet = queryExec.executeQuery(sql);
-        Assert.assertEquals(2, resultSet.getRows().size());
     }
 
     @Test

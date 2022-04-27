@@ -54,6 +54,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.query.QueryExtension;
 import io.kyligence.kap.query.engine.QueryExec;
 import lombok.val;
 
@@ -63,11 +64,15 @@ public class ModelViewTest extends NLocalFileMetadataTestCase {
     public void setup() {
         overwriteSystemProp("kylin.query.auto-model-view-enabled", "TRUE");
         this.createTestMetadata();
+        // Use default Factory for Open Core
+        QueryExtension.setFactory(new QueryExtension.Factory());
     }
 
     @After
     public void tearDown() throws Exception {
         this.cleanupTestMetadata();
+        // Unset Factory for Open Core
+        QueryExtension.setFactory(null);
     }
 
     private void createProject(String project) throws IOException {

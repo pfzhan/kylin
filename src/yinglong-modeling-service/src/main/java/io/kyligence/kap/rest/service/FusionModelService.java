@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.service;
 import java.util.List;
 import java.util.Locale;
 
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -64,14 +65,14 @@ public class FusionModelService extends BasicService implements TableFusionModel
     @Autowired
     private ModelService modelService;
 
-    @Autowired
+    @Autowired(required = false)
     @Qualifier("modelBuildService")
     private ModelBuildSupporter modelBuildService;
 
     public JobInfoResponse incrementBuildSegmentsManually(IncrementBuildSegmentParams params) throws Exception {
-        val model = getDataModelManager(params.getProject()).getDataModelDesc(params.getModelId());
+        val model = getManager(NDataModelManager.class, params.getProject()).getDataModelDesc(params.getModelId());
         if (model.isFusionModel()) {
-            val streamingModel = getDataModelManager(params.getProject()).getDataModelDesc(model.getFusionId());
+            val streamingModel = getManager(NDataModelManager.class, params.getProject()).getDataModelDesc(model.getFusionId());
             IncrementBuildSegmentParams copy = JsonUtil.deepCopyQuietly(params, IncrementBuildSegmentParams.class);
             String oldAliasName = streamingModel.getRootFactTableRef().getTableName();
             String tableName = model.getRootFactTableRef().getTableName();
@@ -83,7 +84,7 @@ public class FusionModelService extends BasicService implements TableFusionModel
 
     @Transaction(project = 1)
     public void dropModel(String modelId, String project) {
-        val model = getDataModelManager(project).getDataModelDesc(modelId);
+        val model = getManager(NDataModelManager.class, project).getDataModelDesc(modelId);
         if (model.fusionModelStreamingPart()) {
             val fusionModelManager = FusionModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             val fusionModel = fusionModelManager.getFusionModel(modelId);
@@ -95,7 +96,7 @@ public class FusionModelService extends BasicService implements TableFusionModel
     }
 
     public void dropModel(String modelId, String project, boolean ignoreType) {
-        val model = getDataModelManager(project).getDataModelDesc(modelId);
+        val model = getManager(NDataModelManager.class, project).getDataModelDesc(modelId);
         if (model == null) {
             return;
         }
@@ -118,7 +119,7 @@ public class FusionModelService extends BasicService implements TableFusionModel
 
     @Transaction(project = 0)
     public BuildBaseIndexResponse updateDataModelSemantic(String project, ModelRequest request) {
-        val model = getDataModelManager(request.getProject()).getDataModelDesc(request.getUuid());
+        val model = getManager(NDataModelManager.class, request.getProject()).getDataModelDesc(request.getUuid());
         if (model.isFusionModel()) {
             val fusionModelManager = FusionModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             String batchId = fusionModelManager.getFusionModel(request.getUuid()).getBatchModel().getUuid();
@@ -147,7 +148,7 @@ public class FusionModelService extends BasicService implements TableFusionModel
 
     @Transaction(project = 0)
     public void renameDataModel(String project, String modelId, String newAlias) {
-        val model = getDataModelManager(project).getDataModelDesc(modelId);
+        val model = getManager(NDataModelManager.class, project).getDataModelDesc(modelId);
         if (model.isFusionModel()) {
             val fusionModelManager = FusionModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             String batchId = fusionModelManager.getFusionModel(modelId).getBatchModel().getUuid();
@@ -162,7 +163,7 @@ public class FusionModelService extends BasicService implements TableFusionModel
 
     @Transaction(project = 0)
     public void updateModelOwner(String project, String modelId, OwnerChangeRequest ownerChangeRequest) {
-        val model = getDataModelManager(project).getDataModelDesc(modelId);
+        val model = getManager(NDataModelManager.class, project).getDataModelDesc(modelId);
         if (model.isFusionModel()) {
             val fusionModelManager = FusionModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             String batchId = fusionModelManager.getFusionModel(modelId).getBatchModel().getUuid();
@@ -208,12 +209,11 @@ public class FusionModelService extends BasicService implements TableFusionModel
                     String.format(Locale.ROOT, MsgPicker.getMsg().getFIX_STREAMING_SEGMENT()));
         }
 
-        JobInfoResponseWithFailure response = modelBuildService.addIndexesToSegments(buildSegmentsRequest.getProject(),
+        return modelBuildService.addIndexesToSegments(buildSegmentsRequest.getProject(),
                 targetModelId, buildSegmentsRequest.getSegmentIds(), buildSegmentsRequest.getIndexIds(),
                 buildSegmentsRequest.isParallelBuildBySegment(), buildSegmentsRequest.getPriority(),
                 buildSegmentsRequest.isPartialBuild(), buildSegmentsRequest.getYarnQueue(),
                 buildSegmentsRequest.getTag());
-        return response;
     }
 
     private NDataModel getBatchModel(String fusionModelId, String project) {
@@ -223,7 +223,7 @@ public class FusionModelService extends BasicService implements TableFusionModel
     }
 
     public void stopStreamingJob(String modelId, String project) {
-        val model = getDataModelManager(project).getDataModelDesc(modelId);
+        val model = getManager(NDataModelManager.class, project).getDataModelDesc(modelId);
         if (model.fusionModelBatchPart()) {
             val streamingId = model.getFusionId();
             EventBusFactory.getInstance().postSync(new StreamingJobKillEvent(project, streamingId));
@@ -255,6 +255,6 @@ public class FusionModelService extends BasicService implements TableFusionModel
         });
     }
     public boolean modelExists(String modelAlias, String project) {
-        return getDataModelManager(project).listAllModelAlias().contains(modelAlias);
+        return getManager(NDataModelManager.class, project).listAllModelAlias().contains(modelAlias);
     }
 }

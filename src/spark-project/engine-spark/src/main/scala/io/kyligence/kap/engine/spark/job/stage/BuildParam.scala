@@ -31,7 +31,7 @@ import io.kyligence.kap.engine.spark.model.{PartitionFlatTableDesc, SegmentFlatT
 import io.kyligence.kap.metadata.cube.cuboid.{AdaptiveSpanningTree, PartitionSpanningTree}
 import org.apache.spark.sql.{Dataset, Row}
 
-import scala.collection.immutable
+import scala.collection.{immutable, mutable}
 
 class BuildParam {
   private var spanningTree: AdaptiveSpanningTree = _
@@ -55,6 +55,13 @@ class BuildParam {
 
   private var skipGenerateFlatTable: Boolean = _
   private var skipMaterializedFactTableView: Boolean = _
+
+  // thread unsafe
+  private var cachedLayoutSanity: Option[Map[Long, Long]] = None
+  // thread unsafe
+  private var cachedLayoutDS = mutable.HashMap[Long, Dataset[Row]]()
+  // thread unsafe
+  private var cachedIndexInferior: Option[Map[Long, InferiorGroup]] = None
 
   def isSkipMaterializedFactTableView: Boolean = skipMaterializedFactTableView
 
@@ -150,5 +157,23 @@ class BuildParam {
 
   def setSpanningTree(spanningTree: AdaptiveSpanningTree): Unit = {
     this.spanningTree = spanningTree
+  }
+
+  def getCachedLayoutSanity: Option[Map[Long, Long]] = cachedLayoutSanity
+
+  def setCachedLayoutSanity(cachedLayoutSanity: Option[Map[Long, Long]]): Unit = {
+    this.cachedLayoutSanity = cachedLayoutSanity
+  }
+
+  def getCachedLayoutDS: mutable.HashMap[Long, Dataset[Row]] = cachedLayoutDS
+
+  def setCachedLayoutDS(cachedLayoutDS: mutable.HashMap[Long, Dataset[Row]]): Unit = {
+    this.cachedLayoutDS = cachedLayoutDS
+  }
+
+  def getCachedIndexInferior: Option[Map[Long, InferiorGroup]] = cachedIndexInferior
+
+  def setCachedIndexInferior(cachedIndexInferior: Option[Map[Long, InferiorGroup]]): Unit = {
+    this.cachedIndexInferior = cachedIndexInferior
   }
 }

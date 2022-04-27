@@ -24,15 +24,12 @@
 
 package io.kyligence.kap.tool;
 
-import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_MODEL_NAME;
-
-import java.util.Locale;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_DUPLICATE;
 
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.ExecutableApplication;
 import org.apache.kylin.common.util.OptionsHelper;
@@ -61,8 +58,7 @@ public class SampleProjectTool extends ExecutableApplication {
         NDataModel dataModel = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                 .getDataModelDescByAlias(model);
         if (dataModel != null) {
-            throw new KylinException(DUPLICATE_MODEL_NAME,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getDUPLICATE_MODEL_NAME(), model));
+            throw new KylinException(MODEL_NAME_DUPLICATE, model);
         }
     }
 

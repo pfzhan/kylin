@@ -43,7 +43,7 @@
 package org.apache.kylin.query.udf.stringUdf;
 
 import org.apache.calcite.linq4j.function.Parameter;
-import org.apache.kylin.query.udf.CalciteNotSupportException;
+import org.apache.kylin.common.exception.CalciteNotSupportException;
 
 public class RepeatUDF {
 

@@ -46,6 +46,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.rest.response.ImportSqlResponse;
 import io.kyligence.kap.rest.response.SQLParserResponse;
 import io.kyligence.kap.rest.response.SQLValidateResponse;
@@ -63,7 +65,7 @@ public class FavoriteRuleService extends BasicService {
     private AclEvaluate aclEvaluate;
 
     public Map<String, SQLValidateResult> batchSqlValidate(List<String> sqls, String project) {
-        KylinConfig kylinConfig = getProjectManager().getProject(project).getConfig();
+        KylinConfig kylinConfig = getManager(NProjectManager.class).getProject(project).getConfig();
         AbstractSQLValidator sqlValidator = new SqlSyntaxValidator(project, kylinConfig);
         return sqlValidator.batchValidate(sqls.toArray(new String[0]));
     }
@@ -93,7 +95,7 @@ public class FavoriteRuleService extends BasicService {
             }
         }
         SQLParserResponse result = new SQLParserResponse();
-        KylinConfig kylinConfig = getProjectManager().getProject(project).getConfig();
+        KylinConfig kylinConfig = getManager(NProjectManager.class).getProject(project).getConfig();
         if (sqls.size() > kylinConfig.getFavoriteImportSqlMaxSize()) {
             result.setSize(sqls.size());
             result.setWrongFormatFile(wrongFormatFiles);
@@ -157,7 +159,7 @@ public class FavoriteRuleService extends BasicService {
         if (sqlLists.isEmpty()) {
             return sqls;
         }
-        KylinConfig kylinConfig = getProjectManager().getProject(project).getConfig();
+        KylinConfig kylinConfig = getManager(NProjectManager.class).getProject(project).getConfig();
         for (String sql : sqlLists) {
             if (sql == null || sql.length() == 0 || sql.replace('\n', ' ').trim().length() == 0) {
                 continue;
@@ -165,7 +167,7 @@ public class FavoriteRuleService extends BasicService {
             QueryParams queryParams = new QueryParams(kylinConfig, sql, project, 0, 0, DEFAULT_SCHEMA, false);
             queryParams.setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(project, getCurrentUserGroups()));
             // massage sql and expand CC columns
-            String correctedSql = QueryUtil.massageSqlAndExpandCC(queryParams);
+            String correctedSql = KapQueryUtil.massageSqlAndExpandCC(queryParams);
             sqls.add(correctedSql);
         }
 
@@ -174,10 +176,10 @@ public class FavoriteRuleService extends BasicService {
 
     public SQLValidateResponse sqlValidate(String project, String sql) {
         aclEvaluate.checkProjectWritePermission(project);
-        KylinConfig kylinConfig = getProjectManager().getProject(project).getConfig();
+        KylinConfig kylinConfig = getManager(NProjectManager.class).getProject(project).getConfig();
         QueryParams queryParams = new QueryParams(kylinConfig, sql, project, 0, 0, DEFAULT_SCHEMA, false);
         queryParams.setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(project, getCurrentUserGroups()));
-        String correctedSql = QueryUtil.massageSql(queryParams);
+        String correctedSql = KapQueryUtil.massageSql(queryParams);
         // sql validation
         Map<String, SQLValidateResult> map = batchSqlValidate(Lists.newArrayList(correctedSql), project);
         SQLValidateResult result = map.get(correctedSql);

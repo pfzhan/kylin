@@ -24,6 +24,7 @@
 package io.kyligence.kap.rest.controller.open;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.INDEX_PARAMETER_INVALID;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -31,10 +32,13 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
+import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableSet;
+import io.kyligence.kap.rest.request.ModelRequest;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.metadata.model.Segments;
@@ -43,6 +47,7 @@ import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -111,6 +116,15 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
     private OpenModelController openModelController = Mockito.spy(new OpenModelController());
 
     private final Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
+
+    private static final String LAST_MODIFY = "last_modified";
+    private static final String USAGE = "usage";
+    private static final String DATA_SIZE = "data_size";
+    private static final Set<String> INDEX_SORT_BY_SET = ImmutableSet.of(USAGE, LAST_MODIFY, DATA_SIZE);
+    private static final Set<String> INDEX_SOURCE_SET = Arrays.stream(IndexEntity.Source.values()).map(Enum::name)
+            .collect(Collectors.toSet());
+    private static final Set<String> INDEX_STATUS_SET = Arrays.stream(IndexEntity.Status.values()).map(Enum::name)
+            .collect(Collectors.toSet());
 
     @Before
     public void setup() {
@@ -197,7 +211,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         model.setUuid(modelId);
         model.setAlias(modelName);
         val modelManager = Mockito.mock(NDataModelManager.class);
-        Mockito.when(modelService.getDataModelManager(Mockito.anyString())).thenReturn(modelManager);
+        Mockito.when(modelService.getManager(NDataModelManager.class, project)).thenReturn(modelManager);
         Mockito.when(modelManager.listAllModels()).thenReturn(Lists.newArrayList(model));
 
         Mockito.when(fusionIndexService.getIndexesWithRelatedTables(Mockito.any(), Mockito.any(), Mockito.any(),
@@ -419,7 +433,8 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
             OpenModelController.checkSources(Lists.newArrayList("ab"));
         } catch (KylinException e) {
             Assert.assertEquals("999", e.getCode());
-            Assert.assertEquals(MsgPicker.getMsg().getINDEX_SOURCE_TYPE_ERROR(), e.getMessage());
+            Assert.assertEquals(INDEX_PARAMETER_INVALID.getCodeMsg("sources",
+                    String.join(", ", INDEX_SOURCE_SET)), e.getLocalizedMessage());
         }
     }
 
@@ -436,7 +451,8 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
             OpenModelController.checkIndexStatus(Lists.newArrayList("ab"));
         } catch (KylinException e) {
             Assert.assertEquals("999", e.getCode());
-            Assert.assertEquals(MsgPicker.getMsg().getINDEX_STATUS_TYPE_ERROR(), e.getMessage());
+            Assert.assertEquals(INDEX_PARAMETER_INVALID.getCodeMsg("status",
+                    String.join(", ", INDEX_STATUS_SET)), e.getLocalizedMessage());
         }
     }
 
@@ -452,7 +468,8 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
             OpenModelController.checkIndexSortBy("ab");
         } catch (KylinException e) {
             Assert.assertEquals("999", e.getCode());
-            Assert.assertEquals(MsgPicker.getMsg().getINDEX_SORT_BY_ERROR(), e.getMessage());
+            Assert.assertEquals(INDEX_PARAMETER_INVALID.getCodeMsg("sort_by",
+                    String.join(", ", INDEX_SORT_BY_SET)), e.getLocalizedMessage());
         }
     }
 
@@ -501,5 +518,40 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(openModelController).updateModelStatus(modelName, modelUpdateRequest);
+    }
+
+    @Test
+    public void testCreateModel() throws Exception {
+        String project = "default";
+        String modelName = "model1";
+        ModelRequest modelRequest = new ModelRequest();
+        modelRequest.setProject(project);
+        modelRequest.setAlias(modelName);
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models")
+                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(modelRequest))
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(openModelController).createModel(modelRequest);
+    }
+
+    @Test
+    public void testCreateModelFailed() throws Exception {
+        ModelRequest modelRequest = new ModelRequest();
+
+        // Test throwing EMPTY_PROJECT_NAME
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models")
+                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(modelRequest))
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().is5xxServerError())
+                .andExpect(MockMvcResultMatchers.content().string(Matchers.containsString(ServerErrorCode.EMPTY_PROJECT_NAME.toErrorCode().getCodeString())));
+
+        // Test throwing INVALID_PARAMETER
+        modelRequest.setProject("default");
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models")
+                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(modelRequest))
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().is5xxServerError())
+                .andExpect(MockMvcResultMatchers.content().string(Matchers.containsString(ServerErrorCode.INVALID_PARAMETER.toErrorCode().getCodeString())));
     }
 }

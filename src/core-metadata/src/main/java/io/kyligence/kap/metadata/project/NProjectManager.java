@@ -99,7 +99,9 @@ public class NProjectManager {
     }
 
     public ProjectInstance getProject(String projectName) {
-        return crud.listAll().stream()
+        ProjectInstance project = crud.get(projectName);
+        return project != null ? project
+                : crud.listAll().stream()
                 .filter(projectInstance -> projectInstance.getName().equalsIgnoreCase(projectName)).findAny()
                 .orElse(null);
     }

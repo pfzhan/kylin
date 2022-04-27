@@ -46,9 +46,9 @@ public class NSparkCubingUtilTest extends NLocalWithSparkSessionTest {
         expectedSegIds.add("2");
         expectedSegIds.add("1");
         expectedSegIds.add("3");
-        NDataSegment firstSeg = new NDataSegment();
-        NDataSegment secondSeg = new NDataSegment();
-        NDataSegment thirdSeg = new NDataSegment();
+        NDataSegment firstSeg = NDataSegment.empty();
+        NDataSegment secondSeg = NDataSegment.empty();
+        NDataSegment thirdSeg = NDataSegment.empty();
         firstSeg.setId("2");
         secondSeg.setId("1");
         thirdSeg.setId("3");

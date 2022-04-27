@@ -247,6 +247,16 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testGetRelatedTables() {
+        String project = "default";
+        NDataModel nDataModel = mgrDefault.getDataModelDesc("b780e4e4-69af-449e-b09f-05c90dfa04b6");
+        val tables = NDataModelManager.getRelatedTables(nDataModel, project);
+        Assert.assertEquals(2, tables.size());
+        Assert.assertTrue(tables.keySet().contains("DEFAULT.TEST_BANK_LOCATION"));
+        Assert.assertTrue(tables.keySet().contains("DEFAULT.TEST_BANK_INCOME"));
+    }
+
+    @Test
     public void getModel_WithSelfBroken() {
         val project = "broken_test";
         val modelId = "3f8941de-d01c-42b8-91b5-44646390864b";

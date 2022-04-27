@@ -65,7 +65,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.rest.service.AclTCRServiceSupporter;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -115,6 +114,7 @@ import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.AccessBatchGrantEventNotifier;
@@ -123,9 +123,10 @@ import io.kyligence.kap.common.persistence.transaction.AccessRevokeEventNotifier
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.user.ManagedUser;
+import io.kyligence.kap.rest.aspect.Transaction;
 import io.kyligence.kap.rest.request.AccessRequest;
 import io.kyligence.kap.rest.response.AclTCRResponse;
-import io.kyligence.kap.rest.aspect.Transaction;
+import io.kyligence.kap.rest.service.AclTCRServiceSupporter;
 import lombok.val;
 
 @Component("accessService")
@@ -141,7 +142,7 @@ public class AccessService extends BasicService {
     @Qualifier("userService")
     protected UserService userService;
 
-    @Autowired
+    @Autowired(required = false)
     @Qualifier("aclTCRService")
     private AclTCRServiceSupporter aclTCRService;
 
@@ -330,7 +331,7 @@ public class AccessService extends BasicService {
             return;
         }
         // revoke user's project permission
-        List<ProjectInstance> projectInstances = getProjectManager().listAllProjects();
+        List<ProjectInstance> projectInstances = getManager(NProjectManager.class).listAllProjects();
         for (ProjectInstance pi : projectInstances) {
             // after KYLIN-2760, only project ACL will work, so entity type is always ProjectInstance.
             AclEntity ae = getAclEntity("ProjectInstance", pi.getUuid());
@@ -456,6 +457,23 @@ public class AccessService extends BasicService {
 
     public List<AccessEntryResponse> generateAceResponses(Acl acl) {
         return generateAceResponsesByFuzzMatching(acl, null, false);
+    }
+
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
+    public Map<String, List<String>> getProjectUsersAndGroups(AclEntity ae) throws IOException {
+        Map<String, List<String>> result = Maps.newHashMap();
+        // get users
+        val userList = new ArrayList<String>();
+        userList.addAll(getAllAclSids(ae, MetadataConstants.TYPE_USER));
+        userList.addAll(userService.getGlobalAdmin());
+        result.put(MetadataConstants.TYPE_USER, userList);
+
+        // get groups
+        val userGroupList = new ArrayList<String>();
+        userGroupList.addAll(getAllAclSids(ae, MetadataConstants.TYPE_GROUP));
+        userGroupList.add(ROLE_ADMIN);
+        result.put(MetadataConstants.TYPE_GROUP, userGroupList);
+        return result;
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")

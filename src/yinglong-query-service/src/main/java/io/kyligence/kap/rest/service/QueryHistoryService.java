@@ -25,7 +25,7 @@
 package io.kyligence.kap.rest.service;
 
 import static io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO.fillZeroForQueryStatistics;
-import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_NOT_EXIST;
 
 import java.lang.reflect.Field;
 import java.text.SimpleDateFormat;
@@ -82,6 +82,7 @@ import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import io.kyligence.kap.metadata.query.QueryHistoryInfo;
 import io.kyligence.kap.metadata.query.QueryHistoryRequest;
 import io.kyligence.kap.metadata.query.QueryStatistics;
+import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.QueryStatisticsResponse;
 import lombok.val;
@@ -105,6 +106,10 @@ public class QueryHistoryService extends BasicService implements AsyncTaskQueryH
 
     public static final String WEEK = "week";
     public static final String DAY = "day";
+
+    public QueryHistoryDAO getQueryHistoryDao() {
+        return RDBMSQueryHistoryDAO.getInstance();
+    }
 
     public void downloadQueryHistories(QueryHistoryRequest request, HttpServletResponse response, ZoneOffset zoneOffset,
             Integer timeZoneOffsetHour, boolean onlySql) throws Exception {
@@ -298,7 +303,7 @@ public class QueryHistoryService extends BasicService implements AsyncTaskQueryH
         aclEvaluate.checkProjectReadPermission(project);
         QueryHistoryIdOffset queryHistoryIdOffset = QueryHistoryIdOffsetManager
                 .getInstance(KylinConfig.getInstanceFromEnv(), project).get();
-        long idOffset = queryHistoryIdOffset.getQueryHistoryIdOffset();
+        long idOffset = queryHistoryIdOffset.getOffset();
         QueryHistoryDAO queryHistoryDao = getQueryHistoryDao();
         return queryHistoryDao.getQueryHistoryCountBeyondOffset(idOffset, project);
     }
@@ -338,7 +343,7 @@ public class QueryHistoryService extends BasicService implements AsyncTaskQueryH
     private Map<String, Object> transformQueryStatisticsByModel(String project, List<QueryStatistics> statistics,
             String fieldName) {
         Map<String, Object> result = Maps.newHashMap();
-        NDataModelManager modelManager = getDataModelManager(project);
+        NDataModelManager modelManager = getManager(NDataModelManager.class, project);
 
         statistics.forEach(singleStatistics -> {
             NDataModel model = modelManager.getDataModelDesc(singleStatistics.getModel());
@@ -386,7 +391,7 @@ public class QueryHistoryService extends BasicService implements AsyncTaskQueryH
     }
 
     public Map<String, String> getQueryHistoryTableMap(List<String> projects) {
-        List<String> filterProjects = getProjectManager().listAllProjects().stream().map(ProjectInstance::getName)
+        List<String> filterProjects = getManager(NProjectManager.class).listAllProjects().stream().map(ProjectInstance::getName)
                 .filter(s -> projects == null || projects.stream().map(str -> str.toLowerCase(Locale.ROOT))
                         .collect(Collectors.toList()).contains(s.toLowerCase(Locale.ROOT)))
                 .collect(Collectors.toList());
@@ -395,10 +400,10 @@ public class QueryHistoryService extends BasicService implements AsyncTaskQueryH
         for (String project : filterProjects) {
             aclEvaluate.checkProjectReadPermission(project);
             Preconditions.checkArgument(StringUtils.isNotEmpty(project));
-            ProjectInstance projectInstance = getProjectManager().getProject(project);
-            if (projectInstance == null)
-                throw new KylinException(PROJECT_NOT_EXIST,
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
+            ProjectInstance projectInstance = getManager(NProjectManager.class).getProject(project);
+            if (projectInstance == null) {
+                throw new KylinException(PROJECT_NOT_EXIST, project);
+            }
             result.put(project, getQueryHistoryDao().getQueryMetricMeasurement());
         }
 

@@ -185,6 +185,10 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
         val tableMetadataManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         for (TableRef t : getModel().getAllTables()) {
             r.add(t.getTableDesc().getResourcePath());
+
+            if(t.getTableDesc().isKafkaTable()){
+                r.add(t.getTableDesc().getKafkaConfig().getResourcePath());
+            }
             val tableExtDesc = tableMetadataManager.getTableExtIfExists(t.getTableDesc());
             if (tableExtDesc != null) {
                 r.add(tableExtDesc.getResourcePath());

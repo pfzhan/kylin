@@ -82,6 +82,12 @@ public class StreamingUtilsTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testGetModelId() {
+        val modelId = StreamingUtils.getModelId(MODEL_ID + "_build");
+        Assert.assertEquals(MODEL_ID, modelId);
+    }
+
+    @Test
     public void testParseStreamingDuration() {
         var duration1 = StreamingUtils.parseStreamingDuration(null);
         Assert.assertEquals("30", duration1);

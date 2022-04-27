@@ -63,6 +63,7 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.StructField;
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.query.engine.data.QueryResult;
+import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -324,8 +325,8 @@ public class ExecAndComp {
         }
 
         QueryParams queryParams = new QueryParams(prj, compareSql, "default", false);
-        queryParams.setKylinConfig(QueryUtil.getKylinConfig(prj));
-        String afterConvert = QueryUtil.massagePushDownSql(queryParams);
+        queryParams.setKylinConfig(KapQueryUtil.getKylinConfig(prj));
+        String afterConvert = KapQueryUtil.massagePushDownSql(queryParams);
         // Table schema comes from csv and DATABASE.TABLE is not supported.
         String sqlForSpark = removeDataBaseInSql(afterConvert);
         val ds = querySparkSql(sqlForSpark);
@@ -454,8 +455,9 @@ public class ExecAndComp {
     public static Dataset<Row> queryModelWithoutCompute(String prj, String sql, List<String> parameters) {
         try {
             SparderEnv.skipCompute();
-            QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(prj), sql, prj, 0, 0, "DEFAULT", true);
-            sql = QueryUtil.massageSql(queryParams);
+            QueryParams queryParams = new QueryParams(KapQueryUtil.getKylinConfig(prj), sql, prj, 0, 0, "DEFAULT",
+                    true);
+            sql = KapQueryUtil.massageSql(queryParams);
             List<String> parametersNotNull = parameters == null ? new ArrayList<>() : parameters;
             return queryModel(prj, sql, parametersNotNull);
         } finally {
@@ -485,8 +487,9 @@ public class ExecAndComp {
     }
 
     private static QueryResult queryModelWithMassage(String prj, String sqlText, List<String> parameters) {
-        QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(prj), sqlText, prj, 0, 0, "DEFAULT", true);
-        sqlText = QueryUtil.massageSql(queryParams);
+        QueryParams queryParams = new QueryParams(KapQueryUtil.getKylinConfig(prj), sqlText, prj, 0, 0, "DEFAULT",
+                true);
+        sqlText = KapQueryUtil.massageSql(queryParams);
         if (sqlText == null)
             throw new RuntimeException("Sorry your SQL is null...");
 

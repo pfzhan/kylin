@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
@@ -34,6 +35,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.metadata.model.PartitionDesc;
@@ -41,7 +43,9 @@ import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -66,6 +70,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.rest.constant.ModelAttributeEnum;
+import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
 import io.kyligence.kap.rest.request.ModelCheckRequest;
 import io.kyligence.kap.rest.request.ModelCloneRequest;
 import io.kyligence.kap.rest.request.ModelConfigRequest;
@@ -101,6 +106,12 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
 
     @InjectMocks
     private NModelController nModelController = Mockito.spy(new NModelController());
+
+    @InjectMocks
+    private NBasicController nBasicController = Mockito.spy(new NBasicController());
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
 
     private final Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
 
@@ -747,5 +758,17 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .param("server_host", "localhost").param("server_port", "8080").contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
+    }
+
+    @Test
+    public void testFormatStatus() {
+        List<String> status = Lists.newArrayList("OFFLINE", null, "broken");
+        assertEquals(nBasicController.formatStatus(status, ModelStatusToDisplayEnum.class),
+                Lists.newArrayList("OFFLINE", "BROKEN"));
+
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("is not a valid value");
+        status = Lists.newArrayList("OFF", null, "broken");
+        nBasicController.formatStatus(status, ModelStatusToDisplayEnum.class);
     }
 }

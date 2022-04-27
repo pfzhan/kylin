@@ -28,8 +28,9 @@ source ${KYLIN_HOME}/sbin/prepare-hadoop-env.sh
 
 BYPASS=${SPARK_HOME}/jars/replace-jars-bypass
 
-# only replace when has Kerberos
+# replace when has Kerberos, or can't get the value (eg: in FI platform)
 kerberosEnabled=`${KYLIN_HOME}/bin/get-properties.sh kylin.kerberos.enabled`
+source ${KYLIN_HOME}/sbin/prepare-mrs-env.sh
 if [[ "${kerberosEnabled}" == "false" || -f ${BYPASS} ]]
 then
     return
@@ -76,12 +77,16 @@ function fi_replace_jars() {
     other_jars2=$(find $FI_ENV_PLATFORM/ZooKeeper/zookeeper/ -maxdepth 1 -name "zookeeper-*")
     other_jars="${other_jars1} ${other_jars2}"
 
-    find ${SPARK_HOME}/jars -name "zookeeper-*" -exec rm -rf {} \;
+    if [ "$IS_MRS_PLATFORM" != "true" ]
+    then
+      echo "rm zookeeper-*.jar"
+      find ${SPARK_HOME}/jars -name "zookeeper-*" -exec rm -rf {} \;
+    fi
 
     if [[ $(is_fi_c90) == 1 ]]; then
         fi_c90_jars=$(find ${FI_ENV_PLATFORM}/HDFS/hadoop/share/hadoop/common/lib/ -maxdepth 1 \
         -name "stax2-api-*.jar" -o -name "woodstox-core-*.jar" \
-        -o -name "commons-configuration2-*.jar" -o -name "htrace-core4-*-incubating.jar" \
+        -o -name "commons-configuration2-*.jar" -o -name "htrace-core4*.jar" \
         -o -name "re2j-*.jar" -o -name "hadoop-plugins-*.jar" )
     fi
 }

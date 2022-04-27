@@ -48,7 +48,7 @@
     <dependencies>
         <dependency>
             <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-core-common</artifactId>
+            <artifactId>kap-core-metadata</artifactId>
         </dependency>
 
         <!-- Provided -->
@@ -63,10 +63,6 @@
         <dependency>
             <groupId>com.google.code.findbugs</groupId>
             <artifactId>jsr305</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-core-metadata</artifactId>
         </dependency>
         <dependency>
             <groupId>org.junit.vintage</groupId>

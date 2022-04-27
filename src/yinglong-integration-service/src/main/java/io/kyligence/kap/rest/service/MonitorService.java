@@ -31,7 +31,9 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.metrics.service.MonitorDao;
 import io.kyligence.kap.common.util.ClusterConstant;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
@@ -39,6 +41,7 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.BasicService;
@@ -90,7 +93,7 @@ public class MonitorService extends BasicService {
 
     @VisibleForTesting
     public List<ProjectInstance> getReadableProjects() {
-        return projectService.getProjectManager().listAllProjects();
+        return projectService.getManager(NProjectManager.class).listAllProjects();
     }
 
     @VisibleForTesting
@@ -142,7 +145,7 @@ public class MonitorService extends BasicService {
         List<AbstractExecutable> errorJobs = new ArrayList<>();
 
         for (ProjectInstance project : getReadableProjects()) {
-            val executableManager = getExecutableManager(project.getName());
+            val executableManager = getManager(NExecutableManager.class, project.getName());
 
             for (AbstractExecutable executable : executableManager.getAllExecutables()) {
                 if (executable.getStatus().isFinalState()) {
@@ -183,6 +186,10 @@ public class MonitorService extends BasicService {
 
     public ClusterStatusResponse currentClusterStatus() {
         return timeClusterStatus(floorTime(System.currentTimeMillis()));
+    }
+    
+    public MonitorDao getMonitorDao() {
+        return MonitorDao.getInstance();
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + //

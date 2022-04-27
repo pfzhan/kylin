@@ -44,28 +44,17 @@
 
     <dependencies>
         <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-core-common</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-core-metadata</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>yinglong-enterprise-core-metadata</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-core-job</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-engine-spark</artifactId>
+            <groupId>io.kyligence.yinglong</groupId>
+            <artifactId>yinglong-systools</artifactId>
         </dependency>
         <dependency>
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-streaming</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-core-common</artifactId>
+            <type>test-jar</type>
         </dependency>
 
         <dependency>
@@ -92,11 +81,6 @@
             <artifactId>spark-core_2.12</artifactId>
             <version>${spark.version}</version>
             <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-webmvc</artifactId>
         </dependency>
 
         <dependency>
@@ -168,11 +152,6 @@
 
         <!-- Test -->
         <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-core-common</artifactId>
-            <type>test-jar</type>
-        </dependency>
-        <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
             <scope>test</scope>
@@ -191,6 +170,11 @@
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
             <version>${mockito.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-inline</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

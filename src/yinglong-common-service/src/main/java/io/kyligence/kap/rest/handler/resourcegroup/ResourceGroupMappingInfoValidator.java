@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.handler.resourcegroup;
 
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_NOT_EXIST;
 
 import java.util.List;
 import java.util.Locale;
@@ -64,8 +65,7 @@ public class ResourceGroupMappingInfoValidator implements IResourceGroupRequestV
             }
             ProjectInstance prjInstance = projectManager.getProject(info.getProject());
             if (prjInstance == null) {
-                throw new KylinException(INVALID_PARAMETER,
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_NOT_FOUND(), info.getProject()));
+                throw new KylinException(PROJECT_NOT_EXIST, info.getProject());
             }
             if (StringUtils.isBlank(info.getResourceGroupId())) {
                 throw new KylinException(INVALID_PARAMETER,

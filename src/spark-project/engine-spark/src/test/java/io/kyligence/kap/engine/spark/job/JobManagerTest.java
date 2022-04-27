@@ -22,9 +22,17 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
-
 package io.kyligence.kap.engine.spark.job;
+
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_ABANDON;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_CHECK_FAIL;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_CHECK_INDEX_FAIL;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_CHECK_MULTI_PARTITION_ABANDON;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_CHECK_MULTI_PARTITION_EMPTY;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Comparator;
@@ -33,7 +41,6 @@ import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableParams;
@@ -48,6 +55,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -121,13 +129,13 @@ public class JobManagerTest extends NLocalFileMetadataTestCase {
             // build none partition
             param.setTargetPartitions(Sets.newHashSet());
             jobManager.buildPartitionJob(param);
-        }, "Can’t add the job, as the subpartition value is empty. Please check and try again.");
+        }, JOB_CREATE_CHECK_MULTI_PARTITION_EMPTY.getMsg());
 
         assertExeption(() -> {
             // build a partition already in segment
             param.setTargetPartitions(Sets.newHashSet(7L));
             jobManager.buildPartitionJob(param);
-        }, "Can’t add the job. Please ensure that the operation is valid for the current object.");
+        }, JOB_CREATE_CHECK_MULTI_PARTITION_ABANDON.getMsg());
 
         long originBucketId = df.getSegment(segmentId).getMaxBucketId();
         // success build partition
@@ -219,7 +227,7 @@ public class JobManagerTest extends NLocalFileMetadataTestCase {
             // build none partition
             param.setTargetPartitions(Sets.newHashSet(9L));
             jobManager.buildPartitionJob(param);
-        }, MsgPicker.getMsg().getADD_JOB_CHECK_INDEX_FAIL());
+        }, JOB_CREATE_CHECK_INDEX_FAIL.getMsg());
     }
 
     @Test
@@ -267,7 +275,7 @@ public class JobManagerTest extends NLocalFileMetadataTestCase {
                 null, null);
         assertExeption(() -> {
             jobManager.addRelatedIndexJob(param4);
-        }, "Can’t add the job, as the subpartition value is empty. Please check and try again.");
+        }, JOB_CREATE_CHECK_MULTI_PARTITION_EMPTY.getMsg());
     }
 
     @Test
@@ -368,11 +376,25 @@ public class JobManagerTest extends NLocalFileMetadataTestCase {
         }
     }
 
+    @Test
+    public void testAddJob_throwsException() {
+        KylinConfig kylinConfig = mock(KylinConfig.class);
+        ReflectionTestUtils.setField(jobManager, "config", kylinConfig);
+        when(kylinConfig.isJobNode()).thenReturn(false);
+        when(kylinConfig.isUTEnv()).thenReturn(false);
+        try {
+            jobManager.addJob(null, null);
+        } catch (Exception e) {
+            assertTrue(e instanceof KylinException);
+            assertEquals(JOB_CREATE_ABANDON.getCodeMsg(), e.toString());
+        }
+    }
+
     // Concurrent job exeption
     public void checkConcurrent(JobParam param) {
         assertExeption(() -> {
             jobManager.addSegmentJob(param);
-        }, "Can’t submit the job at the moment, as a building job for the same object already exists. Please try again later.");
+        }, JOB_CREATE_CHECK_FAIL.getMsg());
     }
 
     private List<AbstractExecutable> getRunningExecutables(String project, String model) {

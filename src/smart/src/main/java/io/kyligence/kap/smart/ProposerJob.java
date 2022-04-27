@@ -318,15 +318,14 @@ public class ProposerJob extends ExecutableApplication {
     }
 
     private static void initModelsForOutput(String project, KylinConfig config, ContextOutput output) {
-        val tables = NTableMetadataManager.getInstance(config, project).getAllTablesMap();
         output.getModelContextOutputs().forEach(modelOutput -> {
             val originModel = modelOutput.getOriginModel();
             if (originModel != null) {
-                originModel.init(config, tables, Lists.newArrayList(), project);
+                originModel.init(config, project, Lists.newArrayList());
             }
             val targetModel = modelOutput.getTargetModel();
             if (targetModel != null) {
-                targetModel.init(config, tables, Lists.newArrayList(), project);
+                targetModel.init(config, project, Lists.newArrayList());
             }
             modelOutput.getMeasureRecItemMap().forEach((key, m) -> {
                 NDataModel.Measure measure = m.getMeasure();

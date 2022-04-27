@@ -1829,6 +1829,26 @@ public class CnMessage extends Message {
     }
 
     @Override
+    public String getSECOND_STORAGE_PROJECT_ENABLED() {
+        return "加载失败，项目 %s 未开启分层存储。";
+    }
+
+    @Override
+    public String getSECOND_STORAGE_MODEL_ENABLED() {
+        return "加载失败，模型 %s 未开启分层存储。";
+    }
+
+    @Override
+    public String getSECOND_STORAGE_SEGMENT_WITHOUT_BASE_INDEX() {
+        return "Segment 中缺少基础明细索引，请添加后重试。";
+    }
+
+    @Override
+    public String getSECOND_STORAGE_DELETE_NODE_FAILED() {
+        return "节点%s存在数据，大小为%d bytes";
+    }
+
+    @Override
     public String getJOB_RESTART_FAILED() {
         return "分层存储任务不支持重启操作。\n";
     }
@@ -1925,7 +1945,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getPROJECT_LOCKED() {
-        return "当前项目中有正在进行的分层存储重分布任务，请稍后再试。";
+        return "当前项目的分层存储中正在进行数据迁移，请稍后重试。";
     }
 
     @Override
@@ -2036,5 +2056,10 @@ public class CnMessage extends Message {
     @Override
     public String getTABLE_NO_COLUMNS_PERMISSION() {
         return "请向表中的列添加权限! ";
+    }
+
+    @Override
+    public String getPARAMETER_IS_REQUIRED() {
+        return "找不到 '%s'。";
     }
 }

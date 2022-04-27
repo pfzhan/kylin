@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,14 +42,14 @@
 
 package org.apache.kylin.job.common;
 
-import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JOB;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_CHECK_MULTI_PARTITION_EMPTY;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_CHECK_SEGMENT_READY_FAIL;
 
 import java.util.HashSet;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.Segments;
 
@@ -83,7 +82,7 @@ public class IndexBuildJobUtil extends ExecutableUtil {
         if (readySegs.isEmpty()) {
             log.warn("JobParam {} is no longer valid because no ready segment exists in target index_plan {}", jobParam,
                     jobParam.getModel());
-            throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_CHECK_SEGMENT_READY_FAIL());
+            throw new KylinException(JOB_CREATE_CHECK_SEGMENT_READY_FAIL);
         }
         val mixLayouts = SegmentUtil.intersectionLayouts(readySegs);
         var allLayouts = indexPlan.getAllLayouts();
@@ -117,8 +116,7 @@ public class IndexBuildJobUtil extends ExecutableUtil {
         val partitionIds = Sets.<Long> newHashSet();
         segments.forEach(segment -> {
             if (CollectionUtils.isEmpty(segment.getAllPartitionIds())) {
-                throw new KylinException(FAILED_CREATE_JOB,
-                        MsgPicker.getMsg().getADD_JOB_CHECK_MULTI_PARTITION_EMPTY());
+                throw new KylinException(JOB_CREATE_CHECK_MULTI_PARTITION_EMPTY);
             }
             partitionIds.addAll(segment.getAllPartitionIds());
         });

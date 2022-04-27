@@ -25,7 +25,7 @@
 ##
 
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/../sbin/header.sh
-
+source ${KYLIN_HOME}/sbin/prepare-mrs-env.sh
 if [[ -d "/data/external-catalog" ]];then
     plugin_version=`${KYLIN_HOME}/bin/get-properties.sh kylin.datasource.external-catalog.version`
     cp -rf /data/external-catalog/$plugin_version/*.jar ${KYLIN_HOME}/spark/jars/
@@ -58,6 +58,12 @@ if [[ ${KYLIN_JVM_SETTINGS} != *"-DAsyncLogger.RingBufferSize="* ]]
 then
  export KYLIN_JVM_SETTINGS="${KYLIN_JVM_SETTINGS} -DAsyncLogger.RingBufferSize=8192"
 fi
+
+if [ -n "$IS_MRS_PLATFORM" ]
+then
+ export KYLIN_JVM_SETTINGS="${KYLIN_JVM_SETTINGS} -Dzookeeper.sasl.client=false"
+fi
+
 
 # Newer versions of glibc use an arena memory allocator that causes virtual
 # memory usage to explode. Tune the variable down to prevent vmem explosion.

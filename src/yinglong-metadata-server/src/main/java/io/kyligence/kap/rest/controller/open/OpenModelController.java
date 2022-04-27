@@ -25,8 +25,10 @@ package io.kyligence.kap.rest.controller.open;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
-import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.UNSUPPORTED_STREAMING_OPERATION;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.INDEX_PARAMETER_INVALID;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_MULTI_PARTITION_DISABLE;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -64,15 +66,18 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.constant.ModelAttributeEnum;
 import io.kyligence.kap.rest.controller.NBasicController;
 import io.kyligence.kap.rest.controller.NModelController;
 import io.kyligence.kap.rest.request.ModelParatitionDescRequest;
+import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.ModelUpdateRequest;
 import io.kyligence.kap.rest.request.MultiPartitionMappingRequest;
 import io.kyligence.kap.rest.request.PartitionColumnRequest;
 import io.kyligence.kap.rest.request.UpdateMultiPartitionValueRequest;
+import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
 import io.kyligence.kap.rest.response.IndexResponse;
 import io.kyligence.kap.rest.response.NModelDescResponse;
 import io.kyligence.kap.rest.response.OpenGetIndexResponse;
@@ -90,6 +95,7 @@ public class OpenModelController extends NBasicController {
     private static final String LAST_MODIFY = "last_modified";
     private static final String USAGE = "usage";
     private static final String DATA_SIZE = "data_size";
+    private static final String ALIAS = "alias";
     private static final Set<String> INDEX_SORT_BY_SET = ImmutableSet.of(USAGE, LAST_MODIFY, DATA_SIZE);
     private static final Set<String> INDEX_SOURCE_SET = Arrays.stream(IndexEntity.Source.values()).map(Enum::name)
             .collect(Collectors.toSet());
@@ -104,6 +110,15 @@ public class OpenModelController extends NBasicController {
 
     @Autowired
     private ModelService modelService;
+
+    @ApiOperation(value = "createModel", tags = { "AI" })
+    @PostMapping
+    @ResponseBody
+    public EnvelopeResponse<BuildBaseIndexResponse> createModel(@RequestBody ModelRequest modelRequest) {
+        modelRequest.setProject(checkProjectName(modelRequest.getProject()));
+        checkRequiredArg(ALIAS, modelRequest.getRawAlias());
+        return modelController.createModel(modelRequest);
+    }
 
     @ApiOperation(value = "getModels", tags = { "AI" })
     @GetMapping(value = "")
@@ -188,8 +203,8 @@ public class OpenModelController extends NBasicController {
                 if (INDEX_STATUS_SET.contains(s)) {
                     statuses.add(IndexEntity.Status.valueOf(s));
                 } else {
-                    throw new KylinException(ServerErrorCode.INVALID_INDEX_STATUS_TYPE,
-                            MsgPicker.getMsg().getINDEX_STATUS_TYPE_ERROR());
+                    throw new KylinException(INDEX_PARAMETER_INVALID, "status",
+                            String.join(", ", INDEX_STATUS_SET));
                 }
             }
         });
@@ -207,8 +222,8 @@ public class OpenModelController extends NBasicController {
                 if (INDEX_SOURCE_SET.contains(s)) {
                     sourceList.add(IndexEntity.Source.valueOf(s));
                 } else {
-                    throw new KylinException(ServerErrorCode.INVALID_INDEX_SOURCE_TYPE,
-                            MsgPicker.getMsg().getINDEX_SOURCE_TYPE_ERROR());
+                    throw new KylinException(INDEX_PARAMETER_INVALID, "sources",
+                            String.join(", ", INDEX_SOURCE_SET));
                 }
             }
         });
@@ -226,20 +241,19 @@ public class OpenModelController extends NBasicController {
         if (INDEX_SORT_BY_SET.contains(sortBy)) {
             return sortBy;
         }
-        throw new KylinException(ServerErrorCode.INVALID_INDEX_SORT_BY_FIELD,
-                MsgPicker.getMsg().getINDEX_SORT_BY_ERROR());
+        throw new KylinException(INDEX_PARAMETER_INVALID, "sort_by",
+                String.join(", ", INDEX_SORT_BY_SET));
     }
 
     @VisibleForTesting
     public NDataModel getModel(String modelAlias, String project) {
-        NDataModel model = modelService.getDataModelManager(project).listAllModels().stream() //
+        NDataModel model = modelService.getManager(NDataModelManager.class, project).listAllModels().stream() //
                 .filter(dataModel -> dataModel.getUuid().equals(modelAlias) //
                         || dataModel.getAlias().equalsIgnoreCase(modelAlias))
                 .findFirst().orElse(null);
 
         if (model == null) {
-            throw new KylinException(MODEL_NOT_EXIST,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelAlias));
+            throw new KylinException(MODEL_NAME_NOT_EXIST, modelAlias);
         }
         if (model.isBroken()) {
             throw new KylinException(ServerErrorCode.MODEL_BROKEN,
@@ -375,7 +389,7 @@ public class OpenModelController extends NBasicController {
     @PutMapping(value = "/{model_name}/status")
     @ResponseBody
     public EnvelopeResponse<String> updateModelStatus(@PathVariable("model_name") String modelAlias,
-                                                      @RequestBody ModelUpdateRequest modelRenameRequest) {
+            @RequestBody ModelUpdateRequest modelRenameRequest) {
         String projectName = checkProjectName(modelRenameRequest.getProject());
         String modelId = getModel(modelAlias, projectName).getId();
         return modelController.updateModelStatus(modelId, modelRenameRequest);
@@ -385,8 +399,7 @@ public class OpenModelController extends NBasicController {
         ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(project);
         if (!projectInstance.getConfig().isMultiPartitionEnabled()) {
-            throw new KylinException(ServerErrorCode.MULTI_PARTITION_DISABLE,
-                    MsgPicker.getMsg().getPROJECT_DISABLE_MLP());
+            throw new KylinException(PROJECT_MULTI_PARTITION_DISABLE, projectInstance.getName());
         }
     }
 

@@ -46,6 +46,11 @@
 
     <dependencies>
         <!--Add dependencies of KAP extensions-->
+        <dependency>
+            <groupId>io.kyligence.yinglong</groupId>
+            <artifactId>yinglong-common-server</artifactId>
+            <optional>true</optional>
+        </dependency>
 
         <dependency>
             <groupId>io.kyligence.yinglong</groupId>

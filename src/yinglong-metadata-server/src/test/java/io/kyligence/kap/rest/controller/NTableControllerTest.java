@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_SAMPLING_RANGE_INVALID;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -109,6 +110,9 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
     private NTableController nTableController = Mockito.spy(new NTableController());
 
     private final Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
+
+    private static final Integer MAX_SAMPLING_ROWS = 20_000_000;
+    private static final Integer MIN_SAMPLING_ROWS = 10_000;
 
     @Before
     public void setup() {
@@ -645,7 +649,6 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
         tableLoadRequest.setNeedSampling(true);
         tableLoadRequest.setSamplingRows(200);
 
-        String errorMsg = "The number of sampling rows should be greater than 10000. Please modify it.";
         initMockito(loadTableResponse, tableLoadRequest);
         final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables") //
                 .contentType(MediaType.APPLICATION_JSON) //
@@ -654,7 +657,8 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
         Mockito.verify(nTableController).loadTables(Mockito.any(TableLoadRequest.class));
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
-        Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(), errorMsg));
+        Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(),
+                JOB_SAMPLING_RANGE_INVALID.getMsg(MIN_SAMPLING_ROWS, MAX_SAMPLING_ROWS)));
     }
 
     @Test
@@ -666,7 +670,6 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
         tableLoadRequest.setNeedSampling(true);
         tableLoadRequest.setSamplingRows(30_000_000);
 
-        String errorMsg = "The number of sampling rows should be smaller than 20000000. Please modify it.";
         initMockito(loadTableResponse, tableLoadRequest);
         final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables") //
                 .contentType(MediaType.APPLICATION_JSON) //
@@ -676,7 +679,8 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
 
         Mockito.verify(nTableController).loadTables(Mockito.any(TableLoadRequest.class));
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
-        Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(), errorMsg));
+        Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(),
+                JOB_SAMPLING_RANGE_INVALID.getMsg(MIN_SAMPLING_ROWS, MAX_SAMPLING_ROWS)));
     }
 
     private List<TablesAndColumnsResponse> mockTableAndColumns() {

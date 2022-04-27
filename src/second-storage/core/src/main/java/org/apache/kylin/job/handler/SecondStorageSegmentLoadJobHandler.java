@@ -24,7 +24,6 @@
 
 package org.apache.kylin.job.handler;
 
-import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
@@ -32,6 +31,8 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
+
+import static org.apache.kylin.common.exception.ServerErrorCode.BASE_TABLE_INDEX_NOT_AVAILABLE;
 import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_ADD_JOB_FAILED;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.job.exception.JobSubmissionException;
@@ -41,7 +42,6 @@ import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.factory.JobFactory;
 import org.apache.kylin.job.model.JobParam;
-import org.msgpack.core.Preconditions;
 
 import java.util.HashSet;
 import java.util.List;
@@ -61,12 +61,17 @@ public class SecondStorageSegmentLoadJobHandler extends AbstractJobHandler {
 
         NDataflow dataflow = NDataflowManager.getInstance(kylinConfig, jobParam.getProject())
                 .getDataflow(jobParam.getModel());
-        List<String> segIds = jobParam.getTargetSegments().stream().map(dataflow::getSegment)
+        List<String> hasBaseIndexSegmentIds = jobParam.getTargetSegments().stream().map(dataflow::getSegment)
                 .filter(segment -> segment.getLayoutsMap().values()
-                        .stream().map(NDataLayout::getLayout).noneMatch(index -> index.isBaseIndex() && IndexEntity.isTableIndex(index.getId())))
+                        .stream().map(NDataLayout::getLayout).anyMatch(SecondStorageUtil::isBaseTableIndex))
                 .map(NDataSegment::getId)
                 .collect(Collectors.toList());
-        Preconditions.checkState(segIds.isEmpty(), "segments " + segIds + " don't have base index. Please build base table index firstly");
+
+        if (hasBaseIndexSegmentIds.isEmpty()) {
+            throw new KylinException(BASE_TABLE_INDEX_NOT_AVAILABLE,
+                    MsgPicker.getMsg().getSECOND_STORAGE_SEGMENT_WITHOUT_BASE_INDEX());
+        }
+
         return JobFactory.createJob(STORAGE_JOB_FACTORY,
                 new JobFactory.JobBuildParams(
                         jobParam.getTargetSegments().stream().map(dataflow::getSegment).collect(Collectors.toSet()),

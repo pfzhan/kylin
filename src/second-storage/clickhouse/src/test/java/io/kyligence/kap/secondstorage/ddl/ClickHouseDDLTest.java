@@ -50,6 +50,24 @@ public class ClickHouseDDLTest {
     }
 
     @Test
+    public void testCKCreateTableWithDeduplicationWindow(){
+        final ClickHouseCreateTable create =
+                ClickHouseCreateTable.createCKTableIgnoreExist("pufa", "xx")
+                        .columns(new ColumnWithType("a", "int"))
+                        .engine("MergeTree()")
+                        .deduplicationWindow(3);
+        final ClickHouseRender render = new ClickHouseRender();
+        assertEquals("CREATE TABLE if not exists `pufa`.`xx`(a int) ENGINE = MergeTree() ORDER BY tuple() SETTINGS non_replicated_deduplication_window = 3", create.toSql(render));
+
+        final ClickHouseCreateTable create2 =
+                ClickHouseCreateTable.createCKTable("pufa", "xx")
+                        .columns(new ColumnWithType("a", "int"))
+                        .engine("MergeTree()")
+                        .deduplicationWindow(3);
+        assertEquals("CREATE TABLE `pufa`.`xx`(a int) ENGINE = MergeTree() ORDER BY tuple() SETTINGS non_replicated_deduplication_window = 3", create2.toSql(render));
+    }
+
+    @Test
     public void testCKCreateTableLike() {
         final ClickHouseCreateTable createLike =
                 ClickHouseCreateTable.createCKTableIgnoreExist("pufa", "ut")

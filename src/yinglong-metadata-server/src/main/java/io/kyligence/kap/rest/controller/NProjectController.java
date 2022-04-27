@@ -31,19 +31,19 @@ import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETE
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PROJECT_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NAME_ILLEGAL;
-import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_NOT_EXIST;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
 import javax.validation.Valid;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -245,10 +245,9 @@ public class NProjectController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<Boolean> cleanupProjectStorage(@PathVariable(value = "project") String project)
             throws Exception {
-        ProjectInstance projectInstance = projectService.getProjectManager().getProject(project);
+        ProjectInstance projectInstance = projectService.getManager(NProjectManager.class).getProject(project);
         if (projectInstance == null) {
-            throw new KylinException(PROJECT_NOT_EXIST,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
+            throw new KylinException(PROJECT_NOT_EXIST, project);
         }
         projectService.cleanupGarbage(project);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, true, "");

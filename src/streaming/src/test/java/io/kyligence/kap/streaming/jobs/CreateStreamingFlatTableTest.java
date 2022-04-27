@@ -23,7 +23,6 @@
  */
 package io.kyligence.kap.streaming.jobs;
 
-import io.kyligence.kap.streaming.CreateStreamingFlatTable;
 import org.apache.kylin.common.KylinConfig;
 import org.junit.After;
 import org.junit.Assert;
@@ -37,6 +36,7 @@ import io.kyligence.kap.common.StreamingTestConstant;
 import io.kyligence.kap.metadata.cube.model.NCubeJoinedFlatTableDesc;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.streaming.CreateStreamingFlatTable;
 import io.kyligence.kap.streaming.app.StreamingEntry;
 import io.kyligence.kap.streaming.util.StreamingTestCase;
 import lombok.val;
@@ -70,13 +70,13 @@ public class CreateStreamingFlatTableTest extends StreamingTestCase {
         source.post(StreamingTestConstant.KAP_SSB_STREAMING_JSON_FILE());
 
         val args = new String[] { PROJECT, DATAFLOW_ID, "5", "10 seconds" };
-        val entry = Mockito.spy(new StreamingEntry(args));
+        val entry = Mockito.spy(new StreamingEntry());
         entry.setSparkSession(createSparkSession());
         val dfMgr = NDataflowManager.getInstance(config, PROJECT);
         val dataflow = dfMgr.getDataflow(DATAFLOW_ID);
         val flatTableDesc = new NCubeJoinedFlatTableDesc(dataflow.getIndexPlan());
 
-        val seg = new NDataSegment();
+        val seg = NDataSegment.empty();
         seg.setId("test-1234");
 
         val steamingFlatTable = CreateStreamingFlatTable.apply(flatTableDesc, seg, entry.createSpanningTree(dataflow),

@@ -42,7 +42,8 @@
 
 package org.apache.kylin.job.common;
 
-import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JOB;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_CHECK_MULTI_PARTITION_ABANDON;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_CHECK_MULTI_PARTITION_EMPTY;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -50,7 +51,6 @@ import java.util.Set;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.model.JobParam;
@@ -106,7 +106,7 @@ public class PartitionBuildJobUtil extends ExecutableUtil {
     @Override
     public void computePartitions(JobParam jobParam) {
         if (CollectionUtils.isEmpty(jobParam.getTargetPartitions())) {
-            throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_CHECK_MULTI_PARTITION_EMPTY());
+            throw new KylinException(JOB_CREATE_CHECK_MULTI_PARTITION_EMPTY);
         }
         // Partitions already in segments should not be built again.
         val df = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), jobParam.getProject())
@@ -115,8 +115,7 @@ public class PartitionBuildJobUtil extends ExecutableUtil {
         segment.getMultiPartitions().forEach(partition -> {
             if (jobParam.getTargetPartitions().contains(partition.getPartitionId())
                     && partition.getStatus() == PartitionStatusEnum.READY) {
-                throw new KylinException(FAILED_CREATE_JOB,
-                        MsgPicker.getMsg().getADD_JOB_CHECK_MULTI_PARTITION_ABANDON());
+                throw new KylinException(JOB_CREATE_CHECK_MULTI_PARTITION_ABANDON);
             }
         });
     }

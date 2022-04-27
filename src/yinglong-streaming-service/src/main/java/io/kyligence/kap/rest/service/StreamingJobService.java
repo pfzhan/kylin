@@ -73,6 +73,7 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
 import io.kyligence.kap.metadata.model.FusionModelManager;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -119,7 +120,7 @@ public class StreamingJobService extends BasicService {
     public void checkModelStatus(String project, String modelId, JobTypeEnum jobType) {
         String jobId = StreamingUtils.getJobId(modelId, jobType.name());
         val config = KylinConfig.getInstanceFromEnv();
-        val jobMeta = getStreamingJobManager(project).getStreamingJobByUuid(jobId);
+        val jobMeta = getManager(StreamingJobManager.class, project).getStreamingJobByUuid(jobId);
 
         val modelMgr = NDataModelManager.getInstance(config, jobMeta.getProject());
         val model = modelMgr.getDataModelDesc(jobMeta.getModelId());
@@ -337,6 +338,10 @@ public class StreamingJobService extends BasicService {
         }, project);
     }
 
+    public StreamingJobStatsManager getStreamingJobStatsManager() {
+        return StreamingJobStatsManager.getInstance();
+    }
+
     public DataResult<List<StreamingJobResponse>> getStreamingJobList(StreamingJobFilter jobFilter, int offset,
             int limit) {
         if (!StringUtils.isEmpty(jobFilter.getProject())) {
@@ -397,24 +402,25 @@ public class StreamingJobService extends BasicService {
         }).sorted(comparator).collect(Collectors.toList());
         List<StreamingJobResponse> targetList = PagingUtil.cutPage(filterList, offset, limit).stream()
                 .collect(Collectors.toList());
-        if (targetList != null) {
+        if (CollectionUtils.isNotEmpty(targetList)) {
             Map<String, NDataModel> modelMap = getAllDataModels(jobFilter.getProject());
-            targetList.stream().forEach(entry -> {
-                val id = entry.getId();
-                val uuid = id.substring(0, id.lastIndexOf("_"));
-                val dataModel = modelMap.get(uuid);
-                if (dataModel != null) {
-                    if (dataModel.isBroken() || isBatchModelBroken(dataModel)) {
-                        entry.setModelBroken(true);
-                    } else {
-                        val mgr = indexPlanService.getIndexPlanManager(entry.getProject());
-                        entry.setModelIndexes(mgr.getIndexPlan(uuid).getAllLayouts().size());
-                        entry.setPartitionDesc(dataModel.getPartitionDesc());
-                    }
-                }
-            });
+            targetList.forEach(jobResponse -> setModelInfo(jobResponse, modelMap));
         }
         return new DataResult<>(targetList, filterList.size(), offset, limit);
+    }
+
+    void setModelInfo(StreamingJobResponse jobResponse, Map<String, NDataModel> modelMap) {
+        val uuid = StreamingUtils.getModelId(jobResponse.getId());
+        val dataModel = modelMap.get(uuid);
+        if (dataModel == null || dataModel.isBroken() || isBatchModelBroken(dataModel)
+                || getManager(NDataflowManager.class, jobResponse.getProject()).getDataflow(uuid)
+                        .checkBrokenWithRelatedInfo()) {
+            jobResponse.setModelBroken(true);
+            return;
+        }
+        val mgr = indexPlanService.getManager(NIndexPlanManager.class, jobResponse.getProject());
+        jobResponse.setModelIndexes(mgr.getIndexPlan(uuid).getAllLayouts().size());
+        jobResponse.setPartitionDesc(dataModel.getPartitionDesc());
     }
 
     private List<ProjectInstance> getAllProjects(String project) {
@@ -542,7 +548,7 @@ public class StreamingJobService extends BasicService {
      */
     public InputStream getStreamingJobAllLog(String project, String jobId) {
         aclEvaluate.checkProjectOperationPermission(project);
-        NExecutableManager executableManager = getExecutableManager(project);
+        NExecutableManager executableManager = getManager(NExecutableManager.class, project);
         return executableManager.getStreamingOutputFromHDFS(jobId, Integer.MAX_VALUE).getVerboseMsgStream();
     }
 
@@ -551,12 +557,12 @@ public class StreamingJobService extends BasicService {
      */
     public String getStreamingJobSimpleLog(String project, String jobId) {
         aclEvaluate.checkProjectOperationPermission(project);
-        NExecutableManager executableManager = getExecutableManager(project);
+        NExecutableManager executableManager = getManager(NExecutableManager.class, project);
         return executableManager.getStreamingOutputFromHDFS(jobId).getVerboseMsg();
     }
 
     public void checkJobExecutionId(String project, String jobId, Integer execId) {
-        val meta = getStreamingJobManager(project).getStreamingJobByUuid(jobId);
+        val meta = getManager(StreamingJobManager.class, project).getStreamingJobByUuid(jobId);
         val msg = String.format(Locale.ROOT, "JobExecutionId(%d) is invalid", execId);
         Preconditions.checkState(ObjectUtils.equals(execId, meta.getJobExecutionId()), msg);
     }

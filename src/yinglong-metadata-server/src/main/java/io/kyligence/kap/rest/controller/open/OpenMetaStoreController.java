@@ -25,9 +25,9 @@
 package io.kyligence.kap.rest.controller.open;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
-import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_MODEL_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_BROKEN;
-import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_EMPTY;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_NOT_EXIST;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -85,8 +85,7 @@ public class OpenMetaStoreController extends NBasicController {
         for (String modelName : modelNames) {
             val modelDesc = modelManager.getDataModelDescByAlias(modelName);
             if (Objects.isNull(modelDesc)) {
-                throw new KylinException(MODEL_NOT_EXIST,
-                        String.format(Locale.ROOT, "The model is not exist. Model name: [%s].", modelName));
+                throw new KylinException(MODEL_NAME_NOT_EXIST, modelName);
             }
             modelIds.add(modelDesc.getId());
         }
@@ -127,7 +126,7 @@ public class OpenMetaStoreController extends NBasicController {
 
     private ModelPreviewRequest convertToModelPreviewRequest(String project, OpenModelPreviewRequest request) {
         // have checked model names exist
-        NDataModelManager modelManager = modelService.getDataModelManager(project);
+        NDataModelManager modelManager = modelService.getManager(NDataModelManager.class, project);
         List<String> modelIds = request.getNames().stream()
                 .map(name -> modelManager.getDataModelDescByAlias(name).getUuid()).collect(Collectors.toList());
         ModelPreviewRequest modelPreviewRequest = new ModelPreviewRequest();
@@ -141,18 +140,17 @@ public class OpenMetaStoreController extends NBasicController {
     private void checkRequestModelNamesNotEmpty(OpenModelPreviewRequest request) {
         List<String> modelNames = request.getNames();
         if (CollectionUtils.isEmpty(modelNames)) {
-            throw new KylinException(EMPTY_MODEL_NAME, "The names cannot be empty.");
+            throw new KylinException(MODEL_NAME_EMPTY);
         }
     }
 
     private void checkExportModelsValid(String project, OpenModelPreviewRequest request) {
         checkRequestModelNamesNotEmpty(request);
-        NDataModelManager modelManager = modelService.getDataModelManager(project);
+        NDataModelManager modelManager = modelService.getManager(NDataModelManager.class, project);
         for (String modelName : request.getNames()) {
             val modelDesc = modelManager.getDataModelDescByAlias(modelName);
             if (Objects.isNull(modelDesc)) {
-                throw new KylinException(MODEL_NOT_EXIST,
-                        String.format(Locale.ROOT, "The model is not exist. Model name: [%s].", modelName));
+                throw new KylinException(MODEL_NAME_NOT_EXIST, modelName);
             }
             if (modelDesc.isBroken()) {
                 throw new KylinException(MODEL_BROKEN,

@@ -42,6 +42,7 @@ import org.apache.kylin.query.util.QueryUtil;
 
 import io.kyligence.kap.guava20.shaded.common.base.Stopwatch;
 import io.kyligence.kap.query.engine.QueryExec;
+import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.smart.query.QueryRecord;
 import lombok.extern.slf4j.Slf4j;
 
@@ -77,7 +78,7 @@ public class MockupQueryExecutor extends AbstractQueryExecutor {
             QueryExec queryExec = new QueryExec(project, kylinConfig);
             QueryParams queryParams = new QueryParams(kylinConfig, sql, project, 0, 0, queryExec.getDefaultSchemaName(),
                     true);
-            queryExec.executeQuery(QueryUtil.massageSql(queryParams));
+            queryExec.executeQuery(KapQueryUtil.massageSql(queryParams));
         } catch (Throwable e) { // cannot replace with Exception, e may a instance of Error
             Throwable cause = e.getCause();
             String message = e.getMessage() == null

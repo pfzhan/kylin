@@ -32,6 +32,8 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
@@ -151,14 +153,14 @@ public class SparkSourceService extends BasicService {
                     .map(table -> new TableNameResponse(table.name().toUpperCase(Locale.ROOT), false))
                     .collect(Collectors.toList());
         }
-        ISourceMetadataExplorer explr = SourceFactory.getSource(getProjectManager().getProject(project))
+        ISourceMetadataExplorer explr = SourceFactory.getSource(getManager(NProjectManager.class).getProject(project))
                 .getSourceMetadataExplorer();
         List<String> tables = explr.listTables(db).stream().map(str -> str.toUpperCase(Locale.ROOT))
                 .collect(Collectors.toList());
         List<TableNameResponse> tableNameResponses = Lists.newArrayList();
         tables.forEach(table -> {
             TableNameResponse response = new TableNameResponse();
-            response.setLoaded(getTableManager(project).getTableDesc(db + "." + table) != null);
+            response.setLoaded(getManager(NTableMetadataManager.class, project).getTableDesc(db + "." + table) != null);
             response.setTableName(table);
             tableNameResponses.add(response);
         });

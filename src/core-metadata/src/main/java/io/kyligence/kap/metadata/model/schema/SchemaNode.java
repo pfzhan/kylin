@@ -133,7 +133,8 @@ public class SchemaNode {
 
     public static SchemaNode ofModelCC(ComputedColumnDesc cc, String modelAlias, String factTable) {
         return new SchemaNode(SchemaNodeType.MODEL_CC, modelAlias + "/" + cc.getColumnName(),
-                ImmutableMap.of("expression", cc.getExpression(), "fact_table", factTable), "fact_table");
+                ImmutableMap.of("expression", cc.getExpression().replace("\r\n", "\n"), "fact_table", factTable),
+                "fact_table");
     }
 
     public static SchemaNode ofDimension(NDataModel.NamedColumn namedColumn, String modelAlias) {

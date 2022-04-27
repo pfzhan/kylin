@@ -23,17 +23,19 @@
  */
 package io.kyligence.kap.rest.response;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import lombok.Data;
-import org.apache.kylin.common.exception.ErrorCode;
-import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.job.exception.JobSubmissionException;
-
+import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.job.exception.JobSubmissionException;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import lombok.Data;
 
 @Data
 public class JobInfoResponseWithFailure extends JobInfoResponse {
@@ -44,11 +46,13 @@ public class JobInfoResponseWithFailure extends JobInfoResponse {
     public void addFailedSeg(NDataflow dataflow, JobSubmissionException jobSubmissionException) {
         for (Map.Entry<String, KylinException> entry : jobSubmissionException.getSegmentFailInfos().entrySet()) {
             String segId = entry.getKey();
-            KylinException error = entry.getValue();
+            KylinException kylinException = entry.getValue();
 
             FailedSegmentJobWithReason failedSeg = new FailedSegmentJobWithReason(dataflow, dataflow.getSegment(segId));
-            failedSeg.setErrorCode(error.getErrorCode());
-            failedSeg.setErrorMsg(error.getMessage());
+            Error errorInfo = new Error(kylinException.getErrorCodeProducer().getErrorCode().getCode(),
+                    kylinException.getMessage());
+            failedSeg.setError(errorInfo);
+
             failedSegments.add(failedSeg);
         }
     }
@@ -60,11 +64,24 @@ public class JobInfoResponseWithFailure extends JobInfoResponse {
             super(dataflow, segment);
         }
 
-        @JsonProperty("error_code")
-        private ErrorCode errorCode;
+        @JsonProperty("error")
+        private Error error;
 
-        @JsonProperty("error_msg")
-        private String errorMsg;
+    }
+
+    @Data
+    public static class Error implements Serializable {
+
+        public Error(String code, String msg) {
+            this.code = code;
+            this.msg = msg;
+        }
+
+        @JsonProperty("code")
+        private String code;
+
+        @JsonProperty("msg")
+        private String msg;
 
     }
 

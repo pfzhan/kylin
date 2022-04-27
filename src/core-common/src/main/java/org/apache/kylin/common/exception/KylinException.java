@@ -44,6 +44,8 @@ package org.apache.kylin.common.exception;
 import java.util.Collection;
 import java.util.Locale;
 
+import org.apache.kylin.common.exception.code.ErrorCodeProducer;
+
 import lombok.Getter;
 
 @Getter
@@ -54,9 +56,13 @@ public class KylinException extends RuntimeException {
     public final static String CODE_UNDEFINED = "999";
 
     private final ErrorCode errorCode;
-    private final String code; //for example 999
+    // for example 999
+    private final String code;
     private Object data;
     private boolean throwTrace = true;
+
+    private transient ErrorCodeProducer errorCodeProducer;
+    private transient Object[] args;
 
     public KylinException(ErrorCodeSupplier errorCodeSupplier, String msg) {
         super(msg);
@@ -100,18 +106,58 @@ public class KylinException extends RuntimeException {
         this.code = code;
     }
 
+    public KylinException(ErrorCodeProducer errorCodeProducer, Object... args) {
+        super(errorCodeProducer.getMsg(args));
+
+        // old
+        this.errorCode = new ErrorCode(errorCodeProducer.getErrorCode().getCode());
+        this.code = CODE_UNDEFINED;
+
+        //new
+        this.args = args;
+        this.errorCodeProducer = errorCodeProducer;
+    }
+
+    public KylinException(ErrorCodeProducer errorCodeProducer, Throwable cause, Object... args) {
+        super(errorCodeProducer.getMsg(args), cause);
+
+        // old
+        this.errorCode = new ErrorCode(errorCodeProducer.getErrorCode().getCode());
+        this.code = CODE_UNDEFINED;
+
+        //new
+        this.args = args;
+        this.errorCodeProducer = errorCodeProducer;
+    }
+
+    public String getSuggestionString() {
+        return (errorCodeProducer == null) ? null : errorCodeProducer.getErrorSuggest().getLocalizedString();
+    }
+
+    public String getErrorCodeString() {
+        return (errorCodeProducer == null) ? errorCode.getCodeString() : errorCodeProducer.getErrorCode().getCode();
+    }
+
     public KylinException withData(Object data) {
         this.data = data;
         return this;
     }
 
     @Override
-    public String toString() {//for log
-        return errorCode.getString() + " \n" + super.toString();
+    public String toString() {
+        //for log
+        if (errorCodeProducer != null) {
+            return errorCodeProducer.getCodeMsg(this.args);
+        }
+        return String.join(" \n", errorCode.getString(), super.toString());
     }
 
     @Override
-    public String getLocalizedMessage() {//for front
+    public String getLocalizedMessage() {
+        //for front
+        if (errorCodeProducer != null) {
+            return errorCodeProducer.getCodeMsg(this.args);
+        }
         return String.format(Locale.ROOT, "%s%s", errorCode.getLocalizedString(), super.getLocalizedMessage());
     }
 

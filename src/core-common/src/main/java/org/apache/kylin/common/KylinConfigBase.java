@@ -86,7 +86,6 @@ import org.apache.kylin.common.util.TimeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -517,6 +516,18 @@ public abstract class KylinConfigBase implements Serializable {
         return getOptional("kylin.second-storage.ssh-identity-path", "~/.ssh/id_rsa");
     }
 
+    public int getSecondStorageLoadDeduplicationWindow() {
+        return Integer.parseInt(getOptional("kylin.second-storage.load-deduplication-window", "0"));
+    }
+
+    public int getSecondStorageLoadRetry() {
+        return Integer.parseInt(getOptional("kylin.second-storage.load-retry", "3"));
+    }
+
+    public int getSecondStorageLoadRetryInterval() {
+        return Integer.parseInt(getOptional("kylin.second-storage.load-retry-interval", "30000"));
+    }
+
     public int getMetadataCacheMaxNum() {
         return Integer.parseInt(getOptional("kylin.metadata.cache.max-num", String.valueOf(Integer.MAX_VALUE)));
     }
@@ -537,7 +548,6 @@ public abstract class KylinConfigBase implements Serializable {
         return Long.parseLong(getOptional("kylin.metadata.audit-log.max-size", "500000"));
     }
 
-    @VisibleForTesting
     public void setMetadataUrl(String metadataUrl) {
         setProperty("kylin.metadata.url", metadataUrl);
     }
@@ -797,7 +807,7 @@ public abstract class KylinConfigBase implements Serializable {
 
     public double getMergeSegmentStorageThreshold() {
         double thresholdValue = Double.parseDouble(getOptional("kylin.cube.merge-segment-storage-threshold", "0"));
-        if(thresholdValue < 0 || thresholdValue > 1) {
+        if (thresholdValue < 0 || thresholdValue > 1) {
             logger.warn("The configuration file is incorrect. The value of[kylin.cube.merge-segment-storage-threshold] "
                     + "cannot be less than 0 or greater than 1.");
             thresholdValue = 0;
@@ -962,6 +972,16 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.capacity.notification-enabled", FALSE));
     }
 
+    public String getQueryExtensionFactory() {
+        return getOptional("kylin.extension.query.factory",
+                "io.kyligence.kap.query.QueryExtensionFactoryEnterprise");
+    }
+
+    public String getMetadataExtensionFactory() {
+        return getOptional("kylin.extension.metadata.factory",
+                "io.kyligence.kap.metadata.MetadataExtensionFactoryEnterprise");
+    }
+
     public double getOverCapacityThreshold() {
         return Double.parseDouble(getOptional("kylin.capacity.over-capacity-threshold", "80")) / 100;
     }
@@ -1051,6 +1071,7 @@ public abstract class KylinConfigBase implements Serializable {
     public boolean isConcurrencyFetchDataSourceSize() {
         return Boolean.parseBoolean(getOptional("kylin.job.concurrency-fetch-datasource-size-enabled", FALSE));
     }
+
     public int getConcurrencyFetchDataSourceSizeThreadNumber() {
         return Integer.parseInt(getOptional("kylin.job.concurrency-fetch-datasource-size-thread_number", "10"));
     }
@@ -1380,7 +1401,7 @@ public abstract class KylinConfigBase implements Serializable {
     public int getSparkUIZombieJobCleanSeconds() {
         return Integer.parseInt(this.getOptional("kylin.query.engine.spark-ui-zombie-job-clean-seconds", "180"));
     }
-    
+
     public int getSparkEngineMaxRetryTime() {
         return Integer.parseInt(getOptional("kylin.engine.max-retry-time", "3"));
     }
@@ -1496,7 +1517,13 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public long getStreamingJobExecutionIdCheckInterval() {
-        return TimeUtil.timeStringAs(getOptional("kylin.streaming.job-execution-id-check-interval", "1m"), TimeUnit.MINUTES);
+        return TimeUtil.timeStringAs(getOptional("kylin.streaming.job-execution-id-check-interval", "1m"),
+                TimeUnit.MINUTES);
+    }
+
+    public long getStreamingJobMetaRetainedTime() {
+        return TimeUtil.timeStringAs(getOptional("kylin.streaming.job-meta-retained-time", "2h"),
+                TimeUnit.MILLISECONDS);
     }
 
     public String getSparkEngineBuildStepsToSkip() {
@@ -2903,6 +2930,10 @@ public abstract class KylinConfigBase implements Serializable {
         return getOptional("kylin.query.ui.proxy-location", KYLIN_ROOT);
     }
 
+    public boolean isHistoryServerEnable() {
+        return Boolean.parseBoolean(getOptional("kylin.history-server.enable", FALSE));
+    }
+
     public String getJobFinishedNotifierUrl() {
         return getOptional("kylin.job.finished-notifier-url", null);
     }
@@ -3134,23 +3165,26 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public long[] getMetricsQuerySlaSeconds() {
-        return getOptionalLongArray("kylin.metrics.query.sla.seconds", new String[]{"3", "15", "60"});
+        return getOptionalLongArray("kylin.metrics.query.sla.seconds", new String[] { "3", "15", "60" });
     }
 
     public long[] getMetricsJobSlaMinutes() {
-        return getOptionalLongArray("kylin.metrics.job.sla.minutes", new String[]{"30", "60", "300"});
+        return getOptionalLongArray("kylin.metrics.job.sla.minutes", new String[] { "30", "60", "300" });
     }
 
     public boolean isSpark3ExecutorPrometheusEnabled() {
-        return Boolean.parseBoolean(getOptional("kylin.storage.columnar.spark-conf.spark.ui.prometheus.enabled", FALSE));
+        return Boolean
+                .parseBoolean(getOptional("kylin.storage.columnar.spark-conf.spark.ui.prometheus.enabled", FALSE));
     }
 
     public String getSpark3DriverPrometheusServletClass() {
-        return this.getOptional("kylin.storage.columnar.spark-conf.spark.metrics.conf.*.sink.prometheusServlet.class", "");
+        return this.getOptional("kylin.storage.columnar.spark-conf.spark.metrics.conf.*.sink.prometheusServlet.class",
+                "");
     }
 
     public String getSpark3DriverPrometheusServletPath() {
-        return this.getOptional("kylin.storage.columnar.spark-conf.spark.metrics.conf.*.sink.prometheusServlet.path", "");
+        return this.getOptional("kylin.storage.columnar.spark-conf.spark.metrics.conf.*.sink.prometheusServlet.path",
+                "");
     }
 
     protected final long[] getOptionalLongArray(String prop, String[] dft) {
@@ -3191,5 +3225,9 @@ public abstract class KylinConfigBase implements Serializable {
 
     public boolean isMeasureNameCheckEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.model.measure-name-check-enabled", "true"));
+    }
+
+    public boolean checkModelDependencyHealthy() {
+        return Boolean.parseBoolean(getOptional("kylin.model.check-model-dependency-health", "false"));
     }
 }

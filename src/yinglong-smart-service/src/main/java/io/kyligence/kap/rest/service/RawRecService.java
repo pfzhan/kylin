@@ -54,6 +54,7 @@ import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryInfo;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
@@ -120,7 +121,7 @@ public class RawRecService extends BasicService
             queryHistoryMap.put(queryHistory.getSql(), queryHistory);
         });
 
-        KylinConfig kylinConfig = getProjectManager().getProject(project).getConfig();
+        KylinConfig kylinConfig = getManager(NProjectManager.class).getProject(project).getConfig();
         AbstractContext semiContextV2 = ProposerJob
                 .propose(new ModelReuseContext(kylinConfig, project, sqlList.toArray(new String[0])));
 
@@ -194,12 +195,12 @@ public class RawRecService extends BasicService
 
         List<ProjectInstance> projectList = Lists.newArrayList();
         if (StringUtils.isEmpty(projectName)) {
-            List<ProjectInstance> instances = getProjectManager().listAllProjects().stream() //
+            List<ProjectInstance> instances = getManager(NProjectManager.class).listAllProjects().stream() //
                     .filter(projectInstance -> !projectInstance.isExpertMode()) //
                     .collect(Collectors.toList());
             projectList.addAll(instances);
         } else {
-            ProjectInstance instance = getProjectManager().getProject(projectName);
+            ProjectInstance instance = getManager(NProjectManager.class).getProject(projectName);
             projectList.add(instance);
         }
 
@@ -251,9 +252,9 @@ public class RawRecService extends BasicService
 
     @Override
     public void onUpdate(String project, String modelId) {
-        ProjectInstance prjInstance = getProjectManager().getProject(project);
+        ProjectInstance prjInstance = getManager(NProjectManager.class).getProject(project);
         if (prjInstance.isSemiAutoMode()) {
-            getOptRecManagerV2(project).loadOptRecV2(modelId);
+            OptRecManagerV2.getInstance(project).loadOptRecV2(modelId);
             optRecService.updateRecommendationCount(project, modelId);
         }
     }

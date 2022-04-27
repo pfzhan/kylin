@@ -29,10 +29,10 @@ import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLI
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_MODEL;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_DETECT_DATA_RANGE;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_MODEL;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_MODEL_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARTITION_COLUMN;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_RANGE;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_INVALID;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -47,6 +47,7 @@ import java.util.regex.Pattern;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -114,9 +115,8 @@ import io.kyligence.kap.tool.bisync.BISyncModel;
 import io.kyligence.kap.tool.bisync.SyncContext;
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
-import lombok.extern.log4j.Log4j;
 
-@Log4j
+@Slf4j
 @Controller
 @RequestMapping(value = "/api/models", produces = { HTTP_VND_APACHE_KYLIN_JSON })
 public class NModelController extends NBasicController {
@@ -203,10 +203,9 @@ public class NModelController extends NBasicController {
     }
 
     @ApiOperation(value = "createModel", tags = { "AI" })
-    @PostMapping(value = "", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
+    @PostMapping(value = "", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse<BuildBaseIndexResponse> createModel(@RequestBody ModelRequest modelRequest)
-            throws Exception {
+    public EnvelopeResponse<BuildBaseIndexResponse> createModel(@RequestBody ModelRequest modelRequest) {
         checkProjectName(modelRequest.getProject());
         validatePartitionDesc(modelRequest.getPartitionDesc());
         String partitionDateFormat = modelRequest.getPartitionDesc() == null ? null
@@ -542,8 +541,7 @@ public class NModelController extends NBasicController {
         checkRequiredArg(MODEL_ID, modelId);
         String newAlias = modelRenameRequest.getNewModelName();
         if (!StringUtils.containsOnly(newAlias, ModelService.VALID_NAME_FOR_MODEL)) {
-            throw new KylinException(INVALID_MODEL_NAME,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_MODEL_NAME(), newAlias));
+            throw new KylinException(MODEL_NAME_INVALID, newAlias);
         }
 
         fusionModelService.renameDataModel(modelRenameRequest.getProject(), modelId, newAlias);
@@ -603,8 +601,7 @@ public class NModelController extends NBasicController {
         checkRequiredArg(MODEL_ID, modelId);
         checkRequiredArg(NEW_MODEL_NAME, newModelName);
         if (!StringUtils.containsOnly(newModelName, ModelService.VALID_NAME_FOR_MODEL)) {
-            throw new KylinException(INVALID_MODEL_NAME,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_MODEL_NAME(), newModelName));
+            throw new KylinException(MODEL_NAME_INVALID, newModelName);
         }
         modelService.cloneModel(modelId, request.getNewModelName(), request.getProject());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");

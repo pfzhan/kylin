@@ -47,40 +47,41 @@ import java.net.URL;
 import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.commons.lang3.StringUtils;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 
 import io.kyligence.kap.common.util.FileUtils;
+import io.kyligence.kap.common.util.ResourceUtils;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class ErrorCode implements Serializable {
-    public static final Logger logger = LoggerFactory.getLogger(ErrorCode.class);
+
+    private static final String CN_LANG = "cn";
     private static final String EN_ERROR_CODE_FILE = "kylin_errorcode_conf_en.properties";
     private static final String ZH_ERROR_CODE_FILE = "kylin_errorcode_conf_zh.properties";
     private static final String ZH_SEPARATOR = "：";
     private static final String EN_SEPARATOR = ":";
-    private static final ImmutableMap<String, String> enMap;
-    private static final ImmutableMap<String, String> zhMap;
-    private static final ThreadLocal<ImmutableMap<String, String>> frontMap = new ThreadLocal<>();
+    private static final ImmutableMap<String, String> EN_MAP;
+    private static final ImmutableMap<String, String> ZH_MAP;
+    private static final ThreadLocal<ImmutableMap<String, String>> FRONT_MAP = new ThreadLocal<>();
+
     static {
         try {
-            URL resource = Thread.currentThread().getContextClassLoader().getResource(EN_ERROR_CODE_FILE);
-            Preconditions.checkNotNull(resource);
-            logger.info("loading enMap {}", resource.getPath());
-            enMap = ImmutableMap
+            URL resource = ResourceUtils.getServerConfUrl(EN_ERROR_CODE_FILE);
+            log.info("loading enMap {}", resource.getPath());
+            EN_MAP = ImmutableMap
                     .copyOf(new ConcurrentHashMap<>(FileUtils.readFromPropertiesFile(resource.openStream())));
-            logger.info("loading enMap successful");
-            resource = Thread.currentThread().getContextClassLoader().getResource(ZH_ERROR_CODE_FILE);
-            Preconditions.checkNotNull(resource);
-            logger.info("loading zhMap {}", resource.getPath());
-            zhMap = ImmutableMap
+            log.info("loading enMap successful");
+            resource = ResourceUtils.getServerConfUrl(ZH_ERROR_CODE_FILE);
+            log.info("loading zhMap {}", resource.getPath());
+            ZH_MAP = ImmutableMap
                     .copyOf(new ConcurrentHashMap<>(FileUtils.readFromPropertiesFile(resource.openStream())));
-            logger.info("loading zhMap successful");
-            frontMap.set(enMap);
+            log.info("loading zhMap successful");
+            FRONT_MAP.set(EN_MAP);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new ErrorCodeException("loading old error code failed.", e);
         }
     }
 
@@ -91,34 +92,34 @@ public class ErrorCode implements Serializable {
     }
 
     public static void setMsg(String lang) {
-        if ("cn".equals(lang)) {
-            frontMap.set(zhMap);
+        if (StringUtils.equalsIgnoreCase(CN_LANG, lang)) {
+            FRONT_MAP.set(ZH_MAP);
         } else {
-            frontMap.set(enMap);
+            FRONT_MAP.set(EN_MAP);
         }
     }
 
     private static ImmutableMap<String, String> getMap() {
-        ImmutableMap<String, String> res = frontMap.get();
-        return res == null ? enMap : res;
+        ImmutableMap<String, String> res = FRONT_MAP.get();
+        return res == null ? EN_MAP : res;
     }
 
     public String getLocalizedString() {
         ImmutableMap<String, String> res = getMap();
         String description = res.getOrDefault(keCode, "unknown");
-        String separator = zhMap.equals(res) ? ZH_SEPARATOR : EN_SEPARATOR;
+        String separator = ZH_MAP.equals(res) ? ZH_SEPARATOR : EN_SEPARATOR;
         return String.format(Locale.ROOT, "%s(%s)%s", keCode, description, separator);
     }
 
     public static String getLocalizedString(String keCode) {
         ImmutableMap<String, String> res = getMap();
         String description = res.getOrDefault(keCode, "unknown");
-        String separator = zhMap.equals(res) ? ZH_SEPARATOR : EN_SEPARATOR;
+        String separator = ZH_MAP.equals(res) ? ZH_SEPARATOR : EN_SEPARATOR;
         return String.format(Locale.ROOT, "%s(%s)%s", keCode, description, separator);
     }
 
     public String getString() {
-        String description = enMap.getOrDefault(keCode, "unknown");
+        String description = EN_MAP.getOrDefault(keCode, "unknown");
         return String.format(Locale.ROOT, "%s(%s)", keCode, description);
     }
 

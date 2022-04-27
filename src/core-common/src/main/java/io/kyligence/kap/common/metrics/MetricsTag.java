@@ -41,7 +41,8 @@ public enum MetricsTag {
     PENDING("pending"), //
     RUNNING("running"), //
     JOB_CATEGORY("category"), //
-    HOST("host");
+    HOST("host"), //
+    HIT_SECOND_STORAGE("hit_second_storage");
 
     private final String value;
 

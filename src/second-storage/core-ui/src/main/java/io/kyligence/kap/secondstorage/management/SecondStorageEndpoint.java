@@ -25,33 +25,37 @@
 package io.kyligence.kap.secondstorage.management;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.rest.controller.NBasicController;
 import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.service.ModelService;
+import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import io.kyligence.kap.secondstorage.enums.LockTypeEnum;
 import io.kyligence.kap.secondstorage.management.request.ModelEnableRequest;
 import io.kyligence.kap.secondstorage.management.request.ProjectCleanRequest;
 import io.kyligence.kap.secondstorage.management.request.ProjectEnableRequest;
 import io.kyligence.kap.secondstorage.management.request.ProjectLoadRequest;
-import io.kyligence.kap.secondstorage.management.request.ProjectLoadResponse;
 import io.kyligence.kap.secondstorage.management.request.ProjectLockOperateRequest;
+import io.kyligence.kap.secondstorage.management.request.ProjectNodeRequest;
 import io.kyligence.kap.secondstorage.management.request.ProjectRecoveryResponse;
 import io.kyligence.kap.secondstorage.management.request.ProjectTableSyncResponse;
-import io.kyligence.kap.secondstorage.management.request.RecoverRequest;
 import io.kyligence.kap.secondstorage.management.request.SecondStorageMetadataRequest;
 import io.kyligence.kap.secondstorage.management.request.StorageRequest;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
-import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_NOT_EXIST;
+import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_PROJECT_STATUS_ERROR;
+
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,6 +74,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
@@ -112,7 +117,7 @@ public class SecondStorageEndpoint extends NBasicController {
     @ApiOperation(value = "cleanSegments")
     @DeleteMapping(value = "/segments")
     @ResponseBody
-    public EnvelopeResponse cleanStorage(StorageRequest request,
+    public EnvelopeResponse<Void> cleanStorage(StorageRequest request,
                                          @RequestParam(name="segment_ids") List<String> segmentIds) {
         request.setSegmentIds(segmentIds);
         checkProjectName(request.getProject());
@@ -149,6 +154,29 @@ public class SecondStorageEndpoint extends NBasicController {
         JobInfoResponse jobInfoResponse = new JobInfoResponse();
         jobInfoResponse.setJobs(Collections.singletonList(jobInfo.orElse(null)));
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, jobInfoResponse, "");
+    }
+
+    @ApiOperation(value = "deleteProjectNodes")
+    @DeleteMapping(value = "/project/state", produces = {HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
+    public EnvelopeResponse<List<String>> deleteProjectNodes(ProjectNodeRequest request,
+                                                             @RequestParam(name = "shard_names") List<String> shardNames) {
+        checkProjectName(request.getProject());
+        request.setShardNames(shardNames);
+
+        if (!SecondStorageUtil.isProjectEnable(request.getProject())) {
+            throw new KylinException(INVALID_PARAMETER, String.format(Locale.ROOT, "Project %s is not enable second storage", request.getProject()));
+        }
+
+        if (CollectionUtils.isEmpty(request.getShardNames())) {
+            throw new KylinException(INVALID_PARAMETER, "shard_names is empty");
+        }
+
+        List<String> shards = SecondStorageNodeHelper.getAllPairs();
+        if (!shards.containsAll(request.getShardNames())) {
+            throw new KylinException(INVALID_PARAMETER, String.format(Locale.ROOT, "Second storage shard names not contains %s", request.getShardNames()));
+        }
+
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, this.secondStorageService.deleteProjectSecondStorageNode(request.getProject(), request.getShardNames(), request.isForce()), "");
     }
 
     @ApiOperation(value = "disableProjectStorageValidation")
@@ -192,38 +220,51 @@ public class SecondStorageEndpoint extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
-    @PostMapping(value = "/recovery/model", produces = {HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
-    public EnvelopeResponse<Void> recoverModel(@RequestBody RecoverRequest request) {
-        checkProjectName(request.getProject());
-        checkRequiredArg("modelName", request.getModelName());
-        checkModel(request.getProject(), request.getModelName());
-        secondStorageService.importSingleModel(request.getProject(), request.getModelName());
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, null, "");
-    }
-
-    @PostMapping(value = "/lock/operate")
+    @PostMapping(value = "/lock/operate", produces = {HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
     public EnvelopeResponse<Void> lockOperate(@RequestBody ProjectLockOperateRequest request) {
         checkProjectName(request.getProject());
         secondStorageService.lockOperate(request.getProject(), request.getLockTypes(), request.getOperateType());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, null, "");
     }
 
-    @GetMapping(value = "/lock/list")
+    @GetMapping(value = "/lock/list", produces = {HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
     @ResponseBody
     public EnvelopeResponse<List<ProjectLock>> lockList(String project) {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, secondStorageService.lockList(project), "");
     }
 
-    @PostMapping(value = "/sizeInNode")
+    @GetMapping(value = "/jobs/all", produces = {HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
+    @ResponseBody
+    public EnvelopeResponse<List<String>> getAllSecondStoragrJobs() {
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, secondStorageService.getAllSecondStoragrJobs(), "");
+    }
+
+    @GetMapping(value = "/jobs/project", produces = {HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
+    @ResponseBody
+    public EnvelopeResponse<List<String>> getProjectSecondStorageJobs(String project) {
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, secondStorageService.getProjectSecondStorageJobs(project), "");
+    }
+
+    @PostMapping(value = "/sizeInNode", produces = {HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
     public EnvelopeResponse<Void> sizeInNode(@RequestBody SecondStorageMetadataRequest request) {
         checkProjectName(request.getProject());
+        if (!SecondStorageUtil.isProjectEnable(request.getProject())) {
+            throw new KylinException(SECOND_STORAGE_PROJECT_STATUS_ERROR,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getSECOND_STORAGE_PROJECT_ENABLED(), request.getProject()));
+
+        }
         secondStorageService.sizeInNode(request.getProject());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, null, "");
     }
 
-    @GetMapping(value = "/table/sync")
+    @GetMapping(value = "/table/sync", produces = {HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
     public EnvelopeResponse<ProjectTableSyncResponse> tableSync(String project) {
         checkProjectName(project);
+        if (!SecondStorageUtil.isProjectEnable(project)) {
+            throw new KylinException(SECOND_STORAGE_PROJECT_STATUS_ERROR,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getSECOND_STORAGE_PROJECT_ENABLED(), project));
+
+        }
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, secondStorageService.tableSync(project), "");
     }
 
@@ -238,37 +279,28 @@ public class SecondStorageEndpoint extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, secondStorageService.projectClean(request.getProjects()), "");
     }
 
-    @PostMapping(value = "/recovery/project", produces = {HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
-    public EnvelopeResponse<ProjectRecoveryResponse> recoverProject(@RequestBody RecoverRequest request) {
-        checkProjectName(request.getProject());
-        secondStorageService.isProjectAdmin(request.getProject());
-        ProjectLoadResponse response = secondStorageService.projectLoadData(Arrays.asList(request.getProject()));
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response.getLoads().get(0), "");
-    }
-
     @PostMapping(value = "/config/refresh", produces = {HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
     public EnvelopeResponse<ProjectRecoveryResponse> refreshConf() {
         secondStorageService.refreshConf();
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, null, "");
     }
-    @PostMapping(value = "/reset")
+    @PostMapping(value = "/reset", produces = {HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
     public EnvelopeResponse resetStorage() {
         secondStorageService.resetStorage();
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, null, "");
     }
 
-    @PostMapping("/node/status")
+    @PostMapping(value = "/node/status", produces = {HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
     public EnvelopeResponse<Void> updateNodeStatus(@RequestBody Map<String, Map<String, Boolean>> nodeStatusMap) {
         secondStorageService.updateNodeStatus(nodeStatusMap);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, null, "");
     }
 
-    private void checkModel(String project, String modelName) {
+    public void checkModel(String project, String modelName) {
         val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val model = modelManager.getDataModelDescByAlias(modelName);
         if (Objects.isNull(model)) {
-            throw new KylinException(MODEL_NOT_EXIST,
-                    "Model " + modelName + " does not exist in project " + project);
+            throw new KylinException(MODEL_NAME_NOT_EXIST, modelName);
         }
     }
 }

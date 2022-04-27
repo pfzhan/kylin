@@ -24,7 +24,7 @@
 
 package org.apache.kylin.job.handler;
 
-import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JOB;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_CHECK_SEGMENT_FAIL;
 import static org.apache.kylin.job.factory.JobFactoryConstant.MERGE_JOB_FACTORY;
 
 import java.util.HashSet;
@@ -32,7 +32,6 @@ import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.factory.JobFactory;
@@ -85,7 +84,7 @@ public class MergeSegmentHandler extends AbstractJobHandler {
                     && !seg.getLayoutsMap().keySet().equals(layoutIds)) {
                 log.warn("Segment's layout is not matched,segID:{}, {} -> {}", seg.getId(), layoutIds,
                         seg.getLayoutsMap().keySet());
-                throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_CHECK_SEGMENT_FAIL());
+                throw new KylinException(JOB_CREATE_CHECK_SEGMENT_FAIL);
             }
         }
     }

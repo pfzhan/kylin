@@ -75,7 +75,7 @@ import java.util.Arrays;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = ServiceTestBase.SpringConfig.class)
-@WebAppConfiguration(value = "src/main/resources")
+@WebAppConfiguration(value = "../yinglong-common-service/src/main/resources")
 @ActiveProfiles({ "testing", "test" })
 public class ServiceTestBase extends NLocalFileMetadataTestCase {
 
@@ -136,12 +136,12 @@ public class ServiceTestBase extends NLocalFileMetadataTestCase {
 
     @Configuration
     @ComponentScan("io.kyligence.kap.rest")
-    @ImportResource(locations = {"applicationContext.xml", "kylinSecurity.xml"})
+    @ImportResource(locations = {"classpath:applicationContext.xml", "classpath:kylinSecurity.xml"})
     @EnableAsync
     public static class SpringConfig {
         @Bean
         public SecondStorageUpdater getSecondStorageUpdater() {
-            return Mockito.mock(SecondStorageUpdater.class, invocationOnMock -> "onUpdate".equals(invocationOnMock.getMethod().getName()));
+            return Mockito.mock(SecondStorageUpdater.class, invocationOnMock -> "");
         }
     }
 }

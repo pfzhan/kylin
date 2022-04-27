@@ -240,7 +240,7 @@ public class NAccessControllerTest extends NLocalFileMetadataTestCase {
         NDataModelManager nDataModelManager = Mockito.mock(NDataModelManager.class);
         NDataModel dataModel = Mockito.mock(NDataModel.class);
         Mockito.doReturn(dataModel).when(nDataModelManager).getDataModelDesc(uuid);
-        Mockito.doReturn(nDataModelManager).when(projectService).getDataModelManager("default");
+        Mockito.doReturn(nDataModelManager).when(projectService).getManager(NDataModelManager.class, "default");
         Mockito.doReturn(new HashSet<>()).when(accessService).getProjectManagementUsers("default");
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/access/available/{entity_type:.+}", type)

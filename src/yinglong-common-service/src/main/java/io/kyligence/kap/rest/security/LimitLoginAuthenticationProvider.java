@@ -24,8 +24,8 @@
 
 package io.kyligence.kap.rest.security;
 
-import static org.apache.kylin.common.exception.ServerErrorCode.LOGIN_FAILED;
 import static org.apache.kylin.common.exception.ServerErrorCode.USER_LOCKED;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.USER_LOGIN_FAILED;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -65,7 +65,7 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
     @Qualifier("userService")
     UserService userService;
 
-    @Autowired
+    @Autowired(required = false)
     @Qualifier("maintenanceModeService")
     MaintenanceModeSupporter maintenanceModeService;
 
@@ -124,14 +124,14 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
                 limitLoginLogger.error(msg, new KylinException(USER_LOCKED, e));
                 throw new BadCredentialsException(msg, new KylinException(USER_LOCKED, e));
             } else {
-                limitLoginLogger.error(MsgPicker.getMsg().getUSER_AUTH_FAILED());
-                throw new BadCredentialsException(MsgPicker.getMsg().getUSER_AUTH_FAILED());
+                limitLoginLogger.error(USER_LOGIN_FAILED.getMsg());
+                throw new BadCredentialsException(USER_LOGIN_FAILED.getMsg());
             }
         } catch (UsernameNotFoundException e) {
-            throw new BadCredentialsException(MsgPicker.getMsg().getUSER_AUTH_FAILED(),
-                    new KylinException(LOGIN_FAILED, MsgPicker.getMsg().getUSER_AUTH_FAILED()));
+            throw new BadCredentialsException(USER_LOGIN_FAILED.getMsg(),
+                    new KylinException(USER_LOGIN_FAILED));
         } catch (IllegalArgumentException e) {
-            throw new BadCredentialsException(MsgPicker.getMsg().getUSER_AUTH_FAILED());
+            throw new BadCredentialsException(USER_LOGIN_FAILED.getMsg());
         }
     }
 

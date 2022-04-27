@@ -24,6 +24,17 @@
 
 package io.kyligence.kap.rest.service;
 
+import static io.kyligence.kap.common.constant.Constants.KE_VERSION;
+import static io.kyligence.kap.metadata.model.schema.ImportModelContext.MODEL_REC_PATH;
+import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_EXPORT_ERROR;
+import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_IMPORT_ERROR;
+import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_METADATA_FILE_ERROR;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_ID_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_DUPLICATE;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_INVALID;
+import static org.apache.kylin.common.persistence.ResourceStore.METASTORE_UUID_TAG;
+import static org.apache.kylin.common.persistence.ResourceStore.VERSION_FILE;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -48,13 +59,11 @@ import java.util.zip.ZipOutputStream;
 
 import javax.xml.bind.DatatypeConverter;
 
-import io.kyligence.kap.common.constant.Constants;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.InMemResourceStore;
@@ -97,6 +106,7 @@ import io.kyligence.kap.metadata.model.schema.ModelImportChecker;
 import io.kyligence.kap.metadata.model.schema.SchemaChangeCheckResult;
 import io.kyligence.kap.metadata.model.schema.SchemaNodeType;
 import io.kyligence.kap.metadata.model.schema.SchemaUtil;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.util.QueryHisStoreUtil;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
@@ -133,15 +143,15 @@ public class MetaStoreService extends BasicService {
     public IndexPlanService indexPlanService;
 
     @Setter
-    @Autowired
+    @Autowired(required = false)
     private List<ModelChangeSupporter> modelChangeSupporters = Lists.newArrayList();
 
     public List<ModelPreviewResponse> getPreviewModels(String project, List<String> ids) {
         aclEvaluate.checkProjectWritePermission(project);
-        return modelService.getDataflowManager(project).listAllDataflows(true).stream()
+        return modelService.getManager(NDataflowManager.class, project).listAllDataflows(true).stream()
                 .filter(df -> ids.isEmpty() || ids.contains(df.getUuid())).map(df -> {
                     if (df.checkBrokenWithRelatedInfo()) {
-                        NDataModel dataModel = getDataModelManager(project).getDataModelDescWithoutInit(df.getUuid());
+                        NDataModel dataModel = getManager(NDataModelManager.class, project).getDataModelDescWithoutInit(df.getUuid());
                         dataModel.setBroken(true);
                         return dataModel;
                     } else {
@@ -152,7 +162,7 @@ public class MetaStoreService extends BasicService {
     }
 
     private ModelPreviewResponse getSimplifiedModelResponse(String project, NDataModel modelDesc) {
-        val projectManager = getProjectManager();
+        val projectManager = getManager(NProjectManager.class);
         val projectInstance = projectManager.getProject(project);
         ModelPreviewResponse modelPreviewResponse = new ModelPreviewResponse();
         modelPreviewResponse.setName(modelDesc.getAlias());
@@ -170,8 +180,9 @@ public class MetaStoreService extends BasicService {
         modelPreviewResponse.setStatus(status);
 
         if (!projectInstance.isExpertMode()) {
-            int rawRecItemCount = modelChangeSupporters.stream().map(listener -> listener.getRecItemSize(project, modelDesc.getUuid()))
-                    .reduce((a, b) -> a + b).get();
+            int rawRecItemCount = modelChangeSupporters.stream()
+                    .map(listener -> listener.getRecItemSize(project, modelDesc.getUuid())).reduce((a, b) -> a + b)
+                    .orElse(0);
             if (rawRecItemCount > 0) {
                 modelPreviewResponse.setHasRecommendation(true);
             }
@@ -182,11 +193,11 @@ public class MetaStoreService extends BasicService {
                     .setHasMultiplePartitionValues(!modelDesc.getMultiPartitionDesc().getPartitions().isEmpty());
         }
 
-        NIndexPlanManager indexPlanManager = getIndexPlanManager(modelDesc.getProject());
+        NIndexPlanManager indexPlanManager = getManager(NIndexPlanManager.class, modelDesc.getProject());
         IndexPlan indexPlan = indexPlanManager.getIndexPlan(modelDesc.getUuid());
         if (!isEmptyAfterExcludeBlockData(indexPlan)
                 || (modelDesc.getSegmentConfig() != null && modelDesc.getSegmentConfig().getAutoMergeEnabled() != null
-                && modelDesc.getSegmentConfig().getAutoMergeEnabled())) {
+                        && modelDesc.getSegmentConfig().getAutoMergeEnabled())) {
             modelPreviewResponse.setHasOverrideProps(true);
         }
 
@@ -216,8 +227,8 @@ public class MetaStoreService extends BasicService {
     public ByteArrayOutputStream getCompressedModelMetadata(String project, List<String> modelList,
             boolean exportRecommendations, boolean exportOverProps, boolean exportMultiplePartition) throws Exception {
         aclEvaluate.checkProjectWritePermission(project);
-        NDataModelManager modelManager = modelService.getDataModelManager(project);
-        NIndexPlanManager indexPlanManager = modelService.getIndexPlanManager(project);
+        NDataModelManager modelManager = modelService.getManager(NDataModelManager.class, project);
+        NIndexPlanManager indexPlanManager = modelService.getManager(NIndexPlanManager.class, project);
 
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         try (ZipOutputStream zipOutputStream = new ZipOutputStream(byteArrayOutputStream)) {
@@ -229,11 +240,10 @@ public class MetaStoreService extends BasicService {
             for (String modelId : modelList) {
                 NDataModel dataModelDesc = modelManager.getDataModelDesc(modelId);
                 if (Objects.isNull(dataModelDesc)) {
-                    throw new KylinException(ServerErrorCode.MODEL_NOT_EXIST,
-                            String.format(Locale.ROOT, MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelId));
+                    throw new KylinException(MODEL_ID_NOT_EXIST, modelId);
                 }
                 if (dataModelDesc.isBroken()) {
-                    throw new KylinException(ServerErrorCode.MODEL_EXPORT_ERROR,
+                    throw new KylinException(MODEL_EXPORT_ERROR,
                             String.format(Locale.ROOT, MsgPicker.getMsg().getEXPORT_BROKEN_MODEL(), modelId));
                 }
 
@@ -280,12 +290,12 @@ public class MetaStoreService extends BasicService {
                 }
             }
             if (CollectionUtils.isEmpty(newResourceStore.listResourcesRecursively(META_ROOT_PATH))) {
-                throw new KylinException(ServerErrorCode.MODEL_METADATA_FILE_ERROR, MsgPicker.getMsg().getEXPORT_AT_LEAST_ONE_MODEL());
+                throw new KylinException(MODEL_METADATA_FILE_ERROR, MsgPicker.getMsg().getEXPORT_AT_LEAST_ONE_MODEL());
             }
 
             // add version file
-            String version = System.getProperty(Constants.KE_VERSION) == null ? "unknown" : System.getProperty(Constants.KE_VERSION);
-            newResourceStore.putResourceWithoutCheck(ResourceStore.VERSION_FILE,
+            String version = System.getProperty(KE_VERSION) == null ? "unknown" : System.getProperty(KE_VERSION);
+            newResourceStore.putResourceWithoutCheck(VERSION_FILE,
                     ByteSource.wrap(version.getBytes(Charset.defaultCharset())), System.currentTimeMillis(), -1);
 
             oldResourceStore.copy(ResourceStore.METASTORE_UUID_TAG, newResourceStore);
@@ -295,7 +305,7 @@ public class MetaStoreService extends BasicService {
     }
 
     private void exportRecommendations(String project, String modelId, ResourceStore resourceStore) throws Exception {
-        val projectManager = getProjectManager();
+        val projectManager = getManager(NProjectManager.class);
         val projectInstance = projectManager.getProject(project);
         if (projectInstance.isExpertMode()) {
             logger.info("Skip export recommendations because project {} is expert mode.", project);
@@ -321,7 +331,7 @@ public class MetaStoreService extends BasicService {
         List<RawRecItem> rawRecItems = jdbcRawRecStore.list(rawRecIds).stream()
                 .sorted(Comparator.comparingInt(RawRecItem::getId)).collect(Collectors.toList());
 
-        resourceStore.putResourceWithoutCheck(String.format(Locale.ROOT, ImportModelContext.MODEL_REC_PATH, project, modelId),
+        resourceStore.putResourceWithoutCheck(String.format(Locale.ROOT, MODEL_REC_PATH, project, modelId),
                 ByteSource.wrap(JsonUtil.writeValueAsIndentBytes(rawRecItems)), System.currentTimeMillis(), -1);
     }
 
@@ -341,7 +351,7 @@ public class MetaStoreService extends BasicService {
                 val bs = ByteSource.wrap(IOUtils.toByteArray(zipInputStream));
                 long t = zipEntry.getTime();
                 String resPath = StringUtils.prependIfMissing(zipEntry.getName(), "/");
-                if (!resPath.startsWith(ResourceStore.METASTORE_UUID_TAG) && !resPath.equals(ResourceStore.VERSION_FILE)
+                if (!resPath.startsWith(METASTORE_UUID_TAG) && !resPath.equals(VERSION_FILE)
                         && !resPath.endsWith(".json")) {
                     continue;
                 }
@@ -385,7 +395,7 @@ public class MetaStoreService extends BasicService {
         }
 
         if (!valid) {
-            throw new KylinException(ServerErrorCode.MODEL_METADATA_FILE_ERROR, MsgPicker.getMsg().getILLEGAL_MODEL_METADATA_FILE());
+            throw new KylinException(MODEL_METADATA_FILE_ERROR, MsgPicker.getMsg().getILLEGAL_MODEL_METADATA_FILE());
         }
 
         Map<String, RawResource> rawResourceMap = getRawResourceFromUploadFile(uploadFile);
@@ -413,7 +423,7 @@ public class MetaStoreService extends BasicService {
         MetadataChecker.VerifyResult verifyResult = metadataChecker
                 .verifyModelMetadata(Lists.newArrayList(rawResourceList));
         if (!verifyResult.isModelMetadataQualified()) {
-            throw new KylinException(ServerErrorCode.MODEL_METADATA_FILE_ERROR, MsgPicker.getMsg().getMODEL_METADATA_PACKAGE_INVALID());
+            throw new KylinException(MODEL_METADATA_FILE_ERROR, MsgPicker.getMsg().getMODEL_METADATA_PACKAGE_INVALID());
         }
     }
 
@@ -422,13 +432,13 @@ public class MetaStoreService extends BasicService {
                 resourcePath -> resourcePath.indexOf(File.separator) != resourcePath.lastIndexOf(File.separator))
                 .findAny().orElse(null);
         if (StringUtils.isBlank(anyPath)) {
-            throw new KylinException(ServerErrorCode.MODEL_METADATA_FILE_ERROR, MsgPicker.getMsg().getMODEL_METADATA_PACKAGE_INVALID());
+            throw new KylinException(MODEL_METADATA_FILE_ERROR, MsgPicker.getMsg().getMODEL_METADATA_PACKAGE_INVALID());
         }
         return anyPath.split(File.separator)[1];
     }
 
     /**
-     * 
+     *
      * @param nDataModel
      * @param modelImport
      * @param project
@@ -436,7 +446,7 @@ public class MetaStoreService extends BasicService {
      */
     private void createNewModel(NDataModel nDataModel, ModelImportRequest.ModelImport modelImport, String project,
             NIndexPlanManager importIndexPlanManager) {
-        NDataModelManager dataModelManager = getDataModelManager(project);
+        NDataModelManager dataModelManager = getManager(NDataModelManager.class, project);
 
         nDataModel.setProject(project);
         nDataModel.setAlias(modelImport.getTargetName());
@@ -445,8 +455,8 @@ public class MetaStoreService extends BasicService {
         nDataModel.setMvcc(-1);
         dataModelManager.createDataModelDesc(nDataModel, AclPermissionUtil.getCurrentUsername());
 
-        NIndexPlanManager indexPlanManager = getIndexPlanManager(project);
-        NDataflowManager dataflowManager = getDataflowManager(project);
+        NIndexPlanManager indexPlanManager = getManager(NIndexPlanManager.class, project);
+        NDataflowManager dataflowManager = getManager(NDataflowManager.class, project);
         var indexPlan = importIndexPlanManager.getIndexPlanByModelAlias(modelImport.getTargetName()).copy();
         indexPlan.setUuid(nDataModel.getUuid());
         indexPlan = indexPlanManager.copy(indexPlan);
@@ -457,7 +467,7 @@ public class MetaStoreService extends BasicService {
     }
 
     /**
-     * 
+     *
      * @param project
      * @param nDataModel
      * @param modelImport
@@ -465,7 +475,7 @@ public class MetaStoreService extends BasicService {
      */
     private void updateModel(String project, NDataModel nDataModel, ModelImportRequest.ModelImport modelImport,
             boolean hasModelOverrideProps) {
-        NDataModelManager dataModelManager = getDataModelManager(project);
+        NDataModelManager dataModelManager = getManager(NDataModelManager.class, project);
         NDataModel originalDataModel = dataModelManager.getDataModelDescByAlias(modelImport.getOriginalName());
         nDataModel.setProject(project);
         nDataModel.setUuid(originalDataModel.getUuid());
@@ -494,7 +504,7 @@ public class MetaStoreService extends BasicService {
     }
 
     /**
-     * 
+     *
      * @param project
      * @param nDataModel
      * @param targetIndexPlan
@@ -510,7 +520,7 @@ public class MetaStoreService extends BasicService {
                     nDataModel.getUuid(), false, new RuleBasedIndex()));
         }
 
-        NIndexPlanManager indexPlanManager = getIndexPlanManager(project);
+        NIndexPlanManager indexPlanManager = getManager(NIndexPlanManager.class, project);
         indexPlanManager.updateIndexPlan(nDataModel.getUuid(), copyForWrite -> {
             List<IndexEntity> toBeDeletedIndexes = copyForWrite.getToBeDeletedIndexes();
             toBeDeletedIndexes.clear();
@@ -527,7 +537,7 @@ public class MetaStoreService extends BasicService {
     }
 
     /**
-     * 
+     *
      * @param project
      * @param modelSchemaChange
      * @param targetIndexPlan
@@ -550,7 +560,7 @@ public class MetaStoreService extends BasicService {
     }
 
     /**
-     * 
+     *
      * @param project
      * @param modelSchemaChange
      * @param targetIndexPlan
@@ -590,7 +600,7 @@ public class MetaStoreService extends BasicService {
         if (!exceptions.isEmpty()) {
             String details = exceptions.stream().map(Exception::getMessage).collect(Collectors.joining("\n"));
 
-            throw new KylinException(ServerErrorCode.MODEL_IMPORT_ERROR,
+            throw new KylinException(MODEL_IMPORT_ERROR,
                     String.format(Locale.ROOT, "%s%n%s", MsgPicker.getMsg().getIMPORT_MODEL_EXCEPTION(), details),
                     exceptions);
         }
@@ -617,30 +627,30 @@ public class MetaStoreService extends BasicService {
                     val importDataModel = importDataModelManager.getDataModelDescByAlias(modelImport.getOriginalName());
                     val nDataModel = importDataModelManager.copyForWrite(importDataModel);
 
-                        // delete index, then remove dimension or measure
-                        val targetIndexPlan = importIndexPlanManager
-                                .getIndexPlanByModelAlias(modelImport.getOriginalName()).copy();
+                    // delete index, then remove dimension or measure
+                    val targetIndexPlan = importIndexPlanManager.getIndexPlanByModelAlias(modelImport.getOriginalName())
+                            .copy();
 
-                        boolean hasModelOverrideProps = (nDataModel.getSegmentConfig() != null
-                                && nDataModel.getSegmentConfig().getAutoMergeEnabled() != null
-                                && nDataModel.getSegmentConfig().getAutoMergeEnabled())
-                                || (!targetIndexPlan.getOverrideProps().isEmpty());
+                    boolean hasModelOverrideProps = (nDataModel.getSegmentConfig() != null
+                            && nDataModel.getSegmentConfig().getAutoMergeEnabled() != null
+                            && nDataModel.getSegmentConfig().getAutoMergeEnabled())
+                            || (!targetIndexPlan.getOverrideProps().isEmpty());
 
-                        val modelSchemaChange = schemaChangeCheckResult.getModels().get(modelImport.getTargetName());
+                    val modelSchemaChange = schemaChangeCheckResult.getModels().get(modelImport.getTargetName());
 
-                        removeIndexes(project, modelSchemaChange, targetIndexPlan);
-                        updateModel(project, nDataModel, modelImport, hasModelOverrideProps);
-                        updateIndexPlan(project, nDataModel, targetIndexPlan, hasModelOverrideProps);
-                        addWhiteListIndex(project, modelSchemaChange, targetIndexPlan);
+                    removeIndexes(project, modelSchemaChange, targetIndexPlan);
+                    updateModel(project, nDataModel, modelImport, hasModelOverrideProps);
+                    updateIndexPlan(project, nDataModel, targetIndexPlan, hasModelOverrideProps);
+                    addWhiteListIndex(project, modelSchemaChange, targetIndexPlan);
 
-                        importRecommendations(project, nDataModel.getUuid(), importDataModel.getUuid(),
-                                importModelContext.getTargetKylinConfig());
-                    }
-                } catch (Exception e) {
-                    logger.warn("Import model {} exception", modelImport.getOriginalName(), e);
-                    exceptions.add(e);
+                    importRecommendations(project, nDataModel.getUuid(), importDataModel.getUuid(),
+                            importModelContext.getTargetKylinConfig());
                 }
+            } catch (Exception e) {
+                logger.warn("Import model {} exception", modelImport.getOriginalName(), e);
+                exceptions.add(e);
             }
+        }
     }
 
     private void validateModelImport(String project, ModelImportRequest.ModelImport modelImport,
@@ -653,7 +663,7 @@ public class MetaStoreService extends BasicService {
                     .getDataModelDescByAlias(modelImport.getOriginalName());
 
             if (dataModel == null) {
-                throw new KylinException(ServerErrorCode.MODEL_IMPORT_ERROR, String.format(Locale.ROOT,
+                throw new KylinException(MODEL_IMPORT_ERROR, String.format(Locale.ROOT,
                         msg.getCAN_NOT_OVERWRITE_MODEL(), modelImport.getOriginalName(), modelImport.getImportType()));
             }
 
@@ -664,7 +674,7 @@ public class MetaStoreService extends BasicService {
                 if (modelSchemaChange != null && modelSchemaChange.creatable()) {
                     createType = "NEW";
                 }
-                throw new KylinException(ServerErrorCode.MODEL_IMPORT_ERROR,
+                throw new KylinException(MODEL_IMPORT_ERROR,
                         String.format(Locale.ROOT, msg.getUN_SUITABLE_IMPORT_TYPE(createType),
                                 modelImport.getImportType(), modelImport.getOriginalName()));
             }
@@ -672,22 +682,20 @@ public class MetaStoreService extends BasicService {
 
             if (!org.apache.commons.lang.StringUtils.containsOnly(modelImport.getTargetName(),
                     ModelService.VALID_NAME_FOR_MODEL)) {
-                throw new KylinException(ServerErrorCode.INVALID_MODEL_NAME, String.format(Locale.ROOT,
-                        MsgPicker.getMsg().getINVALID_MODEL_NAME(), modelImport.getTargetName()));
+                throw new KylinException(MODEL_NAME_INVALID, modelImport.getTargetName());
             }
 
             NDataModel dataModel = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                     .getDataModelDescByAlias(modelImport.getTargetName());
 
             if (dataModel != null) {
-                throw new KylinException(ServerErrorCode.INVALID_MODEL_NAME,
-                        String.format(Locale.ROOT, msg.getMODEL_ALIAS_DUPLICATED(), modelImport.getTargetName()));
+                throw new KylinException(MODEL_NAME_DUPLICATE, modelImport.getTargetName());
             }
 
             val modelSchemaChange = checkResult.getModels().get(modelImport.getTargetName());
 
             if (modelSchemaChange == null || !modelSchemaChange.creatable()) {
-                throw new KylinException(ServerErrorCode.MODEL_IMPORT_ERROR,
+                throw new KylinException(MODEL_IMPORT_ERROR,
                         String.format(Locale.ROOT, msg.getUN_SUITABLE_IMPORT_TYPE(null), modelImport.getImportType(),
                                 modelImport.getTargetName()));
             }
@@ -703,7 +711,7 @@ public class MetaStoreService extends BasicService {
      */
     private void importRecommendations(String project, String targetModelId, String srcModelId, KylinConfig kylinConfig)
             throws IOException {
-        val projectManager = getProjectManager();
+        val projectManager = getManager(NProjectManager.class);
         val projectInstance = projectManager.getProject(project);
         if (projectInstance.isExpertMode()) {
             modelChangeSupporters.forEach(listener -> listener.onUpdateSingle(project, targetModelId));

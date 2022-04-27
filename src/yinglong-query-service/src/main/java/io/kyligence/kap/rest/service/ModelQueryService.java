@@ -36,6 +36,8 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.model.FusionModelManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.rest.service.BasicService;
@@ -84,7 +86,7 @@ public class ModelQueryService extends BasicService implements ModelQuerySupport
         val exactMatch = queryParam.isExactMatch();
         val lastModifyFrom = queryParam.getLastModifyFrom();
         val lastModifyTo = queryParam.getLastModifyTo();
-        return getDataflowManager(projectName).listAllDataflows(true).parallelStream()
+        return getManager(NDataflowManager.class, projectName).listAllDataflows(true).parallelStream()
                 .map(df -> new ModelTriple(df,
                         df.checkBrokenWithRelatedInfo() ? getBrokenModel(projectName, df.getId()) : df.getModel()))
                 .filter(p -> !(Objects.nonNull(lastModifyFrom) && lastModifyFrom > p.getDataModel().getLastModified())
@@ -153,7 +155,7 @@ public class ModelQueryService extends BasicService implements ModelQuerySupport
     public List<ModelTriple> sortModels(List<ModelTriple> modelTripleList, String projectName, String sortBy,
             boolean reverse) {
         if (StringUtils.isEmpty(sortBy)) {
-            if (getProjectManager().getProject(projectName).isSemiAutoMode()) {
+            if (getManager(NProjectManager.class).getProject(projectName).isSemiAutoMode()) {
                 return modelTripleList.parallelStream()
                         .sorted(new ModelTripleComparator(ModelService.REC_COUNT, !reverse, SORT_KEY_DATA_MODEL))
                         .collect(Collectors.toList());
@@ -180,7 +182,7 @@ public class ModelQueryService extends BasicService implements ModelQuerySupport
     }
 
     private List<ModelTriple> sortByStorage(List<ModelTriple> tripleList, String projectName, boolean reverse) {
-        val dfMgr = getDataflowManager(projectName);
+        val dfMgr = getManager(NDataflowManager.class, projectName);
         tripleList.parallelStream().filter(t -> t.getDataModel().isFusionModel()).forEach(t -> {
             BiConsumer<NDataflow, NDataflow> expansionRateFunc = (streamingDataflow, batchDataflow) -> {
                 val totalStorageSize = streamingDataflow.getStorageBytesSize() + batchDataflow.getStorageBytesSize();
@@ -197,7 +199,7 @@ public class ModelQueryService extends BasicService implements ModelQuerySupport
     }
 
     private List<ModelTriple> sortByExpansionRate(List<ModelTriple> tripleList, String projectName, boolean reverse) {
-        val dfMgr = getDataflowManager(projectName);
+        val dfMgr = getManager(NDataflowManager.class, projectName);
         tripleList.parallelStream().filter(t -> t.getDataModel().isFusionModel()).forEach(t -> {
             BiConsumer<NDataflow, NDataflow> expansionRateFunc = (streamingDataflow, batchDataflow) -> {
                 val totalStorageSize = batchDataflow.getStorageBytesSize() + streamingDataflow.getStorageBytesSize();
@@ -231,7 +233,7 @@ public class ModelQueryService extends BasicService implements ModelQuerySupport
     private void calcOfFusionModel(String projectName, ModelTriple t, NDataflowManager dfMgr,
             BiConsumer<NDataflow, NDataflow> func) {
         val modelDesc = t.getDataModel();
-        FusionModel fusionModel = getFusionModelManager(projectName).getFusionModel(modelDesc.getFusionId());
+        FusionModel fusionModel = getManager(FusionModelManager.class, projectName).getFusionModel(modelDesc.getFusionId());
 
         val batchModel = fusionModel.getBatchModel();
         val streamingDataflow = t.getDataflow();

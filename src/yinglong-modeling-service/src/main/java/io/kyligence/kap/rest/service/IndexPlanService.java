@@ -23,6 +23,10 @@
  */
 package io.kyligence.kap.rest.service;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
+import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.INDEX_DUPLICATE;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -54,6 +58,7 @@ import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
@@ -96,6 +101,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.util.ExpandableMeasureUtil;
+import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import io.kyligence.kap.rest.aspect.Transaction;
 import io.kyligence.kap.rest.request.AggShardByColumnsRequest;
 import io.kyligence.kap.rest.request.CreateBaseIndexRequest;
@@ -128,7 +134,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
     @Autowired
     private AclEvaluate aclEvaluate;
 
-    @Autowired
+    @Autowired(required = false)
     private final List<ModelChangeSupporter> modelChangeSupporters = Lists.newArrayList();
 
     /**
@@ -163,7 +169,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
         aclEvaluate.checkProjectWritePermission(project);
         try {
             val kylinConfig = KylinConfig.getInstanceFromEnv();
-            val indexPlanManager = getIndexPlanManager(project);
+            val indexPlanManager = getManager(NIndexPlanManager.class, project);
             val modelManager = NDataModelManager.getInstance(kylinConfig, request.getProject());
             IndexPlan originIndexPlan = getIndexPlan(request.getProject(), request.getModelId());
             val model = modelManager.getDataModelDesc(request.getModelId());
@@ -185,7 +191,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
             return new Pair<>(indexPlanManager.getIndexPlan(originIndexPlan.getUuid()), response);
         } catch (Exception e) {
             logger.error("Update agg index failed...", e);
-            throw new KylinException(ServerErrorCode.FAILED_UPDATE_AGG_INDEX, e);
+            throw e;
         }
     }
 
@@ -206,7 +212,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
             return createTableIndex(project, request);
         } catch (Exception e) {
             logger.error("Update table index failed...", e);
-            throw new KylinException(ServerErrorCode.FAILED_UPDATE_TABLE_INDEX, e);
+            throw e;
         }
     }
 
@@ -255,12 +261,12 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
 
     public BuildIndexResponse createTableIndex(String project, String modelId, LayoutEntity newLayout,
             boolean loadData) {
-        NIndexPlanManager indexPlanManager = getIndexPlanManager(project);
-        val jobManager = getJobManager(project);
+        NIndexPlanManager indexPlanManager = getManager(NIndexPlanManager.class, project);
+        val jobManager = getManager(JobManager.class, project);
         IndexPlan indexPlan = indexPlanManager.getIndexPlan(modelId);
         for (LayoutEntity cuboidLayout : indexPlan.getAllLayouts()) {
             if (cuboidLayout.equals(newLayout) && cuboidLayout.isManual()) {
-                throw new KylinException(ServerErrorCode.DUPLICATE_INDEX, MsgPicker.getMsg().getDUPLICATE_LAYOUT());
+                throw new KylinException(INDEX_DUPLICATE);
             }
         }
         int layoutIndex = indexPlan.getWhitelistLayouts().indexOf(newLayout);
@@ -293,12 +299,12 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
             });
             modelChangeSupporters.forEach(listener -> listener.onUpdate(project, modelId));
             if (loadData) {
-                val df = getDataflowManager(project).getDataflow(modelId);
+                val df = getManager(NDataflowManager.class, project).getDataflow(modelId);
                 val readySegs = df.getSegments();
                 if (readySegs.isEmpty()) {
                     return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NO_SEGMENT);
                 }
-                getSourceUsageManager().licenseCheckWrap(project,
+                getManager(SourceUsageManager.class).licenseCheckWrap(project,
                         () -> jobManager.addIndexJob(new JobParam(indexPlan.getUuid(), BasicService.getUsername())));
                 return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NORM_BUILD);
             }
@@ -358,7 +364,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
             Set<Integer> invalidMeasures) {
         aclEvaluate.checkProjectWritePermission(project);
         if (CollectionUtils.isEmpty(ids)) {
-            throw new KylinException(ServerErrorCode.INVALID_PARAMETER, MsgPicker.getMsg().getLAYOUT_LIST_IS_EMPTY());
+            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getLAYOUT_LIST_IS_EMPTY());
         }
 
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
@@ -371,7 +377,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
                 .map(String::valueOf).collect(Collectors.joining(","));
 
         if (StringUtils.isNotEmpty(notExistsLayoutIds)) {
-            throw new KylinException(ServerErrorCode.INVALID_PARAMETER,
+            throw new KylinException(INVALID_PARAMETER,
                     String.format(Locale.ROOT, MsgPicker.getMsg().getLAYOUT_NOT_EXISTS(), notExistsLayoutIds));
         }
 
@@ -535,14 +541,14 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
         aclEvaluate.checkProjectWritePermission(project);
 
         val modelId = request.getModelId();
-        val indexPlanManager = getIndexPlanManager(project);
+        val indexPlanManager = getManager(NIndexPlanManager.class, project);
         val indexPlan = indexPlanManager.getIndexPlan(modelId);
         val model = indexPlan.getModel();
 
         val dimensions = model.getDimensionNameIdMap();
         for (String shardByColumn : request.getShardByColumns()) {
             if (!dimensions.containsKey(shardByColumn)) {
-                throw new KylinException(ServerErrorCode.PERMISSION_DENIED,
+                throw new KylinException(PERMISSION_DENIED,
                         String.format(Locale.ROOT, MsgPicker.getMsg().getCOLUMU_IS_NOT_DIMENSION(), shardByColumn));
             }
         }
@@ -552,15 +558,15 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
                     .collect(Collectors.toList()));
         });
         if (request.isLoadData()) {
-            val jobManager = getJobManager(project);
-            getSourceUsageManager().licenseCheckWrap(project,
+            val jobManager = getManager(JobManager.class, project);
+            getManager(SourceUsageManager.class).licenseCheckWrap(project,
                     () -> jobManager.addIndexJob(new JobParam(modelId, BasicService.getUsername())));
         }
     }
 
     public AggShardByColumnsResponse getShardByColumns(String project, String modelId) {
         aclEvaluate.checkProjectWritePermission(project);
-        val indexPlanManager = getIndexPlanManager(project);
+        val indexPlanManager = getManager(NIndexPlanManager.class, project);
         val indexPlan = indexPlanManager.getIndexPlan(modelId);
         val model = indexPlan.getModel();
         val result = new AggShardByColumnsResponse();
@@ -569,10 +575,10 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
         result.setShardByColumns(indexPlan.getAggShardByColumns().stream().map(model::getColumnNameByColumnId)
                 .collect(Collectors.toList()));
 
-        val df = getDataflowManager(project).getDataflow(modelId);
+        val df = getManager(NDataflowManager.class, project).getDataflow(modelId);
         Segments<NDataSegment> segments = df.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING, SegmentStatusEnum.NEW);
 
-        val executableManager = getExecutableManager(project);
+        val executableManager = getManager(NExecutableManager.class, project);
         List<AbstractExecutable> executables = executableManager.listExecByModelAndStatus(modelId,
                 ExecutableState::isProgressing, JobTypeEnum.INDEX_BUILD, JobTypeEnum.INC_BUILD,
                 JobTypeEnum.INDEX_REFRESH, JobTypeEnum.INDEX_MERGE);
@@ -936,7 +942,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
     }
 
     public void reloadLayouts(String project, String modelId, Set<Long> changedLayouts) {
-        getIndexPlanManager(project).updateIndexPlan(modelId, copy -> {
+        getManager(NIndexPlanManager.class, project).updateIndexPlan(modelId, copy -> {
             val indexes = changedLayouts.stream()
                     .map(layout -> (layout / IndexEntity.INDEX_ID_STEP) * IndexEntity.INDEX_ID_STEP)
                     .collect(Collectors.toSet());
@@ -984,10 +990,10 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
 
     public void updateForMeasureChange(String project, String modelId, Set<Integer> invalidMeasures,
             Map<Integer, Integer> replacedMeasure) {
-        if (getIndexPlanManager(project).getIndexPlan(modelId).getRuleBasedIndex() == null)
+        if (getManager(NIndexPlanManager.class, project).getIndexPlan(modelId).getRuleBasedIndex() == null)
             return;
 
-        getIndexPlanManager(project).updateIndexPlan(modelId, copy -> {
+        getManager(NIndexPlanManager.class, project).updateIndexPlan(modelId, copy -> {
             val copyRuleBaseIndex = JsonUtil.deepCopyQuietly(copy.getRuleBasedIndex(), RuleBasedIndex.class);
 
             for (ListIterator<Integer> measureItr = copyRuleBaseIndex.getMeasures().listIterator(); measureItr
@@ -1026,7 +1032,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
     public void clearShardColIfNotDim(String project, String modelId) {
         aclEvaluate.checkProjectWritePermission(project);
 
-        val indexPlanManager = getIndexPlanManager(project);
+        val indexPlanManager = getManager(NIndexPlanManager.class, project);
         val indexPlan = indexPlanManager.getIndexPlan(modelId);
         val dimensions = indexPlan.getModel().getEffectiveDimensions();
 
@@ -1072,7 +1078,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
     private Set<Long> checkNeedUpdateBaseIndex(String project, CreateBaseIndexRequest request, boolean isAuto) {
         String modelId = request.getModelId();
         IndexPlan indexPlan = getIndexPlan(project, modelId);
-        NDataModel model = getDataModelManager(project).getDataModelDesc(request.getModelId());
+        NDataModel model = getManager(NDataModelManager.class, project).getDataModelDesc(request.getModelId());
         Set<Long> needDelete = Sets.newHashSet();
         Set<IndexEntity.Source> updateTypes = Sets.newHashSet();
 
@@ -1126,8 +1132,8 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
     @Transaction(project = 0)
     public BuildBaseIndexResponse createBaseIndex(String project, CreateBaseIndexRequest request) {
         aclEvaluate.checkProjectWritePermission(project);
-        NDataModel model = getDataModelManager(project).getDataModelDesc(request.getModelId());
-        NIndexPlanManager indexPlanManager = getIndexPlanManager(project);
+        NDataModel model = getManager(NDataModelManager.class, project).getDataModelDesc(request.getModelId());
+        NIndexPlanManager indexPlanManager = getManager(NIndexPlanManager.class, project);
         IndexPlan indexPlan = indexPlanManager.getIndexPlan(request.getModelId());
 
         List<LayoutEntity> needCreateBaseLayouts = getNotCreateBaseLayout(model, indexPlan, request);
@@ -1214,7 +1220,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
     private void updateSecondStorage(String project, String modelId) {
         if (SecondStorageUtil.isModelEnable(project, modelId)) {
             SecondStorageUpdater updater = SpringContext.getBean(SecondStorageUpdater.class);
-            updater.onUpdate(project, modelId);
+            updater.updateIndex(project, modelId);
         }
     }
 

@@ -25,6 +25,10 @@
 package io.kyligence.kap.tool;
 
 import static java.util.stream.Collectors.toList;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -42,10 +46,14 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.util.OptionBuilder;
+import org.apache.commons.cli.Option;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.assertj.core.api.Assertions;
 import org.junit.After;
@@ -66,6 +74,7 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import lombok.val;
+import org.springframework.test.util.ReflectionTestUtils;
 
 public class AuditLogToolTest extends NLocalFileMetadataTestCase {
 
@@ -74,6 +83,21 @@ public class AuditLogToolTest extends NLocalFileMetadataTestCase {
     private final static String AUDIT_LOG_SUFFIX = ".jsonl";
     private final static String TEST_RESTORE_TABLE = "test_audit_log_restore";
     private final static String DATA_DIR = "src/test/resources/ut_audit_log/";
+
+    private static final Option OPTION_START_TIME = OptionBuilder.getInstance().hasArg().withArgName("START_TIMESTAMP")
+            .withDescription("Specify the start timestamp (sec) (optional)").isRequired(false).create("startTime");
+
+    private static final Option OPTION_END_TIME = OptionBuilder.getInstance().hasArg().withArgName("END_TIMESTAMP")
+            .withDescription("Specify the end timestamp (sec) (optional)").isRequired(false).create("endTime");
+
+    private static final Option OPTION_JOB = OptionBuilder.getInstance().hasArg().withArgName("JOB_ID")
+            .withDescription("Specify the job (optional)").isRequired(false).create("job");
+
+    private static final Option OPTION_PROJECT = OptionBuilder.getInstance().hasArg().withArgName("OPTION_PROJECT")
+            .withDescription("Specify project (optional)").isRequired(false).create("project");
+
+    private static final Option OPTION_TABLE = OptionBuilder.getInstance().hasArg().withArgName("TABLE_NAME")
+            .withDescription("Specify the table (optional)").isRequired(false).create("table");
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
@@ -128,6 +152,92 @@ public class AuditLogToolTest extends NLocalFileMetadataTestCase {
         long after = jdbcTemplate
                 .queryForObject(String.format(Locale.ROOT, "select count(1) from %s", TEST_RESTORE_TABLE), Long.class);
         Assertions.assertThat(after).isEqualTo(before);
+    }
+
+    @Test
+    public void testExtractJob_throwsException() {
+        AuditLogTool auditLogTool = new AuditLogTool();
+        OptionsHelper optionsHelper = mock(OptionsHelper.class);
+
+        // test throwing PARAMETER_NOT_SPECIFY "-project"
+        when(optionsHelper.hasOption(OPTION_PROJECT)).thenReturn(false);
+        try {
+            ReflectionTestUtils.invokeMethod(auditLogTool, "extractJob", optionsHelper, "");
+        } catch (Exception e) {
+            assertTrue(e instanceof KylinException);
+            assertEquals("KE-050040202: \"-project\" is not specified.", e.toString());
+        }
+
+        // test throwing PARAMETER_EMPTY "project"
+        when(optionsHelper.hasOption(OPTION_PROJECT)).thenReturn(true);
+        when(optionsHelper.getOptionValue(OPTION_PROJECT)).thenReturn(null);
+        try {
+            ReflectionTestUtils.invokeMethod(auditLogTool, "extractJob", optionsHelper, "");
+        } catch (Exception e) {
+            assertTrue(e instanceof KylinException);
+            assertEquals("KE-050040201: \"project\" is empty.", e.toString());
+        }
+
+        // test throwing PARAMETER_EMPTY "job"
+        when(optionsHelper.hasOption(OPTION_PROJECT)).thenReturn(true);
+        when(optionsHelper.getOptionValue(OPTION_PROJECT)).thenReturn("PROJECT_NAME_TEST");
+        when(optionsHelper.getOptionValue(OPTION_JOB)).thenReturn(null);
+        try {
+            ReflectionTestUtils.invokeMethod(auditLogTool, "extractJob", optionsHelper, "");
+        } catch (Exception e) {
+            assertTrue(e instanceof KylinException);
+            assertEquals("KE-050040201: \"job\" is empty.", e.toString());
+        }
+    }
+
+    @Test
+    public void testExtractFull_throwsException() {
+        AuditLogTool auditLogTool = new AuditLogTool();
+        OptionsHelper optionsHelper = mock(OptionsHelper.class);
+
+        // test throwing PARAMETER_TIMESTAMP_NOT_SPECIFY "-startTime"
+        when(optionsHelper.hasOption(OPTION_START_TIME)).thenReturn(false);
+        try {
+            ReflectionTestUtils.invokeMethod(auditLogTool, "extractFull", optionsHelper, "");
+        } catch (Exception e) {
+            assertTrue(e instanceof KylinException);
+            assertEquals("KE-050040203: Parameter \"-startTime\"  is not specified (milliseconds).", e.toString());
+        }
+
+        // test throwing PARAMETER_TIMESTAMP_NOT_SPECIFY "-endTime"
+        when(optionsHelper.hasOption(OPTION_START_TIME)).thenReturn(true);
+        when(optionsHelper.hasOption(OPTION_END_TIME)).thenReturn(false);
+        try {
+            ReflectionTestUtils.invokeMethod(auditLogTool, "extractFull", optionsHelper, "");
+        } catch (Exception e) {
+            assertTrue(e instanceof KylinException);
+            assertEquals("KE-050040203: Parameter \"-endTime\"  is not specified (milliseconds).", e.toString());
+        }
+    }
+
+    @Test
+    public void testRestore_throwsException() {
+        AuditLogTool auditLogTool = new AuditLogTool();
+        OptionsHelper optionsHelper = mock(OptionsHelper.class);
+
+        // test throwing PARAMETER_NOT_SPECIFY "-table"
+        when(optionsHelper.hasOption(OPTION_TABLE)).thenReturn(false);
+        try {
+            ReflectionTestUtils.invokeMethod(auditLogTool, "restore", optionsHelper, "");
+        } catch (Exception e) {
+            assertTrue(e instanceof KylinException);
+            assertEquals("KE-050040202: \"-table\" is not specified.", e.toString());
+        }
+
+        // test throwing PARAMETER_EMPTY "table"
+        when(optionsHelper.hasOption(OPTION_TABLE)).thenReturn(true);
+        when(optionsHelper.getOptionValue(OPTION_TABLE)).thenReturn(null);
+        try {
+            ReflectionTestUtils.invokeMethod(auditLogTool, "restore", optionsHelper, "");
+        } catch (Exception e) {
+            assertTrue(e instanceof KylinException);
+            assertEquals("KE-050040201: \"table\" is empty.", e.toString());
+        }
     }
 
     private void checkJsonl(long start, long end, File junitFolder) throws Exception {

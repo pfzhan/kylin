@@ -32,6 +32,9 @@ import io.kyligence.kap.clickhouse.ClickHouseStorage;
 import io.kyligence.kap.clickhouse.job.ClickHouseIndexCleanJob;
 import io.kyligence.kap.clickhouse.job.ClickHouseLoad;
 import io.kyligence.kap.clickhouse.job.ClickHouseModelCleanJob;
+import io.kyligence.kap.clickhouse.job.ClickHouseProjectCleanJob;
+import io.kyligence.kap.clickhouse.management.ClickHouseConfigLoader;
+import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import io.kyligence.kap.guava20.shaded.common.collect.ImmutableSet;
@@ -41,15 +44,19 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.newten.clickhouse.ClickHouseUtils;
 import io.kyligence.kap.newten.clickhouse.EmbeddedHttpServer;
+import io.kyligence.kap.rest.controller.NModelController;
 import io.kyligence.kap.rest.request.ModelRequest;
+import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
 import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
+import io.kyligence.kap.rest.service.FusionModelService;
 import io.kyligence.kap.rest.service.IndexPlanService;
 import io.kyligence.kap.rest.service.JobService;
 import io.kyligence.kap.rest.service.ModelBuildService;
@@ -59,10 +66,19 @@ import io.kyligence.kap.rest.service.NUserGroupService;
 import io.kyligence.kap.rest.service.SegmentHelper;
 import io.kyligence.kap.rest.service.params.MergeSegmentParams;
 import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
+import io.kyligence.kap.secondstorage.config.Node;
+import io.kyligence.kap.secondstorage.ddl.InsertInto;
+import io.kyligence.kap.secondstorage.ddl.exp.TableIdentifier;
+import io.kyligence.kap.secondstorage.enums.LockOperateTypeEnum;
+import io.kyligence.kap.secondstorage.enums.LockTypeEnum;
 import io.kyligence.kap.secondstorage.management.SecondStorageEndpoint;
 import io.kyligence.kap.secondstorage.management.SecondStorageScheduleService;
 import io.kyligence.kap.secondstorage.management.SecondStorageService;
+import io.kyligence.kap.secondstorage.management.request.ProjectNodeRequest;
+import io.kyligence.kap.secondstorage.management.request.ProjectTableSyncResponse;
+import io.kyligence.kap.secondstorage.management.request.SecondStorageMetadataRequest;
 import io.kyligence.kap.secondstorage.management.request.StorageRequest;
+import io.kyligence.kap.secondstorage.metadata.NodeGroup;
 import io.kyligence.kap.secondstorage.metadata.PartitionType;
 import io.kyligence.kap.secondstorage.metadata.TableData;
 import io.kyligence.kap.secondstorage.metadata.TableEntity;
@@ -78,15 +94,20 @@ import lombok.Data;
 import lombok.SneakyThrows;
 import lombok.val;
 import lombok.var;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.SecondStorageCleanJobBuildParams;
 import org.apache.kylin.job.SecondStorageJobParamUtil;
-import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.handler.AbstractJobHandler;
 import org.apache.kylin.job.handler.SecondStorageIndexCleanJobHandler;
+import org.apache.kylin.job.handler.SecondStorageSegmentLoadJobHandler;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -124,21 +145,29 @@ import java.sql.SQLException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static io.kyligence.kap.newten.clickhouse.ClickHouseUtils.configClickhouseWith;
+import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_PROJECT_STATUS_ERROR;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @RunWith(PowerMockRunner.class)
 @PowerMockRunnerDelegate(JUnit4.class)
 @PowerMockIgnore({"javax.net.ssl.*", "javax.management.*", "org.apache.hadoop.*", "javax.security.*", "javax.crypto.*", "javax.script.*"})
-@PrepareForTest({SpringContext.class})
+@PrepareForTest({SpringContext.class, InsertInto.class})
 public class SecondStorageLockTest implements JobWaiter {
     private final String modelId = "acfde546-2cc9-4eec-bc92-e3bd46d4e2ee";
     private final String userName = "ADMIN";
@@ -193,6 +222,13 @@ public class SecondStorageLockTest implements JobWaiter {
     @Mock
     private final SegmentHelper segmentHelper = Mockito.spy(new SegmentHelper());
 
+    @Mock
+    private final FusionModelService fusionModelService = Mockito.spy(new FusionModelService());
+
+    @Mock
+    private final NModelController nModelController = Mockito.spy(new NModelController());
+
+
     private EmbeddedHttpServer _httpServer = null;
     protected IndexDataConstructor indexDataConstructor;
     private final SparkSession ss = sharedSpark.getSpark();
@@ -221,6 +257,12 @@ public class SecondStorageLockTest implements JobWaiter {
         ReflectionTestUtils.setField(modelBuildService, "modelService", modelService);
         ReflectionTestUtils.setField(modelBuildService, "segmentHelper", segmentHelper);
         ReflectionTestUtils.setField(modelBuildService, "aclEvaluate", aclEvaluate);
+
+        ReflectionTestUtils.setField(nModelController, "modelService", modelService);
+        ReflectionTestUtils.setField(nModelController, "fusionModelService", fusionModelService);
+
+        ReflectionTestUtils.setField(fusionModelService, "modelService", modelService);
+
 
         System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
         System.setProperty("kylin.second-storage.class", ClickHouseStorage.class.getCanonicalName());
@@ -261,6 +303,455 @@ public class SecondStorageLockTest implements JobWaiter {
         SecondStorageCleanJobBuildParams params = new SecondStorageCleanJobBuildParams(null, jobParam, null);
         params.setSecondStorageDeleteLayoutIds(jobParam.getSecondStorageDeleteLayoutIds());
         assertNull(params.getSecondStorageDeleteLayoutIds());
+    }
+    @Test
+    public void testSegmentLoadWithRetry() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse()) {
+            testSegmentLoadWithRetry(1, clickhouse1);
+        }
+    }
+
+    @Test
+    public void testModelCleanJobWithAddColumn() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse()) {
+            final String catalog = "default";
+
+            Unsafe.setProperty(ClickHouseLoad.SOURCE_URL, getSourceUrl());
+            Unsafe.setProperty(ClickHouseLoad.ROOT_PATH, getLocalWorkingDirectory());
+
+            configClickhouseWith(new JdbcDatabaseContainer[]{clickhouse1}, 1, catalog, () -> {
+                secondStorageService.changeProjectSecondStorageState(getProject(), SecondStorageNodeHelper.getAllPairs(), true);
+                Assert.assertEquals(1, SecondStorageUtil.listProjectNodes(getProject()).size());
+                secondStorageService.changeModelSecondStorageState(getProject(), modelId, true);
+                setQuerySession(catalog, clickhouse1.getJdbcUrl(), clickhouse1.getDriverClassName());
+
+                long jobCnt = getNExecutableManager().getAllExecutables().stream().filter(ClickHouseModelCleanJob.class::isInstance).count();
+
+                ModelRequest request = getChangedModelRequest("TRANS_ID");
+                EnvelopeResponse<BuildBaseIndexResponse> res1 = nModelController.updateSemantic(request);
+                assertEquals("000", res1.getCode());
+                jobCnt++;
+                assertEquals(jobCnt, getNExecutableManager().getAllExecutables().stream().filter(ClickHouseModelCleanJob.class::isInstance).count());
+
+                request = getChangedModelRequest("LEAF_CATEG_ID");
+                request.setWithSecondStorage(false);
+                EnvelopeResponse<BuildBaseIndexResponse> res2 = nModelController.updateSemantic(request);
+                assertEquals("000", res2.getCode());
+                jobCnt++;
+                assertEquals(jobCnt, getNExecutableManager().getAllExecutables().stream().filter(ClickHouseModelCleanJob.class::isInstance).count());
+
+                return null;
+            });
+        }
+    }
+
+    @Test
+    public void testModelCleanJobWithChangePartition() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse()) {
+            final String catalog = "default";
+
+            Unsafe.setProperty(ClickHouseLoad.SOURCE_URL, getSourceUrl());
+            Unsafe.setProperty(ClickHouseLoad.ROOT_PATH, getLocalWorkingDirectory());
+
+            configClickhouseWith(new JdbcDatabaseContainer[]{clickhouse1}, 1, catalog, () -> {
+                secondStorageService.changeProjectSecondStorageState(getProject(), SecondStorageNodeHelper.getAllPairs(), true);
+                Assert.assertEquals(1, SecondStorageUtil.listProjectNodes(getProject()).size());
+                secondStorageService.changeModelSecondStorageState(getProject(), modelId, true);
+                setQuerySession(catalog, clickhouse1.getJdbcUrl(), clickhouse1.getDriverClassName());
+
+                val partitionDesc = getNDataModel().getPartitionDesc();
+                partitionDesc.setPartitionDateFormat("yyyy-MM-dd");
+
+                long jobCnt = getNExecutableManager().getAllExecutables().stream().filter(ClickHouseModelCleanJob.class::isInstance).count();
+
+                getNDataModelManager().updateDataModel(modelId, copier -> copier.setManagementType(ManagementType.MODEL_BASED));
+
+                ModelRequest request = getChangedModelRequestWithNoPartition("TRANS_ID");
+                EnvelopeResponse<BuildBaseIndexResponse> res1 = nModelController.updateSemantic(request);
+                assertEquals("000", res1.getCode());
+                jobCnt++;
+                assertEquals(jobCnt, getNExecutableManager().getAllExecutables().stream().filter(ClickHouseModelCleanJob.class::isInstance).count());
+
+                request = getChangedModelRequestWithPartition("LEAF_CATEG_ID", partitionDesc);
+                EnvelopeResponse<BuildBaseIndexResponse> res2 = nModelController.updateSemantic(request);
+                assertEquals("000", res2.getCode());
+                jobCnt++;
+                assertEquals(jobCnt, getNExecutableManager().getAllExecutables().stream().filter(ClickHouseModelCleanJob.class::isInstance).count());
+
+                request = getChangedModelRequestWithNoPartition("TEST_COUNT_DISTINCT_BITMAP");
+                request.setWithSecondStorage(false);
+                EnvelopeResponse<BuildBaseIndexResponse> res3 = nModelController.updateSemantic(request);
+                assertEquals("000", res3.getCode());
+                jobCnt++;
+                assertEquals(jobCnt, getNExecutableManager().getAllExecutables().stream().filter(ClickHouseModelCleanJob.class::isInstance).count());
+
+                return null;
+            });
+        }
+    }
+
+    @Test
+    public void testDropModelWithSecondStorage() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse()) {
+            final String catalog = "default";
+
+            Unsafe.setProperty(ClickHouseLoad.SOURCE_URL, getSourceUrl());
+            Unsafe.setProperty(ClickHouseLoad.ROOT_PATH, getLocalWorkingDirectory());
+
+            configClickhouseWith(new JdbcDatabaseContainer[]{clickhouse1}, 1, catalog, () -> {
+                secondStorageService.changeProjectSecondStorageState(getProject(), SecondStorageNodeHelper.getAllPairs(), true);
+                Assert.assertEquals(1, SecondStorageUtil.listProjectNodes(getProject()).size());
+                secondStorageService.changeModelSecondStorageState(getProject(), modelId, true);
+
+                Assert.assertTrue(getIndexPlan().containBaseTableLayout());
+                ModelRequest request = new ModelRequest();
+                request.setWithSecondStorage(true);
+                request.setUuid(modelId);
+                BuildBaseIndexResponse changedResponse = mock(BuildBaseIndexResponse.class);
+                Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded(eq("default"), eq(request), eq(() -> true));
+                when(changedResponse.hasTableIndexChange()).thenReturn(true);
+
+                modelService.dropModel(modelId, getProject());
+
+                val tableFlowManager = SecondStorageUtil.tableFlowManager(KylinConfig.getInstanceFromEnv(), getProject());
+                val tableFlow = tableFlowManager.get().get(modelId);
+                Assert.assertFalse(tableFlow.isPresent());
+
+                return null;
+            });
+        }
+    }
+
+    @Test
+    public void changeSecondStorageIfNeeded() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse()) {
+            final String catalog = "default";
+
+            Unsafe.setProperty(ClickHouseLoad.SOURCE_URL, getSourceUrl());
+            Unsafe.setProperty(ClickHouseLoad.ROOT_PATH, getLocalWorkingDirectory());
+
+            configClickhouseWith(new JdbcDatabaseContainer[]{clickhouse1}, 1, catalog, () -> {
+                secondStorageService.changeProjectSecondStorageState(getProject(), SecondStorageNodeHelper.getAllPairs(), true);
+                Assert.assertEquals(1, SecondStorageUtil.listProjectNodes(getProject()).size());
+                secondStorageService.changeModelSecondStorageState(getProject(), modelId, true);
+
+                Assert.assertTrue(getIndexPlan().containBaseTableLayout());
+                ModelRequest request = new ModelRequest();
+                request.setWithSecondStorage(false);
+                request.setUuid(modelId);
+
+                modelService.changeSecondStorageIfNeeded(getProject(), request, () -> true);
+                Assert.assertFalse(SecondStorageUtil.isModelEnable(getProject(), modelId));
+
+                request.setWithSecondStorage(true);
+                modelService.changeSecondStorageIfNeeded(getProject(), request, () -> true);
+                Assert.assertTrue(SecondStorageUtil.isModelEnable(getProject(), modelId));
+
+                request.setWithSecondStorage(true);
+                modelService.changeSecondStorageIfNeeded(getProject(), request, () -> true);
+                Assert.assertTrue(SecondStorageUtil.isModelEnable(getProject(), modelId));
+
+                request.setWithSecondStorage(false);
+                modelService.changeSecondStorageIfNeeded(getProject(), request, () -> true);
+                Assert.assertFalse(SecondStorageUtil.isModelEnable(getProject(), modelId));
+
+                return null;
+            });
+        }
+    }
+
+    @Test
+    public void testPurgeModelWithSecondStorage() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse()) {
+            final String catalog = "default";
+
+            Unsafe.setProperty(ClickHouseLoad.SOURCE_URL, getSourceUrl());
+            Unsafe.setProperty(ClickHouseLoad.ROOT_PATH, getLocalWorkingDirectory());
+
+            configClickhouseWith(new JdbcDatabaseContainer[]{clickhouse1}, 1, catalog, () -> {
+                secondStorageService.changeProjectSecondStorageState(getProject(), SecondStorageNodeHelper.getAllPairs(), true);
+                Assert.assertEquals(1, SecondStorageUtil.listProjectNodes(getProject()).size());
+                secondStorageService.changeModelSecondStorageState(getProject(), modelId, true);
+
+                Assert.assertTrue(getIndexPlan().containBaseTableLayout());
+
+                modelService.purgeModel(modelId, getProject());
+
+                val tableFlowManager = SecondStorageUtil.tableFlowManager(KylinConfig.getInstanceFromEnv(), getProject());
+                val tableFlow = tableFlowManager.get().get(modelId);
+                Assert.assertFalse(tableFlow.isPresent());
+                return null;
+            });
+        }
+    }
+
+    public void testSegmentLoadWithRetry(int replica, JdbcDatabaseContainer<?>... clickhouse) throws Exception {
+        PowerMockito.mockStatic(InsertInto.class);
+        PowerMockito.when(InsertInto.insertInto(Mockito.anyString(), Mockito.anyString()))
+                .thenThrow(new SQLException("broken pipe HTTPSession"));
+
+        final String catalog = "default";
+        Unsafe.setProperty(ClickHouseLoad.SOURCE_URL, getSourceUrl());
+        Unsafe.setProperty(ClickHouseLoad.ROOT_PATH, getLocalWorkingDirectory());
+
+        configClickhouseWith(clickhouse, replica, catalog, () -> {
+            secondStorageService.changeProjectSecondStorageState(getProject(), SecondStorageNodeHelper.getAllPairs(), true);
+            Assert.assertEquals(clickhouse.length, SecondStorageUtil.listProjectNodes(getProject()).size());
+            secondStorageService.changeModelSecondStorageState(getProject(), modelId, true);
+            setQuerySession(catalog, clickhouse[0].getJdbcUrl(), clickhouse[0].getDriverClassName());
+
+            buildIncrementalLoadQuery(); // build table index
+            checkHttpServer(); // check http server
+
+            val segments = new HashSet<>(getDataFlow().getSegments());
+            AbstractJobHandler localHandler = new SecondStorageSegmentLoadJobHandler();
+            JobParam jobParam = SecondStorageJobParamUtil.of(getProject(), getDataFlow().getModel().getUuid(), "ADMIN",
+                    segments.stream().map(NDataSegment::getId));
+            String jobId = ClickHouseUtils.simulateJobMangerAddJob(jobParam, localHandler);
+            TimeUnit.MILLISECONDS.sleep(20000);
+            PowerMockito.doCallRealMethod().when(InsertInto.class);
+            InsertInto.insertInto(Mockito.anyString(), Mockito.anyString());
+            waitJobFinish(getProject(), jobId);
+            return true;
+        });
+    }
+
+    @Test
+    public void testDeleteShard() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse()) {
+
+            final String catalog = "default";
+
+            Unsafe.setProperty(ClickHouseLoad.SOURCE_URL, getSourceUrl());
+            Unsafe.setProperty(ClickHouseLoad.ROOT_PATH, getLocalWorkingDirectory());
+            val clickhouse = new JdbcDatabaseContainer[]{clickhouse1};
+            int replica = 1;
+            configClickhouseWith(clickhouse, replica, catalog, () -> {
+                ProjectNodeRequest request = new ProjectNodeRequest();
+                request.setProject("wrong");
+                Assert.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, null));
+                request.setProject(getProject());
+                Assert.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, null));
+
+                List<String> allPairs = SecondStorageNodeHelper.getAllPairs();
+                secondStorageService.changeProjectSecondStorageState(getProject(), allPairs, true);
+                Assert.assertEquals(clickhouse.length, SecondStorageUtil.listProjectNodes(getProject()).size());
+                secondStorageService.changeModelSecondStorageState(getProject(), modelId, true);
+                setQuerySession(catalog, clickhouse[0].getJdbcUrl(), clickhouse[0].getDriverClassName());
+
+                getBuildBaseLayout(new HashSet<>(), new HashSet<>(), clickhouse, replica);
+
+                val clickhouseNew = new JdbcDatabaseContainer[]{clickhouse1, clickhouse2};
+                ClickHouseUtils.internalConfigClickHouse(clickhouseNew, replica);
+                secondStorageService.changeProjectSecondStorageState(getProject(), ImmutableList.of("pair1"), true);
+                assertEquals(clickhouseNew.length, SecondStorageUtil.listProjectNodes(getProject()).size());
+
+                EnvelopeResponse<ProjectTableSyncResponse> response = secondStorageEndpoint.tableSync(getProject());
+                assertEquals("000", response.getCode());
+
+                deleteShardParamsCheck(request);
+
+                request.setForce(false);
+                val shardNames2 = ImmutableList.of("pair0");
+                assertThrows(TransactionException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, shardNames2));
+
+                EnvelopeResponse<List<String>> res1 = this.secondStorageEndpoint.deleteProjectNodes(request, ImmutableList.of("pair1"));
+                assertEquals("000", res1.getCode());
+                assertTrue(res1.getData().isEmpty());
+                checkDeletedStatus(Collections.singletonList("pair0"), Collections.singletonList("pair1"));
+
+                assertFalse(LockTypeEnum.locked(LockTypeEnum.LOAD.name(), SecondStorageUtil.getProjectLocks(getProject())));
+
+                assertEquals(clickhouse.length, SecondStorageUtil.listProjectNodes(getProject()).size());
+                secondStorageService.changeProjectSecondStorageState(getProject(), ImmutableList.of("pair1"), true);
+                assertEquals(clickhouseNew.length, SecondStorageUtil.listProjectNodes(getProject()).size());
+
+                EnvelopeResponse<ProjectTableSyncResponse> response2 = secondStorageEndpoint.tableSync(getProject());
+                assertEquals("000", response2.getCode());
+
+                secondStorageService.lockOperate(getProject(), Collections.singletonList(LockTypeEnum.LOAD.name()), LockOperateTypeEnum.LOCK.name());
+
+                request.setForce(true);
+                List<String> shardNames = ImmutableList.of("pair0");
+                EnvelopeResponse<List<String>> res2 = this.secondStorageEndpoint.deleteProjectNodes(request, shardNames);
+                assertEquals("000", res2.getCode());
+                assertFalse(res2.getData().isEmpty());
+                checkDeletedStatus(Collections.singletonList("pair1"), Collections.singletonList("pair0"));
+                assertTrue(getTableFlow().getTableDataList().isEmpty());
+
+                assertEquals(1, getNExecutableManager().getAllExecutables().stream().filter(ClickHouseProjectCleanJob.class::isInstance).filter(s -> s.getId().equals(res2.getData().get(0))).count());
+
+                assertTrue(LockTypeEnum.locked(LockTypeEnum.LOAD.name(), SecondStorageUtil.getProjectLocks(getProject())));
+                secondStorageService.lockOperate(getProject(), Collections.singletonList(LockTypeEnum.LOAD.name()), LockOperateTypeEnum.UNLOCK.name());
+
+                return true;
+            });
+        }
+    }
+
+    @Test
+    public void testSizeInNode() throws Exception {
+        SecondStorageMetadataRequest request = new SecondStorageMetadataRequest();
+        request.setProject("");
+        Assert.assertThrows(
+                MsgPicker.getMsg().getEMPTY_PROJECT_NAME(),
+                KylinException.class,
+                () -> this.secondStorageEndpoint.sizeInNode(request));
+        request.setProject("123");
+        Assert.assertThrows("123", KylinException.class, () -> this.secondStorageEndpoint.sizeInNode(request));
+        request.setProject(getProject());
+        Assert.assertThrows(
+                String.format(Locale.ROOT, MsgPicker.getMsg().getSECOND_STORAGE_PROJECT_ENABLED(), getProject()),
+                KylinException.class, () -> this.secondStorageEndpoint.sizeInNode(request));
+
+        Assert.assertThrows(
+                MsgPicker.getMsg().getEMPTY_PROJECT_NAME(),
+                KylinException.class,
+                () -> this.secondStorageEndpoint.tableSync(""));
+        Assert.assertThrows("123", KylinException.class, () -> this.secondStorageEndpoint.tableSync("123"));
+        String project = getProject();
+        Assert.assertThrows(
+                String.format(Locale.ROOT, MsgPicker.getMsg().getSECOND_STORAGE_PROJECT_ENABLED(), getProject()),
+                KylinException.class, () -> this.secondStorageEndpoint.tableSync(project));
+    }
+
+    @Test
+    public void testDeleteShardHA() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse3 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse4 = ClickHouseUtils.startClickHouse()) {
+
+            final String catalog = "default";
+
+            Unsafe.setProperty(ClickHouseLoad.SOURCE_URL, getSourceUrl());
+            Unsafe.setProperty(ClickHouseLoad.ROOT_PATH, getLocalWorkingDirectory());
+            val clickhouse = new JdbcDatabaseContainer[]{clickhouse1, clickhouse2, clickhouse3, clickhouse4};
+            int replica = 2;
+            configClickhouseWith(clickhouse, replica, catalog, () -> {
+                List<String> allPairs = SecondStorageNodeHelper.getAllPairs();
+                secondStorageService.changeProjectSecondStorageState(getProject(), allPairs, true);
+                Assert.assertEquals(clickhouse.length, SecondStorageUtil.listProjectNodes(getProject()).size());
+                secondStorageService.changeModelSecondStorageState(getProject(), modelId, true);
+                setQuerySession(catalog, clickhouse[0].getJdbcUrl(), clickhouse[0].getDriverClassName());
+
+                getBuildBaseLayout(new HashSet<>(), new HashSet<>(), clickhouse, replica);
+
+
+                ProjectNodeRequest request = new ProjectNodeRequest();
+                request.setProject(getProject());
+                request.setForce(true);
+                EnvelopeResponse<List<String>> res2 = this.secondStorageEndpoint.deleteProjectNodes(request, ImmutableList.of("pair1"));
+                assertEquals("000", res2.getCode());
+                assertFalse(res2.getData().isEmpty());
+                checkDeletedStatus(Collections.singletonList("pair0"), Collections.singletonList("pair1"));
+                assertTrue(getTableFlow().getTableDataList().isEmpty());
+
+                assertFalse(LockTypeEnum.locked(LockTypeEnum.LOAD.name(), SecondStorageUtil.getProjectLocks(getProject())));
+                assertEquals(1, getNExecutableManager().getAllExecutables().stream().filter(ClickHouseProjectCleanJob.class::isInstance).filter(s -> s.getId().equals(res2.getData().get(0))).count());
+                return true;
+            });
+        }
+    }
+
+    private void deleteShardParamsCheck(ProjectNodeRequest request) {
+        request.setProject(getProject());
+        Assert.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, null));
+
+        List<String> shardNames1 = Collections.emptyList();
+        Assert.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, shardNames1));
+
+        List<String> shardNames2 = ImmutableList.of("test");
+        Assert.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, shardNames2));
+
+        List<String> shardNames3 = ImmutableList.of("pair0", "test");
+        Assert.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, shardNames3));
+
+        List<String> shardNames4 = ImmutableList.of("pair0", "pair1");
+        Assert.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, shardNames4));
+
+        List<String> shardNames5 = ImmutableList.of("pair0");
+        Assert.assertThrows(TransactionException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, shardNames5));
+    }
+
+    private void checkDeletedStatus(List<String> shards, List<String> deletedShards) {
+        List<NodeGroup> nodeGroups = getNodeGroups();
+        Map<String, List<Node>> clusters = ClickHouseConfigLoader.getInstance().getCluster().getCluster();
+        assertEquals(clusters.get(shards.get(0)).size(), nodeGroups.size());
+        assertEquals(shards.size(), nodeGroups.get(0).getNodeNames().size());
+
+        shards.forEach(shard ->
+                nodeGroups.forEach(nodeGroup ->
+                        assertFalse(CollectionUtils.intersection(clusters.get(shard).stream().map(Node::getName).collect(Collectors.toList()), nodeGroup.getNodeNames()).isEmpty()))
+        );
+
+        deletedShards.forEach(shard ->
+                nodeGroups.forEach(nodeGroup ->
+                        assertTrue(CollectionUtils.intersection(clusters.get(shard).stream().map(Node::getName).collect(Collectors.toList()), nodeGroup.getNodeNames()).isEmpty()))
+        );
+
+        getTableFlow().getTableDataList().forEach(tableData -> tableData.getPartitions().forEach(p -> {
+            assertEquals(shards.size(), p.getShardNodes().size());
+
+            shards.stream().flatMap(shard -> clusters.get(shard).stream()).map(Node::getName).forEach(nodeName -> {
+                        assertTrue(p.getSizeInNode().containsKey(nodeName));
+                        assertTrue(p.getNodeFileMap().containsKey(nodeName));
+                    }
+            );
+
+            deletedShards.stream().flatMap(shard -> clusters.get(shard).stream()).map(Node::getName).forEach(nodeName -> {
+                        assertFalse(p.getSizeInNode().containsKey(nodeName));
+                        assertFalse(p.getNodeFileMap().containsKey(nodeName));
+                    }
+            );
+        }));
+    }
+
+    @Test
+    public void testProjectSecondStorageJobs() {
+        try {
+            EnvelopeResponse<List<String>> jobs2 = secondStorageEndpoint.getProjectSecondStorageJobs("error");
+        } catch (KylinException e) {
+            assertEquals(SECOND_STORAGE_PROJECT_STATUS_ERROR.toErrorCode(), e.getErrorCode());
+        }
+    }
+
+    public void testSegmentLoadWithoutRetry() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse()) {
+            testSegmentLoadWithoutRetry(1, clickhouse1);
+        }
+    }
+
+    public void testSegmentLoadWithoutRetry(int replica, JdbcDatabaseContainer<?>... clickhouse) throws Exception {
+        PowerMockito.mockStatic(InsertInto.class);
+        PowerMockito.when(InsertInto.insertInto(Mockito.anyString(), Mockito.anyString()))
+                .thenAnswer((Answer<InsertInto>) invocation -> new InsertInto(TableIdentifier.table("def", "tab")));
+
+        final String catalog = "default";
+        Unsafe.setProperty(ClickHouseLoad.SOURCE_URL, getSourceUrl());
+        Unsafe.setProperty(ClickHouseLoad.ROOT_PATH, getLocalWorkingDirectory());
+
+        configClickhouseWith(clickhouse, replica, catalog, () -> {
+            secondStorageService.changeProjectSecondStorageState(getProject(), SecondStorageNodeHelper.getAllPairs(), true);
+            Assert.assertEquals(clickhouse.length, SecondStorageUtil.listProjectNodes(getProject()).size());
+            secondStorageService.changeModelSecondStorageState(getProject(), modelId, true);
+            setQuerySession(catalog, clickhouse[0].getJdbcUrl(), clickhouse[0].getDriverClassName());
+
+            buildIncrementalLoadQuery(); // build table index
+            checkHttpServer(); // check http server
+
+            val segments = new HashSet<>(getDataFlow().getSegments());
+            AbstractJobHandler localHandler = new SecondStorageSegmentLoadJobHandler();
+            JobParam jobParam = SecondStorageJobParamUtil.of(getProject(), getDataFlow().getModel().getUuid(), "ADMIN",
+                    segments.stream().map(NDataSegment::getId));
+            String jobId = ClickHouseUtils.simulateJobMangerAddJob(jobParam, localHandler);
+            TimeUnit.MILLISECONDS.sleep(20000);
+            PowerMockito.doCallRealMethod().when(InsertInto.class);
+            InsertInto.insertInto(Mockito.anyString(), Mockito.anyString());
+            waitJobEnd(getProject(), jobId);
+            return true;
+        });
     }
 
     private void testLockedSegmentLoadCH(int replica, JdbcDatabaseContainer<?>... clickhouse) throws Exception {
@@ -325,6 +816,7 @@ public class SecondStorageLockTest implements JobWaiter {
             checkSecondStorageMetadata(existTablePlanLayoutIds, existTableDataLayoutIds);
             checkSecondStorageSegmentMetadata(getAllSegmentIds(), layout01);
             checkSecondStorageSegmentMetadata(getAllSegmentIds(), layout02);
+            checkSegmentDisplayNodes(replica, clickhouse.length / replica);
 
             // removed old index
             indexPlanService.removeIndexes(getProject(), modelId, ImmutableSet.of(layout01));
@@ -637,6 +1129,17 @@ public class SecondStorageLockTest implements JobWaiter {
         waitJobFinish(getProject(), jobInfo.getJobId());
     }
 
+    private void checkSegmentDisplayNodes(int replica, int shardCnt) {
+        List<NDataSegmentResponse> segments = modelService.getSegmentsResponse(modelId, getProject(), "0", "" + (Long.MAX_VALUE - 1), null,
+                null, null, false, null, false);
+        segments.forEach(segment -> {
+            assertEquals(shardCnt, segment.getSecondStorageNodes().size());
+            assertNotNull(segment.getSecondStorageNodes().values());
+            assertTrue(segment.getSecondStorageNodes().values().stream().findFirst().isPresent());
+            assertEquals(replica, segment.getSecondStorageNodes().values().stream().findFirst().get().size());
+        });
+    }
+
     @Data
     public static class BuildBaseIndexUT {
         @JsonProperty("base_table_index")
@@ -686,6 +1189,11 @@ public class SecondStorageLockTest implements JobWaiter {
         return NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
     }
 
+    private List<NodeGroup> getNodeGroups() {
+        Preconditions.checkState(SecondStorageUtil.nodeGroupManager(getConfig(), getProject()).isPresent());
+        return SecondStorageUtil.nodeGroupManager(getConfig(), getProject()).get().listAll();
+    }
+
     private Set<String> getAllSegmentIds() {
         return getDataFlow().getSegments().stream().map(NDataSegment::getId).collect(Collectors.toSet());
     }
@@ -731,6 +1239,54 @@ public class SecondStorageLockTest implements JobWaiter {
         return JsonUtil.readValue(JsonUtil.writeValueAsString(request), ModelRequest.class);
     }
 
+    private ModelRequest getChangedModelRequestWithNoPartition(String columnName) throws IOException {
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.metadata.semi-automatic-mode", "true");
+
+        var model = getNDataModel();
+
+        val request = JsonUtil.readValue(JsonUtil.writeValueAsString(model), ModelRequest.class);
+        request.setProject(getProject());
+        request.setUuid(modelId);
+        request.setAllNamedColumns(model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
+                .collect(Collectors.toList()));
+        request.setSimplifiedMeasures(model.getAllMeasures().stream().filter(m -> !m.isTomb())
+                .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()));
+        request.setSimplifiedDimensions(model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
+                .collect(Collectors.toList()));
+        request.setSaveOnly(true);
+
+        val columnDesc = model.getRootFactTable().getColumn(columnName).getColumnDesc(); // TRANS_ID
+        request.getSimplifiedDimensions().add(getNamedColumn(columnDesc));
+        request.setPartitionDesc(null);
+        request.setWithSecondStorage(true);
+
+        return JsonUtil.readValue(JsonUtil.writeValueAsString(request), ModelRequest.class);
+    }
+
+    private ModelRequest getChangedModelRequestWithPartition(String columnName, PartitionDesc partitionDesc) throws IOException {
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.metadata.semi-automatic-mode", "true");
+
+        var model = getNDataModel();
+
+        val request = JsonUtil.readValue(JsonUtil.writeValueAsString(model), ModelRequest.class);
+        request.setProject(getProject());
+        request.setUuid(modelId);
+        request.setAllNamedColumns(model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
+                .collect(Collectors.toList()));
+        request.setSimplifiedMeasures(model.getAllMeasures().stream().filter(m -> !m.isTomb())
+                .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()));
+        request.setSimplifiedDimensions(model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
+                .collect(Collectors.toList()));
+        request.setSaveOnly(true);
+
+        val columnDesc = model.getRootFactTable().getColumn(columnName).getColumnDesc(); // TRANS_ID
+        request.getSimplifiedDimensions().add(getNamedColumn(columnDesc));
+        request.setPartitionDesc(partitionDesc);
+        request.setWithSecondStorage(true);
+
+        return JsonUtil.readValue(JsonUtil.writeValueAsString(request), ModelRequest.class);
+    }
+
     private NDataModel.NamedColumn getNamedColumn(ColumnDesc columnDesc) {
         NDataModel.NamedColumn transIdColumn = new NDataModel.NamedColumn();
         transIdColumn.setId(Integer.parseInt(columnDesc.getId()));
@@ -754,15 +1310,11 @@ public class SecondStorageLockTest implements JobWaiter {
         indexDataConstructor.buildSegment(modelId, segment, ImmutableSet.of(getDataFlow().getIndexPlan().getLayoutEntity(layoutId)), true, null);
     }
 
-
     private long updateIndex(String columnName) throws IOException {
         val indexResponse = modelService.updateDataModelSemantic(getProject(), getChangedModelRequest(columnName));
         val layoutId = JsonUtil.readValue(JsonUtil.writeValueAsString(indexResponse), BuildBaseIndexUT.class).tableIndex.layoutId;
 
         getNExecutableManager().getAllExecutables().forEach(exec -> waitJobFinish(getProject(), exec.getId()));
-        Optional<AbstractExecutable> job = getNExecutableManager().getAllExecutables().stream().filter(ClickHouseModelCleanJob.class::isInstance).findFirst();
-        assertFalse(job.isPresent());
-
         return layoutId;
     }
 
@@ -819,8 +1371,14 @@ public class SecondStorageLockTest implements JobWaiter {
         request.setProject(getProject());
         request.setModel(modelId);
         request.setSegmentIds(segments);
+        EnvelopeResponse<List<String>> jobs = secondStorageEndpoint.getAllSecondStoragrJobs();
+        assertEquals("000", jobs.getCode());
+        assertEquals(0, jobs.getData().size());
         EnvelopeResponse<JobInfoResponse> res = secondStorageEndpoint.loadStorage(request);
         assertEquals("000", res.getCode());
+        EnvelopeResponse<List<String>> jobs1 = secondStorageEndpoint.getProjectSecondStorageJobs(getProject());
+        assertEquals("000", jobs1.getCode());
+        assertEquals(1, jobs1.getData().size());
         for (JobInfoResponse.JobInfo job : res.getData().getJobs()) {
             waitJobFinish(getProject(), job.getJobId());
         }

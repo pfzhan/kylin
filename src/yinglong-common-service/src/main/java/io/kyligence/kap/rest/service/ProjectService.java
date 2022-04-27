@@ -112,8 +112,10 @@ import io.kyligence.kap.common.util.JdbcUtils;
 import io.kyligence.kap.metadata.cube.storage.ProjectStorageInfoCollector;
 import io.kyligence.kap.metadata.cube.storage.StorageInfoEnum;
 import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
@@ -139,6 +141,7 @@ import io.kyligence.kap.rest.response.ProjectConfigResponse;
 import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
 import io.kyligence.kap.rest.security.KerberosLoginManager;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
+import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import io.kyligence.kap.tool.garbage.GarbageCleaner;
 import lombok.val;
 
@@ -152,7 +155,7 @@ public class ProjectService extends BasicService {
     @Autowired
     private MetadataBackupService metadataBackupService;
 
-    @Autowired
+    @Autowired(required = false)
     @Qualifier("asyncTaskService")
     private AsyncTaskServiceSupporter asyncTaskService;
 
@@ -162,10 +165,10 @@ public class ProjectService extends BasicService {
     //    @Autowired
     //    AsyncQueryService asyncQueryService;
 
-    @Autowired
+    @Autowired(required = false)
     private ProjectModelSupporter projectModelSupporter;
 
-    @Autowired
+    @Autowired(required = false)
     private ProjectSmartServiceSupporter projectSmartService;
 
     @Autowired
@@ -193,13 +196,13 @@ public class ProjectService extends BasicService {
         }
 
         encryptJdbcPassInOverrideKylinProps(overrideProps);
-        ProjectInstance currentProject = getProjectManager().getProject(projectName);
+        ProjectInstance currentProject = getManager(NProjectManager.class).getProject(projectName);
         if (currentProject != null) {
             throw new KylinException(DUPLICATE_PROJECT_NAME,
                     String.format(Locale.ROOT, msg.getPROJECT_ALREADY_EXIST(), projectName));
         }
         final String owner = SecurityContextHolder.getContext().getAuthentication().getName();
-        ProjectInstance createdProject = getProjectManager().createProject(projectName, owner, description,
+        ProjectInstance createdProject = getManager(NProjectManager.class).createProject(projectName, owner, description,
                 overrideProps, newProject.getMaintainModelType());
         logger.debug("New project created.");
         return createdProject;
@@ -319,7 +322,7 @@ public class ProjectService extends BasicService {
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     public FavoriteQueryThresholdResponse getQueryAccelerateThresholdConfig(String project) {
-        val projectInstance = getProjectManager().getProject(project);
+        val projectInstance = getManager(NProjectManager.class).getProject(project);
         val thresholdResponse = new FavoriteQueryThresholdResponse();
         val config = projectInstance.getConfig();
         thresholdResponse.setThreshold(config.getFavoriteQueryAccelerateThreshold());
@@ -413,11 +416,10 @@ public class ProjectService extends BasicService {
     }
 
     private void updateProjectOverrideKylinProps(String project, Map<String, String> overrideKylinProps) {
-        val projectManager = getProjectManager();
+        val projectManager = getManager(NProjectManager.class);
         val projectInstance = projectManager.getProject(project);
         if (projectInstance == null) {
-            throw new KylinException(PROJECT_NOT_EXIST,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
+            throw new KylinException(PROJECT_NOT_EXIST, project);
         }
         encryptJdbcPassInOverrideKylinProps(overrideKylinProps);
         projectManager.updateProject(project, copyForWrite -> {
@@ -493,7 +495,7 @@ public class ProjectService extends BasicService {
     }
 
     private void validateJdbcConfig(String project, JdbcSourceInfoRequest jdbcSourceInfoRequest) {
-        val projectInstance = getProjectManager().getProject(project);
+        val projectInstance = getManager(NProjectManager.class).getProject(project);
         val config = projectInstance.getConfig();
         String driver = jdbcSourceInfoRequest.getJdbcSourceDriver();
         if (driver == null) {
@@ -542,7 +544,7 @@ public class ProjectService extends BasicService {
 
     public ProjectConfigResponse getProjectConfig0(String project) {
         val response = new ProjectConfigResponse();
-        val projectInstance = getProjectManager().getProject(project);
+        val projectInstance = getManager(NProjectManager.class).getProject(project);
         val config = projectInstance.getConfig();
 
         response.setProject(project);
@@ -617,7 +619,7 @@ public class ProjectService extends BasicService {
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     @Transaction(project = 0)
     public void updateShardNumConfig(String project, ShardNumConfigRequest req) {
-        getProjectManager().updateProject(project, copyForWrite -> {
+        getManager(NProjectManager.class).updateProject(project, copyForWrite -> {
             try {
                 copyForWrite.putOverrideKylinProps("kylin.engine.shard-num-json",
                         JsonUtil.writeValueAsString(req.getColToNum()));
@@ -629,14 +631,14 @@ public class ProjectService extends BasicService {
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     public String getShardNumConfig(String project) {
-        return getProjectManager().getProject(project).getConfig().getExtendedOverrides()
+        return getManager(NProjectManager.class).getProject(project).getConfig().getExtendedOverrides()
                 .getOrDefault("kylin.engine.shard-num-json", "");
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     @Transaction(project = 0)
     public void updatePushDownConfig(String project, PushDownConfigRequest pushDownConfigRequest) {
-        getProjectManager().updateProject(project, copyForWrite -> {
+        getManager(NProjectManager.class).updateProject(project, copyForWrite -> {
             if (Boolean.TRUE.equals(pushDownConfigRequest.getPushDownEnabled())) {
                 String runnerClassName = copyForWrite.getConfig().getPushDownRunnerClassName();
                 if (StringUtils.isEmpty(runnerClassName)) {
@@ -653,20 +655,17 @@ public class ProjectService extends BasicService {
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     @Transaction(project = 0)
     public void updateSnapshotConfig(String project, SnapshotConfigRequest snapshotConfigRequest) {
-        getProjectManager().updateProject(project, copyForWrite -> {
-            copyForWrite.putOverrideKylinProps("kylin.snapshot.manual-management-enabled",
-                    snapshotConfigRequest.getSnapshotManualManagementEnabled().toString());
-        });
+        getManager(NProjectManager.class).updateProject(project, copyForWrite ->
+                copyForWrite.putOverrideKylinProps("kylin.snapshot.manual-management-enabled", snapshotConfigRequest.getSnapshotManualManagementEnabled().toString()));
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     @Transaction(project = 0)
     public void updateSCD2Config(String project, SCD2ConfigRequest scd2ConfigRequest,
             ProjectModelSupporter modelService) {
-        getProjectManager().updateProject(project, copyForWrite -> {
-            copyForWrite.putOverrideKylinProps("kylin.query.non-equi-join-model-enabled",
-                    scd2ConfigRequest.getScd2Enabled().toString());
-        });
+        getManager(NProjectManager.class).updateProject(project, copyForWrite ->
+                copyForWrite.putOverrideKylinProps("kylin.query.non-equi-join-model-enabled",
+                        scd2ConfigRequest.getScd2Enabled().toString()));
 
         if (Boolean.TRUE.equals(scd2ConfigRequest.getScd2Enabled())) {
             modelService.onUpdateSCD2ModelStatus(project, RealizationStatusEnum.ONLINE);
@@ -679,7 +678,7 @@ public class ProjectService extends BasicService {
     @Transaction(project = 0)
     public void updateMultiPartitionConfig(String project, MultiPartitionConfigRequest request,
             ProjectModelSupporter modelService) {
-        getProjectManager().updateProject(project, copyForWrite -> {
+        getManager(NProjectManager.class).updateProject(project, copyForWrite -> {
             if (Boolean.TRUE.equals(request.getMultiPartitionEnabled())) {
                 copyForWrite.getOverrideKylinProps().put("kylin.model.multi-partition-enabled", KylinConfig.TRUE);
             } else {
@@ -692,7 +691,7 @@ public class ProjectService extends BasicService {
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     @Transaction(project = 0)
     public void updatePushDownProjectConfig(String project, PushDownProjectConfigRequest pushDownProjectConfigRequest) {
-        getProjectManager().updateProject(project, copyForWrite -> {
+        getManager(NProjectManager.class).updateProject(project, copyForWrite -> {
             copyForWrite.putOverrideKylinProps("kylin.query.pushdown.runner-class-name",
                     pushDownProjectConfigRequest.getRunnerClassName());
             copyForWrite.putOverrideKylinProps("kylin.query.pushdown.converter-class-names",
@@ -703,10 +702,9 @@ public class ProjectService extends BasicService {
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     @Transaction(project = 0)
     public void updateComputedColumnConfig(String project, ComputedColumnConfigRequest computedColumnConfigRequest) {
-        getProjectManager().updateProject(project, copyForWrite -> {
-            copyForWrite.putOverrideKylinProps(ProjectInstance.EXPOSE_COMPUTED_COLUMN_CONF,
-                    String.valueOf(computedColumnConfigRequest.getExposeComputedColumn()));
-        });
+        getManager(NProjectManager.class).updateProject(project, copyForWrite ->
+                copyForWrite.putOverrideKylinProps(ProjectInstance.EXPOSE_COMPUTED_COLUMN_CONF,
+                    String.valueOf(computedColumnConfigRequest.getExposeComputedColumn())));
     }
 
     @Transaction(project = 0)
@@ -734,7 +732,7 @@ public class ProjectService extends BasicService {
                     "No valid value for 'retention_range_type', Please set {'DAY', 'MONTH', 'YEAR'} to specify the period of retention. ");
         }
 
-        getProjectManager().updateProject(project, copyForWrite -> {
+        getManager(NProjectManager.class).updateProject(project, copyForWrite -> {
             copyForWrite.getSegmentConfig().setAutoMergeEnabled(segmentConfigRequest.getAutoMergeEnabled());
             copyForWrite.getSegmentConfig().setAutoMergeTimeRanges(segmentConfigRequest.getAutoMergeTimeRanges());
             copyForWrite.getSegmentConfig().setVolatileRange(segmentConfigRequest.getVolatileRange());
@@ -747,10 +745,10 @@ public class ProjectService extends BasicService {
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     @Transaction(project = 0)
     public void updateProjectGeneralInfo(String project, ProjectGeneralInfoRequest projectGeneralInfoRequest) {
-        if (getProjectManager().getProject(project).isSmartMode()) {
+        if (getManager(NProjectManager.class).getProject(project).isSmartMode()) {
             projectGeneralInfoRequest.setSemiAutoMode(false);
         }
-        getProjectManager().updateProject(project, copyForWrite -> {
+        getManager(NProjectManager.class).updateProject(project, copyForWrite -> {
             copyForWrite.setDescription(projectGeneralInfoRequest.getDescription());
             copyForWrite.putOverrideKylinProps("kylin.metadata.semi-automatic-mode",
                     String.valueOf(projectGeneralInfoRequest.isSemiAutoMode()));
@@ -763,7 +761,7 @@ public class ProjectService extends BasicService {
             throws Exception {
         KerberosLoginManager.getInstance().checkAndReplaceProjectKerberosInfo(project,
                 projectKerberosInfoRequest.getPrincipal());
-        getProjectManager().updateProject(project, copyForWrite -> {
+        getManager(NProjectManager.class).updateProject(project, copyForWrite -> {
             copyForWrite.setPrincipal(projectKerberosInfoRequest.getPrincipal());
             copyForWrite.setKeytab(projectKerberosInfoRequest.getKeytab());
         });
@@ -789,7 +787,7 @@ public class ProjectService extends BasicService {
                 .map(AbstractExecutable::getId).collect(Collectors.toList());
         val streamingJobStatusList = Arrays.asList(JobStatusEnum.STARTING, JobStatusEnum.RUNNING,
                 JobStatusEnum.STOPPING);
-        val streamingJobList = getStreamingJobManager(project).listAllStreamingJobMeta().stream()
+        val streamingJobList = getManager(StreamingJobManager.class, project).listAllStreamingJobMeta().stream()
                 .filter(meta -> streamingJobStatusList.contains(meta.getCurrentStatus()))
                 .map(RootPersistentEntity::getUuid).collect(Collectors.toList());
         if (!jobIds.isEmpty() || !streamingJobList.isEmpty()) {
@@ -799,7 +797,7 @@ public class ProjectService extends BasicService {
                     String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_DROP_FAILED_JOBS_NOT_KILLED(), project));
         }
 
-        NProjectManager prjManager = getProjectManager();
+        NProjectManager prjManager = getManager(NProjectManager.class);
         prjManager.forceDropProject(project);
         UnitOfWork.get().doAfterUnit(() -> new ProjectDropListener().onDelete(project));
         EventBusFactory.getInstance().postAsync(new SourceUsageUpdateNotifier());
@@ -812,8 +810,8 @@ public class ProjectService extends BasicService {
         Preconditions.checkNotNull(defaultDatabase);
         String uppderDB = defaultDatabase.toUpperCase(Locale.ROOT);
 
-        val prjManager = getProjectManager();
-        val tableManager = getTableManager(project);
+        val prjManager = getManager(NProjectManager.class);
+        val tableManager = getManager(NTableMetadataManager.class, project);
         if (ProjectInstance.DEFAULT_DATABASE.equals(uppderDB) || tableManager.listDatabases().contains(uppderDB)) {
             final ProjectInstance projectInstance = prjManager.getProject(project);
             if (uppderDB.equals(projectInstance.getDefaultDatabase())) {
@@ -841,9 +839,8 @@ public class ProjectService extends BasicService {
 
     @Transaction(project = 0)
     public void setDataSourceType(String project, String sourceType) {
-        getProjectManager().updateProject(project, copyForWrite -> {
-            copyForWrite.putOverrideKylinProps("kylin.source.default", sourceType);
-        });
+        getManager(NProjectManager.class).updateProject(project, copyForWrite ->
+                copyForWrite.putOverrideKylinProps("kylin.source.default", sourceType));
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
@@ -910,13 +907,13 @@ public class ProjectService extends BasicService {
             throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getOWNER_CHANGE_ERROR());
         }
 
-        getProjectManager().updateProject(project,
+        getManager(NProjectManager.class).updateProject(project,
                 copyForWrite -> copyForWrite.setOwner(ownerChangeRequest.getOwner()));
     }
 
     private void checkTargetOwnerPermission(String project, String owner) throws IOException {
         Set<String> projectAdminUsers = accessService.getProjectAdminUsers(project);
-        projectAdminUsers.remove(getProjectManager().getProject(project).getOwner());
+        projectAdminUsers.remove(getManager(NProjectManager.class).getProject(project).getOwner());
         if (CollectionUtils.isEmpty(projectAdminUsers) || !projectAdminUsers.contains(owner)) {
             Message msg = MsgPicker.getMsg();
             throw new KylinException(PERMISSION_DENIED, msg.getPROJECT_OWNER_CHANGE_INVALID_USER());
@@ -939,7 +936,7 @@ public class ProjectService extends BasicService {
     }
 
     private void resetProjectRecommendationConfig(String project) {
-        getFavoriteRuleManager(project).resetRule();
+        getManager(FavoriteRuleManager.class, project).resetRule();
         NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project).listAllModels().forEach(model -> {
             projectModelSupporter.onModelUpdate(project, model.getUuid());
         });
@@ -953,7 +950,7 @@ public class ProjectService extends BasicService {
     }
 
     private void resetSegmentConfig(String project) {
-        getProjectManager().updateProject(project, copyForWrite -> {
+        getManager(NProjectManager.class).updateProject(project, copyForWrite -> {
             val projectInstance = new ProjectInstance();
             copyForWrite.getSegmentConfig()
                     .setAutoMergeEnabled(projectInstance.getSegmentConfig().getAutoMergeEnabled());
@@ -965,11 +962,10 @@ public class ProjectService extends BasicService {
     }
 
     private void removeProjectOveridedProps(String project, Set<String> toBeRemovedProps) {
-        val projectManager = getProjectManager();
+        val projectManager = getManager(NProjectManager.class);
         val projectInstance = projectManager.getProject(project);
         if (projectInstance == null) {
-            throw new KylinException(PROJECT_NOT_EXIST,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
+            throw new KylinException(PROJECT_NOT_EXIST, project);
         }
         projectManager.updateProject(project, copyForWrite -> {
             toBeRemovedProps.forEach(copyForWrite.getOverrideKylinProps()::remove);
@@ -977,13 +973,12 @@ public class ProjectService extends BasicService {
     }
 
     private void resetProjectKerberosConfig(String project) {
-        val projectManager = getProjectManager();
+        val projectManager = getManager(NProjectManager.class);
         val projectInstance = projectManager.getProject(project);
         if (projectInstance == null) {
-            throw new KylinException(PROJECT_NOT_EXIST,
-                    String.format(Locale.ROOT, "Project '%s' does not exist!", project));
+            throw new KylinException(PROJECT_NOT_EXIST, project);
         }
-        getProjectManager().updateProject(project, copyForWrite -> {
+        getManager(NProjectManager.class).updateProject(project, copyForWrite -> {
             copyForWrite.setKeytab(null);
             copyForWrite.setPrincipal(null);
         });
@@ -996,7 +991,7 @@ public class ProjectService extends BasicService {
     }
 
     private List<ProjectInstance> getProjectsWithFilter(Predicate<ProjectInstance> filter) {
-        val allProjects = getProjectManager().listAllProjects();
+        val allProjects = getManager(NProjectManager.class).listAllProjects();
         return allProjects.stream().filter(filter).collect(Collectors.toList());
     }
 
@@ -1037,7 +1032,7 @@ public class ProjectService extends BasicService {
     @Transaction(project = 0)
     public void deleteProjectConfig(String project, String configName) {
         aclEvaluate.checkProjectAdminPermission(project);
-        val projectManager = getProjectManager();
+        val projectManager = getManager(NProjectManager.class);
         projectManager.updateProject(project, copyForWrite -> copyForWrite.getOverrideKylinProps().remove(configName));
     }
 

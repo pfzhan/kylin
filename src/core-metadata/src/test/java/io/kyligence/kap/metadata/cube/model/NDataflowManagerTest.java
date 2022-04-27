@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.metadata.cube.model;
 
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_MERGE_CHECK_INDEX_ILLEGAL;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
@@ -174,6 +175,17 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         mgr.dropDataflow(name);
         Assert.assertEquals(cntBeforeCreate, mgr.listAllDataflows().size());
         Assert.assertNull(mgr.getDataflow(name));
+    }
+
+    @Test
+    public void testGetAllModels() {
+        KylinConfig testConfig = getTestConfig();
+        List<NDataModel> noCheckHealthyModels = NDataflowManager.getInstance(testConfig, projectDefault)
+                .listUnderliningDataModels();
+        overwriteSystemProp("ylin.model.check-dependency-healthk", "true");
+        List<NDataModel> checkedHealthyModels = NDataflowManager.getInstance(testConfig, projectDefault)
+                .listUnderliningDataModels();
+        Assert.assertEquals(noCheckHealthyModels, checkedHealthyModels);
     }
 
     @Test
@@ -436,7 +448,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
             Assert.assertTrue(e.getMessage().contains(
-                    "Can’t merge the selected segments, as there are gap(s) in between. Please check and try again."));
+                    "Can't merge the selected segments, as there are gap(s) in between. Please check and try again."));
         }
 
         // Set seg1's cuboid-0's status to NEW
@@ -460,8 +472,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
             fail("No exception thrown.");
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertTrue(e.getMessage().contains(
-                    "The indexes included in the selected segments are not fully identical. Please build index first and try merging again."));
+            Assert.assertTrue(e.getMessage().contains(SEGMENT_MERGE_CHECK_INDEX_ILLEGAL.getMsg()));
         }
     }
 

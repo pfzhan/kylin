@@ -24,18 +24,20 @@
 
 package io.kyligence.kap.rest.service;
 
-import io.kyligence.kap.rest.response.SystemProfileResponse;
-import lombok.extern.slf4j.Slf4j;
+import static org.apache.kylin.common.exception.code.ErrorCodeSystem.SYSTEM_PROFILE_ABNORMAL_DATA;
+
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.service.SystemProfileExtractorFactory;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+
+import io.kyligence.kap.rest.response.SystemProfileResponse;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service("lightningService")
@@ -54,7 +56,7 @@ public class LightningService extends BasicService {
             String data = SystemProfileExtractorFactory.create(KylinConfig.getInstanceFromEnv()).getSystemProfile();
             return JsonUtil.readValue(data, SystemProfileResponse.class);
         } catch (Exception e) {
-            throw new KylinException(ServerErrorCode.SYSTEM_PROFILE_ABNORMAL_DATA, e);
+            throw new KylinException(SYSTEM_PROFILE_ABNORMAL_DATA, e);
         }
     }
 

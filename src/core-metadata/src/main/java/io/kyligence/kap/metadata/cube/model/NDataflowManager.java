@@ -26,7 +26,9 @@ package io.kyligence.kap.metadata.cube.model;
 
 import static io.kyligence.kap.common.util.SegmentMergeStorageChecker.checkMergeSegmentThreshold;
 import static java.util.stream.Collectors.groupingBy;
-import static org.apache.kylin.common.exception.SystemErrorCode.FAILED_MERGE_SEGMENT;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_MERGE_CHECK_INDEX_ILLEGAL;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_MERGE_CHECK_PARTITION_ILLEGAL;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_MERGE_CONTAINS_GAPS;
 import static org.apache.kylin.metadata.realization.RealizationStatusEnum.ONLINE;
 
 import java.util.ArrayList;
@@ -34,7 +36,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -51,9 +52,7 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -214,8 +213,13 @@ public class NDataflowManager implements IRealizationProvider {
 
     // get all models include broken ones
     public List<NDataModel> listUnderliningDataModels(boolean includeBroken) {
-        val dataflows = listAllDataflows(includeBroken);
-        return dataflows.stream().map(NDataflow::getModel).collect(Collectors.toList());
+        if (KylinConfig.getInstanceFromEnv().checkModelDependencyHealthy()) {
+            val dataflows = listAllDataflows(includeBroken);
+            return dataflows.stream().map(NDataflow::getModel).collect(Collectors.toList());
+        }
+        val models = NDataModelManager.getInstance(config, project).listAllModels();
+        return includeBroken ? models
+                : models.stream().filter(dataModel -> !dataModel.isBroken()).collect(Collectors.toList());
     }
 
     public List<NDataModel> listOnlineDataModels() {
@@ -366,12 +370,8 @@ public class NDataflowManager implements IRealizationProvider {
     }
 
     public NDataSegment appendSegmentForStreaming(NDataflow df, SegmentRange segRange, String newSegId) {
-        NDataSegment newSegment = newSegment(df, segRange);
-        if (!StringUtils.isEmpty(newSegId)) {
-            newSegment.setId(newSegId);
-            if (df.getSegment(newSegId) != null) {
+        if (!StringUtils.isEmpty(newSegId) && df.getSegment(newSegId) != null) {
                 return df.getSegment(newSegId);
-            }
         }
         val removeSegs = new ArrayList<NDataSegment>();
         val segments = df.getSegments().stream().filter(item -> !item.getAdditionalInfo().containsKey("file_layer"))
@@ -384,7 +384,7 @@ public class NDataflowManager implements IRealizationProvider {
             if (lastL0SegRange.equals(segRange)
                     || lastL0SegRange.comparePartitionOffset(lastL0SegRange.getSourcePartitionOffsetStart(),
                             newSegRange.getSourcePartitionOffsetEnd()) >= 0) {
-                NDataSegment emptySeg = new NDataSegment();
+                NDataSegment emptySeg = NDataSegment.empty();
                 emptySeg.setId(StringUtils.EMPTY);
                 return emptySeg;
             } else if (newSegRange.contains(lastL0SegRange) || lastL0SegRange.contains(newSegRange)) {
@@ -392,14 +392,8 @@ public class NDataflowManager implements IRealizationProvider {
             }
         }
 
-        newSegment.setStatus(SegmentStatusEnum.NEW);
+        NDataSegment newSegment = new NDataSegment(df, segRange, newSegId);
 
-        Map<Long, NDataLayout> layoutsMap = new HashMap<>();
-        for (LayoutEntity layout : df.getIndexPlan().getAllLayouts()) {
-            NDataLayout ly = NDataLayout.newDataLayout(df, newSegment.getId(), layout.getId());
-            layoutsMap.put(ly.getLayoutId(), ly);
-        }
-        newSegment.setLayoutsMap(layoutsMap);
         //        validateNewSegments(df, newSegment);
         NDataflowUpdate upd = new NDataflowUpdate(df.getUuid());
         upd.setToAddSegs(newSegment);
@@ -483,13 +477,13 @@ public class NDataflowManager implements IRealizationProvider {
             NDataSegment dataSegment = mergingSegments.get(i);
             NDataSegDetails details = dataSegment.getSegDetails();
             if (!firstSegDetails.checkLayoutsBeforeMerge(details))
-                throw new KylinException(FAILED_MERGE_SEGMENT, MsgPicker.getMsg().getSegmentMergeLayoutConflictError());
+                throw new KylinException(SEGMENT_MERGE_CHECK_INDEX_ILLEGAL);
         }
 
         if (!force) {
             for (int i = 0; i < mergingSegments.size() - 1; i++) {
                 if (!mergingSegments.get(i).getSegRange().connects(mergingSegments.get(i + 1).getSegRange()))
-                    throw new KylinException(FAILED_MERGE_SEGMENT, MsgPicker.getMsg().getSEGMENT_CONTAINS_GAPS());
+                    throw new KylinException(SEGMENT_MERGE_CONTAINS_GAPS);
             }
 
             List<String> emptySegment = Lists.newArrayList();
@@ -538,14 +532,13 @@ public class NDataflowManager implements IRealizationProvider {
                 .map(SegmentPartition::getPartitionId).collect(Collectors.toSet());
         mergingSegments.forEach(segment -> {
             if (MapUtils.isEmpty(segment.getLayoutsMap())) {
-                throw new KylinException(FAILED_MERGE_SEGMENT, MsgPicker.getMsg().getSegmentMergeLayoutConflictError());
+                throw new KylinException(SEGMENT_MERGE_CHECK_INDEX_ILLEGAL);
             }
             segment.getLayoutsMap().values().forEach(layout -> {
                 Set<Long> partitionsInLayout = layout.getMultiPartition().stream().map(LayoutPartition::getPartitionId)
                         .collect(Collectors.toSet());
                 if (!partitionsInLayout.equals(partitions)) {
-                    throw new KylinException(FAILED_MERGE_SEGMENT,
-                            MsgPicker.getMsg().getSegmentMergePartitionConflictError());
+                    throw new KylinException(SEGMENT_MERGE_CHECK_PARTITION_ILLEGAL);
                 }
             });
         });
@@ -563,16 +556,7 @@ public class NDataflowManager implements IRealizationProvider {
     NDataSegment newSegment(NDataflow df, SegmentRange segRange) {
         // BREAKING CHANGE: remove legacy caring as in org.apache.kylin.cube.CubeManager.SegmentAssist.newSegment()
         Preconditions.checkNotNull(segRange);
-
-        NDataSegment segment = new NDataSegment();
-        segment.setId(RandomUtil.randomUUIDStr());
-        segment.setName(Segments.makeSegmentName(segRange));
-        segment.setCreateTimeUTC(System.currentTimeMillis());
-        segment.setDataflow(df);
-        segment.setStatus(SegmentStatusEnum.NEW);
-        segment.setSegmentRange(segRange);
-        segment.validate();
-        return segment;
+        return new NDataSegment(df, segRange);
     }
 
     private void validateNewSegments(NDataflow df, NDataSegment newSegments) {
@@ -800,13 +784,10 @@ public class NDataflowManager implements IRealizationProvider {
                 continue;
 
             if (first.getSegRange().apartBefore(second.getSegRange())) {
-                NDataSegment hole = new NDataSegment();
-                hole.setDataflow(df);
+                NDataSegment hole = new NDataSegment(df, first.getSegRange().gapTill(second.getSegRange()));
+                hole.setTimeRange(new TimeRange(first.getTSRange().getEnd(), second.getTSRange().getStart()));
 
                 // TODO: fix segment
-                hole.setSegmentRange(first.getSegRange().gapTill(second.getSegRange()));
-                hole.setTimeRange(new TimeRange(first.getTSRange().getEnd(), second.getTSRange().getStart()));
-                hole.setName(Segments.makeSegmentName(hole.getSegRange()));
                 holes.add(hole);
             }
         }
@@ -821,11 +802,7 @@ public class NDataflowManager implements IRealizationProvider {
         final NDataflow df = getDataflow(dfId);
         List<NDataSegment> segments = Lists.newArrayList(df.getSegments());
         if (toBuildSegment != null) {
-            NDataSegment toBuildSeg = new NDataSegment();
-            toBuildSeg.setDataflow(df);
-            toBuildSeg.setSegmentRange(toBuildSegment);
-            toBuildSeg.setName(Segments.makeSegmentName(toBuildSegment));
-            segments.add(toBuildSeg);
+            segments.add(new NDataSegment(df, toBuildSegment));
         }
 
         return calculateHoles(dfId, segments);

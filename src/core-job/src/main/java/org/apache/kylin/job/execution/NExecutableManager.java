@@ -21,12 +21,13 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 package org.apache.kylin.job.execution;
 
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_DOWNLOAD_FILE;
-import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_JOB_STATUS;
 import static org.apache.kylin.common.exception.ServerErrorCode.FILE_NOT_EXIST;
-import static org.apache.kylin.common.exception.ServerErrorCode.ILLEGAL_JOB_STATE_TRANSFER;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_STATE_TRANSFER_ILLEGAL;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_UPDATE_STATUS_FAILED;
 import static org.apache.kylin.job.constant.ExecutableConstants.YARN_APP_IDS;
 import static org.apache.kylin.job.constant.ExecutableConstants.YARN_APP_IDS_DELIMITER;
 import static org.apache.kylin.job.execution.AbstractExecutable.RUNTIME_INFO;
@@ -48,7 +49,6 @@ import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -70,7 +70,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.Array;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.CliCommandExecutor;
@@ -719,8 +718,7 @@ public class NExecutableManager {
             return;
         }
         if (!job.getStatus().isNotProgressing()) {
-            throw new KylinException(FAILED_UPDATE_JOB_STATUS, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getInvalidJobStatusTransaction(), "RESUME", jobId, job.getStatus()));
+            throw new KylinException(JOB_UPDATE_STATUS_FAILED, "RESUME", jobId, job.getStatus());
         }
 
         if (job instanceof DefaultChainedExecutable) {
@@ -738,7 +736,7 @@ public class NExecutableManager {
                                     .stream() //
                                     .filter(stage -> stage.getStatus(entry.getKey()) == ExecutableState.RUNNING
                                             || stage.getStatus(entry.getKey()).isNotProgressing())//
-                                    .forEach(stage -> // 
+                                    .forEach(stage -> //
                             updateStageStatus(stage.getId(), entry.getKey(), ExecutableState.READY, null, null));
                         }
                     }
@@ -755,8 +753,7 @@ public class NExecutableManager {
             return;
         }
         if (jobToRestart.getStatus().isFinalState()) {
-            throw new KylinException(FAILED_UPDATE_JOB_STATUS, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getInvalidJobStatusTransaction(), "RESTART", jobId, jobToRestart.getStatus()));
+            throw new KylinException(JOB_UPDATE_STATUS_FAILED, "RESTART", jobId, jobToRestart.getStatus());
         }
 
         // to redesign: merge executableDao ops
@@ -862,7 +859,7 @@ public class NExecutableManager {
                                     .stream()
                                     .filter(stage -> stage.getStatus(entry.getKey()) != ExecutableState.SUICIDAL
                                             && stage.getStatus(entry.getKey()) != ExecutableState.SUCCEED)
-                                    .forEach(stage -> // 
+                                    .forEach(stage -> //
                             updateStageStatus(stage.getId(), entry.getKey(), ExecutableState.SUICIDAL, null, null));
                         }
                     }
@@ -887,7 +884,7 @@ public class NExecutableManager {
                     if (MapUtils.isNotEmpty(tasksMap)) {
                         for (Map.Entry<String, List<StageBase>> entry : tasksMap.entrySet()) {
                             Optional.ofNullable(entry.getValue()).orElse(Lists.newArrayList())//
-                                    .forEach(stage -> // 
+                                    .forEach(stage -> //
                             updateStageStatus(stage.getId(), entry.getKey(), ExecutableState.DISCARDED, null, null));
                         }
                     }
@@ -917,7 +914,7 @@ public class NExecutableManager {
                                     .stream()
                                     .filter(stage -> stage.getStatus(entry.getKey()) != ExecutableState.ERROR
                                             && stage.getStatus(entry.getKey()) != ExecutableState.SUCCEED)
-                                    .forEach(stage -> // 
+                                    .forEach(stage -> //
                             updateStageStatus(stage.getId(), entry.getKey(), ExecutableState.ERROR, null, null));
                         }
                     }
@@ -934,8 +931,7 @@ public class NExecutableManager {
             return;
         }
         if (!job.getStatus().isProgressing()) {
-            throw new KylinException(FAILED_UPDATE_JOB_STATUS, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getInvalidJobStatusTransaction(), "PAUSE", jobId, job.getStatus()));
+            throw new KylinException(JOB_UPDATE_STATUS_FAILED, "PAUSE", jobId, job.getStatus());
         }
         updateStagePaused(job);
         Map<String, String> info = getWaiteTime(job);
@@ -1251,9 +1247,7 @@ public class NExecutableManager {
                     logger.warn(
                             "[UNEXPECTED_THINGS_HAPPENED] wrong job state transfer! There is no valid state transfer from: {} to: {}, job id: {}",
                             oldStatus, newStatus, taskOrJobId);
-                    throw new KylinException(ILLEGAL_JOB_STATE_TRANSFER,
-                            String.format(Locale.ROOT, MsgPicker.getMsg().getILLEGAL_STATE_TRANSFER(), jobId,
-                                    oldStatus.toJobStatus(), newStatus.toJobStatus()));
+                    throw new KylinException(JOB_STATE_TRANSFER_ILLEGAL);
                 }
                 jobOutput.setStatus(String.valueOf(newStatus));
                 updateJobStatus(jobOutput, oldStatus, newStatus);

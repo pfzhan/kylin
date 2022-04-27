@@ -24,9 +24,9 @@
 
 package io.kyligence.kap.rest.security;
 
-import io.kyligence.kap.common.annotation.ThirdPartyDependencies;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.USER_LOGIN_FAILED;
+
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +38,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 
+import io.kyligence.kap.common.annotation.ThirdPartyDependencies;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.service.NUserGroupService;
 
@@ -69,7 +70,7 @@ public abstract class OpenAuthenticationProvider implements AuthenticationProvid
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
         if (!authenticateImpl(authentication)) {
             logger.error("Failed to auth user: {}", authentication.getPrincipal());
-            throw new BadCredentialsException(MsgPicker.getMsg().getUSER_AUTH_FAILED());
+            throw new BadCredentialsException(USER_LOGIN_FAILED.getMsg());
         }
         ManagedUser user;
         try {

@@ -24,6 +24,7 @@
 package io.kyligence.kap.rest.controller.v2;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.USER_AUTH_INFO_NOTFOUND;
 
 import java.io.IOException;
 import java.util.List;
@@ -96,7 +97,7 @@ public class NUserControllerV2 extends NBasicController {
         UserDetails data = null;
         val msg = MsgPicker.getMsg();
         if (authentication == null) {
-            throw new UnauthorizedException(msg.getAUTH_INFO_NOT_FOUND());
+            throw new UnauthorizedException(USER_AUTH_INFO_NOTFOUND);
         }
 
         if (authentication.getPrincipal() instanceof UserDetails) {
@@ -109,6 +110,6 @@ public class NUserControllerV2 extends NBasicController {
             return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, data, "");
         }
 
-        throw new UnauthorizedException(msg.getAUTH_INFO_NOT_FOUND());
+        throw new UnauthorizedException(USER_AUTH_INFO_NOTFOUND);
     }
 }

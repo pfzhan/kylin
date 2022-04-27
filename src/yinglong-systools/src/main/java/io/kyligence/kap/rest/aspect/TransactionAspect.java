@@ -21,15 +21,15 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 package io.kyligence.kap.rest.aspect;
 
-import java.util.Locale;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_NOT_EXIST;
+
 import java.util.Objects;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.exception.ServerErrorCode;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -71,8 +71,7 @@ public class TransactionAspect {
             ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                     .getProject(unitName);
             if (projectInstance == null) {
-                throw new KylinException(ServerErrorCode.PROJECT_NOT_EXIST,
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_NOT_FOUND(), unitName));
+                throw new KylinException(PROJECT_NOT_EXIST, unitName);
             }
         }
 

@@ -113,7 +113,7 @@ public class BaseIndexUpdateHelper {
 
         if (SecondStorageUtil.isModelEnable(project, modelId) && hasChange(preBaseTableLayout, updatedBaseTableLayout)) {
             SecondStorageUpdater updater = SpringContext.getBean(SecondStorageUpdater.class);
-            response.setCleanSecondStorage(updater.onUpdate(project, modelId, needCleanSecondStorage));
+            updater.updateIndex(project, modelId);
         }
         return response;
     }

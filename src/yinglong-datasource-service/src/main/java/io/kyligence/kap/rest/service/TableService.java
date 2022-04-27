@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.service;
 
+import static org.apache.kylin.common.exception.QueryErrorCode.EMPTY_TABLE;
 import static org.apache.kylin.common.exception.ServerErrorCode.COLUMN_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATED_COLUMN_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_IMPORT_SSB_DATA;
@@ -31,14 +32,14 @@ import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_REFRESH_C
 import static org.apache.kylin.common.exception.ServerErrorCode.FILE_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_COMPUTED_COLUMN_EXPRESSION;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARTITION_COLUMN;
-import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
-import static org.apache.kylin.common.exception.ServerErrorCode.ON_GOING_JOB_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
-import static org.apache.kylin.common.exception.ServerErrorCode.RELOAD_TABLE_FAILED;
 import static org.apache.kylin.common.exception.ServerErrorCode.TABLE_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_ID_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.TABLE_RELOAD_HAVING_NOT_FINAL_JOB;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.TABLE_RELOAD_MODEL_RETRY;
 import static org.apache.kylin.job.execution.JobTypeEnum.SNAPSHOT_BUILD;
 import static org.apache.kylin.job.execution.JobTypeEnum.SNAPSHOT_REFRESH;
-import static org.apache.kylin.query.exception.QueryErrorCode.EMPTY_TABLE;
 
 import java.io.File;
 import java.io.IOException;
@@ -74,6 +75,7 @@ import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigBase;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.QueryErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.BufferedLogger;
 import org.apache.kylin.common.util.CliCommandExecutor;
@@ -87,6 +89,8 @@ import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.filter.function.LikeMatchers;
@@ -101,7 +105,6 @@ import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-import org.apache.kylin.query.exception.QueryErrorCode;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.TableRefresh;
@@ -135,6 +138,7 @@ import io.kyligence.kap.engine.spark.utils.HDFSUtils;
 import io.kyligence.kap.guava20.shaded.common.graph.Graph;
 import io.kyligence.kap.guava20.shaded.common.graph.Graphs;
 import io.kyligence.kap.metadata.acl.AclTCR;
+import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
@@ -159,7 +163,10 @@ import io.kyligence.kap.metadata.model.schema.SchemaNodeType;
 import io.kyligence.kap.metadata.model.schema.SchemaUtil;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
+import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import io.kyligence.kap.metadata.streaming.KafkaConfig;
+import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
 import io.kyligence.kap.rest.aspect.Transaction;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.constant.JobInfoEnum;
@@ -194,14 +201,14 @@ public class TableService extends BasicService {
     @Autowired
     private TableFusionModelSupporter fusionModelService;
 
-    @Autowired
+    @Autowired(required = false)
     @Qualifier("tableSamplingService")
     private TableSamplingSupporter tableSamplingService;
 
     @Autowired
     private TableIndexPlanSupporter indexPlanService;
 
-    @Autowired
+    @Autowired(required = false)
     @Qualifier("jobService")
     private JobSupporter jobService;
 
@@ -212,7 +219,7 @@ public class TableService extends BasicService {
     @Qualifier("kafkaService")
     private KafkaService kafkaService;
 
-    @Autowired
+    @Autowired(required = false)
     @Qualifier("aclTCRService")
     private AclTCRServiceSupporter aclTCRService;
 
@@ -234,7 +241,7 @@ public class TableService extends BasicService {
     public List<TableDesc> getTableDesc(String project, boolean withExt, final String tableName, final String database,
             boolean isFuzzy) throws IOException {
         aclEvaluate.checkProjectReadPermission(project);
-        NTableMetadataManager nTableMetadataManager = getTableManager(project);
+        NTableMetadataManager nTableMetadataManager = getManager(NTableMetadataManager.class, project);
         List<TableDesc> tables = Lists.newArrayList();
         //get table not fuzzy,can use getTableDesc(tableName)
         if (StringUtils.isNotEmpty(tableName) && !isFuzzy) {
@@ -252,10 +259,12 @@ public class TableService extends BasicService {
                     return true;
                 }
                 return tableDesc.getName().toLowerCase(Locale.ROOT).contains(tableName.toLowerCase(Locale.ROOT));
-            }).filter(NTableMetadataManager::isTableAccessible).sorted(this::compareTableDesc).collect(Collectors.toList()));
+            }).filter(NTableMetadataManager::isTableAccessible).sorted(this::compareTableDesc)
+                    .collect(Collectors.toList()));
         }
         return getTablesResponse(tables, project, withExt);
     }
+
     public int compareTableDesc(TableDesc table1, TableDesc table2) {
         if (table1.isTop() == table2.isTop()) {
             if (table1.isIncrementLoading() == table2.isIncrementLoading()) {
@@ -274,7 +283,7 @@ public class TableService extends BasicService {
     }
 
     private String[] loadTablesToProject(List<Pair<TableDesc, TableExtDesc>> allMeta, String project) {
-        final NTableMetadataManager tableMetaMgr = getTableManager(project);
+        final NTableMetadataManager tableMetaMgr = getManager(NTableMetadataManager.class, project);
         // save table meta
         List<String> saved = Lists.newArrayList();
         List<TableDesc> savedTables = Lists.newArrayList();
@@ -337,7 +346,7 @@ public class TableService extends BasicService {
             databaseTables.put(parts[0], parts[1]);
         }
         // load all tables first Pair<TableDesc, TableExtDesc>
-        ProjectInstance projectInstance = getProjectManager().getProject(project);
+        ProjectInstance projectInstance = getManager(NProjectManager.class).getProject(project);
         ISourceMetadataExplorer explr = SourceFactory.getSource(projectInstance).getSourceMetadataExplorer();
         List<Pair<Map.Entry<String, String>, Object>> results = databaseTables.entries().parallelStream().map(entry -> {
             try {
@@ -371,13 +380,13 @@ public class TableService extends BasicService {
 
     public List<String> getSourceDbNames(String project) throws Exception {
         aclEvaluate.checkProjectWritePermission(project);
-        ISourceMetadataExplorer explr = SourceFactory.getSource(getProjectManager().getProject(project))
+        ISourceMetadataExplorer explr = SourceFactory.getSource(getManager(NProjectManager.class).getProject(project))
                 .getSourceMetadataExplorer();
         return explr.listDatabases().stream().map(str -> str.toUpperCase(Locale.ROOT)).collect(Collectors.toList());
     }
 
     public List<String> getSourceTableNames(String project, String database, final String table) throws Exception {
-        ISourceMetadataExplorer explr = SourceFactory.getSource(getProjectManager().getProject(project))
+        ISourceMetadataExplorer explr = SourceFactory.getSource(getManager(NProjectManager.class).getProject(project))
                 .getSourceMetadataExplorer();
         return explr.listTables(database).stream().filter(s -> {
             if (StringUtils.isEmpty(table)) {
@@ -393,7 +402,7 @@ public class TableService extends BasicService {
             throws Exception {
         aclEvaluate.checkProjectReadPermission(project);
         List<TableNameResponse> tableNameResponses = new ArrayList<>();
-        NTableMetadataManager tableManager = getTableManager(project);
+        NTableMetadataManager tableManager = getManager(NTableMetadataManager.class, project);
         List<String> tables = getSourceTableNames(project, database, table);
         for (String tableName : tables) {
             TableNameResponse tableNameResponse = new TableNameResponse();
@@ -407,8 +416,8 @@ public class TableService extends BasicService {
 
     private TableDescResponse getTableResponse(TableDesc table, String project) {
         TableDescResponse tableDescResponse = new TableDescResponse(table);
-        TableExtDesc tableExtDesc = getTableManager(project).getTableExtIfExists(table);
-        if (table.getKafkaConfig() != null) {
+        TableExtDesc tableExtDesc = getManager(NTableMetadataManager.class, project).getTableExtIfExists(table);
+        if (table.isKafkaTable()) {
             tableDescResponse.setKafkaBootstrapServers(table.getKafkaConfig().getKafkaBootstrapServers());
             tableDescResponse.setSubscribe(table.getKafkaConfig().getSubscribe());
             tableDescResponse.setBatchTable(table.getKafkaConfig().getBatchTable());
@@ -435,9 +444,9 @@ public class TableService extends BasicService {
     private List<TableDesc> getTablesResponse(List<TableDesc> tables, String project, boolean withExt)
             throws IOException {
         List<TableDesc> descs = new ArrayList<>();
-        val projectManager = getProjectManager();
+        val projectManager = getManager(NProjectManager.class);
         val groups = getCurrentUserGroups();
-        final List<AclTCR> aclTCRS = getAclTCRManager(project).getAclTCRs(AclPermissionUtil.getCurrentUsername(),
+        final List<AclTCR> aclTCRS = getManager(AclTCRManager.class, project).getAclTCRs(AclPermissionUtil.getCurrentUsername(),
                 groups);
         final boolean isAclGreen = AclPermissionUtil.canUseACLGreenChannel(project, groups, true);
         FileSystem fs = HadoopUtil.getWorkingFileSystem();
@@ -466,7 +475,7 @@ public class TableService extends BasicService {
                 tableDescResponse = new TableDescResponse(table);
             }
 
-            TableExtDesc tableExtDesc = getTableManager(project).getTableExtIfExists(table);
+            TableExtDesc tableExtDesc = getManager(NTableMetadataManager.class, project).getTableExtIfExists(table);
             if (tableExtDesc != null) {
                 tableDescResponse.setTotalRecords(tableExtDesc.getTotalRows());
                 tableDescResponse.setSamplingRows(tableExtDesc.getSampleRows());
@@ -482,7 +491,7 @@ public class TableService extends BasicService {
                 tableDescResponse.setStorageSize(getSnapshotSize(project, table.getIdentity(), fs));
             }
             Pair<Set<String>, Set<String>> tableColumnType = getTableColumnType(project, table, modelsUsingTable);
-            NDataLoadingRange dataLoadingRange = getDataLoadingRangeManager(project)
+            NDataLoadingRange dataLoadingRange = getManager(NDataLoadingRangeManager.class, project)
                     .getDataLoadingRange(table.getIdentity());
             if (null != dataLoadingRange) {
                 tableDescResponse.setPartitionedColumn(dataLoadingRange.getColumnName());
@@ -506,7 +515,7 @@ public class TableService extends BasicService {
         final String dbTblName = rtableDesc.getIdentity();
         Map columnRows = Arrays.stream(rtableDesc.getExtColumns()).map(cdr -> {
             int id = Integer.parseInt(cdr.getId());
-            val columnRealRows = getAclTCRManager(project).getAuthorizedRows(dbTblName, cdr.getName(), aclTCRS);
+            val columnRealRows = getManager(AclTCRManager.class, project).getAuthorizedRows(dbTblName, cdr.getName(), aclTCRS);
             return new AbstractMap.SimpleEntry<>(id, columnRealRows);
         }).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         for (String[] row : rtableDesc.getSamplingRows()) {
@@ -559,11 +568,11 @@ public class TableService extends BasicService {
         if (isAclGreen) {
             return originTable;
         }
-        return getAclTCRManager(project).getAuthorizedTableDesc(originTable, aclTCRS);
+        return getManager(AclTCRManager.class, project).getAuthorizedTableDesc(originTable, aclTCRS);
     }
 
     public long getSnapshotSize(String project, String table, FileSystem fs) {
-        val tableDesc = getTableManager(project).getTableDesc(table);
+        val tableDesc = getManager(NTableMetadataManager.class, project).getTableDesc(table);
         if (tableDesc != null && tableDesc.getLastSnapshotPath() != null) {
             try {
                 val path = new Path(KapConfig.wrap(KylinConfig.getInstanceFromEnv()).getMetadataWorkingDirectory(),
@@ -590,7 +599,7 @@ public class TableService extends BasicService {
     }
 
     private long getStorageSize(String project, List<NDataModel> models, FileSystem fs) {
-        val dfManger = getDataflowManager(project);
+        val dfManger = getManager(NDataflowManager.class, project);
         long size = 0;
         for (val model : models) {
             val df = dfManger.getDataflow(model.getUuid());
@@ -607,7 +616,7 @@ public class TableService extends BasicService {
     //get table's primaryKeys(pair first) and foreignKeys(pair second)
     private Pair<Set<String>, Set<String>> getTableColumnType(String project, TableDesc table,
             List<NDataModel> modelsUsingTable) {
-        val dataModelManager = getDataModelManager(project);
+        val dataModelManager = getManager(NDataModelManager.class, project);
         Set<String> primaryKey = new HashSet<>();
         Set<String> foreignKey = new HashSet<>();
         for (val model : modelsUsingTable) {
@@ -639,7 +648,7 @@ public class TableService extends BasicService {
                     "Partition column format can not be empty!");
         }
 
-        NDataLoadingRangeManager dataLoadingRangeManager = getDataLoadingRangeManager(project);
+        NDataLoadingRangeManager dataLoadingRangeManager = getManager(NDataLoadingRangeManager.class, project);
         val dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(table);
         String tableName = table.substring(table.lastIndexOf('.') + 1);
         String columnIdentity = tableName + "." + column;
@@ -653,7 +662,7 @@ public class TableService extends BasicService {
     }
 
     private void purgeRelatedModel(String modelId, String table, String project) {
-        val dfManager = getDataflowManager(project);
+        val dfManager = getManager(NDataflowManager.class, project);
         // toggle table type, remove all segments in related models
         //follow semanticVersion,#8196
         modelService.onPurgeModel(modelId, project);
@@ -665,8 +674,8 @@ public class TableService extends BasicService {
 
     private void handlePartitionColumnChanged(NDataLoadingRange dataLoadingRange, String columnIdentity, String column,
             String columnFormat, String project, String table) {
-        val dataLoadingRangeManager = getDataLoadingRangeManager(project);
-        val tableManager = getTableManager(project);
+        val dataLoadingRangeManager = getManager(NDataLoadingRangeManager.class, project);
+        val tableManager = getManager(NTableMetadataManager.class, project);
         val tableDesc = tableManager.getTableDesc(table);
         val copy = tableManager.copyForWrite(tableDesc);
         if (StringUtils.isEmpty(column)) {
@@ -690,7 +699,7 @@ public class TableService extends BasicService {
             copy.setIncrementLoading(true);
             tableManager.updateTableDesc(copy);
         }
-        val dfManager = getDataflowManager(project);
+        val dfManager = getManager(NDataflowManager.class, project);
         val models = dfManager.getTableOrientedModelsUsingRootTable(tableDesc);
         for (val model : models) {
             purgeRelatedModel(model.getUuid(), table, project);
@@ -702,15 +711,15 @@ public class TableService extends BasicService {
     }
 
     private void buildFullSegment(String model, String project) {
-        val jobManager = getJobManager(project);
-        val dataflowManager = getDataflowManager(project);
-        val indexPlanManager = getIndexPlanManager(project);
+        val jobManager = getManager(JobManager.class, project);
+        val dataflowManager = getManager(NDataflowManager.class, project);
+        val indexPlanManager = getManager(NIndexPlanManager.class, project);
         val indexPlan = indexPlanManager.getIndexPlan(model);
         val dataflow = dataflowManager.getDataflow(indexPlan.getUuid());
         val newSegment = dataflowManager.appendSegment(dataflow,
                 new SegmentRange.TimePartitionedSegmentRange(0L, Long.MAX_VALUE));
 
-        getSourceUsageManager().licenseCheckWrap(project,
+        getManager(SourceUsageManager.class).licenseCheckWrap(project,
                 () -> jobManager.addSegmentJob(new JobParam(newSegment, model, getUsername())));
     }
 
@@ -743,10 +752,10 @@ public class TableService extends BasicService {
 
     private void saveDataRange(String project, String table, String start, String end) throws Exception {
         proposeAndSaveDateFormatIfNotExist(project, table);
-        NTableMetadataManager tableManager = getTableManager(project);
+        NTableMetadataManager tableManager = getManager(NTableMetadataManager.class, project);
         TableDesc tableDesc = tableManager.getTableDesc(table);
         SegmentRange newSegmentRange = SourceFactory.getSource(tableDesc).getSegmentRange(start, end);
-        NDataLoadingRangeManager rangeManager = getDataLoadingRangeManager(project);
+        NDataLoadingRangeManager rangeManager = getManager(NDataLoadingRangeManager.class, project);
         NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
         rangeManager.appendSegmentRange(dataLoadingRange, newSegmentRange);
         handleLoadingRangeUpdate(project, table, newSegmentRange);
@@ -763,7 +772,7 @@ public class TableService extends BasicService {
     public String getPartitionColumnFormat(String project, String table, String partitionColumn) throws Exception {
         aclEvaluate.checkProjectOperationPermission(project);
 
-        NTableMetadataManager tableManager = getTableManager(project);
+        NTableMetadataManager tableManager = getManager(NTableMetadataManager.class, project);
         TableDesc tableDesc = tableManager.getTableDesc(table);
         Preconditions.checkNotNull(tableDesc,
                 String.format(Locale.ROOT, MsgPicker.getMsg().getTABLE_NOT_FOUND(), table));
@@ -774,7 +783,7 @@ public class TableService extends BasicService {
                     "Can not find the column:%s in table:%s, project:%s", partitionColumn, table, project));
         }
         try {
-            if (tableDesc.getKafkaConfig() != null) {
+            if (tableDesc.isKafkaTable()) {
                 List<ByteBuffer> messages = kafkaService.getMessages(tableDesc.getKafkaConfig(), project, 0);
                 if (messages == null || messages.isEmpty()) {
                     throw new KylinException(EMPTY_TABLE,
@@ -820,15 +829,15 @@ public class TableService extends BasicService {
 
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
-            NDataLoadingRangeManager rangeManager = getDataLoadingRangeManager(project);
+            NDataLoadingRangeManager rangeManager = getManager(NDataLoadingRangeManager.class, project);
 
             val copy = rangeManager.copyForWrite(dataLoadingRange);
             copy.setPartitionDateFormat(format);
             rangeManager.updateDataLoadingRange(copy);
 
             // sync to all related models
-            val dataflowManager = getDataflowManager(project);
-            TableDesc tableDesc = getTableManager(project).getTableDesc(table);
+            val dataflowManager = getManager(NDataflowManager.class, project);
+            TableDesc tableDesc = getManager(NTableMetadataManager.class, project).getTableDesc(table);
             val models = dataflowManager.getTableOrientedModelsUsingRootTable(tableDesc);
             for (val model : models) {
                 modelService.onSyncPartition(model.getUuid(), project);
@@ -862,7 +871,7 @@ public class TableService extends BasicService {
         List<NDataModel> models = NDataflowManager.getInstance(kylinConfig, project)
                 .getTableOrientedModelsUsingRootTable(tableDesc);
         if (CollectionUtils.isNotEmpty(models)) {
-            val jobManager = getJobManager(project);
+            val jobManager = getManager(JobManager.class, project);
             NDataflowManager dataflowManager = NDataflowManager.getInstance(kylinConfig, project);
             for (var model : models) {
                 val modelId = model.getUuid();
@@ -870,7 +879,7 @@ public class TableService extends BasicService {
                 NDataflow df = dataflowManager.getDataflow(indexPlan.getUuid());
                 NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
 
-                getSourceUsageManager().licenseCheckWrap(project,
+                getManager(SourceUsageManager.class).licenseCheckWrap(project,
                         () -> jobManager.addSegmentJob(new JobParam(dataSegment, modelId, getUsername())));
 
                 logger.info(
@@ -884,7 +893,7 @@ public class TableService extends BasicService {
     public SegmentRange getSegmentRangeByTable(DateRangeRequest dateRangeRequest) {
         String project = dateRangeRequest.getProject();
         String table = dateRangeRequest.getTable();
-        NTableMetadataManager nProjectManager = getTableManager(project);
+        NTableMetadataManager nProjectManager = getManager(NTableMetadataManager.class, project);
         TableDesc tableDesc = nProjectManager.getTableDesc(table);
         return SourceFactory.getSource(tableDesc).getSegmentRange(dateRangeRequest.getStart(),
                 dateRangeRequest.getEnd());
@@ -893,7 +902,7 @@ public class TableService extends BasicService {
 
     public List<BatchLoadTableResponse> getBatchLoadTables(String project) {
         aclEvaluate.checkProjectOperationPermission(project);
-        final List<TableDesc> incrementalLoadTables = getTableManager(project).getAllIncrementalLoadTables();
+        final List<TableDesc> incrementalLoadTables = getManager(NTableMetadataManager.class, project).getAllIncrementalLoadTables();
         final List<BatchLoadTableResponse> result = Lists.newArrayList();
 
         for (TableDesc table : incrementalLoadTables) {
@@ -907,9 +916,9 @@ public class TableService extends BasicService {
 
     private int getRelatedIndexNumOfATable(TableDesc tableDesc, String project) {
         int result = 0;
-        val dataflowManager = getDataflowManager(project);
+        val dataflowManager = getManager(NDataflowManager.class, project);
         for (val model : dataflowManager.getTableOrientedModelsUsingRootTable(tableDesc)) {
-            IndexPlan indexPlan = getIndexPlanManager(project).getIndexPlan(model.getUuid());
+            IndexPlan indexPlan = getManager(NIndexPlanManager.class, project).getIndexPlan(model.getUuid());
             result += indexPlan.getAllIndexes().size();
         }
 
@@ -917,7 +926,7 @@ public class TableService extends BasicService {
     }
 
     public void batchLoadDataRange(String project, List<DateRangeRequest> requests) throws Exception {
-        NProjectManager projectManager = getProjectManager();
+        NProjectManager projectManager = getManager(NProjectManager.class);
         ProjectInstance projectInstance = projectManager.getProject(project);
         if (projectInstance != null) {
             project = projectInstance.getName();
@@ -929,7 +938,7 @@ public class TableService extends BasicService {
     }
 
     private List<AbstractExecutable> stopAndGetSnapshotJobs(String project, String table) {
-        val execManager = getExecutableManager(project);
+        val execManager = getManager(NExecutableManager.class, project);
         val executables = execManager.listExecByJobTypeAndStatus(ExecutableState::isRunning, SNAPSHOT_BUILD,
                 SNAPSHOT_REFRESH);
 
@@ -946,7 +955,7 @@ public class TableService extends BasicService {
     @Transaction(project = 0)
     public String unloadTable(String project, String table, Boolean cascade) {
         aclEvaluate.checkProjectWritePermission(project);
-        NTableMetadataManager tableMetadataManager = getTableManager(project);
+        NTableMetadataManager tableMetadataManager = getManager(NTableMetadataManager.class, project);
         val tableDesc = tableMetadataManager.getTableDesc(table);
         if (Objects.isNull(tableDesc)) {
             String errorMsg = String.format(Locale.ROOT, MsgPicker.getMsg().getTABLE_NOT_FOUND(), table);
@@ -955,7 +964,7 @@ public class TableService extends BasicService {
 
         stopAndGetSnapshotJobs(project, table);
 
-        val dataflowManager = getDataflowManager(project);
+        val dataflowManager = getManager(NDataflowManager.class, project);
         if (cascade) {
             for (NDataModel tableRelatedModel : dataflowManager.getModelsUsingTable(tableDesc)) {
                 fusionModelService.onDropModel(tableRelatedModel.getId(), project, true);
@@ -968,7 +977,7 @@ public class TableService extends BasicService {
 
         unloadTable(project, table);
 
-        NDataLoadingRangeManager dataLoadingRangeManager = getDataLoadingRangeManager(project);
+        NDataLoadingRangeManager dataLoadingRangeManager = getManager(NDataLoadingRangeManager.class, project);
         NDataLoadingRange dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(table);
         if (dataLoadingRange != null) {
             dataLoadingRangeManager.removeDataLoadingRange(dataLoadingRange);
@@ -976,7 +985,7 @@ public class TableService extends BasicService {
 
         aclTCRService.unloadTable(project, table);
 
-        NProjectManager npr = getProjectManager();
+        NProjectManager npr = getManager(NProjectManager.class);
         final ProjectInstance projectInstance = npr.getProject(project);
         Set<String> databases = getLoadedDatabases(project).stream().map(str -> str.toUpperCase(Locale.ROOT))
                 .collect(Collectors.toSet());
@@ -993,30 +1002,30 @@ public class TableService extends BasicService {
         if (tableDesc.getSourceType() != ISourceAware.ID_SPARK)
             return;
 
-        val kafkaConfigManger = getKafkaConfigManager(project);
+        val kafkaConfigManger = getManager(KafkaConfigManager.class, project);
         for (KafkaConfig kafkaConfig : kafkaConfigManger.getKafkaTablesUsingTable(tableDesc.getIdentity())) {
             unloadTable(project, kafkaConfig.getIdentity());
         }
     }
 
     private void stopStreamingJobByTable(String project, TableDesc tableDesc) {
-        for (NDataModel tableRelatedModel : getDataflowManager(project).getModelsUsingTable(tableDesc)) {
+        for (NDataModel tableRelatedModel : getManager(NDataflowManager.class, project).getModelsUsingTable(tableDesc)) {
             fusionModelService.onStopStreamingJob(tableRelatedModel.getId(), project);
         }
     }
 
     public void unloadTable(String project, String tableIdentity) {
-        getTableManager(project).removeTableExt(tableIdentity);
-        getTableManager(project).removeSourceTable(tableIdentity);
-        getKafkaConfigManager(project).removeKafkaConfig(tableIdentity);
+        getManager(NTableMetadataManager.class, project).removeTableExt(tableIdentity);
+        getManager(NTableMetadataManager.class, project).removeSourceTable(tableIdentity);
+        getManager(KafkaConfigManager.class, project).removeKafkaConfig(tableIdentity);
     }
 
     public PreUnloadTableResponse preUnloadTable(String project, String tableIdentity) throws IOException {
         aclEvaluate.checkProjectWritePermission(project);
         val response = new PreUnloadTableResponse();
-        val dataflowManager = getDataflowManager(project);
-        val tableMetadataManager = getTableManager(project);
-        val execManager = getExecutableManager(project);
+        val dataflowManager = getManager(NDataflowManager.class, project);
+        val tableMetadataManager = getManager(NTableMetadataManager.class, project);
+        val execManager = getManager(NExecutableManager.class, project);
 
         val tableDesc = tableMetadataManager.getTableDesc(tableIdentity);
         if (Objects.isNull(tableDesc)) {
@@ -1049,7 +1058,7 @@ public class TableService extends BasicService {
     @Transaction(project = 1)
     public void setTop(String table, String project, boolean top) {
         aclEvaluate.checkProjectWritePermission(project);
-        NTableMetadataManager nTableMetadataManager = getTableManager(project);
+        NTableMetadataManager nTableMetadataManager = getManager(NTableMetadataManager.class, project);
         TableDesc tableDesc = nTableMetadataManager.getTableDesc(table);
         tableDesc = nTableMetadataManager.copyForWrite(tableDesc);
         tableDesc.setTop(top);
@@ -1058,7 +1067,7 @@ public class TableService extends BasicService {
 
     public List<TablesAndColumnsResponse> getTableAndColumns(String project) {
         aclEvaluate.checkProjectReadPermission(project);
-        List<TableDesc> tables = getTableManager(project).listAllTables();
+        List<TableDesc> tables = getManager(NTableMetadataManager.class, project).listAllTables();
         List<TablesAndColumnsResponse> result = new ArrayList<>();
         for (TableDesc table : tables) {
             TablesAndColumnsResponse response = new TablesAndColumnsResponse();
@@ -1076,7 +1085,7 @@ public class TableService extends BasicService {
     }
 
     public void checkRefreshDataRangeReadiness(String project, String table, String start, String end) {
-        NTableMetadataManager tableMetadataManager = getTableManager(project);
+        NTableMetadataManager tableMetadataManager = getManager(NTableMetadataManager.class, project);
         TableDesc tableDesc = tableMetadataManager.getTableDesc(table);
         if (!tableDesc.isIncrementLoading())
             return;
@@ -1094,7 +1103,7 @@ public class TableService extends BasicService {
     }
 
     private NDataLoadingRange getDataLoadingRange(String project, String table) {
-        NDataLoadingRangeManager dataLoadingRangeManager = getDataLoadingRangeManager(project);
+        NDataLoadingRangeManager dataLoadingRangeManager = getManager(NDataLoadingRangeManager.class, project);
         NDataLoadingRange dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(table);
         if (dataLoadingRange == null) {
             throw new IllegalStateException(
@@ -1107,7 +1116,7 @@ public class TableService extends BasicService {
     public void setPushDownMode(String project, String table, boolean pushdownRangeLimited) {
         aclEvaluate.checkProjectWritePermission(project);
         NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
-        NDataLoadingRangeManager dataLoadingRangeManager = getDataLoadingRangeManager(project);
+        NDataLoadingRangeManager dataLoadingRangeManager = getManager(NDataLoadingRangeManager.class, project);
         NDataLoadingRange dataLoadingRangeUpdate = dataLoadingRangeManager.copyForWrite(dataLoadingRange);
         dataLoadingRangeUpdate.setPushdownRangeLimited(pushdownRangeLimited);
         dataLoadingRangeManager.updateDataLoadingRange(dataLoadingRangeUpdate);
@@ -1115,13 +1124,12 @@ public class TableService extends BasicService {
 
     public AutoMergeConfigResponse getAutoMergeConfigByModel(String project, String modelId) {
         aclEvaluate.checkProjectOperationPermission(project);
-        NDataModelManager dataModelManager = getDataModelManager(project);
+        NDataModelManager dataModelManager = getManager(NDataModelManager.class, project);
         AutoMergeConfigResponse mergeConfig = new AutoMergeConfigResponse();
 
         NDataModel model = dataModelManager.getDataModelDesc(modelId);
         if (model == null) {
-            throw new KylinException(MODEL_NOT_EXIST,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelId));
+            throw new KylinException(MODEL_ID_NOT_EXIST, modelId);
         }
         val segmentConfig = NSegmentConfigHelper.getModelSegmentConfig(project, modelId);
         Preconditions.checkState(segmentConfig != null);
@@ -1146,7 +1154,7 @@ public class TableService extends BasicService {
     public void setAutoMergeConfigByModel(String project, AutoMergeRequest autoMergeRequest) {
         aclEvaluate.checkProjectWritePermission(project);
         String modelId = autoMergeRequest.getModel();
-        NDataModelManager dataModelManager = getDataModelManager(project);
+        NDataModelManager dataModelManager = getManager(NDataModelManager.class, project);
         List<AutoMergeTimeEnum> autoMergeRanges = new ArrayList<>();
         for (String range : autoMergeRequest.getAutoMergeTimeRanges()) {
             autoMergeRanges.add(AutoMergeTimeEnum.valueOf(range));
@@ -1158,8 +1166,7 @@ public class TableService extends BasicService {
 
         NDataModel model = dataModelManager.getDataModelDesc(modelId);
         if (model == null) {
-            throw new KylinException(MODEL_NOT_EXIST,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelId));
+            throw new KylinException(MODEL_ID_NOT_EXIST, modelId);
         }
         if (ManagementType.MODEL_BASED == model.getManagementType()) {
             NDataModel modelUpdate = dataModelManager.copyForWrite(model);
@@ -1178,7 +1185,7 @@ public class TableService extends BasicService {
 
     public boolean getPushDownMode(String project, String table) {
         aclEvaluate.checkProjectOperationPermission(project);
-        NDataLoadingRangeManager dataLoadingRangeManager = getDataLoadingRangeManager(project);
+        NDataLoadingRangeManager dataLoadingRangeManager = getManager(NDataLoadingRangeManager.class, project);
         NDataLoadingRange dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(table);
         return dataLoadingRange.isPushdownRangeLimited();
     }
@@ -1195,7 +1202,7 @@ public class TableService extends BasicService {
         volatileRange.setVolatileRangeType(AutoMergeTimeEnum.valueOf(autoMergeRequest.getVolatileRangeType()));
         volatileRange.setVolatileRangeEnabled(autoMergeRequest.isVolatileRangeEnabled());
         volatileRange.setVolatileRangeNumber(autoMergeRequest.getVolatileRangeNumber());
-        NDataLoadingRangeManager dataLoadingRangeManager = getDataLoadingRangeManager(project);
+        NDataLoadingRangeManager dataLoadingRangeManager = getManager(NDataLoadingRangeManager.class, project);
         NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, tableName);
         NDataLoadingRange dataLoadingRangeUpdate = dataLoadingRangeManager.copyForWrite(dataLoadingRange);
         var segmentConfig = dataLoadingRangeUpdate.getSegmentConfig();
@@ -1237,7 +1244,7 @@ public class TableService extends BasicService {
     }
 
     private void removeFusionModelBatchPart(String project, ReloadTableContext context) {
-        NDataModelManager manager = getDataModelManager(project);
+        NDataModelManager manager = getManager(NDataModelManager.class, project);
         context.getRemoveAffectedModels().keySet()
                 .removeIf(modelId -> manager.getDataModelDesc(modelId).fusionModelBatchPart());
     }
@@ -1252,10 +1259,10 @@ public class TableService extends BasicService {
 
         val schemaChanged = result.getAddColumnCount() > 0 || result.getRemoveColumnCount() > 0
                 || result.getDataTypeChangeColumnCount() > 0;
-        val originTable = getTableManager(project).getTableDesc(context.getTableDesc().getIdentity());
+        val originTable = getManager(NTableMetadataManager.class, project).getTableDesc(context.getTableDesc().getIdentity());
         result.setSnapshotDeleted(schemaChanged && originTable.getLastSnapshotPath() != null);
 
-        val projectInstance = getProjectManager().getProject(project);
+        val projectInstance = getManager(NProjectManager.class).getProject(project);
         if (projectInstance.getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
             val affectedModels = Maps.newHashMap(context.getChangeTypeAffectedModels());
             affectedModels.putAll(context.getRemoveAffectedModels());
@@ -1328,12 +1335,12 @@ public class TableService extends BasicService {
 
     @Transaction(project = 0)
     List<String> innerReloadTable(String projectName, String tableIdentity, boolean needBuild) throws Exception {
-        val tableManager = getTableManager(projectName);
+        val tableManager = getManager(NTableMetadataManager.class, projectName);
         val originTable = tableManager.getTableDesc(tableIdentity);
         Preconditions.checkNotNull(originTable,
                 String.format(Locale.ROOT, MsgPicker.getMsg().getTABLE_NOT_FOUND(), tableIdentity));
 
-        val project = getProjectManager().getProject(projectName);
+        val project = getManager(NProjectManager.class).getProject(projectName);
         val context = calcReloadContext(projectName, tableIdentity, true);
         Set<NDataModel> affectedModels = getAffectedModels(projectName, context);
         List<String> jobs = Lists.newArrayList();
@@ -1351,7 +1358,7 @@ public class TableService extends BasicService {
             }
         }
 
-        val loadingManager = getDataLoadingRangeManager(projectName);
+        val loadingManager = getManager(NDataLoadingRangeManager.class, projectName);
         val removeCols = context.getRemoveColumnFullnames();
         loadingManager.getDataLoadingRanges().forEach(loadingRange -> {
             if (removeCols.contains(loadingRange.getColumnName())) {
@@ -1372,7 +1379,7 @@ public class TableService extends BasicService {
             return Sets.newHashSet();
         }
         String tableIdentity = context.getTableDesc().getIdentity();
-        List<NDataModel> allHealthModels = getDataflowManager(projectName).listUnderliningDataModels();
+        List<NDataModel> allHealthModels = getManager(NDataflowManager.class, projectName).listUnderliningDataModels();
         return allHealthModels.stream().filter(modelDesc -> modelDesc.getAllTables().stream()
                 .map(TableRef::getTableIdentity).anyMatch(tableIdentity::equalsIgnoreCase)).collect(Collectors.toSet());
     }
@@ -1392,13 +1399,13 @@ public class TableService extends BasicService {
 
         cleanIndexPlan(projectName, model, Lists.newArrayList(removeAffectedModel, changeTypeAffectedModel));
 
-        getOptRecManagerV2(projectName).discardAll(model.getId());
+        OptRecManagerV2.getInstance(projectName).discardAll(model.getId());
         modelService.onUpdateBrokenModel(model, removeAffectedModel, changeTypeAffectedModel, projectName);
 
-        val jobManager = getJobManager(projectName);
-        val updatedModel = getDataModelManager(projectName).getDataModelDesc(model.getId());
+        val jobManager = getManager(JobManager.class, projectName);
+        val updatedModel = getManager(NDataModelManager.class, projectName).getDataModelDesc(model.getId());
         if (needBuild && !updatedModel.isBroken()) {
-            return getSourceUsageManager().licenseCheckWrap(projectName,
+            return getManager(SourceUsageManager.class).licenseCheckWrap(projectName,
                     () -> jobManager.addIndexJob(new JobParam(model.getId(), getUsername())));
         }
         return null;
@@ -1418,7 +1425,7 @@ public class TableService extends BasicService {
             cleanIndexPlan(projectName, model, Lists.newArrayList(removeAffected, changeTypeAffected));
         }
 
-        getOptRecManagerV2(projectName).discardAll(model.getId());
+        OptRecManagerV2.getInstance(projectName).discardAll(model.getId());
 
         try {
             modelService.onUpdateDataModel(model, removeAffected, changeTypeAffected, projectName,
@@ -1432,8 +1439,7 @@ public class TableService extends BasicService {
                         MsgPicker.getMsg().getRELOAD_TABLE_CC_RETRY(), root.getMessage(), tableName, columnNames));
             } else if (root instanceof KylinException
                     && ((KylinException) root).getErrorCode() == QueryErrorCode.SCD2_COMMON_ERROR.toErrorCode()) {
-                throw new KylinException(RELOAD_TABLE_FAILED, String.format(Locale.ROOT,
-                        MsgPicker.getMsg().getRELOAD_TABLE_MODEL_RETRY(), tableName, columnNames, model.getAlias()));
+                throw new KylinException(TABLE_RELOAD_MODEL_RETRY, tableName, columnNames, model.getAlias());
             }
             throw e;
         }
@@ -1445,9 +1451,9 @@ public class TableService extends BasicService {
         indexPlanService.onUpdateBaseIndex(baseIndexUpdater);
         if (CollectionUtils.isNotEmpty(removeAffected.getUpdatedLayouts())
                 || CollectionUtils.isNotEmpty(changeTypeAffected.getUpdatedLayouts())) {
-            val jobManager = getJobManager(projectName);
+            val jobManager = getManager(JobManager.class, projectName);
             if (needBuild) {
-                return getSourceUsageManager().licenseCheckWrap(projectName,
+                return getManager(SourceUsageManager.class).licenseCheckWrap(projectName,
                         () -> jobManager.addIndexJob(new JobParam(model.getId(), getUsername())));
             }
         }
@@ -1455,10 +1461,10 @@ public class TableService extends BasicService {
     }
 
     void cleanIndexPlan(String projectName, NDataModel model, List<AffectedModelContext> affectedModels) {
-        val indexManager = getIndexPlanManager(projectName);
+        val indexManager = getManager(NIndexPlanManager.class, projectName);
         for (AffectedModelContext affectedContext : affectedModels) {
             if (!affectedContext.getUpdateMeasureMap().isEmpty()) {
-                getDataModelManager(projectName).updateDataModel(model.getId(), modelDesc -> {
+                getManager(NDataModelManager.class, projectName).updateDataModel(model.getId(), modelDesc ->
                     affectedContext.getUpdateMeasureMap().forEach((originalMeasureId, newMeasure) -> {
                         int maxMeasureId = modelDesc.getAllMeasures().stream().map(NDataModel.Measure::getId)
                                 .mapToInt(i -> i).max().orElse(NDataModel.MEASURE_ID_BASE - 1);
@@ -1471,15 +1477,14 @@ public class TableService extends BasicService {
                             newMeasure.setId(maxMeasureId);
                             modelDesc.getAllMeasures().add(newMeasure);
                         }
-                    });
-                });
+                    }));
             }
             indexManager.updateIndexPlan(model.getId(), affectedContext::shrinkIndexPlan);
         }
     }
 
     void mergeTable(String projectName, ReloadTableContext context, boolean keepTomb) {
-        val tableManager = getTableManager(projectName);
+        val tableManager = getManager(NTableMetadataManager.class, projectName);
         val originTable = tableManager.getTableDesc(context.getTableDesc().getIdentity());
         val originTableExt = tableManager.getTableExtIfExists(originTable);
         context.getTableDesc().setMvcc(originTable.getMvcc());
@@ -1588,9 +1593,8 @@ public class TableService extends BasicService {
     private void checkEffectedJobs(TableDesc newTableDesc) {
         List<String> targetSubjectList = getEffectedJobs(newTableDesc, JobInfoEnum.JOB_TARGET_SUBJECT);
         if (CollectionUtils.isNotEmpty(targetSubjectList)) {
-            throw new KylinException(ON_GOING_JOB_EXIST,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getTABLE_RELOAD_HAVING_NOT_FINAL_JOB(),
-                            StringUtils.join(targetSubjectList.iterator(), ",")));
+            throw new KylinException(TABLE_RELOAD_HAVING_NOT_FINAL_JOB,
+                    StringUtils.join(targetSubjectList.iterator(), ","));
         }
     }
 
@@ -1599,7 +1603,7 @@ public class TableService extends BasicService {
     }
 
     private List<String> getEffectedJobs(TableDesc newTableDesc, JobInfoEnum jobInfoType) {
-        val notFinalStateJobs = getExecutableManager(newTableDesc.getProject()).getAllExecutables().stream()
+        val notFinalStateJobs = getManager(NExecutableManager.class, newTableDesc.getProject()).getAllExecutables().stream()
                 .filter(job -> !job.getStatus().isFinalState()).collect(Collectors.toList());
 
         List<String> effectedJobs = Lists.newArrayList();
@@ -1637,7 +1641,7 @@ public class TableService extends BasicService {
         context.setTableDesc(newTableDesc);
         context.setTableExtDesc(tableMeta.getSecond());
 
-        val originTableDesc = getTableManager(project).getTableDesc(tableIdentity);
+        val originTableDesc = getManager(NTableMetadataManager.class, project).getTableDesc(tableIdentity);
         val collector = Collectors.toMap(ColumnDesc::getName, col -> Pair.newPair(col.getName(), col.getDatatype()));
         val originCols = Stream.of(originTableDesc.getColumns()).collect(collector);
         val newCols = Stream.of(newTableDesc.getColumns()).collect(collector);
@@ -1680,7 +1684,7 @@ public class TableService extends BasicService {
                     .collect(Collectors.groupingBy(SchemaNode::getSubject, Collectors.toSet()));
             Map<String, AffectedModelContext> modelContexts = Maps.newHashMap();
             nodesMap.forEach((key, nodes) -> {
-                val indexPlan = getIndexPlanManager(project).getIndexPlanByModelAlias(key);
+                val indexPlan = getManager(NIndexPlanManager.class, project).getIndexPlanByModelAlias(key);
                 Set<Pair<NDataModel.Measure, NDataModel.Measure>> updateMeasures = Sets.newHashSet();
                 if (!isDelete) {
                     updateMeasures = suitableColumnTypeChangedMeasuresMap.getOrDefault(key, updateMeasures);
@@ -1785,7 +1789,7 @@ public class TableService extends BasicService {
 
     public Set<String> getLoadedDatabases(String project) {
         aclEvaluate.checkProjectReadPermission(project);
-        NTableMetadataManager tableManager = getTableManager(project);
+        NTableMetadataManager tableManager = getManager(NTableMetadataManager.class, project);
         List<TableDesc> tables = tableManager.listAllTables();
         Set<String> loadedDatabases = new HashSet<>();
         for (TableDesc table : tables) {
@@ -1877,7 +1881,7 @@ public class TableService extends BasicService {
             throws Exception {
         aclEvaluate.checkProjectReadPermission(project);
         List<TableNameResponse> responses = new ArrayList<>();
-        NTableMetadataManager tableManager = getTableManager(project);
+        NTableMetadataManager tableManager = getManager(NTableMetadataManager.class, project);
         List<String> tables = DataSourceState.getInstance().getTables(project, database);
         for (String tableName : tables) {
             if (StringUtils.isEmpty(table)
@@ -2056,19 +2060,18 @@ public class TableService extends BasicService {
 
     public List<TableDesc> getTablesOfModel(String project, String modelAlias) {
         aclEvaluate.checkProjectReadPermission(project);
-        NDataModel model = getDataModelManager(project).getDataModelDescByAlias(modelAlias);
+        NDataModel model = getManager(NDataModelManager.class, project).getDataModelDescByAlias(modelAlias);
         if (Objects.isNull(model)) {
-            throw new KylinException(MODEL_NOT_EXIST,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelAlias));
+            throw new KylinException(MODEL_NAME_NOT_EXIST, modelAlias);
         }
         List<String> usedTableNames = Lists.newArrayList();
         usedTableNames.add(model.getRootFactTableName());
         usedTableNames.addAll(model.getJoinTables().stream().map(JoinTableDesc::getTable).collect(Collectors.toList()));
-        return usedTableNames.stream().map(getTableManager(project)::getTableDesc).filter(Objects::nonNull)
+        return usedTableNames.stream().map(getManager(NTableMetadataManager.class, project)::getTableDesc).filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
     public TableExtDesc getOrCreateTableExt(String project, TableDesc t) {
-        return getTableManager(project).getOrCreateTableExt(t);
+        return getManager(NTableMetadataManager.class, project).getOrCreateTableExt(t);
     }
 }

@@ -23,11 +23,11 @@
  */
 package io.kyligence.kap.rest.service;
 
-import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_JOB_STATUS;
-import static org.apache.kylin.common.exception.ServerErrorCode.ILLEGAL_JOB_ACTION;
-import static org.apache.kylin.common.exception.ServerErrorCode.ILLEGAL_JOB_STATUS;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
-import static org.apache.kylin.common.exception.ServerErrorCode.JOB_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_ACTION_ILLEGAL;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_STATUS_ILLEGAL;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_UPDATE_STATUS_FAILED;
 import static org.apache.kylin.query.util.AsyncQueryUtil.ASYNC_QUERY_JOB_ID_PRE;
 
 import java.io.IOException;
@@ -113,9 +113,11 @@ import io.kyligence.kap.common.scheduler.JobReadyNotifier;
 import io.kyligence.kap.engine.spark.job.NSparkExecutable;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.FusionModel;
 import io.kyligence.kap.metadata.model.FusionModelManager;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.rest.aspect.Transaction;
 import io.kyligence.kap.rest.request.JobFilter;
@@ -123,6 +125,7 @@ import io.kyligence.kap.rest.request.JobUpdateRequest;
 import io.kyligence.kap.rest.response.ExecutableResponse;
 import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import io.kyligence.kap.rest.response.JobStatisticsResponse;
+import io.kyligence.kap.rest.util.SparkHistoryUIUtil;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import lombok.Getter;
 import lombok.Setter;
@@ -133,9 +136,9 @@ import lombok.var;
 @Component("jobService")
 public class JobService extends BasicService implements JobSupporter {
 
-//    @Autowired
-//    @Qualifier("tableExtService")
-//    private TableExtService tableExtService;
+    //    @Autowired
+    //    @Qualifier("tableExtService")
+    //    private TableExtService tableExtService;
 
     @Autowired
     private ProjectService projectService;
@@ -218,7 +221,7 @@ public class JobService extends BasicService implements JobSupporter {
                 return true;
             }
             //filter out batch job of fusion model
-            val mgr = modelService.getDataModelManager(executablePO.getProject());
+            val mgr = getManager(NDataModelManager.class, executablePO.getProject());
             val model = mgr.getDataModelDesc(executablePO.getTargetModel());
             return model == null || !model.isFusionModel();
         })).map(this::createExecutablePOSortBean).sorted(comparator).collect(Collectors.toList());
@@ -229,7 +232,7 @@ public class JobService extends BasicService implements JobSupporter {
         val beanList = filterAndSortExecutablePO(jobFilter, jobs);
         List<ExecutableResponse> result = PagingUtil.cutPage(beanList, offset, limit).stream()
                 .map(in -> in.getExecutablePO())
-                .map(executablePO -> getExecutableManager(executablePO.getProject()).fromPO(executablePO))
+                .map(executablePO -> getManager(NExecutableManager.class, executablePO.getProject()).fromPO(executablePO))
                 .map(this::convert).collect(Collectors.toList());
         return new DataResult<>(sortTotalDurationList(result, jobFilter), beanList.size(), offset, limit);
     }
@@ -245,7 +248,7 @@ public class JobService extends BasicService implements JobSupporter {
     private List<ExecutableResponse> filterAndSort(final JobFilter jobFilter, List<ExecutablePO> jobs) {
         val beanList = filterAndSortExecutablePO(jobFilter, jobs).stream()//
                 .map(in -> in.getExecutablePO())
-                .map(executablePO -> getExecutableManager(executablePO.getProject()).fromPO(executablePO))
+                .map(executablePO -> getManager(NExecutableManager.class, executablePO.getProject()).fromPO(executablePO))
                 .map(this::convert).collect(Collectors.toList());
         return sortTotalDurationList(beanList, jobFilter);
     }
@@ -255,7 +258,7 @@ public class JobService extends BasicService implements JobSupporter {
         Preconditions.checkNotNull(filterEnum, "Can not find the JobTimeFilterEnum by code: %s",
                 jobFilter.getTimeFilter());
 
-        NExecutableManager executableManager = getExecutableManager(jobFilter.getProject());
+        NExecutableManager executableManager = getManager(NExecutableManager.class, jobFilter.getProject());
         // prepare time range
         Calendar calendar = Calendar.getInstance(TimeZone.getDefault(), Locale.getDefault(Locale.Category.FORMAT));
         calendar.setTime(new Date());
@@ -277,7 +280,7 @@ public class JobService extends BasicService implements JobSupporter {
     public List<ExecutableResponse> addOldParams(List<ExecutableResponse> executableResponseList) {
         executableResponseList.forEach(executableResponse -> {
             ExecutableResponse.OldParams oldParams = new ExecutableResponse.OldParams();
-            NDataModel nDataModel = modelService.getDataModelManager(executableResponse.getProject())
+            NDataModel nDataModel = modelService.getManager(NDataModelManager.class, executableResponse.getProject())
                     .getDataModelDesc(executableResponse.getTargetModel());
             String modelName = Objects.isNull(nDataModel) ? null : nDataModel.getAlias();
 
@@ -368,13 +371,13 @@ public class JobService extends BasicService implements JobSupporter {
     }
 
     private void dropJob(String project, String jobId) {
-        NExecutableManager executableManager = getExecutableManager(project);
+        NExecutableManager executableManager = getManager(NExecutableManager.class, project);
         executableManager.deleteJob(jobId);
     }
 
     @VisibleForTesting
     public void updateJobStatus(String jobId, String project, String action) throws IOException {
-        val executableManager = getExecutableManager(project);
+        val executableManager = getManager(NExecutableManager.class, project);
         UnitOfWorkContext.UnitTask afterUnitTask = () -> EventBusFactory.getInstance()
                 .postWithLimit(new JobReadyNotifier(project));
         JobActionEnum.validateValue(action.toUpperCase(Locale.ROOT));
@@ -411,20 +414,19 @@ public class JobService extends BasicService implements JobSupporter {
     }
 
     private void discardJob(String project, String jobId) {
-        AbstractExecutable job = getExecutableManager(project).getJob(jobId);
+        AbstractExecutable job = getManager(NExecutableManager.class, project).getJob(jobId);
         if (ExecutableState.SUCCEED == job.getStatus()) {
-            throw new KylinException(FAILED_UPDATE_JOB_STATUS, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getInvalidJobStatusTransaction(), "DISCARD", jobId, job.getStatus()));
+            throw new KylinException(JOB_UPDATE_STATUS_FAILED, "DISCARD", jobId, job.getStatus());
         }
         if (ExecutableState.DISCARDED == job.getStatus()) {
             return;
         }
         killExistApplication(job);
-        getExecutableManager(project).discardJob(job.getId());
+        getManager(NExecutableManager.class, project).discardJob(job.getId());
     }
 
     public void killExistApplication(String project, String jobId) {
-        AbstractExecutable job = getExecutableManager(project).getJob(jobId);
+        AbstractExecutable job = getManager(NExecutableManager.class, project).getJob(jobId);
         killExistApplication(job);
     }
 
@@ -448,7 +450,7 @@ public class JobService extends BasicService implements JobSupporter {
         Preconditions.checkNotNull(jobId);
 
         for (ProjectInstance projectInstance : getReadableProjects()) {
-            NExecutableManager executableManager = getExecutableManager(projectInstance.getName());
+            NExecutableManager executableManager = getManager(NExecutableManager.class, projectInstance.getName());
             if (Objects.nonNull(executableManager.getJob(jobId))) {
                 return projectInstance.getName();
             }
@@ -467,7 +469,7 @@ public class JobService extends BasicService implements JobSupporter {
         String project = getProjectByJobId(jobId);
         Preconditions.checkNotNull(project, "Can not find the job: {}", jobId);
 
-        NExecutableManager executableManager = getExecutableManager(project);
+        NExecutableManager executableManager = getManager(NExecutableManager.class, project);
         AbstractExecutable executable = executableManager.getJob(jobId);
 
         return convert(executable);
@@ -498,12 +500,11 @@ public class JobService extends BasicService implements JobSupporter {
 
     public List<ExecutableStepResponse> getJobDetail(String project, String jobId) {
         aclEvaluate.checkProjectOperationPermission(project);
-        NExecutableManager executableManager = getExecutableManager(project);
+        NExecutableManager executableManager = getManager(NExecutableManager.class, project);
         //executableManager.getJob only reply ChainedExecutable
         AbstractExecutable executable = executableManager.getJob(jobId);
         if (executable == null) {
-            throw new KylinException(JOB_NOT_EXIST,
-                    String.format(Locale.ROOT, "Can't find job %s Please check and try again.", jobId));
+            throw new KylinException(JOB_NOT_EXIST, jobId);
         }
 
         // waite time in output
@@ -520,7 +521,7 @@ public class JobService extends BasicService implements JobSupporter {
         List<? extends AbstractExecutable> tasks = ((ChainedExecutable) executable).getTasks();
         for (AbstractExecutable task : tasks) {
             final ExecutableStepResponse executableStepResponse = parseToExecutableStep(task,
-                    getExecutableManager(project).getOutput(task.getId()), waiteTimeMap, output.getState());
+                    getManager(NExecutableManager.class, project).getOutput(task.getId()), waiteTimeMap, output.getState());
             if (task.getStatus() == ExecutableState.ERROR) {
                 executableStepResponse.setFailedStepId(output.getFailedStepId());
                 executableStepResponse.setFailedSegmentId(output.getFailedSegmentId());
@@ -544,7 +545,7 @@ public class JobService extends BasicService implements JobSupporter {
                     List<ExecutableStepResponse> stageResponses = Lists.newArrayList();
                     for (StageBase stage : stageBases) {
                         val stageResponse = parseStageToExecutableStep(task, stage,
-                                getExecutableManager(project).getOutput(stage.getId(), segmentId));
+                                getManager(NExecutableManager.class, project).getOutput(stage.getId(), segmentId));
                         setStage(subStages, stageResponse);
                         stageResponses.add(stageResponse);
 
@@ -798,7 +799,9 @@ public class JobService extends BasicService implements JobSupporter {
         return result;
     }
 
-    private ExecutableStepResponse parseToExecutableStep(AbstractExecutable task, Output stepOutput,
+    // for ut
+    @VisibleForTesting
+    public ExecutableStepResponse parseToExecutableStep(AbstractExecutable task, Output stepOutput,
             Map<String, String> waiteTimeMap, ExecutableState jobState) {
         ExecutableStepResponse result = new ExecutableStepResponse();
         result.setId(task.getId());
@@ -815,6 +818,11 @@ public class JobService extends BasicService implements JobSupporter {
             if (entry.getKey() != null && entry.getValue() != null) {
                 result.putInfo(entry.getKey(), entry.getValue());
             }
+        }
+        if (KylinConfig.getInstanceFromEnv().isHistoryServerEnable()
+                && result.getInfo().containsKey(ExecutableConstants.YARN_APP_ID)) {
+            result.putInfo(ExecutableConstants.SPARK_HISTORY_APP_URL,
+                    SparkHistoryUIUtil.getHistoryTrackerUrl(result.getInfo().get(ExecutableConstants.YARN_APP_ID)));
         }
         result.setExecStartTime(AbstractExecutable.getStartTime(stepOutput));
         result.setExecEndTime(AbstractExecutable.getEndTime(stepOutput));
@@ -853,7 +861,7 @@ public class JobService extends BasicService implements JobSupporter {
         if (StringUtils.isBlank(failedStepId)) {
             return;
         }
-        val executableManager = getExecutableManager(project);
+        val executableManager = getManager(NExecutableManager.class, project);
         executableManager.updateJobError(jobId, failedStepId, failedSegmentId, failedStack, failedReason);
     }
 
@@ -861,7 +869,7 @@ public class JobService extends BasicService implements JobSupporter {
     public void updateStageStatus(String project, String taskId, String segmentId, String status,
             Map<String, String> updateInfo, String errMsg) {
         final ExecutableState newStatus = convertToExecutableState(status);
-        val executableManager = getExecutableManager(project);
+        val executableManager = getManager(NExecutableManager.class, project);
         executableManager.updateStageStatus(taskId, segmentId, newStatus, updateInfo, errMsg);
     }
 
@@ -893,7 +901,7 @@ public class JobService extends BasicService implements JobSupporter {
     private void batchDropJob0(String project, List<String> jobIds, List<String> filterStatuses) {
         val jobs = getJobsByStatus(project, jobIds, filterStatuses);
 
-        NExecutableManager executableManager = getExecutableManager(project);
+        NExecutableManager executableManager = getManager(NExecutableManager.class, project);
         jobs.forEach(job -> executableManager.checkJobCanBeDeleted(job.getId()));
 
         jobs.forEach(job -> dropJob(project, job.getId()));
@@ -902,7 +910,7 @@ public class JobService extends BasicService implements JobSupporter {
     private List<AbstractExecutable> getJobsByStatus(String project, List<String> jobIds, List<String> filterStatuses) {
         Preconditions.checkNotNull(project);
 
-        val executableManager = getExecutableManager(project);
+        val executableManager = getManager(NExecutableManager.class, project);
         List<ExecutableState> executableStates = new ArrayList<>();
         if (CollectionUtils.isNotEmpty(filterStatuses)) {
             for (String status : filterStatuses) {
@@ -935,7 +943,7 @@ public class JobService extends BasicService implements JobSupporter {
 
     public JobStatisticsResponse getJobStats(String project, long startTime, long endTime) {
         aclEvaluate.checkProjectOperationPermission(project);
-        JobStatisticsManager manager = getJobStatisticsManager(project);
+        JobStatisticsManager manager = getManager(JobStatisticsManager.class, project);
         Pair<Integer, JobStatistics> stats = manager.getOverallJobStats(startTime, endTime);
         JobStatistics jobStatistics = stats.getSecond();
         return new JobStatisticsResponse(stats.getFirst(), jobStatistics.getTotalDuration(),
@@ -944,18 +952,20 @@ public class JobService extends BasicService implements JobSupporter {
 
     public Map<String, Integer> getJobCount(String project, long startTime, long endTime, String dimension) {
         aclEvaluate.checkProjectOperationPermission(project);
-        JobStatisticsManager manager = getJobStatisticsManager(project);
-        if (dimension.equals("model"))
+        JobStatisticsManager manager = getManager(JobStatisticsManager.class, project);
+        if (dimension.equals("model")) {
             return manager.getJobCountByModel(startTime, endTime);
+        }
 
         return manager.getJobCountByTime(startTime, endTime, dimension);
     }
 
     public Map<String, Double> getJobDurationPerByte(String project, long startTime, long endTime, String dimension) {
         aclEvaluate.checkProjectOperationPermission(project);
-        JobStatisticsManager manager = getJobStatisticsManager(project);
-        if (dimension.equals("model"))
+        JobStatisticsManager manager = getManager(JobStatisticsManager.class, project);
+        if (dimension.equals("model")) {
             return manager.getDurationPerByteByModel(startTime, endTime);
+        }
 
         return manager.getDurationPerByteByTime(startTime, endTime, dimension);
     }
@@ -974,14 +984,14 @@ public class JobService extends BasicService implements JobSupporter {
 
     public String getJobOutput(String project, String jobId, String stepId) {
         aclEvaluate.checkProjectOperationPermission(project);
-        val executableManager = getExecutableManager(project);
+        val executableManager = getManager(NExecutableManager.class, project);
         return executableManager.getOutputFromHDFSByJobId(jobId, stepId).getVerboseMsg();
     }
 
     @SneakyThrows
     public InputStream getAllJobOutput(String project, String jobId, String stepId) {
         aclEvaluate.checkProjectOperationPermission(project);
-        val executableManager = getExecutableManager(project);
+        val executableManager = getManager(NExecutableManager.class, project);
         val output = executableManager.getOutputFromHDFSByJobId(jobId, stepId, Integer.MAX_VALUE);
         return Optional.ofNullable(output.getVerboseMsgStream()).orElse(
                 IOUtils.toInputStream(Optional.ofNullable(output.getVerboseMsg()).orElse(StringUtils.EMPTY), "UTF-8"));
@@ -998,7 +1008,7 @@ public class JobService extends BasicService implements JobSupporter {
      */
     @Transaction(project = 0)
     public void updateSparkJobInfo(String project, String jobId, String taskId, String yarnAppId, String yarnAppUrl) {
-        val executableManager = getExecutableManager(project);
+        val executableManager = getManager(NExecutableManager.class, project);
         Map<String, String> extraInfo = Maps.newHashMap();
         extraInfo.put(ExecutableConstants.YARN_APP_ID, yarnAppId);
         extraInfo.put(ExecutableConstants.YARN_APP_URL, yarnAppUrl);
@@ -1012,7 +1022,7 @@ public class JobService extends BasicService implements JobSupporter {
 
     @Transaction(project = 0)
     public void updateSparkTimeInfo(String project, String jobId, String taskId, String waitTime, String buildTime) {
-        val executableManager = getExecutableManager(project);
+        val executableManager = getManager(NExecutableManager.class, project);
         Map<String, String> extraInfo = Maps.newHashMap();
         extraInfo.put(ExecutableConstants.YARN_JOB_WAIT_TIME, waitTime);
         extraInfo.put(ExecutableConstants.YARN_JOB_RUN_TIME, buildTime);
@@ -1032,9 +1042,8 @@ public class JobService extends BasicService implements JobSupporter {
     }
 
     public void checkJobStatus(String jobStatus) {
-        Message msg = MsgPicker.getMsg();
         if (Objects.isNull(JobStatusEnum.getByName(jobStatus))) {
-            throw new KylinException(ILLEGAL_JOB_STATUS, msg.getILLEGAL_JOB_STATE());
+            throw new KylinException(JOB_STATUS_ILLEGAL);
         }
     }
 
@@ -1043,8 +1052,7 @@ public class JobService extends BasicService implements JobSupporter {
         JobActionEnum.validateValue(action);
         JobStatusEnum jobStatusEnum = JobStatusEnum.valueOf(jobStatus);
         if (!jobStatusEnum.checkAction(JobActionEnum.valueOf(action))) {
-            throw new KylinException(ILLEGAL_JOB_ACTION, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getILLEGAL_JOB_ACTION(), jobStatus, jobStatusEnum.getValidActions()));
+            throw new KylinException(JOB_ACTION_ILLEGAL, jobStatus, jobStatusEnum.getValidActions());
         }
 
     }
@@ -1083,14 +1091,14 @@ public class JobService extends BasicService implements JobSupporter {
 
     @Override
     public void stopBatchJob(String project, TableDesc tableDesc) {
-        for (NDataModel tableRelatedModel : getDataflowManager(project).getModelsUsingTable(tableDesc)) {
+        for (NDataModel tableRelatedModel : getManager(NDataflowManager.class, project).getModelsUsingTable(tableDesc)) {
             stopBatchJobByModel(project, tableRelatedModel.getId());
         }
     }
 
     private void stopBatchJobByModel(String project, String modelId) {
 
-        NDataModel model = getDataModelManager(project).getDataModelDesc(modelId);
+        NDataModel model = getManager(NDataModelManager.class, project).getDataModelDesc(modelId);
         FusionModelManager fusionModelManager = FusionModelManager.getInstance(KylinConfig.getInstanceFromEnv(),
                 project);
         FusionModel fusionModel = fusionModelManager.getFusionModel(modelId);

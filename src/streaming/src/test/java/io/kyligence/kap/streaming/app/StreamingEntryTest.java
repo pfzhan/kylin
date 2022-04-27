@@ -25,13 +25,21 @@ package io.kyligence.kap.streaming.app;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.Locale;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.KylinConfigBase;
 import org.apache.kylin.common.response.RestResponse;
+import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.spark.sql.execution.streaming.OneTimeTrigger$;
+import org.apache.spark.sql.execution.streaming.ProcessingTimeTrigger;
+import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -41,6 +49,7 @@ import org.junit.rules.ExpectedException;
 import org.mockito.Mockito;
 
 import io.kyligence.kap.common.StreamingTestConstant;
+import io.kyligence.kap.engine.spark.job.KylinBuildEnv;
 import io.kyligence.kap.metadata.cube.model.NCubeJoinedFlatTableDesc;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -48,14 +57,17 @@ import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
 import io.kyligence.kap.streaming.CreateStreamingFlatTable;
 import io.kyligence.kap.streaming.constants.StreamingConstants;
+import io.kyligence.kap.streaming.jobs.GracefulStopInterface;
 import io.kyligence.kap.streaming.jobs.StreamingJobUtils;
 import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import io.kyligence.kap.streaming.rest.RestSupport;
 import io.kyligence.kap.streaming.util.AwaitUtils;
+import io.kyligence.kap.streaming.util.ReflectionUtils;
 import io.kyligence.kap.streaming.util.StreamingTestCase;
 import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
+import scala.Tuple3;
 
 @Slf4j
 public class StreamingEntryTest extends StreamingTestCase {
@@ -100,8 +112,9 @@ public class StreamingEntryTest extends StreamingTestCase {
         val flatTableDesc = new NCubeJoinedFlatTableDesc(df.getIndexPlan());
         val layouts = StreamingUtils.getToBuildLayouts(df);
         Assert.assertNotNull(layouts);
-        val args = new String[] { PROJECT, DATAFLOW_ID, "1", "" };
-        val entry = new StreamingEntry(args);
+        val args = new String[] { PROJECT, DATAFLOW_ID, "1", "", "xx" };
+        val entry = new StreamingEntry();
+        entry.parseParams(args);
         val nSpanningTree = entry.createSpanningTree(df);
         Assert.assertNotNull(nSpanningTree);
 
@@ -133,9 +146,47 @@ public class StreamingEntryTest extends StreamingTestCase {
         clearCheckpoint(DATAFLOW_ID);
         val source = createSparkKafkaSource(config);
         source.enableMemoryStream(true);
-        val args = new String[] { PROJECT, DATAFLOW_ID, "1", "" };
+        val args = new String[] { PROJECT, DATAFLOW_ID, "1", "", "" };
         thrown.expect(Exception.class);
         StreamingEntry.main(args);
+    }
+
+    @Test
+    public void testInitBuildEntry_EmptyCheckPoint() {
+        val config = getTestConfig();
+        config.setProperty("kylin.engine.streaming-checkpoint-location", "");
+        thrown.expectMessage("base checkpoint location must be configured,");
+        new StreamingEntry();
+    }
+
+    @Test
+    public void testInitBuildEntry_TriggerOnce() {
+        {
+            val config = getTestConfig();
+            config.setProperty("kylin.engine.streaming-trigger-once", KylinConfigBase.TRUE);
+            val entry = new StreamingEntry();
+            val trigger = entry.trigger();
+            Assert.assertNotNull(trigger);
+            Assert.assertTrue(trigger instanceof OneTimeTrigger$);
+        }
+
+        {
+            val config = getTestConfig();
+            config.setProperty("kylin.engine.streaming-trigger-once", KylinConfigBase.FALSE);
+            val entry = new StreamingEntry();
+            val trigger = entry.trigger();
+            Assert.assertNotNull(trigger);
+            Assert.assertTrue(trigger instanceof ProcessingTimeTrigger);
+        }
+    }
+
+    @Test
+    public void testInitBuildEntry_DataFlow() {
+        val args = new String[] { PROJECT, DATAFLOW_ID, "2", "", "xx" };
+        val entry = Mockito.spy(new StreamingEntry());
+        entry.parseParams(args);
+        val dataflow = entry.dataflow();
+        Assert.assertNotNull(dataflow);
     }
 
     @Test
@@ -145,12 +196,12 @@ public class StreamingEntryTest extends StreamingTestCase {
         val source = createSparkKafkaSource(config);
         source.enableMemoryStream(true);
         source.post(StreamingTestConstant.KAP_SSB_STREAMING_JSON_FILE());
-
-        val args = new String[] { PROJECT, DATAFLOW_ID, "2", "" };
-        val entry = Mockito.spy(new StreamingEntry(args));
+        val args = new String[] { PROJECT, DATAFLOW_ID, "2", "", "xx" };
+        val entry = Mockito.spy(new StreamingEntry());
+        entry.parseParams(args);
         entry.setSparkSession(createSparkSession());
         StreamingEntry.entry_$eq(entry);
-        Assert.assertNotNull(StreamingEntry.self());
+        Assert.assertNotNull(StreamingEntry.entry());
         Mockito.when(entry.createRestSupport(config)).thenReturn(new RestSupport(config) {
             public RestResponse execute(HttpRequestBase httpReqBase, Object param) {
                 val mgr = StreamingJobManager.getInstance(getTestConfig(), PROJECT);
@@ -170,12 +221,52 @@ public class StreamingEntryTest extends StreamingTestCase {
             });
         });
         try {
-            entry.execute();
+            entry.doExecute();
             Assert.assertTrue(entry.getSparkSession().sparkContext().isStopped());
         } catch (Exception e) {
             Assert.fail(e.getMessage());
         }
         clearCheckpoint(DATAFLOW_ID);
+    }
+
+    @Test
+    public void testExecute_IllegalProject() {
+        val illegalProject = "xxxx";
+        val args = new String[] { illegalProject, DATAFLOW_ID, "2", "", "xx" };
+        val entry = Mockito.spy(new StreamingEntry());
+        entry.parseParams(args);
+
+        thrown.expectMessage("metastore can not find this project " + illegalProject);
+        entry.doExecute();
+    }
+
+    @Test
+    public void testExecute_EmptyFlatTableDataSet() {
+        val args = new String[] { PROJECT, DATAFLOW_ID, "2", "", "xx" };
+        val entry = Mockito.spy(new StreamingEntry());
+        entry.parseParams(args);
+        Mockito.doNothing().when(entry).registerStreamListener();
+        Mockito.doReturn(new Tuple3<>(null, null, null)).when(entry).generateStreamQueryForOneModel();
+
+        thrown.expectMessage(String.format(Locale.ROOT,
+                "generate query for one model failed for project:  %s dataflowId: %s", PROJECT, DATAFLOW_ID));
+        entry.doExecute();
+    }
+
+    @Test
+    public void testExecute_EmptyTimeColumn() {
+        val args = new String[] { PROJECT, DATAFLOW_ID, "2", "", "xx" };
+        val entry = Mockito.spy(new StreamingEntry());
+        entry.parseParams(args);
+        Mockito.doNothing().when(entry).registerStreamListener();
+
+        val sparkSession = createSparkSession();
+        Mockito.doReturn(new Tuple3<>(sparkSession.range(1), null, null)).when(entry).generateStreamQueryForOneModel();
+
+        thrown.expectMessage(String.format(Locale.ROOT,
+                "streaming query must have time partition column for project:  %s dataflowId: %s", PROJECT,
+                DATAFLOW_ID));
+        entry.doExecute();
     }
 
     @Test
@@ -185,11 +276,14 @@ public class StreamingEntryTest extends StreamingTestCase {
         source.enableMemoryStream(false);
         source.post(StreamingTestConstant.KAP_SSB_STREAMING_JSON_FILE());
         val dataflowId = "511a9163-7888-4a60-aa24-ae735937cc87";
-        val args = new String[] { PROJECT, dataflowId, "5", "" };
-        val entry = Mockito.spy(new StreamingEntry(args));
+        val entry = Mockito.spy(new StreamingEntry());
+        entry.parseParams(new String[] { PROJECT, dataflowId, "5", "", "xx" });
         entry.setSparkSession(createSparkSession());
-        val tuple4 = entry.generateStreamQueryForOneModel(entry.ss, PROJECT, dataflowId, "");
-        entry.rateTriggerDuration_$eq(1000);
+        val tuple4 = entry.generateStreamQueryForOneModel();
+
+        ReflectionUtils.setField(entry, "rateTriggerDuration", 1000L);
+        Assert.assertEquals(1000L, ReflectionUtils.getField(entry, "rateTriggerDuration"));
+
         val flatTable = tuple4._3();
         flatTable.tableRefreshInterval_$eq(5L);
         Assert.assertEquals(dataflowId, flatTable.model().getId());
@@ -199,13 +293,178 @@ public class StreamingEntryTest extends StreamingTestCase {
             }, 10000, () -> {
                 entry.refreshTable(flatTable);
                 Assert.assertEquals(0L, entry.tableRefreshAcc().get());
-                StreamingEntry.entry_$eq(entry);
                 StreamingEntry.stop();
                 entry.ss.stop();
             });
         } catch (Exception e) {
             Assert.fail(e.getMessage());
         }
+    }
+
+    @Test
+    public void testDimensionTableRefresh_Skip() {
+        {
+            val fakeStreamingTable = Mockito
+                    .spy(new CreateStreamingFlatTable(null, null, null, null, null, null, null));
+            val entry = Mockito.spy(new StreamingEntry());
+            entry.refreshTable(fakeStreamingTable);
+            Mockito.doReturn(false).when(fakeStreamingTable).shouldRefreshTable();
+            Assert.assertFalse(fakeStreamingTable.shouldRefreshTable());
+            entry.refreshTable(fakeStreamingTable);
+        }
+
+        {
+            val fakeStreamingTable = Mockito
+                    .spy(new CreateStreamingFlatTable(null, null, null, null, null, null, null));
+            val entry = Mockito.spy(new StreamingEntry());
+            entry.refreshTable(fakeStreamingTable);
+            Mockito.doReturn(true).when(fakeStreamingTable).shouldRefreshTable();
+            Mockito.doReturn(100L).when(fakeStreamingTable).tableRefreshInterval();
+            Assert.assertTrue(fakeStreamingTable.shouldRefreshTable());
+            Assert.assertTrue(entry.tableRefreshAcc().get() < fakeStreamingTable.tableRefreshInterval());
+            entry.refreshTable(fakeStreamingTable);
+        }
+    }
+
+    @Test
+    public void testDimensionTableRefresh_SkipRefreshThread() {
+        val config = getTestConfig();
+        val source = createSparkKafkaSource(config);
+        source.enableMemoryStream(false);
+        source.post(StreamingTestConstant.KAP_SSB_STREAMING_JSON_FILE());
+        val dataflowId = "511a9163-7888-4a60-aa24-ae735937cc87";
+        val entry = Mockito.spy(new StreamingEntry());
+        entry.parseParams(new String[] { PROJECT, dataflowId, "5", "", "xx" });
+        entry.setSparkSession(createSparkSession());
+        val tuple4 = entry.generateStreamQueryForOneModel();
+
+        ReflectionUtils.setField(entry, "rateTriggerDuration", 1000L);
+        Assert.assertEquals(1000L, ReflectionUtils.getField(entry, "rateTriggerDuration"));
+        val flatTable = tuple4._3();
+        flatTable.tableRefreshInterval_$eq(-1L);
+        entry.startTableRefreshThread(flatTable);
+
+        Assert.assertFalse(flatTable.shouldRefreshTable());
+    }
+
+    @Test
+    public void testDimensionTableRefresh_Running() {
+        val config = getTestConfig();
+        val source = createSparkKafkaSource(config);
+        source.enableMemoryStream(false);
+        source.post(StreamingTestConstant.KAP_SSB_STREAMING_JSON_FILE());
+        val dataflowId = "511a9163-7888-4a60-aa24-ae735937cc87";
+        val entry = Mockito.spy(new StreamingEntry());
+        entry.parseParams(new String[] { PROJECT, dataflowId, "5", "", "xx" });
+        entry.setSparkSession(createSparkSession());
+        val tuple4 = entry.generateStreamQueryForOneModel();
+
+        ReflectionUtils.setField(entry, "rateTriggerDuration", 100L);
+        Assert.assertEquals(100L, ReflectionUtils.getField(entry, "rateTriggerDuration"));
+        val flatTable = tuple4._3();
+        flatTable.tableRefreshInterval_$eq(1L);
+        Assert.assertTrue(flatTable.shouldRefreshTable());
+        entry.startTableRefreshThread(flatTable);
+
+        Awaitility.waitAtMost(30, TimeUnit.SECONDS).until(() -> entry.tableRefreshAcc().get() > 0);
+    }
+
+    @Test
+    public void testDimensionTableRefresh_NotRunning() {
+        val config = getTestConfig();
+        val source = createSparkKafkaSource(config);
+        source.enableMemoryStream(false);
+        source.post(StreamingTestConstant.KAP_SSB_STREAMING_JSON_FILE());
+        val dataflowId = "511a9163-7888-4a60-aa24-ae735937cc87";
+        val entry = Mockito.spy(new StreamingEntry());
+        entry.parseParams(new String[] { PROJECT, dataflowId, "5", "", "xx" });
+        entry.setSparkSession(createSparkSession());
+        val tuple4 = entry.generateStreamQueryForOneModel();
+
+        val refreshTableInterval = 100L;
+        ReflectionUtils.setField(entry, "rateTriggerDuration", refreshTableInterval);
+        Assert.assertEquals(refreshTableInterval, ReflectionUtils.getField(entry, "rateTriggerDuration"));
+        val flatTable = tuple4._3();
+        flatTable.tableRefreshInterval_$eq(1L);
+        Assert.assertTrue(flatTable.shouldRefreshTable());
+        entry.setStopFlag(true);
+        entry.startTableRefreshThread(flatTable);
+
+        AwaitUtils.sleep(Long.valueOf(10 * refreshTableInterval).intValue());
+        Assert.assertEquals(0, entry.tableRefreshAcc().get());
+    }
+
+    @Test
+    public void testPrepareKylinConfig() {
+        val config = getTestConfig();
+        val source = createSparkKafkaSource(config);
+        source.enableMemoryStream(false);
+        source.post(StreamingTestConstant.KAP_SSB_STREAMING_JSON_FILE());
+        val dataflowId = "511a9163-7888-4a60-aa24-ae735937cc87";
+        val entry = Mockito.spy(new StreamingEntry());
+        entry.parseParams(new String[] { PROJECT, dataflowId, "5", "", "xx" });
+
+        ReflectionUtils.invokeGetterMethod(entry, "prepareKylinConfig");
+        Assert.assertEquals("xx", config.getMetadataUrl().toString());
+    }
+
+    @Test
+    public void testInitMetaPathSet() {
+        val config = getTestConfig();
+        val source = createSparkKafkaSource(config);
+        source.enableMemoryStream(false);
+        source.post(StreamingTestConstant.KAP_SSB_STREAMING_JSON_FILE());
+        val dataflowId = "511a9163-7888-4a60-aa24-ae735937cc87";
+        val entry = Mockito.spy(new StreamingEntry());
+        entry.parseParams(new String[] { PROJECT, dataflowId, "5", "", "xx" });
+
+        val metaPathSet = (Set<String>) ReflectionUtils.invokeGetterMethod(entry, "initMetaPathSet");
+
+        Assert.assertEquals(11, metaPathSet.size());
+        Assert.assertTrue(metaPathSet.contains("/streaming_test/streaming/511a9163-7888-4a60-aa24-ae735937cc87_build"));
+        Assert.assertTrue(metaPathSet.contains("/streaming_test/dataflow/511a9163-7888-4a60-aa24-ae735937cc87.json"));
+        Assert.assertTrue(metaPathSet.contains("/streaming_test/index_plan/511a9163-7888-4a60-aa24-ae735937cc87.json"));
+        Assert.assertTrue(metaPathSet.contains("/_global/project/streaming_test.json"));
+        Assert.assertTrue(metaPathSet.contains("/streaming_test/model_desc/511a9163-7888-4a60-aa24-ae735937cc87.json"));
+        Assert.assertTrue(metaPathSet.contains("/streaming_test/table/SSB.P_LINEORDER.json"));
+        Assert.assertTrue(metaPathSet.contains("/streaming_test/kafka/SSB.P_LINEORDER.json"));
+        Assert.assertTrue(metaPathSet.contains("/streaming_test/table/SSB.DATES.json"));
+        Assert.assertTrue(metaPathSet.contains("/streaming_test/table/SSB.CUSTOMER.json"));
+        Assert.assertTrue(metaPathSet.contains("/streaming_test/table/SSB.SUPPLIER.json"));
+        Assert.assertTrue(metaPathSet.contains("/streaming_test/table/SSB.PART.json"));
+    }
+
+    @Test
+    public void testPrepareBeforeExecute_Local() throws ExecuteException {
+        val config = getTestConfig();
+        val source = createSparkKafkaSource(config);
+        source.enableMemoryStream(false);
+        source.post(StreamingTestConstant.KAP_SSB_STREAMING_JSON_FILE());
+        val dataflowId = "511a9163-7888-4a60-aa24-ae735937cc87";
+        val entry = Mockito.spy(new StreamingEntry());
+        entry.parseParams(new String[] { PROJECT, dataflowId, "5", "", "xx" });
+
+        val sparkConf = KylinBuildEnv.getOrCreate(getTestConfig()).sparkConf();
+        Mockito.doNothing().when(entry).getOrCreateSparkSession(sparkConf);
+        Mockito.doReturn(123).when(entry).reportApplicationInfo();
+        entry.prepareBeforeExecute();
+    }
+
+    @Test
+    public void testPrepareBeforeExecute_JobOnCluster() throws ExecuteException {
+        val config = getTestConfig();
+        val source = createSparkKafkaSource(config);
+        source.enableMemoryStream(false);
+        source.post(StreamingTestConstant.KAP_SSB_STREAMING_JSON_FILE());
+        val dataflowId = "511a9163-7888-4a60-aa24-ae735937cc87";
+        val entry = Mockito.spy(new StreamingEntry());
+        entry.parseParams(new String[] { PROJECT, dataflowId, "5", "", "xx" });
+
+        val sparkConf = KylinBuildEnv.getOrCreate(getTestConfig()).sparkConf();
+        Mockito.doNothing().when(entry).getOrCreateSparkSession(sparkConf);
+        Mockito.doReturn(true).when(entry).isJobOnCluster();
+        Mockito.doReturn(123).when(entry).reportApplicationInfo();
+        entry.prepareBeforeExecute();
     }
 
     private void clearCheckpoint(String dataflowId) {
@@ -222,21 +481,22 @@ public class StreamingEntryTest extends StreamingTestCase {
 
     @Test
     public void testIsRunning() {
-        val args = new String[] { PROJECT, DATAFLOW_ID, "2", "" };
-        val entry = Mockito.spy(new StreamingEntry(args));
+        val entry = Mockito.spy(new StreamingEntry());
         entry.setSparkSession(createSparkSession());
         val stopFlag = new AtomicBoolean(true);
-        Assert.assertFalse(entry.isRunning(stopFlag));
+        ReflectionUtils.setField(entry, "gracefulStop", stopFlag);
+        Assert.assertFalse(entry.isRunning());
         stopFlag.set(false);
-        Assert.assertTrue(entry.isRunning(stopFlag));
+        Assert.assertTrue(entry.isRunning());
         entry.getSparkSession().close();
-        Assert.assertFalse(entry.isRunning(stopFlag));
+        Assert.assertFalse(entry.isRunning());
     }
 
     @Test
     public void testStartJobExecutionIdCheckThread() {
-        val args = new String[] { PROJECT, DATAFLOW_ID, "2", "" };
-        val entry = Mockito.spy(new StreamingEntry(args));
+        val args = new String[] { PROJECT, DATAFLOW_ID, "2", "", "xx" };
+        val entry = Mockito.spy(new StreamingEntry());
+        entry.parseParams(args);
         entry.setSparkSession(createSparkSession());
         val config = getTestConfig();
         config.setProperty("kylin.streaming.job-execution-id-check-interval", "0m");
@@ -251,13 +511,48 @@ public class StreamingEntryTest extends StreamingTestCase {
             }
         });
         val stopFlag = new AtomicBoolean(false);
-        val jobId = DATAFLOW_ID + "_build";
-        AwaitUtils.await(() -> {
-            entry.startJobExecutionIdCheckThread(stopFlag, PROJECT, 0, jobId);
-        }, 5000, () -> {
+        ReflectionUtils.setField(entry, "gracefulStop", stopFlag);
+        ReflectionUtils.setField(entry, "jobExecId", 0);
+        AwaitUtils.await(entry::startJobExecutionIdCheckThread, 5000, () -> {
             stopFlag.set(true);
         });
         Assert.assertTrue(entry.getSparkSession().sparkContext().isStopped());
     }
 
+    @Test
+    public void testStartJobExecutionIdCheckThread_DiffJobExecId() {
+        val args = new String[] { PROJECT, DATAFLOW_ID, "2", "", "xx" };
+        val entry = Mockito.spy(new StreamingEntry());
+        entry.parseParams(args);
+        entry.setSparkSession(createSparkSession());
+        val config = getTestConfig();
+        config.setProperty("kylin.streaming.job-execution-id-check-interval", "0m");
+        val counter = new AtomicInteger(0);
+        Mockito.when(entry.createRestSupport(config)).thenReturn(new RestSupport(config) {
+            public RestResponse execute(HttpRequestBase httpReqBase, Object param) {
+                if (counter.getAndIncrement() < 3) {
+                    return RestResponse.ok(0);
+                } else {
+                    return RestResponse.ok(1);
+                }
+            }
+        });
+        val stopFlag = new AtomicBoolean(false);
+        ReflectionUtils.setField(entry, "gracefulStop", stopFlag);
+        ReflectionUtils.setField(entry, "jobExecId", 3);
+        AwaitUtils.await(entry::startJobExecutionIdCheckThread, 1000, () -> {
+            stopFlag.set(true);
+        });
+        Awaitility.waitAtMost(30, TimeUnit.SECONDS).until(() -> entry.getSparkSession().sparkContext().isStopped());
+    }
+
+    @Test
+    public void testGracefulStopInterface() {
+        GracefulStopInterface gracefulStop = new StreamingEntry();
+        gracefulStop.setStopFlag(true);
+        Assert.assertTrue(gracefulStop.getStopFlag());
+
+        gracefulStop.setStopFlag(false);
+        Assert.assertFalse(gracefulStop.getStopFlag());
+    }
 }

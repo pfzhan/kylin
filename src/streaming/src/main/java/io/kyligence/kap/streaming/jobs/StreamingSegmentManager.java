@@ -93,7 +93,7 @@ public class StreamingSegmentManager {
                     }
                     return newSegment;
                 } else {
-                    val empSeg = new NDataSegment();
+                    val empSeg = NDataSegment.empty();
                     empSeg.setId(StringUtils.EMPTY);
                     return empSeg;
                 }

@@ -27,30 +27,25 @@ package io.kyligence.kap.rest.controller;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PARAMETER;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_SAMPLING_RANGE;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_REFRESH_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_SAMPLE_RANGE;
-import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
-import static org.apache.kylin.common.exception.ServerErrorCode.RELOAD_TABLE_FAILED;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_SAMPLING_RANGE_INVALID;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_NOT_EXIST;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -234,8 +229,7 @@ public class NTableController extends NBasicController {
         checkProjectName(tableLoadRequest.getProject());
         if (NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(tableLoadRequest.getProject()) == null) {
-            throw new KylinException(PROJECT_NOT_EXIST, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getPROJECT_NOT_FOUND(), tableLoadRequest.getProject()));
+            throw new KylinException(PROJECT_NOT_EXIST, tableLoadRequest.getProject());
         }
         if (ArrayUtils.isEmpty(tableLoadRequest.getTables()) && ArrayUtils.isEmpty(tableLoadRequest.getDatabases())) {
             throw new KylinException(EMPTY_PARAMETER, "You should select at least one table or database to load!!");
@@ -471,15 +465,8 @@ public class NTableController extends NBasicController {
     }
 
     private void checkSamplingRows(int rows) {
-        Message msg = MsgPicker.getMsg();
-        if (rows > MAX_SAMPLING_ROWS) {
-            throw new KylinException(INVALID_SAMPLING_RANGE,
-                    String.format(Locale.ROOT, msg.getBEYOND_MAX_SAMPLING_ROWS_HINT(), MAX_SAMPLING_ROWS));
-        }
-
-        if (rows < MIN_SAMPLING_ROWS) {
-            throw new KylinException(INVALID_SAMPLING_RANGE,
-                    String.format(Locale.ROOT, msg.getBEYOND_MIX_SAMPLING_ROWSHINT(), MIN_SAMPLING_ROWS));
+        if (rows > MAX_SAMPLING_ROWS || rows < MIN_SAMPLING_ROWS) {
+            throw new KylinException(JOB_SAMPLING_RANGE_INVALID, MIN_SAMPLING_ROWS, MAX_SAMPLING_ROWS);
         }
     }
 
@@ -488,39 +475,28 @@ public class NTableController extends NBasicController {
             HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     public EnvelopeResponse<PreReloadTableResponse> preReloadTable(@RequestParam(value = "project") String project,
-            @RequestParam(value = "table") String table) {
-        try {
-            checkProjectName(project);
-            val result = tableService.preProcessBeforeReloadWithFailFast(project, table);
-            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, result, "");
-        } catch (Exception e) {
-            Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);
-            logger.error("Reload Table Failed,{}...", table, root);
-            throw new KylinException(RELOAD_TABLE_FAILED, root.getMessage());
-        }
+            @RequestParam(value = "table") String table) throws Exception {
+
+        checkProjectName(project);
+        val result = tableService.preProcessBeforeReloadWithFailFast(project, table);
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, result, "");
     }
 
     @ApiOperation(value = "reload", tags = { "AI" })
     @PostMapping(value = "/reload", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse<String> reloadTable(@RequestBody ReloadTableRequest request) throws KylinException {
-        try {
-            checkProjectName(request.getProject());
-            if (StringUtils.isEmpty(request.getTable())) {
-                throw new KylinException(INVALID_TABLE_NAME, MsgPicker.getMsg().getTABLE_NAME_CANNOT_EMPTY());
-            }
-            if (request.isNeedSample()
-                    && (request.getMaxRows() < MIN_SAMPLING_ROWS || request.getMaxRows() > MAX_SAMPLING_ROWS)) {
-                throw new KylinException(INVALID_TABLE_SAMPLE_RANGE, MsgPicker.getMsg().getTABLE_SAMPLE_MAX_ROWS());
-            }
-            tableService.reloadTable(request.getProject(), request.getTable(), request.isNeedSample(),
-                    request.getMaxRows(), request.isNeedBuild(), request.getPriority(), request.getYarnQueue());
-            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
-        } catch (Exception e) {
-            Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);
-            logger.error("Reload Table Failed,{}...", Optional.of(request.getTable()).orElse("null"), root);
-            throw new KylinException(RELOAD_TABLE_FAILED, root.getMessage());
+    public EnvelopeResponse<String> reloadTable(@RequestBody ReloadTableRequest request) {
+        checkProjectName(request.getProject());
+        if (StringUtils.isEmpty(request.getTable())) {
+            throw new KylinException(INVALID_TABLE_NAME, MsgPicker.getMsg().getTABLE_NAME_CANNOT_EMPTY());
         }
+        if (request.isNeedSample()
+                && (request.getMaxRows() < MIN_SAMPLING_ROWS || request.getMaxRows() > MAX_SAMPLING_ROWS)) {
+            throw new KylinException(INVALID_TABLE_SAMPLE_RANGE, MsgPicker.getMsg().getTABLE_SAMPLE_MAX_ROWS());
+        }
+        tableService.reloadTable(request.getProject(), request.getTable(), request.isNeedSample(), request.getMaxRows(),
+                request.isNeedBuild(), request.getPriority(), request.getYarnQueue());
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "reloadHiveTableName", tags = { "AI" }, notes = "Update URL: table_name")

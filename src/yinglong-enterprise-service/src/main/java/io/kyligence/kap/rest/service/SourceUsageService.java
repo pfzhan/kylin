@@ -52,6 +52,7 @@ import org.springframework.stereotype.Service;
 
 import io.kyligence.kap.common.constant.Constants;
 import io.kyligence.kap.engine.spark.smarter.IndexDependencyParser;
+import io.kyligence.kap.guava20.shaded.common.annotations.VisibleForTesting;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -329,12 +330,17 @@ public class SourceUsageService extends BasicService {
         }
         boolean isAllEmpty = true;
         for (NDataSegment segment : segments) {
-            if (segment.getSourceBytesSize() > 0) {
+            if (segment.getSourceCount() > 0) {
                 isAllEmpty = false;
                 break;
             }
         }
         return isAllEmpty;
+    }
+
+    @VisibleForTesting
+    public boolean isAllSegmentsEmptyFromDataflow(NDataflow dataflow) {
+        return isAllSegmentsEmpty(dataflow);
     }
 
     private boolean isNotOk(SourceUsageRecord.CapacityStatus status) {
