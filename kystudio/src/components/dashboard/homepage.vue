@@ -416,7 +416,6 @@ export default class Homepage extends Vue {
         alias: this.currentSelectedProject,
         project: this.currentSelectedProject,
         description: this.$store.state.project.projectConfig && this.$store.state.project.projectConfig.description,
-        maintain_model_type: this.$store.state.project.projectConfig && this.$store.state.project.projectConfig.maintain_model_type,
         semi_automatic_mode: true
       })
       await this.fetchProjectSettings({projectName: this.currentSelectedProject})

@@ -52,9 +52,9 @@
         :label="$t('type')"
         show-overflow-tooltip
         :width="120"
-        prop="maintain_model_type">
-        <template slot-scope="scope">
-          {{scope.row.maintain_model_type === projectType.auto ? $t('autoType') : $t('manualType')}}
+      >
+        <template>
+          {{$t('manualType')}}
         </template>
       </el-table-column>
       <el-table-column
@@ -192,9 +192,8 @@ export default {
     ...mapMutations({
       resetQueryTabs: 'RESET_QUERY_TABS'
     }),
-    canExecuteModelMetadata (row) {
-      return this.projectActions.includes('executeModelsMetadata') &&
-        row.maintain_model_type !== projectCfgs.projectType.auto
+    canExecuteModelMetadata () {
+      return this.projectActions.includes('executeModelsMetadata')
     },
     inputFilter (value) {
       this.filterData.project = value

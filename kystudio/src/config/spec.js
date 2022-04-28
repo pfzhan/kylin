@@ -190,21 +190,21 @@ export default {
     },
     // 建模中心：数据源，加速引擎，模型
     "datasourceActions": {
-      "keyPattern": "groupRole-projectType-projectRole",
+      "keyPattern": "groupRole-projectRole",
       "entries": [
-        { "key": "systemAdmin-manualMaintain-*", "value": "sourceManagement,loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions,acceRuleSettingActions,acceBlackList,acceDelSql,modelActions,addSnapshot,snapshotAction,segmentActions,editAggGroup,delAggIdx,buildIndex,tableIndexActions,changePartition,changeBuildType" },
-        { "key": "systemAdmin-autoMaintain-*", "value": "sourceManagement,loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions,acceRuleSettingActions,acceBlackList,acceDelSql" },
+        { "key": "systemAdmin-*", "value": "sourceManagement,loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions,acceRuleSettingActions,acceBlackList,acceDelSql,modelActions,addSnapshot,snapshotAction,segmentActions,editAggGroup,delAggIdx,buildIndex,tableIndexActions,changePartition,changeBuildType" },
+        { "key": "systemAdmin-*", "value": "sourceManagement,loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions,acceRuleSettingActions,acceBlackList,acceDelSql" },
 
-        { "key": "systemUser-manualMaintain-admin", "value": "sourceManagement,loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions,acceRuleSettingActions,acceBlackList,acceDelSql,modelActions,addSnapshot,snapshotAction,segmentActions,editAggGroup,delAggIdx,buildIndex,tableIndexActions,changePartition,changeBuildType" },
-        { "key": "systemUser-autoMaintain-admin", "value": "sourceManagement,loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions,acceRuleSettingActions,acceBlackList,acceDelSql" },
+        { "key": "systemUser-admin", "value": "sourceManagement,loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions,acceRuleSettingActions,acceBlackList,acceDelSql,modelActions,addSnapshot,snapshotAction,segmentActions,editAggGroup,delAggIdx,buildIndex,tableIndexActions,changePartition,changeBuildType" },
+        { "key": "systemUser-admin", "value": "sourceManagement,loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions,acceRuleSettingActions,acceBlackList,acceDelSql" },
 
-        { "key": "systemUser-manualMaintain-management", "value": "loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions,modelActions,addSnapshot,snapshotAction,segmentActions,editAggGroup,delAggIdx,buildIndex,tableIndexActions,changePartition,changeBuildType" },
-        { "key": "systemUser-autoMaintain-management", "value": "loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions" },
+        { "key": "systemUser-management", "value": "loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions,modelActions,addSnapshot,snapshotAction,segmentActions,editAggGroup,delAggIdx,buildIndex,tableIndexActions,changePartition,changeBuildType" },
+        { "key": "systemUser-management", "value": "loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions" },
 
-        { "key": "systemUser-manualMaintain-operation", "value": "loadData,snapshotAction,segmentActions,buildIndex" },
-        { "key": "systemUser-autoMaintain-operation", "value": "loadData" },
+        { "key": "systemUser-operation", "value": "loadData,snapshotAction,segmentActions,buildIndex" },
+        { "key": "systemUser-operation", "value": "loadData" },
 
-        { "key": "systemUser-*-read", "value": "none" }
+        { "key": "systemUser-read", "value": "none" }
       ]
     },
     // 模型操作权限

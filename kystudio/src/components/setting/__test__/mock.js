@@ -24,7 +24,6 @@ export const project = {
   job_notification_emails: [],
   kerberos_project_level_enabled: false,
   low_frequency_threshold: 0,
-  maintain_model_type: 'MANUAL_MAINTAIN',
   principal: null,
   project: 'xm_test_1',
   push_down_enabled: true,
