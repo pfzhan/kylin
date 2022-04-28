@@ -60,7 +60,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.controller.open.OpenModelController;
@@ -368,7 +367,6 @@ public class ModelControllerWithServiceTest extends ServiceTestBase {
     private void changeProjectToSemiAutoMode(String project) {
         NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
         projectManager.updateProject(project, copyForWrite -> {
-            copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
             var properties = copyForWrite.getOverrideKylinProps();
             if (properties == null) {
                 properties = Maps.newLinkedHashMap();

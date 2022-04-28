@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
@@ -41,7 +40,6 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.request.ComputedColumnConfigRequest;
 import io.kyligence.kap.rest.request.JdbcRequest;
@@ -54,7 +52,6 @@ public class NProjectControllerTest extends AbstractMVCIntegrationTestCase {
     public void testSaveProject() throws Exception {
         ProjectRequest request = new ProjectRequest();
         request.setName("test_PROJECT");
-        request.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/projects").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
@@ -77,7 +74,6 @@ public class NProjectControllerTest extends AbstractMVCIntegrationTestCase {
         String projectName = "test_update_PROJECT";
         ProjectRequest projectRequest = new ProjectRequest();
         projectRequest.setName(projectName);
-        projectRequest.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/projects").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(projectRequest))
@@ -103,7 +99,6 @@ public class NProjectControllerTest extends AbstractMVCIntegrationTestCase {
         String projectName = "test_update_jdbc_config";
         ProjectRequest projectRequest = new ProjectRequest();
         projectRequest.setName(projectName);
-        projectRequest.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/projects").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(projectRequest))

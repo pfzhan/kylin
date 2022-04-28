@@ -58,7 +58,6 @@ import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
-import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
@@ -96,13 +95,11 @@ import io.kyligence.kap.metadata.cube.model.NDictionaryDesc;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.model.RuleBasedIndex;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.OpenPreReloadTableResponse;
@@ -274,10 +271,6 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testReload_RemoveMeasureAffectedAggGroup() throws Exception {
-        val projectManager = NProjectManager.getInstance(getTestConfig());
-        projectManager.updateProject(PROJECT, copyForWrite -> {
-            copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-        });
         val MODEL_ID = "741ca86a-1f13-46da-a59f-95fb68615e3a";
         val dfManager = NDataflowManager.getInstance(getTestConfig(), PROJECT);
         val modelManager = NDataModelManager.getInstance(getTestConfig(), PROJECT);
@@ -534,12 +527,6 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testReload_BrokenModelInManualProject() throws Exception {
-        val projectManager = NProjectManager.getInstance(getTestConfig());
-        ProjectInstance projectInstance = projectManager.getProject(PROJECT);
-        ProjectInstance projectInstanceUpdate = projectManager.copyForWrite(projectInstance);
-        projectInstanceUpdate.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-        projectManager.updateProject(projectInstanceUpdate);
-
         removeColumn("DEFAULT.TEST_KYLIN_FACT", "ORDER_ID");
         tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true);
         val modelManager = NDataModelManager.getInstance(getTestConfig(), PROJECT);
@@ -554,11 +541,6 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testReloadLookup_RemoveFact() throws Exception {
-        val projectManager = NProjectManager.getInstance(getTestConfig());
-        ProjectInstance projectInstance = projectManager.getProject(PROJECT);
-        ProjectInstance projectInstanceUpdate = projectManager.copyForWrite(projectInstance);
-        projectInstanceUpdate.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-        projectManager.updateProject(projectInstanceUpdate);
         modelService.listAllModelIdsInProject(PROJECT).forEach(id -> {
             if (!id.equals("89af4ee2-2cdb-4b07-b39e-4c29856309aa")) {
                 modelService.dropModel(id, PROJECT);
@@ -586,11 +568,6 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
     private void prepareReload() {
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
-        val projectManager = NProjectManager.getInstance(getTestConfig());
-        ProjectInstance projectInstance = projectManager.getProject(PROJECT);
-        ProjectInstance projectInstanceUpdate = projectManager.copyForWrite(projectInstance);
-        projectInstanceUpdate.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-        projectManager.updateProject(projectInstanceUpdate);
         val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT);
         var originModel = modelManager.getDataModelDescByAlias("nmodel_basic_inner");
         val copyForUpdate = modelManager.copyForWrite(originModel);

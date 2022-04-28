@@ -151,7 +151,6 @@ import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.model.NSegmentConfigHelper;
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -1272,12 +1271,10 @@ public class TableService extends BasicService {
                 .getTableDesc(context.getTableDesc().getIdentity());
         result.setSnapshotDeleted(schemaChanged && originTable.getLastSnapshotPath() != null);
 
-        val projectInstance = getManager(NProjectManager.class).getProject(project);
-        if (projectInstance.getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
-            val affectedModels = Maps.newHashMap(context.getChangeTypeAffectedModels());
-            affectedModels.putAll(context.getRemoveAffectedModels());
-            result.setBrokenModelCount(affectedModels.values().stream().filter(AffectedModelContext::isBroken).count());
-        }
+        val affectedModels = Maps.newHashMap(context.getChangeTypeAffectedModels());
+        affectedModels.putAll(context.getRemoveAffectedModels());
+        result.setBrokenModelCount(affectedModels.values().stream().filter(AffectedModelContext::isBroken).count());
+
         // change type column also will remove measure when column type change
         long removeColumnAffectMeasureSum = context.getRemoveAffectedModels().values().stream()
                 .map(AffectedModelContext::getMeasures).mapToLong(Set::size).sum();
@@ -1400,10 +1397,6 @@ public class TableService extends BasicService {
             return null;
         }
         val projectName = project.getName();
-        if (project.getMaintainModelType() == MaintainModelType.AUTO_MAINTAIN) {
-            return null;
-        }
-
         cleanIndexPlan(projectName, model, Lists.newArrayList(removeAffectedModel, changeTypeAffectedModel));
 
         OptRecManagerV2.getInstance(projectName).discardAll(model.getId());

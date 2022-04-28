@@ -1040,16 +1040,12 @@ public class NDataModel extends RootPersistentEntity {
         keepColumnOrder();
         keepMeasureOrder();
 
-        ProjectInstance projectInstance = NProjectManager.getInstance(config).getProject(getProject());
-        if (Objects.nonNull(projectInstance)
-                && projectInstance.getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
-            val lookups = getJoinTables().stream().filter(joinTableDesc -> joinTableDesc.getKind() == TableKind.LOOKUP)
-                    .map(JoinTableDesc::getTable).collect(Collectors.toSet());
+        val lookups = getJoinTables().stream().filter(joinTableDesc -> joinTableDesc.getKind() == TableKind.LOOKUP)
+                .map(JoinTableDesc::getTable).collect(Collectors.toSet());
 
-            if (lookups.contains(getRootFactTableName())) {
-                throw new KylinException(TABLE_JOIN_RELATIONSHIP_ERROR,
-                        MsgPicker.getMsg().getDimensionTableUsedInThisModel());
-            }
+        if (lookups.contains(getRootFactTableName())) {
+            throw new KylinException(TABLE_JOIN_RELATIONSHIP_ERROR,
+                    MsgPicker.getMsg().getDimensionTableUsedInThisModel());
         }
     }
 
@@ -1078,12 +1074,8 @@ public class NDataModel extends RootPersistentEntity {
     }
 
     public boolean isIncrementBuildOnExpertMode() {
-        if (NProjectManager.getInstance(this.config).getProject(getProject())
-                .getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
-            return !PartitionDesc.isEmptyPartitionDesc(getPartitionDesc())
-                    && !StringUtils.isEmpty(partitionDesc.getPartitionDateFormat());
-        }
-        return false;
+        return !PartitionDesc.isEmptyPartitionDesc(getPartitionDesc())
+                && !StringUtils.isEmpty(partitionDesc.getPartitionDateFormat());
     }
 
     public void checkSingleIncrementingLoadingTable() {

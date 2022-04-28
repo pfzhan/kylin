@@ -59,6 +59,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -109,6 +110,7 @@ import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.QueryCacheSignatureUtil;
 import org.apache.kylin.rest.util.SpringContext;
 import org.apache.kylin.source.adhocquery.PushdownResult;
+import org.apache.spark.sql.SparkSession;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -169,7 +171,7 @@ import lombok.val;
  * @author xduo
  */
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({ SpringContext.class, UserGroupInformation.class })
+@PrepareForTest({ SpringContext.class, UserGroupInformation.class, SparkSession.class, QueryService.class })
 @PowerMockIgnore({ "javax.management.*" })
 public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
@@ -218,6 +220,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         queryService.queryRoutingEngine = Mockito.spy(QueryRoutingEngine.class);
         Mockito.when(SpringContext.getBean(CacheSignatureQuerySupporter.class)).thenReturn(queryService);
         Mockito.when(appConfig.getPort()).thenReturn(7070);
+        Mockito.when(SpringContext.getBean("queryService")).thenReturn(queryService);
         ReflectionTestUtils.setField(queryService, "aclEvaluate", Mockito.mock(AclEvaluate.class));
         ReflectionTestUtils.setField(queryService, "queryCacheManager", queryCacheManager);
         ReflectionTestUtils.setField(queryService, "clusterManager", clusterManager);
@@ -230,10 +233,9 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(aclTCRService, "userService", userService);
         ReflectionTestUtils.setField(queryService, "appConfig", appConfig);
 
-        userService.createUser(
-                new ManagedUser("ADMIN", "KYLIN", false, Arrays.asList(new UserGrantedAuthority("ROLE_ADMIN"))));
+        userService.createUser(new ManagedUser("ADMIN", "KYLIN", false,
+                Collections.singletonList(new UserGrantedAuthority("ROLE_ADMIN"))));
         queryCacheManager.init();
-        QueryContext.reset();
     }
 
     @After
@@ -755,7 +757,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
             Assert.assertEquals(3, tableSchemas.size());
             //make sure the schema "metadata" is not exposed
-            Assert.assertTrue(!tableSchemas.contains("metadata"));
+            Assert.assertFalse(tableSchemas.contains("metadata"));
             Assert.assertEquals(20, tableNames.size());
             Assert.assertTrue(tableNames.contains("TEST_KYLIN_FACT"));
 
@@ -786,7 +788,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
             Assert.assertEquals(3, tableSchemas.size());
             //make sure the schema "metadata" is not exposed
-            Assert.assertTrue(!tableSchemas.contains("metadata"));
+            Assert.assertFalse(tableSchemas.contains("metadata"));
             Assert.assertEquals(20, tableNames.size());
             Assert.assertTrue(tableNames.contains("TEST_MEASURE"));
         }
@@ -814,7 +816,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
             Assert.assertEquals(3, tableSchemas.size());
             //make sure the schema "metadata" is not exposed
-            Assert.assertTrue(!tableSchemas.contains("metadata"));
+            Assert.assertFalse(tableSchemas.contains("metadata"));
             Assert.assertEquals(20, tableNames.size());
             Assert.assertTrue(tableNames.contains("TEST_KYLIN_FACT"));
 
@@ -955,7 +957,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
             ColumnDesc[] columnDescs = findColumnDescs();
             factColumns = getFactColumns(tableMetas);
-            Assert.assertEquals(columnDescs.length, factColumns.size());
+            Assert.assertEquals(12, factColumns.size());
             Assert.assertFalse(getColumnNames(factColumns).containsAll(Arrays.asList("_CC_DEAL_YEAR", "_CC_DEAL_AMOUNT",
                     "_CC_LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME", "_CC_LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME",
                     "_CC_LEFTJOIN_BUYER_COUNTRY_ABBR", "_CC_LEFTJOIN_SELLER_COUNTRY_ABBR")));
@@ -969,7 +971,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             final List<TableMetaWithType> tableMetas4default = queryService.getMetadataV2("default", null);
             ColumnDesc[] columnDescs = findColumnDescs();
             factColumns = getFactColumns(tableMetas4default);
-            Assert.assertEquals(columnDescs.length, factColumns.size());
+            Assert.assertEquals(12, factColumns.size());
             Assert.assertFalse(getColumnNames(factColumns).containsAll(Arrays.asList("_CC_DEAL_YEAR", "_CC_DEAL_AMOUNT",
                     "_CC_LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME", "_CC_LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME",
                     "_CC_LEFTJOIN_BUYER_COUNTRY_ABBR", "_CC_LEFTJOIN_SELLER_COUNTRY_ABBR")));
@@ -981,8 +983,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
                 "default");
         tableMetadataManager.resetProjectSpecificTableDesc();
         TableDesc tableDesc = tableMetadataManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT");
-        ColumnDesc[] columnDescs = tableDesc.getColumns();
-        return columnDescs;
+        return tableDesc.getColumns();
     }
 
     private NDataModel makeModelWithLessCC() throws IOException {
@@ -2072,8 +2073,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
         SQLResponse resp1 = queryService.doQueryWithCache(request);
         Assert.assertTrue(resp1.isException());
-        Assert.assertEquals(String.format(Locale.ROOT,
-                MsgPicker.getMsg().getSqlBlackListQueryConcurrentLimitExceeded(), "1", 1),
+        Assert.assertEquals(
+                String.format(Locale.ROOT, MsgPicker.getMsg().getSqlBlackListQueryConcurrentLimitExceeded(), "1", 1),
                 resp1.getExceptionMessage());
     }
 
@@ -2114,40 +2115,40 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetForcedToTieredStorage() {
-        for (ForceToTieredStorage i : ForceToTieredStorage.values()){
+        for (ForceToTieredStorage i : ForceToTieredStorage.values()) {
             String system = Integer.toString(i.ordinal());
             System.clearProperty("kylin.project.forced-to-tiered-storage");
             overwriteSystemProp("kylin.system.forced-to-tiered-storage", system);
             ForceToTieredStorage ret = queryService.getForcedToTieredStorage("default", i);
-            if (i != ForceToTieredStorage.CH_FAIL_TAIL){
+            if (i != ForceToTieredStorage.CH_FAIL_TAIL) {
                 assert i == ret;
-            }else{
+            } else {
                 assert ForceToTieredStorage.CH_FAIL_TO_DFS == ret;
             }
 
-            for (ForceToTieredStorage j : ForceToTieredStorage.values()){
+            for (ForceToTieredStorage j : ForceToTieredStorage.values()) {
                 String project = Integer.toString(j.ordinal());
                 overwriteSystemProp("kylin.project.forced-to-tiered-storage", project);
                 ret = queryService.getForcedToTieredStorage("default", j);
-                if (j != ForceToTieredStorage.CH_FAIL_TAIL){
+                if (j != ForceToTieredStorage.CH_FAIL_TAIL) {
                     assert j == ret;
-                }else{
-                    if (i != ForceToTieredStorage.CH_FAIL_TAIL){
+                } else {
+                    if (i != ForceToTieredStorage.CH_FAIL_TAIL) {
                         assert i == ret;
-                    } else{
+                    } else {
                         assert ForceToTieredStorage.CH_FAIL_TO_DFS == ret;
                     }
                 }
-                for (ForceToTieredStorage k : ForceToTieredStorage.values()){
+                for (ForceToTieredStorage k : ForceToTieredStorage.values()) {
                     ret = queryService.getForcedToTieredStorage("default", k);
-                    if (k != ForceToTieredStorage.CH_FAIL_TAIL){
+                    if (k != ForceToTieredStorage.CH_FAIL_TAIL) {
                         assert k == ret;
-                    }else{
-                        if (j != ForceToTieredStorage.CH_FAIL_TAIL){
+                    } else {
+                        if (j != ForceToTieredStorage.CH_FAIL_TAIL) {
                             assert j == ret;
-                        } else if (i != ForceToTieredStorage.CH_FAIL_TAIL){
+                        } else if (i != ForceToTieredStorage.CH_FAIL_TAIL) {
                             assert i == ret;
-                        } else{
+                        } else {
                             assert ForceToTieredStorage.CH_FAIL_TO_DFS == ret;
                         }
                     }
@@ -2158,7 +2159,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetForcedToTieredStorageValueInvalid() {
-        try{
+        try {
             ForceToTieredStorage f = ForceToTieredStorage.values()[-1];
         } catch (Exception e) {
             Assert.assertTrue(e instanceof ArrayIndexOutOfBoundsException);
@@ -2175,11 +2176,11 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetForcedToTieredStorageForProject() {
-        for (ForceToTieredStorage j : ForceToTieredStorage.values()){
+        for (ForceToTieredStorage j : ForceToTieredStorage.values()) {
             String project = Integer.toString(j.ordinal());
             overwriteSystemProp("kylin.project.forced-to-tiered-storage", project);
             ForceToTieredStorage ret = queryService.getForcedToTieredStorage("default", j);
-            if (j != ForceToTieredStorage.CH_FAIL_TAIL){
+            if (j != ForceToTieredStorage.CH_FAIL_TAIL) {
                 assert j == ret;
             } else {
                 assert ForceToTieredStorage.CH_FAIL_TO_DFS == ret;
@@ -2189,11 +2190,11 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetForcedToTieredStorageForSystem() {
-        for (ForceToTieredStorage j : ForceToTieredStorage.values()){
+        for (ForceToTieredStorage j : ForceToTieredStorage.values()) {
             String project = Integer.toString(j.ordinal());
             overwriteSystemProp("kylin.system.forced-to-tiered-storage", project);
             ForceToTieredStorage ret = queryService.getForcedToTieredStorage("default", j);
-            if (j != ForceToTieredStorage.CH_FAIL_TAIL){
+            if (j != ForceToTieredStorage.CH_FAIL_TAIL) {
                 assert j == ret;
             } else {
                 assert ForceToTieredStorage.CH_FAIL_TO_DFS == ret;
@@ -2228,8 +2229,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         String correctedSql = KapQueryUtil.massageSql(queryParams);
 
         Mockito.when(queryExec.executeQuery(correctedSql)).thenReturn(new QueryResult());
-        Mockito.doReturn(new QueryResult())
-                .when(queryService.queryRoutingEngine).execute(Mockito.any(), Mockito.any());
+        Mockito.doReturn(new QueryResult()).when(queryService.queryRoutingEngine).execute(Mockito.any(), Mockito.any());
 
         final SQLResponse response = queryService.queryWithCache(sqlRequest);
         Assert.assertNull(response.getExceptionMessage());
@@ -2251,7 +2251,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         String correctedSql = KapQueryUtil.massageSql(queryParams);
 
         Throwable cause = new SQLException(QueryContext.ROUTE_USE_FORCEDTOTIEREDSTORAGE);
-        Mockito.doThrow(new SQLException("Error while executing SQL \"" + correctedSql + "\": " + cause.getMessage(), cause))
+        Mockito.doThrow(
+                new SQLException("Error while executing SQL \"" + correctedSql + "\": " + cause.getMessage(), cause))
                 .when(queryService.queryRoutingEngine).execute(Mockito.any(), Mockito.any());
 
         Mockito.doAnswer(invocation -> PushdownResult.emptyResult()).when(queryService.queryRoutingEngine)
@@ -2278,12 +2279,15 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
                 queryExec.getDefaultSchemaName(), true);
         String correctedSql = KapQueryUtil.massageSql(queryParams);
 
-        Throwable cause = new KylinException(QueryErrorCode.FORCED_TO_TIEREDSTORAGE_AND_FORCE_TO_INDEX, MsgPicker.getMsg().getForcedToTieredstorageAndForceToIndex());
-        Mockito.doThrow(new SQLException("Error while executing SQL \"" + correctedSql + "\": " + cause.getMessage(), cause))
+        Throwable cause = new KylinException(QueryErrorCode.FORCED_TO_TIEREDSTORAGE_AND_FORCE_TO_INDEX,
+                MsgPicker.getMsg().getForcedToTieredstorageAndForceToIndex());
+        Mockito.doThrow(
+                new SQLException("Error while executing SQL \"" + correctedSql + "\": " + cause.getMessage(), cause))
                 .when(queryService.queryRoutingEngine).execute(Mockito.any(), Mockito.any());
 
         final SQLResponse response = queryService.queryWithCache(sqlRequest);
-        Assert.assertTrue(response.getExceptionMessage().contains(MsgPicker.getMsg().getForcedToTieredstorageAndForceToIndex()));
+        Assert.assertTrue(
+                response.getExceptionMessage().contains(MsgPicker.getMsg().getForcedToTieredstorageAndForceToIndex()));
     }
 
     @Test
@@ -2305,18 +2309,18 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
         Throwable cause = new KylinException(QueryErrorCode.FORCED_TO_TIEREDSTORAGE_RETURN_ERROR,
                 MsgPicker.getMsg().getForcedToTieredstorageReturnError());
-        Mockito.doThrow(new SQLException("Error while executing SQL \"" + correctedSql + "\": " + cause.getMessage(), cause))
+        Mockito.doThrow(
+                new SQLException("Error while executing SQL \"" + correctedSql + "\": " + cause.getMessage(), cause))
                 .when(queryService.queryRoutingEngine).execute(Mockito.any(), Mockito.any());
 
         final SQLResponse response = queryService.queryWithCache(sqlRequest);
-        Assert.assertTrue(response.getExceptionMessage().contains(MsgPicker.getMsg().getForcedToTieredstorageReturnError()));
+        Assert.assertTrue(
+                response.getExceptionMessage().contains(MsgPicker.getMsg().getForcedToTieredstorageReturnError()));
     }
-
-
 
     @Test
     public void testCheckSqlRequestProject() {
-        Assert.assertThrows(KylinException.class, ()->ReflectionTestUtils.invokeMethod(queryService, "checkSqlRequestProject",
-                new SQLRequest(), MsgPicker.getMsg()));
+        Assert.assertThrows(KylinException.class, () -> ReflectionTestUtils.invokeMethod(queryService,
+                "checkSqlRequestProject", new SQLRequest(), MsgPicker.getMsg()));
     }
 }

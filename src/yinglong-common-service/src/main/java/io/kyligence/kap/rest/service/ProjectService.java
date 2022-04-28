@@ -114,7 +114,6 @@ import io.kyligence.kap.metadata.cube.storage.ProjectStorageInfoCollector;
 import io.kyligence.kap.metadata.cube.storage.StorageInfoEnum;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
@@ -188,13 +187,9 @@ public class ProjectService extends BasicService {
         if (overrideProps == null) {
             overrideProps = Maps.newLinkedHashMap();
         }
-        if (newProject.getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
-            overrideProps.put("kylin.metadata.semi-automatic-mode",
-                    getConfig().isSemiAutoMode() ? KylinConfig.TRUE : KylinConfig.FALSE);
-            overrideProps.put(ProjectInstance.EXPOSE_COMPUTED_COLUMN_CONF, KylinConfig.TRUE);
-        } else {
-            overrideProps.put(ProjectInstance.EXPOSE_COMPUTED_COLUMN_CONF, KylinConfig.FALSE);
-        }
+
+        overrideProps.put("kylin.metadata.semi-automatic-mode", String.valueOf(getConfig().isSemiAutoMode()));
+        overrideProps.put(ProjectInstance.EXPOSE_COMPUTED_COLUMN_CONF, KylinConfig.TRUE);
 
         encryptJdbcPassInOverrideKylinProps(overrideProps);
         ProjectInstance currentProject = getManager(NProjectManager.class).getProject(projectName);
@@ -204,7 +199,7 @@ public class ProjectService extends BasicService {
         }
         final String owner = SecurityContextHolder.getContext().getAuthentication().getName();
         ProjectInstance createdProject = getManager(NProjectManager.class).createProject(projectName, owner,
-                description, overrideProps, newProject.getMaintainModelType());
+                description, overrideProps);
         logger.debug("New project created.");
         return createdProject;
     }
@@ -550,7 +545,6 @@ public class ProjectService extends BasicService {
 
         response.setProject(project);
         response.setDescription(projectInstance.getDescription());
-        response.setMaintainModelType(projectInstance.getMaintainModelType());
         response.setDefaultDatabase(projectInstance.getDefaultDatabase());
         response.setSemiAutomaticMode(config.isSemiAutoMode());
 
@@ -747,9 +741,6 @@ public class ProjectService extends BasicService {
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     @Transaction(project = 0)
     public void updateProjectGeneralInfo(String project, ProjectGeneralInfoRequest projectGeneralInfoRequest) {
-        if (getManager(NProjectManager.class).getProject(project).isSmartMode()) {
-            projectGeneralInfoRequest.setSemiAutoMode(false);
-        }
         getManager(NProjectManager.class).updateProject(project, copyForWrite -> {
             copyForWrite.setDescription(projectGeneralInfoRequest.getDescription());
             copyForWrite.putOverrideKylinProps("kylin.metadata.semi-automatic-mode",
@@ -775,8 +766,8 @@ public class ProjectService extends BasicService {
     @Transaction(project = 0)
     public void dropProject(String project) {
         if (SecondStorageUtil.isProjectEnable(project)) {
-            throw new KylinException(PROJECT_DROP_FAILED, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getProjectDropFailedSecondStorageEnabled(), project));
+            throw new KylinException(PROJECT_DROP_FAILED,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getProjectDropFailedSecondStorageEnabled(), project));
         }
 
         val kylinConfig = KylinConfig.getInstanceFromEnv();

@@ -61,14 +61,18 @@ import io.kyligence.kap.metadata.cube.optimization.IncludedLayoutOptStrategy;
 import io.kyligence.kap.metadata.cube.optimization.IndexOptimizer;
 import io.kyligence.kap.metadata.cube.optimization.LowFreqLayoutOptStrategy;
 import io.kyligence.kap.metadata.cube.optimization.SimilarLayoutOptStrategy;
+import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase {
 
     private static final String GC_PROJECT = "gc_test";
     private static final String GC_MODEL_ID = "e0e90065-e7c3-49a0-a801-20465ca64799";
     private static final String DEFAULT_PROJECT = "default";
     private static final String DEFAULT_MODEL_BASIC_ID = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+    private JdbcRawRecStore jdbcRawRecStore;
 
     private static final long DAY_IN_MILLIS = 24 * 60 * 60 * 1000L;
 
@@ -76,6 +80,11 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
     public void setUp() throws Exception {
         this.createTestMetadata();
         overwriteSystemProp("kylin.cube.low-frequency-threshold", "5");
+        try {
+            jdbcRawRecStore = new JdbcRawRecStore(getTestConfig());
+        } catch (Exception e) {
+            log.error("initialize rec store failed.");
+        }
     }
 
     @After
@@ -85,6 +94,7 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
 
     @Test
     public void testGetStorageVolumeInfo() {
+        getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "true");
         initTestData();
 
         val storageInfoEnumList = Lists.newArrayList(StorageInfoEnum.GARBAGE_STORAGE, StorageInfoEnum.STORAGE_QUOTA,
@@ -127,6 +137,7 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
 
     @Test
     public void testLowFreqLayoutStrategy() {
+        getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "true");
         initTestData();
         NDataflowManager instance = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         NDataflow dataflow = instance.getDataflow(DEFAULT_MODEL_BASIC_ID);
@@ -156,6 +167,7 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
 
     @Test
     public void testLowFreqStrategyOfFreqTimeWindow() {
+        getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "true");
         initTestData();
         val collector = new ProjectStorageInfoCollector(Lists.newArrayList(StorageInfoEnum.GARBAGE_STORAGE));
         getTestConfig().setProperty("kylin.cube.frequency-time-window", "90");
@@ -166,6 +178,7 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
 
     @Test
     public void testLowFreqStrategyOfLowFreqStrategyThreshold() {
+        getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "true");
         initTestData();
         val collector = new ProjectStorageInfoCollector(Lists.newArrayList(StorageInfoEnum.GARBAGE_STORAGE));
         getTestConfig().setProperty("kylin.cube.low-frequency-threshold", "2");

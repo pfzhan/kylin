@@ -366,19 +366,19 @@ public class FusionModelServiceTest extends SourceTestCase {
     public void testDropModel() {
         val project = "streaming_test";
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        fusionModelService.dropModel("334671fd-e383-4fc9-b5c2-94fce832f77a", project, true);
+        fusionModelService.innerDopModel("334671fd-e383-4fc9-b5c2-94fce832f77a", project);
         val dataModel = modelManager.getDataModelDesc("b05034a8-c037-416b-aa26-9e6b4a41ee40");
         Assert.assertNull(dataModel);
         val dataModel1 = modelManager.getDataModelDesc("334671fd-e383-4fc9-b5c2-94fce832f77a");
         Assert.assertNull(dataModel1);
 
-        fusionModelService.dropModel("4965c827-fbb4-4ea1-a744-3f341a3b030d", project, true);
+        fusionModelService.innerDopModel("4965c827-fbb4-4ea1-a744-3f341a3b030d", project);
         val dataModel2 = modelManager.getDataModelDesc("4965c827-fbb4-4ea1-a744-3f341a3b030d");
         Assert.assertNull(dataModel2);
         val dataModel3 = modelManager.getDataModelDesc("cd2b9a23-699c-4699-b0dd-38c9412b3dfd");
         Assert.assertNull(dataModel3);
 
-        fusionModelService.dropModel("4965c827-fbb4-4ea1-a744-3f341a3b030d", project, true);
+        fusionModelService.innerDopModel("4965c827-fbb4-4ea1-a744-3f341a3b030d", project);
         val dataModel4 = modelManager.getDataModelDesc("4965c827-fbb4-4ea1-a744-3f341a3b030d");
         Assert.assertNull(dataModel4);
     }

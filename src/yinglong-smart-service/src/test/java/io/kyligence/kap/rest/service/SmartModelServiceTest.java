@@ -75,7 +75,6 @@ import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -104,7 +103,7 @@ import io.kyligence.kap.streaming.jobs.StreamingJobListener;
 import lombok.val;
 import lombok.var;
 
-public class SmartModelServiceTest extends SourceTestCase{
+public class SmartModelServiceTest extends SourceTestCase {
     @InjectMocks
     private final ModelService modelService = Mockito.spy(new ModelService());
 
@@ -135,7 +134,6 @@ public class SmartModelServiceTest extends SourceTestCase{
     @InjectMocks
     private final ProjectService projectService = Mockito.spy(new ProjectService());
 
-
     @Mock
     private final JobSupporter jobService = Mockito.spy(JobSupporter.class);
 
@@ -159,7 +157,7 @@ public class SmartModelServiceTest extends SourceTestCase{
 
     private final ModelBrokenListener modelBrokenListener = new ModelBrokenListener();
 
-    private StreamingJobListener eventListener = new StreamingJobListener();
+    private final StreamingJobListener eventListener = new StreamingJobListener();
 
     @Before
     public void setup() {
@@ -200,11 +198,6 @@ public class SmartModelServiceTest extends SourceTestCase{
         val result1 = new QueryTimesResponse();
         result1.setModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         result1.setQueryTimes(10);
-        val prjManager = NProjectManager.getInstance(getTestConfig());
-        val prj = prjManager.getProject("default");
-        val copy = prjManager.copyForWrite(prj);
-        copy.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-        prjManager.updateProject(copy);
 
         try {
             new JdbcRawRecStore(getTestConfig());
@@ -223,7 +216,6 @@ public class SmartModelServiceTest extends SourceTestCase{
         EventBusFactory.getInstance().restart();
         cleanupTestMetadata();
     }
-
 
     @Test
     public void testSuggestModel() {
@@ -266,7 +258,6 @@ public class SmartModelServiceTest extends SourceTestCase{
 
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         projectManager.updateProject(getProject(), copyForWrite -> {
-            copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
             var properties = copyForWrite.getOverrideKylinProps();
             if (properties == null) {
                 properties = Maps.newLinkedHashMap();
@@ -409,7 +400,7 @@ public class SmartModelServiceTest extends SourceTestCase{
     }
 
     @Test
-    public void testSuggestOrOptimizeModels() throws Exception {
+    public void testSuggestOrOptimizeModels() {
         String project = "newten";
         // prepare initial model
         AbstractContext smartContext = ProposerJob.proposeForAutoMode(getTestConfig(), project,
@@ -446,7 +437,6 @@ public class SmartModelServiceTest extends SourceTestCase{
     public static void transferProjectToSemiAutoMode(KylinConfig kylinConfig, String project) {
         NProjectManager projectManager = NProjectManager.getInstance(kylinConfig);
         projectManager.updateProject(project, copyForWrite -> {
-            copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
             var properties = copyForWrite.getOverrideKylinProps();
             if (properties == null) {
                 properties = Maps.newLinkedHashMap();
@@ -459,11 +449,7 @@ public class SmartModelServiceTest extends SourceTestCase{
     @Test
     public void testOptimizeModel_Twice() {
         String project = "newten";
-        val projectMgr = NProjectManager.getInstance(getTestConfig());
         val indexMgr = NIndexPlanManager.getInstance(getTestConfig(), project);
-        projectMgr.updateProject(project, copyForWrite -> {
-            copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-        });
 
         Function<OpenSqlAccelerateRequest, OpenSqlAccelerateRequest> rewriteReq = req -> {
             req.setForce2CreateNewModel(false);
@@ -472,7 +458,8 @@ public class SmartModelServiceTest extends SourceTestCase{
         String normSql = "select test_order.order_id,buyer_id from test_order "
                 + " join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
                 + "group by test_order.order_id,buyer_id";
-        OpenSuggestionResponse normalResponse = modelSmartService.suggestOrOptimizeModels(smartRequest(project, normSql));
+        OpenSuggestionResponse normalResponse = modelSmartService
+                .suggestOrOptimizeModels(smartRequest(project, normSql));
         Assert.assertEquals(1, normalResponse.getModels().size());
 
         normSql = "select test_order.order_id,sum(price) from test_order "
@@ -493,11 +480,6 @@ public class SmartModelServiceTest extends SourceTestCase{
     @Test
     public void testAccSql() {
         String project = "newten";
-        val projectMgr = NProjectManager.getInstance(getTestConfig());
-        projectMgr.updateProject(project, copyForWrite -> {
-            copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-        });
-
         String sql1 = "select test_order.order_id,buyer_id from test_order "
                 + " join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
                 + "group by test_order.order_id,buyer_id";
@@ -537,8 +519,6 @@ public class SmartModelServiceTest extends SourceTestCase{
     @Test
     public void testErrorAndConstantOptimalModelResponse() {
         String project = "newten";
-        val projectMgr = NProjectManager.getInstance(getTestConfig());
-        projectMgr.updateProject(project, copyForWrite -> copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN));
         String sql1 = "select test_order.order_id,buyer_id from test_order "
                 + " join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
                 + "group by test_order.order_id,buyer_id";
@@ -563,15 +543,13 @@ public class SmartModelServiceTest extends SourceTestCase{
         NProjectManager projectMgr = NProjectManager.getInstance(getTestConfig());
         NIndexPlanManager indexMgr = NIndexPlanManager.getInstance(getTestConfig(), project);
         NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), project);
-        projectMgr.updateProject(project, copyForWrite -> {
-            copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-        });
 
         // create a base model
         String normSql = "select test_order.order_id,buyer_id from test_order "
                 + "left join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
                 + "group by test_order.order_id,buyer_id";
-        OpenSuggestionResponse normalResponse = modelSmartService.suggestOrOptimizeModels(smartRequest(project, normSql));
+        OpenSuggestionResponse normalResponse = modelSmartService
+                .suggestOrOptimizeModels(smartRequest(project, normSql));
         Assert.assertEquals(1, normalResponse.getModels().size());
         String modelId = normalResponse.getModels().get(0).getUuid();
         final NDataModel model1 = modelManager.getDataModelDesc(modelId);
@@ -811,8 +789,7 @@ public class SmartModelServiceTest extends SourceTestCase{
         modelRequest.getSimplifiedJoinTableDescs().get(0).getSimplifiedJoinDesc()
                 .setSimplifiedNonEquiJoinConditions(genNonEquiJoinCond());
 
-        val newModel = modelService.createModel(modelRequest.getProject(), modelRequest);
-        return newModel;
+        return modelService.createModel(modelRequest.getProject(), modelRequest);
     }
 
     private List<NonEquiJoinCondition.SimplifiedNonEquiJoinCondition> genNonEquiJoinCond() {
@@ -864,9 +841,6 @@ public class SmartModelServiceTest extends SourceTestCase{
     @Test
     public void testOptimizedModelWithModelViewSql() {
         String project = "newten";
-        val projectMgr = NProjectManager.getInstance(getTestConfig());
-        projectMgr.updateProject(project,
-                copyForWrite -> copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN));
         String sql1 = "select test_order.order_id,buyer_id from test_order group by test_order.order_id,buyer_id";
         val request = smartRequest(project, sql1);
         request.setForce2CreateNewModel(false);
@@ -888,9 +862,6 @@ public class SmartModelServiceTest extends SourceTestCase{
     @Test
     public void testOptimizedModelWithJoinViewModel() {
         String project = "newten";
-        val projectMgr = NProjectManager.getInstance(getTestConfig());
-        projectMgr.updateProject(project,
-                copyForWrite -> copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN));
         String sql1 = "select test_order.order_id,buyer_id from test_order group by test_order.order_id,buyer_id";
         String sql2 = "select order_id,seller_id from test_kylin_fact group by order_id,seller_id";
         val request = smartRequest(project, sql1);
@@ -919,9 +890,6 @@ public class SmartModelServiceTest extends SourceTestCase{
     @Test
     public void testOptimizedModelWithCloneViewModel() {
         String project = "newten";
-        val projectMgr = NProjectManager.getInstance(getTestConfig());
-        projectMgr.updateProject(project,
-                copyForWrite -> copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN));
         String sql1 = "select test_order.order_id,buyer_id from test_order group by test_order.order_id,buyer_id";
         val request = smartRequest(project, sql1);
         request.setForce2CreateNewModel(false);
