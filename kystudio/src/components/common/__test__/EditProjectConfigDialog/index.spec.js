@@ -34,7 +34,6 @@ const store = new Vuex.Store({
         description: "",
         keytab: null,
         last_modified: 1611233129785,
-        maintain_model_type: "MANUAL_MAINTAIN",
         mvcc: 16,
         name: "xm_test",
         override_kylin_properties: {'kylin.metadata.semi-automatic-mode': "true", 'kylin.query.metadata.expose-computed-column': "true", 'kylin.source.default': "9", 'kylin.snapshot.manual-management-enabled': "true", 'kylin.model.multi-partition-enabled': "true"},

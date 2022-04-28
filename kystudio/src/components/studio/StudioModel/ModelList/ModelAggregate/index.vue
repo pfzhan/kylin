@@ -307,7 +307,7 @@ import FlowerChart from '../../../../common/FlowerChart'
 import TreemapChart from '../../../../common/TreemapChart'
 import { handleSuccessAsync } from '../../../../../util'
 import { handleError, kapConfirm, transToServerGmtTime } from '../../../../../util/business'
-import { speedProjectTypes, pageRefTags, pageCount } from 'config'
+import { pageRefTags, pageCount } from 'config'
 import { BuildIndexStatus } from '../../../../../config/model'
 // import ConfirmSegment from '../ConfirmSegment/ConfirmSegment.vue'
 // import AggregateModal from './AggregateModal/index.vue'
@@ -832,9 +832,6 @@ export default class ModelAggregate extends Vue {
     this.indexLoading = true
     await this.loadAggIndices()
     this.indexLoading = false
-  }
-  get isSpeedProject () {
-    return speedProjectTypes.includes(this.currentProjectData.maintain_model_type)
   }
   async handleClickNode (id) {
     this.switchIndexValue = 'index'

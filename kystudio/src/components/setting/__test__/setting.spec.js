@@ -23,7 +23,6 @@ const mockApi = {
       job_notification_emails: [],
       kerberos_project_level_enabled: false,
       low_frequency_threshold: 5,
-      maintain_model_type: 'MANUAL_MAINTAIN',
       principal: null,
       project: 'xm_test_1',
       push_down_enabled: true,
@@ -120,7 +119,7 @@ describe('Component Setting', () => {
     await wrapper.vm.getCurrentSettings()
     expect(mockApi.mockFetchProjectSettings.mock.calls[0][1]).toEqual({'projectName': 'xm_test_1'})
     expect(mockHandleSuccessAsync).toBeCalled()
-    expect(wrapper.vm.$data.projectSettings).toEqual({'auto_merge_enabled': true, 'auto_merge_time_ranges': ['WEEK', 'MONTH', 'QUARTER', 'YEAR'], 'converter_class_names': 'org.apache.kylin.query.util.PowerBIConverter,io.kyligence.kap.query.util.SparkSQLFunctionConverter,io.kyligence.kap.query.util.RestoreFromComputedColumn,io.kyligence.kap.query.security.RowFilter,io.kyligence.kap.query.security.HackSelectStarWithColumnACL,org.apache.kylin.source.adhocquery.HivePushDownConverter', 'data_load_empty_notification_enabled': false, 'default_database': 'DEFAULT', 'description': '', 'expose_computed_column': true, 'frequency_time_window': 'MONTH', 'job_error_notification_enabled': false, 'job_notification_emails': [], 'kerberos_project_level_enabled': false, 'low_frequency_threshold': 5, 'maintain_model_type': 'MANUAL_MAINTAIN', 'principal': null, 'project': 'xm_test_1', 'push_down_enabled': true, 'retention_range': {'retention_range_enabled': false, 'retention_range_number': 1, 'retention_range_type': 'YEAR'}, 'runner_class_name': 'io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl', 'semi_automatic_mode': true, 'storage_quota_size': 10995116277760, 'storage_quota_tb_size': '10.00', 'threshold': 20, 'tips_enabled': true, 'volatile_range': {'volatile_range_enabled': true, 'volatile_range_number': 5, 'volatile_range_type': 'QUARTER'}, 'yarn_queue': 'kylin'})
+    expect(wrapper.vm.$data.projectSettings).toEqual({'auto_merge_enabled': true, 'auto_merge_time_ranges': ['WEEK', 'MONTH', 'QUARTER', 'YEAR'], 'converter_class_names': 'org.apache.kylin.query.util.PowerBIConverter,io.kyligence.kap.query.util.SparkSQLFunctionConverter,io.kyligence.kap.query.util.RestoreFromComputedColumn,io.kyligence.kap.query.security.RowFilter,io.kyligence.kap.query.security.HackSelectStarWithColumnACL,org.apache.kylin.source.adhocquery.HivePushDownConverter', 'data_load_empty_notification_enabled': false, 'default_database': 'DEFAULT', 'description': '', 'expose_computed_column': true, 'frequency_time_window': 'MONTH', 'job_error_notification_enabled': false, 'job_notification_emails': [], 'kerberos_project_level_enabled': false, 'low_frequency_threshold': 5, 'principal': null, 'project': 'xm_test_1', 'push_down_enabled': true, 'retention_range': {'retention_range_enabled': false, 'retention_range_number': 1, 'retention_range_type': 'YEAR'}, 'runner_class_name': 'io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl', 'semi_automatic_mode': true, 'storage_quota_size': 10995116277760, 'storage_quota_tb_size': '10.00', 'threshold': 20, 'tips_enabled': true, 'volatile_range': {'volatile_range_enabled': true, 'volatile_range_number': 5, 'volatile_range_type': 'QUARTER'}, 'yarn_queue': 'kylin'})
   })
   it('computed', () => {
     expect(wrapper.vm.modelSetting).toBe('Index Group Rewrite Settings')
