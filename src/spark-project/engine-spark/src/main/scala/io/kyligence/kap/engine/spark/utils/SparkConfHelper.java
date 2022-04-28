@@ -28,7 +28,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.spark.SparkConf;
 import org.apache.spark.conf.rule.ExecutorCoreRule;
@@ -42,7 +43,8 @@ import org.apache.spark.conf.rule.YarnConfRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ImmutableList;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.cluster.IClusterManager;
@@ -75,11 +77,14 @@ public class SparkConfHelper {
     public static final String MAX_CORES = "spark.cores.max";
     public static final String COUNT_DISTICT = "count_distinct";
 
-    private static final List<SparkConfRule> EXECUTOR_RULES = ImmutableList.of(new ExecutorMemoryRule(),
+    private static List<SparkConfRule> EXECUTOR_RULES = Lists.newArrayList(new ExecutorMemoryRule(),
             new ExecutorCoreRule(), new ExecutorOverheadRule(), new ExecutorInstancesRule(),
             new ShufflePartitionsRule(), new StandaloneConfRule(), new YarnConfRule());
 
     public void generateSparkConf() {
+        KylinConfig.getInstanceFromEnv().getSparkBuildConfExtraRules().stream().forEach(rule -> {
+            EXECUTOR_RULES.add((SparkConfRule) ClassUtil.newInstance(rule));
+        });
         EXECUTOR_RULES.forEach(sparkConfRule -> sparkConfRule.apply(this));
     }
 

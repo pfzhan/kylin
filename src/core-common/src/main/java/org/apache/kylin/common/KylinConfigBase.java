@@ -101,6 +101,7 @@ import io.kyligence.kap.common.util.FileUtils;
 import io.kyligence.kap.common.util.SizeConvertUtil;
 import io.kyligence.kap.common.util.Unsafe;
 import lombok.val;
+import java.util.Collections;
 
 /**
  * An abstract class to encapsulate access to a set of 'properties'.
@@ -1358,6 +1359,15 @@ public abstract class KylinConfigBase implements Serializable {
     public String getSparkBuildClassName() {
         return getOptional("kylin.engine.spark.build-class-name", "io.kyligence.kap.engine.spark.job.SegmentBuildJob");
     }
+
+    public List<String> getSparkBuildConfExtraRules() {
+        String rules = getOptional("kylin.engine.spark.build-conf-extra-rules");
+        if (StringUtils.isEmpty(rules)) {
+            return Collections.<String>emptyList();
+        }
+        return Lists.newArrayList(rules.split(","));
+    }
+
 
     public String getSparkTableSamplingClassName() {
         return getOptional("kylin.engine.spark.sampling-class-name",
