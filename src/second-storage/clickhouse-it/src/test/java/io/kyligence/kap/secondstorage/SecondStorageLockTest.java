@@ -816,7 +816,7 @@ public class SecondStorageLockTest implements JobWaiter {
             checkSecondStorageMetadata(existTablePlanLayoutIds, existTableDataLayoutIds);
             checkSecondStorageSegmentMetadata(getAllSegmentIds(), layout01);
             checkSecondStorageSegmentMetadata(getAllSegmentIds(), layout02);
-            checkSegmentDisplayNodes(replica, clickhouse.length / replica);
+            checkSegmentDisplay(replica, clickhouse.length / replica);
 
             // removed old index
             indexPlanService.removeIndexes(getProject(), modelId, ImmutableSet.of(layout01));
@@ -1129,7 +1129,7 @@ public class SecondStorageLockTest implements JobWaiter {
         waitJobFinish(getProject(), jobInfo.getJobId());
     }
 
-    private void checkSegmentDisplayNodes(int replica, int shardCnt) {
+    private void checkSegmentDisplay(int replica, int shardCnt) {
         List<NDataSegmentResponse> segments = modelService.getSegmentsResponse(modelId, getProject(), "0", "" + (Long.MAX_VALUE - 1), null,
                 null, null, false, null, false);
         segments.forEach(segment -> {

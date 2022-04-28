@@ -92,6 +92,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import io.kyligence.kap.guava20.shaded.common.base.Supplier;
+import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
@@ -104,7 +105,6 @@ import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.SecondStorageConfig;
 import org.apache.kylin.common.exception.JobErrorCode;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
@@ -1020,21 +1020,31 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                                 a.addAll(b);
                                 return a;
                             }));
+
+            List<Set<String>> shards = SecondStorageNodeHelper.groupsToShards(SecondStorageUtil.listNodeGroup(getConfig(), project));
+
             segmentResponseList.forEach(segment -> {
                 if (tablePartitions.containsKey(segment.getId())) {
                     val nodes = new HashSet<String>();
-                    Long sizes = 0L;
                     var partitions = tablePartitions.get(segment.getId());
                     for (TablePartition partition : partitions) {
                         nodes.addAll(partition.getShardNodes());
-                        var size = partition.getSizeInNode().values().stream().reduce(Long::sum).orElse(0L);
-                        sizes += size;
                     }
-                    try {
-                        segment.setSecondStorageSize(sizes / SecondStorageConfig.getInstanceFromEnv().getReplicaNum());
-                    } catch (Exception e) {
-                        log.error("setSecondStorageSize failed", e);
-                    }
+
+                    // key: node_name / value: node_size
+                    Map<String, Long> nodesSize = partitions.stream()
+                            .flatMap(partition -> partition.getSizeInNode().entrySet().stream())
+                            .collect(Collectors.toMap(
+                                    Map.Entry::getKey,
+                                    Map.Entry::getValue,
+                                    Long::sum
+                            ));
+
+                    long maxNodeSize = shards.stream()
+                            .mapToLong(shard -> shard.stream().mapToLong(nodesSize::get).max().orElse(0))
+                            .sum();
+                    segment.setSecondStorageSize(maxNodeSize);
+
                     Map<String, List<SecondStorageNode>> pairs = SecondStorageUtil.convertNodesToPairs(new ArrayList<>(nodes));
                     segment.setSecondStorageNodes(pairs);
                 } else {
