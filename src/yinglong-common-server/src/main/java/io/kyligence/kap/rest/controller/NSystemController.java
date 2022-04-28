@@ -65,6 +65,7 @@ import io.kyligence.kap.rest.response.MaintenanceModeResponse;
 import io.kyligence.kap.rest.response.ServerInfoResponse;
 import io.kyligence.kap.rest.response.ServersResponse;
 import io.kyligence.kap.rest.service.MaintenanceModeService;
+import io.kyligence.kap.rest.service.MetadataBackupService;
 import io.kyligence.kap.rest.service.SystemService;
 import io.kyligence.kap.tool.util.ToolUtil;
 import io.swagger.annotations.ApiOperation;
@@ -88,6 +89,9 @@ public class NSystemController extends NBasicController {
     @Autowired
     private AclEvaluate aclEvaluate;
 
+    @Autowired
+    private MetadataBackupService metadataBackupService;
+
     @VisibleForTesting
     public void setAclEvaluate(AclEvaluate aclEvaluate) {
         this.aclEvaluate = aclEvaluate;
@@ -98,6 +102,14 @@ public class NSystemController extends NBasicController {
         return this.aclEvaluate;
     }
 
+    @ApiOperation(value = "dump ke inner metadata responding to system kylinconfig")
+    @GetMapping(value = "/metadata/dump")
+    @ResponseBody
+    public EnvelopeResponse<String> dumpMetadata(@RequestParam(value = "dump_path") String dumpPath) throws Exception {
+        String[] args = new String[] { "-backup", "-compress", "-dir", dumpPath };
+        metadataBackupService.backup(args);
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
+    }
 
     @ApiOperation(value = "diag", tags = { "SM" })
     @PostMapping(value = "/diag")
@@ -121,9 +133,11 @@ public class NSystemController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> getRemoteDumpQueryDiagPackage(
             @RequestParam(value = "host", required = false) String host,
-            @RequestBody QueryDiagPackageRequest queryDiagPackageRequest, final HttpServletRequest request) throws Exception {
+            @RequestBody QueryDiagPackageRequest queryDiagPackageRequest, final HttpServletRequest request)
+            throws Exception {
         if (StringUtils.isEmpty(host)) {
-            String uuid = systemService.dumpLocalQueryDiagPackage(queryDiagPackageRequest.getQueryId(), queryDiagPackageRequest.getProject());
+            String uuid = systemService.dumpLocalQueryDiagPackage(queryDiagPackageRequest.getQueryId(),
+                    queryDiagPackageRequest.getProject());
             return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, uuid, "");
         } else {
             String url = host + "/kylin/api/system/diag/query";

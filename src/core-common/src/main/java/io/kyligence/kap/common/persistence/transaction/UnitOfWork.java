@@ -142,18 +142,16 @@ public class UnitOfWork {
             long startTime = System.currentTimeMillis();
             params.getProcessor().preProcess();
             context = UnitOfWork.startTransaction(params);
-            val waitForLockTime = System.currentTimeMillis() - startTime;
+            long startTransactionTime = System.currentTimeMillis();
+            val waitForLockTime = startTransactionTime - startTime;
             if (waitForLockTime > 3000) {
                 log.warn("UnitOfWork {} takes too long time {}ms to start", traceId, waitForLockTime);
             }
+
             ret = params.getProcessor().process();
             UnitOfWork.endTransaction(traceId, params);
-            long duration = System.currentTimeMillis() - startTime;
-            if (duration > 3000) {
-                log.warn("UnitOfWork {} takes too long time {}ms to complete", traceId, duration);
-            } else {
-                log.debug("UnitOfWork {} takes {}ms to complete", traceId, duration);
-            }
+            long duration = System.currentTimeMillis() - startTransactionTime;
+            logIfLongTransaction(duration, traceId);
 
             MetricsGroup.hostTagHistogramUpdate(MetricsName.TRANSACTION_LATENCY, MetricsCategory.PROJECT,
                     !GLOBAL_UNIT.equals(params.getUnitName()) ? params.getUnitName() : "global", duration);
@@ -184,6 +182,17 @@ public class UnitOfWork {
             context.onUnitFinished();
         }
         return result;
+    }
+
+    private static void logIfLongTransaction(long duration, String traceId) {
+        if (duration > 3000) {
+            log.warn("UnitOfWork {} takes too long time {}ms to complete", traceId, duration);
+            if (duration > 10000) {
+                log.warn("current stack: ", new Throwable());
+            }
+        } else {
+            log.debug("UnitOfWork {} takes {}ms to complete", traceId, duration);
+        }
     }
 
     static <T> UnitOfWorkContext startTransaction(UnitOfWorkParams<T> params) throws Exception {
