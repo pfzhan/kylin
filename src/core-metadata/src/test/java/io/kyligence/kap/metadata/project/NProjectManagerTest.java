@@ -44,7 +44,6 @@ import org.mockito.Mockito;
 
 import io.kyligence.kap.common.hystrix.NCircuitBreaker;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import lombok.val;
 
 public class NProjectManagerTest extends NLocalFileMetadataTestCase {
@@ -91,7 +90,7 @@ public class NProjectManagerTest extends NLocalFileMetadataTestCase {
         NCircuitBreaker.start(KapConfig.wrap(getTestConfig()));
         try {
             thrown.expect(KylinException.class);
-            manager.createProject("test_ck_project", "admin", "", null, MaintainModelType.MANUAL_MAINTAIN);
+            manager.createProject("test_ck_project", "admin", "", null);
         } finally {
             NCircuitBreaker.stop();
         }
@@ -125,8 +124,7 @@ public class NProjectManagerTest extends NLocalFileMetadataTestCase {
             val project = projectManager.getProject("default");
             Assert.assertEquals("false",
                     project.getOverrideKylinProps().get("kylin.query.implicit-computed-column-convert"));
-            Assert.assertNull(
-                    project.getLegalOverrideKylinProps().get("kylin.query.implicit-computed-column-convert"));
+            Assert.assertNull(project.getLegalOverrideKylinProps().get("kylin.query.implicit-computed-column-convert"));
             Assert.assertNull(
                     project.getConfig().getExtendedOverrides().get("kylin.query.implicit-computed-column-convert"));
         }

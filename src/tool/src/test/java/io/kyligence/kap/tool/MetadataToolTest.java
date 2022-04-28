@@ -50,7 +50,6 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
-import io.kyligence.kap.common.util.OptionBuilder;
 import org.apache.commons.cli.Option;
 import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.apache.commons.io.FileUtils;
@@ -81,13 +80,13 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
 import com.google.common.collect.Maps;
-import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.persistence.ImageDesc;
 import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.common.util.OptionBuilder;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -295,8 +294,8 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
 
         destResourceStore.deleteResource(deletePath);
         destResourceStore.deleteResource(modifyPath);
-        destResourceStore.putResourceWithoutCheck(modifyPath,
-                ByteSource.wrap(JsonUtil.writeValueAsBytes(modelDesc)), 0, 0);
+        destResourceStore.putResourceWithoutCheck(modifyPath, ByteSource.wrap(JsonUtil.writeValueAsBytes(modelDesc)), 0,
+                0);
         destResourceStore.putResourceWithoutCheck(addPath,
                 ByteSource.wrap(("test1").getBytes(Charset.defaultCharset())), 0, 0);
 
@@ -335,8 +334,8 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
 
         destResourceStore.deleteResource(deletePath);
         destResourceStore.deleteResource(modifyPath);
-        destResourceStore.putResourceWithoutCheck(modifyPath,
-                ByteSource.wrap(JsonUtil.writeValueAsBytes(modelDesc)), 0, 0);
+        destResourceStore.putResourceWithoutCheck(modifyPath, ByteSource.wrap(JsonUtil.writeValueAsBytes(modelDesc)), 0,
+                0);
         destResourceStore.putResourceWithoutCheck(addPath,
                 ByteSource.wrap(("test2").getBytes(Charset.defaultCharset())), 0, 0);
 
@@ -568,7 +567,7 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
             val projectMgr = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
             ProjectInstance projectInstance = new ProjectInstance();
             val prj = projectMgr.getProject("default");
-            projectMgr.createProject("default1", "", "", Maps.newLinkedHashMap(), MaintainModelType.AUTO_MAINTAIN);
+            projectMgr.createProject("default1", "", "", Maps.newLinkedHashMap());
             return 0;
         }, "default1", 1);
 

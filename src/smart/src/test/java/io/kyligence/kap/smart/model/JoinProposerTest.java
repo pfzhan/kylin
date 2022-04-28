@@ -32,7 +32,6 @@ import org.junit.Test;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -106,7 +105,6 @@ public class JoinProposerTest extends NLocalWithSparkSessionTest {
 
         // set this project to semi-auto-Mode, change the join alias. it will reuse this origin model and will not change this.
         val prjInstance = NProjectManager.getInstance(getTestConfig()).getProject(proj);
-        prjInstance.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
         getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "true");
         Assert.assertTrue(prjInstance.isSemiAutoMode());
 

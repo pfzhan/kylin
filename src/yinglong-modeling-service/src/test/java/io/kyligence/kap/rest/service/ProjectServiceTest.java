@@ -32,18 +32,17 @@ import static io.kyligence.kap.metadata.model.MaintainModelType.MANUAL_MAINTAIN;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.common.ShellExecutable;
 import org.apache.kylin.job.constant.JobStatusEnum;
@@ -57,10 +56,7 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.response.UserProjectPermissionResponse;
-import org.apache.kylin.rest.security.AclManager;
 import org.apache.kylin.rest.security.AclPermissionEnum;
-import org.apache.kylin.rest.security.AclRecord;
-import org.apache.kylin.rest.security.ObjectIdentityImpl;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.UserService;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -68,7 +64,6 @@ import org.apache.kylin.rest.util.AclUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -90,18 +85,12 @@ import io.kyligence.kap.clickhouse.MockSecondStorage;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.EncryptUtil;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
-import io.kyligence.kap.metadata.model.MaintainModelType;
-import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl;
 import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
 import io.kyligence.kap.rest.request.JdbcRequest;
@@ -119,7 +108,9 @@ import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import io.kyligence.kap.streaming.metadata.StreamingJobMeta;
 import lombok.val;
 import lombok.var;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class ProjectServiceTest extends NLocalFileMetadataTestCase {
     private static final String PROJECT = "default";
     private static final String PROJECT_JDBC = "jdbc";
@@ -152,6 +143,8 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
 
     private NProjectManager projectManager;
 
+    private JdbcRawRecStore jdbcRawRecStore;
+
     @Before
     public void setup() {
         overwriteSystemProp("HADOOP_USER_NAME", "root");
@@ -168,6 +161,11 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
 
         ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
         projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+        try {
+            jdbcRawRecStore = new JdbcRawRecStore(getTestConfig());
+        } catch (Exception e) {
+            log.error("initialize rec store failed.");
+        }
     }
 
     @After
@@ -176,11 +174,10 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testCreateProject_SemiMode() {
+    public void testCreateProjectSemiMode() {
         ProjectInstance projectInstance = new ProjectInstance();
         KylinConfig.getInstanceFromEnv().setProperty("kylin.metadata.semi-automatic-mode", "true");
         projectInstance.setName("project11");
-        projectInstance.setMaintainModelType(MANUAL_MAINTAIN);
         UnitOfWork.doInTransactionWithRetry(() -> {
             projectService.createProject(projectInstance.getName(), projectInstance);
             return null;
@@ -192,26 +189,10 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testCreateProject_AutoMaintain_Pass() {
+    public void testCreateProjectManualMaintainPass() {
 
         ProjectInstance projectInstance = new ProjectInstance();
         projectInstance.setName("project11");
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            projectService.createProject(projectInstance.getName(), projectInstance);
-            return null;
-        }, projectInstance.getName());
-        ProjectInstance projectInstance2 = projectManager.getProject("project11");
-        Assert.assertNotNull(projectInstance2);
-        Assert.assertEquals(MaintainModelType.AUTO_MAINTAIN, projectInstance2.getMaintainModelType());
-        projectManager.dropProject("project11");
-    }
-
-    @Test
-    public void testCreateProject_ManualMaintain_Pass() throws Exception {
-
-        ProjectInstance projectInstance = new ProjectInstance();
-        projectInstance.setName("project11");
-        projectInstance.setMaintainModelType(MANUAL_MAINTAIN);
         UnitOfWork.doInTransactionWithRetry(() -> {
             projectService.createProject(projectInstance.getName(), projectInstance);
             return null;
@@ -235,7 +216,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testGetReadableProjectsByName() throws Exception {
+    public void testGetReadableProjectsByName() {
         Mockito.doReturn(true).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
         List<ProjectInstance> projectInstances = projectService.getReadableProjects(PROJECT, true);
         Assert.assertTrue(projectInstances.size() == 1 && projectInstances.get(0).getName().equals(PROJECT));
@@ -243,7 +224,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testGetReadableProjectsByFuzzyName() throws Exception {
+    public void testGetReadableProjectsByFuzzyName() {
         Mockito.doReturn(true).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
         List<ProjectInstance> projectInstances = projectService.getReadableProjects("TOP", false);
         Assert.assertTrue(projectInstances.size() == 1 && projectInstances.get(0).getName().equals("top_n"));
@@ -253,7 +234,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testGetReadableProjects() throws Exception {
+    public void testGetReadableProjects() {
         Mockito.doReturn(true).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
         List<ProjectInstance> projectInstances = projectService.getReadableProjects("", false);
         Assert.assertEquals(26, projectInstances.size());
@@ -267,14 +248,14 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testGetReadableProjects_NoPermission() {
+    public void testGetReadableProjectsNoPermission() {
         Mockito.doReturn(false).when(aclEvaluate).hasProjectReadPermission(Mockito.any(ProjectInstance.class));
         List<ProjectInstance> projectInstances = projectService.getReadableProjects();
         Assert.assertEquals(0, projectInstances.size());
     }
 
     @Test
-    public void testGetReadableProjects_hasNoPermissionProject() throws Exception {
+    public void testGetReadableProjectsHasNoPermissionProject() {
         Mockito.doReturn(true).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
         List<ProjectInstance> projectInstances = projectService.getReadableProjects("", false);
         Assert.assertEquals(26, projectInstances.size());
@@ -304,14 +285,14 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testGetThreshold() throws Exception {
+    public void testGetThreshold() {
         val response = projectService.getQueryAccelerateThresholdConfig(PROJECT);
         Assert.assertEquals(20, response.getThreshold());
         Assert.assertTrue(response.isTipsEnabled());
     }
 
     @Test
-    public void testUpdateStorageQuotaConfig() throws Exception {
+    public void testUpdateStorageQuotaConfig() {
         Assert.assertThrows(
                 "No valid storage quota size, Please set an integer greater than or equal to 1TB "
                         + "to 'storage_quota_size', unit byte.",
@@ -325,6 +306,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetStorageVolumeInfoResponse() {
+        getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "true");
         prepareLayoutHitCount();
         String error = "do not use aclEvalute in getStorageVolumeInfoResponse, because backend thread would invoke this method in (BootstrapCommand.class)";
         Mockito.doThrow(new RuntimeException(error)).when(aclEvaluate).checkProjectReadPermission(Mockito.any());
@@ -336,97 +318,8 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
 
         Assert.assertEquals(10240L * 1024 * 1024 * 1024, storageVolumeInfoResponse.getStorageQuotaSize());
 
-        // for MODEL(MODEL_ID) layout-1000001 is manual and auto, it will be consider as manual layout
+        // for MODEL(MODEL_ID) layout-1000001 is manual and auto, it will be considered as manual layout
         Assert.assertEquals(2988131, storageVolumeInfoResponse.getGarbageStorageSize());
-    }
-
-    @Test
-    @Ignore("just ignore")
-    public void testCleanupProjectGarbage() throws Exception {
-        prepareLayoutHitCount();
-        Mockito.doNothing().when(asyncTaskService).cleanupStorage();
-        projectService.cleanupGarbage(PROJECT);
-        val indexPlan = NIndexPlanManager.getInstance(getTestConfig(), PROJECT).getIndexPlan(MODEL_ID);
-        Assert.assertEquals(4, indexPlan.getAllLayouts().size());
-        val allLayoutsIds = indexPlan.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toSet());
-        Assert.assertTrue(allLayoutsIds.contains(1L));
-        Assert.assertTrue(allLayoutsIds.contains(1000001L));
-        Assert.assertTrue(allLayoutsIds.contains(20_000_020_001L));
-        Assert.assertTrue(allLayoutsIds.contains(20_000_030_001L));
-        // layout 10001 is not connected with a low frequency fq
-        Assert.assertFalse(allLayoutsIds.contains(10001L));
-
-        StorageVolumeInfoResponse storageVolumeInfoResponse = projectService.getStorageVolumeInfoResponse(PROJECT);
-        Assert.assertEquals(0, storageVolumeInfoResponse.getGarbageStorageSize());
-    }
-
-    @Test
-    @Ignore("just ignore")
-    public void testScheduledGarbageCleanup() {
-        prepareLayoutHitCount();
-        val aclManager = AclManager.getInstance(getTestConfig());
-        val record = new AclRecord();
-        record.setUuid(RandomUtil.randomUUIDStr());
-
-        //project not exist
-        val info = new ObjectIdentityImpl("project", PROJECT_ID);
-        record.setDomainObjectInfo(info);
-        aclManager.save(record);
-
-        var acl = aclManager.get(PROJECT_ID);
-        Assert.assertNotNull(acl);
-
-        // when broken model is in MANUAL_MAINTAIN project
-        NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), "broken_test");
-        Assert.assertEquals(3, dataflowManager.listUnderliningDataModels(true).size());
-
-        // there are no any favorite queries
-        projectService.garbageCleanup();
-        for (ProjectInstance projectInstance : projectManager.listAllProjects()) {
-            dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), projectInstance.getName());
-            if (projectInstance.getName().equals("smart_reuse_existed_models")) {
-                continue;
-            }
-            if (projectInstance.getName().equals("broken_test")) {
-                Assert.assertEquals(0, dataflowManager.listUnderliningDataModels(true).size());
-            }
-
-            if (projectInstance.getName().equalsIgnoreCase("gc_test")) {
-                continue;
-            }
-
-            for (NDataModel model : dataflowManager.listUnderliningDataModels()) {
-                if (model.isMultiPartitionModel()) {
-                    continue;
-                }
-                NDataflow dataflow = dataflowManager.getDataflow(model.getId());
-                IndexPlan indexPlan = dataflow.getIndexPlan();
-                if (model.getId().equals(MODEL_ID)) {
-                    val layouts = indexPlan.getAllLayouts().stream().map(LayoutEntity::getId)
-                            .collect(Collectors.toSet());
-                    Assert.assertEquals(4, layouts.size());
-                    Assert.assertEquals(Sets.newHashSet(1L, 1000001L, 20000020001L, 20000030001L), layouts);
-                    continue;
-                }
-
-                // all ready auto index layouts are deleted
-                NDataSegment latestReadySegment = dataflow.getLatestReadySegment();
-                if (latestReadySegment != null) {
-                    List<LayoutEntity> allLayouts = dataflow.getIndexPlan().getAllLayouts();
-                    List<LayoutEntity> autoLayouts = dataflow.getIndexPlan().getWhitelistLayouts();
-                    Set<LayoutEntity> manualLayouts = allLayouts.stream().filter(LayoutEntity::isManual)
-                            .collect(Collectors.toSet());
-                    autoLayouts.removeIf(manualLayouts::contains); // if a layout is manual and auto, consider as manual
-                    autoLayouts.removeIf(layout -> !latestReadySegment.getLayoutsMap().containsKey(layout.getId()));
-                    allLayouts.removeIf(layout -> !latestReadySegment.getLayoutsMap().containsKey(layout.getId()));
-                    Assert.assertTrue(autoLayouts.isEmpty());
-                    allLayouts.forEach(layout -> Assert.assertTrue(layout.isManual()));
-                }
-            }
-        }
-
-        acl = AclManager.getInstance(getTestConfig()).get(PROJECT_ID);
-        Assert.assertNull(acl);
     }
 
     private void prepareLayoutHitCount() {
@@ -463,12 +356,11 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetProjectConfig() {
-        val project = PROJECT;
-        val response = projectService.getProjectConfig(project);
+        val response = projectService.getProjectConfig(PROJECT);
         Assert.assertEquals(20, response.getFavoriteQueryThreshold());
-        Assert.assertEquals(false, response.isAutoMergeEnabled());
-        Assert.assertEquals(false, response.getRetentionRange().isRetentionRangeEnabled());
-        Assert.assertEquals(false, response.isExposeComputedColumn());
+        Assert.assertFalse(response.isAutoMergeEnabled());
+        Assert.assertFalse(response.getRetentionRange().isRetentionRangeEnabled());
+        Assert.assertFalse(response.isExposeComputedColumn());
     }
 
     @Test
@@ -499,7 +391,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
 
         val segmentConfigRequest = new SegmentConfigRequest();
         segmentConfigRequest.setAutoMergeEnabled(false);
-        segmentConfigRequest.setAutoMergeTimeRanges(Arrays.asList(AutoMergeTimeEnum.DAY));
+        segmentConfigRequest.setAutoMergeTimeRanges(Collections.singletonList(AutoMergeTimeEnum.DAY));
 
         segmentConfigRequest.getRetentionRange().setRetentionRangeType(null);
         try {
@@ -558,7 +450,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
         request.setSemiAutoMode(true);
         projectService.updateProjectGeneralInfo(project, request);
         response = projectService.getProjectConfig(project);
-        Assert.assertEquals(false, response.isSemiAutomaticMode());
+        Assert.assertTrue(response.isSemiAutomaticMode());
 
         Assert.assertNull(response.getDefaultDatabase());
         projectService.updateDefaultDatabase(project, "EDW");
@@ -566,23 +458,23 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
 
         val segmentConfigRequest = new SegmentConfigRequest();
         segmentConfigRequest.setAutoMergeEnabled(false);
-        segmentConfigRequest.setAutoMergeTimeRanges(Arrays.asList(AutoMergeTimeEnum.DAY));
+        segmentConfigRequest.setAutoMergeTimeRanges(Collections.singletonList(AutoMergeTimeEnum.DAY));
         projectService.updateSegmentConfig(project, segmentConfigRequest);
         response = projectService.getProjectConfig(project);
-        Assert.assertEquals(false, response.isAutoMergeEnabled());
+        Assert.assertFalse(response.isAutoMergeEnabled());
 
         val pushDownConfigRequest = new PushDownConfigRequest();
         pushDownConfigRequest.setPushDownEnabled(false);
         projectService.updatePushDownConfig(project, pushDownConfigRequest);
         response = projectService.getProjectConfig(project);
-        Assert.assertEquals(false, response.isPushDownEnabled());
+        Assert.assertFalse(response.isPushDownEnabled());
 
         getTestConfig().setProperty("kylin.query.pushdown.runner-class-name",
                 "io.kyligence.kap.smart.query.mockup.MockupPushDownRunner");
         pushDownConfigRequest.setPushDownEnabled(true);
         projectService.updatePushDownConfig(project, pushDownConfigRequest);
         response = projectService.getProjectConfig(project);
-        Assert.assertEquals(true, response.isPushDownEnabled());
+        Assert.assertTrue(response.isPushDownEnabled());
 
         // this config should not expose to end users.
         val shardNumConfigRequest = new ShardNumConfigRequest();
@@ -622,7 +514,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testUpdateProjectConfig_trim() {
+    public void testUpdateProjectConfigTrim() {
 
         Map<String, String> testOverrideP = Maps.newLinkedHashMap();
         testOverrideP.put(" testk1 ", " testv1 ");
@@ -706,7 +598,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
                 val meta1 = new StreamingJobMeta();
                 meta1.setCurrentStatus(JobStatusEnum.RUNNING);
                 Mockito.when(projectService.getManager(StreamingJobManager.class, project)).thenReturn(mgr);
-                Mockito.when(mgr.listAllStreamingJobMeta()).thenReturn(Arrays.asList(meta1));
+                Mockito.when(mgr.listAllStreamingJobMeta()).thenReturn(Collections.singletonList(meta1));
                 projectService.dropProject(project);
             } catch (Exception e) {
                 Assert.assertTrue(e instanceof KylinException);
@@ -720,7 +612,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
                 val meta1 = new StreamingJobMeta();
                 meta1.setCurrentStatus(JobStatusEnum.STARTING);
                 Mockito.when(projectService.getManager(StreamingJobManager.class, project)).thenReturn(mgr);
-                Mockito.when(mgr.listAllStreamingJobMeta()).thenReturn(Arrays.asList(meta1));
+                Mockito.when(mgr.listAllStreamingJobMeta()).thenReturn(Collections.singletonList(meta1));
                 projectService.dropProject(project);
             } catch (Exception e) {
                 Assert.assertTrue(e instanceof KylinException);
@@ -734,7 +626,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
                 val meta1 = new StreamingJobMeta();
                 meta1.setCurrentStatus(JobStatusEnum.STARTING);
                 Mockito.when(projectService.getManager(StreamingJobManager.class, project)).thenReturn(mgr);
-                Mockito.when(mgr.listAllStreamingJobMeta()).thenReturn(Arrays.asList(meta1));
+                Mockito.when(mgr.listAllStreamingJobMeta()).thenReturn(Collections.singletonList(meta1));
                 projectService.dropProject(project);
             } catch (Exception e) {
                 Assert.assertTrue(e instanceof KylinException);
@@ -747,7 +639,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
             val meta1 = new StreamingJobMeta();
             meta1.setCurrentStatus(JobStatusEnum.STOPPED);
             Mockito.when(projectService.getManager(StreamingJobManager.class, project)).thenReturn(mgr);
-            Mockito.when(mgr.listAllStreamingJobMeta()).thenReturn(Arrays.asList(meta1));
+            Mockito.when(mgr.listAllStreamingJobMeta()).thenReturn(Collections.singletonList(meta1));
             projectService.dropProject(project);
             return null;
         }, project);
@@ -944,33 +836,33 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
     public void testCreateProjectComputedColumnConfig() throws Exception {
         // auto
         {
+            getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "true");
             ProjectInstance projectInstance = new ProjectInstance();
             projectInstance.setName("project11");
-            projectInstance.setMaintainModelType(MaintainModelType.AUTO_MAINTAIN);
             UnitOfWork.doInTransactionWithRetry(() -> {
                 projectService.createProject(projectInstance.getName(), projectInstance);
                 return null;
             }, projectInstance.getName());
             ProjectInstance projectInstance2 = projectManager.getProject("project11");
             Assert.assertNotNull(projectInstance2);
-            Assert.assertEquals(MaintainModelType.AUTO_MAINTAIN, projectInstance2.getMaintainModelType());
-            Assert.assertFalse(projectInstance2.getConfig().exposeComputedColumn());
+            Assert.assertTrue(projectInstance2.getConfig().exposeComputedColumn());
+            Assert.assertTrue(projectInstance2.isSemiAutoMode());
             projectManager.dropProject("project11");
         }
 
         // manual
         {
+            getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "false");
             ProjectInstance projectInstance = new ProjectInstance();
             projectInstance.setName("project11");
-            projectInstance.setMaintainModelType(MANUAL_MAINTAIN);
             UnitOfWork.doInTransactionWithRetry(() -> {
                 projectService.createProject(projectInstance.getName(), projectInstance);
                 return null;
             }, projectInstance.getName());
             ProjectInstance projectInstance2 = projectManager.getProject("project11");
             Assert.assertNotNull(projectInstance2);
-            Assert.assertEquals(MANUAL_MAINTAIN, projectInstance2.getMaintainModelType());
             Assert.assertTrue(projectInstance2.getConfig().exposeComputedColumn());
+            Assert.assertTrue(projectInstance2.isExpertMode());
             projectManager.dropProject("project11");
         }
     }
@@ -1076,7 +968,8 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
         jdbcSourceInfoRequest.setJdbcSourceName("h2");
         jdbcSourceInfoRequest.setJdbcSourceDriver("com.mysql.jdbc.driver");
         JdbcSourceInfoRequest finalJdbcSourceInfoRequest = jdbcSourceInfoRequest;
-        Assert.assertThrows(KylinException.class, () -> projectService.updateJdbcInfo(PROJECT_JDBC, finalJdbcSourceInfoRequest));
+        Assert.assertThrows(KylinException.class,
+                () -> projectService.updateJdbcInfo(PROJECT_JDBC, finalJdbcSourceInfoRequest));
 
         project = NProjectManager.getInstance(getTestConfig()).getProject(PROJECT_JDBC);
         Assert.assertEquals("org.h2.Driver", project.getOverrideKylinProps().get(KYLIN_SOURCE_JDBC_DRIVER_KEY));
@@ -1086,7 +979,8 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
         projectService.updateJdbcInfo(PROJECT_JDBC, jdbcSourceInfoRequest);
 
         project = NProjectManager.getInstance(getTestConfig()).getProject(PROJECT_JDBC);
-        Assert.assertEquals(EncryptUtil.encryptWithPrefix("test"), project.getOverrideKylinProps().get(KYLIN_SOURCE_JDBC_PASS_KEY));
+        Assert.assertEquals(EncryptUtil.encryptWithPrefix("test"),
+                project.getOverrideKylinProps().get(KYLIN_SOURCE_JDBC_PASS_KEY));
     }
 
     @Test(expected = KylinException.class)

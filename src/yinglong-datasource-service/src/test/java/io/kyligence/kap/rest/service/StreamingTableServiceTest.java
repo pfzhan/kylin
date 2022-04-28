@@ -55,7 +55,6 @@ import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.junit.rule.TransactionExceptedException;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
@@ -74,8 +73,8 @@ public class StreamingTableServiceTest extends NLocalFileMetadataTestCase {
     @Mock
     private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
 
-//    @Mock
-//    private AclTCRService aclTCRService = Mockito.spy(AclTCRService.class);
+    //    @Mock
+    //    private AclTCRService aclTCRService = Mockito.spy(AclTCRService.class);
 
     @InjectMocks
     private StreamingTableService streamingTableService = Mockito.spy(new StreamingTableService());
@@ -89,8 +88,7 @@ public class StreamingTableServiceTest extends NLocalFileMetadataTestCase {
     @Mock
     protected IUserGroupService userGroupService = Mockito.spy(NUserGroupService.class);
 
-
-    private static String PROJECT = "streaming_test";
+    private static final String PROJECT = "streaming_test";
 
     @Before
     public void setup() {
@@ -117,7 +115,6 @@ public class StreamingTableServiceTest extends NLocalFileMetadataTestCase {
         val prjManager = NProjectManager.getInstance(getTestConfig());
         val prj = prjManager.getProject(PROJECT);
         val copy = prjManager.copyForWrite(prj);
-        copy.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
         prjManager.updateProject(copy);
 
         try {
@@ -230,8 +227,8 @@ public class StreamingTableServiceTest extends NLocalFileMetadataTestCase {
         kafkaConfig.setStartingOffsets("latest");
         streamingRequest.setKafkaConfig(kafkaConfig);
         thrown.expect(KylinException.class);
-        thrown.expectMessage(String.format(Locale.ROOT,
-                MsgPicker.getMsg().getBatchStreamTableNotMatch(), batchTableName));
+        thrown.expectMessage(
+                String.format(Locale.ROOT, MsgPicker.getMsg().getBatchStreamTableNotMatch(), batchTableName));
         streamingTableService.checkColumns(streamingRequest);
     }
 

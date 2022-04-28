@@ -42,7 +42,6 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -87,10 +86,8 @@ public class ModelBrokenListener {
 
             val dataflowManager = NDataflowManager.getInstance(config, project);
             val indexPlanManager = NIndexPlanManager.getInstance(config, project);
-            val projectManager = NProjectManager.getInstance(config);
 
-            if (projectManager.getProject(project).getMaintainModelType() == MaintainModelType.AUTO_MAINTAIN
-                    && config.getSmartModeBrokenModelDeleteEnabled()) {
+            if (config.getSmartModeBrokenModelDeleteEnabled()) {
                 dataflowManager.dropDataflow(model.getId());
                 indexPlanManager.dropIndexPlan(model.getId());
                 modelManager.dropModel(model);

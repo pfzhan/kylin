@@ -82,10 +82,8 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.model.RuleBasedIndex;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.request.AggShardByColumnsRequest;
 import io.kyligence.kap.rest.request.CreateTableIndexRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
@@ -132,11 +130,6 @@ public class IndexPlanServiceTest extends SourceTestCase {
 
     private AtomicBoolean prepare(String modelId) {
         getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "true");
-        val prjManager = NProjectManager.getInstance(getTestConfig());
-        val prj = prjManager.getProject("default");
-        val copy = prjManager.copyForWrite(prj);
-        copy.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-        prjManager.updateProject(copy);
         AtomicBoolean clean = new AtomicBoolean(false);
         Assert.assertFalse(clean.get());
         return clean;

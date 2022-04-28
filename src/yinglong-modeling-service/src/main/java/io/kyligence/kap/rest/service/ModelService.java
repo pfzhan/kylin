@@ -212,7 +212,6 @@ import io.kyligence.kap.metadata.model.ExcludedLookupChecker;
 import io.kyligence.kap.metadata.model.FusionModel;
 import io.kyligence.kap.metadata.model.FusionModelManager;
 import io.kyligence.kap.metadata.model.JoinedFlatTable;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.MultiPartitionDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -1241,11 +1240,6 @@ public class ModelService extends BasicService implements TableModelSupporter, P
     }
 
     void dropModel(String modelId, String project, boolean ignoreType) {
-        val projectInstance = getManager(NProjectManager.class).getProject(project);
-        if (!ignoreType) {
-            Preconditions.checkState(MaintainModelType.MANUAL_MAINTAIN == projectInstance.getMaintainModelType());
-        }
-
         NDataModel dataModelDesc = getModelById(modelId, project);
         boolean isStreamingModel = false;
         if (dataModelDesc.isStreaming()) {
@@ -1898,8 +1892,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         val prjManager = getManager(NProjectManager.class);
         val prj = prjManager.getProject(project);
         val dataModel = semanticUpdater.convertToDataModel(modelRequest);
-        if (MaintainModelType.AUTO_MAINTAIN == prj.getMaintainModelType()
-                || ManagementType.TABLE_ORIENTED == dataModel.getManagementType()) {
+        if (ManagementType.TABLE_ORIENTED == dataModel.getManagementType()) {
             throw new KylinException(FAILED_CREATE_MODEL, MsgPicker.getMsg().getInvalidCreateModel());
         }
 
@@ -3139,8 +3132,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         val prjManager = getManager(NProjectManager.class);
         val prj = prjManager.getProject(project);
 
-        if (MaintainModelType.AUTO_MAINTAIN == prj.getMaintainModelType()
-                || ManagementType.TABLE_ORIENTED == broken.getManagementType()) {
+        if (ManagementType.TABLE_ORIENTED == broken.getManagementType()) {
             throw new KylinException(FAILED_UPDATE_MODEL, "Can not repair model manually smart mode!");
         }
         broken.setPartitionDesc(modelRequest.getPartitionDesc());

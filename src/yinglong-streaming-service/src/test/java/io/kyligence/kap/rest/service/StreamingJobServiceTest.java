@@ -82,11 +82,9 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
 import io.kyligence.kap.metadata.streaming.StreamingJobRecord;
@@ -146,11 +144,6 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         ReflectionTestUtils.setField(indexPlanService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(streamingJobService, "indexPlanService", indexPlanService);
 
-        val prjManager = NProjectManager.getInstance(getTestConfig());
-        val prj = prjManager.getProject(PROJECT);
-        val copy = prjManager.copyForWrite(prj);
-        copy.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-        prjManager.updateProject(copy);
         try {
             new JdbcRawRecStore(getTestConfig());
         } catch (Exception e) {

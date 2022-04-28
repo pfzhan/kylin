@@ -264,6 +264,7 @@ public class MetaStoreServiceTest extends ServiceTestBase {
 
     @Test
     public void testGetCompressedModelMetadataWithRec() throws Exception {
+        getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "true");
         List<RawRecItem> rawRecItems = new ArrayList<>();
         val rawRecItemsNode = JsonUtil.readValue(
                 new File("src/test/resources/ut_meta/metastore_model/rec/1af229fb-bb2c-42c5-9663-2bd92b50a861.json"),

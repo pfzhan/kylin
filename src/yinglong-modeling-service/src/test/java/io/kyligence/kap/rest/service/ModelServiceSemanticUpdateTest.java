@@ -83,14 +83,12 @@ import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.model.RuleBasedIndex;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModel.ColumnStatus;
 import io.kyligence.kap.metadata.model.NDataModel.Measure;
 import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.rest.request.AggShardByColumnsRequest;
 import io.kyligence.kap.rest.request.ModelParatitionDescRequest;
@@ -133,10 +131,6 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         modelService.setSemanticUpdater(semanticService);
         indexPlanService.setSemanticUpater(semanticService);
         modelService.setIndexPlanService(indexPlanService);
-        val projectManager = NProjectManager.getInstance(getTestConfig());
-        val projectInstance = projectManager.copyForWrite(projectManager.getProject(getProject()));
-        projectInstance.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-        projectManager.updateProject(projectInstance);
 
         val modelMgr = NDataModelManager.getInstance(getTestConfig(), getProject());
         modelMgr.updateDataModel(MODEL_ID, model -> {
@@ -449,7 +443,8 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         updateRequest.setUuid(newModel.getUuid());
         modelService.updateDataModelSemantic(getProject(), updateRequest);
 
-        var model = modelService.getManager(NDataModelManager.class, getProject()).getDataModelDesc(updateRequest.getUuid());
+        var model = modelService.getManager(NDataModelManager.class, getProject())
+                .getDataModelDesc(updateRequest.getUuid());
         Assert.assertThat(
                 model.getAllMeasures().stream().filter(m -> !m.isTomb()).sorted(Comparator.comparing(Measure::getId))
                         .map(MeasureDesc::getName).collect(Collectors.toList()),
@@ -462,7 +457,8 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         updateRequest2.setUuid(newModel.getUuid());
         updateRequest2.setAlias("model_with_measure_change_alias_twice");
         modelService.updateDataModelSemantic(getProject(), updateRequest2);
-        model = modelService.getManager(NDataModelManager.class, getProject()).getDataModelDesc(updateRequest.getUuid());
+        model = modelService.getManager(NDataModelManager.class, getProject())
+                .getDataModelDesc(updateRequest.getUuid());
         Assert.assertThat(
                 model.getAllMeasures().stream().filter(m -> !m.isTomb()).sorted(Comparator.comparing(Measure::getId))
                         .map(MeasureDesc::getName).collect(Collectors.toList()),

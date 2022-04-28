@@ -64,7 +64,6 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.RetentionRange;
 import io.kyligence.kap.metadata.model.VolatileRange;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -129,7 +128,6 @@ public class NProjectControllerTest extends NLocalFileMetadataTestCase {
         projectRequest.setName("test");
         projectRequest.setDescription("test");
         projectRequest.setOverrideKylinProps(new LinkedHashMap<>());
-        projectRequest.setMaintainModelType(MaintainModelType.AUTO_MAINTAIN);
         return projectRequest;
     }
 
@@ -392,8 +390,6 @@ public class NProjectControllerTest extends NLocalFileMetadataTestCase {
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
         Assert.assertTrue(mvcResult.getResponse().getContentAsString().contains("\"semi_automatic_mode\":false"));
-        Assert.assertTrue(
-                mvcResult.getResponse().getContentAsString().contains("\"maintain_model_type\":\"AUTO_MAINTAIN\""));
         Mockito.verify(nProjectController).getProjectConfig("default");
     }
 

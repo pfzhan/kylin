@@ -31,7 +31,6 @@ import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.metadata.project.ProjectInstance;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -39,11 +38,9 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
-import io.kyligence.kap.metadata.project.NProjectManager;
 
 public class ComputedColumnEvalUtilTest extends NLocalWithSparkSessionTest {
 
@@ -141,13 +138,6 @@ public class ComputedColumnEvalUtilTest extends NLocalWithSparkSessionTest {
 
         NDataModel dataModel = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default")
                 .getDataModelDesc("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96");
-        // set maintain model type to manual
-        final NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
-        final ProjectInstance projectUpdate = projectManager
-                .copyForWrite(projectManager.getProject(dataModel.getProject()));
-        projectUpdate.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-        projectManager.updateProject(projectUpdate);
-
         // case 1: resolve column failed, but table schema not changed.
         ComputedColumnDesc cc1 = new ComputedColumnDesc();
         cc1.setInnerExpression("TEST_KYLIN_FACT.LSTG_FORMAT_NAME2 + '1'");

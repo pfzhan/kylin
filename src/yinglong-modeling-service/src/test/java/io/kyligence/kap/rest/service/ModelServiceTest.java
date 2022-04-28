@@ -169,7 +169,6 @@ import io.kyligence.kap.metadata.model.BadModelException;
 import io.kyligence.kap.metadata.model.BadModelException.CauseType;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.DataCheckDesc;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.MultiPartitionDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -181,7 +180,6 @@ import io.kyligence.kap.metadata.model.VolatileRange;
 import io.kyligence.kap.metadata.model.util.ExpandableMeasureUtil;
 import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinTableDesc;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.QueryTimesResponse;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.metadata.user.ManagedUser;
@@ -308,11 +306,6 @@ public class ModelServiceTest extends SourceTestCase {
         val result1 = new QueryTimesResponse();
         result1.setModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         result1.setQueryTimes(10);
-        val prjManager = NProjectManager.getInstance(getTestConfig());
-        val prj = prjManager.getProject("default");
-        val copy = prjManager.copyForWrite(prj);
-        copy.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-        prjManager.updateProject(copy);
         favoriteRuleManager = FavoriteRuleManager.getInstance(getTestConfig(), getProject());
 
         try {
@@ -1129,7 +1122,8 @@ public class ModelServiceTest extends SourceTestCase {
     @Test
     public void testGetModelJson() throws IOException {
         String modelJson = modelService.getModelJson("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default");
-        Assert.assertEquals("89af4ee2-2cdb-4b07-b39e-4c29856309aa", JsonUtil.readValue(modelJson, NDataModel.class).getUuid());
+        Assert.assertEquals("89af4ee2-2cdb-4b07-b39e-4c29856309aa",
+                JsonUtil.readValue(modelJson, NDataModel.class).getUuid());
     }
 
     @Test
@@ -1164,11 +1158,6 @@ public class ModelServiceTest extends SourceTestCase {
         String project = "streaming_test";
 
         val config = getTestConfig();
-        val prjMgr = NProjectManager.getInstance(config);
-        prjMgr.updateProject(project, copyForWrite -> {
-            copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-        });
-
         UnitOfWork.doInTransactionWithRetry(() -> {
             modelService.dropModel(modelId, project);
             return null;
@@ -1768,26 +1757,6 @@ public class ModelServiceTest extends SourceTestCase {
     }
 
     @Test
-    public void testCreateModel_AutoMaintain_Exception() throws Exception {
-        val prjManager = NProjectManager.getInstance(getTestConfig());
-        val prj = prjManager.getProject("default");
-        val copy = prjManager.copyForWrite(prj);
-        copy.setMaintainModelType(MaintainModelType.AUTO_MAINTAIN);
-        prjManager.updateProject(copy);
-        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        NDataModel model = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        ModelRequest modelRequest = new ModelRequest(model);
-        modelRequest.setProject("default");
-        modelRequest.setUuid("new_model");
-        modelRequest.setAlias("new_model");
-        modelRequest.setLastModified(0L);
-        thrown.expect(KylinException.class);
-        thrown.expectMessage("Can’t add model manually under this project.");
-        modelService.createModel(modelRequest.getProject(), modelRequest);
-
-    }
-
-    @Test
     public void testCreateModel_PartitionIsNull() throws Exception {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         NDataModel model = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -1932,7 +1901,8 @@ public class ModelServiceTest extends SourceTestCase {
 
     @Test
     public void testAddSameNameDiffExprNormal() throws IOException, NoSuchFieldException, IllegalAccessException {
-        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                .getDataModelSerializer();
 
         List<NDataModelResponse> dataModelDescs = modelService.getModels("nmodel_basic", "default", true, null, null,
                 "", false);
@@ -1979,7 +1949,8 @@ public class ModelServiceTest extends SourceTestCase {
     @Test
     public void testFailureModelUpdateDueToComputedColumnConflict2()
             throws IOException, NoSuchFieldException, IllegalAccessException {
-        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                .getDataModelSerializer();
         List<NDataModelResponse> dataModelDescs = modelService.getModels("nmodel_basic", "default", true, null, null,
                 "", false);
         Assert.assertEquals(1, dataModelDescs.size());
@@ -2012,7 +1983,8 @@ public class ModelServiceTest extends SourceTestCase {
         expectedEx.expectMessage(
                 "A computed column should be defined on root fact table if its expression is not referring its hosting alias table,"
                         + " cc: BUYER_ACCOUNT.LEFTJOIN_SELLER_COUNTRY_ABBR");
-        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                .getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -2035,7 +2007,8 @@ public class ModelServiceTest extends SourceTestCase {
         expectedEx.expectMessage(
                 "A computed column should be defined on root fact table if its expression is not referring its hosting alias table,"
                         + " cc: BUYER_ACCOUNT.DEAL_AMOUNT");
-        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                .getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -2056,7 +2029,8 @@ public class ModelServiceTest extends SourceTestCase {
     @Test
     public void testNewModelAddSameExprSameNameNormal() {
         try {
-            Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+            Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                    .getDataModelSerializer();
             String contents = StringUtils.join(Files.readAllLines(
                     new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                     Charset.defaultCharset()), "\n");
@@ -2096,7 +2070,8 @@ public class ModelServiceTest extends SourceTestCase {
             }
         });
 
-        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                .getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -2125,7 +2100,8 @@ public class ModelServiceTest extends SourceTestCase {
     @Test
     public void testNewModelAddSameExprSameNameOnDifferentAliasTableCannotProvideAdvice() throws Exception {
         //save ut_left_join_cc_model, which is a model defining cc on lookup table
-        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                .getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -2166,7 +2142,7 @@ public class ModelServiceTest extends SourceTestCase {
                         && ccException.getConflictingModel().equals("nmodel_cc_test")
                         && ccException.getBadCC().equals("TEST_ORDER.ID_PLUS_1") && ccException.getAdvise() == null
                         && ccException.getMessage().equals(
-                        "Computed column ID_PLUS_1 is already defined in model nmodel_cc_test, no suggestion could be provided to reuse it");
+                                "Computed column ID_PLUS_1 is already defined in model nmodel_cc_test, no suggestion could be provided to reuse it");
             }
         });
 
@@ -2177,7 +2153,8 @@ public class ModelServiceTest extends SourceTestCase {
     @Test
     public void testSeekAdviseOnLookTable() throws Exception {
         //save nmodel_cc_test, which is a model defining cc on lookup table
-        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                .getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -2222,10 +2199,10 @@ public class ModelServiceTest extends SourceTestCase {
                         && "UPPER(\"BUYER_ACCOUNT\".\"ACCOUNT_COUNTRY\")".equals(ccException.getAdvise())
                         && ccException.getBadCC().equals("BUYER_ACCOUNT.COUNTRY_UPPER")
                         && ccException.getMessage().equals(
-                        "The name of computed column 'BUYER_ACCOUNT.COUNTRY_UPPER' has already been used "
-                                + "in model 'nmodel_cc_test', and the expression is "
-                                + "'UPPER(\"BUYER_ACCOUNT\".\"ACCOUNT_COUNTRY\")'. "
-                                + "Please modify the expression to keep consistent, or use a different name.");
+                                "The name of computed column 'BUYER_ACCOUNT.COUNTRY_UPPER' has already been used "
+                                        + "in model 'nmodel_cc_test', and the expression is "
+                                        + "'UPPER(\"BUYER_ACCOUNT\".\"ACCOUNT_COUNTRY\")'. "
+                                        + "Please modify the expression to keep consistent, or use a different name.");
             }
         });
 
@@ -2292,7 +2269,8 @@ public class ModelServiceTest extends SourceTestCase {
             }
         });
 
-        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                .getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -2344,7 +2322,8 @@ public class ModelServiceTest extends SourceTestCase {
             }
         });
 
-        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                .getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -2386,7 +2365,8 @@ public class ModelServiceTest extends SourceTestCase {
             }
         });
 
-        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                .getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -2426,7 +2406,8 @@ public class ModelServiceTest extends SourceTestCase {
             }
         });
 
-        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                .getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -2509,7 +2490,8 @@ public class ModelServiceTest extends SourceTestCase {
             }
         });
 
-        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                .getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -2530,7 +2512,8 @@ public class ModelServiceTest extends SourceTestCase {
         expectedEx.expect(RuntimeException.class);
         expectedEx.expectMessage("No advice could be provided");
 
-        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                .getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -2599,7 +2582,8 @@ public class ModelServiceTest extends SourceTestCase {
             }
         });
 
-        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                .getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -2645,7 +2629,8 @@ public class ModelServiceTest extends SourceTestCase {
             }
         });
 
-        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                .getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -2703,7 +2688,8 @@ public class ModelServiceTest extends SourceTestCase {
             }
         });
 
-        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                .getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -2744,7 +2730,8 @@ public class ModelServiceTest extends SourceTestCase {
             }
         });
 
-        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                .getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -2786,7 +2773,8 @@ public class ModelServiceTest extends SourceTestCase {
             }
         });
 
-        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                .getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -2819,7 +2807,8 @@ public class ModelServiceTest extends SourceTestCase {
     public void testCreateBadModelWontAffectTableDesc() throws IOException {
 
         try {
-            Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+            Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                    .getDataModelSerializer();
             String contents = StringUtils.join(Files.readAllLines(
                     new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                     Charset.defaultCharset()), "\n");
@@ -2842,7 +2831,8 @@ public class ModelServiceTest extends SourceTestCase {
             //TODO modelService.updateModelToResourceStore(deserialized, "default");
         } catch (BadModelException e) {
             modelService.getManager(NTableMetadataManager.class, "default").resetProjectSpecificTableDesc();
-            TableDesc aDefault = modelService.getManager(NTableMetadataManager.class, "default").getTableDesc("DEFAULT.TEST_KYLIN_FACT");
+            TableDesc aDefault = modelService.getManager(NTableMetadataManager.class, "default")
+                    .getTableDesc("DEFAULT.TEST_KYLIN_FACT");
             Set<String> allColumnNames = Arrays.stream(aDefault.getColumns()).map(ColumnDesc::getName)
                     .collect(Collectors.toSet());
             Assert.assertFalse(allColumnNames.contains("DEAL_AMOUNT_2"));
@@ -2857,7 +2847,8 @@ public class ModelServiceTest extends SourceTestCase {
 
         try {
             //save nmodel_cc_test, which is a model defining cc on lookup table
-            Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+            Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                    .getDataModelSerializer();
             String contents = StringUtils.join(Files.readAllLines(
                     new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                     Charset.defaultCharset()), "\n");
@@ -2890,7 +2881,8 @@ public class ModelServiceTest extends SourceTestCase {
 
         } catch (BadModelException e) {
             modelService.getManager(NTableMetadataManager.class, "default").resetProjectSpecificTableDesc();
-            TableDesc aDefault = modelService.getManager(NTableMetadataManager.class, "default").getTableDesc("DEFAULT.TEST_ACCOUNT");
+            TableDesc aDefault = modelService.getManager(NTableMetadataManager.class, "default")
+                    .getTableDesc("DEFAULT.TEST_ACCOUNT");
             Assert.assertEquals(5, aDefault.getColumns().length);
         }
     }
@@ -3528,8 +3520,8 @@ public class ModelServiceTest extends SourceTestCase {
             Assert.fail();
         } catch (KylinException e) {
             Assert.assertEquals("KE-010011006", e.getErrorCode().getCodeString());
-            Assert.assertEquals(String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getFilterConditionOnAntiFlattenLookup(), "TEST_ORDER"), e.getMessage());
+            Assert.assertEquals(String.format(Locale.ROOT, MsgPicker.getMsg().getFilterConditionOnAntiFlattenLookup(),
+                    "TEST_ORDER"), e.getMessage());
         }
 
     }
@@ -4337,8 +4329,8 @@ public class ModelServiceTest extends SourceTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertTrue(e.getMessage().contains(
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getInvalidNullValue(), "override_props")));
+            Assert.assertTrue(e.getMessage()
+                    .contains(String.format(Locale.ROOT, MsgPicker.getMsg().getInvalidNullValue(), "override_props")));
         }
         LinkedHashMap<String, String> prop = new LinkedHashMap<>();
         request.setOverrideProps(prop);
@@ -4348,8 +4340,8 @@ public class ModelServiceTest extends SourceTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertTrue(e.getMessage().contains(String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getInvalidIntegerFormat(), "spark.executor.cores")));
+            Assert.assertTrue(e.getMessage().contains(
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getInvalidIntegerFormat(), "spark.executor.cores")));
         }
         prop.clear();
         prop.put("kylin.engine.spark-conf.spark.executor.instances", "1.2");

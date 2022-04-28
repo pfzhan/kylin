@@ -42,7 +42,6 @@ import io.kyligence.kap.common.persistence.metadata.Epoch;
 import io.kyligence.kap.common.persistence.metadata.EpochStore;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.epoch.EpochManager;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.NProjectManager;
 
 public class JobStatusChangedTest extends NLocalFileMetadataTestCase {
@@ -56,7 +55,7 @@ public class JobStatusChangedTest extends NLocalFileMetadataTestCase {
                 "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
         config = KylinConfig.getInstanceFromEnv();
         NProjectManager prjMgr = NProjectManager.getInstance(config);
-        prjMgr.createProject(project, "", "", Maps.newLinkedHashMap(), MaintainModelType.MANUAL_MAINTAIN);
+        prjMgr.createProject(project, "", "", Maps.newLinkedHashMap());
     }
 
     @Test

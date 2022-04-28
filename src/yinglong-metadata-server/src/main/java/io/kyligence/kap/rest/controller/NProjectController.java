@@ -44,7 +44,6 @@ import java.util.Set;
 
 import javax.validation.Valid;
 
-import io.kyligence.kap.guava20.shaded.common.collect.Sets;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -75,6 +74,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 
 import io.kyligence.kap.common.util.FileUtils;
+import io.kyligence.kap.guava20.shaded.common.collect.Sets;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.request.ComputedColumnConfigRequest;
 import io.kyligence.kap.rest.request.DataSourceTypeRequest;
@@ -173,8 +173,6 @@ public class NProjectController extends NBasicController {
     @PostMapping(value = "")
     @ResponseBody
     public EnvelopeResponse<ProjectInstance> saveProject(@Valid @RequestBody ProjectRequest projectRequest) {
-        checkRequiredArg("maintain_model_type", projectRequest.getMaintainModelType());
-
         ProjectInstance projectDesc = new ProjectInstance();
         BeanUtils.copyProperties(projectRequest, projectDesc);
         checkRequiredArg("name", projectRequest.getName());
