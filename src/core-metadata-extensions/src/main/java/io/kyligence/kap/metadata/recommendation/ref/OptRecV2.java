@@ -724,7 +724,7 @@ public class OptRecV2 {
 
     private Map<String, ComputedColumnDesc> initAllCCMap() {
         Map<String, ComputedColumnDesc> ccMap = Maps.newHashMap();
-        NDataModelManager modelManager = NDataModelManager.getInstance(Objects.requireNonNull(config), project);
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.readSystemKylinConfig(), project);
         List<NDataModel> allModels = modelManager.listAllModels();
         allModels.stream().filter(m -> !m.isBroken()).forEach(m -> {
             List<ComputedColumnDesc> ccList = m.getComputedColumnDescs();

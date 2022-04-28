@@ -531,7 +531,7 @@ public class OptRecService extends BasicService {
                 } else {
                     String translateErrorMsg = String.format(Locale.ROOT,
                             "virtual id(%s) in %s(%s) cannot map to real id in model(%s/%s)", //
-                            virtualId, layoutPropType, virtualIds.toString(), recommendation.getProject(),
+                            virtualId, layoutPropType, virtualIds, recommendation.getProject(),
                             recommendation.getUuid());
                     throw new IllegalStateException(translateErrorMsg);
                 }
@@ -615,7 +615,8 @@ public class OptRecService extends BasicService {
                 }
             });
 
-            NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.readSystemKylinConfig(),
+                    project);
             NDataModel model = modelManager.getDataModelDesc(recommendation.getUuid());
 
             String factTableName = model.getRootFactTableName().split("\\.").length < 2 //
@@ -654,7 +655,8 @@ public class OptRecService extends BasicService {
             Map<String, Set<Integer>> checkedMeasureMap = Maps.newHashMap();
             Map<String, Set<Integer>> checkedCCMap = Maps.newHashMap();
 
-            NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.readSystemKylinConfig(),
+                    project);
             NDataModel model = modelManager.getDataModelDesc(recommendation.getUuid());
             model.getAllNamedColumns().forEach(column -> {
                 if (column.isDimension()) {
@@ -728,9 +730,12 @@ public class OptRecService extends BasicService {
                 getManager(NDataModelManager.class, project).getDataModelDesc(modelId), false);
         Map<Integer, String> userDefinedRecNameMap = request.getNames();
         RecApproveContext approveContext = new RecApproveContext(project, modelId, userDefinedRecNameMap);
-        approveRecItemsToRemoveLayout(request, approveContext);
-        approveRecItemsToAddLayout(request, approveContext);
-        updateRecommendationCount(project, modelId);
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            approveRecItemsToRemoveLayout(request, approveContext);
+            approveRecItemsToAddLayout(request, approveContext);
+            updateRecommendationCount(project, modelId);
+            return null;
+        }, project);
 
         OptRecResponse response = new OptRecResponse();
         response.setProject(request.getProject());
@@ -745,49 +750,39 @@ public class OptRecService extends BasicService {
     /**
      * approve all recommendations in specified models
      */
-    public List<RecToIndexResponse> batchApprove(String project, List<String> modelIds, String recActionType) {
+    public List<RecToIndexResponse> batchApprove(String project, List<String> modelIds, String recActionType,
+            boolean filterByModels) {
         aclEvaluate.checkProjectWritePermission(project);
-        if (CollectionUtils.isEmpty(modelIds)) {
-            return Lists.newArrayList();
+        List<String> allModels = Lists.newArrayList();
+        if (filterByModels && CollectionUtils.isNotEmpty(modelIds)) {
+            allModels.addAll(modelIds);
+        } else if (!filterByModels) {
+            allModels.addAll(getManager(NDataModelManager.class, project).listAllModelIds());
         }
-        modelIds.forEach(modelId -> modelService.checkModelPermission(project, modelId));
-        List<RecToIndexResponse> responseList = Lists.newArrayList();
-        List<NDataflow> dataflowList = getManager(NDataflowManager.class, project).listAllDataflows();
-        for (NDataflow df : dataflowList) {
-            if (df.getStatus() != RealizationStatusEnum.ONLINE || df.getModel().isBroken()) {
-                continue;
-            }
-            NDataModel model = df.getModel();
-            if (modelIds.contains(model.getUuid())) {
-                RecToIndexResponse response = approveAllRecItems(project, model.getUuid(), model.getAlias(),
-                        recActionType);
-                responseList.add(response);
-            }
-        }
-        return responseList;
-    }
 
-    /**
-     * approve by project & approveType
-     */
-    public List<RecToIndexResponse> batchApprove(String project, String recActionType) {
-        aclEvaluate.checkProjectWritePermission(project);
+        allModels.forEach(modelId -> modelService.checkModelPermission(project, modelId));
         List<RecToIndexResponse> responseList = Lists.newArrayList();
-        List<NDataflow> dataflowList = getManager(NDataflowManager.class, project).listAllDataflows();
-        for (NDataflow df : dataflowList) {
-            if (df.getStatus() != RealizationStatusEnum.ONLINE || df.getModel().isBroken()) {
-                continue;
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            NDataflowManager systemDfMgr = NDataflowManager.getInstance(KylinConfig.readSystemKylinConfig(), project);
+            List<NDataflow> dataflowList = systemDfMgr.listAllDataflows();
+            for (NDataflow df : dataflowList) {
+                if (df.getStatus() != RealizationStatusEnum.ONLINE || df.getModel().isBroken()) {
+                    continue;
+                }
+                NDataModel model = df.getModel();
+                if (allModels.contains(model.getUuid())) {
+                    RecToIndexResponse response = approveAllRecItems(project, model.getUuid(), model.getAlias(),
+                            recActionType);
+                    responseList.add(response);
+                }
             }
-            NDataModel model = df.getModel();
-            RecToIndexResponse response = approveAllRecItems(project, model.getUuid(), model.getAlias(), recActionType);
-            responseList.add(response);
-        }
+            return null;
+        }, project);
         return responseList;
     }
 
     private RecToIndexResponse approveAllRecItems(String project, String modelId, String modelAlias,
             String recActionType) {
-        aclEvaluate.checkProjectWritePermission(project);
         RecApproveContext approveContext = new RecApproveContext(project, modelId, Maps.newHashMap());
         OptRecRequest request = new OptRecRequest();
         request.setProject(project);
@@ -1135,14 +1130,7 @@ public class OptRecService extends BasicService {
             return;
         }
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            modelList.forEach(modelId -> {
-                NDataModelManager mgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-                int size = getOptRecLayoutsResponseInner(project, modelId, OptRecService.ALL).getSize();
-                NDataModel dataModel = mgr.getDataModelDesc(modelId);
-                if (dataModel != null && !dataModel.isBroken() && dataModel.getRecommendationsCount() != size) {
-                    mgr.updateDataModel(modelId, copyForWrite -> copyForWrite.setRecommendationsCount(size));
-                }
-            });
+            modelList.forEach(modelId -> updateRecommendationCount(project, modelId));
             return null;
         }, project);
     }
