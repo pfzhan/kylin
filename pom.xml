@@ -153,6 +153,7 @@
         <spring-jdbc.version>5.3.15</spring-jdbc.version>
         <spring-beans.version>5.3.18</spring-beans.version>
         <spring-core.version>5.3.18</spring-core.version>
+        <spring-tx.version>5.3.19</spring-tx.version>
         <opensaml.version>2.6.6</opensaml.version>
         <aspectj.version>1.8.9</aspectj.version>
         <unboundid-ldapsdk.version>3.1.1</unboundid-ldapsdk.version>
@@ -2186,6 +2187,11 @@
                 </exclusions>
             </dependency>
 
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-tx</artifactId>
+                <version>${spring-tx.version}</version>
+            </dependency>
 
             <!-- Spring Security -->
             <dependency>
