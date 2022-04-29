@@ -50,6 +50,40 @@ echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit
 cat > build/CHANGELOG.md <<'EOL'
 ### Release History
 
+#### Kyligence Enterprise 4.5.12.0 release note
+
+**Enhancement**
+
+- When HDFS enables ACL permission control, the tiered storage function is available
+- Compatible with FI MRS302 platform
+- Optimized the performance of obtaining project metadata and model obtaining related tables
+- Provides prometheus metrics related to tiered storage queries for easy statistical analysis
+- Error code optimization, which helps users understand the reason for operation failure
+- Async_query API need to allow multiple characters as delimiter
+- Support snapshots to specify partition values to refresh partitions
+- Tiered storage supports Bool data type
+
+**Bugfix**
+
+- For a fused model that contains aggregate groups of fusion data and streaming data, editing the aggregate group of the fusion data again and deleting the measures in the aggregate group will cause the model to be broken
+- When View File System is enabled, the core-site.xml parameter include href fails to switch paths
+- Importing model fails when newline in computed column is '\r\n'
+- Query error ArrayIndexOutOfBoundsException: -1
+- When optimization suggestion recommends multiple computed columns with the same expression, they cannot be added to the model
+- Due to insufficient resources, the build job fails and an error is reported
+- The lack of jdbc jar package causes failure to load external data source tables
+- When there is a locked base table index, the job is suspended when importing data to tiered storage, and the locked index data will stop being imported after recovery the job
+- When the model build method is changed from incremental build to full build or from full build to incremental build, the tiered storage data is not deleted, resulting in an error in the step of loading to tiered storage when building again
+- Unable to load data to tiered storage at project-level when incremental model has empty Segments
+- When the tiered storage and Kerberos are enabled, the diagnostic package fails to be obtained, and it prompts that you need to enter the Kerberos account and password
+- The parameter kylin.source.hive.add-backtick-to-hive-table-name=false is enabled, and an error is reported in data sampling
+- The project is set to skip the step of resource detection. After the build task is completed, the system capacity does not display the amount of data
+- When the asynchronous query result contains timestamp format, it is different from the synchronous query result
+- Create a multi-level partition model, set the sub-partition column as the partition column of hive, and the type of the partition column is int, and build job reports an error
+- FI environment, an error will be reported when clicking to jump to the Spark UI details page on Query page
+
+
+
 #### Kyligence Enterprise 4.5.11.0 release note
 
 **Enhancement**
