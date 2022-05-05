@@ -910,6 +910,9 @@ public class KylinConfigBaseTest {
                 "org.apache.spark.metrics.sink.PrometheusServlet", "org.apache.spark.metrics.sink.PrometheusServlet"));
         map.put("getSpark3DriverPrometheusServletPath",
                 new PropertiesEntity("kylin.storage.columnar.spark-conf.spark.metrics.conf.*.sink.prometheusServlet.path", "/metrics/prometheus", "/metrics/prometheus"));
+        map.put("isRemoveLdapCustomSecurityLimitEnabled",
+                new PropertiesEntity("kylin.security.remove-ldap-custom-security-limit-enabled", "false", false));
+
     }
 
     @Test
