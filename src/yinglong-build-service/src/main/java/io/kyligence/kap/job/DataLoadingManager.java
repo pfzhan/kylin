@@ -25,6 +25,7 @@
 package io.kyligence.kap.job;
 
 import javax.annotation.Resource;
+import javax.sql.DataSource;
 
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
@@ -50,6 +51,9 @@ public class DataLoadingManager implements InitializingBean, DisposableBean {
 
     @Value("${kylin.config-source}")
     private String configSource;
+
+    @Resource
+    private DataSource dataSource;
 
     @Resource
     private JobInfoMapper jobInfoMapper;
@@ -88,6 +92,10 @@ public class DataLoadingManager implements InitializingBean, DisposableBean {
 
     public AbstractJobConfig getJobConfig() {
         return jobConfig;
+    }
+
+    public DataSource getDataSource() {
+        return dataSource;
     }
 
     public JobInfoMapper getJobInfoMapper() {

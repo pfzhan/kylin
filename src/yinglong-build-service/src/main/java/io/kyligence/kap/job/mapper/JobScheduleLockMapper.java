@@ -24,12 +24,15 @@
 
 package io.kyligence.kap.job.mapper;
 
+import java.util.Date;
+
 import org.apache.ibatis.annotations.Mapper;
 
 import io.kyligence.kap.job.domain.JobScheduleLock;
 
 @Mapper
 public interface JobScheduleLockMapper {
+
     int deleteByPrimaryKey(String lockId);
 
     int insert(JobScheduleLock row);
@@ -41,4 +44,10 @@ public interface JobScheduleLockMapper {
     int updateByPrimaryKeySelective(JobScheduleLock row);
 
     int updateByPrimaryKey(JobScheduleLock row);
+
+    int insertLock(String lockId, String lockInstance, Date lockExpireTime);
+
+    int updateLock(String lockId, String lockInstance, Date lockExpireTime);
+
+
 }

@@ -24,5 +24,5 @@
 
 package io.kyligence.kap.job.core.lock;
 
-public class JdbcScheduleLock extends JdbcJobScheduleLock implements ScheduleLock {
+public class JdbcScheduleLock implements ScheduleLock {
 }

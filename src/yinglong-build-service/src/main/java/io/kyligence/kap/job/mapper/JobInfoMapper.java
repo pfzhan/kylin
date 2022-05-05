@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.job.mapper;
 
+import java.util.List;
+
 import org.apache.ibatis.annotations.Mapper;
 
 import io.kyligence.kap.job.domain.JobInfo;
@@ -47,6 +49,10 @@ public interface JobInfoMapper {
     int updateByPrimaryKeyWithBLOBs(JobInfo row);
 
     int updateByPrimaryKey(JobInfo row);
+
+    List<JobInfo> selectByStatusBatch(String status, int batchSize);
+
+    int updateJobStatus(String jobId, String status);
 
     List<JobInfo> selectByJobFilter(JobMapperFilter jobMapperFilter);
 }

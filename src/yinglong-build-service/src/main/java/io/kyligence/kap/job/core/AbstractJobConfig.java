@@ -46,6 +46,42 @@ public abstract class AbstractJobConfig {
 
     public abstract void destroy();
 
+    public int getJobSchedulerMasterPollBatchSize() {
+        return 10;
+    }
+
+    public int getJobSchedulerMasterPollIntervalSec() {
+        return 30;
+    }
+
+    public double getJobSchedulerMasterRenewalRatio() {
+        return 0.85d;
+    }
+
+    public int getJobSchedulerMasterExpireSec() {
+        return 60;
+    }
+
+    public int getJobSchedulerProducerPollBatchSize() {
+        return 5;
+    }
+
+    public int getJobSchedulerProducerPollIntervalSec() {
+        return 20;
+    }
+
+    public double getJobSchedulerConsumerRenewalRatio() {
+        return 0.75d;
+    }
+
+    public double getJobSchedulerConsumerExpireSec() {
+        return 120;
+    }
+
+    public int getJobSchedulerConsumerMaxThreads() {
+        return 8;
+    }
+
     public JobScheduler getJobScheduler() throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException,
             InvocationTargetException, InstantiationException {
         return getInstance0(getProperty(JOB_SCHEDULER_CLASS_NAME));
