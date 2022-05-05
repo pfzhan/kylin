@@ -51,11 +51,11 @@ public class ClickHouseTableStorageMetric {
         this.nodes = nodes;
     }
 
-    public void collect() {
+    public void collect(boolean skipDownNode) {
         if (load) return;
         partitionSize = nodes.parallelStream().collect(Collectors.toMap(node -> node,
                 node -> {
-                    if (!SecondStorageQueryRouteUtil.getNodeStatus(node)) {
+                    if (skipDownNode && !SecondStorageQueryRouteUtil.getNodeStatus(node)) {
                         return Collections.emptyList();
                     }
                     try (ClickHouse clickHouse = new ClickHouse(SecondStorageNodeHelper.resolve(node))) {

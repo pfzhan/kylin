@@ -74,7 +74,9 @@ import io.kyligence.kap.secondstorage.enums.LockTypeEnum;
 import io.kyligence.kap.secondstorage.management.SecondStorageEndpoint;
 import io.kyligence.kap.secondstorage.management.SecondStorageScheduleService;
 import io.kyligence.kap.secondstorage.management.SecondStorageService;
+import io.kyligence.kap.secondstorage.management.request.ProjectLoadRequest;
 import io.kyligence.kap.secondstorage.management.request.ProjectNodeRequest;
+import io.kyligence.kap.secondstorage.management.request.ProjectRecoveryResponse;
 import io.kyligence.kap.secondstorage.management.request.ProjectTableSyncResponse;
 import io.kyligence.kap.secondstorage.management.request.SecondStorageMetadataRequest;
 import io.kyligence.kap.secondstorage.management.request.StorageRequest;
@@ -156,6 +158,7 @@ import static io.kyligence.kap.newten.clickhouse.ClickHouseUtils.configClickhous
 import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_PROJECT_STATUS_ERROR;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
@@ -714,6 +717,41 @@ public class SecondStorageLockTest implements JobWaiter {
             secondStorageEndpoint.getProjectSecondStorageJobs("error");
         } catch (KylinException e) {
             assertEquals(SECOND_STORAGE_PROJECT_STATUS_ERROR.toErrorCode(), e.getErrorCode());
+        }
+    }
+
+    @Test
+    public void testProjectLoadWithOneNodeDown() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse()) {
+
+            final String catalog = "default";
+
+            Unsafe.setProperty(ClickHouseLoad.SOURCE_URL, getSourceUrl());
+            Unsafe.setProperty(ClickHouseLoad.ROOT_PATH, getLocalWorkingDirectory());
+            val clickhouse = new JdbcDatabaseContainer[]{clickhouse1};
+            int replica = 1;
+            configClickhouseWith(clickhouse, replica, catalog, () -> {
+                List<String> allPairs = SecondStorageNodeHelper.getAllPairs();
+                secondStorageService.changeProjectSecondStorageState(getProject(), allPairs, true);
+                Assert.assertEquals(clickhouse.length, SecondStorageUtil.listProjectNodes(getProject()).size());
+                secondStorageService.changeModelSecondStorageState(getProject(), modelId, true);
+                setQuerySession(catalog, clickhouse[0].getJdbcUrl(), clickhouse[0].getDriverClassName());
+
+                getBuildBaseLayout(new HashSet<>(), new HashSet<>(), clickhouse, replica);
+
+                Map<String, Map<String, Boolean>> nodeStatusMap = ImmutableMap.of("pair0", ImmutableMap.of("node00", false));
+                secondStorageEndpoint.updateNodeStatus(nodeStatusMap);
+
+                ProjectLoadRequest request = new ProjectLoadRequest();
+                request.setProjects(ImmutableList.of(getProject()));
+                EnvelopeResponse<List<ProjectRecoveryResponse>> response = this.secondStorageEndpoint.projectLoad(request);
+                assertEquals("000", response.getCode());
+                waitAllJobFinish();
+
+                getTableFlow().getTableDataList().forEach(tableData -> tableData.getPartitions().forEach(p -> assertNotEquals(0, (long) p.getSizeInNode().getOrDefault("node00", 0L))));
+
+                return true;
+            });
         }
     }
 

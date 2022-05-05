@@ -188,7 +188,7 @@ public class ClickHouseMetadataOperator implements MetadataOperator {
                 .collect(Collectors.toSet());
 
         ClickHouseTableStorageMetric storageMetric = new ClickHouseTableStorageMetric(new ArrayList<>(nodes));
-        storageMetric.collect();
+        storageMetric.collect(true);
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             tableFlows.forEach(tableFlow -> {
                 tableFlow.update(copied -> {
