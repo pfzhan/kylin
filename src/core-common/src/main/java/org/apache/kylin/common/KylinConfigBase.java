@@ -76,7 +76,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.text.StrSubstitutor;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.kylin.common.lock.curator.CuratorDistributedLockFactory;
+import org.apache.kylin.common.lock.DistributedLockFactory;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.HadoopUtil;
@@ -623,10 +623,21 @@ public abstract class KylinConfigBase implements Serializable {
         return getPropertiesByPrefix("kylin.metadata.custom-measure-types.");
     }
 
-    public CuratorDistributedLockFactory getDistributedLockFactory() {
+    public DistributedLockFactory getDistributedLockFactory() {
         String clsName = getOptional("kylin.metadata.distributed-lock-impl",
                 "org.apache.kylin.common.lock.curator.CuratorDistributedLockFactory");
-        return (CuratorDistributedLockFactory) ClassUtil.newInstance(clsName);
+        return (DistributedLockFactory) ClassUtil.newInstance(clsName);
+    }
+
+    public StorageURL getJDBCDistributedLockURL() {
+        if (StringUtils.isEmpty(getOptional("kylin.metadata.distributed-lock.jdbc.url"))) {
+            return getMetadataUrl();
+        }
+        return StorageURL.valueOf(getOptional("kylin.metadata.distributed-lock.jdbc.url"));
+    }
+
+    public void setJDBCDistributedLockURL(String url) {
+        setProperty("kylin.metadata.distributed-lock.jdbc.url", url);
     }
 
     public boolean isCheckCopyOnWrite() {

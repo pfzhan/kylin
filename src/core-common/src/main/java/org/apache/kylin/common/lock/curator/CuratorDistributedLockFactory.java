@@ -44,9 +44,11 @@ package org.apache.kylin.common.lock.curator;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.locks.Lock;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.DistributedLockException;
+import org.apache.kylin.common.lock.DistributedLockFactory;
 import org.apache.kylin.common.lock.curator.CuratorDistributedLock.LockEntry;
 import org.apache.kylin.common.util.ZKUtil;
 import org.slf4j.Logger;
@@ -57,7 +59,7 @@ import io.kyligence.kap.shaded.curator.org.apache.curator.framework.state.Connec
 import io.kyligence.kap.shaded.curator.org.apache.curator.framework.state.ConnectionStateListener;
 
 @SuppressWarnings({ "WeakerAccess" })
-public class CuratorDistributedLockFactory {
+public class CuratorDistributedLockFactory extends DistributedLockFactory {
     private static final Logger logger = LoggerFactory.getLogger(CuratorDistributedLockFactory.class);
     private static final ConnectionStateListener listener = new CuratorDistributedLockListener();
     private final CuratorFramework client;
@@ -78,7 +80,18 @@ public class CuratorDistributedLockFactory {
         client = getZKClient(config);
     }
 
-    public CuratorDistributedLock lockForCurrentThread(String path) {
+    @Override
+    public Lock getLockForClient(String client, String key) {
+        return new CuratorDistributedLock(this.client, key);
+    }
+
+    @Override
+    public void initialize() {
+        // Do nothing.
+    }
+
+    @Override
+    public CuratorDistributedLock getLockForCurrentThread(String path) {
         return new CuratorDistributedLock(client, path);
     }
 

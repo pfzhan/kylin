@@ -123,6 +123,7 @@ public class AppInitializer {
             resourceStore.catchup();
             resourceStore.getMetadataStore().setEpochStore(epochStore);
         }
+        kylinConfig.getDistributedLockFactory().initialize();
         event.getApplicationContext().publishEvent(new AfterMetadataReadyEvent(event.getApplicationContext()));
 
         if (kylinConfig.isQueryNode()) {

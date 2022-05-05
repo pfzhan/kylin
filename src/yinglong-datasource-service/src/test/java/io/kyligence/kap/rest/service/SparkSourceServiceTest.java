@@ -177,7 +177,7 @@ public class SparkSourceServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testLoadSamples() throws IOException {
+    public void testLoadSamples() throws Exception {
         Assert.assertEquals(9, sparkSourceService.loadSamples(ss, SaveMode.Overwrite).size());
         // KC-6666, table not exists but table location exists
         // re-create spark context and re-load samples
@@ -192,7 +192,7 @@ public class SparkSourceServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testLoadSamples2() throws IOException {
+    public void testLoadSamples2() throws Exception {
         Assert.assertEquals(9, sparkSourceService.loadSamples().size());
         FileUtils.deleteDirectory(new File("spark-warehouse"));
     }

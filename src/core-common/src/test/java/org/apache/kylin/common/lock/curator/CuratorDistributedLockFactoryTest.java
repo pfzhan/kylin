@@ -45,16 +45,13 @@ package org.apache.kylin.common.lock.curator;
 import static io.kyligence.kap.common.util.TestUtils.getTestConfig;
 import static org.awaitility.Awaitility.await;
 
-import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
 
 import org.apache.curator.test.TestingServer;
+import org.apache.kylin.common.lock.DistributedLockFactoryTest;
 import org.apache.kylin.common.util.RandomUtil;
 import org.junit.Assert;
 import org.junit.jupiter.api.AfterEach;
@@ -63,15 +60,13 @@ import org.junit.jupiter.api.Test;
 import org.junitpioneer.jupiter.RetryingTest;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.google.common.collect.Lists;
-
 import io.kyligence.kap.junit.annotation.MetadataInfo;
 import io.kyligence.kap.shaded.curator.org.apache.curator.framework.CuratorFramework;
 import io.kyligence.kap.shaded.curator.org.apache.curator.framework.state.ConnectionState;
 import io.kyligence.kap.shaded.curator.org.apache.curator.framework.state.ConnectionStateListener;
 
 @MetadataInfo(onlyProps = true)
-public class CuratorDistributedLockFactoryTest {
+class CuratorDistributedLockFactoryTest extends DistributedLockFactoryTest {
 
     private TestingServer zkTestServer;
     private volatile boolean locked = false;
@@ -92,7 +87,7 @@ public class CuratorDistributedLockFactoryTest {
         String path = "/test/distributed_lock_factory_test/test_basic/" + RandomUtil.randomUUIDStr();
 
         getTestConfig().setProperty("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());
-        CuratorDistributedLock lock = getTestConfig().getDistributedLockFactory().lockForCurrentThread(path);
+        CuratorDistributedLock lock = (CuratorDistributedLock) getTestConfig().getDistributedLockFactory().getLockForCurrentThread(path);
 
         Assert.assertFalse(lock.isAcquiredInThisThread());
         lock.lock();
@@ -113,7 +108,12 @@ public class CuratorDistributedLockFactoryTest {
         getTestConfig().setProperty("kap.env.zookeeper-base-sleep-time", "1000");
 
         executorService.submit(() -> {
-            CuratorDistributedLock lock = getTestConfig().getDistributedLockFactory().lockForCurrentThread(path);
+            CuratorDistributedLock lock = null;
+            try {
+                lock = (CuratorDistributedLock)getTestConfig().getDistributedLockFactory().getLockForCurrentThread(path);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
 
             lock.lock();
             locked = true;
@@ -139,7 +139,12 @@ public class CuratorDistributedLockFactoryTest {
 
         getTestConfig().setProperty("kylin.env.zookeeper-connect-string", zkTestServer2.getConnectString());
         executorService.submit(() -> {
-            CuratorDistributedLock lock = getTestConfig().getDistributedLockFactory().lockForCurrentThread(path);
+            Lock lock = null;
+            try {
+                lock = getTestConfig().getDistributedLockFactory().getLockForCurrentThread(path);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
             lock.lock();
             locked = true;
             lock.unlock();
@@ -161,8 +166,8 @@ public class CuratorDistributedLockFactoryTest {
         getTestConfig().setProperty("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());
         getTestConfig().setProperty("kap.env.zookeeper-max-retries", "1");
         getTestConfig().setProperty("kap.env.zookeeper-base-sleep-time", "1000");
-        lockFactory = getTestConfig().getDistributedLockFactory();
-        lock1 = lockFactory.lockForCurrentThread(path);
+        lockFactory = (CuratorDistributedLockFactory) getTestConfig().getDistributedLockFactory();
+        lock1 = lockFactory.getLockForCurrentThread(path);
         executorService.submit(() -> {
 
             lock1.lock();
@@ -190,53 +195,9 @@ public class CuratorDistributedLockFactoryTest {
     }
 
     @Test
-    public void testConcurrence() throws ExecutionException, InterruptedException {
+    void testConcurrence() throws Exception {
         getTestConfig().setProperty("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());
-        String path = "/test/distributed_lock_factory_test/test_concurrence/" + RandomUtil.randomUUIDStr();
-        int threadNum = 10;
-        int times = 10;
-
-        ExecutorService executorService = Executors.newFixedThreadPool(10);
-
-        final CountDownLatch tasks = new CountDownLatch(threadNum);
-        List<Future<Integer>> futures = Lists.newArrayListWithCapacity(threadNum);
-
-        for (int i = 0; i < threadNum; i++) {
-            futures.add(executorService.submit(new LockCallable(path, 10, tasks)));
-        }
-
-        await().atMost(20, TimeUnit.SECONDS).until(() -> tasks.getCount() == 0);
-
-        for (Future<Integer> future : futures) {
-            Assert.assertTrue(future.isDone());
-            Assert.assertEquals(times, (int) future.get());
-        }
-    }
-
-    static class LockCallable implements Callable<Integer> {
-        private final int times;
-        private int acquiredCount;
-        private final CountDownLatch countDownLatch;
-        private final CuratorDistributedLock lock;
-
-        LockCallable(String path, int times, CountDownLatch countDownLatch) {
-            this.times = times;
-            this.lock = getTestConfig().getDistributedLockFactory().lockForCurrentThread(path);
-            this.countDownLatch = countDownLatch;
-        }
-
-        @Override
-        public Integer call() throws Exception {
-            for (int i = 0; i < times; i++) {
-                try {
-                    lock.lock();
-                    acquiredCount++;
-                } finally {
-                    lock.unlock();
-                }
-            }
-            countDownLatch.countDown();
-            return acquiredCount;
-        }
+        String key = "/test/distributed_lock_factory_test/test_concurrence/" + RandomUtil.randomUUIDStr();
+        super.testConcurrence(key, 10, 10);
     }
 }

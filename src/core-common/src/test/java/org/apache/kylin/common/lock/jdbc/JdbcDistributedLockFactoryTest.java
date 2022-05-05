@@ -22,34 +22,31 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+package org.apache.kylin.common.lock.jdbc;
 
-package org.apache.kylin.job.lock;
+import static io.kyligence.kap.common.util.TestUtils.getTestConfig;
 
-/**
- * Among a Kylin cluster, usually only one node runs as the job engine and does the scheduling of build jobs.
- * This interface is for such negotiation. 
- */
-public interface JobLock {
-    
-    boolean lockJobEngine();
+import io.kyligence.kap.junit.annotation.MetadataInfo;
+import io.kyligence.kap.junit.annotation.OverwriteProp;
+import org.apache.kylin.common.lock.DistributedLockFactoryTest;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-    void unlockJobEngine();
+import java.util.UUID;
+
+@MetadataInfo(onlyProps = true)
+class JdbcDistributedLockFactoryTest extends DistributedLockFactoryTest {
+
+    @BeforeEach
+    public void setup() {
+       getTestConfig().getDistributedLockFactory().initialize();
+    }
+
+    @OverwriteProp(key = "kylin.metadata.distributed-lock-impl",
+            value = "org.apache.kylin.common.lock.jdbc.JdbcDistributedLockFactory")
+    @Test
+    void testConcurrence() throws Exception {
+        getTestConfig().getDistributedLockFactory().initialize();
+        super.testConcurrence(UUID.randomUUID().toString(), 10, 10);
+    }
 }

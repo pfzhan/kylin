@@ -46,6 +46,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
 
 import org.apache.kylin.common.exception.DistributedLockException;
 import org.slf4j.Logger;
@@ -57,7 +59,7 @@ import io.kyligence.kap.common.util.ThrowableUtils;
 import io.kyligence.kap.shaded.curator.org.apache.curator.framework.CuratorFramework;
 import io.kyligence.kap.shaded.curator.org.apache.curator.framework.recipes.locks.InterProcessMutex;
 
-public class CuratorDistributedLock {
+public class CuratorDistributedLock implements Lock {
     private static final Logger logger = LoggerFactory.getLogger(CuratorDistributedLock.class);
     private static final String ZK_ROOT = "/distribute_lock";
 
@@ -117,7 +119,22 @@ public class CuratorDistributedLock {
         }
     }
 
-    public boolean lock(long time, TimeUnit unit) {
+    @Override
+    public void lockInterruptibly() throws InterruptedException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean tryLock() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Condition newCondition() {
+        throw new UnsupportedOperationException();
+    }
+
+    public boolean tryLock(long time, TimeUnit unit) {
         try {
             if (isAcquiredInThisThread()) {
                 logger.info("Thread: {} already own the lock, for path: {}, zk Session Id: {}",

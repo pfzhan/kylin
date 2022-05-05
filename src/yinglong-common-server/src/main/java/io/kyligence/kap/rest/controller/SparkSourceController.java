@@ -103,8 +103,8 @@ public class SparkSourceController extends NBasicController {
 
     @ApiOperation(value = "listColumns", tags = { "DW" })
     @GetMapping(value = "/{database}/{table}/columns")
-    public EnvelopeResponse listColumns(@PathVariable("database") String database,
-            @PathVariable("table") String table) {
+    public EnvelopeResponse<List<SparkSourceService.ColumnModel>> listColumns(@PathVariable("database") String database,
+                                                                              @PathVariable("table") String table) {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, sparkSourceService.listColumns(database, table), "");
     }
 
@@ -137,7 +137,7 @@ public class SparkSourceController extends NBasicController {
 
     @ApiOperation(value = "loadSamples", tags = { "DW" })
     @GetMapping(value = "/load_samples")
-    public EnvelopeResponse<List<String>> loadSamples() throws IOException {
+    public EnvelopeResponse<List<String>> loadSamples() throws InterruptedException, IOException {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, sparkSourceService.loadSamples(), "");
     }
 

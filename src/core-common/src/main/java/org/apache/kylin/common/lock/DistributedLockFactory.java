@@ -44,17 +44,20 @@ package org.apache.kylin.common.lock;
 
 import java.lang.management.ManagementFactory;
 import java.nio.charset.Charset;
+import java.util.concurrent.locks.Lock;
 
 public abstract class DistributedLockFactory {
 
-    abstract public DistributedLock lockForClient(String client);
+    public abstract Lock getLockForClient(String client, String key);
 
-    public DistributedLock lockForCurrentThread() {
-        return lockForClient(threadProcessAndHost());
+    public abstract void initialize();
+
+    public Lock getLockForCurrentThread(String key) {
+        return getLockForClient(threadProcessAndHost(), key);
     }
 
-    public DistributedLock lockForCurrentProcess() {
-        return lockForClient(processAndHost());
+    public Lock lockForCurrentProcess(String key) {
+        return getLockForClient(processAndHost(), key);
     }
 
     private static String threadProcessAndHost() {
@@ -65,4 +68,5 @@ public abstract class DistributedLockFactory {
         byte[] bytes = ManagementFactory.getRuntimeMXBean().getName().getBytes(Charset.defaultCharset());
         return new String(bytes, Charset.defaultCharset());
     }
+
 }

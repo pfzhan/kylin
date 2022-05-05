@@ -24,7 +24,6 @@ package io.kyligence.kap.engine.spark.builder
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil
 import io.kyligence.kap.engine.spark.utils.LogEx
 import io.kyligence.kap.metadata.cube.model.NDataSegment
-import org.apache.kylin.common.lock.curator.CuratorDistributedLock
 import org.apache.kylin.common.util.HadoopUtil
 import org.apache.kylin.common.{KapConfig, KylinConfig}
 import org.apache.kylin.metadata.model.TblColRef
@@ -38,6 +37,7 @@ import org.apache.spark.sql.{Column, Dataset, Row, SparkSession}
 
 import java.io.IOException
 import java.util
+import java.util.concurrent.locks.Lock
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 
@@ -72,8 +72,8 @@ class DFDictionaryBuilder(
   private[builder] def safeBuild(ref: TblColRef): Unit = {
     val sourceColumn = ref.getIdentity
     tryZKJaasConfiguration()
-    val lock: CuratorDistributedLock = KylinConfig.getInstanceFromEnv.getDistributedLockFactory
-      .lockForCurrentThread(getLockPath(sourceColumn))
+    val lock: Lock = KylinConfig.getInstanceFromEnv.getDistributedLockFactory
+      .getLockForCurrentThread(getLockPath(sourceColumn))
     lock.lock()
     try {
       val dictColDistinct = dataset.select(wrapCol(ref)).distinct
