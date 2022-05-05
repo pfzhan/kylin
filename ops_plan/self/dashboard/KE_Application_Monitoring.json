@@ -21,12 +21,13 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 1,
-  "iteration": 1639015124979,
+  "id": 12,
+  "iteration": 1651734443337,
   "links": [],
   "panels": [
     {
-      "datasource": null,
+      "collapsed": false,
+      "datasource": "Prometheus",
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -34,11 +35,12 @@
         "y": 0
       },
       "id": 42,
+      "panels": [],
       "title": "Quick Facts",
       "type": "row"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "查询成功率",
       "fieldConfig": {
         "defaults": {
@@ -98,11 +100,11 @@
         "showThresholdMarkers": true,
         "text": {}
       },
-      "pluginVersion": "8.1.7",
+      "pluginVersion": "7.5.8",
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=\"$project\",succeed=\"true\"})/sum(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=\"$project\"})*100",
+          "expr": "sum(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",succeed=\"true\"})/sum(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\"})*100",
           "format": "time_series",
           "instant": false,
           "interval": "",
@@ -117,7 +119,7 @@
       "type": "gauge"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "查询命中索引率",
       "fieldConfig": {
         "defaults": {
@@ -173,11 +175,11 @@
         "showThresholdMarkers": true,
         "text": {}
       },
-      "pluginVersion": "8.1.7",
+      "pluginVersion": "7.5.8",
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=\"$project\",succeed=\"true\",hit_index=\"true\"}) /sum(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=\"$project\",succeed=\"true\"}) * 100",
+          "expr": "sum(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",succeed=\"true\",hit_index=\"true\"}) /sum(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",succeed=\"true\"}) * 100",
           "hide": false,
           "instant": false,
           "interval": "",
@@ -192,7 +194,7 @@
       "type": "gauge"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "查询精确命中索引率",
       "fieldConfig": {
         "defaults": {
@@ -248,11 +250,11 @@
         "showThresholdMarkers": true,
         "text": {}
       },
-      "pluginVersion": "8.1.7",
+      "pluginVersion": "7.5.8",
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=\"$project\",succeed=\"true\",hit_exactly_index=\"true\"}) / sum(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=\"$project\",succeed=\"true\"}) * 100",
+          "expr": "sum(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",succeed=\"true\",hit_exactly_index=\"true\"}) / sum(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",succeed=\"true\"}) * 100",
           "hide": false,
           "instant": false,
           "interval": "",
@@ -266,7 +268,7 @@
       "type": "gauge"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "查询命中缓存率",
       "fieldConfig": {
         "defaults": {
@@ -322,11 +324,11 @@
         "showThresholdMarkers": true,
         "text": {}
       },
-      "pluginVersion": "8.1.7",
+      "pluginVersion": "7.5.8",
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=\"$project\",succeed=\"true\",cache=\"true\"}) / sum(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=\"$project\",succeed=\"true\"}) * 100",
+          "expr": "sum(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",succeed=\"true\",cache=\"true\"}) / sum(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",succeed=\"true\"}) * 100",
           "hide": false,
           "instant": false,
           "interval": "",
@@ -341,8 +343,8 @@
       "type": "gauge"
     },
     {
-      "collapsed": true,
-      "datasource": null,
+      "collapsed": false,
+      "datasource": "Prometheus",
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -355,22 +357,28 @@
       "type": "row"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "查询耗时分布情况",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "palette-classic"
           },
-          "custom": {
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            }
-          },
           "decimals": 0,
           "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
           "unit": "none"
         },
         "overrides": []
@@ -403,6 +411,7 @@
           "fields": "",
           "values": false
         },
+        "text": {},
         "tooltip": {
           "mode": "single"
         }
@@ -410,7 +419,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(increase(ke_queries_seconds_bucket{job=\"$job\",instance=\"$instance\",project=\"$project\",succeed=\"true\", le=\"3.0\"}[$__range]))",
+          "expr": "sum(increase(ke_queries_seconds_bucket{job=\"$job\",instance=\"$instance\",project=~\"$project\",succeed=\"true\", le=\"3.0\"}[$__range]))",
           "format": "time_series",
           "interval": "",
           "legendFormat": "0-3s",
@@ -418,7 +427,7 @@
         },
         {
           "exemplar": true,
-          "expr": "sum(increase(ke_queries_seconds_bucket{job=\"$job\",instance=\"$instance\",project=\"$project\",succeed=\"true\", le=\"15.0\"}[$__range])) - sum(increase(ke_queries_seconds_bucket{job=\"$job\",instance=\"$instance\",project=\"$project\",succeed=\"true\", le=\"3.0\"}[$__range]))",
+          "expr": "sum(increase(ke_queries_seconds_bucket{job=\"$job\",instance=\"$instance\",project=~\"$project\",succeed=\"true\", le=\"15.0\"}[$__range])) - sum(increase(ke_queries_seconds_bucket{job=\"$job\",instance=\"$instance\",project=~\"$project\",succeed=\"true\", le=\"3.0\"}[$__range]))",
           "hide": false,
           "interval": "",
           "legendFormat": "3-15s",
@@ -426,7 +435,7 @@
         },
         {
           "exemplar": true,
-          "expr": "sum(increase(ke_queries_seconds_bucket{job=\"$job\",instance=\"$instance\",project=\"$project\",succeed=\"true\", le=\"60.0\"}[$__range])) - sum(increase(ke_queries_seconds_bucket{job=\"$job\",instance=\"$instance\",project=\"$project\",succeed=\"true\", le=\"15.0\"}[$__range]))",
+          "expr": "sum(increase(ke_queries_seconds_bucket{job=\"$job\",instance=\"$instance\",project=~\"$project\",succeed=\"true\", le=\"60.0\"}[$__range])) - sum(increase(ke_queries_seconds_bucket{job=\"$job\",instance=\"$instance\",project=~\"$project\",succeed=\"true\", le=\"15.0\"}[$__range]))",
           "hide": false,
           "interval": "",
           "legendFormat": "15-60s",
@@ -434,7 +443,7 @@
         },
         {
           "exemplar": true,
-          "expr": "sum(increase(ke_queries_seconds_bucket{job=\"$job\",instance=\"$instance\",project=\"$project\",succeed=\"true\", le=\"+Inf\"}[$__range])) - sum(increase(ke_queries_seconds_bucket{job=\"$job\",instance=\"$instance\",project=\"$project\",succeed=\"true\", le=\"60.0\"}[$__range]))",
+          "expr": "sum(increase(ke_queries_seconds_bucket{job=\"$job\",instance=\"$instance\",project=~\"$project\",succeed=\"true\", le=\"+Inf\"}[$__range])) - sum(increase(ke_queries_seconds_bucket{job=\"$job\",instance=\"$instance\",project=~\"$project\",succeed=\"true\", le=\"60.0\"}[$__range]))",
           "hide": false,
           "interval": "",
           "legendFormat": "60+s",
@@ -445,7 +454,7 @@
       "type": "piechart"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "查询分析(query_totals:查询总次数 query_fails:查询失败次数 hit_indexs:命中索引数 hit_caches:命中缓存次数)",
       "fieldConfig": {
         "defaults": {
@@ -490,11 +499,11 @@
         "showUnfilled": true,
         "text": {}
       },
-      "pluginVersion": "8.1.7",
+      "pluginVersion": "7.5.8",
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(increase(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=\"$project\"}[$__range]))",
+          "expr": "sum(increase(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\"}[$__range]))",
           "hide": false,
           "interval": "",
           "legendFormat": "query_totals",
@@ -502,7 +511,7 @@
         },
         {
           "exemplar": true,
-          "expr": "sum(increase(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=\"$project\",succeed=\"false\"}[$__range]))",
+          "expr": "sum(increase(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",succeed=\"false\"}[$__range]))",
           "hide": false,
           "interval": "",
           "legendFormat": "query_fails",
@@ -510,14 +519,14 @@
         },
         {
           "exemplar": true,
-          "expr": "sum(increase(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=\"$project\",push_down=\"true\"}[$__range]))",
+          "expr": "sum(increase(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",push_down=\"true\"}[$__range]))",
           "interval": "",
           "legendFormat": "push_downs",
           "refId": "A"
         },
         {
           "exemplar": true,
-          "expr": "sum(increase(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=\"$project\",hit_index=\"true\"}[$__range]))",
+          "expr": "sum(increase(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",hit_index=\"true\"}[$__range]))",
           "hide": false,
           "interval": "",
           "legendFormat": "hit_indexs",
@@ -525,7 +534,7 @@
         },
         {
           "exemplar": true,
-          "expr": "sum(increase(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=\"$project\",cache=\"true\"}[$__range]))",
+          "expr": "sum(increase(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",cache=\"true\"}[$__range]))",
           "hide": false,
           "interval": "",
           "legendFormat": "hit_caches",
@@ -533,7 +542,7 @@
         },
         {
           "exemplar": true,
-          "expr": "sum(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=\"$project\",hit_snapshot=\"true\"})",
+          "expr": "sum(increase(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",hit_snapshot=\"true\"}[$__range]))",
           "hide": false,
           "interval": "",
           "legendFormat": "hit_snapshots",
@@ -544,23 +553,49 @@
       "type": "bargauge"
     },
     {
-      "datasource": null,
-      "description": "构建耗时分布情况",
+      "datasource": "Prometheus",
+      "description": "query rate in last 1 minutes",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "palette-classic"
           },
           "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
             "hideFrom": {
+              "graph": false,
               "legend": false,
-              "tooltip": false,
-              "viz": false
-            }
+              "tooltip": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": true
           },
-          "decimals": 0,
           "mappings": [],
-          "noValue": "0"
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "ops"
         },
         "overrides": []
       },
@@ -569,6 +604,192 @@
         "w": 12,
         "x": 0,
         "y": 19
+      },
+      "id": 60,
+      "options": {
+        "graph": {},
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltipOptions": {
+          "mode": "single"
+        }
+      },
+      "pluginVersion": "7.5.8",
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "sum(rate(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",succeed=\"true\"}[1m]))",
+          "interval": "",
+          "legendFormat": "succeed",
+          "queryType": "randomWalk",
+          "refId": "A"
+        },
+        {
+          "exemplar": true,
+          "expr": "sum(rate(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",succeed=\"false\"}[1m]))",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "failed",
+          "refId": "B"
+        }
+      ],
+      "title": "Query Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "query avg duration in last 1 minutes",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "graph": false,
+              "legend": false,
+              "tooltip": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": [
+          {
+            "__systemRef": "hideSeriesFrom",
+            "matcher": {
+              "id": "byNames",
+              "options": {
+                "mode": "exclude",
+                "names": [
+                  "avg_duration"
+                ],
+                "prefix": "All except:",
+                "readOnly": true
+              }
+            },
+            "properties": [
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "graph": true,
+                  "legend": false,
+                  "tooltip": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "avg_duration"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "yellow",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 19
+      },
+      "id": 61,
+      "options": {
+        "graph": {},
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltipOptions": {
+          "mode": "single"
+        }
+      },
+      "pluginVersion": "7.5.8",
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "sum(increase(ke_queries_seconds_sum{job=\"$job\",instance=\"$instance\",project=~\"$project\"}[1m])) / sum(increase(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\"}[1m]))",
+          "interval": "",
+          "legendFormat": "avg_duration",
+          "queryType": "randomWalk",
+          "refId": "A"
+        }
+      ],
+      "title": "Query Avg Duration",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "构建耗时分布情况",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 27
       },
       "id": 40,
       "options": {
@@ -592,6 +813,7 @@
           "fields": "",
           "values": false
         },
+        "text": {},
         "tooltip": {
           "mode": "single"
         }
@@ -599,14 +821,14 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(increase(ke_model_build_minutes_bucket{job=\"$job\",instance=\"$instance\",project=\"$project\",succeed=\"true\",le=\"30.0\"}[$__range]))",
+          "expr": "sum(increase(ke_model_build_minutes_bucket{job=\"$job\",instance=\"$instance\",project=~\"$project\",succeed=\"true\",le=\"30.0\"}[$__range]))",
           "interval": "",
           "legendFormat": "0-30m",
           "refId": "A"
         },
         {
           "exemplar": true,
-          "expr": "sum(increase(ke_model_build_minutes_bucket{job=\"$job\",instance=\"$instance\",project=\"$project\",succeed=\"true\", le=\"60.0\"}[$__range])) - sum(increase(ke_model_build_minutes_bucket{job=\"$job\",instance=\"$instance\",project=\"$project\",succeed=\"true\", le=\"30.0\"}[$__range]))",
+          "expr": "sum(increase(ke_model_build_minutes_bucket{job=\"$job\",instance=\"$instance\",project=~\"$project\",succeed=\"true\", le=\"60.0\"}[$__range])) - sum(increase(ke_model_build_minutes_bucket{job=\"$job\",instance=\"$instance\",project=~\"$project\",succeed=\"true\", le=\"30.0\"}[$__range]))",
           "hide": false,
           "interval": "",
           "legendFormat": "30-60m",
@@ -614,7 +836,7 @@
         },
         {
           "exemplar": true,
-          "expr": "sum(increase(ke_model_build_minutes_bucket{job=\"$job\",instance=\"$instance\",project=\"$project\",succeed=\"true\", le=\"300.0\"}[$__range])) - sum(increase(ke_model_build_minutes_bucket{job=\"$job\",instance=\"$instance\",project=\"$project\",succeed=\"true\", le=\"60.0\"}[$__range]))",
+          "expr": "sum(increase(ke_model_build_minutes_bucket{job=\"$job\",instance=\"$instance\",project=~\"$project\",succeed=\"true\", le=\"300.0\"}[$__range])) - sum(increase(ke_model_build_minutes_bucket{job=\"$job\",instance=\"$instance\",project=~\"$project\",succeed=\"true\", le=\"60.0\"}[$__range]))",
           "hide": false,
           "interval": "",
           "legendFormat": "60-300m",
@@ -622,7 +844,7 @@
         },
         {
           "exemplar": true,
-          "expr": "sum(increase(ke_model_build_minutes_bucket{job=\"$job\",instance=\"$instance\",project=\"$project\",succeed=\"true\", le=\"+Inf\"}[$__range])) - sum(increase(ke_model_build_minutes_bucket{job=\"$job\",instance=\"$instance\",project=\"$project\",succeed=\"true\", le=\"300.0\"}[$__range]))",
+          "expr": "sum(increase(ke_model_build_minutes_bucket{job=\"$job\",instance=\"$instance\",project=~\"$project\",succeed=\"true\", le=\"+Inf\"}[$__range])) - sum(increase(ke_model_build_minutes_bucket{job=\"$job\",instance=\"$instance\",project=~\"$project\",succeed=\"true\", le=\"300.0\"}[$__range]))",
           "hide": false,
           "interval": "",
           "legendFormat": "300+m",
@@ -633,7 +855,7 @@
       "type": "piechart"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "构建分析(build_totals:构建总次数, build_fails:构建失败次数 build_total_minutes:构建总耗时 build_type_xxx_totals:对应类型的构建次数)",
       "fieldConfig": {
         "defaults": {
@@ -663,7 +885,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 19
+        "y": 27
       },
       "id": 34,
       "options": {
@@ -679,18 +901,18 @@
         "showUnfilled": true,
         "text": {}
       },
-      "pluginVersion": "8.1.7",
+      "pluginVersion": "7.5.8",
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(increase(ke_model_build_minutes_count{job=\"$job\",instance=\"$instance\",project=\"$project\"}[$__range]))",
+          "expr": "sum(increase(ke_model_build_minutes_count{job=\"$job\",instance=\"$instance\",project=~\"$project\"}[$__range]))",
           "interval": "",
           "legendFormat": "build_totals",
           "refId": "A"
         },
         {
           "exemplar": true,
-          "expr": "sum(increase(ke_model_build_minutes_count{job=\"$job\",instance=\"$instance\",project=\"$project\",succeed=\"false\"}[$__range]))",
+          "expr": "sum(increase(ke_model_build_minutes_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",succeed=\"false\"}[$__range]))",
           "hide": false,
           "instant": false,
           "interval": "",
@@ -699,7 +921,7 @@
         },
         {
           "exemplar": true,
-          "expr": "sum(increase(ke_model_build_minutes_sum{job=\"$job\",instance=\"$instance\",project=\"$project\",succeed=\"true\"}[$__range]))",
+          "expr": "sum(increase(ke_model_build_minutes_sum{job=\"$job\",instance=\"$instance\",project=~\"$project\",succeed=\"true\"}[$__range]))",
           "hide": false,
           "interval": "",
           "legendFormat": "build_total_minutes",
@@ -707,7 +929,7 @@
         },
         {
           "exemplar": true,
-          "expr": "sum by (job_type) (increase(ke_model_build_minutes_count{job=\"$job\",instance=\"$instance\",project=\"$project\"}[$__range]))",
+          "expr": "sum by (job_type) (increase(ke_model_build_minutes_count{job=\"$job\",instance=\"$instance\",project=~\"$project\"}[$__range]))",
           "hide": false,
           "interval": "",
           "legendFormat": "build_type_{{job_type}}_totals",
@@ -718,13 +940,201 @@
       "type": "bargauge"
     },
     {
-      "collapsed": true,
+      "collapsed": false,
       "datasource": null,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 27
+        "y": 35
+      },
+      "id": 67,
+      "panels": [],
+      "title": "Storage",
+      "type": "row"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "System storage",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "graph": false,
+              "legend": false,
+              "tooltip": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 36
+      },
+      "id": 69,
+      "options": {
+        "graph": {},
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltipOptions": {
+          "mode": "single"
+        }
+      },
+      "pluginVersion": "7.5.8",
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "sum(ke_storage_bytes{job=\"$job\",instance=\"$instance\",project=~\"$project\"}) by(project)",
+          "interval": "",
+          "legendFormat": "{{project}}",
+          "queryType": "randomWalk",
+          "refId": "A"
+        },
+        {
+          "exemplar": true,
+          "expr": "sum(ke_storage_bytes{job=\"$job\",instance=\"$instance\"})",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "all",
+          "refId": "B"
+        }
+      ],
+      "title": "System Storage Size",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "System Garage Storage ",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "graph": false,
+              "legend": false,
+              "tooltip": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 36
+      },
+      "id": 71,
+      "options": {
+        "graph": {},
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltipOptions": {
+          "mode": "single"
+        }
+      },
+      "pluginVersion": "7.5.8",
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "sum(ke_garbage_bytes{job=\"$job\",instance=\"$instance\",project=~\"$project\"}) by(project)",
+          "interval": "",
+          "legendFormat": "{{project}}",
+          "queryType": "randomWalk",
+          "refId": "A"
+        },
+        {
+          "exemplar": true,
+          "expr": "sum(ke_garbage_bytes{job=\"$job\",instance=\"$instance\"})",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "all",
+          "refId": "B"
+        }
+      ],
+      "title": "Garage Storage Size",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "datasource": "Prometheus",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 44
       },
       "id": 46,
       "panels": [],
@@ -732,7 +1142,225 @@
       "type": "row"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
+      "description": "Sparder Health Status, 1 means healthy,  0 means unhealthy",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "graph": false,
+              "legend": false,
+              "tooltip": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "sparder_up"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 45
+      },
+      "id": 63,
+      "options": {
+        "graph": {},
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltipOptions": {
+          "mode": "single"
+        }
+      },
+      "pluginVersion": "7.5.8",
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "ke_sparder_up{job=\"$job\",instance=\"$instance\"}",
+          "interval": "",
+          "legendFormat": "sparder_up",
+          "queryType": "randomWalk",
+          "refId": "A"
+        }
+      ],
+      "title": "Sparder Health",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Spark Utilization, number of running tasks / spark \nexecutor total cores",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "graph": false,
+              "legend": false,
+              "tooltip": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "__systemRef": "hideSeriesFrom",
+            "matcher": {
+              "id": "byNames",
+              "options": {
+                "mode": "exclude",
+                "names": [
+                  "spark_tasks_utilization"
+                ],
+                "prefix": "All except:",
+                "readOnly": true
+              }
+            },
+            "properties": [
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "graph": true,
+                  "legend": false,
+                  "tooltip": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "spark_tasks_utilization"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 45
+      },
+      "id": 65,
+      "options": {
+        "graph": {},
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltipOptions": {
+          "mode": "single"
+        }
+      },
+      "pluginVersion": "7.5.8",
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "spark_tasks_utilization{job=\"$job\",instance=\"$instance\"}",
+          "interval": "",
+          "legendFormat": "spark_tasks_utilization",
+          "queryType": "randomWalk",
+          "refId": "A"
+        }
+      ],
+      "title": "Spark Task Utilization",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
       "description": "spark任务(running_tasks:运行中的任务数 spark_tasks_utilization:spark资源利用率)",
       "fieldConfig": {
         "defaults": {
@@ -761,7 +1389,7 @@
         "h": 9,
         "w": 7,
         "x": 0,
-        "y": 28
+        "y": 54
       },
       "id": 9,
       "options": {
@@ -777,7 +1405,7 @@
         "showThresholdMarkers": true,
         "text": {}
       },
-      "pluginVersion": "8.1.7",
+      "pluginVersion": "7.5.8",
       "targets": [
         {
           "exemplar": true,
@@ -805,8 +1433,8 @@
       "type": "gauge"
     },
     {
-      "datasource": null,
-      "description": "spark任务分析",
+      "datasource": "Prometheus",
+      "description": "number of spark running tasks and number of spark pending tasks",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -832,14 +1460,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
+            "spanNulls": false
           },
           "mappings": [],
           "thresholds": {
@@ -888,7 +1509,7 @@
         "h": 9,
         "w": 17,
         "x": 7,
-        "y": 28
+        "y": 54
       },
       "id": 10,
       "options": {
@@ -898,6 +1519,9 @@
           "placement": "bottom"
         },
         "tooltip": {
+          "mode": "single"
+        },
+        "tooltipOptions": {
           "mode": "single"
         }
       },
@@ -929,13 +1553,13 @@
       "type": "timeseries"
     },
     {
-      "collapsed": true,
-      "datasource": null,
+      "collapsed": false,
+      "datasource": "Prometheus",
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 37
+        "y": 63
       },
       "id": 48,
       "panels": [],
@@ -943,7 +1567,7 @@
       "type": "row"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "查询扫描字节数top10的模型",
       "fieldConfig": {
         "defaults": {
@@ -971,7 +1595,7 @@
         "h": 16,
         "w": 7,
         "x": 0,
-        "y": 38
+        "y": 64
       },
       "id": 11,
       "options": {
@@ -987,11 +1611,11 @@
         "showUnfilled": true,
         "text": {}
       },
-      "pluginVersion": "8.1.7",
+      "pluginVersion": "7.5.8",
       "targets": [
         {
           "exemplar": true,
-          "expr": "topk(10,ke_queries_scan_bytes_sum{job=\"$job\",instance=\"$instance\",project=\"$project\"}/ke_queries_scan_bytes_count{job=\"$job\",instance=\"$instance\",project=\"$project\"}/1048576)",
+          "expr": "topk(10,ke_queries_scan_bytes_sum{job=\"$job\",instance=\"$instance\",project=~\"$project\"}/ke_queries_scan_bytes_count{job=\"$job\",instance=\"$instance\",project=~\"$project\"}/1048576)",
           "instant": false,
           "interval": "",
           "intervalFactor": 1,
@@ -1005,7 +1629,7 @@
       "type": "bargauge"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "查询扫描字节百分位80%",
       "fieldConfig": {
         "defaults": {
@@ -1032,14 +1656,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
+            "spanNulls": false
           },
           "mappings": [],
           "thresholds": {
@@ -1087,7 +1704,7 @@
         "h": 8,
         "w": 17,
         "x": 7,
-        "y": 38
+        "y": 64
       },
       "id": 12,
       "options": {
@@ -1098,13 +1715,16 @@
         },
         "tooltip": {
           "mode": "single"
+        },
+        "tooltipOptions": {
+          "mode": "single"
         }
       },
       "pluginVersion": "7.5.7",
       "targets": [
         {
           "exemplar": true,
-          "expr": "ke_queries_scan_bytes{job=\"$job\",instance=\"$instance\",project=\"$project\",quantile=\"0.8\"}/1048576",
+          "expr": "ke_queries_scan_bytes{job=\"$job\",instance=\"$instance\",project=~\"$project\",quantile=\"0.8\"}/1048576",
           "instant": false,
           "interval": "",
           "intervalFactor": 1,
@@ -1118,7 +1738,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "查询扫描字节百分位90%",
       "fieldConfig": {
         "defaults": {
@@ -1145,14 +1765,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
+            "spanNulls": false
           },
           "mappings": [],
           "thresholds": {
@@ -1200,7 +1813,7 @@
         "h": 8,
         "w": 17,
         "x": 7,
-        "y": 46
+        "y": 72
       },
       "id": 15,
       "options": {
@@ -1211,13 +1824,16 @@
         },
         "tooltip": {
           "mode": "single"
+        },
+        "tooltipOptions": {
+          "mode": "single"
         }
       },
       "pluginVersion": "7.5.7",
       "targets": [
         {
           "exemplar": true,
-          "expr": "ke_queries_scan_bytes{job=\"$job\",instance=\"$instance\",project=\"$project\",quantile=\"0.9\"}/1048576",
+          "expr": "ke_queries_scan_bytes{job=\"$job\",instance=\"$instance\",project=~\"$project\",quantile=\"0.9\"}/1048576",
           "instant": false,
           "interval": "",
           "intervalFactor": 1,
@@ -1231,7 +1847,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "模型构建耗时top10的模型",
       "fieldConfig": {
         "defaults": {
@@ -1259,7 +1875,7 @@
         "h": 15,
         "w": 10,
         "x": 0,
-        "y": 54
+        "y": 80
       },
       "id": 14,
       "options": {
@@ -1275,11 +1891,11 @@
         "showUnfilled": true,
         "text": {}
       },
-      "pluginVersion": "8.1.7",
+      "pluginVersion": "7.5.8",
       "targets": [
         {
           "exemplar": true,
-          "expr": "topk(10,sum by (model) (ke_model_build_minutes_sum{job=\"$job\",project=\"$project\",succeed=\"true\"}) / sum by (model) (ke_model_build_minutes_count{job=\"$job\",project=\"$project\",succeed=\"true\"}))",
+          "expr": "topk(10,sum by (model) (ke_model_build_minutes_sum{job=\"$job\",instance=\"$instance\",project=~\"$project\",succeed=\"true\"}) / sum by (model) (ke_model_build_minutes_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",succeed=\"true\"}))",
           "instant": false,
           "interval": "",
           "intervalFactor": 1,
@@ -1310,15 +1926,19 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "元数据库连接数",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
         "h": 8,
         "w": 14,
         "x": 10,
-        "y": 54
+        "y": 80
       },
       "hiddenSeries": false,
       "id": 2,
@@ -1338,7 +1958,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.1.7",
+      "pluginVersion": "7.5.8",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -1349,7 +1969,7 @@
       "targets": [
         {
           "exemplar": false,
-          "expr": "ke_db_connections{instance=\"$instance\",state=\"active\"}",
+          "expr": "ke_db_connections{job=\"$job\",instance=\"$instance\",state=\"active\"}",
           "format": "time_series",
           "hide": false,
           "instant": false,
@@ -1360,7 +1980,7 @@
         },
         {
           "exemplar": false,
-          "expr": "ke_db_connections{instance=\"$instance\",state=\"idle\"}",
+          "expr": "ke_db_connections{job=\"$job\",instance=\"$instance\",state=\"idle\"}",
           "format": "time_series",
           "hide": false,
           "instant": false,
@@ -1416,15 +2036,19 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "模型构建Http接口失败次数统计",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
         "h": 7,
         "w": 14,
         "x": 10,
-        "y": 62
+        "y": 88
       },
       "hiddenSeries": false,
       "id": 36,
@@ -1445,7 +2069,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.1.7",
+      "pluginVersion": "7.5.8",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -1456,14 +2080,14 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(increase(http_server_requests_seconds_count{uri=~\"/api/models/.+/segments\",method=\"POST\",status=~\"4..\"}[5m]))",
+          "expr": "sum(increase(http_server_requests_seconds_count{job=\"$job\",instance=\"$instance\",uri=~\"/api/models/.+/segments\",method=\"POST\",status=~\"4..\"}[5m]))",
           "interval": "",
           "legendFormat": "http_status=4..",
           "refId": "A"
         },
         {
           "exemplar": true,
-          "expr": "sum(increase(http_server_requests_seconds_count{uri=~\"/api/models/.+/segments\",method=\"POST\",status=~\"5..\"}[5m]))",
+          "expr": "sum(increase(http_server_requests_seconds_count{job=\"$job\",instance=\"$instance\",uri=~\"/api/models/.+/segments\",method=\"POST\",status=~\"5..\"}[5m]))",
           "hide": false,
           "interval": "",
           "legendFormat": "http_status=5..",
@@ -1518,7 +2142,353 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 69
+        "y": 95
+      },
+      "id": 73,
+      "panels": [],
+      "title": "Jobs",
+      "type": "row"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Number Of Running Jobs",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "graph": false,
+              "legend": false,
+              "tooltip": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 96
+      },
+      "id": 75,
+      "options": {
+        "graph": {},
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltipOptions": {
+          "mode": "single"
+        }
+      },
+      "pluginVersion": "7.5.8",
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "sum(ke_job_counts{job=\"$job\",instance=\"$instance\"}) by (state)",
+          "interval": "",
+          "legendFormat": "{{state}}",
+          "queryType": "randomWalk",
+          "refId": "A"
+        }
+      ],
+      "title": "Running Jobs",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Jobs Analyse",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 96
+      },
+      "id": 79,
+      "options": {
+        "displayMode": "gradient",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "text": {}
+      },
+      "pluginVersion": "7.5.8",
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "sum(increase(ke_job_minutes_count{job=\"$job\",instance=\"$instance\",project=~\"$project\"}[$__range]))",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "job_totals",
+          "refId": "C"
+        },
+        {
+          "exemplar": true,
+          "expr": "sum(increase(ke_job_minutes_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",succeed=\"false\"}[$__range]))",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "job_fails",
+          "refId": "F"
+        },
+        {
+          "exemplar": true,
+          "expr": "sum(increase(ke_job_minutes_count{job=\"$job\",instance=\"$instance\",project=~\"$project\"}[$__range])) by (category)",
+          "interval": "",
+          "legendFormat": "jobs({{category}})",
+          "refId": "A"
+        }
+      ],
+      "title": "Jobs Analyse",
+      "type": "bargauge"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "Job Avg Duration",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "m"
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 104
+      },
+      "hiddenSeries": false,
+      "id": 78,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "7.5.8",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "sum(increase(ke_job_minutes_sum{job=\"$job\",instance=\"$instance\",project=~\"$project\",succeed=\"true\"}[10m])) by (category) / sum(increase(ke_job_minutes_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",succeed=\"true\"}[10m])) by (category) ",
+          "interval": "",
+          "legendFormat": "{{category}}",
+          "queryType": "randomWalk",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Job Avg Duration",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "m",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Number Of Jobs in last 5 minutes",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "graph": false,
+              "legend": false,
+              "tooltip": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 104
+      },
+      "id": 76,
+      "options": {
+        "graph": {},
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltipOptions": {
+          "mode": "single"
+        }
+      },
+      "pluginVersion": "7.5.8",
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "sum(increase(ke_job_minutes_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",succeed=\"true\"}[5m])) by (category)",
+          "interval": "",
+          "legendFormat": "{{category}}",
+          "queryType": "randomWalk",
+          "refId": "A"
+        }
+      ],
+      "title": "Jobs[5m]",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "datasource": "Prometheus",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 112
       },
       "id": 50,
       "panels": [],
@@ -1544,7 +2514,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 70
+        "y": 113
       },
       "hiddenSeries": false,
       "id": 52,
@@ -1564,7 +2534,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.1.7",
+      "pluginVersion": "7.5.8",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -1601,7 +2571,6 @@
       },
       "yaxes": [
         {
-          "$$hashKey": "object:2112",
           "format": "ops",
           "label": null,
           "logBase": 1,
@@ -1610,7 +2579,6 @@
           "show": true
         },
         {
-          "$$hashKey": "object:2113",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -1643,7 +2611,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 70
+        "y": 113
       },
       "hiddenSeries": false,
       "id": 54,
@@ -1663,7 +2631,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.1.7",
+      "pluginVersion": "7.5.8",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -1700,7 +2668,6 @@
       },
       "yaxes": [
         {
-          "$$hashKey": "object:1970",
           "format": "s",
           "label": null,
           "logBase": 1,
@@ -1709,7 +2676,6 @@
           "show": true
         },
         {
-          "$$hashKey": "object:1971",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -1742,7 +2708,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 78
+        "y": 121
       },
       "hiddenSeries": false,
       "id": 56,
@@ -1762,7 +2728,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.1.7",
+      "pluginVersion": "7.5.8",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -1799,7 +2765,6 @@
       },
       "yaxes": [
         {
-          "$$hashKey": "object:2041",
           "format": "s",
           "label": null,
           "logBase": 1,
@@ -1808,7 +2773,6 @@
           "show": true
         },
         {
-          "$$hashKey": "object:2042",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -1841,7 +2805,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 78
+        "y": 121
       },
       "hiddenSeries": false,
       "id": 58,
@@ -1861,7 +2825,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.1.7",
+      "pluginVersion": "7.5.8",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -1898,7 +2862,6 @@
       },
       "yaxes": [
         {
-          "$$hashKey": "object:1612",
           "format": "s",
           "label": null,
           "logBase": 1,
@@ -1907,7 +2870,6 @@
           "show": true
         },
         {
-          "$$hashKey": "object:1613",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -1923,7 +2885,7 @@
     }
   ],
   "refresh": "",
-  "schemaVersion": 30,
+  "schemaVersion": 27,
   "style": "dark",
   "tags": [],
   "templating": {
@@ -1932,8 +2894,8 @@
         "allValue": null,
         "current": {
           "selected": false,
-          "text": "KE4",
-          "value": "KE4"
+          "text": "Kyligence Enterprise",
+          "value": "Kyligence Enterprise"
         },
         "datasource": "Prometheus",
         "definition": "label_values(ke_db_connections, job)",
@@ -1954,6 +2916,7 @@
         "skipUrlSync": false,
         "sort": 0,
         "tagValuesQuery": "",
+        "tags": [],
         "tagsQuery": "",
         "type": "query",
         "useTags": false
@@ -1961,9 +2924,9 @@
       {
         "allValue": null,
         "current": {
-          "selected": false,
-          "text": "solution-3:9077",
-          "value": "solution-3:9077"
+          "selected": true,
+          "text": "159.27.81.165:7036",
+          "value": "159.27.81.165:7036"
         },
         "datasource": "Prometheus",
         "definition": "label_values(ke_db_connections{job=\"$job\"}, instance)",
@@ -1984,6 +2947,7 @@
         "skipUrlSync": false,
         "sort": 0,
         "tagValuesQuery": "",
+        "tags": [],
         "tagsQuery": "",
         "type": "query",
         "useTags": false
@@ -1991,22 +2955,26 @@
       {
         "allValue": null,
         "current": {
-          "selected": false,
-          "text": "KE4_EXT",
-          "value": "KE4_EXT"
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
         },
         "datasource": "Prometheus",
-        "definition": "label_values(project)",
+        "definition": "label_values(ke_job_counts{job=\"$job\",instance=\"$instance\"} ,project)",
         "description": null,
         "error": null,
         "hide": 0,
-        "includeAll": false,
+        "includeAll": true,
         "label": "Project",
-        "multi": false,
+        "multi": true,
         "name": "project",
         "options": [],
         "query": {
-          "query": "label_values(project)",
+          "query": "label_values(ke_job_counts{job=\"$job\",instance=\"$instance\"} ,project)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 1,
@@ -2014,6 +2982,7 @@
         "skipUrlSync": false,
         "sort": 1,
         "tagValuesQuery": "",
+        "tags": [],
         "tagsQuery": "",
         "type": "query",
         "useTags": false
@@ -2021,12 +2990,12 @@
     ]
   },
   "time": {
-    "from": "now-12h",
+    "from": "now-6h",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "",
   "title": "KE Application Monitoring",
   "uid": "HS2147DHSJ13",
-  "version": 116
+  "version": 4
 }
