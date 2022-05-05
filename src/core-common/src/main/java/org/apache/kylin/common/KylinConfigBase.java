@@ -3237,4 +3237,8 @@ public abstract class KylinConfigBase implements Serializable {
     public boolean isMeasureNameCheckEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.model.measure-name-check-enabled", "true"));
     }
+
+    public boolean checkModelDependencyHealthy() {
+        return Boolean.parseBoolean(getOptional("kylin.model.check-model-dependency-health", "false"));
+    }
 }

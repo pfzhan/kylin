@@ -126,10 +126,8 @@ import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.hystrix.NCircuitBreaker;
@@ -2109,39 +2107,5 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         queryService.putIntoExceptionCache(request, sqlResponse, new RuntimeException("foo"));
         val ret2 = queryService.doQueryWithCache(request);
         Assert.assertTrue(ret2.isException());
-    }
-
-    @Test
-    public void testCollectComputedColumns() {
-        SetMultimap<String, String> tbl2ccNames = HashMultimap.create();
-        val dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        val allModels = dataModelManager.listAllModels();
-        allModels.forEach(model -> {
-            val upperCaseCcNames = model.getComputedColumnNames().stream() //
-                    .map(str -> str.toUpperCase(Locale.ROOT)).collect(Collectors.toList());
-            tbl2ccNames.putAll(model.getRootFactTable().getAlias().toUpperCase(Locale.ROOT), upperCaseCcNames);
-            tbl2ccNames.putAll(model.getRootFactTableName().toUpperCase(Locale.ROOT), upperCaseCcNames);
-
-            SetMultimap<String, String> modelTbl2ccNames = HashMultimap.create();
-            modelTbl2ccNames.putAll(model.getRootFactTable().getAlias().toUpperCase(Locale.ROOT), upperCaseCcNames);
-            modelTbl2ccNames.putAll(model.getRootFactTableName().toUpperCase(Locale.ROOT), upperCaseCcNames);
-
-            val modelCC = queryService.collectComputedColumnsToTest("default", model.getAlias());
-            validateCC(modelTbl2ccNames, modelCC);
-        });
-
-        val nullModelCC = queryService.collectComputedColumnsToTest("default", null);
-        validateCC(tbl2ccNames, nullModelCC);
-
-        val errorModelNameCC = queryService.collectComputedColumnsToTest("default", RandomUtil.randomUUIDStr());
-        Assert.assertTrue(errorModelNameCC.isEmpty());
-    }
-
-    private void validateCC(SetMultimap<String, String> expected, SetMultimap<String, String> actual) {
-        Assert.assertEquals(expected.size(), actual.size());
-        for (String key : expected.keySet()) {
-            Assert.assertTrue(expected.get(key).containsAll(actual.get(key)));
-            Assert.assertTrue(actual.get(key).containsAll(expected.get(key)));
-        }
     }
 }

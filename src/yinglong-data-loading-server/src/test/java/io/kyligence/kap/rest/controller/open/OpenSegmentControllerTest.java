@@ -25,20 +25,31 @@
 package io.kyligence.kap.rest.controller.open;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_MULTI_PARTITION_DISABLE;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_CONFLICT_PARAMETER;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.when;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.metadata.model.Segments;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -47,14 +58,18 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
@@ -65,6 +80,7 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.rest.controller.SegmentController;
 import io.kyligence.kap.rest.request.BuildIndexRequest;
 import io.kyligence.kap.rest.request.BuildSegmentsRequest;
@@ -80,6 +96,7 @@ import io.kyligence.kap.rest.response.SegmentPartitionResponse;
 import io.kyligence.kap.rest.service.FusionModelService;
 import io.kyligence.kap.rest.service.ModelService;
 
+@RunWith(MockitoJUnitRunner.class)
 public class OpenSegmentControllerTest extends NLocalFileMetadataTestCase {
 
     private MockMvc mockMvc;
@@ -110,8 +127,8 @@ public class OpenSegmentControllerTest extends NLocalFileMetadataTestCase {
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        Mockito.doReturn(true).when(aclEvaluate).hasProjectWritePermission(Mockito.any());
-        Mockito.doReturn(true).when(aclEvaluate).hasProjectOperationPermission(Mockito.any());
+        lenient().doReturn(true).when(aclEvaluate).hasProjectWritePermission(Mockito.any());
+        lenient().doReturn(true).when(aclEvaluate).hasProjectOperationPermission(Mockito.any());
     }
 
     @Before
@@ -165,7 +182,7 @@ public class OpenSegmentControllerTest extends NLocalFileMetadataTestCase {
         String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         String project = "default";
         mockGetModelName(modelName, project, modelId);
-        Mockito.when(nModelController.getSegments(modelId, project, "", 1, 5, "432", "2234", null, null, false,
+        when(nModelController.getSegments(modelId, project, "", 1, 5, "432", "2234", null, null, false,
                 "end_time", true)).thenReturn(
                         new EnvelopeResponse<>(KylinException.CODE_SUCCESS, DataResult.get(mockSegments(), 1, 5), ""));
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models/{model_name}/segments", modelName)
@@ -237,7 +254,7 @@ public class OpenSegmentControllerTest extends NLocalFileMetadataTestCase {
         req.setParallelBuildBySegment(false);
         req.setSegmentIds(Lists.newArrayList(ids));
         mockGetModelName(modelName, project, modelId);
-        Mockito.doReturn(new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "")).when(nModelController)
+        lenient().doReturn(new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "")).when(nModelController)
                 .addIndexesToSegments(modelId, req);
         Mockito.doReturn(new Pair("model_id", ids)).when(fusionModelService).convertSegmentIdWithName(modelId, project,
                 ids, null);
@@ -274,7 +291,7 @@ public class OpenSegmentControllerTest extends NLocalFileMetadataTestCase {
         req.setParallelBuildBySegment(false);
         req.setSegmentIds(Lists.newArrayList(ids));
         mockGetModelName(modelName, project, modelId);
-        Mockito.doReturn(new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "")).when(nModelController)
+        lenient().doReturn(new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "")).when(nModelController)
                 .addIndexesToSegments(modelId, req);
         Mockito.doReturn(pair).when(fusionModelService).convertSegmentIdWithName(modelId, project, ids, null);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/{model_name}/segments/completion", modelName)
@@ -299,7 +316,7 @@ public class OpenSegmentControllerTest extends NLocalFileMetadataTestCase {
         req.setProject(project);
         req.setParallelBuildBySegment(false);
         mockGetModelName(modelName, project, modelId);
-        Mockito.doReturn(new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "")).when(nModelController)
+        lenient().doReturn(new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "")).when(nModelController)
                 .addIndexesToSegments(modelId, req);
         MvcResult result = mockMvc
                 .perform(MockMvcRequestBuilders.post("/api/models/{model_name}/segments/completion", modelName)
@@ -322,7 +339,7 @@ public class OpenSegmentControllerTest extends NLocalFileMetadataTestCase {
         req.setProject(project);
         req.setParallelBuildBySegment(false);
         mockGetModelName(modelName, project, modelId);
-        Mockito.doReturn(new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "")).when(nModelController)
+        lenient().doReturn(new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "")).when(nModelController)
                 .addIndexesToSegments(modelId, req);
         MvcResult result = mockMvc
                 .perform(MockMvcRequestBuilders.post("/api/models/{model_name}/segments/completion", modelName)
@@ -333,7 +350,7 @@ public class OpenSegmentControllerTest extends NLocalFileMetadataTestCase {
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
         String contentAsString = result.getResponse().getContentAsString();
-        Assert.assertTrue(contentAsString.contains(MsgPicker.getMsg().getCONFLICT_SEGMENT_PARAMETER()));
+        Assert.assertTrue(contentAsString.contains(SEGMENT_CONFLICT_PARAMETER.getMsg()));
     }
 
     @Test
@@ -343,7 +360,7 @@ public class OpenSegmentControllerTest extends NLocalFileMetadataTestCase {
         String project = "default";
         mockGetModelName(modelName, project, modelId);
 
-        Mockito.doReturn(new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "")).when(nModelController)
+        lenient().doReturn(new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "")).when(nModelController)
                 .deleteSegments(modelId, project, true, false, null, null);
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/models/{model_name}/segments", modelName)
                 .param("project", "default").param("purge", "true")
@@ -411,7 +428,7 @@ public class OpenSegmentControllerTest extends NLocalFileMetadataTestCase {
         String segmentId = "73570f31-05a5-448f-973c-44209830dd01";
         mockGetModelName(modelName, project, modelId);
         DataResult<List<SegmentPartitionResponse>> result;
-        Mockito.when(nModelController.getMultiPartition(modelId, project, segmentId, Lists.newArrayList(), 0, 10,
+        lenient().when(nModelController.getMultiPartition(modelId, project, segmentId, Lists.newArrayList(), 0, 10,
                 "last_modify_time", true)).thenReturn(null);
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models/{model_name}/segments/multi_partition", modelName)
                 .param("project", project).param("segment_id", segmentId)
@@ -465,6 +482,44 @@ public class OpenSegmentControllerTest extends NLocalFileMetadataTestCase {
                 .param("project", project).param("segment_id", segmentId).param("sub_partition_values", "1")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
+    }
+
+    @Test
+    public void testGetModel() {
+        NDataModelManager nDataModelManager = Mockito.mock(NDataModelManager.class);
+        when(modelService.getManager(any(), anyString())).thenReturn(nDataModelManager);
+
+        when(nDataModelManager.listAllModels()).thenReturn(Collections.emptyList());
+        try {
+            openSegmentController.getModel("SOME_ALIAS", "SOME_PROJECT");
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertEquals(MODEL_NAME_NOT_EXIST.getCodeMsg("SOME_ALIAS"), e.getLocalizedMessage());
+        }
+    }
+
+    @Test
+    public void testCheckProjectMLP() {
+        try (MockedStatic<KylinConfig> kylinConfigMockedStatic = Mockito.mockStatic(KylinConfig.class);
+             MockedStatic<NProjectManager> nProjectManagerMockedStatic = Mockito.mockStatic(NProjectManager.class)) {
+            kylinConfigMockedStatic.when(KylinConfig::getInstanceFromEnv).thenReturn(Mockito.mock(KylinConfig.class));
+            NProjectManager projectManager = Mockito.mock(NProjectManager.class);
+            nProjectManagerMockedStatic.when(() -> NProjectManager.getInstance(Mockito.any())).thenReturn(projectManager);
+            ProjectInstance projectInstance = Mockito.mock(ProjectInstance.class);
+            when(projectManager.getProject(anyString())).thenReturn(projectInstance);
+            KylinConfigExt kylinConfigExt = Mockito.mock(KylinConfigExt.class);
+            when(projectInstance.getName()).thenReturn("TEST_PROJECT_NAME");
+            when(projectInstance.getConfig()).thenReturn(kylinConfigExt);
+            when(kylinConfigExt.isMultiPartitionEnabled()).thenReturn(false);
+            try {
+                ReflectionTestUtils.invokeMethod(openSegmentController, "checkProjectMLP", "SOME_PROJECT");
+                Assert.fail();
+            } catch (Exception e) {
+                Assert.assertTrue(e instanceof KylinException);
+                Assert.assertEquals(PROJECT_MULTI_PARTITION_DISABLE.getCodeMsg("TEST_PROJECT_NAME"), e.getLocalizedMessage());
+            }
+        }
     }
 
 }

@@ -46,7 +46,6 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
-import org.apache.kylin.metadata.model.ExternalFilterDesc;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
@@ -56,7 +55,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 
 /**
@@ -85,7 +83,6 @@ public class NTableMetadataManager {
 
     private CachedCrudAssist<TableDesc> srcTableCrud;
     private CachedCrudAssist<TableExtDesc> srcExtCrud;
-    private CachedCrudAssist<ExternalFilterDesc> extFilterCrud;
 
     private NTableMetadataManager(KylinConfig cfg, String project) {
         this.config = cfg;
@@ -93,7 +90,6 @@ public class NTableMetadataManager {
 
         initSrcTable();
         initSrcExt();
-        initExtFilter();
     }
 
     public KylinConfig getConfig() {
@@ -117,13 +113,11 @@ public class NTableMetadataManager {
                 return t;
             }
         };
-        srcTableCrud.reloadAll();
     }
 
     public void invalidCache(String resourceName) {
         srcTableCrud.invalidateCache(resourceName);
         srcExtCrud.invalidateCache(resourceName);
-        extFilterCrud.invalidateCache(resourceName);
     }
 
     public List<TableDesc> listAllTables() {
@@ -189,15 +183,6 @@ public class NTableMetadataManager {
         return srcExtCrud.copyForWrite(tableExtDesc);
     }
 
-    /**
-     * some legacy table name may not have DB prefix
-     */
-    private String getTableIdentity(String tableName) {
-        if (!tableName.contains("."))
-            return "DEFAULT." + tableName.toUpperCase(Locale.ROOT);
-        else
-            return tableName.toUpperCase(Locale.ROOT);
-    }
 
     public void saveSourceTable(TableDesc srcTable) {
         srcTable.init(project);
@@ -237,7 +222,6 @@ public class NTableMetadataManager {
                 return t;
             }
         };
-        srcExtCrud.reloadAll();
     }
 
     /**
@@ -344,43 +328,11 @@ public class NTableMetadataManager {
         return result;
     }
 
-    // ============================================================================
-    // ExternalFilterDesc methods
-    // ============================================================================
-
-    private void initExtFilter() {
-        this.extFilterCrud = new CachedCrudAssist<ExternalFilterDesc>(getStore(),
-                ResourceStore.EXTERNAL_FILTER_RESOURCE_ROOT, ExternalFilterDesc.class) {
-            @Override
-            protected ExternalFilterDesc initEntityAfterReload(ExternalFilterDesc t, String resourceName) {
-                return t; // noop
-            }
-        };
-        extFilterCrud.reloadAll();
-    }
-
-    public List<ExternalFilterDesc> listAllExternalFilters() {
-        return extFilterCrud.listAll();
-    }
-
-    public ExternalFilterDesc getExtFilterDesc(String filterTableName) {
-        ExternalFilterDesc result = extFilterCrud.get(filterTableName);
-        return result;
-    }
-
-    public void saveExternalFilter(ExternalFilterDesc desc) {
-        extFilterCrud.save(desc);
-    }
-
     public void updateTableDesc(TableDesc tableDesc) {
         if (!srcTableCrud.contains(tableDesc.getIdentity())) {
             throw new IllegalStateException("tableDesc " + tableDesc.getName() + "does not exist");
         }
         saveSourceTable(tableDesc);
-    }
-
-    public void removeExternalFilter(String name) {
-        extFilterCrud.delete(name);
     }
 
     /**
@@ -392,7 +344,4 @@ public class NTableMetadataManager {
                 || tableDesc.getSourceType() != ISourceAware.ID_STREAMING;
     }
 
-    private NProjectManager getProjectManager() {
-        return NProjectManager.getInstance(config);
-    }
 }

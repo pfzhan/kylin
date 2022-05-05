@@ -43,6 +43,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -81,7 +82,6 @@ import io.kyligence.kap.metadata.cube.model.SegmentPartition;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.MultiPartitionDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.util.MultiPartitionUtil;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.rest.aspect.Transaction;
@@ -293,9 +293,7 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
             }
         }
 
-        val allTables = NTableMetadataManager.getInstance(modelManager.getConfig(), project).getAllTablesMap();
-        copyModel.init(modelManager.getConfig(), allTables, getManager(NDataflowManager.class, project).listUnderliningDataModels(),
-                project);
+        copyModel.init(modelManager.getConfig(), project, getManager(NDataflowManager.class, project).listUnderliningDataModels());
         String format = modelService.probeDateFormatIfNotExist(project, copyModel);
 
         List<JobInfoResponse.JobInfo> jobIds = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {

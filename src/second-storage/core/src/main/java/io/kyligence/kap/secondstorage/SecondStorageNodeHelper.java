@@ -33,6 +33,7 @@ import org.apache.kylin.common.KylinConfig;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -158,6 +159,27 @@ public class SecondStorageNodeHelper {
         }
 
         return nodeMap;
+    }
+
+    /**
+     * groups to shard
+     * group [replica][shardSize] to shard[shardSize][replica]
+     *
+     * @param groups group
+     * @return shards
+     */
+    public static List<Set<String>> groupsToShards(List<NodeGroup> groups) {
+        int shardSize = groups.get(0).getNodeNames().size();
+        // key is shard num, value is replica name
+        Map<Integer, Set<String>> shards = new HashMap<>(shardSize);
+
+        for (int shardNum = 0; shardNum < shardSize; shardNum++) {
+            for (NodeGroup group : groups) {
+                shards.computeIfAbsent(shardNum, key -> new HashSet<>()).add(group.getNodeNames().get(shardNum));
+            }
+        }
+
+        return new ArrayList<>(shards.values());
     }
 
     public static void clear() {

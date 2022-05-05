@@ -25,9 +25,16 @@
 package io.kyligence.kap.rest.controller.open;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_NOT_EXIST;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
+import java.util.Collections;
 import java.util.List;
 
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.rest.service.ModelService;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
@@ -74,6 +81,9 @@ public class OpenSmartModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Mock
     private ModelSmartService modelSmartService;
+
+    @Mock
+    private ModelService modelService;
 
     @InjectMocks
     private OpenModelSmartController openSmartModelController = Mockito.spy(new OpenModelSmartController());
@@ -214,5 +224,20 @@ public class OpenSmartModelControllerTest extends NLocalFileMetadataTestCase {
             properties.put("kylin.metadata.semi-automatic-mode", "true");
             copyForWrite.setOverrideKylinProps(properties);
         });
+    }
+
+    @Test
+    public void testGetModel() {
+        NDataModelManager nDataModelManager = Mockito.mock(NDataModelManager.class);
+        when(modelService.getManager(any(), anyString())).thenReturn(nDataModelManager);
+
+        when(nDataModelManager.listAllModels()).thenReturn(Collections.emptyList());
+        try {
+            openSmartModelController.getModel("SOME_ALIAS", "SOME_PROJECT");
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertEquals(MODEL_NAME_NOT_EXIST.getCodeMsg("SOME_ALIAS"), e.getLocalizedMessage());
+        }
     }
 }

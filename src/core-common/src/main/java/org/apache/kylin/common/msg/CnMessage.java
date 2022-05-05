@@ -1844,6 +1844,11 @@ public class CnMessage extends Message {
     }
 
     @Override
+    public String getSECOND_STORAGE_DELETE_NODE_FAILED() {
+        return "节点%s存在数据，大小为%d bytes";
+    }
+
+    @Override
     public String getJOB_RESTART_FAILED() {
         return "分层存储任务不支持重启操作。\n";
     }
@@ -2056,20 +2061,5 @@ public class CnMessage extends Message {
     @Override
     public String getPARAMETER_IS_REQUIRED() {
         return "找不到 '%s'。";
-    }
-
-    @Override
-    public String getDUPLICATED_DIMENSION_NAME_AND_MEASURE_NAME() {
-        return "维度名 %s 与度量名 %s 重复，无法导出 TDS。请去除重名后再重试。";
-    }
-
-    @Override
-    public String getDUPLICATED_DIMENSION_COLUMN_AND_MEASURE_NAME() {
-        return "维度的列名 %s 与度量名 %s 重复，无法导出 TDS。请去除重名后再重试。";
-    }
-
-    @Override
-    public String getDUPLICATED_MODEL_COLUMN_AND_MEASURE_NAME() {
-        return "模型中的列名 %s 与度量名 %s 重复，无法导出 TDS。请去除重名后再重试。";
     }
 }

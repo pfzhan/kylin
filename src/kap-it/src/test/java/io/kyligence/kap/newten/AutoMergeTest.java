@@ -850,7 +850,7 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         long mergeEnd;
         while (end <= 1328835600000L) {
             SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-            NDataSegment newSegment = new NDataSegment();
+            NDataSegment newSegment = NDataSegment.empty();
             newSegment.setSegmentRange(segmentRange);
             newSegment.setStatus(SegmentStatusEnum.READY);
             segments.add(newSegment);
@@ -937,7 +937,7 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
                 segments.add(segment);
             }
         }
-        NDataSegment mergedSegment = new NDataSegment();
+        NDataSegment mergedSegment = NDataSegment.empty();
         mergedSegment.setStatus(SegmentStatusEnum.READY);
         mergedSegment.setId(i + "");
         mergedSegment.setSegmentRange(segmentRange);

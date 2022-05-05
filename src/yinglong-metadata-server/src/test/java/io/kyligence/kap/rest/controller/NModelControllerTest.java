@@ -728,7 +728,6 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         Mockito.doReturn(syncModel).when(modelService).exportModel(project, modelName,
                 SyncContext.BI.TABLEAU_CONNECTOR_TDS, SyncContext.ModelElement.AGG_INDEX_AND_TABLE_INDEX_COL,
                 "localhost", 8080);
-        when(modelService.validateExport("default", "model1")).thenReturn(true);
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models/bi_export").param("model", modelName)
                 .param("project", project).param("export_as", "TABLEAU_CONNECTOR_TDS")
                 .param("element", "AGG_INDEX_AND_TABLE_INDEX_COL").param("server_host", "localhost")
@@ -754,7 +753,6 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         Mockito.doReturn(syncModel).when(modelService).exportModel(project, modelName,
                 SyncContext.BI.TABLEAU_CONNECTOR_TDS, SyncContext.ModelElement.AGG_INDEX_AND_TABLE_INDEX_COL,
                 "localhost", 8080);
-        when(modelService.validateExport("default", "model1")).thenReturn(true);
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models/{model}/export", modelName).param("project", project)
                 .param("export_as", "TABLEAU_CONNECTOR_TDS").param("element", "AGG_INDEX_AND_TABLE_INDEX_COL")
                 .param("server_host", "localhost").param("server_port", "8080").contentType(MediaType.APPLICATION_JSON)
@@ -772,16 +770,5 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         thrown.expectMessage("is not a valid value");
         status = Lists.newArrayList("OFF", null, "broken");
         nBasicController.formatStatus(status, ModelStatusToDisplayEnum.class);
-    }
-
-
-    @Test
-    public void testValidateExport() throws Exception {
-        when(modelService.validateExport("default", "model1")).thenReturn(true);
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/{model}/export/validation", "model1")
-                .param("project", "default").contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nModelController).validateExport("model1", "default");
     }
 }

@@ -489,7 +489,7 @@ public class StreamingMergeEntryTest extends StreamingTestCase {
         Assert.assertEquals(SegmentStatusEnum.NEW, newSeg.getStatus());
 
         thrown.expect(KylinException.class);
-        val empSeg = new NDataSegment();
+        val empSeg = NDataSegment.empty();
         entry.getSegment(dataflow.getSegments(), empSeg, PROJECT, DATAFLOW_ID);
     }
 
@@ -498,7 +498,7 @@ public class StreamingMergeEntryTest extends StreamingTestCase {
         val entry = Mockito.spy(new StreamingMergeEntry());
         val config = getTestConfig();
         mockRestSupport(entry, config, "new-seg-123456");
-        val seg = new NDataSegment();
+        val seg = NDataSegment.empty();
         entry.parseParams(new String[] { PROJECT, DATAFLOW_ID, "32m", "3", "xx" });
         entry.removeSegment(PROJECT, DATAFLOW_ID, seg);
     }

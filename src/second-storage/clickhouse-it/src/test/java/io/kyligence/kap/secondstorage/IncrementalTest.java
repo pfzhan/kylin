@@ -142,6 +142,8 @@ public class IncrementalTest implements JobWaiter {
         secondStorageEndpoint.setModelService(modelService);
         secondStorageService.setModelService(modelService);
         indexDataConstructor = new IndexDataConstructor(project);
+
+        secondStorageService.setAclEvaluate(aclEvaluate);
     }
 
     private void buildIncrementalLoadQuery(String start, String end) throws Exception {

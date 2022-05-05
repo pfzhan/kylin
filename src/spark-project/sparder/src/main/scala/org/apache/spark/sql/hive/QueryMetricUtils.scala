@@ -24,9 +24,12 @@
 
 package org.apache.spark.sql.hive
 
+import org.apache.spark.SparkContext
 import org.apache.spark.internal.Logging
+import org.apache.spark.metrics.AppStatus
 import org.apache.spark.sql.execution.{FileSourceScanExec, KylinFileSourceScanExec, LayoutFileSourceScanExec, SparkPlan}
 import org.apache.spark.sql.hive.execution.HiveTableScanExec
+
 import scala.collection.JavaConverters._
 
 object QueryMetricUtils extends Logging {
@@ -49,6 +52,21 @@ object QueryMetricUtils extends Logging {
       case throwable: Throwable =>
         logWarning("Error occurred when collect query scan metrics.", throwable)
         (null, null)
+    }
+  }
+
+  def collectTaskRelatedMetrics(jobGroup: String, sparkContext: SparkContext): (java.lang.Long, java.lang.Long, java.lang.Long) = {
+    try {
+      val appStatus = new AppStatus(sparkContext)
+      val jobData = appStatus.getJobData(jobGroup)
+      val jobCount = jobData.size
+      val stageCount = jobData.flatMap(_.stageIds).size
+      val taskCount = jobData.map(_.numTasks).sum
+      (jobCount, stageCount, taskCount)
+    } catch {
+      case throwable: Throwable =>
+        logWarning("Error occurred when collect query task related metrics.", throwable)
+        (0, 0, 0)
     }
   }
 }

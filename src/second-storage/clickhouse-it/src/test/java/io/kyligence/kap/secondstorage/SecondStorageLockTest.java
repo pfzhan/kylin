@@ -74,8 +74,11 @@ import io.kyligence.kap.secondstorage.enums.LockTypeEnum;
 import io.kyligence.kap.secondstorage.management.SecondStorageEndpoint;
 import io.kyligence.kap.secondstorage.management.SecondStorageScheduleService;
 import io.kyligence.kap.secondstorage.management.SecondStorageService;
+import io.kyligence.kap.secondstorage.management.request.ProjectLoadRequest;
 import io.kyligence.kap.secondstorage.management.request.ProjectNodeRequest;
+import io.kyligence.kap.secondstorage.management.request.ProjectRecoveryResponse;
 import io.kyligence.kap.secondstorage.management.request.ProjectTableSyncResponse;
+import io.kyligence.kap.secondstorage.management.request.SecondStorageMetadataRequest;
 import io.kyligence.kap.secondstorage.management.request.StorageRequest;
 import io.kyligence.kap.secondstorage.metadata.NodeGroup;
 import io.kyligence.kap.secondstorage.metadata.PartitionType;
@@ -96,6 +99,7 @@ import lombok.var;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.SecondStorageCleanJobBuildParams;
 import org.apache.kylin.job.SecondStorageJobParamUtil;
@@ -121,7 +125,6 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.jupiter.api.Assertions;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
@@ -144,6 +147,7 @@ import java.sql.SQLException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -154,8 +158,10 @@ import static io.kyligence.kap.newten.clickhouse.ClickHouseUtils.configClickhous
 import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_PROJECT_STATUS_ERROR;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -527,9 +533,9 @@ public class SecondStorageLockTest implements JobWaiter {
             configClickhouseWith(clickhouse, replica, catalog, () -> {
                 ProjectNodeRequest request = new ProjectNodeRequest();
                 request.setProject("wrong");
-                Assertions.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, null));
+                Assert.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, null));
                 request.setProject(getProject());
-                Assertions.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, null));
+                Assert.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, null));
 
                 List<String> allPairs = SecondStorageNodeHelper.getAllPairs();
                 secondStorageService.changeProjectSecondStorageState(getProject(), allPairs, true);
@@ -542,12 +548,16 @@ public class SecondStorageLockTest implements JobWaiter {
                 val clickhouseNew = new JdbcDatabaseContainer[]{clickhouse1, clickhouse2};
                 ClickHouseUtils.internalConfigClickHouse(clickhouseNew, replica);
                 secondStorageService.changeProjectSecondStorageState(getProject(), ImmutableList.of("pair1"), true);
-                Assert.assertEquals(clickhouseNew.length, SecondStorageUtil.listProjectNodes(getProject()).size());
+                assertEquals(clickhouseNew.length, SecondStorageUtil.listProjectNodes(getProject()).size());
 
                 EnvelopeResponse<ProjectTableSyncResponse> response = secondStorageEndpoint.tableSync(getProject());
-                Assertions.assertEquals("000", response.getCode());
+                assertEquals("000", response.getCode());
 
                 deleteShardParamsCheck(request);
+
+                request.setForce(false);
+                val shardNames2 = ImmutableList.of("pair0");
+                assertThrows(TransactionException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, shardNames2));
 
                 EnvelopeResponse<List<String>> res1 = this.secondStorageEndpoint.deleteProjectNodes(request, ImmutableList.of("pair1"));
                 assertEquals("000", res1.getCode());
@@ -556,12 +566,12 @@ public class SecondStorageLockTest implements JobWaiter {
 
                 assertFalse(LockTypeEnum.locked(LockTypeEnum.LOAD.name(), SecondStorageUtil.getProjectLocks(getProject())));
 
-                Assert.assertEquals(clickhouse.length, SecondStorageUtil.listProjectNodes(getProject()).size());
+                assertEquals(clickhouse.length, SecondStorageUtil.listProjectNodes(getProject()).size());
                 secondStorageService.changeProjectSecondStorageState(getProject(), ImmutableList.of("pair1"), true);
-                Assert.assertEquals(clickhouseNew.length, SecondStorageUtil.listProjectNodes(getProject()).size());
+                assertEquals(clickhouseNew.length, SecondStorageUtil.listProjectNodes(getProject()).size());
 
                 EnvelopeResponse<ProjectTableSyncResponse> response2 = secondStorageEndpoint.tableSync(getProject());
-                Assertions.assertEquals("000", response2.getCode());
+                assertEquals("000", response2.getCode());
 
                 secondStorageService.lockOperate(getProject(), Collections.singletonList(LockTypeEnum.LOAD.name()), LockOperateTypeEnum.LOCK.name());
 
@@ -581,6 +591,32 @@ public class SecondStorageLockTest implements JobWaiter {
                 return true;
             });
         }
+    }
+
+    @Test
+    public void testSizeInNode() throws Exception {
+        SecondStorageMetadataRequest request = new SecondStorageMetadataRequest();
+        request.setProject("");
+        Assert.assertThrows(
+                MsgPicker.getMsg().getEMPTY_PROJECT_NAME(),
+                KylinException.class,
+                () -> this.secondStorageEndpoint.sizeInNode(request));
+        request.setProject("123");
+        Assert.assertThrows("123", KylinException.class, () -> this.secondStorageEndpoint.sizeInNode(request));
+        request.setProject(getProject());
+        Assert.assertThrows(
+                String.format(Locale.ROOT, MsgPicker.getMsg().getSECOND_STORAGE_PROJECT_ENABLED(), getProject()),
+                KylinException.class, () -> this.secondStorageEndpoint.sizeInNode(request));
+
+        Assert.assertThrows(
+                MsgPicker.getMsg().getEMPTY_PROJECT_NAME(),
+                KylinException.class,
+                () -> this.secondStorageEndpoint.tableSync(""));
+        Assert.assertThrows("123", KylinException.class, () -> this.secondStorageEndpoint.tableSync("123"));
+        String project = getProject();
+        Assert.assertThrows(
+                String.format(Locale.ROOT, MsgPicker.getMsg().getSECOND_STORAGE_PROJECT_ENABLED(), getProject()),
+                KylinException.class, () -> this.secondStorageEndpoint.tableSync(project));
     }
 
     @Test
@@ -624,22 +660,22 @@ public class SecondStorageLockTest implements JobWaiter {
 
     private void deleteShardParamsCheck(ProjectNodeRequest request) {
         request.setProject(getProject());
-        Assertions.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, null));
+        Assert.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, null));
 
         List<String> shardNames1 = Collections.emptyList();
-        Assertions.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, shardNames1));
+        Assert.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, shardNames1));
 
         List<String> shardNames2 = ImmutableList.of("test");
-        Assertions.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, shardNames2));
+        Assert.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, shardNames2));
 
         List<String> shardNames3 = ImmutableList.of("pair0", "test");
-        Assertions.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, shardNames3));
+        Assert.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, shardNames3));
 
         List<String> shardNames4 = ImmutableList.of("pair0", "pair1");
-        Assertions.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, shardNames4));
+        Assert.assertThrows(KylinException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, shardNames4));
 
         List<String> shardNames5 = ImmutableList.of("pair0");
-        Assertions.assertThrows(TransactionException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, shardNames5));
+        Assert.assertThrows(TransactionException.class, () -> this.secondStorageEndpoint.deleteProjectNodes(request, shardNames5));
     }
 
     private void checkDeletedStatus(List<String> shards, List<String> deletedShards) {
@@ -681,6 +717,41 @@ public class SecondStorageLockTest implements JobWaiter {
             secondStorageEndpoint.getProjectSecondStorageJobs("error");
         } catch (KylinException e) {
             assertEquals(SECOND_STORAGE_PROJECT_STATUS_ERROR.toErrorCode(), e.getErrorCode());
+        }
+    }
+
+    @Test
+    public void testProjectLoadWithOneNodeDown() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse()) {
+
+            final String catalog = "default";
+
+            Unsafe.setProperty(ClickHouseLoad.SOURCE_URL, getSourceUrl());
+            Unsafe.setProperty(ClickHouseLoad.ROOT_PATH, getLocalWorkingDirectory());
+            val clickhouse = new JdbcDatabaseContainer[]{clickhouse1};
+            int replica = 1;
+            configClickhouseWith(clickhouse, replica, catalog, () -> {
+                List<String> allPairs = SecondStorageNodeHelper.getAllPairs();
+                secondStorageService.changeProjectSecondStorageState(getProject(), allPairs, true);
+                Assert.assertEquals(clickhouse.length, SecondStorageUtil.listProjectNodes(getProject()).size());
+                secondStorageService.changeModelSecondStorageState(getProject(), modelId, true);
+                setQuerySession(catalog, clickhouse[0].getJdbcUrl(), clickhouse[0].getDriverClassName());
+
+                getBuildBaseLayout(new HashSet<>(), new HashSet<>(), clickhouse, replica);
+
+                Map<String, Map<String, Boolean>> nodeStatusMap = ImmutableMap.of("pair0", ImmutableMap.of("node00", false));
+                secondStorageEndpoint.updateNodeStatus(nodeStatusMap);
+
+                ProjectLoadRequest request = new ProjectLoadRequest();
+                request.setProjects(ImmutableList.of(getProject()));
+                EnvelopeResponse<List<ProjectRecoveryResponse>> response = this.secondStorageEndpoint.projectLoad(request);
+                assertEquals("000", response.getCode());
+                waitAllJobFinish();
+
+                getTableFlow().getTableDataList().forEach(tableData -> tableData.getPartitions().forEach(p -> assertNotEquals(0, (long) p.getSizeInNode().getOrDefault("node00", 0L))));
+
+                return true;
+            });
         }
     }
 
@@ -783,7 +854,7 @@ public class SecondStorageLockTest implements JobWaiter {
             checkSecondStorageMetadata(existTablePlanLayoutIds, existTableDataLayoutIds);
             checkSecondStorageSegmentMetadata(getAllSegmentIds(), layout01);
             checkSecondStorageSegmentMetadata(getAllSegmentIds(), layout02);
-            checkSegmentDisplayNodes(replica, clickhouse.length / replica);
+            checkSegmentDisplay(replica, clickhouse.length / replica);
 
             // removed old index
             indexPlanService.removeIndexes(getProject(), modelId, ImmutableSet.of(layout01));
@@ -1096,7 +1167,7 @@ public class SecondStorageLockTest implements JobWaiter {
         waitJobFinish(getProject(), jobInfo.getJobId());
     }
 
-    private void checkSegmentDisplayNodes(int replica, int shardCnt) {
+    private void checkSegmentDisplay(int replica, int shardCnt) {
         List<NDataSegmentResponse> segments = modelService.getSegmentsResponse(modelId, getProject(), "0", "" + (Long.MAX_VALUE - 1), null,
                 null, null, false, null, false);
         segments.forEach(segment -> {
