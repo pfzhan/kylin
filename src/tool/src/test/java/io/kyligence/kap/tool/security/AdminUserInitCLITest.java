@@ -110,4 +110,16 @@ public class AdminUserInitCLITest extends NLocalFileMetadataTestCase {
         NKylinUserManager userManager = NKylinUserManager.getInstance(KylinConfig.getInstanceFromEnv());
         Assert.assertTrue(userManager.list().isEmpty());
     }
+
+    @Test
+    public void testOpenLdapCustomSecurityLimit() throws Exception {
+        overwriteSystemProp("kylin.security.remove-ldap-custom-security-limit-enabled", "true");
+        overwriteSystemProp("kylin.security.user-password-encoder", BCryptPasswordEncoder.class.getName());
+        AdminUserInitCLI.initAdminUser(true);
+        val config = KylinConfig.getInstanceFromEnv();
+        ResourceStore.clearCache(config);
+        config.clearManagers();
+        NKylinUserManager userManager = NKylinUserManager.getInstance(config);
+        Assert.assertTrue(userManager.exists("ADMIN"));
+    }
 }

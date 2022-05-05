@@ -78,7 +78,7 @@ public class AdminUserInitCLI {
     public static void initAdminUser(boolean randomPasswordEnabled) throws Exception {
         val config = KylinConfig.getInstanceFromEnv();
 
-        if ("ldap".equalsIgnoreCase(config.getSecurityProfile())) {
+        if ("ldap".equalsIgnoreCase(config.getSecurityProfile()) && !config.isRemoveLdapCustomSecurityLimitEnabled()) {
             return;
         }
 
