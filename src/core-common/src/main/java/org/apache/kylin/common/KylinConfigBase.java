@@ -349,11 +349,6 @@ public abstract class KylinConfigBase implements Serializable {
 
     protected Path makeQualified(Path path) {
         try {
-            String schemal = path.toUri().getScheme();
-            //serverless would change scheme to s3 but s3FileSystem is removed from hadoop-aws-3.2.0.jar
-            if (path.toUri().getScheme().equals("s3")) {
-                path = new Path(path.toUri().getPath().replace("s3", "s3a"));
-            }
             FileSystem fs = path.getFileSystem(HadoopUtil.getCurrentConfiguration());
             return fs.makeQualified(path);
         } catch (IOException e) {
@@ -3305,6 +3300,16 @@ public abstract class KylinConfigBase implements Serializable {
     public String getSparkBuildJobHandlerClassName() {
         return getOptional("kylin.engine.spark.build-job-handler-class-name",
                 "io.kyligence.kap.engine.spark.job.DefaultSparkBuildJobJobHandler");
+    }
+
+    public String getBuildJobProgressReporter() {
+        return getOptional("kylin.engine.spark.build-job-progress-reporter",
+                "io.kyligence.kap.engine.spark.job.RestfulJobProgressReport");
+    }
+
+    public String getBuildJobEnviromentAdaptor() {
+        return getOptional("kylin.engine.spark.build-job-enviroment-adaptor",
+                "io.kyligence.kap.engine.spark.job.DefaultEnviromentAdaptor");
     }
 
     public boolean useDynamicS3RoleCredentialInTable() {

@@ -98,7 +98,12 @@ public class AsyncQueryJobTest extends NLocalFileMetadataTestCase {
                 protected ExecuteResult runSparkSubmit(String hadoopConf, String kylinJobJar, String appArgs) {
                     Assert.assertEquals(BUILD_HADOOP_CONF_VALUE, hadoopConf);
                     Assert.assertTrue(appArgs.contains(ASYNC_QUERY_CLASS));
-                    String cmd = generateSparkCmd(hadoopConf, kylinJobJar, appArgs);
+
+                    val desc = this.getSparkAppDesc();
+                    desc.setHadoopConfDir(hadoopConf);
+                    desc.setKylinJobJar(kylinJobJar);
+                    desc.setAppArgs(appArgs);
+                    String cmd = (String) this.sparkJobHandler.generateSparkCmd(getConfig(), desc);
                     return ExecuteResult.createSucceed(cmd);
                 }
             };
@@ -112,7 +117,11 @@ public class AsyncQueryJobTest extends NLocalFileMetadataTestCase {
                 protected ExecuteResult runSparkSubmit(String hadoopConf, String kylinJobJar, String appArgs) {
                     Assert.assertEquals(ASYNC_HADOOP_CONF_VALUE, hadoopConf);
                     Assert.assertTrue(appArgs.contains(ASYNC_QUERY_CLASS));
-                    String cmd = generateSparkCmd(hadoopConf, kylinJobJar, appArgs);
+                    val desc = this.getSparkAppDesc();
+                    desc.setHadoopConfDir(hadoopConf);
+                    desc.setKylinJobJar(kylinJobJar);
+                    desc.setAppArgs(appArgs);
+                    String cmd = (String) this.sparkJobHandler.generateSparkCmd(getConfig(), desc);
                     return ExecuteResult.createSucceed(cmd);
                 }
             };
@@ -137,7 +146,11 @@ public class AsyncQueryJobTest extends NLocalFileMetadataTestCase {
             protected ExecuteResult runSparkSubmit(String hadoopConf, String jars, String kylinJobJar, String appArgs) {
                 Assert.assertEquals(ASYNC_HADOOP_CONF_VALUE, hadoopConf);
                 Assert.assertTrue(appArgs.contains(ASYNC_QUERY_CLASS));
-                generateSparkCmd(hadoopConf, kylinJobJar, appArgs);
+                val desc = this.getSparkAppDesc();
+                desc.setHadoopConfDir(hadoopConf);
+                desc.setKylinJobJar(kylinJobJar);
+                desc.setAppArgs(appArgs);
+                String cmd = (String) this.sparkJobHandler.generateSparkCmd(getConfig(), desc);
                 return ExecuteResult.createSucceed(appArgs
                         .substring(appArgs.lastIndexOf("file:") + "file:".length(), appArgs.lastIndexOf("/")).trim());
             }
@@ -240,7 +253,11 @@ public class AsyncQueryJobTest extends NLocalFileMetadataTestCase {
                 protected ExecuteResult runSparkSubmit(String hadoopConf, String kylinJobJar, String appArgs) {
                     Assert.assertEquals(ASYNC_HADOOP_CONF_VALUE, hadoopConf);
                     Assert.assertTrue(appArgs.contains(ASYNC_QUERY_CLASS));
-                    generateSparkCmd(hadoopConf, kylinJobJar, appArgs);
+                    val desc = this.getSparkAppDesc();
+                    desc.setHadoopConfDir(hadoopConf);
+                    desc.setKylinJobJar(kylinJobJar);
+                    desc.setAppArgs(appArgs);
+                    String cmd = (String) this.sparkJobHandler.generateSparkCmd(getConfig(), desc);
                     return ExecuteResult.createSucceed(
                             appArgs.substring(appArgs.lastIndexOf("file:") + "file:".length(), appArgs.lastIndexOf("/"))
                                     .trim());
@@ -266,7 +283,11 @@ public class AsyncQueryJobTest extends NLocalFileMetadataTestCase {
                 protected ExecuteResult runSparkSubmit(String hadoopConf, String kylinJobJar, String appArgs) {
                     Assert.assertEquals(ASYNC_HADOOP_CONF_VALUE, hadoopConf);
                     Assert.assertTrue(appArgs.contains(ASYNC_QUERY_CLASS));
-                    String cmd = generateSparkCmd(hadoopConf, kylinJobJar, appArgs);
+                    val desc = this.getSparkAppDesc();
+                    desc.setHadoopConfDir(hadoopConf);
+                    desc.setKylinJobJar(kylinJobJar);
+                    desc.setAppArgs(appArgs);
+                    String cmd = (String) this.sparkJobHandler.generateSparkCmd(getConfig(), desc);
                     return ExecuteResult.createSucceed(cmd);
                 }
             };

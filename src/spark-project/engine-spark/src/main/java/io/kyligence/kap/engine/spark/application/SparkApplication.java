@@ -55,6 +55,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.Application;
+import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.TimeZoneUtils;
@@ -82,6 +83,8 @@ import io.kyligence.kap.cluster.IClusterManager;
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.engine.spark.job.BuildJobInfos;
+import io.kyligence.kap.engine.spark.job.EnviromentAdaptor;
+import io.kyligence.kap.engine.spark.job.IJobProgressReport;
 import io.kyligence.kap.engine.spark.job.KylinBuildEnv;
 import io.kyligence.kap.engine.spark.job.LogJobInfoUtils;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
@@ -105,6 +108,7 @@ public abstract class SparkApplication implements Application {
     private static final Logger logger = LoggerFactory.getLogger(SparkApplication.class);
     private Map<String, String> params = Maps.newHashMap();
     public static final String JOB_NAME_PREFIX = "job_step_";
+    public IJobProgressReport report;
 
     protected volatile KylinConfig config;
     protected volatile String jobId;
@@ -179,18 +183,6 @@ public abstract class SparkApplication implements Application {
         return sparkSession;
     }
 
-    /**
-     * http request the spark job controller
-     *
-     * @param json
-     */
-    public Boolean updateSparkJobInfo(String url, String json) {
-        if (config.isUTEnv()) {
-            return true;
-        }
-        return true;
-    }
-
     public String readArgsFromHDFS() {
         val fs = HadoopUtil.getFileSystem(path);
         String argsLine = null;
@@ -212,34 +204,6 @@ public abstract class SparkApplication implements Application {
      */
     public String getTrackingUrl(IClusterManager clusterManager, SparkSession sparkSession) {
         return clusterManager.getBuildTrackingUrl(sparkSession);
-    }
-
-    /**
-     * when
-     * update spark job extra info, link yarn_application_tracking_url & yarn_application_id
-     */
-    public Boolean updateSparkJobExtraInfo(String url, String project, String jobId, Map<String, String> extraInfo) {
-        Map<String, String> payload = new HashMap<>(5);
-        payload.put("project", project);
-        payload.put("job_id", jobId);
-        payload.put("task_id", System.getProperty("spark.driver.param.taskId", jobId));
-        payload.putAll(extraInfo);
-
-        try {
-            String payloadJson = JsonUtil.writeValueAsString(payload);
-            int retry = 3;
-            for (int i = 0; i < retry; i++) {
-                if (updateSparkJobInfo(url, payloadJson)) {
-                    return Boolean.TRUE;
-                }
-                Thread.sleep(3000);
-                logger.warn("retry request rest api update spark extra job info");
-            }
-        } catch (Exception e) {
-            logger.error("update spark job extra info failed!", e);
-        }
-
-        return Boolean.FALSE;
     }
 
     private String tryReplaceHostAddress(String url) {
@@ -291,6 +255,7 @@ public abstract class SparkApplication implements Application {
         try (KylinConfig.SetAndUnsetThreadLocalConfig autoCloseConfig = KylinConfig
                 .setAndUnsetThreadLocalConfig(KylinConfig.loadKylinConfigFromHdfs(hdfsMetalUrl))) {
             config = autoCloseConfig.get();
+            report = (IJobProgressReport) ClassUtil.newInstance(config.getBuildJobProgressReporter());
             //// KylinBuildEnv
             final KylinBuildEnv buildEnv = KylinBuildEnv.getOrCreate(config);
             atomicBuildEnv.set(buildEnv);
@@ -316,6 +281,9 @@ public abstract class SparkApplication implements Application {
 
             /// backwards compatibility
             ss = getSparkSession();
+            EnviromentAdaptor adaptor = (EnviromentAdaptor) ClassUtil
+                    .newInstance(config.getBuildJobEnviromentAdaptor());
+            adaptor.prepareEnviroment(ss, params);
 
             if (config.useDynamicS3RoleCredentialInTable()) {
                 val tableMetadataManager = NTableMetadataManager.getInstance(config, project);
@@ -480,7 +448,8 @@ public abstract class SparkApplication implements Application {
             Map<String, String> extraInfo = new HashMap<>();
             extraInfo.put("yarn_job_wait_time", ((Long) KylinBuildEnv.get().buildJobInfos().waitTime()).toString());
             extraInfo.put("yarn_job_run_time", ((Long) KylinBuildEnv.get().buildJobInfos().buildTime()).toString());
-            updateSparkJobExtraInfo("/kylin/api/jobs/wait_and_run_time", project, jobId, extraInfo);
+            report.updateSparkJobExtraInfo(KylinConfig.getInstanceFromEnv(), "/kylin/api/jobs/wait_and_run_time",
+                    project, jobId, extraInfo);
         } catch (Exception e) {
             logger.warn("Error occurred when generate job info.", e);
         }
@@ -567,7 +536,7 @@ public abstract class SparkApplication implements Application {
 
         sparkSession = createSpark(sparkConf);
         if (!config.isUTEnv() && !sparkConf.get("spark.master").startsWith("k8s")) {
-            updateSparkJobExtraInfo("/kylin/api/jobs/spark", project, jobId,
+            report.updateSparkJobExtraInfo(KylinConfig.getInstanceFromEnv(), "/kylin/api/jobs/spark", project, jobId,
                     getTrackingInfo(sparkSession, config.isTrackingUrlIpAddressEnabled()));
         }
 

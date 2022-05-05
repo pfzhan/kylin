@@ -24,20 +24,22 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import io.kyligence.kap.common.persistence.metadata.MetadataStore;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
-import io.kyligence.kap.engine.spark.merger.MetadataMerger;
-import io.kyligence.kap.metadata.cube.model.NBatchConstants;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import lombok.val;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Properties;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
@@ -68,23 +70,21 @@ import org.apache.parquet.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Properties;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.common.persistence.metadata.MetadataStore;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
+import io.kyligence.kap.engine.spark.merger.MetadataMerger;
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.val;
 
 /**
  *
@@ -107,7 +107,6 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
     private static final String COMMA = ",";
     private static final String COLON = ":";
     private static final String EMPTY = "";
-    private static final String EQUALS = "=";
     private static final String SPACE = " ";
     private static final String SUBMIT_LINE_FORMAT = " \\\n";
 
@@ -140,7 +139,8 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
 
     protected void initHandler() {
         logger.info("Handler class name:" + KylinConfig.getInstanceFromEnv().getSparkBuildJobHandlerClassName());
-        sparkJobHandler = (ISparkJobHandler) ClassUtil.newInstance(KylinConfig.getInstanceFromEnv().getSparkBuildJobHandlerClassName());
+        sparkJobHandler = (ISparkJobHandler) ClassUtil
+                .newInstance(KylinConfig.getInstanceFromEnv().getSparkBuildJobHandlerClassName());
     }
 
     @Override
@@ -259,6 +259,8 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
                 return 0;
             }, context.getEpochId(), project);
         }
+
+        sparkJobHandler.prepareEnviroment(project, jobId, getParams());
 
         String argsPath = createArgsFileOnHDFS(config, jobId);
         if (config.isUTEnv()) {
@@ -379,19 +381,39 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
         return KylinConfigExt.createInstance(kylinConfigExt, jobOverrides);
     }
 
+    public SparkAppDescription getSparkAppDesc() {
+        val desc = new SparkAppDescription();
+
+        val conf = getConfig();
+        desc.setJobNamePrefix(getJobNamePrefix());
+        desc.setProject(getProject());
+        desc.setJobId(getId());
+        desc.setStepId(getStepId());
+        desc.setSparkSubmitClassName(getSparkSubmitClassName());
+
+        val sparkConf = getSparkConf(conf);
+        desc.setSparkConf(sparkConf);
+        desc.setCOMMA(COMMA);
+        desc.setSparkJars(getSparkJars(conf, sparkConf));
+        desc.setSparkFiles(getSparkFiles(conf, sparkConf));
+        return desc;
+    }
+
     protected ExecuteResult runSparkSubmit(String hadoopConfDir, String kylinJobJar, String appArgs) {
         val patternedLogger = new BufferedLogger(logger);
         killOrphanApplicationIfExists(getId());
         try {
             Object cmd;
-            if (sparkJobHandler instanceof DefaultSparkBuildJobHandler) {
-                cmd = generateSparkCmd(hadoopConfDir, kylinJobJar, appArgs);
-            } else {
-                cmd = sparkJobHandler.generateSparkCmd(kylinJobJar, appArgs, getJobNamePrefix(), getProject(), getId(),
-                        getStepId(), getSparkSubmitClassName(), getSparkConfigOverride(getConfig()));
-            }
+            val desc = getSparkAppDesc();
+            desc.setHadoopConfDir(hadoopConfDir);
+            desc.setKylinJobJar(kylinJobJar);
+            desc.setAppArgs(appArgs);
 
-            String output = sparkJobHandler.runSparkSubmit(cmd, patternedLogger, getParentId(), getProject(), getStatus());
+            cmd = sparkJobHandler.generateSparkCmd(getConfig(), desc);
+
+            String output = sparkJobHandler.runSparkSubmit(cmd, patternedLogger, getParentId(), getProject(),
+                    getStatus());
+
             return ExecuteResult.createSucceed(output);
         } catch (Exception e) {
             wrapWithExecuteExceptionUpdateJobError(e);
@@ -416,70 +438,10 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
         return confMap;
     }
 
-    protected String generateSparkCmd(String hadoopConfDir, String kylinJobJar, String appArgs) {
-        // Hadoop conf dir.
-        StringBuilder cmdBuilder = new StringBuilder("export HADOOP_CONF_DIR=");
-        cmdBuilder.append(hadoopConfDir);
-        cmdBuilder.append(SPACE).append("&&");
-
-        // Spark submit.
-        cmdBuilder.append(SPACE).append(KylinConfigBase.getSparkHome()).append(File.separator);
-        cmdBuilder.append("bin/spark-submit");
-        cmdBuilder.append(SUBMIT_LINE_FORMAT);
-
-        // Application main class.
-        cmdBuilder.append(SPACE).append("--class");
-        cmdBuilder.append(SPACE).append("io.kyligence.kap.engine.spark.application.SparkEntry");
-        cmdBuilder.append(SUBMIT_LINE_FORMAT);
-
-        // Application name.
-        cmdBuilder.append(SPACE).append("--name");
-        cmdBuilder.append(SPACE).append(getJobNamePrefix()).append(getId());
-        cmdBuilder.append(SUBMIT_LINE_FORMAT);
-
-        final KylinConfig kylinConf = getConfig();
-        // Read only mappings.
-        final Map<String, String> sparkConf = getSparkConf(kylinConf);
-
-        // Spark jars.
-        cmdBuilder.append(SPACE).append("--jars");
-        //TODO 会有多个jar吗
-        cmdBuilder.append(SPACE).append(String.join(COMMA, getSparkJars(kylinConf, sparkConf)));
-        cmdBuilder.append(SUBMIT_LINE_FORMAT);
-
-        //TODO 不要了
-        // Log4j config files.
-        cmdBuilder.append(SPACE).append("--files");
-        cmdBuilder.append(SPACE).append(String.join(COMMA, getSparkFiles(kylinConf, sparkConf)));
-        cmdBuilder.append(SUBMIT_LINE_FORMAT);
-
-        // Spark conf.
-        // Maybe we would rewrite some confs, like 'extraJavaOptions', 'extraClassPath',
-        // and the confs rewrited should be removed from props thru #modifyDump.
-        wrapSparkConf(cmdBuilder, sparkConf);
-
-        // Application jar. KylinJobJar is the application-jar (of spark-submit),
-        // path to a bundled jar including your application and all dependencies,
-        // The URL must be globally visible inside of your cluster,
-        // for instance, an hdfs:// path or a file:// path that is present on all nodes.
-        cmdBuilder.append(SPACE).append(kylinJobJar);
-        cmdBuilder.append(SUBMIT_LINE_FORMAT);
-
-        // Application parameter file.
-        cmdBuilder.append(SPACE).append(appArgs);
-
-        final String command = cmdBuilder.toString();
-        logger.info("spark submit cmd: {}", command);
-
-        // Safe check.
-        checkCommandInjection(command);
-        return command;
-    }
-
     private ExecuteResult runLocalMode(String appArgs) {
         try {
             Class<?> appClz = ClassUtil.forName(getSparkSubmitClassName(), Object.class);
-            appClz.getMethod("main", String[].class).invoke(appClz.newInstance(), (Object) new String[]{appArgs});
+            appClz.getMethod("main", String[].class).invoke(appClz.newInstance(), (Object) new String[] { appArgs });
             return ExecuteResult.createSucceed();
         } catch (Exception e) {
             return ExecuteResult.createError(e);
@@ -510,13 +472,12 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
         props.setProperty("kylin.metadata.url", metaDumpUrl);
         modifyDump(props);
 
-
         if (kylinPropsOnly) {
             ResourceStore.dumpKylinProps(tmpDir, props);
         } else {
             // The way of Updating metadata is CopyOnWrite. So it is safe to use Reference in the value.
             Map<String, RawResource> dumpMap = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(
-                    UnitOfWorkParams.<Map>builder().readonly(true).unitName(getProject()).processor(() -> {
+                    UnitOfWorkParams.<Map> builder().readonly(true).unitName(getProject()).processor(() -> {
                         Map<String, RawResource> retMap = Maps.newHashMap();
                         for (String resPath : getMetadataDumpList(config)) {
                             ResourceStore resourceStore = ResourceStore.getKylinMetaStore(config);
@@ -672,24 +633,6 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
         return stagesMap;
     }
 
-    private void wrapSparkConf(StringBuilder cmdBuilder, Map<String, String> sparkConf) {
-        for (Map.Entry<String, String> entry : sparkConf.entrySet()) {
-            switch (entry.getKey()) {
-                // Avoid duplicated from '--jars'
-                // Avoid duplicated from '--files'
-                case SPARK_JARS_1:
-                case SPARK_JARS_2:
-                case SPARK_FILES_1:
-                case SPARK_FILES_2:
-                    // Do nothing.
-                    break;
-                default:
-                    appendSparkConf(cmdBuilder, entry.getKey(), entry.getValue());
-                    break;
-            }
-        }
-    }
-
     private boolean isClusterMode(Map<String, String> sparkConf) {
         return CLUSTER_MODE.equals(sparkConf.get(DEPLOY_MODE));
     }
@@ -705,7 +648,6 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
         //以下4方法全部重写，可以基本解决问题
         //TODO 重写，在这里就把serverless用不着的东西去不抛掉
         Map<String, String> sparkConf = getSparkConfigOverride(kylinConf);
-
 
         // Rewrite kerberos conf.
         rewriteKerberosConf(kapConf, sparkConf);
@@ -725,7 +667,7 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
     }
 
     private void rewriteDriverExtraJavaOptions(KylinConfig kylinConf, KapConfig kapConf, //
-                                               Map<String, String> sparkConf) {
+            Map<String, String> sparkConf) {
         StringBuilder sb = new StringBuilder();
         if (sparkConf.containsKey(DRIVER_EXTRA_JAVA_OPTIONS)) {
             sb.append(sparkConf.get(DRIVER_EXTRA_JAVA_OPTIONS));
@@ -876,12 +818,6 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
         }
     }
 
-    protected void appendSparkConf(StringBuilder sb, String confKey, String confValue) {
-        // Multiple parameters in "--conf" need to be enclosed in single quotes
-        sb.append(" --conf '").append(confKey).append(EQUALS).append(confValue).append("' ");
-        sb.append(SUBMIT_LINE_FORMAT);
-    }
-
     private Set<String> getSparkJars(KylinConfig kylinConf, Map<String, String> sparkConf) {
         Set<String> jarPaths = Sets.newLinkedHashSet();
         // Client mode, application jar (kylinJobJar here) wouldn't ln as '__app__.jar'.
@@ -919,23 +855,4 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
         return Collections.unmodifiableSet(sparkFiles);
     }
 
-    private void checkCommandInjection(String command) {
-        if (Objects.isNull(command)) {
-            return;
-        }
-        List<String> illegals = Lists.newArrayList();
-        Matcher matcher = Pattern.compile("(`.*?`)|(\\$\\(.*?\\))").matcher(command);
-        while (matcher.find()) {
-            illegals.add(matcher.group());
-        }
-
-        if (illegals.isEmpty()) {
-            return;
-        }
-
-        String msg = String.format("Not allowed to specify injected command through "
-                + "java options (like: %s). Vulnerabilities would allow attackers to trigger "
-                + "such a crash or crippling of the service.", String.join(", ", illegals));
-        throw new IllegalArgumentException(msg);
-    }
 }

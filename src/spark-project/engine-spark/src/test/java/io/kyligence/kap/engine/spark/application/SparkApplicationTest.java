@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.engine.spark.application;
 
+import io.kyligence.kap.engine.spark.job.RestfulJobProgressReport;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
@@ -96,6 +97,9 @@ public class SparkApplicationTest extends NLocalWithSparkSessionTest {
     @Test
     public void testUpdateSparkJobExtraInfo() throws Exception {
         overwriteSystemProp("spark.driver.param.taskId", "cb91189b-2b12-4527-aa35-0130e7d54ec0_01");
+
+        RestfulJobProgressReport report = Mockito.spy(new RestfulJobProgressReport());
+
         SparkApplication application = Mockito.spy(new SparkApplication() {
             @Override
             protected void doExecute() throws Exception {
@@ -118,21 +122,24 @@ public class SparkApplicationTest extends NLocalWithSparkSessionTest {
         extraInfo.put("yarn_app_url", "http://sandbox.hortonworks.com:8088/proxy/application_1561370224051_0160/");
 
         String payloadJson = JsonUtil.writeValueAsString(payload);
-        Mockito.doReturn(Boolean.TRUE).when(application).updateSparkJobInfo("/kylin/api/jobs/spark", payloadJson);
+        Mockito.doReturn(Boolean.TRUE).when(report).updateSparkJobInfo(getTestConfig(), "/kylin/api/jobs/spark",
+                payloadJson);
 
-        Assert.assertTrue(application.updateSparkJobExtraInfo("/kylin/api/jobs/spark", "test_job_output",
+        Assert.assertTrue(report.updateSparkJobExtraInfo(getTestConfig(), "/kylin/api/jobs/spark", "test_job_output",
                 "cb91189b-2b12-4527-aa35-0130e7d54ec0", extraInfo));
 
-        Mockito.verify(application).updateSparkJobInfo("/kylin/api/jobs/spark", payloadJson);
+        Mockito.verify(report).updateSparkJobInfo(getTestConfig(), "/kylin/api/jobs/spark", payloadJson);
 
         Mockito.reset(application);
         Mockito.doReturn("http://sandbox.hortonworks.com:8088/proxy/application_1561370224051_0160/").when(application)
                 .getTrackingUrl(null, ss);
-        Mockito.doReturn(Boolean.FALSE).when(application).updateSparkJobInfo("/kylin/api/jobs/spark", payloadJson);
-        Assert.assertFalse(application.updateSparkJobExtraInfo("/kylin/api/jobs/spark", "test_job_output",
+        Mockito.doReturn(Boolean.FALSE).when(report).updateSparkJobInfo(getTestConfig(), "/kylin/api/jobs/spark",
+                payloadJson);
+        Assert.assertFalse(report.updateSparkJobExtraInfo(getTestConfig(), "/kylin/api/jobs/spark", "test_job_output",
                 "cb91189b-2b12-4527-aa35-0130e7d54ec0", extraInfo));
 
-        Mockito.verify(application, Mockito.times(3)).updateSparkJobInfo("/kylin/api/jobs/spark", payloadJson);
+        Mockito.verify(report, Mockito.times(3)).updateSparkJobInfo(getTestConfig(), "/kylin/api/jobs/spark",
+                payloadJson);
     }
 
     @Test

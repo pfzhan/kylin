@@ -184,6 +184,8 @@ class YarnClusterManager extends IClusterManager with Logging {
       queueNames
     })
   }
+
+  override def fetchContainerLimit(): ContainerLimit = ???
 }
 
 object YarnClusterManager {

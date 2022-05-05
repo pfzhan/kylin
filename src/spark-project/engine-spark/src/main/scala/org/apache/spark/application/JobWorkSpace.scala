@@ -28,6 +28,7 @@ import io.kyligence.kap.engine.spark.job.KylinBuildEnv
 import io.kyligence.kap.engine.spark.scheduler._
 import org.apache.commons.lang.StringUtils
 import org.apache.commons.lang3.exception.ExceptionUtils
+import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.common.util.JsonUtil
 import org.apache.spark.internal.Logging
 import org.apache.spark.scheduler.KylinJobEventLoop
@@ -148,7 +149,6 @@ class JobWorkSpace(eventLoop: KylinJobEventLoop, monitor: JobMonitor, worker: Jo
     payload.put("failed_stack", failedStack)
     payload.put("failed_reason", failedReason)
     val json = JsonUtil.writeValueAsString(payload)
-
-    context.updateSparkJobInfo(url, json)
+    context.report.updateSparkJobInfo(KylinConfig.getInstanceFromEnv, url, json);
   }
 }

@@ -21,35 +21,12 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package io.kyligence.kap.engine.spark.job;
 
 import java.util.Map;
-import java.util.Properties;
-
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.BufferedLogger;
-import org.apache.kylin.job.exception.ExecuteException;
-import org.apache.kylin.job.execution.ExecutableState;
 
-public interface ISparkJobHandler {
-
-    void killOrphanApplicationIfExists(String jobStepId, KylinConfig config, Map<String, String> sparkConf);
-
-    void checkApplicationJar(KylinConfig config, String path) throws ExecuteException;
-
-    String createArgsFileOnRemoteFileSystem(KylinConfig config, String project, String jobId,
-            Map<String, String> params) throws ExecuteException;
-
-    Object generateSparkCmd(KylinConfig config, SparkAppDescription desc);
-
-    default void modifyDump(Properties props) {
-    }
-
-    default void prepareEnviroment(String project, String jobStepId, Map<String, String> params) {
-    }
-
-    String runSparkSubmit(Object cmd, BufferedLogger patternedLogger, String parentId, String project,
-            ExecutableState status) throws ExecuteException;
-
+public interface IJobProgressReport {
+    Boolean updateSparkJobInfo(KylinConfig config, String url, String json);
+    Boolean updateSparkJobExtraInfo(KylinConfig config, String url, String project, String jobId, Map<String, String> extraInfo);
 }

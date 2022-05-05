@@ -92,7 +92,11 @@ public class AsyncQueryJob extends NSparkExecutable {
 
         try {
             killOrphanApplicationIfExists(getId());
-            String cmd = generateSparkCmd(hadoopConf, kylinJobJar, appArgs);
+            val desc = getSparkAppDesc();
+            desc.setHadoopConfDir(hadoopConf);
+            desc.setKylinJobJar(kylinJobJar);
+            desc.setAppArgs(appArgs);
+            String cmd = (String) sparkJobHandler.generateSparkCmd(KylinConfig.getInstanceFromEnv(), desc);
             CliCommandExecutor exec = new CliCommandExecutor();
             CliCommandExecutor.CliCmdExecResult r = exec.execute(cmd, patternedLogger, getId());
             return ExecuteResult.createSucceed(r.getCmd());

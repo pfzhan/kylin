@@ -24,6 +24,7 @@
 package io.kyligence.kap.streaming.util;
 
 import io.kyligence.kap.cluster.AvailableResource;
+import io.kyligence.kap.cluster.ContainerLimit;
 import io.kyligence.kap.cluster.IClusterManager;
 import io.kyligence.kap.cluster.ResourceInfo;
 import org.apache.spark.sql.SparkSession;
@@ -76,5 +77,10 @@ public class MockClusterManager implements IClusterManager {
     @Override
     public boolean applicationExisted(String jobId) {
         return false;
+    }
+
+    @Override
+    public ContainerLimit fetchContainerLimit() {
+        return null;
     }
 }

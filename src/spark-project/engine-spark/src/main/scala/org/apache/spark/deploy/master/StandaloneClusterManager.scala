@@ -23,8 +23,7 @@
 package org.apache.spark.deploy.master
 
 import java.util
-
-import io.kyligence.kap.cluster.{AvailableResource, IClusterManager, ResourceInfo}
+import io.kyligence.kap.cluster.{AvailableResource, ContainerLimit, IClusterManager, ResourceInfo}
 import org.apache.kylin.common.KylinConfig
 import org.apache.spark.deploy.DeployMessages.{KillApplication, MasterStateResponse, RequestMasterState}
 import org.apache.spark.deploy.master.StandaloneClusterManager.masterEndpoints
@@ -123,6 +122,8 @@ class StandaloneClusterManager extends IClusterManager with Logging {
       true
     }
   }
+
+  override def fetchContainerLimit(): ContainerLimit = ???
 }
 
 object StandaloneClusterManager extends Logging {
