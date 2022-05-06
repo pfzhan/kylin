@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.query.QueryHistorySql;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDaoTest;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -939,5 +940,20 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("streaming_test", queryHistories.get(0).getNativeQueryRealizations().get(0).getModelAlias());
         Assert.assertEquals("streaming_test", queryHistories.get(0).getNativeQueryRealizations().get(1).getModelAlias());
         Assert.assertEquals("batch", queryHistories.get(1).getNativeQueryRealizations().get(0).getModelAlias());
+    }
+
+    @Test
+    public void testGetQueryHistorySql() {
+        QueryHistory qh = new QueryHistory();
+
+        qh.setSql("select * from table1");
+        QueryHistorySql qhs = qh.getQueryHistorySql();
+        assertEquals("select * from table1", qhs.getSql());
+        assertEquals("select * from table1", qhs.getNormalizedSql());
+
+        qh.setSql("{\"sql\": \"select * from table1 -- comment\", \"normalized_sql\": \"select * from table1\"}");
+        qhs = qh.getQueryHistorySql();
+        assertEquals("select * from table1 -- comment", qhs.getSql());
+        assertEquals("select * from table1", qhs.getNormalizedSql());
     }
 }

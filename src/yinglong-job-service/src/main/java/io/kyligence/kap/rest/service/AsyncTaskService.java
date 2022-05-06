@@ -39,6 +39,7 @@ import java.util.stream.Collectors;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
 
+import io.kyligence.kap.metadata.query.QueryHistorySql;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -115,7 +116,9 @@ public class AsyncTaskService implements AsyncTaskServiceSupporter {
             for (QueryHistory queryHistory : queryHistories) {
                 fillingModelAlias(kylinConfig, request.getProject(), queryHistory);
                 if (onlySql) {
-                    outputStream.write((queryHistory.getSql().replaceAll("\n|\r", " ") + ";\n").getBytes(StandardCharsets.UTF_8));
+                    QueryHistorySql queryHistorySql = queryHistory.getQueryHistorySql();
+                    String sql = queryHistorySql.getNormalizedSql();
+                    outputStream.write((sql.replaceAll("\n|\r", " ") + ";\n").getBytes(StandardCharsets.UTF_8));
                 } else {
                     outputStream.write((QueryHistoryUtil.getDownloadData(queryHistory, zoneOffset, timeZoneOffsetHour) + "\n").getBytes(StandardCharsets.UTF_8));
                 }

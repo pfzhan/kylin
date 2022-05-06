@@ -379,7 +379,8 @@ public class NQueryController extends NBasicController {
                 latencyTo, sql, server, submitter, null, null, queryStatus, realizations, false, null, true);
         checkGetQueryHistoriesParam(request);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
-                queryHistoryService.getQueryHistories(request, limit, offset), "");
+                QueryHisTransformStandardUtil.transformQueryHistorySqlForDisplay(
+                        queryHistoryService.getQueryHistories(request, limit, offset)), "");
     }
 
     @ApiOperation(value = "getQueryHistories", tags = { "QE" }, notes = "Update Param: start_time_from, start_time_to")
