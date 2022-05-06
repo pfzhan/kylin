@@ -114,6 +114,14 @@ function upgrade() {
         fi
     fi
 
+    if [ -d ${NEW_KYLIN_HOME}/logs ]; then
+        local_file_num=`ls ${NEW_KYLIN_HOME}/logs|wc -l`
+        if [ $local_file_num -gt 0 ]; then
+          error "Update failed! Please check if the install package path is the latest version, or delete logs folder."
+          exit 1
+        fi
+    fi
+
     echo `date '+%Y-%m-%d %H:%M:%S '`"INFO : [Operation: upgrade] user:`whoami`, upgrade time:${START_TIME}" >> ${NEW_KYLIN_HOME}/logs/security.log
     origin_version=$(awk '{print $NF}' ${OLD_KYLIN_HOME}/VERSION)
     target_version=$(awk '{print $NF}' ${NEW_KYLIN_HOME}/VERSION)
