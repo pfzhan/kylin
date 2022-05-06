@@ -121,7 +121,7 @@ public class DictionaryBuilderHelper {
         return resizeBucketSize;
     }
 
-    private static Set<TblColRef> findNeedDictCols(List<LayoutEntity> layouts) {
+    protected static Set<TblColRef> findNeedDictCols(List<LayoutEntity> layouts) {
         Set<TblColRef> dictColSet = Sets.newHashSet();
         for (LayoutEntity layout : layouts) {
             for (MeasureDesc measureDesc : layout.getIndex().getEffectiveMeasures().values()) {
