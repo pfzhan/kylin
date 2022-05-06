@@ -949,6 +949,14 @@ public class KylinConfigBaseTest {
     }
 
     @Test
+    void testGetNonCustomProjectConfigs() {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        Assert.assertEquals(17, config.getNonCustomProjectConfigs().size());
+        config.setProperty("kylin.server.non-custom-project-configs", "kylin.job.retry");
+        Assert.assertEquals(18, config.getNonCustomProjectConfigs().size());
+    }
+
+    @Test
     public void test() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         Class<? extends KylinConfig> configClass = config.getClass();

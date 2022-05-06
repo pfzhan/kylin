@@ -3032,11 +3032,13 @@ public abstract class KylinConfigBase implements Serializable {
 
     public Set<String> getNonCustomProjectConfigs() {
         String configs = getOptional("kylin.server.non-custom-project-configs");
+        val projectConfigNameSet = NonCustomProjectLevelConfig.listAllConfigNames();
         if (StringUtils.isEmpty(configs)) {
-            return NonCustomProjectLevelConfig.listAllConfigNames();
-        } else {
-            return Sets.newHashSet(configs.split(","));
+            return projectConfigNameSet;
         }
+        val allConfigNameSet = Sets.newHashSet(configs.split(","));
+        allConfigNameSet.addAll(projectConfigNameSet);
+        return allConfigNameSet;
     }
 
     public String getDiagObfLevel() {

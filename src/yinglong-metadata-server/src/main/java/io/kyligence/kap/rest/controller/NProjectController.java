@@ -73,7 +73,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 
-import io.kyligence.kap.common.constant.NonCustomProjectLevelConfig;
 import io.kyligence.kap.common.util.FileUtils;
 import io.kyligence.kap.rest.request.ComputedColumnConfigRequest;
 import io.kyligence.kap.rest.request.DataSourceTypeRequest;
@@ -443,7 +442,7 @@ public class NProjectController extends NBasicController {
         if (MapUtils.isEmpty(request)) {
             throw new KylinException(EMPTY_PARAMETER, MsgPicker.getMsg().getConfigMapEmpty());
         }
-        if (!Collections.disjoint(request.keySet(), NonCustomProjectLevelConfig.listAllConfigNames())) {
+        if (!Collections.disjoint(request.keySet(), KylinConfig.getInstanceFromEnv().getNonCustomProjectConfigs())) {
             throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getConfigNotSupportEdit());
         }
         projectService.updateProjectConfig(project, request);
@@ -456,7 +455,7 @@ public class NProjectController extends NBasicController {
     public EnvelopeResponse<String> deleteProjectConfig(@RequestBody ProjectConfigRequest request) {
         checkProjectName(request.getProject());
         checkRequiredArg("config_name", request.getConfigName());
-        if (NonCustomProjectLevelConfig.listAllConfigNames().contains(request.getConfigName())) {
+        if (KylinConfig.getInstanceFromEnv().getNonCustomProjectConfigs().contains(request.getConfigName())) {
             throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getConfigNotSupportDelete());
         }
         projectService.deleteProjectConfig(request.getProject(), request.getConfigName());
