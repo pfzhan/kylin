@@ -130,6 +130,9 @@ public class SQLResponse implements Serializable {
     @JsonProperty("is_timeout")
     private boolean isTimeout;
 
+    @JsonProperty("is_refused")
+    private boolean isRefused;
+
     protected byte[] queryStatistics;
 
     protected String queryId;

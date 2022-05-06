@@ -87,6 +87,7 @@ import org.apache.kylin.common.QueryTrace;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.KylinTimeoutException;
+import org.apache.kylin.common.exception.NewQueryRefuseException;
 import org.apache.kylin.common.exception.ResourceLimitExceededException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -418,7 +419,8 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
                 .put(LogReport.USER_AGENT, request.getUserAgent())
                 .put(LogReport.BACK_DOOR_TOGGLES, request.getBackdoorToggles())
                 .put(LogReport.SCAN_SEGMENT_COUNT, QueryContext.current().getMetrics().getSegCount())
-                .put(LogReport.SCAN_FILE_COUNT, QueryContext.current().getMetrics().getFileCount());
+                .put(LogReport.SCAN_FILE_COUNT, QueryContext.current().getMetrics().getFileCount())
+                .put(LogReport.REFUSE, response.isRefused());
         String log = report.oldStyleLog();
         if (!(QueryContext.current().getQueryTagInfo().isAsyncQuery() && projectConfig.isUniqueAsyncQueryYarnQueue())) {
             logger.info(log);
@@ -738,6 +740,10 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
             queryContext.getMetrics().setQueryMsg(errMsg);
             queryContext.getQueryTagInfo().setPushdown(false);
 
+            if (e.getCause() != null && NewQueryRefuseException.causedByRefuse(e)) {
+                queryContext.getQueryTagInfo().setRefused(true);
+            }
+
             if (e.getCause() != null && KylinTimeoutException.causedByTimeout(e)) {
                 queryContext.getQueryTagInfo().setTimeout(true);
             }
@@ -749,7 +755,7 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
             }
 
             sqlResponse.wrapResultOfQueryContext(queryContext);
-
+            sqlResponse.setRefused(queryContext.getQueryTagInfo().isRefused());
             sqlResponse.setTimeout(queryContext.getQueryTagInfo().isTimeout());
 
             setAppMaterURL(sqlResponse);
@@ -1306,7 +1312,7 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
         if (!KylinConfig.getInstanceFromEnv().isUTEnv()) {
             try {
                 String executionID = QueryContext.current().getExecutionID();
-                if (!executionID.isEmpty()) {
+                if (executionID != null && !executionID.isEmpty()) {
                     response.setAppMasterURL(sparderUIUtil.getSQLTrackingPath(executionID));
                 }
             } catch (Throwable th) {
@@ -1405,6 +1411,7 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
         static final String BACK_DOOR_TOGGLES = "back_door_toggles";
         static final String SCAN_SEGMENT_COUNT = "scan_segment_count";
         static final String SCAN_FILE_COUNT = "scan_file_count";
+        static final String REFUSE = "refuse";
 
         static final ImmutableMap<String, String> O2N = new ImmutableMap.Builder<String, String>()
                 .put(QUERY_ID, "Query Id: ").put(SQL, "SQL: ").put(USER, "User: ").put(SUCCESS, "Success: ")
@@ -1421,7 +1428,7 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
                 .put(ERROR_MSG, "Message: ").put(USER_TAG, "User Defined Tag: ")
                 .put(PUSH_DOWN_FORCED, "Is forced to Push-Down: ").put(USER_AGENT, "User Agent: ")
                 .put(BACK_DOOR_TOGGLES, "Back door toggles: ").put(SCAN_SEGMENT_COUNT, "Scan Segment Count: ")
-                .put(SCAN_FILE_COUNT, "Scan File Count: ").build();
+                .put(SCAN_FILE_COUNT, "Scan File Count: ").put(REFUSE, "Is Refused: ").build();
 
         private Map<String, Object> logs = new HashMap<>(100);
 
@@ -1483,6 +1490,7 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
                     + O2N.get(BACK_DOOR_TOGGLES) + get(BACK_DOOR_TOGGLES) + newLine //
                     + O2N.get(SCAN_SEGMENT_COUNT) + get(SCAN_SEGMENT_COUNT) + newLine //
                     + O2N.get(SCAN_FILE_COUNT) + get(SCAN_FILE_COUNT) + newLine //
+                    + O2N.get(REFUSE) + get(REFUSE) + newLine //
                     + delimiter + newLine;
         }
 

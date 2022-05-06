@@ -717,4 +717,13 @@ public class KapConfig {
     public int getSparkJobTraceParallelMax() {
         return Integer.parseInt(config.getOptional("kylin.query.spark-job-trace-parallel-max", "50"));
     }
+
+    public long getBigQuerySourceScanRowsThreshold() {
+        return Long.parseLong(config.getOptional("kylin.query.big-query-source-scan-rows-threshold", "100000000"));
+    }
+
+    public String getShareStateSwitchImplement() {
+        return config.getOptional("kylin.query.share-state-switch-implement", "close");
+    }
+
 }
