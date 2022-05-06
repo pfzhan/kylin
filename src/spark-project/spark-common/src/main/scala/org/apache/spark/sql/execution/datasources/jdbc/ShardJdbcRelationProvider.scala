@@ -32,8 +32,18 @@ class ShardJdbcRelationProvider extends JdbcRelationProvider {
   override def createRelation(
       sqlContext: SQLContext,
       parameters: Map[String, String]): BaseRelation = {
-    // super.createRelation(sqlContext, parameters)
-    ShardJDBCRelation(sqlContext.sparkSession, parameters)
+    val relation = super.createRelation(sqlContext, parameters)
+    assert(relation.isInstanceOf[JDBCRelation])
+    val jdbcRelation = relation.asInstanceOf[JDBCRelation]
+    val shards = ShardOptions.create(jdbcRelation.jdbcOptions)
+    val resolver = sqlContext.conf.resolver
+    val timeZoneId = sqlContext.conf.sessionLocalTimeZone
+    val parts = if (shards.shards.length == 1) {
+      JDBCRelation.columnPartition(jdbcRelation.schema, resolver, timeZoneId, jdbcRelation.jdbcOptions)
+    } else {
+      ShardJDBCUtil.shardPartition(shards)
+    }
+    jdbcRelation.copy(parts = parts)(jdbcRelation.sparkSession)
   }
 }
 

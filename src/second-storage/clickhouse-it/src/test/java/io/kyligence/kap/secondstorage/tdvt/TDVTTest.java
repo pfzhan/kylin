@@ -23,45 +23,7 @@
  */
 package io.kyligence.kap.secondstorage.tdvt;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import io.kyligence.kap.common.util.Unsafe;
-import io.kyligence.kap.engine.spark.IndexDataConstructor;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.secondstorage.test.utils.JobWaiter;
-import io.kyligence.kap.util.ExecAndComp;
-import io.kyligence.kap.newten.clickhouse.ClickHouseUtils;
-import io.kyligence.kap.secondstorage.SecondStorageUtil;
-import io.kyligence.kap.secondstorage.test.ClickHouseClassRule;
-import io.kyligence.kap.secondstorage.test.EnableClickHouseJob;
-import io.kyligence.kap.secondstorage.test.EnableTestUser;
-import io.kyligence.kap.secondstorage.test.SetTimeZone;
-import io.kyligence.kap.secondstorage.test.SharedSparkSession;
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
-import org.apache.commons.io.FileUtils;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.QueryContext;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.execution.HiveResult$;
-import org.apache.spark.sql.execution.datasource.FilePruner;
-import org.apache.spark.sql.execution.datasources.v2.jdbc.ShardJDBCScan;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.testcontainers.containers.JdbcDatabaseContainer;
-import scala.math.Ordering;
+import static io.kyligence.kap.clickhouse.ClickHouseConstants.CONFIG_CLICKHOUSE_QUERY_CATALOG;
 
 import java.io.File;
 import java.io.IOException;
@@ -77,7 +39,46 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static io.kyligence.kap.clickhouse.ClickHouseConstants.CONFIG_CLICKHOUSE_QUERY_CATALOG;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.secondstorage.test.utils.JobWaiter;
+import io.kyligence.kap.util.ExecAndComp;
+import lombok.extern.slf4j.Slf4j;
+import lombok.val;
+import org.apache.commons.io.FileUtils;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.QueryContext;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.execution.HiveResult$;
+import org.apache.spark.sql.execution.datasource.FilePruner;
+import org.apache.spark.sql.execution.datasources.v2.jdbc.JDBCScan;
+import org.junit.AfterClass;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Test;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.testcontainers.containers.JdbcDatabaseContainer;
+import scala.math.Ordering;
+
+import io.kyligence.kap.common.util.Unsafe;
+import io.kyligence.kap.engine.spark.IndexDataConstructor;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.newten.clickhouse.ClickHouseUtils;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
+import io.kyligence.kap.secondstorage.test.ClickHouseClassRule;
+import io.kyligence.kap.secondstorage.test.EnableClickHouseJob;
+import io.kyligence.kap.secondstorage.test.EnableTestUser;
+import io.kyligence.kap.secondstorage.test.SetTimeZone;
+import io.kyligence.kap.secondstorage.test.SharedSparkSession;
 
 @RunWith(Parameterized.class)
 @Slf4j
@@ -166,6 +167,15 @@ public class TDVTTest implements JobWaiter {
         sparkSession.sessionState().conf().setConfString(
                 "spark.sql.catalog." + queryCatalog + ".driver",
                 clickhouse.getDriverClassName());
+        sparkSession.sessionState().conf().setConfString(
+                "spark.sql.catalog." + queryCatalog + ".pushDownAggregate",
+                "true");
+        sparkSession.sessionState().conf().setConfString(
+                "spark.sql.catalog." + queryCatalog + ".pushDownLimit",
+                "true");
+        sparkSession.sessionState().conf().setConfString(
+                "spark.sql.catalog." + queryCatalog + ".numPartitions",
+                String.valueOf(clickhouseNumber));
     }
 
     @AfterClass
@@ -210,8 +220,8 @@ public class TDVTTest implements JobWaiter {
     private String runWithAggPushDown(String sqlStatement) throws Exception {
         QueryContext.current().setForceTableIndex(false);
         Dataset<Row> plan = ExecAndComp.queryModelWithoutCompute(project, sqlStatement);
-        ShardJDBCScan shardJDBCScan = ClickHouseUtils.findShardScan(plan.queryExecution().optimizedPlan());
-        Assert.assertNotNull(shardJDBCScan);
+        JDBCScan jdbcScan = ClickHouseUtils.findJDBCScan(plan.queryExecution().optimizedPlan());
+        Assert.assertNotNull(jdbcScan);
         QueryContext.reset();
         return computeResult(plan);
     }

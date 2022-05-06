@@ -24,12 +24,18 @@
 package io.kyligence.kap.query
 
 import org.apache.spark.sql.SparkSessionExtensions
-import org.apache.spark.sql.execution.datasources.v2.V2ScanRelationPushDown2
+import org.apache.spark.sql.execution.datasources.v2.{PostV2ScanRelationPushDown, PreV2ScanRelationPushDown, V2ScanRelationPushDown}
 
 class SQLPushDownExtensions extends Function1[SparkSessionExtensions, Unit] {
   override def apply(extensions: SparkSessionExtensions): Unit = {
     extensions.injectPreCBORule { _ =>
-      V2ScanRelationPushDown2
+      PreV2ScanRelationPushDown
+    }
+    extensions.injectPreCBORule { _ =>
+      V2ScanRelationPushDown
+    }
+    extensions.injectPreCBORule { _ =>
+      PostV2ScanRelationPushDown
     }
   }
 }

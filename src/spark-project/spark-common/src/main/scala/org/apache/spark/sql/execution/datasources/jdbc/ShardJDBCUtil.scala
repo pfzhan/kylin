@@ -21,11 +21,17 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.apache.spark.sql.execution.datasources.jdbc.v2
-import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
-import org.apache.spark.sql.catalyst.rules.Rule
-import org.apache.spark.sql.execution.datasources.v2.V2ScanRelationPushDown2
+package org.apache.spark.sql.execution.datasources.jdbc
 
-class PushDownOptimizeSuiteOneRule extends  AbstractPushDownOptimizeSuite  {
-  override def earlyScanPushDownRules: Seq[Rule[LogicalPlan]] = Nil
+import io.kyligence.kap.engine.spark.utils.LogEx
+import org.apache.spark.Partition
+
+object ShardJDBCUtil extends LogEx {
+  def shardPartition(shards: ShardOptions): Array[Partition] = {
+    require(shards.shards.length > 1)
+
+    Array.tabulate(shards.shards.length) { i =>
+      JDBCPartition(null, i)
+    }
+  }
 }
