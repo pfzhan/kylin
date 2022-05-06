@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.job.manager.ExecutableManager;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -92,7 +93,7 @@ public abstract class AbstractJobHandler {
         log.info("Job {} creates job {}", jobParam, job);
         String project = jobParam.getProject();
         val po = NExecutableManager.toPO(job, project);
-        NExecutableManager executableManager = getExecutableManager(project, kylinConfig);
+        ExecutableManager executableManager = getExecutableManager(project, kylinConfig);
         executableManager.addJob(po);
 
         if (job instanceof ChainedExecutable) {
@@ -168,7 +169,7 @@ public abstract class AbstractJobHandler {
         return false;
     }
 
-    protected NExecutableManager getExecutableManager(String project, KylinConfig config) {
-        return NExecutableManager.getInstance(config, project);
+    protected ExecutableManager getExecutableManager(String project, KylinConfig config) {
+        return ExecutableManager.getInstance(config, project);
     }
 }

@@ -52,7 +52,7 @@ import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.exception.JobSubmissionException;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.manager.JobManager;
+import io.kyligence.kap.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
