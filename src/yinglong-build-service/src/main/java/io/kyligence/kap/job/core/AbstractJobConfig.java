@@ -46,6 +46,10 @@ public abstract class AbstractJobConfig {
 
     public abstract void destroy();
 
+    public double getMaxLocalConsumptionRatio() {
+        return 0.5d;
+    }
+
     public int getJobSchedulerMasterPollBatchSize() {
         return 10;
     }

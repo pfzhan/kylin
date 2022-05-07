@@ -50,7 +50,7 @@ public interface JobInfoMapper {
 
     int updateByPrimaryKey(JobInfo row);
 
-    List<JobInfo> selectByStatusBatch(String status, int batchSize);
+    List<String> selectJobIdListByStatusBatch(String status, int batchSize);
 
     int updateJobStatus(String jobId, String status);
 

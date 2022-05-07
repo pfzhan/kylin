@@ -28,25 +28,27 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import javax.sql.DataSource;
 
 import org.apache.commons.lang3.time.DateUtils;
+import org.apache.kylin.job.execution.AbstractExecutable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Queues;
-
 import io.kyligence.kap.common.util.AddressUtil;
+import io.kyligence.kap.common.util.SystemInfoCollector;
 import io.kyligence.kap.engine.spark.utils.ThreadUtils;
 import io.kyligence.kap.job.DataLoadingManager;
 import io.kyligence.kap.job.core.AbstractJobConfig;
@@ -80,9 +82,10 @@ public class JdbcJobScheduler implements JobScheduler {
 
     private ScheduledExecutorService slaveScheduler;
 
-    private ThreadPoolExecutor consumerPool;
+    private AtomicReference<ThreadPoolExecutor> jobExecutorPoolRef;
 
-    private BlockingQueue<JobInfo> consumerQueue;
+    // MB
+    private AtomicReference<Semaphore> memorySemaphoreRef;
 
     public JdbcJobScheduler() {
         DataLoadingManager dataLoading = DataLoadingManager.getInstance();
@@ -93,20 +96,26 @@ public class JdbcJobScheduler implements JobScheduler {
     }
 
     public void start() {
-        standbyScheduler = ThreadUtils.newDaemonSingleThreadScheduledExecutor("JdbcJobScheduler-Standby-Singleton");
 
+        memorySemaphoreRef = new AtomicReference<>(new Semaphore(
+                (int) (jobConfig.getMaxLocalConsumptionRatio() * SystemInfoCollector.getAvailableMemoryInfo())));
+
+        // schedule job:  READY -> PENDING
         masterScheduler = ThreadUtils.newDaemonSingleThreadScheduledExecutor("JdbcJobScheduler-Master-Singleton");
 
+        // acquire JSM
+        standbyScheduler = ThreadUtils.newDaemonSingleThreadScheduledExecutor("JdbcJobScheduler-Standby-Singleton");
+
+        // pick job to run
         slaveScheduler = ThreadUtils.newDaemonSingleThreadScheduledExecutor("JdbcJobScheduler-Slave-Singleton");
 
-        consumerQueue = Queues.newLinkedBlockingQueue();
-        consumerPool = ThreadUtils.newDaemonScalableThreadPool("JdbcJobScheduler-Consumer", 1,
-                jobConfig.getJobSchedulerConsumerMaxThreads(), 5, TimeUnit.MINUTES);
+        // run job: PENDING -> RUNNING
+        jobExecutorPoolRef = new AtomicReference<>(ThreadUtils.newDaemonScalableThreadPool("JdbcJobScheduler-Executor",
+                1, jobConfig.getJobSchedulerConsumerMaxThreads(), 5, TimeUnit.MINUTES));
 
-        scheduleMaster();
         scheduleStandby();
-        scheduleProduceJob();
-        scheduleConsumeJob();
+        scheduleMaster();
+        scheduleSlave();
     }
 
     @Override
@@ -220,22 +229,21 @@ public class JdbcJobScheduler implements JobScheduler {
         // TODO enum job status
         final String readyStatus = "READY";
         int batchSize = jobConfig.getJobSchedulerMasterPollBatchSize();
-        List<JobInfo> readyJobList = jobInfoMapper.selectByStatusBatch(readyStatus, batchSize);
-        if (readyJobList.isEmpty()) {
+        List<String> readyJobIdList = jobInfoMapper.selectJobIdListByStatusBatch(readyStatus, batchSize);
+        if (readyJobIdList.isEmpty()) {
             scheduleMaster();
             return;
         }
 
-        String polledJobIdInfo = readyJobList.stream().map(JobInfo::getJobId)
-                .collect(Collectors.joining(",", "[", "]"));
-        logger.info("JdbcJobScheduler polled {} jobs: {}", readyJobList.size(), polledJobIdInfo);
+        String polledJobIdInfo = readyJobIdList.stream().collect(Collectors.joining(",", "[", "]"));
+        logger.info("JdbcJobScheduler polled {} jobs: {}", readyJobIdList.size(), polledJobIdInfo);
 
-        for (JobInfo jobInfo : readyJobList) {
+        for (String jobId : readyJobIdList) {
             // TODO insert if not exists
-            int r = scheduleLockMapper.insertLock(jobInfo.getJobId(), null, null);
+            int r = scheduleLockMapper.insertLock(jobId, null, null);
             if (r > 0) {
                 // TODO enum job status
-                jobInfoMapper.updateJobStatus(jobInfo.getJobId(), "PENDING");
+                jobInfoMapper.updateJobStatus(jobId, "PENDING");
             }
 
         }
@@ -244,14 +252,74 @@ public class JdbcJobScheduler implements JobScheduler {
         scheduleJob();
     }
 
-    private void scheduleProduceJob() {
+    private void scheduleSlave() {
+
+        int delay = jobConfig.getJobSchedulerProducerPollIntervalSec();
+
+        int batchSize = jobConfig.getJobSchedulerProducerPollBatchSize();
+        final Runnable produceJob = new Runnable() {
+            @Override
+            public void run() {
+
+                List<String> jobIdList = scheduleLockMapper.selectNonLockedIdList(batchSize).stream()
+                        .filter(id -> !JOB_SCHEDULER_MASTER.equals(id)).collect(Collectors.toList());
+
+                // shuffle jobs avoiding jobLock conflict
+                Collections.shuffle(jobIdList);
+
+                for (String jobId : jobIdList) {
+                    JobInfo jobInfo = jobInfoMapper.selectByPrimaryKey(jobId);
+                    if (Objects.isNull(jobInfo)) {
+                        logger.warn("[LESS_LIKELY_THINGS_HAPPENED] JdbcJobScheduler null job {}", jobId);
+                    } else {
+                        final AbstractExecutable jobExecutable = getJobExecutable(jobInfo);
+                        trySubmitJob(jobExecutable);
+                    }
+                }
+            }
+        };
+
+        slaveScheduler.scheduleWithFixedDelay(produceJob, delay, delay, TimeUnit.SECONDS);
+    }
+
+    private AbstractExecutable getJobExecutable(JobInfo jobInfo) {
+        // TODO
+        return null;
+    }
+
+    private int evaluateLocalMemoryResource(AbstractExecutable jobExecutable) {
+        return jobExecutable.computeStepDriverMemory();
+    }
+
+    private boolean acquireLocalResource(AbstractExecutable jobExecutable) {
+        // TODO
+        int evaluatedMemory = evaluateLocalMemoryResource(jobExecutable);
+        final Semaphore semaphore = memorySemaphoreRef.get();
+        boolean acquired = semaphore.tryAcquire(evaluatedMemory);
+        if (!acquired) {
+            logger.warn("Acquire local resource failed: {}MB, available: {}MB", evaluatedMemory,
+                    semaphore.availablePermits());
+        }
+        return acquired;
+    }
+
+    private boolean releaseLocalResource() {
+        // TODO
+        return true;
+    }
+
+    private void trySubmitJob(AbstractExecutable jobExecutable) {
+
+        boolean acquire = acquireLocalResource(jobExecutable);
+
+        if (acquire) {
+            final ThreadPoolExecutor jobExecutorPool = jobExecutorPoolRef.get();
+            jobExecutorPool.execute(() -> runJob(jobExecutable));
+        }
 
     }
 
-    private void scheduleConsumeJob() {
-
-        /*// shuffle jobs avoiding jobLock conflict
-        Collections.shuffle(readyJobList);*/
+    private void runJob(AbstractExecutable jobExecutable) {
 
     }
 
