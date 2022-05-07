@@ -3021,6 +3021,20 @@ public abstract class KylinConfigBase implements Serializable {
         return Integer.parseInt(this.getOptional("kylin.server.aad-token-clock-skew-seconds", "0"));
     }
 
+    @ThirdPartyDependencies({
+            @ThirdPartyDependencies.ThirdPartyDependent(repository = "static-user-manager", classes = {
+                    "StaticAuthenticationProvider" }) })
+    public String getOktaOauth2Issuer() {
+        return getOptional("kylin.server.okta-oauth2-issuer", "");
+    }
+
+    @ThirdPartyDependencies({
+            @ThirdPartyDependencies.ThirdPartyDependent(repository = "static-user-manager", classes = {
+                    "StaticAuthenticationProvider" }) })
+    public String getOktaClientId() {
+        return getOptional("kylin.server.okta-client-id", "");
+    }
+
     public long buildResourceStateCheckInterval() {
         return TimeUtil.timeStringAs(getOptional("kylin.build.resource.state-check-interval-seconds", "10s"),
                 TimeUnit.SECONDS);
