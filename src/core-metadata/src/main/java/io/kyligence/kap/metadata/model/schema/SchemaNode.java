@@ -119,11 +119,11 @@ public class SchemaNode {
     }
 
     public static SchemaNode ofModelFactTable(TableRef tableRef, String modelAlias) {
-        return new SchemaNode(SchemaNodeType.MODEL_FACT, modelAlias + "/" + tableRef.getAlias());
+        return new SchemaNode(SchemaNodeType.MODEL_FACT, modelAlias + "/" + tableRef.getTableIdentity());
     }
 
     public static SchemaNode ofModelDimensionTable(TableRef tableRef, String modelAlias) {
-        return new SchemaNode(SchemaNodeType.MODEL_DIM, modelAlias + "/" + tableRef.getAlias());
+        return new SchemaNode(SchemaNodeType.MODEL_DIM, modelAlias + "/" + tableRef.getTableIdentity());
     }
 
     public static SchemaNode ofModelColumn(NDataModel.NamedColumn namedColumn, String modelAlias) {
