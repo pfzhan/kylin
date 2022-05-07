@@ -52,11 +52,14 @@ import org.apache.kylin.common.exception.CommonErrorCode;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.model.PartitionDesc;
+import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -73,6 +76,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.exception.LookupTableException;
@@ -115,6 +119,8 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Controller
+@EnableDiscoveryClient
+@EnableFeignClients
 @RequestMapping(value = "/api/models", produces = { HTTP_VND_APACHE_KYLIN_JSON })
 public class NModelController extends NBasicController {
     public static final String MODEL_ID = "modelId";
@@ -801,6 +807,25 @@ public class NModelController extends NBasicController {
         checkProjectName(project);
         modelService.deletePartitions(project, null, modelId, Sets.newHashSet(ids));
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
+    }
+
+    @PostMapping(value = "/feign/get_model_id_by_fuzzy_name")
+    @ResponseBody
+    public List<String> getModelIdsByFuzzyName(@RequestParam("fuzzyName") String fuzzyName,
+            @RequestParam("project") String project) {
+        return modelService.getModelIdsByFuzzyName(fuzzyName, project);
+    }
+
+    @PostMapping(value = "/feign/get_model_name_by_id")
+    @ResponseBody
+    public String getModelNameById(@RequestParam("modelId") String modelId, @RequestParam("project") String project) {
+        return modelService.getModelNameById(modelId, project);
+    }
+
+    @PostMapping(value = "/feign/get_segment_by_range")
+    @ResponseBody
+    public Segments<NDataSegment> getSegmentsByRange(String modelId, String project, String start, String end) {
+        return modelService.getSegmentsByRange(modelId, project, start, end);
     }
 
 }

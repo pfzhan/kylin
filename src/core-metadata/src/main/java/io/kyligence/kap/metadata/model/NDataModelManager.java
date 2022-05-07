@@ -200,6 +200,11 @@ public class NDataModelManager {
         return crud.listAll().stream().filter(model -> model.getAlias().equalsIgnoreCase(alias)).findFirst()
                 .orElse(null);
     }
+    
+    public List<String> getModelIdsByFuzzyName(String fuzzyName) {
+        return crud.listAll().stream().filter(model -> model.getAlias().contains(fuzzyName)).map(model -> model.getId())
+                .collect(Collectors.toList());
+    }
 
     public NDataModel dropModel(NDataModel desc) {
         crud.delete(desc);

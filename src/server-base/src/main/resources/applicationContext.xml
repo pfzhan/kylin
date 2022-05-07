@@ -42,8 +42,8 @@
     <context:component-scan base-package="org.apache.kylin.rest"/>
     <context:component-scan base-package="io.kyligence"/>
 
-    <bean class="org.apache.kylin.rest.security.PasswordPlaceholderConfigurer">
-        <property name="ignoreResourceNotFound" value="true"/>
-    </bean>
+<!--    <bean class="org.apache.kylin.rest.security.PasswordPlaceholderConfigurer">-->
+<!--        <property name="ignoreResourceNotFound" value="true"/>-->
+<!--    </bean>-->
 
 </beans>

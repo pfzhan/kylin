@@ -37,6 +37,7 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletResponse;
 
+import io.kyligence.kap.job.service.JobInfoService;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
@@ -60,14 +61,14 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import io.kyligence.kap.common.persistence.transaction.UpdateJobStatusEventNotifier;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.rest.request.JobErrorRequest;
-import io.kyligence.kap.rest.request.JobFilter;
+import  io.kyligence.kap.job.rest.JobFilter;
 import io.kyligence.kap.rest.request.JobUpdateRequest;
 import io.kyligence.kap.rest.request.SparkJobTimeRequest;
 import io.kyligence.kap.rest.request.SparkJobUpdateRequest;
 import io.kyligence.kap.rest.request.StageRequest;
 import io.kyligence.kap.rest.response.EventResponse;
-import io.kyligence.kap.rest.response.ExecutableResponse;
-import io.kyligence.kap.rest.response.ExecutableStepResponse;
+import io.kyligence.kap.job.rest.ExecutableResponse;
+import io.kyligence.kap.job.rest.ExecutableStepResponse;
 import io.kyligence.kap.rest.response.JobStatisticsResponse;
 import io.kyligence.kap.rest.service.JobService;
 import io.swagger.annotations.ApiOperation;
@@ -82,6 +83,9 @@ public class JobController extends BaseController {
     @Autowired
     @Qualifier("jobService")
     private JobService jobService;
+
+    @Autowired
+    private JobInfoService jobInfoService;
 
     @Override
     protected Logger getLogger() {
@@ -106,12 +110,7 @@ public class JobController extends BaseController {
         jobService.checkJobStatus(statuses);
         checkRequiredArg("time_filter", timeFilter);
         JobFilter jobFilter = new JobFilter(statuses, jobNames, timeFilter, subject, key, project, sortBy, reverse);
-        DataResult<List<ExecutableResponse>> executables;
-        if (!StringUtils.isEmpty(project)) {
-            executables = jobService.listJobs(jobFilter, pageOffset, pageSize);
-        } else {
-            executables = jobService.listGlobalJobs(jobFilter, pageOffset, pageSize);
-        }
+        DataResult<List<ExecutableResponse>> executables = jobInfoService.listJobs(jobFilter, pageOffset, pageSize);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, executables, "");
     }
 
@@ -165,7 +164,7 @@ public class JobController extends BaseController {
             @RequestParam(value = "project") String project) {
         checkProjectName(project);
         checkRequiredArg(JOB_ID_ARG_NAME, jobId);
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, jobService.getJobDetail(project, jobId), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, jobInfoService.getJobDetail(project, jobId), "");
     }
 
     @ApiOperation(value = "updateJobStatus", tags = {

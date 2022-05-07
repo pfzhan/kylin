@@ -95,6 +95,9 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.rest.delegate.ModelMetadataContract;
+import io.kyligence.kap.tool.bisync.model.MeasureDef;
+import io.kyligence.kap.guava20.shaded.common.base.Supplier;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
@@ -296,7 +299,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component("modelService")
-public class ModelService extends BasicService implements TableModelSupporter, ProjectModelSupporter {
+public class ModelService extends BasicService implements TableModelSupporter, ProjectModelSupporter, ModelMetadataContract {
 
     private static final Logger logger = LoggerFactory.getLogger(ModelService.class);
 
@@ -354,6 +357,15 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         return nDataModel;
     }
 
+    @Override
+    public String getModelNameById(String modelId, String project) {
+        NDataModel nDataModel = getModelById(modelId, project);
+        if (null != nDataModel) {
+            return nDataModel.getAlias();
+        }
+        return null;
+    }
+
     public NDataModel getModelByAlias(String modelAlias, String project) {
         NDataModelManager modelManager = getManager(NDataModelManager.class, project);
         NDataModel nDataModel = modelManager.getDataModelDescByAlias(modelAlias);
@@ -361,6 +373,23 @@ public class ModelService extends BasicService implements TableModelSupporter, P
             throw new KylinException(MODEL_NAME_NOT_EXIST, modelAlias);
         }
         return nDataModel;
+    }
+
+    @Override
+    public List<String> getModelIdsByFuzzyName(String fuzzyName, String project) {
+        if (StringUtils.isNotEmpty(project)) {
+            NDataModelManager modelManager = getManager(NDataModelManager.class, project);
+            return modelManager.getModelIdsByFuzzyName(fuzzyName);
+        }
+
+        List<String> modelIds = new ArrayList<>();
+        // query from all projects
+        List<ProjectInstance> projectInstances = projectService.getReadableProjects(null, false);
+        for (ProjectInstance projectInstance : projectInstances) {
+            NDataModelManager modelManager = getManager(NDataModelManager.class, projectInstance.getName());
+            modelIds.addAll(modelManager.getModelIdsByFuzzyName(fuzzyName));
+        }
+        return modelIds;
     }
 
     /**

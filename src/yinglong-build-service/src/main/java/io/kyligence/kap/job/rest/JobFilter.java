@@ -32,6 +32,7 @@ import java.util.Locale;
 import java.util.TimeZone;
 
 import com.google.common.base.Preconditions;
+import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -68,11 +69,13 @@ public class JobFilter {
      * for mybatis query
      * @return JobMapperFilter
      */
-    public JobMapperFilter getJobMapperFilter(int offset, int limit) {
+    public JobMapperFilter getJobMapperFilter(ModelMetadataInvoker modelMetadataInvoker, int offset, int limit) {
         Date queryStartTime = getQueryStartTime(timeFilter);
 
-        // TODO query modeIds
         List<String> modelIds = new ArrayList<>();
+        if (StringUtils.isNotEmpty(key)) {
+            modelIds = modelMetadataInvoker.getModelIdsByFuzzyName(key, project);
+        }
 
         String jobId = null;
         if (StringUtils.isNotEmpty(key) && modelIds.isEmpty()) {
