@@ -24,12 +24,21 @@
 
 package io.kyligence.kap.rest.service;
 
+import static io.kyligence.kap.source.kafka.CollectKafkaStats.DEFAULT_PARSER;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.CUSTOM_PARSER_CHECK_COLUMN_NAME_FAILED;
+
+import java.io.File;
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.rest.response.ErrorResponse;
@@ -42,6 +51,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
@@ -58,6 +68,9 @@ public class KafkaServiceTest extends NLocalFileMetadataTestCase {
     private final KafkaService kafkaService = Mockito.spy(KafkaService.class);
 
     @Mock
+    private final CustomFileService customFileService = Mockito.spy(CustomFileService.class);
+
+    @Mock
     private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
 
     @Mock
@@ -65,6 +78,9 @@ public class KafkaServiceTest extends NLocalFileMetadataTestCase {
 
     private static final String brokerServer = "localhost:19093";
     private static final String PROJECT = "streaming_test";
+    private static final String JAR_NAME = "custom_parser.jar";
+    private static final String PARSER_NAME = "io.kyligence.kap.parser.JsonDataParser1";
+    private static String JAR_ABS_PATH;
 
     KafkaConfig kafkaConfig = new KafkaConfig();
 
@@ -73,18 +89,27 @@ public class KafkaServiceTest extends NLocalFileMetadataTestCase {
         this.createTestMetadata();
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
         ReflectionTestUtils.setField(kafkaService, "aclEvaluate", aclEvaluate);
+        ReflectionTestUtils.setField(customFileService, "aclEvaluate", aclEvaluate);
         init();
     }
 
     public void init() {
-        ReflectionTestUtils.setField(kafkaConfig, "database", "SSB");
-        ReflectionTestUtils.setField(kafkaConfig, "name", "P_LINEORDER");
-        ReflectionTestUtils.setField(kafkaConfig, "project", "streaming_test");
-        ReflectionTestUtils.setField(kafkaConfig, "kafkaBootstrapServers", brokerServer);
-        ReflectionTestUtils.setField(kafkaConfig, "subscribe", "ssb-topic1");
-        ReflectionTestUtils.setField(kafkaConfig, "startingOffsets", "latest");
-        ReflectionTestUtils.setField(kafkaConfig, "batchTable", "");
-        ReflectionTestUtils.setField(kafkaConfig, "parserName", "io.kyligence.kap.parser.TimedJsonStreamParser");
+        kafkaConfig.setDatabase("SSB");
+        kafkaConfig.setName("P_LINEORDER");
+        kafkaConfig.setProject("streaming_test");
+        kafkaConfig.setKafkaBootstrapServers(brokerServer);
+        kafkaConfig.setSubscribe("ssb-topic1");
+        kafkaConfig.setStartingOffsets("latest");
+        kafkaConfig.setBatchTable("");
+        kafkaConfig.setParserName(DEFAULT_PARSER);
+    }
+
+    public void initJar() {
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        // ../examples/test_data/21767/metadata
+        Path metaPath = new Path(kylinConfig.getMetadataUrl().toString());
+        Path jarPath = new Path(String.format("%s/%s/%s", metaPath.getParent().toString(), "jars", JAR_NAME));
+        JAR_ABS_PATH = new File(jarPath.toString()).toString();
     }
 
     @Test
@@ -131,8 +156,31 @@ public class KafkaServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testConvertSampleMessageToFlatMap() {
-        val result = kafkaService.convertSampleMessageToFlatMap(kafkaConfig, CollectKafkaStats.JSON_MESSAGE,
-                "{\"a\": 2, \"b\": 2, \"timestamp\": \"2000-01-01 05:06:12\"}");
+        val result = kafkaService.convertSampleMessageToFlatMap("streaming_test", kafkaConfig,
+                CollectKafkaStats.JSON_MESSAGE, "{\"a\": 2, \"b\": 2, \"timestamp\": \"2000-01-01 05:06:12\"}");
         Assert.assertEquals(3, result.size());
+        Assert.assertThrows(CUSTOM_PARSER_CHECK_COLUMN_NAME_FAILED.getMsg(), KylinException.class,
+                () -> kafkaService.convertSampleMessageToFlatMap("streaming_test", kafkaConfig,
+                        CollectKafkaStats.JSON_MESSAGE,
+                        "{\"_a\": 2, \"b\": 2, \"timestamp\": \"2000-01-01 05:06:12\"}"));
     }
+
+    @Test
+    public void testGetParsers() {
+        List<String> parsers = kafkaService.getParsers(PROJECT);
+        Assert.assertFalse(parsers.isEmpty());
+    }
+
+    @Test
+    public void testRemoveParser() throws IOException {
+        initJar();
+        String jarType = "STREAMING_CUSTOM_PARSER";
+        MockMultipartFile jarFile = new MockMultipartFile(JAR_NAME, JAR_NAME, "multipart/form-data",
+                Files.newInputStream(Paths.get(JAR_ABS_PATH)));
+        String jarHdfsPath = customFileService.uploadCustomJar(jarFile, PROJECT, jarType);
+        customFileService.loadParserJar(JAR_NAME, jarHdfsPath, PROJECT);
+        kafkaService.removeParser(PROJECT, PARSER_NAME);
+        customFileService.removeJar(PROJECT, JAR_NAME, jarType);
+    }
+
 }

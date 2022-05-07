@@ -114,6 +114,8 @@ public abstract class ResourceStore implements AutoCloseable {
     public static final String KAFKA_RESOURCE_ROOT = "/kafka";
     public static final String DATAFLOW_RESOURCE_ROOT = "/dataflow";
     public static final String DATA_LOADING_RANGE_RESOURCE_ROOT = "/loading_range";
+    public static final String DATA_PARSER_RESOURCE_ROOT = "/parser";
+    public static final String JAR_RESOURCE_ROOT = "/jar";
     public static final String QUERY_FILTER_RULE_RESOURCE_ROOT = "/rule";
     public static final String JOB_STATISTICS = "/job_stats";
     public static final String EXECUTABLE_JOB = "/execute";

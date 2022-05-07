@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.streaming.jobs.impl;
 
+import static io.kyligence.kap.streaming.constants.StreamingConstants.DEFAULT_PARSER_NAME;
 import static io.kyligence.kap.streaming.constants.StreamingConstants.REST_SERVER_IP;
 import static io.kyligence.kap.streaming.constants.StreamingConstants.SPARK_CORES_MAX;
 import static io.kyligence.kap.streaming.constants.StreamingConstants.SPARK_DRIVER_MEM;
@@ -137,7 +138,8 @@ public class StreamingJobLauncher extends AbstractSparkJobLauncher {
             this.appArgs = new String[] { project, modelId,
                     jobParams.getOrDefault(STREAMING_DURATION, STREAMING_DURATION_DEFAULT),
                     jobParams.getOrDefault(STREAMING_WATERMARK, STREAMING_WATERMARK_DEFAULT),
-                    distMetaStorageUrl.toString() };
+                    distMetaStorageUrl.toString(),
+                    dataParserInfo.getClassName() };
             break;
         }
         case STREAMING_MERGE: {
@@ -347,6 +349,9 @@ public class StreamingJobLauncher extends AbstractSparkJobLauncher {
         }
         if (kapConfig.isKafkaJaasEnabled()) {
             sparkLauncher.addFile(kapConfig.getKafkaJaasConfPath());
+        }
+        if (!StringUtils.equals(DEFAULT_PARSER_NAME, dataParserInfo.getClassName())) {
+            sparkLauncher.addJar(dataParserInfo.getJarPath());
         }
         sparkLauncher.setMaster(sparkConf.getOrDefault(SPARK_MASTER, SPARK_MASTER_DEFAULT))
                 .setConf(SPARK_DRIVER_MEM, sparkConf.getOrDefault(SPARK_DRIVER_MEM, SPARK_DRIVER_MEM_DEFAULT))

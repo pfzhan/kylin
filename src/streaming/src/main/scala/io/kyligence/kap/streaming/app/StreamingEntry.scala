@@ -31,7 +31,7 @@ import io.kyligence.kap.metadata.cube.model.{NCubeJoinedFlatTableDesc, NDataflow
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils
 import io.kyligence.kap.metadata.project.NProjectManager
 import io.kyligence.kap.streaming.CreateStreamingFlatTable
-import io.kyligence.kap.streaming.common.{BuildJobEntry, MicroBatchEntry}
+import io.kyligence.kap.streaming.common.{BuildJobEntry, CreateFlatTableEntry, MicroBatchEntry}
 import io.kyligence.kap.streaming.jobs.{StreamingDFBuildJob, StreamingJobUtils, StreamingSegmentManager}
 import io.kyligence.kap.streaming.manager.StreamingJobManager
 import io.kyligence.kap.streaming.metadata.StreamingJobMeta
@@ -78,7 +78,7 @@ class StreamingEntry
   lazy val trigger: Trigger = if (kylinConfig.getTriggerOnce) Trigger.Once() else Trigger.ProcessingTime(durationSec * 1000)
 
   def doExecute(): Unit = {
-    log.info("StreamingEntry:{}, {}, {}, {}", project, dataflowId, String.valueOf(durationSec), distMetaUrl)
+    log.info("StreamingEntry:{}, {}, {}, {}, {}", project, dataflowId, String.valueOf(durationSec), distMetaUrl, parserName)
     Preconditions.checkState(NProjectManager.getInstance(kylinConfig).getProject(project) != null,
       s"metastore can not find this project %s", project)
 
@@ -175,7 +175,8 @@ class StreamingEntry
     val flatTableDesc = new NCubeJoinedFlatTableDesc(dataflow.getIndexPlan)
     val nSpanningTree = createSpanningTree(dataflow)
     val partitionColumn = NSparkCubingUtil.convertFromDot(dataflow.getModel.getPartitionDesc.getPartitionDateColumn)
-    val flatTable = CreateStreamingFlatTable(flatTableDesc, null, nSpanningTree, ss, null, partitionColumn, watermark)
+    val flatTableEntry = new CreateFlatTableEntry(flatTableDesc, null, nSpanningTree, ss, null, partitionColumn, watermark, dataParser)
+    val flatTable = CreateStreamingFlatTable(flatTableEntry)
 
     val streamingJobMgr = StreamingJobManager.getInstance(originConfig, project)
     val jobMeta: StreamingJobMeta = streamingJobMgr.getStreamingJobByUuid(jobId)

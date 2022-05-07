@@ -60,6 +60,9 @@ public class StreamingConstants {
     public static final String SPARK_STREAMING_ENTRY = "io.kyligence.kap.streaming.app.StreamingEntry";
     public static final String SPARK_STREAMING_MERGE_ENTRY = "io.kyligence.kap.streaming.app.StreamingMergeEntry";
 
+    // default parser
+    public static final String DEFAULT_PARSER_NAME = "io.kyligence.kap.parser.TimedJsonStreamParser";
+
     // hadoop conf
     public static final String HADOOP_CONF_DIR = "HADOOP_CONF_DIR";
     public static final String SLASH = "/";

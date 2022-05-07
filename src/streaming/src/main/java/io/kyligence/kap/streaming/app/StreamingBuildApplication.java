@@ -23,11 +23,15 @@
  */
 package io.kyligence.kap.streaming.app;
 
+import java.nio.ByteBuffer;
+
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.JobTypeEnum;
 
 import io.kyligence.kap.guava20.shaded.common.base.Preconditions;
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
+import io.kyligence.kap.parser.AbstractDataParser;
 
 public abstract class StreamingBuildApplication extends StreamingApplication {
 
@@ -35,6 +39,9 @@ public abstract class StreamingBuildApplication extends StreamingApplication {
     protected int durationSec;
     protected String watermark;
     protected String baseCheckpointLocation;
+
+    protected String parserName;
+    protected AbstractDataParser<ByteBuffer> dataParser;
 
     protected StreamingBuildApplication() {
         this.jobType = JobTypeEnum.STREAMING_BUILD;
@@ -44,15 +51,27 @@ public abstract class StreamingBuildApplication extends StreamingApplication {
                 "base checkpoint location must be configured, %s", baseCheckpointLocation);
     }
 
+    @Override
+    protected void prepareBeforeExecute() throws ExecuteException {
+        super.prepareBeforeExecute();
+        try {
+            dataParser = AbstractDataParser.getDataParser(parserName, Thread.currentThread().getContextClassLoader());
+        } catch (Exception e) {
+            throw new ExecuteException(e);
+        }
+    }
+
     public void parseParams(String[] args) {
         this.project = args[0];
         this.dataflowId = args[1];
         this.durationSec = Integer.parseInt(args[2]);
         this.watermark = args[3];
         this.distMetaUrl = args[4];
+        this.parserName = args[5];
         this.jobId = StreamingUtils.getJobId(dataflowId, jobType.name());
 
         Preconditions.checkArgument(StringUtils.isNotEmpty(distMetaUrl), "distMetaUrl should not be empty!");
+        Preconditions.checkArgument(StringUtils.isNotEmpty(parserName), "parserName should not be empty!");
     }
 
 }

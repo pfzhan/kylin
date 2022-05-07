@@ -79,6 +79,10 @@
         </dependency>
         <dependency>
             <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-parser-sdk</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-datasource-sdk</artifactId>
         </dependency>
         <dependency>

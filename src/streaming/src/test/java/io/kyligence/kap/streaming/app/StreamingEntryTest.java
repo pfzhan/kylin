@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.streaming.app;
 
+import static io.kyligence.kap.streaming.constants.StreamingConstants.DEFAULT_PARSER_NAME;
+
 import java.io.File;
 import java.util.HashMap;
 import java.util.Locale;
@@ -55,7 +57,9 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
+import io.kyligence.kap.parser.AbstractDataParser;
 import io.kyligence.kap.streaming.CreateStreamingFlatTable;
+import io.kyligence.kap.streaming.common.CreateFlatTableEntry;
 import io.kyligence.kap.streaming.constants.StreamingConstants;
 import io.kyligence.kap.streaming.jobs.GracefulStopInterface;
 import io.kyligence.kap.streaming.jobs.StreamingJobUtils;
@@ -88,8 +92,12 @@ public class StreamingEntryTest extends StreamingTestCase {
         this.cleanupTestMetadata();
     }
 
+    private AbstractDataParser getParser() throws Exception {
+        return AbstractDataParser.getDataParser(DEFAULT_PARSER_NAME, Thread.currentThread().getContextClassLoader());
+    }
+
     @Test
-    public void testBuild() {
+    public void testBuild() throws Exception {
         val config = KylinConfig.getInstanceFromEnv();
 
         val source = createSparkKafkaSource(config);
@@ -112,14 +120,16 @@ public class StreamingEntryTest extends StreamingTestCase {
         val flatTableDesc = new NCubeJoinedFlatTableDesc(df.getIndexPlan());
         val layouts = StreamingUtils.getToBuildLayouts(df);
         Assert.assertNotNull(layouts);
-        val args = new String[] { PROJECT, DATAFLOW_ID, "1", "", "xx" };
+        val args = new String[] { PROJECT, DATAFLOW_ID, "1", "", "xx", DEFAULT_PARSER_NAME };
         val entry = new StreamingEntry();
         entry.parseParams(args);
         val nSpanningTree = entry.createSpanningTree(df);
         Assert.assertNotNull(nSpanningTree);
 
         val ss = createSparkSession();
-        val flatTable = CreateStreamingFlatTable.apply(flatTableDesc, null, nSpanningTree, ss, null, null, null);
+        CreateFlatTableEntry flatTableEntry = new CreateFlatTableEntry(flatTableDesc, null, nSpanningTree, ss, null,
+                null, null, getParser());
+        val flatTable = CreateStreamingFlatTable.apply(flatTableEntry);
 
         val ds = flatTable.generateStreamingDataset(config);
         Assert.assertEquals(1, ds.count());
@@ -182,7 +192,7 @@ public class StreamingEntryTest extends StreamingTestCase {
 
     @Test
     public void testInitBuildEntry_DataFlow() {
-        val args = new String[] { PROJECT, DATAFLOW_ID, "2", "", "xx" };
+        val args = new String[] { PROJECT, DATAFLOW_ID, "2", "", "xx", DEFAULT_PARSER_NAME };
         val entry = Mockito.spy(new StreamingEntry());
         entry.parseParams(args);
         val dataflow = entry.dataflow();
@@ -196,7 +206,7 @@ public class StreamingEntryTest extends StreamingTestCase {
         val source = createSparkKafkaSource(config);
         source.enableMemoryStream(true);
         source.post(StreamingTestConstant.KAP_SSB_STREAMING_JSON_FILE());
-        val args = new String[] { PROJECT, DATAFLOW_ID, "2", "", "xx" };
+        val args = new String[] { PROJECT, DATAFLOW_ID, "2", "", "xx", DEFAULT_PARSER_NAME };
         val entry = Mockito.spy(new StreamingEntry());
         entry.parseParams(args);
         entry.setSparkSession(createSparkSession());
@@ -232,7 +242,7 @@ public class StreamingEntryTest extends StreamingTestCase {
     @Test
     public void testExecute_IllegalProject() {
         val illegalProject = "xxxx";
-        val args = new String[] { illegalProject, DATAFLOW_ID, "2", "", "xx" };
+        val args = new String[] { illegalProject, DATAFLOW_ID, "2", "", "xx", DEFAULT_PARSER_NAME };
         val entry = Mockito.spy(new StreamingEntry());
         entry.parseParams(args);
 
@@ -242,7 +252,7 @@ public class StreamingEntryTest extends StreamingTestCase {
 
     @Test
     public void testExecute_EmptyFlatTableDataSet() {
-        val args = new String[] { PROJECT, DATAFLOW_ID, "2", "", "xx" };
+        val args = new String[] { PROJECT, DATAFLOW_ID, "2", "", "xx", DEFAULT_PARSER_NAME };
         val entry = Mockito.spy(new StreamingEntry());
         entry.parseParams(args);
         Mockito.doNothing().when(entry).registerStreamListener();
@@ -255,7 +265,7 @@ public class StreamingEntryTest extends StreamingTestCase {
 
     @Test
     public void testExecute_EmptyTimeColumn() {
-        val args = new String[] { PROJECT, DATAFLOW_ID, "2", "", "xx" };
+        val args = new String[] { PROJECT, DATAFLOW_ID, "2", "", "xx", DEFAULT_PARSER_NAME };
         val entry = Mockito.spy(new StreamingEntry());
         entry.parseParams(args);
         Mockito.doNothing().when(entry).registerStreamListener();
@@ -277,7 +287,7 @@ public class StreamingEntryTest extends StreamingTestCase {
         source.post(StreamingTestConstant.KAP_SSB_STREAMING_JSON_FILE());
         val dataflowId = "511a9163-7888-4a60-aa24-ae735937cc87";
         val entry = Mockito.spy(new StreamingEntry());
-        entry.parseParams(new String[] { PROJECT, dataflowId, "5", "", "xx" });
+        entry.parseParams(new String[] { PROJECT, dataflowId, "5", "", "xx", DEFAULT_PARSER_NAME });
         entry.setSparkSession(createSparkSession());
         val tuple4 = entry.generateStreamQueryForOneModel();
 
@@ -304,8 +314,8 @@ public class StreamingEntryTest extends StreamingTestCase {
     @Test
     public void testDimensionTableRefresh_Skip() {
         {
-            val fakeStreamingTable = Mockito
-                    .spy(new CreateStreamingFlatTable(null, null, null, null, null, null, null));
+            val fakeStreamingTable = Mockito.spy(new CreateStreamingFlatTable(
+                    new CreateFlatTableEntry(null, null, null, null, null, null, null, null)));
             val entry = Mockito.spy(new StreamingEntry());
             entry.refreshTable(fakeStreamingTable);
             Mockito.doReturn(false).when(fakeStreamingTable).shouldRefreshTable();
@@ -314,8 +324,8 @@ public class StreamingEntryTest extends StreamingTestCase {
         }
 
         {
-            val fakeStreamingTable = Mockito
-                    .spy(new CreateStreamingFlatTable(null, null, null, null, null, null, null));
+            val fakeStreamingTable = Mockito.spy(new CreateStreamingFlatTable(
+                    new CreateFlatTableEntry(null, null, null, null, null, null, null, null)));
             val entry = Mockito.spy(new StreamingEntry());
             entry.refreshTable(fakeStreamingTable);
             Mockito.doReturn(true).when(fakeStreamingTable).shouldRefreshTable();
@@ -334,7 +344,7 @@ public class StreamingEntryTest extends StreamingTestCase {
         source.post(StreamingTestConstant.KAP_SSB_STREAMING_JSON_FILE());
         val dataflowId = "511a9163-7888-4a60-aa24-ae735937cc87";
         val entry = Mockito.spy(new StreamingEntry());
-        entry.parseParams(new String[] { PROJECT, dataflowId, "5", "", "xx" });
+        entry.parseParams(new String[] { PROJECT, dataflowId, "5", "", "xx", DEFAULT_PARSER_NAME });
         entry.setSparkSession(createSparkSession());
         val tuple4 = entry.generateStreamQueryForOneModel();
 
@@ -355,7 +365,7 @@ public class StreamingEntryTest extends StreamingTestCase {
         source.post(StreamingTestConstant.KAP_SSB_STREAMING_JSON_FILE());
         val dataflowId = "511a9163-7888-4a60-aa24-ae735937cc87";
         val entry = Mockito.spy(new StreamingEntry());
-        entry.parseParams(new String[] { PROJECT, dataflowId, "5", "", "xx" });
+        entry.parseParams(new String[] { PROJECT, dataflowId, "5", "", "xx", DEFAULT_PARSER_NAME });
         entry.setSparkSession(createSparkSession());
         val tuple4 = entry.generateStreamQueryForOneModel();
 
@@ -377,7 +387,7 @@ public class StreamingEntryTest extends StreamingTestCase {
         source.post(StreamingTestConstant.KAP_SSB_STREAMING_JSON_FILE());
         val dataflowId = "511a9163-7888-4a60-aa24-ae735937cc87";
         val entry = Mockito.spy(new StreamingEntry());
-        entry.parseParams(new String[] { PROJECT, dataflowId, "5", "", "xx" });
+        entry.parseParams(new String[] { PROJECT, dataflowId, "5", "", "xx", DEFAULT_PARSER_NAME });
         entry.setSparkSession(createSparkSession());
         val tuple4 = entry.generateStreamQueryForOneModel();
 
@@ -402,7 +412,7 @@ public class StreamingEntryTest extends StreamingTestCase {
         source.post(StreamingTestConstant.KAP_SSB_STREAMING_JSON_FILE());
         val dataflowId = "511a9163-7888-4a60-aa24-ae735937cc87";
         val entry = Mockito.spy(new StreamingEntry());
-        entry.parseParams(new String[] { PROJECT, dataflowId, "5", "", "xx" });
+        entry.parseParams(new String[] { PROJECT, dataflowId, "5", "", "xx", DEFAULT_PARSER_NAME });
 
         ReflectionUtils.invokeGetterMethod(entry, "prepareKylinConfig");
         Assert.assertEquals("xx", config.getMetadataUrl().toString());
@@ -416,7 +426,7 @@ public class StreamingEntryTest extends StreamingTestCase {
         source.post(StreamingTestConstant.KAP_SSB_STREAMING_JSON_FILE());
         val dataflowId = "511a9163-7888-4a60-aa24-ae735937cc87";
         val entry = Mockito.spy(new StreamingEntry());
-        entry.parseParams(new String[] { PROJECT, dataflowId, "5", "", "xx" });
+        entry.parseParams(new String[] { PROJECT, dataflowId, "5", "", "xx", DEFAULT_PARSER_NAME });
 
         val metaPathSet = (Set<String>) ReflectionUtils.invokeGetterMethod(entry, "initMetaPathSet");
 
@@ -442,7 +452,7 @@ public class StreamingEntryTest extends StreamingTestCase {
         source.post(StreamingTestConstant.KAP_SSB_STREAMING_JSON_FILE());
         val dataflowId = "511a9163-7888-4a60-aa24-ae735937cc87";
         val entry = Mockito.spy(new StreamingEntry());
-        entry.parseParams(new String[] { PROJECT, dataflowId, "5", "", "xx" });
+        entry.parseParams(new String[] { PROJECT, dataflowId, "5", "", "xx", DEFAULT_PARSER_NAME });
 
         val sparkConf = KylinBuildEnv.getOrCreate(getTestConfig()).sparkConf();
         Mockito.doNothing().when(entry).getOrCreateSparkSession(sparkConf);
@@ -458,7 +468,7 @@ public class StreamingEntryTest extends StreamingTestCase {
         source.post(StreamingTestConstant.KAP_SSB_STREAMING_JSON_FILE());
         val dataflowId = "511a9163-7888-4a60-aa24-ae735937cc87";
         val entry = Mockito.spy(new StreamingEntry());
-        entry.parseParams(new String[] { PROJECT, dataflowId, "5", "", "xx" });
+        entry.parseParams(new String[] { PROJECT, dataflowId, "5", "", "xx", DEFAULT_PARSER_NAME });
 
         val sparkConf = KylinBuildEnv.getOrCreate(getTestConfig()).sparkConf();
         Mockito.doNothing().when(entry).getOrCreateSparkSession(sparkConf);
@@ -494,7 +504,7 @@ public class StreamingEntryTest extends StreamingTestCase {
 
     @Test
     public void testStartJobExecutionIdCheckThread() {
-        val args = new String[] { PROJECT, DATAFLOW_ID, "2", "", "xx" };
+        val args = new String[] { PROJECT, DATAFLOW_ID, "2", "", "xx", DEFAULT_PARSER_NAME };
         val entry = Mockito.spy(new StreamingEntry());
         entry.parseParams(args);
         entry.setSparkSession(createSparkSession());
@@ -521,7 +531,7 @@ public class StreamingEntryTest extends StreamingTestCase {
 
     @Test
     public void testStartJobExecutionIdCheckThread_DiffJobExecId() {
-        val args = new String[] { PROJECT, DATAFLOW_ID, "2", "", "xx" };
+        val args = new String[] { PROJECT, DATAFLOW_ID, "2", "", "xx", DEFAULT_PARSER_NAME };
         val entry = Mockito.spy(new StreamingEntry());
         entry.parseParams(args);
         entry.setSparkSession(createSparkSession());

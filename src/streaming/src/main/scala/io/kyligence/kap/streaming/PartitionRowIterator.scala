@@ -21,20 +21,25 @@
  */
 package io.kyligence.kap.streaming
 
-import com.google.gson.JsonParser
+import io.kyligence.kap.parser.AbstractDataParser
 import org.apache.commons.lang.time.DateUtils
-import org.apache.commons.lang3.StringUtils
+import org.apache.commons.lang3.{ObjectUtils, StringUtils}
 import org.apache.kylin.common.util.DateFormat
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types._
-import org.slf4j.LoggerFactory
+import org.slf4j.{Logger, LoggerFactory}
 
+import java.lang
+import java.nio.ByteBuffer
+import java.nio.charset.StandardCharsets
 import java.sql.{Date, Timestamp}
 import java.util.Locale
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 
-class PartitionRowIterator(iter: Iterator[Row], parsedSchema: StructType) extends Iterator[Row] {
+class PartitionRowIterator(iter: Iterator[Row],
+                           parsedSchema: StructType,
+                           dateParser: AbstractDataParser[ByteBuffer]) extends Iterator[Row] {
   val logger = LoggerFactory.getLogger(classOf[PartitionRowIterator])
 
   val EMPTY_ROW = Row()
@@ -52,50 +57,47 @@ class PartitionRowIterator(iter: Iterator[Row], parsedSchema: StructType) extend
 
   def next: Row = {
     val csvString = iter.next.get(0)
-    val parser = new JsonParser()
-    if (csvString == null || StringUtils.isEmpty(csvString.toString)) {
+    if (csvString == null || StringUtils.isBlank(csvString.toString)) {
       EMPTY_ROW
     } else {
       try {
-        convertJson2Row(csvString.toString(), parser)
+        convertJson2Row(csvString.toString)
       } catch {
         case e: Exception =>
-          logger.error(s"parse json text fail ${e.toString}  stackTrace is: " +
-            s"${e.getStackTrace.toString} line is: ${csvString}")
+          logger.error(s"custom parse data fail ${e.toString}\nStackTrace is: ${e.getStackTrace.toString}\nline is: $csvString")
           EMPTY_ROW
       }
     }
   }
 
-  def convertJson2Row(jsonStr: String, parser: JsonParser): Row = {
-    val jsonMap = new mutable.HashMap[String, String]()
-    val jsonObj = parser.parse(jsonStr).getAsJsonObject
-    val entries = jsonObj.entrySet().asScala
-    entries.foreach { entry =>
-      jsonMap.put(entry.getKey.toLowerCase(Locale.ROOT), entry.getValue.getAsString)
-    }
-    Row((0 to parsedSchema.fields.length - 1).map { index =>
+  def convertJson2Row(input: String): Row = {
+    val jsonMap: mutable.Map[String, AnyRef] = dateParser.process(StandardCharsets.UTF_8.encode(input)).asScala
+      .map(pair => (pair._1.toLowerCase(Locale.ROOT), pair._2))
+
+    Row(parsedSchema.fields.indices.map { index =>
       val colName = parsedSchema.fields(index).name.toLowerCase(Locale.ROOT)
-      if (!jsonMap.contains(colName)) { // key not exist
+      val value = jsonMap.getOrElse(colName, null)
+      val dataType = parsedSchema.fields(index).dataType
+      if (dataType == StringType) {
+        value
+      } else if (ObjectUtils.isEmpty(value)) {
+        // key not exist -> null
+        // value not exist ("", null, new int[]{}) -> null
         null
       } else {
-        val value = jsonMap.get(colName).getOrElse(null) // value not exist
-        parsedSchema.fields(index).dataType match {
-          case ShortType => if (value == null || value.equals("")) null else value.toShort
-          case IntegerType => if (value == null || value.equals("")) null else value.toInt
-          case LongType => if (value == null || value.equals("")) null else value.toLong
-          case DoubleType => if (value == null || value.equals("")) null else value.toDouble
-          case FloatType => if (value == null || value.equals("")) null else value.toFloat
-          case BooleanType => if (value == null || value.equals("")) null else value.toBoolean
-          case TimestampType => if (value == null || value.equals("")) null
-          else new Timestamp(DateUtils.parseDate(value, DATE_PATTERN).getTime)
-          case DateType => if (value == null || value.equals("")) null
-          else new Date(DateUtils.parseDate(value, DATE_PATTERN).getTime)
-          case DecimalType() => if (StringUtils.isEmpty(value)) null else BigDecimal(value)
+        dataType match {
+          case ShortType => lang.Short.parseShort(value.toString)
+          case IntegerType => Integer.parseInt(value.toString)
+          case LongType => lang.Long.parseLong(value.toString)
+          case DoubleType => lang.Double.parseDouble(value.toString)
+          case FloatType => lang.Float.parseFloat(value.toString)
+          case BooleanType => lang.Boolean.parseBoolean(value.toString)
+          case TimestampType => new Timestamp(DateUtils.parseDate(value.toString, DATE_PATTERN).getTime)
+          case DateType => new Date(DateUtils.parseDate(value.toString, DATE_PATTERN).getTime)
+          case DecimalType() => BigDecimal(value.toString)
           case _ => value
         }
       }
     }: _*)
   }
-
 }

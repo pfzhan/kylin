@@ -24,29 +24,40 @@
 
 package io.kyligence.kap.source.kafka;
 
+import static io.kyligence.kap.source.kafka.CollectKafkaStats.DEFAULT_PARSER;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_BROKER_DEFINITION;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_STREAMING_MESSAGE;
+import static org.apache.kylin.common.exception.ServerErrorCode.STREAMING_PARSER_ERROR;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.CUSTOM_PARSER_CHECK_COLUMN_NAME_FAILED;
+
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
-import io.kyligence.kap.metadata.streaming.KafkaConfig;
-import io.kyligence.kap.parser.StreamingParser;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import static org.apache.kylin.common.exception.ServerErrorCode.STREAMING_PARSER_ERROR;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_BROKER_DEFINITION;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_STREAMING_MESSAGE;
+import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.streaming.DataParserInfo;
+import io.kyligence.kap.metadata.streaming.DataParserManager;
+import io.kyligence.kap.metadata.streaming.KafkaConfig;
+import io.kyligence.kap.parser.AbstractDataParser;
+import io.kyligence.kap.parser.loader.ParserClassLoaderState;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 public class KafkaTableUtil {
-    private static final Logger logger = LoggerFactory.getLogger(KafkaTableUtil.class);
+
+    private static final String COL_PATTERN = "^(?!\\d+|_)([0-9a-zA-Z_]{1,}$)";
 
     private KafkaTableUtil() {
     }
@@ -63,34 +74,22 @@ public class KafkaTableUtil {
         if (messages == null || messages.isEmpty()) {
             throw new IllegalStateException("There is no message in this topic");
         }
-        boolean isJson = JsonUtil.isJson(StandardCharsets.UTF_8.decode(messages.get(0)).toString());
-
         List<String> samples = new ArrayList<>();
         for (ByteBuffer buffer : messages) {
-            if (isJson) {
-                // message is in JSON format, return json
-                String str = StandardCharsets.UTF_8.decode(buffer).toString();
-                if (StringUtils.isNotBlank(str))
-                    samples.add(str);
-            } else {
-                // message is not in JSON format, use base64 encode to a string and return it
-                String str = Base64.encodeBase64String(buffer.array());
-                if (StringUtils.isNotBlank(str))
-                    samples.add(str);
+            String str = StandardCharsets.UTF_8.decode(buffer).toString();
+            if (StringUtils.isNotBlank(str)) {
+                samples.add(str);
             }
         }
 
         Map<String, Object> resp = new HashMap<>();
-        resp.put("message_type", isJson ? CollectKafkaStats.JSON_MESSAGE : CollectKafkaStats.BINARY_MESSAGE);
+        resp.put("message_type", CollectKafkaStats.CUSTOM_MESSAGE);
         resp.put("message", samples);
         return resp;
     }
 
     public static boolean validateKafkaConfig(String kafkaBootstrapServers) {
-        if (StringUtils.isEmpty(kafkaBootstrapServers)) {
-            return false;
-        }
-        return true;
+        return !StringUtils.isEmpty(kafkaBootstrapServers);
     }
 
     public static List<String> getBrokenBrokers(KafkaConfig kafkaConfig) {
@@ -107,23 +106,36 @@ public class KafkaTableUtil {
         return CollectKafkaStats.getTopics(kafkaConfig, fuzzyTopic);
     }
 
-    // =========convert Message To Flat Map=========
-    public static Map<String, Object> convertMessageToFlatMap(KafkaConfig kafkaConfig, String messageType,
+    // =========convert  Message to map=========
+    public static Map<String, Object> convertCustomMessage(String project, KafkaConfig kafkaConfig, String messageType,
             String message) {
         if (StringUtils.isBlank(message)) {
             throw new KylinException(INVALID_STREAMING_MESSAGE, MsgPicker.getMsg().getEMPTY_STREAMING_MESSAGE());
         }
 
         KafkaTableUtil.validateStreamMessageType(messageType);
+        return parseCustomMessage(project, kafkaConfig, messageType, message);
+    }
+
+    private static Map<String, Object> parseCustomMessage(String project, KafkaConfig kafkaConfig, String messageType,
+            String message) {
+        ByteBuffer byteBuf = deserializeSampleMessage(messageType, message);
         Map<String, Object> result;
         try {
-            result = flattenMessage(kafkaConfig, messageType, message);
-        } catch (KylinException e) {
-            throw new KylinException(STREAMING_PARSER_ERROR, e);
+            String parserName = kafkaConfig.getParserName();
+            DataParserManager dataParserManager = DataParserManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                    project);
+            DataParserInfo dataParserInfo = dataParserManager.getDataParserInfo(parserName);
+            ParserClassLoaderState sessionState = ParserClassLoaderState.getInstance(project);
+            if (!sessionState.getLoadedJars().contains(dataParserInfo.getJarPath())
+                    && !StringUtils.equals(DEFAULT_PARSER, dataParserInfo.getClassName())) {
+                sessionState.registerJars(Sets.newHashSet(dataParserInfo.getJarPath()));
+            }
+            result = AbstractDataParser.getDataParser(parserName, sessionState.getClassLoader()).process(byteBuf);
         } catch (Exception e) {
-            logger.error("Failed to convert streaming message to flat key value.", e);
-            throw new KylinException(STREAMING_PARSER_ERROR, MsgPicker.getMsg().getPARSE_STREAMING_MESSAGE_ERROR(), e);
+            throw new KylinException(STREAMING_PARSER_ERROR, e);
         }
+        checkColName(result);
         return result;
     }
 
@@ -132,20 +144,10 @@ public class KafkaTableUtil {
             throw new KylinException(INVALID_STREAMING_MESSAGE, MsgPicker.getMsg().getINVALID_STREAMING_MESSAGE_TYPE());
         }
         if (!StringUtils.equals(messageType, CollectKafkaStats.JSON_MESSAGE)
-                && !StringUtils.equals(messageType, CollectKafkaStats.BINARY_MESSAGE)) {
+                && !StringUtils.equals(messageType, CollectKafkaStats.BINARY_MESSAGE)
+                && !StringUtils.equals(messageType, CollectKafkaStats.CUSTOM_MESSAGE)) {
             throw new KylinException(INVALID_STREAMING_MESSAGE, MsgPicker.getMsg().getINVALID_STREAMING_MESSAGE_TYPE());
         }
-    }
-
-    private static Map<String, Object> flattenMessage(KafkaConfig kafkaConfig, String messageType, String message) {
-        ByteBuffer byteBuf = deserializeSampleMessage(messageType, message);
-        StreamingParser streamingParser;
-        try {
-            streamingParser = StreamingParser.getStreamingParser(kafkaConfig.getParserName(), null, null);
-        } catch (ReflectiveOperationException e) {
-            throw new KylinException(STREAMING_PARSER_ERROR, e);
-        }
-        return streamingParser.flattenMessage(byteBuf);
     }
 
     public static ByteBuffer deserializeSampleMessage(String messageType, String message) {
@@ -160,6 +162,18 @@ public class KafkaTableUtil {
         if (StringUtils.equals(messageType, CollectKafkaStats.BINARY_MESSAGE)) {
             return ByteBuffer.wrap(Base64.decodeBase64(message));
         }
+        if (StringUtils.equals(messageType, CollectKafkaStats.CUSTOM_MESSAGE)) {
+            return StandardCharsets.UTF_8.encode(message);
+        }
         throw new KylinException(STREAMING_PARSER_ERROR, "Message type is not valid: " + messageType);
+    }
+
+    public static void checkColName(Map<String, Object> inputParserMap) {
+        Pattern pattern = Pattern.compile(COL_PATTERN);
+        for (String colName : inputParserMap.keySet()) {
+            if (!pattern.matcher(colName).matches()) {
+                throw new KylinException(CUSTOM_PARSER_CHECK_COLUMN_NAME_FAILED);
+            }
+        }
     }
 }

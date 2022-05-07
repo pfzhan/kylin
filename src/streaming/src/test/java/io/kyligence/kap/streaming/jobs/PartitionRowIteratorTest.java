@@ -33,8 +33,10 @@ import static org.apache.spark.sql.types.DataTypes.ShortType;
 import static org.apache.spark.sql.types.DataTypes.StringType;
 import static org.apache.spark.sql.types.DataTypes.TimestampType;
 
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.types.DecimalType;
@@ -46,8 +48,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import com.google.gson.JsonParser;
-
+import io.kyligence.kap.parser.AbstractDataParser;
 import io.kyligence.kap.streaming.PartitionRowIterator;
 import io.kyligence.kap.streaming.util.StreamingTestCase;
 import lombok.val;
@@ -58,8 +59,7 @@ public class PartitionRowIteratorTest extends StreamingTestCase {
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
-    private static String PROJECT = "streaming_test";
-    private static String DATAFLOW_ID = "e78a89dd-847f-4574-8afa-8768b4228b73";
+    private static String DEFAULT_CLASSNAME = "io.kyligence.kap.parser.TimedJsonStreamParser";
 
     @Before
     public void setUp() throws Exception {
@@ -72,9 +72,10 @@ public class PartitionRowIteratorTest extends StreamingTestCase {
     }
 
     @Test
-    public void testNextEmpty() {
+    public void testNextEmpty() throws ReflectiveOperationException {
         val schema = new StructType().add("value", StringType);
-
+        AbstractDataParser<ByteBuffer> dataParser = AbstractDataParser.getDataParser(DEFAULT_CLASSNAME,
+                Thread.currentThread().getContextClassLoader());
         val partitionRowIter = new PartitionRowIterator(new AbstractIterator<Row>() {
             @Override
             public boolean hasNext() {
@@ -85,15 +86,17 @@ public class PartitionRowIteratorTest extends StreamingTestCase {
             public Row next() {
                 return RowFactory.create("");
             }
-        }, schema);
+        }, schema, dataParser);
         Assert.assertTrue(partitionRowIter.hasNext());
         val row = partitionRowIter.next();
         Assert.assertEquals(0, row.length());
     }
 
     @Test
-    public void testNextParseException() {
+    public void testNextParseException() throws ReflectiveOperationException {
         val schema = new StructType().add("value", IntegerType);
+        AbstractDataParser<ByteBuffer> dataParser = AbstractDataParser.getDataParser(DEFAULT_CLASSNAME,
+                Thread.currentThread().getContextClassLoader());
 
         val partitionRowIter = new PartitionRowIterator(new AbstractIterator<Row>() {
             @Override
@@ -105,27 +108,44 @@ public class PartitionRowIteratorTest extends StreamingTestCase {
             public Row next() {
                 return RowFactory.create("{\"value\":\"ab\"}");
             }
-        }, schema);
+        }, schema, dataParser);
         Assert.assertTrue(partitionRowIter.hasNext());
         val row = partitionRowIter.next();
         Assert.assertEquals(0, row.length());
     }
 
     @Test
-    public void testConvertJson2Row() {
-        val parser = new JsonParser();
-        val schemas = Arrays.asList(ShortType, IntegerType, LongType, DoubleType, FloatType, BooleanType, TimestampType,
+    public void testConvertJson2Row() throws ReflectiveOperationException {
+        val schemas = Arrays.asList(StringType, ShortType, IntegerType, LongType, DoubleType, FloatType, BooleanType, TimestampType,
                 DateType, DecimalType.apply(5, 2));
-        schemas.stream().forEach(dataType -> {
+        AbstractDataParser<ByteBuffer> dataParser = AbstractDataParser.getDataParser(DEFAULT_CLASSNAME,
+                Thread.currentThread().getContextClassLoader());
+        schemas.forEach(dataType -> {
             val schema = new StructType().add("value", dataType);
-            val partitionRowIter = new PartitionRowIterator(null, schema);
-
-            val row = partitionRowIter.convertJson2Row("{}", parser);
-            Assert.assertNull(row.get(0));
-            val row1 = partitionRowIter.convertJson2Row("{value:\"\"}", parser);
-            Assert.assertNull(row1.get(0));
-            val row2 = partitionRowIter.convertJson2Row("{value2:\"\"}", parser);
-            Assert.assertNull(row2.get(0));
+            val partitionRowIter = new PartitionRowIterator(null, schema, dataParser);
+            if (StringUtils.equals(DateType.simpleString(), dataType.simpleString())
+                    || StringUtils.equals(TimestampType.simpleString(), dataType.simpleString())) {
+                val row4 = partitionRowIter.convertJson2Row("{\"value\":\"2000-01-01\"}");
+                Assert.assertNotNull(row4.get(0));
+            } else if (StringUtils.equals(StringType.simpleString(), dataType.simpleString())) {
+                val row5 = partitionRowIter.convertJson2Row("{}");
+                Assert.assertNull(row5.get(0));
+                val row6 = partitionRowIter.convertJson2Row("{\"value\":\"\"}");
+                Assert.assertNotNull(row6.get(0));
+                val row7 = partitionRowIter.convertJson2Row("{\"value2\":\"\"}");
+                Assert.assertNull(row7.get(0));
+                val row8 = partitionRowIter.convertJson2Row("{\"value\":\"1\"}");
+                Assert.assertNotNull(row8.get(0));
+            } else {
+                val row = partitionRowIter.convertJson2Row("{}");
+                Assert.assertNull(row.get(0));
+                val row1 = partitionRowIter.convertJson2Row("{\"value\":\"\"}");
+                Assert.assertNull(row1.get(0));
+                val row2 = partitionRowIter.convertJson2Row("{\"value2\":\"\"}");
+                Assert.assertNull(row2.get(0));
+                val row3 = partitionRowIter.convertJson2Row("{\"value\":\"1\"}");
+                Assert.assertNotNull(row3.get(0));
+            }
         });
 
     }

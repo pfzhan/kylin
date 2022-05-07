@@ -1,0 +1,142 @@
+<!--
+/**
+ * Copyright (C) 2020 Kyligence Inc. All rights reserved.
+ *
+ * http://kyligence.io
+ *
+ * This software is the confidential and proprietary information of
+ * Kyligence Inc. ("Confidential Information"). You shall not disclose
+ * such Confidential Information and shall use it only in accordance
+ * with the terms of the license agreement you entered into with
+ * Kyligence Inc.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+-->
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>ke</artifactId>
+        <groupId>io.kyligence.ke</groupId>
+        <version>4.0.0-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>kap-parser-sdk</artifactId>
+    <name>KAP - Parser SDK</name>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-slf4j-impl</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <finalName>${artifactId}-4.5.13</finalName>
+                            <artifactSet>
+                                <excludes>
+                                    <exclude>io.netty:*</exclude>
+                                    <exclude>org.apache.zookeeper:*</exclude>
+                                    <exclude>org.apache.httpcomponents:*</exclude>
+                                    <exclude>org.apache.commons:commons-email:*</exclude>
+                                    <exclude>com.fasterxml.jackson.core:*</exclude>
+                                    <exclude>org.projectlombok:*</exclude>
+                                    <exclude>com.lmax:*</exclude>
+                                    <exclude>org.apache.logging.log4j:*</exclude>
+                                    <exclude>io.dropwizard.metrics:*</exclude>
+                                    <exclude>io.micrometer:*</exclude>
+                                    <exclude>com.github.osh:*</exclude>
+                                    <exclude>org.javassist:*</exclude>
+                                    <exclude>org.postgresql:*</exclude>
+                                    <exclude>org.junit.vintage:*</exclude>
+                                    <exclude>org.apache.calcite:*</exclude>
+                                    <exclude>com.alibaba:*</exclude>
+                                    <exclude>org.springframework.cloud:*</exclude>
+                                    <exclude>org.springframework.security:*</exclude>
+                                    <exclude>org.hdrhistogram:*</exclude>
+                                    <exclude>org.latencyutils:*</exclude>
+                                    <exclude>io.prometheus:*</exclude>
+                                    <exclude>com.github.oshi:*</exclude>
+                                    <exclude>net.java.dev.jna:*</exclude>
+                                    <exclude>com.github.waffle:*</exclude>
+                                    <exclude>com.github.ben-manes.caffeine:*</exclude>
+                                    <exclude>org.osgi:*</exclude>
+                                    <exclude>commons-codec:*</exclude>
+                                    <exclude>org.apache.calcite.avatica:*</exclude>
+                                    <exclude>commons-dbcp:*</exclude>
+                                    <exclude>commons-pool:*</exclude>
+                                    <exclude>com.esri.geometry:*</exclude>
+                                    <exclude>com.yahoo.datasketches:*</exclude>
+                                    <exclude>net.hydromatic:*</exclude>
+                                    <exclude>commons-logging:*</exclude>
+                                    <exclude>org.codehaus.janino:*</exclude>
+                                    <exclude>org.springframework.security:*</exclude>
+                                    <exclude>com.sun.mail:javax.mail:*</exclude>
+                                    <exclude>javax.activation:activation:*</exclude>
+                                    <exclude>org.apache.parquet:*</exclude>
+                                </excludes>
+                            </artifactSet>
+
+
+                            <filters>
+                                <filter>
+                                    <artifact>io.kyligence.ke:*</artifact>
+                                    <includes>
+                                        <include>io/kyligence/kap/common/obf/IKeep.class</include>
+                                        <include>io/kyligence/kap/parser/**</include>
+                                    </includes>
+                                    <excludes>
+                                        <exclude>io/kyligence/kap/shaded/**</exclude>
+                                        <exclude>io/kyligence/kap/guava20.shaded/**</exclude>
+                                    </excludes>
+                                </filter>
+
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

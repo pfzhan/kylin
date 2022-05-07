@@ -165,6 +165,7 @@ import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
+import io.kyligence.kap.metadata.streaming.DataParserManager;
 import io.kyligence.kap.metadata.streaming.KafkaConfig;
 import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
 import io.kyligence.kap.rest.aspect.Transaction;
@@ -421,6 +422,7 @@ public class TableService extends BasicService {
             tableDescResponse.setKafkaBootstrapServers(table.getKafkaConfig().getKafkaBootstrapServers());
             tableDescResponse.setSubscribe(table.getKafkaConfig().getSubscribe());
             tableDescResponse.setBatchTable(table.getKafkaConfig().getBatchTable());
+            tableDescResponse.setParserName(table.getKafkaConfig().getParserName());
         }
 
         if (tableExtDesc == null) {
@@ -446,8 +448,8 @@ public class TableService extends BasicService {
         List<TableDesc> descs = new ArrayList<>();
         val projectManager = getManager(NProjectManager.class);
         val groups = getCurrentUserGroups();
-        final List<AclTCR> aclTCRS = getManager(AclTCRManager.class, project).getAclTCRs(AclPermissionUtil.getCurrentUsername(),
-                groups);
+        final List<AclTCR> aclTCRS = getManager(AclTCRManager.class, project)
+                .getAclTCRs(AclPermissionUtil.getCurrentUsername(), groups);
         final boolean isAclGreen = AclPermissionUtil.canUseACLGreenChannel(project, groups, true);
         FileSystem fs = HadoopUtil.getWorkingFileSystem();
         List<NDataModel> healthyModels = projectManager.listHealthyModels(project);
@@ -515,7 +517,8 @@ public class TableService extends BasicService {
         final String dbTblName = rtableDesc.getIdentity();
         Map columnRows = Arrays.stream(rtableDesc.getExtColumns()).map(cdr -> {
             int id = Integer.parseInt(cdr.getId());
-            val columnRealRows = getManager(AclTCRManager.class, project).getAuthorizedRows(dbTblName, cdr.getName(), aclTCRS);
+            val columnRealRows = getManager(AclTCRManager.class, project).getAuthorizedRows(dbTblName, cdr.getName(),
+                    aclTCRS);
             return new AbstractMap.SimpleEntry<>(id, columnRealRows);
         }).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         for (String[] row : rtableDesc.getSamplingRows()) {
@@ -902,7 +905,8 @@ public class TableService extends BasicService {
 
     public List<BatchLoadTableResponse> getBatchLoadTables(String project) {
         aclEvaluate.checkProjectOperationPermission(project);
-        final List<TableDesc> incrementalLoadTables = getManager(NTableMetadataManager.class, project).getAllIncrementalLoadTables();
+        final List<TableDesc> incrementalLoadTables = getManager(NTableMetadataManager.class, project)
+                .getAllIncrementalLoadTables();
         final List<BatchLoadTableResponse> result = Lists.newArrayList();
 
         for (TableDesc table : incrementalLoadTables) {
@@ -1009,7 +1013,8 @@ public class TableService extends BasicService {
     }
 
     private void stopStreamingJobByTable(String project, TableDesc tableDesc) {
-        for (NDataModel tableRelatedModel : getManager(NDataflowManager.class, project).getModelsUsingTable(tableDesc)) {
+        for (NDataModel tableRelatedModel : getManager(NDataflowManager.class, project)
+                .getModelsUsingTable(tableDesc)) {
             fusionModelService.onStopStreamingJob(tableRelatedModel.getId(), project);
         }
     }
@@ -1017,7 +1022,14 @@ public class TableService extends BasicService {
     public void unloadTable(String project, String tableIdentity) {
         getManager(NTableMetadataManager.class, project).removeTableExt(tableIdentity);
         getManager(NTableMetadataManager.class, project).removeSourceTable(tableIdentity);
-        getManager(KafkaConfigManager.class, project).removeKafkaConfig(tableIdentity);
+        KafkaConfigManager kafkaConfigManager = getManager(KafkaConfigManager.class, project);
+        KafkaConfig kafkaConfig = kafkaConfigManager.getKafkaConfig(tableIdentity);
+        if (Objects.isNull(kafkaConfig)) {
+            return;
+        }
+        kafkaConfigManager.removeKafkaConfig(tableIdentity);
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> getManager(DataParserManager.class, project)
+                .removeUsingTable(tableIdentity, kafkaConfig.getParserName()), project);
     }
 
     public PreUnloadTableResponse preUnloadTable(String project, String tableIdentity) throws IOException {
@@ -1259,7 +1271,8 @@ public class TableService extends BasicService {
 
         val schemaChanged = result.getAddColumnCount() > 0 || result.getRemoveColumnCount() > 0
                 || result.getDataTypeChangeColumnCount() > 0;
-        val originTable = getManager(NTableMetadataManager.class, project).getTableDesc(context.getTableDesc().getIdentity());
+        val originTable = getManager(NTableMetadataManager.class, project)
+                .getTableDesc(context.getTableDesc().getIdentity());
         result.setSnapshotDeleted(schemaChanged && originTable.getLastSnapshotPath() != null);
 
         val projectInstance = getManager(NProjectManager.class).getProject(project);
@@ -1464,20 +1477,20 @@ public class TableService extends BasicService {
         val indexManager = getManager(NIndexPlanManager.class, projectName);
         for (AffectedModelContext affectedContext : affectedModels) {
             if (!affectedContext.getUpdateMeasureMap().isEmpty()) {
-                getManager(NDataModelManager.class, projectName).updateDataModel(model.getId(), modelDesc ->
-                    affectedContext.getUpdateMeasureMap().forEach((originalMeasureId, newMeasure) -> {
-                        int maxMeasureId = modelDesc.getAllMeasures().stream().map(NDataModel.Measure::getId)
-                                .mapToInt(i -> i).max().orElse(NDataModel.MEASURE_ID_BASE - 1);
-                        Optional<NDataModel.Measure> originalMeasureOptional = modelDesc.getAllMeasures().stream()
-                                .filter(measure -> measure.getId() == originalMeasureId).findAny();
-                        if (originalMeasureOptional.isPresent()) {
-                            NDataModel.Measure originalMeasure = originalMeasureOptional.get();
-                            originalMeasure.setTomb(true);
-                            maxMeasureId++;
-                            newMeasure.setId(maxMeasureId);
-                            modelDesc.getAllMeasures().add(newMeasure);
-                        }
-                    }));
+                getManager(NDataModelManager.class, projectName).updateDataModel(model.getId(),
+                        modelDesc -> affectedContext.getUpdateMeasureMap().forEach((originalMeasureId, newMeasure) -> {
+                            int maxMeasureId = modelDesc.getAllMeasures().stream().map(NDataModel.Measure::getId)
+                                    .mapToInt(i -> i).max().orElse(NDataModel.MEASURE_ID_BASE - 1);
+                            Optional<NDataModel.Measure> originalMeasureOptional = modelDesc.getAllMeasures().stream()
+                                    .filter(measure -> measure.getId() == originalMeasureId).findAny();
+                            if (originalMeasureOptional.isPresent()) {
+                                NDataModel.Measure originalMeasure = originalMeasureOptional.get();
+                                originalMeasure.setTomb(true);
+                                maxMeasureId++;
+                                newMeasure.setId(maxMeasureId);
+                                modelDesc.getAllMeasures().add(newMeasure);
+                            }
+                        }));
             }
             indexManager.updateIndexPlan(model.getId(), affectedContext::shrinkIndexPlan);
         }
@@ -1603,8 +1616,8 @@ public class TableService extends BasicService {
     }
 
     private List<String> getEffectedJobs(TableDesc newTableDesc, JobInfoEnum jobInfoType) {
-        val notFinalStateJobs = getManager(NExecutableManager.class, newTableDesc.getProject()).getAllExecutables().stream()
-                .filter(job -> !job.getStatus().isFinalState()).collect(Collectors.toList());
+        val notFinalStateJobs = getManager(NExecutableManager.class, newTableDesc.getProject()).getAllExecutables()
+                .stream().filter(job -> !job.getStatus().isFinalState()).collect(Collectors.toList());
 
         List<String> effectedJobs = Lists.newArrayList();
         for (AbstractExecutable job : notFinalStateJobs) {
@@ -2067,8 +2080,8 @@ public class TableService extends BasicService {
         List<String> usedTableNames = Lists.newArrayList();
         usedTableNames.add(model.getRootFactTableName());
         usedTableNames.addAll(model.getJoinTables().stream().map(JoinTableDesc::getTable).collect(Collectors.toList()));
-        return usedTableNames.stream().map(getManager(NTableMetadataManager.class, project)::getTableDesc).filter(Objects::nonNull)
-                .collect(Collectors.toList());
+        return usedTableNames.stream().map(getManager(NTableMetadataManager.class, project)::getTableDesc)
+                .filter(Objects::nonNull).collect(Collectors.toList());
     }
 
     public TableExtDesc getOrCreateTableExt(String project, TableDesc t) {
