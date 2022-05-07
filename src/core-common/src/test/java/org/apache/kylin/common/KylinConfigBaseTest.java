@@ -804,6 +804,8 @@ public class KylinConfigBaseTest {
         map.put("getAADTenantId", new PropertiesEntity("kylin.server.aad-tenant-id", "", ""));
         map.put("getAADTokenClockSkewSeconds",
                 new PropertiesEntity("kylin.server.aad-token-clock-skew-seconds", "0", 0));
+        map.put("getOktaOauth2Issuer", new PropertiesEntity("kylin.server.okta-oauth2-issuer", "", ""));
+        map.put("getOktaClientId", new PropertiesEntity("kylin.server.okta-client-id", "", ""));
         map.put("getLicenseExtractor",
                 new PropertiesEntity("kylin.tool.license-extractor",
                         "org.apache.kylin.rest.service.DefaultLicenseExtractor",
