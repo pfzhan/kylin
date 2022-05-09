@@ -143,6 +143,7 @@
         <lombok.version>1.18.2</lombok.version>
         <forbiddenapis.version>3.1</forbiddenapis.version>
         <javassist.version>3.20.0-GA</javassist.version>
+        <esapi.version>2.3.0.0</esapi.version>
         <!--metric-->
         <dropwizard.version>4.1.1</dropwizard.version>
 
@@ -1836,6 +1837,13 @@
                 <groupId>org.projectlombok</groupId>
                 <artifactId>lombok</artifactId>
                 <version>1.18.2</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.owasp.esapi</groupId>
+                <artifactId>esapi</artifactId>
+                <version>${esapi.version}</version>
+                <scope>compile</scope>
             </dependency>
 
             <!-- Logging -->
