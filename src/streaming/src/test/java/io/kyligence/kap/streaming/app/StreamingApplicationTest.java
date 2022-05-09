@@ -23,8 +23,6 @@
  */
 package io.kyligence.kap.streaming.app;
 
-import static io.kyligence.kap.streaming.constants.StreamingConstants.DEFAULT_PARSER_NAME;
-
 import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
@@ -59,7 +57,7 @@ public class StreamingApplicationTest extends StreamingTestCase {
     @Test
     public void testExecute_PrepareBeforeExecute() {
         val entry = Mockito.spy(new StreamingEntry());
-        val args = new String[] { PROJECT, DATAFLOW_ID, "1", "", "xx", DEFAULT_PARSER_NAME };
+        val args = new String[] { PROJECT, DATAFLOW_ID, "1", "", "xx" };
         val sparkConf = KylinBuildEnv.getOrCreate(getTestConfig()).sparkConf();
         Mockito.doNothing().when(entry).getOrCreateSparkSession(sparkConf);
         Mockito.doNothing().when(entry).doExecute();
@@ -70,7 +68,7 @@ public class StreamingApplicationTest extends StreamingTestCase {
     @Test
     public void testExecute_DoExecute() {
         val entry = Mockito.spy(new StreamingEntry());
-        val args = new String[] { PROJECT, DATAFLOW_ID, "1", "", "xx", DEFAULT_PARSER_NAME };
+        val args = new String[] { PROJECT, DATAFLOW_ID, "1", "", "xx" };
         val sparkConf = KylinBuildEnv.getOrCreate(getTestConfig()).sparkConf();
         Mockito.doNothing().when(entry).getOrCreateSparkSession(sparkConf);
         Mockito.doNothing().when(entry).doExecute();

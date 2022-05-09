@@ -973,7 +973,8 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public String getQueryExtensionFactory() {
-        return getOptional("kylin.extension.query.factory", "io.kyligence.kap.query.QueryExtensionFactoryEnterprise");
+        return getOptional("kylin.extension.query.factory",
+                "io.kyligence.kap.query.QueryExtensionFactoryEnterprise");
     }
 
     public String getMetadataExtensionFactory() {
@@ -1310,15 +1311,6 @@ public abstract class KylinConfigBase implements Serializable {
             return "";
         }
         return jar.getAbsolutePath();
-    }
-
-    public String getHdfsCustomJarPath(String project, String jarType) {
-        return getHdfsWorkingDirectory() + "custom/jars/" + project + "/" + jarType + "/";
-    }
-
-    public int getCustomParserLimit() {
-        int parserLimit = Integer.parseInt(getOptional("kylin.streaming.custom.parser-limit", "50"));
-        return parserLimit < 1 ? 50 : parserLimit;
     }
 
     public String getKylinExtJarsPath() {

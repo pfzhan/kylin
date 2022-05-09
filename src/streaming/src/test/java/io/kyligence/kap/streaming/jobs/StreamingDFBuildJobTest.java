@@ -62,8 +62,6 @@ import io.kyligence.kap.streaming.util.StreamingTestCase;
 import lombok.val;
 import lombok.var;
 
-import static io.kyligence.kap.streaming.constants.StreamingConstants.DEFAULT_PARSER_NAME;
-
 public class StreamingDFBuildJobTest extends StreamingTestCase {
 
     @Rule
@@ -102,7 +100,7 @@ public class StreamingDFBuildJobTest extends StreamingTestCase {
         val model = df.getModel();
         val builder = Mockito.spy(new StreamingDFBuildJob(PROJECT));
         val streamingEntry = new StreamingEntry();
-        streamingEntry.parseParams(new String[] { PROJECT, DATAFLOW_ID, "3000", "", "xx", DEFAULT_PARSER_NAME });
+        streamingEntry.parseParams(new String[] { PROJECT, DATAFLOW_ID, "3000", "", "xx" });
         val ss = createSparkSession();
         streamingEntry.setSparkSession(ss);
 

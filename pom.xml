@@ -330,7 +330,6 @@
         <module>src/assembly</module>
         <module>src/tool</module>
         <module>src/datasource-sdk</module>
-        <module>src/parser-sdk</module>
         <module>src/external-catalog/external-catalog-sdk</module>
         <module>src/second-storage/core</module>
         <module>src/second-storage/core-ui</module>
@@ -393,11 +392,6 @@
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-datasource-sdk</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-parser-sdk</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -3133,7 +3127,6 @@
                         <exclude>**/org/apache/spark/sql/execution/utils/SchemaProcessor$.class</exclude>
                         <exclude>**/org/apache/spark/util/KylinReflectUtils$.class</exclude>
                         <exclude>**/io/kyligence/kap/common/util/Unsafe.class</exclude>
-                        <exclude>**/io/kyligence/kap/parser/loader/Utilities.class</exclude>
                         <exclude>**/io/kyligence/kap/query/runtime/ExpressionConverter$.class</exclude>
                         <exclude>**/io/kyligence/kap/rest/scheduler/JobSchedulerListenerTest.class</exclude>
                         <exclude>**/io/kyligence/kap/rest/scheduler/JobSchedulerListenerTest$TimeoutHandler.class

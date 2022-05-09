@@ -23,8 +23,6 @@
  */
 package io.kyligence.kap.source.kafka;
 
-import static io.kyligence.kap.source.kafka.CollectKafkaStats.DEFAULT_PARSER;
-
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -81,7 +79,7 @@ public class KafkaTableUtilTest extends StreamingTestCase {
         ReflectionUtils.setField(kafkaConfig, "subscribe", "ssb-topic1");
         ReflectionUtils.setField(kafkaConfig, "startingOffsets", "latest");
         ReflectionUtils.setField(kafkaConfig, "batchTable", "");
-        ReflectionUtils.setField(kafkaConfig, "parserName", DEFAULT_PARSER);
+        ReflectionUtils.setField(kafkaConfig, "parserName", "io.kyligence.kap.parser.TimedJsonStreamParser");
     }
 
     @Test
@@ -152,8 +150,8 @@ public class KafkaTableUtilTest extends StreamingTestCase {
         val msgList = Arrays.asList(buffer1, buffer2);
         val map = KafkaTableUtil.getMessageTypeAndDecodedMessages(msgList);
         Assert.assertEquals(2, map.size());
-        Assert.assertEquals(CollectKafkaStats.CUSTOM_MESSAGE, map.get("message_type"));
-        Assert.assertEquals(2, ((List) map.get("message")).size());
+        Assert.assertEquals(CollectKafkaStats.JSON_MESSAGE, map.get("message_type"));
+        Assert.assertEquals(1, ((List) map.get("message")).size());
         ReflectionUtils.setField(KafkaClient.class, "mockup", null);
     }
 
@@ -217,13 +215,12 @@ public class KafkaTableUtilTest extends StreamingTestCase {
     }
 
     @Test
-    public void testConverCustomMessageToMap() {
-        String project = "streaming_test";
+    public void testConvertMessageToFlatMap() {
         val topic = "ssb-topic1";
         val partition = 0;
         setupMockConsumer(topic, partition, 7);
         try {
-            KafkaTableUtil.convertCustomMessage(project, kafkaConfig, CollectKafkaStats.CUSTOM_MESSAGE, null);
+            KafkaTableUtil.convertMessageToFlatMap(kafkaConfig, CollectKafkaStats.JSON_MESSAGE, null);
         } catch (KylinException e) {
             Assert.assertEquals(ServerErrorCode.INVALID_STREAMING_MESSAGE.toErrorCode().getCodeString(),
                     e.getErrorCode().getCodeString());
@@ -231,7 +228,7 @@ public class KafkaTableUtilTest extends StreamingTestCase {
             Assert.fail();
         }
         try {
-            KafkaTableUtil.convertCustomMessage(project, kafkaConfig, CollectKafkaStats.CUSTOM_MESSAGE, "");
+            KafkaTableUtil.convertMessageToFlatMap(kafkaConfig, CollectKafkaStats.JSON_MESSAGE, "");
         } catch (KylinException e) {
             Assert.assertEquals(ServerErrorCode.INVALID_STREAMING_MESSAGE.toErrorCode().getCodeString(),
                     e.getErrorCode().getCodeString());
@@ -239,7 +236,7 @@ public class KafkaTableUtilTest extends StreamingTestCase {
             Assert.fail();
         }
         try {
-            KafkaTableUtil.convertCustomMessage(project, kafkaConfig, CollectKafkaStats.CUSTOM_MESSAGE, "test");
+            KafkaTableUtil.convertMessageToFlatMap(kafkaConfig, CollectKafkaStats.JSON_MESSAGE, "test");
         } catch (KylinException e) {
             Assert.assertEquals(ServerErrorCode.STREAMING_PARSER_ERROR.toErrorCode().getCodeString(),
                     e.getErrorCode().getCodeString());
@@ -247,22 +244,21 @@ public class KafkaTableUtilTest extends StreamingTestCase {
             Assert.fail();
         }
         try {
-            KafkaTableUtil.convertCustomMessage(project, null, CollectKafkaStats.CUSTOM_MESSAGE, "test");
+            KafkaTableUtil.convertMessageToFlatMap(null, CollectKafkaStats.JSON_MESSAGE, "test");
         } catch (KylinException e) {
             Assert.assertEquals(ServerErrorCode.STREAMING_PARSER_ERROR.toErrorCode().getCodeString(),
                     e.getErrorCode().getCodeString());
         } catch (Exception e) {
             Assert.fail();
         }
-        val result = KafkaTableUtil.convertCustomMessage(project, kafkaConfig, CollectKafkaStats.CUSTOM_MESSAGE,
+        val result = KafkaTableUtil.convertMessageToFlatMap(kafkaConfig, CollectKafkaStats.JSON_MESSAGE,
                 "{\"a\": 2, \"b\": 2, \"timestamp\": \"2000-01-01 05:06:12\"}");
 
         Assert.assertEquals(3, result.size());
 
         try {
             kafkaConfig.setParserName("test");
-            KafkaTableUtil.convertCustomMessage(project, kafkaConfig, CollectKafkaStats.CUSTOM_MESSAGE,
-                    "{\"timestamp\": \"2000-01-01 05:06:12\"}");
+            KafkaTableUtil.convertMessageToFlatMap(kafkaConfig, CollectKafkaStats.JSON_MESSAGE, "{\"timestamp\": \"2000-01-01 05:06:12\"}");
         } catch (KylinException e) {
             Assert.assertEquals(ServerErrorCode.STREAMING_PARSER_ERROR.toErrorCode().getCodeString(),
                     e.getErrorCode().getCodeString());
@@ -270,8 +266,7 @@ public class KafkaTableUtilTest extends StreamingTestCase {
             Assert.fail();
         }
         try {
-            KafkaTableUtil.convertCustomMessage(project, null, CollectKafkaStats.CUSTOM_MESSAGE,
-                    "{\"timestamp\": \"2000-01-01 05:06:12\"}");
+            KafkaTableUtil.convertMessageToFlatMap(null, CollectKafkaStats.JSON_MESSAGE, "{\"timestamp\": \"2000-01-01 05:06:12\"}");
         } catch (KylinException e) {
             Assert.assertEquals(ServerErrorCode.STREAMING_PARSER_ERROR.toErrorCode().getCodeString(),
                     e.getErrorCode().getCodeString());
@@ -346,8 +341,7 @@ public class KafkaTableUtilTest extends StreamingTestCase {
         ReflectionUtils.setField(KafkaClient.class, "mockup", new MockConsumer<>(OffsetResetStrategy.LATEST));
         val mockup = (MockConsumer) ReflectionUtils.getField(KafkaClient.class, "mockup");
         mockup.assign(Arrays.asList(new TopicPartition(topic, partition)));
-        mockup.updatePartitions(topic,
-                Arrays.asList(new PartitionInfo(topic, partition, null, new Node[0], new Node[0])));
+        mockup.updatePartitions(topic, Arrays.asList(new PartitionInfo(topic, partition, null, new Node[0], new Node[0])));
         val beginningOffsets = new HashMap<>();
         beginningOffsets.put(new TopicPartition(topic, partition), 0L);
         mockup.updateBeginningOffsets(beginningOffsets);

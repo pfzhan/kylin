@@ -18,14 +18,13 @@
 
 package io.kyligence.kap.streaming
 
-import io.kyligence.kap.parser.AbstractDataParser
-import io.kyligence.kap.streaming.CreateStreamingFlatTable.castDF
-import org.apache.spark.sql.types.{StringType, StructField, StructType}
+import java.util.Arrays
+
 import org.apache.spark.sql.{RowFactory, SparkSession}
+import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.scalatest.funsuite.AnyFunSuite
 
-import java.nio.ByteBuffer
-import java.util.Arrays
+import io.kyligence.kap.streaming.CreateStreamingFlatTable.castDF
 
 class TestDataSourceParser extends AnyFunSuite {
 
@@ -38,7 +37,6 @@ class TestDataSourceParser extends AnyFunSuite {
   //  |343252 |2021-06-01 00:00:00|1625037465002 |single  |old      |jily     |pandora  |32 |21  |12  |13  |15  |22  |
   //  +-------+-------------------+--------------+--------+---------+---------+---------+---+----+----+----+----+----+
   test("test json parser") {
-    val defaultClassName = "io.kyligence.kap.parser.TimedJsonStreamParser"
     val spark = SparkSession.builder().master("local[*]").getOrCreate()
     spark.conf.set("spark.sql.shuffle.partitions", 1)
 
@@ -77,10 +75,7 @@ class TestDataSourceParser extends AnyFunSuite {
     val df = spark.createDataFrame(rowList, valueSchema)
 
     assert(df.count() == 4)
-    val dataParser = AbstractDataParser
-      .getDataParser(defaultClassName, Thread.currentThread().getContextClassLoader)
-      .asInstanceOf[AbstractDataParser[ByteBuffer]]
-    val parsedDataframe = castDF(df.toDF(), schema, dataParser)
+    val parsedDataframe = castDF(df.toDF(), schema)
     assert(parsedDataframe.count() == 4)
     assert(parsedDataframe.selectExpr("windowDate").head().get(0) == "2021-06-01 00:00:00")
     assert(parsedDataframe.selectExpr("windowDateLong").head().get(0) == "1625037465002")

@@ -76,7 +76,6 @@ public class StreamingTableController extends NBasicController {
 
             tableExtService.checkAndLoadTable(project, streamingRequest.getTableDesc(), tableExt);
             streamingTableService.createKafkaConfig(project, streamingRequest.getKafkaConfig());
-            streamingTableService.updateDataParser(project, streamingRequest.getKafkaConfig());
             LoadTableResponse loadTableResponse = new LoadTableResponse();
             loadTableResponse.getLoaded().add(streamingRequest.getTableDesc().getIdentity());
             return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, loadTableResponse, "");

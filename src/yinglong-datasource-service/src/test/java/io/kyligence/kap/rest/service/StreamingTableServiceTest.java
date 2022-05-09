@@ -42,6 +42,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -58,20 +59,23 @@ import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
-import io.kyligence.kap.metadata.streaming.DataParserInfo;
-import io.kyligence.kap.metadata.streaming.DataParserManager;
 import io.kyligence.kap.metadata.streaming.KafkaConfig;
 import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
 import io.kyligence.kap.rest.request.StreamingRequest;
 import lombok.val;
 
 public class StreamingTableServiceTest extends NLocalFileMetadataTestCase {
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Mock
     private AclUtil aclUtil = Mockito.spy(AclUtil.class);
 
     @Mock
     private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
+
+//    @Mock
+//    private AclTCRService aclTCRService = Mockito.spy(AclTCRService.class);
 
     @InjectMocks
     private StreamingTableService streamingTableService = Mockito.spy(new StreamingTableService());
@@ -85,8 +89,8 @@ public class StreamingTableServiceTest extends NLocalFileMetadataTestCase {
     @Mock
     protected IUserGroupService userGroupService = Mockito.spy(NUserGroupService.class);
 
-    private static final String PROJECT = "streaming_test";
-    private static final String DEFAULT_PARSER = "io.kyligence.kap.parser.TimedJsonStreamParser";
+
+    private static String PROJECT = "streaming_test";
 
     @Before
     public void setup() {
@@ -103,7 +107,11 @@ public class StreamingTableServiceTest extends NLocalFileMetadataTestCase {
 
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
         ReflectionTestUtils.setField(streamingTableService, "aclEvaluate", aclEvaluate);
+        //ReflectionTestUtils.setField(streamingTableService, "aclTCRService", aclTCRService);
+        //ReflectionTestUtils.setField(streamingTableService, "userGroupService", userGroupService);
+        //ReflectionTestUtils.setField(streamingTableService,"tableSupporters", Arrays.asList(tableService));
         ReflectionTestUtils.setField(tableService, "aclEvaluate", aclEvaluate);
+        //ReflectionTestUtils.setField(tableService, "aclTCRService", aclTCRService);
         ReflectionTestUtils.setField(tableService, "userGroupService", userGroupService);
 
         val prjManager = NProjectManager.getInstance(getTestConfig());
@@ -222,8 +230,8 @@ public class StreamingTableServiceTest extends NLocalFileMetadataTestCase {
         kafkaConfig.setStartingOffsets("latest");
         streamingRequest.setKafkaConfig(kafkaConfig);
         thrown.expect(KylinException.class);
-        thrown.expectMessage(
-                String.format(Locale.ROOT, MsgPicker.getMsg().getBATCH_STREAM_TABLE_NOT_MATCH(), batchTableName));
+        thrown.expectMessage(String.format(Locale.ROOT,
+                MsgPicker.getMsg().getBATCH_STREAM_TABLE_NOT_MATCH(), batchTableName));
         streamingTableService.checkColumns(streamingRequest);
     }
 
@@ -273,21 +281,4 @@ public class StreamingTableServiceTest extends NLocalFileMetadataTestCase {
         thrown.expectMessage(MsgPicker.getMsg().getTIMESTAMP_COLUMN_NOT_EXIST());
         streamingTableService.checkColumns(streamingRequest);
     }
-
-    @Test
-    public void testUpdateDataParser() {
-        val kafkaConfig = new KafkaConfig();
-        kafkaConfig.setDatabase("DEFAULT");
-        kafkaConfig.setName("TPCH_TOPIC");
-        kafkaConfig.setKafkaBootstrapServers("10.1.2.210:9092");
-        kafkaConfig.setSubscribe("tpch_topic");
-        kafkaConfig.setStartingOffsets("latest");
-        kafkaConfig.setParserName(DEFAULT_PARSER);
-        streamingTableService.updateDataParser(PROJECT, kafkaConfig);
-
-        DataParserInfo dataParserInfo = DataParserManager.getInstance(getTestConfig(), PROJECT)
-                .getDataParserInfo(DEFAULT_PARSER);
-        Assert.assertEquals(DEFAULT_PARSER, dataParserInfo.getClassName());
-    }
-
 }
