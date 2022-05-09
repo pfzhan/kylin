@@ -25,10 +25,13 @@ package io.kyligence.kap.metadata.model.schema;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.metadata.model.ColumnDesc;
@@ -133,8 +136,32 @@ public class SchemaNode {
 
     public static SchemaNode ofModelCC(ComputedColumnDesc cc, String modelAlias, String factTable) {
         return new SchemaNode(SchemaNodeType.MODEL_CC, modelAlias + "/" + cc.getColumnName(),
-                ImmutableMap.of("expression", cc.getExpression().replace("\r\n", "\n"), "fact_table", factTable),
+                ImmutableMap.of("expression", transformCCExprToUpperCase(cc.getExpression()), "fact_table", factTable),
                 "fact_table");
+    }
+
+    private static String transformCCExprToUpperCase(String expression) {
+        String expr = expression.replace("\r\n", "\n");
+
+        List<String> retainedStrings = new ArrayList<>(Collections.emptyList());
+        Pattern patternQuote = Pattern.compile("('[\\S]+')");
+        Matcher matcher = patternQuote.matcher(expr);
+        int matchEnd = 0;
+        int matchStart;
+        while (matcher.find(matchEnd)) {
+            retainedStrings.add(matcher.group(1));
+            matchStart = matcher.start();
+            expr = expr.substring(0, matchEnd).concat(expr.substring(matchEnd, matchStart).toUpperCase())
+                    .concat(expr.substring(matchStart));
+            matchEnd = matcher.end();
+        }
+        expr = expr.substring(0, matchEnd).concat(expr.substring(matchEnd).toUpperCase());
+
+        if (retainedStrings.isEmpty()) {
+            return expr.toUpperCase();
+        }
+
+        return expr;
     }
 
     public static SchemaNode ofDimension(NDataModel.NamedColumn namedColumn, String modelAlias) {
