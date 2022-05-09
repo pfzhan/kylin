@@ -3555,7 +3555,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
     }
 
     @Transaction(project = 0)
-    public void updateDataModelParatitionDesc(String project, String modelAlias,
+    public void updateModelPartitionColumn(String project, String modelAlias,
             ModelParatitionDescRequest modelParatitionDescRequest) {
         aclEvaluate.checkProjectWritePermission(project);
         if (getManager(NProjectManager.class).getProject(project) == null) {
@@ -3565,20 +3565,27 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         if (oldDataModel == null) {
             throw new KylinException(MODEL_NAME_NOT_EXIST, modelAlias);
         }
-        checkModelPermission(project, oldDataModel.getId());
-
-        PartitionDesc partitionDesc = modelParatitionDescRequest.getPartitionDesc();
-        if (partitionDesc != null) {
-            String rootFactTable = oldDataModel.getRootFactTableName().split("\\.")[1];
-            if (!partitionDesc.getPartitionDateColumn().toUpperCase(Locale.ROOT).startsWith(rootFactTable + ".")) {
-                throw new KylinException(INVALID_PARTITION_COLUMN, MsgPicker.getMsg().getInvalidPartitionColumn());
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            NDataModel model = getManager(NDataModelManager.class, project).getDataModelDesc(oldDataModel.getUuid());
+            if (model == null) {
+                throw new KylinException(MODEL_NAME_NOT_EXIST, modelAlias);
             }
-        }
+            checkModelPermission(project, oldDataModel.getId());
+            PartitionDesc partitionColumn = modelParatitionDescRequest.getPartitionDesc();
+            if (partitionColumn != null) {
+                String rootFactTable = oldDataModel.getRootFactTableName().split("\\.")[1];
+                if (!StringUtils.startsWithIgnoreCase(partitionColumn.getPartitionDateColumn(), rootFactTable + ".")) {
+                    throw new KylinException(INVALID_PARTITION_COLUMN, MsgPicker.getMsg().getInvalidPartitionColumn());
+                }
+            }
+            getManager(NDataModelManager.class, project).updateDataModel(oldDataModel.getUuid(), copyForWrite -> {
+                copyForWrite.setPartitionDesc(modelParatitionDescRequest.getPartitionDesc());
+            });
+            semanticUpdater.handleSemanticUpdate(project, oldDataModel.getUuid(), oldDataModel,
+                    modelParatitionDescRequest.getStart(), modelParatitionDescRequest.getEnd());
+            return null;
 
-        getManager(NDataModelManager.class, project).updateDataModel(oldDataModel.getUuid(),
-                copyForWrite -> copyForWrite.setPartitionDesc(modelParatitionDescRequest.getPartitionDesc()));
-        semanticUpdater.handleSemanticUpdate(project, oldDataModel.getUuid(), oldDataModel,
-                modelParatitionDescRequest.getStart(), modelParatitionDescRequest.getEnd(), false);
+        }, project);
     }
 
     @Transaction(project = 0)

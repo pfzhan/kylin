@@ -292,7 +292,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         mockGetModelName(modelAlias, project, "modelId");
         ModelParatitionDescRequest modelParatitionDescRequest = new ModelParatitionDescRequest();
         modelParatitionDescRequest.setPartitionDesc(null);
-        Mockito.doNothing().when(modelService).updateDataModelParatitionDesc(project, modelAlias,
+        Mockito.doNothing().when(modelService).updateModelPartitionColumn(project, modelAlias,
                 modelParatitionDescRequest);
         mockMvc.perform(MockMvcRequestBuilders.put("/api/models/{project}/{model}/partition_desc", project, modelAlias)
                 .contentType(MediaType.APPLICATION_JSON)

@@ -1588,7 +1588,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         var executables = getRunningExecutables(getProject(), "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(0, executables.size());
 
-        modelService.updateDataModelParatitionDesc(getProject(), model.getAlias(), modelParatitionDescRequest);
+        modelService.updateModelPartitionColumn(getProject(), model.getAlias(), modelParatitionDescRequest);
         model = modelMgr.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertNull(model.getPartitionDesc());
         executables = getRunningExecutables(getProject(), "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -1596,7 +1596,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         modelParatitionDescRequest.setPartitionDesc(partitionDesc);
 
         deleteJobByForce(executables.get(0));
-        modelService.updateDataModelParatitionDesc(getProject(), model.getAlias(), modelParatitionDescRequest);
+        modelService.updateModelPartitionColumn(getProject(), model.getAlias(), modelParatitionDescRequest);
         model = modelMgr.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(partitionDesc, model.getPartitionDesc());
         executables = getRunningExecutables(getProject(), "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
