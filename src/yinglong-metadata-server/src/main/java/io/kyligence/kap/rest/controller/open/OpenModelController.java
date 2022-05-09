@@ -203,8 +203,7 @@ public class OpenModelController extends NBasicController {
                 if (INDEX_STATUS_SET.contains(s)) {
                     statuses.add(IndexEntity.Status.valueOf(s));
                 } else {
-                    throw new KylinException(INDEX_PARAMETER_INVALID, "status",
-                            String.join(", ", INDEX_STATUS_SET));
+                    throw new KylinException(INDEX_PARAMETER_INVALID, "status", String.join(", ", INDEX_STATUS_SET));
                 }
             }
         });
@@ -222,8 +221,7 @@ public class OpenModelController extends NBasicController {
                 if (INDEX_SOURCE_SET.contains(s)) {
                     sourceList.add(IndexEntity.Source.valueOf(s));
                 } else {
-                    throw new KylinException(INDEX_PARAMETER_INVALID, "sources",
-                            String.join(", ", INDEX_SOURCE_SET));
+                    throw new KylinException(INDEX_PARAMETER_INVALID, "sources", String.join(", ", INDEX_SOURCE_SET));
                 }
             }
         });
@@ -241,8 +239,7 @@ public class OpenModelController extends NBasicController {
         if (INDEX_SORT_BY_SET.contains(sortBy)) {
             return sortBy;
         }
-        throw new KylinException(INDEX_PARAMETER_INVALID, "sort_by",
-                String.join(", ", INDEX_SORT_BY_SET));
+        throw new KylinException(INDEX_PARAMETER_INVALID, "sort_by", String.join(", ", INDEX_SORT_BY_SET));
     }
 
     @VisibleForTesting
@@ -295,7 +292,7 @@ public class OpenModelController extends NBasicController {
         validateDataRange(modelParatitionDescRequest.getStart(), modelParatitionDescRequest.getEnd(),
                 partitionDateFormat);
         val dataModel = getModel(modelAlias, projectName);
-        modelService.updateDataModelParatitionDesc(projectName, dataModel.getAlias(), modelParatitionDescRequest);
+        modelService.updateModelPartitionColumn(projectName, dataModel.getAlias(), modelParatitionDescRequest);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
@@ -365,10 +362,10 @@ public class OpenModelController extends NBasicController {
     @ResponseBody
     public void biExport(@RequestParam("model_name") String modelAlias, @RequestParam(value = "project") String project,
             @RequestParam(value = "export_as") SyncContext.BI exportAs,
-                         @RequestParam(value = "element", required = false, defaultValue = "AGG_INDEX_COL") SyncContext.ModelElement element,
-                         @RequestParam(value = "server_host", required = false) String host,
-                         @RequestParam(value = "server_port", required = false) Integer port, HttpServletRequest request,
-                         HttpServletResponse response) throws IOException {
+            @RequestParam(value = "element", required = false, defaultValue = "AGG_INDEX_COL") SyncContext.ModelElement element,
+            @RequestParam(value = "server_host", required = false) String host,
+            @RequestParam(value = "server_port", required = false) Integer port, HttpServletRequest request,
+            HttpServletResponse response) throws IOException {
         String projectName = checkProjectName(project);
         String modelId = getModel(modelAlias, projectName).getId();
         modelController.biExport(modelId, projectName, exportAs, element, host, port, request, response);

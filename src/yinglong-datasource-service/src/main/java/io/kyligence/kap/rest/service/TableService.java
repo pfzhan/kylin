@@ -135,7 +135,6 @@ import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
-import io.kyligence.kap.engine.spark.utils.HDFSUtils;
 import io.kyligence.kap.guava20.shaded.common.graph.Graph;
 import io.kyligence.kap.guava20.shaded.common.graph.Graphs;
 import io.kyligence.kap.metadata.acl.AclTCR;
@@ -583,19 +582,6 @@ public class TableService extends BasicService {
                 val path = new Path(KapConfig.wrap(KylinConfig.getInstanceFromEnv()).getMetadataWorkingDirectory(),
                         tableDesc.getLastSnapshotPath());
                 return HadoopUtil.getContentSummary(fs, path).getLength();
-            } catch (Exception e) {
-                logger.warn("cannot get snapshot path {}", tableDesc.getLastSnapshotPath(), e);
-            }
-        }
-        return 0;
-    }
-
-    public long getSnapshotModificationTime(TableDesc tableDesc) {
-        if (tableDesc != null && tableDesc.getLastSnapshotPath() != null) {
-            try {
-                val path = new Path(KapConfig.wrap(KylinConfig.getInstanceFromEnv()).getMetadataWorkingDirectory(),
-                        tableDesc.getLastSnapshotPath());
-                return HDFSUtils.getFileStatus(path).getModificationTime();
             } catch (Exception e) {
                 logger.warn("cannot get snapshot path {}", tableDesc.getLastSnapshotPath(), e);
             }

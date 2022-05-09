@@ -45,13 +45,13 @@ package org.apache.kylin.metadata.cachesync;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.cache.CustomKeyEquivalenceCacheBuilder;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.ThreadUtil;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.util.BrokenEntityProxy;
 import org.slf4j.Logger;
@@ -59,8 +59,10 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
+import com.google.common.cache.CustomKeyEquivalenceCacheBuilder;
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.val;
@@ -271,6 +273,9 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
                 continue;
             }
             all.add(entity);
+        }
+        if (UnitOfWork.isAlreadyInTransaction() && logger.isTraceEnabled()) {
+            logger.trace("list all,\n{}", ThreadUtil.getKylinStackTrace());
         }
         return all;
     }
