@@ -55,10 +55,6 @@
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-engine-spark</artifactId>
         </dependency>
-        <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-parser-sdk</artifactId>
-        </dependency>
 
         <!-- spark dependencies -->
         <dependency>

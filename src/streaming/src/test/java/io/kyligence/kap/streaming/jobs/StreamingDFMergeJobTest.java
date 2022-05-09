@@ -23,8 +23,6 @@
  */
 package io.kyligence.kap.streaming.jobs;
 
-import static io.kyligence.kap.streaming.constants.StreamingConstants.DEFAULT_PARSER_NAME;
-
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -57,10 +55,8 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
-import io.kyligence.kap.parser.AbstractDataParser;
 import io.kyligence.kap.streaming.CreateStreamingFlatTable;
 import io.kyligence.kap.streaming.app.StreamingEntry;
-import io.kyligence.kap.streaming.common.CreateFlatTableEntry;
 import io.kyligence.kap.streaming.common.MergeJobEntry;
 import io.kyligence.kap.streaming.common.MicroBatchEntry;
 import io.kyligence.kap.streaming.util.StreamingTestCase;
@@ -88,12 +84,8 @@ public class StreamingDFMergeJobTest extends StreamingTestCase {
         this.cleanupTestMetadata();
     }
 
-    private AbstractDataParser getParser() throws Exception {
-        return AbstractDataParser.getDataParser(DEFAULT_PARSER_NAME, Thread.currentThread().getContextClassLoader());
-    }
-
     @Test
-    public void testStreamingMergeSegment() throws Exception {
+    public void testStreamingMergeSegment() {
         val config = KylinConfig.getInstanceFromEnv();
         KylinBuildEnv.getOrCreate(config);
 
@@ -117,15 +109,13 @@ public class StreamingDFMergeJobTest extends StreamingTestCase {
         val nSpanningTree = NSpanningTreeFactory.fromLayouts(layouts, DATAFLOW_ID);
 
         val ss = SparkSession.builder().master("local").appName("test").getOrCreate();
-        CreateFlatTableEntry flatTableEntry = new CreateFlatTableEntry(flatTableDesc, null, nSpanningTree, ss, null,
-                null, null, getParser());
-        val flatTable = new CreateStreamingFlatTable(flatTableEntry);
+        val flatTable = new CreateStreamingFlatTable(flatTableDesc, null, nSpanningTree, ss, null, null, null);
 
         val dataset = flatTable.generateStreamingDataset(config);
         val builder = new StreamingDFBuildJob(PROJECT);
 
         val streamingEntry = new StreamingEntry();
-        streamingEntry.parseParams(new String[] { PROJECT, DATAFLOW_ID, "1000", "", "xx", DEFAULT_PARSER_NAME });
+        streamingEntry.parseParams(new String[] { PROJECT, DATAFLOW_ID, "1000", "", "xx" });
         streamingEntry.setSparkSession(ss);
         val sr1 = createSegmentRange(0L, 10L, 3, 100L, 200);
         val microBatchEntry = new MicroBatchEntry(dataset, 0, "SSB_TOPIC_0_DOT_0_LO_PARTITIONCOLUMN", flatTable, df,

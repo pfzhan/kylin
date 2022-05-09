@@ -39,6 +39,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.streaming.KafkaConfig;
+import io.kyligence.kap.source.kafka.util.KafkaClient;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.ListTopicsOptions;
 import org.apache.kafka.clients.admin.ListTopicsResult;
@@ -57,9 +59,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.metadata.streaming.KafkaConfig;
-import io.kyligence.kap.source.kafka.util.KafkaClient;
-
 public class CollectKafkaStats {
 
     private static final Logger logger = LoggerFactory.getLogger(CollectKafkaStats.class);
@@ -73,11 +72,6 @@ public class CollectKafkaStats {
 
     public static final String JSON_MESSAGE = "json";
     public static final String BINARY_MESSAGE = "binary";
-    public static final String CUSTOM_MESSAGE = "custom";
-    public static final String DEFAULT_PARSER = "io.kyligence.kap.parser.TimedJsonStreamParser";
-
-    private CollectKafkaStats() {
-    }
 
     /**
      * get broken brokers
@@ -137,8 +131,10 @@ public class CollectKafkaStats {
         }
 
         for (String topic : topicsMap.keySet()) {
-            if (isUsefulTopic(topic) && (fuzzyTopic == null || topic.toLowerCase(Locale.ROOT).contains(fuzzyTopic))) {
-                topics.add(topic);
+            if (isUsefulTopic(topic)) {
+                if (fuzzyTopic == null || topic.toLowerCase(Locale.ROOT).contains(fuzzyTopic)) {
+                    topics.add(topic);
+                }
             }
         }
 
@@ -212,6 +208,9 @@ public class CollectKafkaStats {
             return false;
         }
 
-        return !"__consumer_offsets".equals(topic);
+        if ("__consumer_offsets".equals(topic)) {
+            return false;
+        }
+        return true;
     }
 }

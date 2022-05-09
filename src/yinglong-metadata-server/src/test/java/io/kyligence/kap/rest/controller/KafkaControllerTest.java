@@ -31,6 +31,7 @@ import java.util.HashMap;
 
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.util.AclEvaluate;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -64,6 +65,9 @@ public class KafkaControllerTest extends NLocalFileMetadataTestCase {
     public ExpectedException thrown = ExpectedException.none();
 
     @Mock
+    private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
+
+    @Mock
     private KafkaService kafkaService = Mockito.spy(KafkaService.class);
 
     @InjectMocks
@@ -72,7 +76,6 @@ public class KafkaControllerTest extends NLocalFileMetadataTestCase {
     private final Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
 
     private static String PROJECT = "streaming_test";
-    private static final String PARSER_NAME = "io.kyligence.kap.parser.JsonDataParser1";
 
     @Before
     public void setup() {
@@ -156,24 +159,4 @@ public class KafkaControllerTest extends NLocalFileMetadataTestCase {
         request.setKafkaConfig(Mockito.mock(KafkaConfig.class));
         return request;
     }
-
-    @Test
-    public void testGetParser() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/kafka/parsers").contentType(MediaType.APPLICATION_JSON)
-                .param("project", PROJECT).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-
-        Mockito.verify(kafkaController).getParser(Mockito.anyString());
-    }
-
-    @Test
-    public void testRemoveParser() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/kafka/parser").contentType(MediaType.APPLICATION_JSON)
-                .param("project", PROJECT).param("class_name", PARSER_NAME)
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-
-        Mockito.verify(kafkaController).removeParser(Mockito.anyString(), Mockito.anyString());
-    }
-
 }

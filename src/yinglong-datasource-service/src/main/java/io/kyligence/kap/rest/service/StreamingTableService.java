@@ -49,9 +49,6 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.schema.ReloadTableContext;
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
-import io.kyligence.kap.metadata.streaming.DataParserInfo;
-import io.kyligence.kap.metadata.streaming.DataParserManager;
 import io.kyligence.kap.metadata.streaming.KafkaConfig;
 import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
 import io.kyligence.kap.rest.aspect.Transaction;
@@ -90,24 +87,15 @@ public class StreamingTableService extends TableService {
     @Transaction(project = 0)
     public void createKafkaConfig(String project, KafkaConfig kafkaConfig) {
         aclEvaluate.checkProjectWritePermission(project);
-        getManager(KafkaConfigManager.class, project).createKafkaConfig(kafkaConfig);
-    }
-
-    public void updateDataParser(String project, KafkaConfig kafkaConfig) {
-        aclEvaluate.checkProjectWritePermission(project);
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            DataParserManager dataParserManager = getManager(DataParserManager.class, project);
-            DataParserInfo dataParserInfo = dataParserManager.getDataParserInfo(kafkaConfig.getParserName());
-            dataParserInfo.getStreamingTables().add(kafkaConfig.resourceName());
-            dataParserManager.updateDataParserInfo(dataParserInfo);
-            return null;
-        }, project);
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        KafkaConfigManager.getInstance(kylinConfig, project).createKafkaConfig(kafkaConfig);
     }
 
     @Transaction(project = 0)
     public void updateKafkaConfig(String project, KafkaConfig kafkaConfig) {
         aclEvaluate.checkProjectWritePermission(project);
-        getManager(KafkaConfigManager.class, project).updateKafkaConfig(kafkaConfig);
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        KafkaConfigManager.getInstance(kylinConfig, project).updateKafkaConfig(kafkaConfig);
     }
 
     /**
@@ -149,7 +137,10 @@ public class StreamingTableService extends TableService {
                 .collect(Collectors.toList());
         List<String> streamColumns = Arrays.stream(streamColumnDescs).map(ColumnDesc::getName).sorted()
                 .collect(Collectors.toList());
-        return batchColumns.equals(streamColumns);
+        if (!batchColumns.equals(streamColumns)) {
+            return false;
+        }
+        return true;
     }
 
 }

@@ -31,10 +31,6 @@ import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.streaming.DataParserInfo;
-import io.kyligence.kap.metadata.streaming.DataParserManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
@@ -68,9 +64,6 @@ public abstract class AbstractSparkJobLauncher implements SparkJobLauncher {
     protected StreamingJobMeta strmJob;
     protected JobTypeEnum jobType;
 
-    protected DataParserManager dataParserManager;
-    protected DataParserInfo dataParserInfo;
-
     protected String kylinJobJar;
     protected SparkLauncher launcher;
 
@@ -86,10 +79,6 @@ public abstract class AbstractSparkJobLauncher implements SparkJobLauncher {
         this.streamingJobManager = StreamingJobManager.getInstance(config, project);
         this.strmJob = streamingJobManager.getStreamingJobByUuid(StreamingUtils.getJobId(modelId, jobType.name()));
         env.put(StreamingConstants.HADOOP_CONF_DIR, HadoopUtil.getHadoopConfDir());
-        this.dataParserManager = DataParserManager.getInstance(config, project);
-        NDataModel model = NDataModelManager.getInstance(config, project).getDataModelDesc(this.modelId);
-        this.dataParserInfo = this.dataParserManager
-                .getDataParserInfo(model.getRootFactTable().getTableDesc().getKafkaConfig().getParserName());
         if (StringUtils.isEmpty(kylinJobJar) && !config.isUTEnv()) {
             throw new IllegalArgumentException("Missing kylin job jar");
         }

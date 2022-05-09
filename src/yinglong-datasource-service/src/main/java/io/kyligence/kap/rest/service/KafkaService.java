@@ -30,7 +30,6 @@ import static org.apache.kylin.common.exception.ServerErrorCode.STREAMING_TIMEOU
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kafka.common.errors.TimeoutException;
@@ -43,14 +42,9 @@ import org.springframework.stereotype.Component;
 
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
-import io.kyligence.kap.metadata.streaming.DataParserInfo;
-import io.kyligence.kap.metadata.streaming.DataParserManager;
 import io.kyligence.kap.metadata.streaming.KafkaConfig;
 import io.kyligence.kap.source.kafka.KafkaTableUtil;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 @Component("kafkaService")
 public class KafkaService extends BasicService {
 
@@ -88,35 +82,9 @@ public class KafkaService extends BasicService {
         return KafkaTableUtil.getMessageTypeAndDecodedMessages(messages);
     }
 
-    public Map<String, Object> convertSampleMessageToFlatMap(String project, KafkaConfig kafkaConfig,
-            String messageType, String message) {
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            getManager(DataParserManager.class, project).initDefault(project);
-            return null;
-        }, project);
-        return KafkaTableUtil.convertCustomMessage(project, kafkaConfig, messageType, message);
-    }
-
-    /**
-     * get parser from meta
-     */
-    public List<String> getParsers(String project) {
-        aclEvaluate.checkProjectWritePermission(project);
-        return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            DataParserManager dataParserManager = getManager(DataParserManager.class, project);
-            dataParserManager.initDefault(project);
-            return dataParserManager.listDataParserInfo().stream().map(DataParserInfo::getClassName)
-                    .collect(Collectors.toList());
-        }, project);
-    }
-
-    /**
-     * Logical deletion, inaccessible in meta
-     */
-    public String removeParser(String project, String className) {
-        aclEvaluate.checkProjectWritePermission(project);
-        return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(
-                () -> getManager(DataParserManager.class, project).removeParser(className).getClassName(), project);
+    public Map<String, Object> convertSampleMessageToFlatMap(KafkaConfig kafkaConfig, String messageType,
+            String message) {
+        return KafkaTableUtil.convertMessageToFlatMap(kafkaConfig, messageType, message);
     }
 
 }

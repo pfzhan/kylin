@@ -50,7 +50,6 @@ import org.mockito.Mockito;
 import io.kyligence.kap.common.persistence.metadata.HDFSMetadataStore;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
-import io.kyligence.kap.metadata.streaming.DataParserInfo;
 import io.kyligence.kap.streaming.constants.StreamingConstants;
 import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import io.kyligence.kap.streaming.util.ReflectionUtils;
@@ -91,7 +90,7 @@ public class StreamingJobLauncherTest extends NLocalFileMetadataTestCase {
         Assert.assertNotNull(jobParams);
 
         val appArgs = (String[]) ReflectionUtils.getField(launcher, "appArgs");
-        Assert.assertEquals(6, appArgs.length);
+        Assert.assertEquals(5, appArgs.length);
         Assert.assertEquals(PROJECT, appArgs[0]);
         Assert.assertEquals(modelId, appArgs[1]);
         Assert.assertEquals(StreamingConstants.STREAMING_DURATION_DEFAULT, appArgs[2]);
@@ -467,22 +466,6 @@ public class StreamingJobLauncherTest extends NLocalFileMetadataTestCase {
 
         val storageUrl = (StorageURL) ReflectionUtils.getField(launcher, "distMetaStorageUrl");
         Assert.assertEquals(HDFSMetadataStore.HDFS_SCHEME, storageUrl.getScheme());
-    }
-
-    @Test
-    public void testStartBuildJobWithCustomJar() throws Exception {
-        val modelId = "e78a89dd-847f-4574-8afa-8768b4228b72";
-        val launcher = new StreamingJobLauncher();
-        launcher.init(PROJECT, modelId, JobTypeEnum.STREAMING_BUILD);
-        val mockup = new MockupSparkLauncher();
-        DataParserInfo dataParserInfo = new DataParserInfo(PROJECT, "io.kyligence.kap.parser.JsonDataParser1",
-                "custom_parser.jar");
-        ReflectionUtils.setField(launcher, "launcher", mockup);
-        ReflectionUtils.setField(launcher, "dataParserInfo", dataParserInfo);
-        launcher.startYarnJob();
-        val builder = ReflectionUtils.getField(mockup, "builder");
-        List<String> jars = (List<String>) ReflectionUtils.getField(builder, "jars");
-        Assert.assertTrue(jars.contains("custom_parser.jar"));
     }
 
     static class MockupSparkLauncher extends SparkLauncher {

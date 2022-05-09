@@ -23,8 +23,6 @@
  */
 package io.kyligence.kap.streaming.jobs;
 
-import static io.kyligence.kap.streaming.constants.StreamingConstants.DEFAULT_PARSER_NAME;
-
 import org.apache.kylin.common.KylinConfig;
 import org.junit.After;
 import org.junit.Assert;
@@ -38,10 +36,8 @@ import io.kyligence.kap.common.StreamingTestConstant;
 import io.kyligence.kap.metadata.cube.model.NCubeJoinedFlatTableDesc;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.parser.AbstractDataParser;
 import io.kyligence.kap.streaming.CreateStreamingFlatTable;
 import io.kyligence.kap.streaming.app.StreamingEntry;
-import io.kyligence.kap.streaming.common.CreateFlatTableEntry;
 import io.kyligence.kap.streaming.util.StreamingTestCase;
 import lombok.val;
 
@@ -63,12 +59,8 @@ public class CreateStreamingFlatTableTest extends StreamingTestCase {
         this.cleanupTestMetadata();
     }
 
-    private AbstractDataParser getParser() throws Exception {
-        return AbstractDataParser.getDataParser(DEFAULT_PARSER_NAME, Thread.currentThread().getContextClassLoader());
-    }
-
     @Test
-    public void testGenerateStreamingDataset() throws Exception {
+    public void testGenerateStreamingDataset() {
         val config = KylinConfig.getInstanceFromEnv();
         config.setProperty("kylin.streaming.kafka-conf.maxOffsetsPerTrigger", "100");
         config.setProperty("kylin.streaming.kafka-conf.security.protocol", "SASL_PLAINTEXT");
@@ -86,10 +78,9 @@ public class CreateStreamingFlatTableTest extends StreamingTestCase {
 
         val seg = NDataSegment.empty();
         seg.setId("test-1234");
-        CreateFlatTableEntry flatTableEntry = new CreateFlatTableEntry(flatTableDesc, seg,
-                entry.createSpanningTree(dataflow), entry.getSparkSession(), null, "LO_PARTITIONCOLUMN", null,
-                getParser());
-        val steamingFlatTable = CreateStreamingFlatTable.apply(flatTableEntry);
+
+        val steamingFlatTable = CreateStreamingFlatTable.apply(flatTableDesc, seg, entry.createSpanningTree(dataflow),
+                entry.getSparkSession(), null, "LO_PARTITIONCOLUMN", null);
 
         val ds = steamingFlatTable.generateStreamingDataset(config);
         source.post(StreamingTestConstant.KAP_SSB_STREAMING_JSON_FILE());
