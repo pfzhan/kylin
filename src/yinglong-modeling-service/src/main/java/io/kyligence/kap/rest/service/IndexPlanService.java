@@ -806,8 +806,11 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
     @VisibleForTesting
     public Set<Long> getLayoutsByRunningJobs(String project, String modelId) {
         List<AbstractExecutable> runningJobList = NExecutableManager
-                .getInstance(KylinConfig.getInstanceFromEnv(), project).getExecutablesByStatusList(Sets.newHashSet(
-                        ExecutableState.READY, ExecutableState.RUNNING, ExecutableState.PAUSED, ExecutableState.ERROR));
+                .getInstance(KylinConfig.getInstanceFromEnv(), project) //
+                .getPartialExecutablesByStatusList(
+                        Sets.newHashSet(ExecutableState.READY, ExecutableState.RUNNING, ExecutableState.PAUSED,
+                                ExecutableState.ERROR), //
+                        path -> StringUtils.endsWith(path, modelId));
 
         return runningJobList.stream()
                 .filter(abstractExecutable -> Objects.equals(modelId, abstractExecutable.getTargetSubject()))

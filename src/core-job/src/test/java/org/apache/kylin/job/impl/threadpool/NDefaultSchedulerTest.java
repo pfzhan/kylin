@@ -1431,7 +1431,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         int memory = NDefaultScheduler.getMemoryRemaining().availablePermits();
         val df = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelId);
         DefaultChainedExecutable job1 = generateJob(df, project);
-        DefaultChainedExecutable job2 = generateJob(df, project);
+        DefaultChainedExecutable job2 = generatePartial(df, project);
         executableManager.addJob(job1);
         executableManager.addJob(job2);
         waitForJobByStatus(job1.getId(), 60000, ExecutableState.RUNNING, executableManager);
@@ -1470,10 +1470,10 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         config.setProperty("kylin.job.max-concurrent-jobs", "1");
         val df = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelId);
         DefaultChainedExecutable job0 = generateJob(df, project, 4);
-        DefaultChainedExecutable job1 = generateJob(df, project, 3);
-        DefaultChainedExecutable job2 = generateJob(df, project, 2);
+        DefaultChainedExecutable job1 = generatePartial(df, project, 3);
+        DefaultChainedExecutable job2 = generatePartial(df, project, 2);
         DefaultChainedExecutable job3 = generateJob(df, project, 1);
-        DefaultChainedExecutable job4 = generateJob(df, project, 0);
+        DefaultChainedExecutable job4 = generatePartial(df, project, 0);
         DefaultChainedExecutable job5 = generateJob(df, project, 3);
         executableManager.addJob(job0);
         executableManager.addJob(job1);
@@ -1515,6 +1515,27 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         job.setProject(project);
         job.setParam(NBatchConstants.P_LAYOUT_IDS, "1,2,3,4,5");
         job.setTargetSubject(df.getModel().getUuid());
+        job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        BaseTestExecutable task1 = new SucceedTestExecutable();
+        task1.setTargetSubject(df.getModel().getUuid());
+        task1.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        job.addTask(task1);
+        return job;
+    }
+
+    private DefaultChainedExecutable generatePartial(NDataflow df, String project, int priority) {
+        DefaultChainedExecutable job = generatePartial(df, project);
+        job.setPriority(priority);
+        return job;
+    }
+
+    private DefaultChainedExecutable generatePartial(NDataflow df, String project) {
+        DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
+        job.setProject(project);
+        job.setParam(NBatchConstants.P_LAYOUT_IDS, "1,2,3,4,5");
+        val targetSubject = df.getModel().getUuid();
+        job.setId(job.getId() + "-" + targetSubject);
+        job.setTargetSubject(targetSubject);
         job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         BaseTestExecutable task1 = new SucceedTestExecutable();
         task1.setTargetSubject(df.getModel().getUuid());
