@@ -81,7 +81,7 @@ import io.kyligence.kap.junit.annotation.MetadataInfo;
 import lombok.val;
 
 @MetadataInfo(onlyProps = true)
-public class KylinConfigBaseTest {
+class KylinConfigBaseTest {
 
     private static final Map<String, PropertiesEntity> map = new HashMap<>();
     {
@@ -911,11 +911,13 @@ public class KylinConfigBaseTest {
                 "kylin.storage.columnar.spark-conf.spark.metrics.conf.*.sink.prometheusServlet.class",
                 "org.apache.spark.metrics.sink.PrometheusServlet", "org.apache.spark.metrics.sink.PrometheusServlet"));
         map.put("getSpark3DriverPrometheusServletPath",
-                new PropertiesEntity("kylin.storage.columnar.spark-conf.spark.metrics.conf.*.sink.prometheusServlet.path", "/metrics/prometheus", "/metrics/prometheus"));
+                new PropertiesEntity(
+                        "kylin.storage.columnar.spark-conf.spark.metrics.conf.*.sink.prometheusServlet.path",
+                        "/metrics/prometheus", "/metrics/prometheus"));
     }
 
     @Test
-    public void testGetStreamingJobTmpOutputStorePath() {
+    void testGetStreamingJobTmpOutputStorePath() {
         String project = "default";
         String jobId = "e1ad7bb0-522e-456a-859d-2eab1df448de_build";
         KylinConfig config = KylinConfig.getInstanceFromEnv();
@@ -925,7 +927,7 @@ public class KylinConfigBaseTest {
     }
 
     @Test
-    public void testGetStreamingJobTmpDir() {
+    void testGetStreamingJobTmpDir() {
         String project = "default";
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         String jobTmpDir = config.getStreamingJobTmpDir(project);
@@ -935,7 +937,7 @@ public class KylinConfigBaseTest {
 
     @Test
     @MetadataInfo(onlyProps = false)
-    public void testGetHdfsWorkingDirDefaultCase() {
+    void testGetHdfsWorkingDirDefaultCase() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         config.setMetadataUrl("test");
         String dir = config.getHdfsWorkingDirectory();
@@ -943,7 +945,7 @@ public class KylinConfigBaseTest {
     }
 
     @Test
-    public void testGetHdfsWorkingDirWhenDataDirSet() {
+    void testGetHdfsWorkingDirWhenDataDirSet() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         config.setProperty("kylin.env.hdfs-data-working-dir", "/test/data");
         String dir = config.getHdfsWorkingDirectory();
@@ -959,7 +961,7 @@ public class KylinConfigBaseTest {
     }
 
     @Test
-    public void test() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    void test() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         Class<? extends KylinConfig> configClass = config.getClass();
 
@@ -994,7 +996,7 @@ public class KylinConfigBaseTest {
     }
 
     @Test
-    public void testTimeZone() {
+    void testTimeZone() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         ZoneId zoneId = TimeZone.getTimeZone(config.getTimeZone()).toZoneId();
         // Mock the setting timezone action when launch KE
@@ -1005,7 +1007,7 @@ public class KylinConfigBaseTest {
 
     @Test
     @Timeout(value = 5)
-    public void testMultipleUpdateEnvironment() {
+    void testMultipleUpdateEnvironment() {
         EnvironmentUpdateUtils.put("test.environment1", "test.value1");
         EnvironmentUpdateUtils.put("test.environment2", "test.value2");
         assertEquals("Environment was not set propertly", "test.value1", System.getenv("test.environment1"));
@@ -1013,7 +1015,7 @@ public class KylinConfigBaseTest {
     }
 
     @Test
-    public void testConcurrentRequests() throws InterruptedException {
+    void testConcurrentRequests() throws InterruptedException {
         int timeoutSecond = 5;
         int concurThread = 10;
         int exceptionCount = 0;
@@ -1063,7 +1065,7 @@ public class KylinConfigBaseTest {
     }
 
     @Test
-    public void testRedisSettings() {
+    void testRedisSettings() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         config.setProperty("kylin.cache.redis.expire-time-unit", "INVALID");
         assertEquals(config.getRedisExpireTimeUnit(), "EX");
@@ -1073,7 +1075,7 @@ public class KylinConfigBaseTest {
     }
 
     @Test
-    public void testMetadataUrlSetting() {
+    void testMetadataUrlSetting() {
         val config = KylinConfig.getInstanceFromEnv();
         Assert.assertEquals(config.getStreamingStatsUrl().toString(), config.getMetadataUrl().toString());
         Assert.assertEquals(config.getQueryHistoryUrl().toString(), config.getMetadataUrl().toString());
@@ -1086,7 +1088,7 @@ public class KylinConfigBaseTest {
     }
 
     @Test
-    public void testMetadataUrlContainsComma() {
+    void testMetadataUrlContainsComma() {
         String url = "ke_metadata@jdbc,driverClassName=com.mysql.jdbc.Driver,"
                 + "url=\"jdbc:mysql:replication://10.1.3.12:3306,10.1.3.11:3306/kylin_test?useUnicode=true&characterEncoding=utf8\","
                 + "username=kylin,password=test,maxTotal=20,maxIdle=20";
@@ -1095,7 +1097,7 @@ public class KylinConfigBaseTest {
     }
 
     @Test
-    public void getIsMetadataKeyCaseInSensitiveEnabled() {
+    void getIsMetadataKeyCaseInSensitiveEnabled() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         boolean metadataKeyCaseInSensitiveEnabled = config.isMetadataKeyCaseInSensitiveEnabled();
         Assert.assertFalse(metadataKeyCaseInSensitiveEnabled);
@@ -1104,7 +1106,7 @@ public class KylinConfigBaseTest {
     @SetSystemProperty.SetSystemProperties({
             @SetSystemProperty(key = "kylin.metadata.key-case-insensitive", value = "true"), })
     @Test
-    public void getIsMetadataKeyCaseInSensitiveEnabled2() {
+    void getIsMetadataKeyCaseInSensitiveEnabled2() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         config = KylinConfig.getInstanceFromEnv();
         val metadataKeyCaseInSensitiveEnabled = config.isMetadataKeyCaseInSensitiveEnabled();
@@ -1115,13 +1117,27 @@ public class KylinConfigBaseTest {
             @SetSystemProperty(key = "kylin.metadata.key-case-insensitive", value = "true"),
             @SetSystemProperty(key = "kylin.security.profile", value = "ldap"), })
     @Test
-    public void getIsMetadataKeyCaseInSensitiveEnabled3() {
+    void getIsMetadataKeyCaseInSensitiveEnabled3() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         config = KylinConfig.getInstanceFromEnv();
         val metadataKeyCaseInSensitiveEnabled = config.isMetadataKeyCaseInSensitiveEnabled();
         Assert.assertFalse(metadataKeyCaseInSensitiveEnabled);
     }
 
+    @Test
+    void testConnectClusterMangerParam() {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+
+        Assert.assertEquals(10, config.getClusterManagerHealthCheckMaxTimes());
+        config.setProperty("kylin.engine.cluster-manager-health-check-max-times", "0");
+        Assert.assertEquals(0, config.getClusterManagerHealthCheckMaxTimes());
+        config.setProperty("kylin.engine.cluster-manager-health-check-max-times", "-1");
+        Assert.assertEquals(-1, config.getClusterManagerHealthCheckMaxTimes());
+
+        Assert.assertEquals(120, config.getClusterManagerHealCheckIntervalSecond());
+        config.setProperty("kylin.engine.cluster-manager-heal-check-interval-second", "0");
+        Assert.assertEquals(0, config.getClusterManagerHealCheckIntervalSecond());
+    }
 }
 
 class EnvironmentUpdateUtils {

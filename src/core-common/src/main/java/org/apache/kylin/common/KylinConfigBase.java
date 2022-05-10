@@ -3246,4 +3246,12 @@ public abstract class KylinConfigBase implements Serializable {
     public boolean checkModelDependencyHealthy() {
         return Boolean.parseBoolean(getOptional("kylin.model.check-model-dependency-health", "false"));
     }
+
+    public long getClusterManagerHealthCheckMaxTimes() {
+        return Long.parseLong(getOptional("kylin.engine.cluster-manager-health-check-max-times", "10"));
+    }
+
+    public long getClusterManagerHealCheckIntervalSecond() {
+        return Long.parseLong(getOptional("kylin.engine.cluster-manager-heal-check-interval-second", "120"));
+    }
 }

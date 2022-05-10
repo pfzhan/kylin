@@ -135,7 +135,9 @@ class JobWorkSpace(eventLoop: KylinJobEventLoop, monitor: JobMonitor, worker: Jo
 
     val failedSegmentId = infos.getSegmentId
     val failedStack = ExceptionUtils.getStackTrace(jf.throwable)
-    val failedReason = jf.reason
+    val failedReason =
+      if (context.getAtomicUnreachableSparkMaster.get()) "Unable connect spark master to reach timeout maximum time"
+      else jf.reason
     val url = "/kylin/api/jobs/error"
 
     val payload: util.HashMap[String, Object] = new util.HashMap[String, Object](5)
