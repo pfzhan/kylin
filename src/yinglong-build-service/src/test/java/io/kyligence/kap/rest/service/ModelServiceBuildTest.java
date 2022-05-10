@@ -436,14 +436,6 @@ public class ModelServiceBuildTest extends SourceTestCase {
     }
 
     @Test
-    public void testBuildSegmentsManually_TableOrientedModel_Exception() throws Exception {
-        thrown.expectInTransaction(KylinException.class);
-        thrown.expectMessageInTransaction(
-                "Can’t manually build segments in model \"nmodel_basic\" under the current project settings.");
-        modelBuildService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "0", "100");
-    }
-
-    @Test
     public void testBuildSegmentsManually_IncrementBuild_ChangePartition() throws Exception {
         for (String timeZone : timeZones) {
             TimeZone.setDefault(TimeZone.getTimeZone(timeZone));
@@ -521,7 +513,7 @@ public class ModelServiceBuildTest extends SourceTestCase {
     }
 
     @Test
-    @Ignore("ignore")
+    @Ignore("Sorry, I don't know")
     public void testBuildSegmentsManually_NoPartition_FullSegExisted() throws Exception {
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         val project = "default";

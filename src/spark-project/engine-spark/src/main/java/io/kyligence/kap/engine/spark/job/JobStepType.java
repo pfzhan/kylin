@@ -216,22 +216,23 @@ public enum JobStepType {
         if (step == null) {
             log.info("{} skipped", this);
         } else {
-            addParam(parent, step, config);
+            addParam(parent, step);
         }
         return step;
     }
 
-    protected void addParam(DefaultChainedExecutable parent, AbstractExecutable step, KylinConfig config) {
+    protected void addParam(DefaultChainedExecutable parent, AbstractExecutable step) {
         step.setParams(parent.getParams());
         step.setProject(parent.getProject());
         step.setTargetSubject(parent.getTargetSubject());
         step.setJobType(parent.getJobType());
         parent.addTask(step);
         if (step instanceof NSparkExecutable) {
-            addSubStage((NSparkExecutable) step, config);
+            addSubStage((NSparkExecutable) step, KylinConfig.readSystemKylinConfig());
             ((NSparkExecutable) step).setStageMap();
 
-            ((NSparkExecutable) step).setDistMetaUrl(config.getJobTmpMetaStoreUrl(parent.getProject(), step.getId()));
+            ((NSparkExecutable) step).setDistMetaUrl(
+                    KylinConfig.readSystemKylinConfig().getJobTmpMetaStoreUrl(parent.getProject(), step.getId()));
         }
         if (CollectionUtils.isNotEmpty(parent.getTargetPartitions())) {
             step.setTargetPartitions(parent.getTargetPartitions());

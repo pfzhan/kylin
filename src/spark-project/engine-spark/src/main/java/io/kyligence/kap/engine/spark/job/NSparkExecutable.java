@@ -421,20 +421,16 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
                                 .updateJobOutput(getParentId(), getStatus(), updateInfo, null, null);
                         return null;
                     }, project, UnitOfWork.DEFAULT_MAX_RETRY, getEpochId(), getTempLockName());
-                    }, getProject());
                 } catch (Exception e) {
                     logger.warn("failed to record process id.");
                 }
             }
             return ExecuteResult.createSucceed(output);
-        }catch(
-
-    Exception e)
-    {
-        logger.warn("failed to execute spark submit command.");
-        wrapWithExecuteExceptionUpdateJobError(e);
-        return ExecuteResult.createError(e);
-    }
+        } catch (Exception e) {
+            logger.warn("failed to execute spark submit command.");
+            wrapWithExecuteExceptionUpdateJobError(e);
+            return ExecuteResult.createError(e);
+        }
     }
 
     public void killOrphanApplicationIfExists(String jobStepId) {

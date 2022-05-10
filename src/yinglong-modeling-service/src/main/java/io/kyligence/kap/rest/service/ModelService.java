@@ -944,10 +944,17 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                 JobTypeEnum.SUB_PARTITION_BUILD);
     }
 
+    private List<AbstractExecutable> getPartialRunningExecutable(String project, String modelId) {
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        NExecutableManager execManager = NExecutableManager.getInstance(kylinConfig, project);
+        return execManager.listPartialExec(path -> StringUtils.endsWith(path, modelId), ExecutableState::isRunning,
+                JobTypeEnum.INDEX_BUILD, JobTypeEnum.SUB_PARTITION_BUILD);
+    }
+
     public List<NDataSegmentResponse> getSegmentsResponse(String modelId, String project, String start, String end,
             String status, Collection<Long> withAllIndexes, Collection<Long> withoutAnyIndexes, boolean allToComplement,
             String sortBy, boolean reverse) {
-        val executables = getAllRunningExecutable(project);
+        val executables = getPartialRunningExecutable(project, modelId);
         return getSegmentsResponse(modelId, project, start, end, status, withAllIndexes, withoutAnyIndexes, executables,
                 allToComplement, sortBy, reverse);
     }
@@ -1235,11 +1242,11 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         checkModelPermission(project, modelId);
         val model = getModelById(modelId, project);
         val modelName = model.getAlias();
-        dropModel(modelId, project, false);
+        innerDropModel(modelId, project);
         EventBusFactory.getInstance().postSync(new ModelDropEvent(project, modelId, modelName));
     }
 
-    void dropModel(String modelId, String project, boolean ignoreType) {
+    void innerDropModel(String modelId, String project) {
         NDataModel dataModelDesc = getModelById(modelId, project);
         boolean isStreamingModel = false;
         if (dataModelDesc.isStreaming()) {
@@ -1889,8 +1896,6 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         checkModelRequest(modelRequest);
 
         //remove some attributes in modelResponse to fit NDataModel
-        val prjManager = getManager(NProjectManager.class);
-        val prj = prjManager.getProject(project);
         val dataModel = semanticUpdater.convertToDataModel(modelRequest);
         if (ManagementType.TABLE_ORIENTED == dataModel.getManagementType()) {
             throw new KylinException(FAILED_CREATE_MODEL, MsgPicker.getMsg().getInvalidCreateModel());
@@ -2414,13 +2419,6 @@ public class ModelService extends BasicService implements TableModelSupporter, P
     }
 
     public void checkModelAndIndexManually(FullBuildSegmentParams params) {
-        NDataModel modelDesc = getManager(NDataModelManager.class, params.getProject())
-                .getDataModelDesc(params.getModelId());
-        if (ManagementType.MODEL_BASED != modelDesc.getManagementType()) {
-            throw new KylinException(PERMISSION_DENIED, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getCanNotBuildSegmentManually(), modelDesc.getAlias()));
-        }
-
         if (params.isNeedBuild()) {
             val indexPlan = getIndexPlan(params.getModelId(), params.getProject());
             if (indexPlan == null || indexPlan.getAllLayouts().isEmpty()) {
@@ -3129,9 +3127,6 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         val modelManager = getManager(NDataModelManager.class, project);
         val origin = modelManager.getDataModelDesc(modelRequest.getId());
         val broken = modelQuerySupporter.getBrokenModel(project, origin.getId());
-        val prjManager = getManager(NProjectManager.class);
-        val prj = prjManager.getProject(project);
-
         if (ManagementType.TABLE_ORIENTED == broken.getManagementType()) {
             throw new KylinException(FAILED_UPDATE_MODEL, "Can not repair model manually smart mode!");
         }

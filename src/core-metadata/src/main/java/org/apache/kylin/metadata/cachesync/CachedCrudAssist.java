@@ -45,6 +45,7 @@ package org.apache.kylin.metadata.cachesync;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
@@ -267,6 +268,19 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
             log.trace("list all,\n{}", ThreadUtil.getKylinStackTrace());
         }
         return all;
+    }
+
+    public List<T> listPartial(Predicate<String> predicate) {
+        return store.collectResourceRecursively(resRootPath, resPathSuffix).stream() //
+                .filter(path -> predicate.test(path) || checkPathSuffix(path)) //
+                .map(path -> get(resourceName(path))) //
+                .filter(Objects::nonNull) //
+                .collect(Collectors.toList());
+    }
+
+    private boolean checkPathSuffix(String path) {
+        val pathPair = StringUtils.split(path, "/");
+        return pathPair.length > 0 && pathPair[pathPair.length - 1].length() == 36;
     }
 
     protected List<T> listAllValidCache() {
