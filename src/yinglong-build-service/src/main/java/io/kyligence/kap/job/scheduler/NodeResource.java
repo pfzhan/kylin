@@ -24,56 +24,33 @@
 
 package io.kyligence.kap.job.scheduler;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import io.kyligence.kap.job.core.AbstractJobConfig;
 import io.kyligence.kap.job.core.AbstractJobExecutable;
 
-public class JobContext {
+public class NodeResource {
 
-    private static final Logger logger = LoggerFactory.getLogger(JobContext.class);
+    private AbstractJobExecutable jobExecutable;
 
-    // thread safe
+    private int memory;
 
-    private final AbstractJobConfig jobConfig;
-
-    private final ResourceBlocker resourceBlocker;
-    private final ProgressReporter progressReporter;
-
-    public void close() {
-        progressReporter.close();
+    public NodeResource(AbstractJobExecutable jobExecutable) {
+        this.jobExecutable = jobExecutable;
+        this.memory = evaluateMemory(jobExecutable);
     }
 
-    public JobContext(AbstractJobConfig jobConfig) {
-        this.jobConfig = jobConfig;
-
-        resourceBlocker = new ResourceBlocker(jobConfig);
-        progressReporter = jobConfig.getJobProgressReporter();
+    @Override
+    public String toString() {
+        return "NodeResource{" + //
+                "project=" + jobExecutable.getProject() + //
+                ", job=" + jobExecutable.getJobId() + //
+                ", memory=" + memory + "MB" + //
+                '}';
     }
 
-    public boolean isResourceBlocked(AbstractJobExecutable jobExecutable) {
-        return resourceBlocker.isBlocked(jobExecutable);
+    public int getMemory() {
+        return memory;
     }
 
-    public void add(AbstractJobExecutable jobExecutable) {
-        resourceBlocker.onJobRegistered(jobExecutable);
+    private int evaluateMemory(AbstractJobExecutable jobExecutable) {
+        return jobExecutable.evaluateDriverMemory();
     }
-
-    public void remove(AbstractJobExecutable jobExecutable) {
-        resourceBlocker.onJobUnregistered(jobExecutable);
-    }
-
-    public void onJobStarted(AbstractJobExecutable jobExecutable) {
-
-    }
-
-    public void onJobStopped(AbstractJobExecutable jobExecutable) {
-
-    }
-
-    public void onJobFailed(AbstractJobExecutable jobExecutable) {
-
-    }
-
 }

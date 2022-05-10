@@ -24,5 +24,45 @@
 
 package io.kyligence.kap.job.scheduler;
 
-public class JobExecutor {
+import java.util.Locale;
+
+import io.kyligence.kap.job.core.AbstractJobExecutable;
+
+public class JobExecutor implements AutoCloseable {
+
+    private final JobContext jobContext;
+    private final AbstractJobExecutable jobExecutable;
+
+    private final String originThreadName;
+
+    public JobExecutor(JobContext jobContext, AbstractJobExecutable jobExecutable) {
+        this.jobContext = jobContext;
+        this.jobExecutable = jobExecutable;
+
+        this.originThreadName = Thread.currentThread().getName();
+        setThreadName();
+
+    }
+
+    public void execute() throws Exception {
+
+    }
+
+    private void setThreadName() {
+        String project = jobExecutable.getProject();
+        String jobFlag = jobExecutable.getJobId().substring(0, 8);
+        Thread.currentThread().setName(String.format(Locale.ROOT, "JobExecutor(project:%s,job:%s)", project, jobFlag));
+    }
+
+    private void setbackThreadName() {
+        Thread.currentThread().setName(originThreadName);
+    }
+
+    @Override
+    public void close() throws Exception {
+        jobContext.remove(jobExecutable);
+
+        // setback thread name
+        setbackThreadName();
+    }
 }

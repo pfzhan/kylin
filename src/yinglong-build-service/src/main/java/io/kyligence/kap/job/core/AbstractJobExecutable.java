@@ -22,37 +22,33 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.job.mapper;
+package io.kyligence.kap.job.core;
 
-import java.util.Date;
-import java.util.List;
+import org.apache.kylin.common.util.RandomUtil;
 
-import org.apache.ibatis.annotations.Mapper;
+public class AbstractJobExecutable {
 
-import io.kyligence.kap.job.domain.JobScheduleLock;
+    private String jobId;
 
-@Mapper
-public interface JobScheduleLockMapper {
+    private String project;
 
-    int deleteByPrimaryKey(String lockId);
+    public AbstractJobExecutable() {
+        this.jobId = RandomUtil.randomUUIDStr();
+    }
 
-    int insert(JobScheduleLock row);
+    public void execute() {
+    }
 
-    int insertSelective(JobScheduleLock row);
+    public String getJobId() {
+        return jobId;
+    }
 
-    JobScheduleLock selectByPrimaryKey(String lockId);
+    public String getProject() {
+        return project;
+    }
 
-    int updateByPrimaryKeySelective(JobScheduleLock row);
-
-    int updateByPrimaryKey(JobScheduleLock row);
-
-    // insert if not exists
-    // TODO
-    int insertLock(String lockId, String lockInstance, Date lockExpireTime);
-
-    // TODO
-    int updateLock(String lockId, String lockInstance, Date lockExpireTime);
-
-    // TODO
-    List<String> selectNonLockedIdList(int batchSize);
+    public int evaluateDriverMemory() {
+        // TODO
+        return 0;
+    }
 }
