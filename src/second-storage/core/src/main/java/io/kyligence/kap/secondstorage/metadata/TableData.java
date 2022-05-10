@@ -30,6 +30,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -38,6 +39,9 @@ import java.util.stream.Collectors;
 import io.kyligence.kap.secondstorage.SecondStorageQueryRouteUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.ServerErrorCode;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.spark.sql.execution.datasources.jdbc.ShardOptions$;
 
@@ -256,7 +260,11 @@ public class TableData implements Serializable, WithLayout {
             List<String> shardNodes = new ArrayList<>(partition.getShardNodes());
 
             nodeNames.forEach(nodeName -> {
-                Preconditions.checkState(partition.getSizeInNode().getOrDefault(nodeName, 0L) == 0);
+                long size = partition.getSizeInNode().getOrDefault(nodeName, 0L);
+                if (size != 0) {
+                    throw new KylinException(ServerErrorCode.SECOND_STORAGE_DELETE_NODE_FAILED,
+                            String.format(Locale.ROOT, MsgPicker.getMsg().getSECOND_STORAGE_DELETE_NODE_FAILED(), nodeName, size));
+                }
 
                 sizeInNode.remove(nodeName);
                 nodeFileMap.remove(nodeName);

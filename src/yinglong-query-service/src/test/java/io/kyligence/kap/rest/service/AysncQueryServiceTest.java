@@ -41,6 +41,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.StringWriter;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
@@ -118,6 +119,19 @@ public class AysncQueryServiceTest extends ServiceTestBase {
         FileUtil.setWritable(BASE, true);
         FileUtil.fullyDelete(BASE);
         assertFalse(BASE.exists());
+    }
+
+    @Test
+    public void testProjectSearchByQueryId() throws IOException {
+        SQLResponse sqlResponse = mock(SQLResponse.class);
+        when(sqlResponse.isException()).thenReturn(true);
+        when(sqlResponse.getExceptionMessage()).thenReturn("some error!!!");
+
+        String queryId = RandomUtil.randomUUIDStr();
+        if (sqlResponse.isException()) {
+            AsyncQueryUtil.createErrorFlag(PROJECT, queryId, sqlResponse.getExceptionMessage());
+        }
+        assertEquals(PROJECT, asyncQueryService.searchQueryResultProject(queryId));
     }
 
     @Test
@@ -634,6 +648,27 @@ public class AysncQueryServiceTest extends ServiceTestBase {
     }
 
     @Test
+    public void testFileInfoBackwardCompatibility() throws IOException {
+        String queryId = RandomUtil.randomUUIDStr();
+        asyncQueryService.saveQueryUsername(PROJECT, queryId);
+
+        FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
+        Path asyncQueryResultDir = AsyncQueryUtil.getAsyncQueryResultDir(PROJECT, queryId);
+        fileSystem.delete(new Path(asyncQueryResultDir, AsyncQueryUtil.getFileInfo()));
+        try (FSDataOutputStream os = fileSystem.create(new Path(asyncQueryResultDir, AsyncQueryUtil.getFileInfo()));
+             OutputStreamWriter osw = new OutputStreamWriter(os, Charset.defaultCharset())) {
+            osw.write(formatDefault + "\n");
+            osw.write(encodeDefault + "\n");
+            osw.write("foo" + "\n");
+        }
+        AsyncQueryService.FileInfo fileInfo = asyncQueryService.getFileInfo(PROJECT, queryId);
+        assertEquals(formatDefault, fileInfo.getFormat());
+        assertEquals(encodeDefault, fileInfo.getEncode());
+        assertEquals("foo", fileInfo.getFileName());
+        assertEquals(",", fileInfo.getSeparator());
+    }
+
+    @Test
     public void testGetMetadata() throws IOException, InterruptedException {
         String queryId = RandomUtil.randomUUIDStr();
         mockResultFile(queryId, false, true);
@@ -752,7 +787,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
                 Lists.newArrayList(2, 3.123, "fo<>o"),
                 Lists.newArrayList(3, 3.124, "fo\ro")
         );
-        String expected = "1<>3.12<>foo\r\n2<>3.123<>\"fo<>o\"\r\n3<>3.124<>\"fo\ro\"\r\n";
+        String expected = "1<>3.12<>foo\n2<>3.123<>\"fo<>o\"\n3<>3.124<>\"fo\ro\"\n";
         try (StringWriter sw = new StringWriter()) {
             CSVWriter.writeCsv(rows.iterator(), sw, "<>");
             assertEquals(expected, sw.toString());

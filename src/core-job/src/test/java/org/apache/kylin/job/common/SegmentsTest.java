@@ -51,7 +51,7 @@ public class SegmentsTest {
     @Test
     public void testGetSegmentStatusToDisplay_Building() {
         Segments segments = new Segments();
-        val seg = new NDataSegment();
+        val seg = NDataSegment.empty();
         seg.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
         seg.setStatus(SegmentStatusEnum.NEW);
         segments.add(seg);
@@ -68,7 +68,7 @@ public class SegmentsTest {
     @Test
     public void testGetSegmentStatusToDisplay_Ready() {
         Segments segments = new Segments();
-        val seg = new NDataSegment();
+        val seg = NDataSegment.empty();
         seg.setDataflow(new NDataflow());
         seg.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
         seg.setStatus(SegmentStatusEnum.READY);
@@ -83,13 +83,13 @@ public class SegmentsTest {
     @Test
     public void testGetSegmentStatusToDisplay_Refreshing() {
         Segments segments = new Segments();
-        val seg = new NDataSegment();
+        val seg = NDataSegment.empty();
         seg.setId(RandomUtil.randomUUIDStr());
         seg.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
         seg.setStatus(SegmentStatusEnum.READY);
         segments.add(seg);
 
-        val newSeg = new NDataSegment();
+        val newSeg = NDataSegment.empty();
         newSeg.setId(RandomUtil.randomUUIDStr());
         newSeg.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
         newSeg.setStatus(SegmentStatusEnum.NEW);
@@ -104,13 +104,13 @@ public class SegmentsTest {
     @Test
     public void testGetSegmentStatusToDisplay_Warn_Refreshing() {
         Segments segments = new Segments();
-        val seg = new NDataSegment();
+        val seg = NDataSegment.empty();
         seg.setId(RandomUtil.randomUUIDStr());
         seg.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
         seg.setStatus(SegmentStatusEnum.WARNING);
         segments.add(seg);
 
-        val newSeg = new NDataSegment();
+        val newSeg = NDataSegment.empty();
         newSeg.setId(RandomUtil.randomUUIDStr());
         newSeg.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
         newSeg.setStatus(SegmentStatusEnum.NEW);
@@ -125,7 +125,7 @@ public class SegmentsTest {
     @Test
     public void testGetSegmentStatusToDisplay_Warn() {
         Segments segments = new Segments();
-        val seg = new NDataSegment();
+        val seg = NDataSegment.empty();
         seg.setId(RandomUtil.randomUUIDStr());
         seg.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
         seg.setStatus(SegmentStatusEnum.WARNING);
@@ -145,19 +145,19 @@ public class SegmentsTest {
     @Test
     public void testGetSegmentStatusToDisplay_Merging() {
         Segments segments = new Segments();
-        val seg = new NDataSegment();
+        val seg = NDataSegment.empty();
         seg.setId(RandomUtil.randomUUIDStr());
         seg.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
         seg.setStatus(SegmentStatusEnum.READY);
         segments.add(seg);
 
-        val seg2 = new NDataSegment();
+        val seg2 = NDataSegment.empty();
         seg2.setId(RandomUtil.randomUUIDStr());
         seg2.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(0L, 20L));
         seg2.setStatus(SegmentStatusEnum.READY);
         segments.add(seg2);
 
-        val newSeg = new NDataSegment();
+        val newSeg = NDataSegment.empty();
         newSeg.setId(RandomUtil.randomUUIDStr());
         newSeg.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(0L, 20L));
         newSeg.setStatus(SegmentStatusEnum.NEW);
@@ -175,7 +175,7 @@ public class SegmentsTest {
     }
 
     public NDataSegment newReadySegment(Long startTime, Long endTime) {
-        val seg = new NDataSegment();
+        val seg = NDataSegment.empty();
         seg.setId(RandomUtil.randomUUIDStr());
         seg.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(startTime, endTime));
         seg.setStatus(SegmentStatusEnum.READY);

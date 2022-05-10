@@ -25,6 +25,8 @@ package io.kyligence.kap.rest.config;
 
 import java.util.Date;
 
+import org.apache.commons.jnet.Installer;
+import org.apache.hadoop.fs.FsUrlStreamHandlerFactory;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -151,7 +153,7 @@ public class AppInitializer {
     @EventListener(ApplicationReadyEvent.class)
     public void afterReady(ApplicationReadyEvent event) {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
-
+        setFsUrlStreamHandlerFactory();
         if (kylinConfig.isJobNode()) {
             new EpochOrchestrator(kylinConfig);
         }
@@ -169,5 +171,13 @@ public class AppInitializer {
 
     private void postInit() {
         AddressUtil.setHostInfoFetcher(hostInfoFetcher);
+    }
+
+    private static void setFsUrlStreamHandlerFactory() {
+        try {
+            Installer.setURLStreamHandlerFactory(new FsUrlStreamHandlerFactory());
+        } catch (Exception e) {
+            log.warn("set Fs URL stream handler factory failed", e);
+        }
     }
 }

@@ -38,7 +38,6 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.smart.model.GreedyModelTreesBuilder;
 import lombok.extern.slf4j.Slf4j;
 
@@ -97,8 +96,7 @@ public class ViewModelSelectProposer extends AbstractProposer {
     private void setModelContextModel(AbstractContext.ModelContext modelContext, NDataModel dataModel) {
         modelContext.setOriginModel(dataModel);
         NDataModel targetModel = dataModelManager.copyBySerialization(dataModel);
-        NTableMetadataManager manager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        targetModel.init(KylinConfig.getInstanceFromEnv(), manager.getAllTablesMap(), Lists.newArrayList(), project);
+        targetModel.init(KylinConfig.getInstanceFromEnv(), project, Lists.newArrayList());
         modelContext.setTargetModel(targetModel);
         targetModel.getComputedColumnDescs().forEach(cc -> modelContext.getUsedCC().put(cc.getExpression(), cc));
     }

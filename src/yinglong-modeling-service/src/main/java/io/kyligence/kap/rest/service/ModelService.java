@@ -46,10 +46,8 @@ import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARTITIO
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARTITION_VALUES;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_SEGMENT_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_BROKEN;
-import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_EXPORT_ERROR;
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_ONLINE_ABANDON;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
-import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.STREAMING_INDEX_UPDATE_DISABLE;
 import static org.apache.kylin.common.exception.ServerErrorCode.TABLE_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.TIMESTAMP_COLUMN_NOT_EXIST;
@@ -60,6 +58,7 @@ import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_INVALID;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_NOT_EXIST;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_NOT_EXIST;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_BUILD_RANGE_OVERLAP;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_LOCKED;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_MERGE_CONTAINS_GAPS;
@@ -92,8 +91,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.tool.bisync.model.MeasureDef;
 import io.kyligence.kap.guava20.shaded.common.base.Supplier;
+import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
@@ -106,7 +105,6 @@ import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.SecondStorageConfig;
 import org.apache.kylin.common.exception.JobErrorCode;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
@@ -1022,21 +1020,31 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                                 a.addAll(b);
                                 return a;
                             }));
+
+            List<Set<String>> shards = SecondStorageNodeHelper.groupsToShards(SecondStorageUtil.listNodeGroup(getConfig(), project));
+
             segmentResponseList.forEach(segment -> {
                 if (tablePartitions.containsKey(segment.getId())) {
                     val nodes = new HashSet<String>();
-                    Long sizes = 0L;
                     var partitions = tablePartitions.get(segment.getId());
                     for (TablePartition partition : partitions) {
                         nodes.addAll(partition.getShardNodes());
-                        var size = partition.getSizeInNode().values().stream().reduce(Long::sum).orElse(0L);
-                        sizes += size;
                     }
-                    try {
-                        segment.setSecondStorageSize(sizes / SecondStorageConfig.getInstanceFromEnv().getReplicaNum());
-                    } catch (Exception e) {
-                        log.error("setSecondStorageSize failed", e);
-                    }
+
+                    // key: node_name / value: node_size
+                    Map<String, Long> nodesSize = partitions.stream()
+                            .flatMap(partition -> partition.getSizeInNode().entrySet().stream())
+                            .collect(Collectors.toMap(
+                                    Map.Entry::getKey,
+                                    Map.Entry::getValue,
+                                    Long::sum
+                            ));
+
+                    long maxNodeSize = shards.stream()
+                            .mapToLong(shard -> shard.stream().mapToLong(nodesSize::get).max().orElse(0))
+                            .sum();
+                    segment.setSecondStorageSize(maxNodeSize);
+
                     Map<String, List<SecondStorageNode>> pairs = SecondStorageUtil.convertNodesToPairs(new ArrayList<>(nodes));
                     segment.setSecondStorageNodes(pairs);
                 } else {
@@ -2496,8 +2504,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
             model.updateRandomUuid();
         }
 
-        model.init(getConfig(), getManager(NTableMetadataManager.class, project).getAllTablesMap(),
-                getManager(NDataflowManager.class, project).listUnderliningDataModels(), project);
+        model.init(getConfig(), project, getManager(NDataflowManager.class, project).listUnderliningDataModels());
         model.getComputedColumnDescs().forEach(cc -> {
             String innerExp = KapQueryUtil.massageComputedColumn(model, project, cc, null);
             cc.setInnerExpression(innerExp);
@@ -2617,11 +2624,9 @@ public class ModelService extends BasicService implements TableModelSupporter, P
 
     void preProcessBeforeModelSave(NDataModel model, String project) {
         if (!model.getComputedColumnDescs().isEmpty()) {
-            model.init(getConfig(), getManager(NTableMetadataManager.class, project).getAllTablesMap(),
-                    getManager(NDataflowManager.class, project).listUnderliningDataModels(), project, false, true);
+            model.init(getConfig(), project, getManager(NDataflowManager.class, project).listUnderliningDataModels(), true);
         } else {
-            model.init(getConfig(), getManager(NTableMetadataManager.class, project).getAllTablesMap(), Lists.newArrayList(), project, false,
-                    true);
+            model.init(getConfig(), project, Lists.newArrayList(), true);
         }
 
         massageModelFilterCondition(model);
@@ -2860,9 +2865,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
 
                 val copyModel = modelManager.copyForWrite(originModel);
                 UpdateImpact updateImpact = semanticUpdater.updateModelColumns(copyModel, request, true);
-                val allTables = getManager(NTableMetadataManager.class, request.getProject()).getAllTablesMap();
-                copyModel.init(modelManager.getConfig(), allTables,
-                        getManager(NDataflowManager.class, project).listUnderliningDataModels(), project);
+                copyModel.init(modelManager.getConfig(), project,
+                        getManager(NDataflowManager.class, project).listUnderliningDataModels());
 
                 BaseIndexUpdateHelper baseIndexUpdater = new BaseIndexUpdateHelper(originModel,
                         request.isWithBaseIndex());
@@ -3138,8 +3142,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         broken.setFilterCondition(modelRequest.getFilterCondition());
         broken.setJoinTables(modelRequest.getJoinTables());
         discardInvalidColumnAndMeasure(broken, modelRequest);
-        broken.init(getConfig(), getManager(NTableMetadataManager.class, project).getAllTablesMap(),
-                getManager(NDataflowManager.class, project).listUnderliningDataModels(), project);
+        broken.init(getConfig(), project, getManager(NDataflowManager.class, project).listUnderliningDataModels());
         broken.setBrokenReason(NDataModel.BrokenReason.NULL);
         String format = probeDateFormatIfNotExist(project, broken);
         return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
@@ -3828,49 +3831,6 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         return exportCustomModel(projectName, modelId, targetBI, modelElement, host, port, groups);
     }
 
-    public boolean validateExport(String projectName, String modelId) {
-        val dataModelDesc = getModelById(modelId, projectName);
-        List<MeasureDef> measureDefs = dataModelDesc.getEffectiveMeasures().values().stream().map(MeasureDef::new)
-                .collect(Collectors.toList());
-        val measures = measureDefs.stream().map(measureDef -> measureDef.getMeasure().getName())
-                .collect(Collectors.toSet());
-        val columns = dataModelDesc.getAllNamedColumns().stream()
-                .filter(column -> !column.isDimension())
-                .map(NDataModel.NamedColumn::getColumnName).collect(Collectors.toSet());
-
-        // 1. check measure snd normal column
-        val duplicateMeasureAndModelColumn = Sets.intersection(measures, columns);
-        if (org.apache.commons.collections4.CollectionUtils.isNotEmpty(duplicateMeasureAndModelColumn)) {
-            val duplicateName = duplicateMeasureAndModelColumn.stream().findFirst().orElse(null);
-            throw new KylinException(MODEL_EXPORT_ERROR, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getDUPLICATED_MODEL_COLUMN_AND_MEASURE_NAME(), duplicateName, duplicateName));
-        }
-
-        // 2. check dimension name and measure
-        val dimensionNames = dataModelDesc.getAllNamedColumns().stream()
-                .filter(NDataModel.NamedColumn::isDimension)
-                .map(NDataModel.NamedColumn::getName).collect(Collectors.toSet());
-        val duplicateDimensionNameAndMeasure = Sets.intersection(dimensionNames, measures);
-        if (org.apache.commons.collections4.CollectionUtils.isNotEmpty(duplicateDimensionNameAndMeasure)) {
-            val duplicateName = duplicateDimensionNameAndMeasure.stream().findFirst().orElse(null);
-            throw new KylinException(MODEL_EXPORT_ERROR, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getDUPLICATED_DIMENSION_NAME_AND_MEASURE_NAME(), duplicateName, duplicateName));
-        }
-
-        // 3. check dimension column and measure
-        val dimensionColumns = dataModelDesc.getEffectiveDimensions().values().stream()
-                .map(TblColRef::getColumnDesc)
-                .map(ColumnDesc::getName).collect(Collectors.toSet());
-        val duplicateDimensionColumnAndMeasure = Sets.intersection(dimensionColumns, measures);
-        if (org.apache.commons.collections4.CollectionUtils.isNotEmpty(duplicateDimensionColumnAndMeasure)) {
-            val duplicateName = duplicateDimensionColumnAndMeasure.stream().findFirst().orElse(null);
-            throw new KylinException(MODEL_EXPORT_ERROR,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getDUPLICATED_DIMENSION_COLUMN_AND_MEASURE_NAME(),
-                            duplicateName, duplicateName));
-        }
-        return true;
-    }
-
     public BISyncModel exportModel(String projectName, String modelId, SyncContext.BI targetBI,
             SyncContext.ModelElement modelElement, String host, int port) {
         NDataflow dataflow = getManager(NDataflowManager.class, projectName).getDataflow(modelId);
@@ -4166,10 +4126,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
 
     private NDataModel convertAndInitDataModel(ModelRequest request, String project) {
         NDataModel model = convertToDataModel(request);
-        Map<String, TableDesc> allTables = getManager(NTableMetadataManager.class, project).getAllTablesMap();
-        Map<String, TableDesc> initialAllTables = model.getExtendedTables(allTables);
-        model.init(KylinConfig.getInstanceFromEnv(), initialAllTables,
-                getManager(NDataflowManager.class, project).listUnderliningDataModels(), project);
+        model.init(KylinConfig.getInstanceFromEnv(), project, getManager(NDataflowManager.class, project).listUnderliningDataModels());
         for (ComputedColumnDesc cc : model.getComputedColumnDescs()) {
             String innerExp = cc.getInnerExpression();
             if (cc.getExpression().equalsIgnoreCase(innerExp)) {

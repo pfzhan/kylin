@@ -42,7 +42,6 @@ import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 import io.kyligence.kap.metadata.project.NProjectManager;
 
@@ -270,8 +269,8 @@ public class ComputedColumnEvalUtilTest extends NLocalWithSparkSessionTest {
         NDataModel copyModel = JsonUtil.readValue(JsonUtil.writeValueAsIndentString(dataModel), NDataModel.class);
         copyModel.getJoinTables().get(0).getJoin().setType("inner");
         dataModel.getComputedColumnDescs().add(cc1);
-        copyModel.init(KylinConfig.getInstanceFromEnv(),
-                NTableMetadataManager.getInstance(config, project).getAllTablesMap());
+        copyModel.setProject(project);
+        copyModel.init(KylinConfig.getInstanceFromEnv());
 
         String sharedName = ComputedColumnUtil.shareCCNameAcrossModel(cc1, copyModel, Arrays.asList(dataModel));
         Assert.assertEquals(null, sharedName);

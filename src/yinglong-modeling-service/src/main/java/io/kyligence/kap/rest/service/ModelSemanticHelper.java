@@ -475,14 +475,12 @@ public class ModelSemanticHelper extends BasicService {
         val expectedModel = convertToDataModel(request);
 
         String project = request.getProject();
-        val allTables = getManager(NTableMetadataManager.class, project).getAllTablesMap();
-        val initialAllTables = expectedModel.getExtendedTables(allTables);
-        expectedModel.init(KylinConfig.getInstanceFromEnv(), initialAllTables);
+        expectedModel.init(KylinConfig.getInstanceFromEnv());
         Map<String, String> matchAlias = getAliasTransformMap(originModel, expectedModel);
         updateModelColumnForTableAliasModify(expectedModel, matchAlias);
 
         List<NDataModel> allModels = getManager(NDataflowManager.class, project).listUnderliningDataModels();
-        expectedModel.init(KylinConfig.getInstanceFromEnv(), allTables, allModels, project, false, saveCheck);
+        expectedModel.init(KylinConfig.getInstanceFromEnv(), project, allModels, saveCheck);
 
         originModel.setJoinTables(expectedModel.getJoinTables());
         originModel.setCanvas(expectedModel.getCanvas());

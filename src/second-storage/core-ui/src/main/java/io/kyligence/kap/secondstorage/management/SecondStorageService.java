@@ -278,6 +278,7 @@ public class SecondStorageService extends BasicService implements SecondStorageU
 
     public ProjectLoadResponse projectLoadData(List<String> projects) {
         projects.forEach(project -> {
+            aclEvaluate.checkProjectWritePermission(project);
             SecondStorageUtil.validateProjectLock(project, Arrays.asList(LockTypeEnum.LOAD.name()));
         });
         ProjectLoadResponse projectLoadResponse = new ProjectLoadResponse();
@@ -324,6 +325,7 @@ public class SecondStorageService extends BasicService implements SecondStorageU
     }
 
     public List<JobInfoResponse.JobInfo> importSingleModel(String project, String modelName) {
+        SecondStorageUtil.validateProjectLock(project, Collections.singletonList(LockTypeEnum.LOAD.name()));
         val config = KylinConfig.getInstanceFromEnv();
         val modelManager = NDataModelManager.getInstance(config, project);
         val model = modelManager.getDataModelDescByAlias(modelName).getUuid();
@@ -470,6 +472,7 @@ public class SecondStorageService extends BasicService implements SecondStorageU
 
     public Map<String, Map<String, String>> projectClean(List<String> projects) {
         projects.forEach(project -> {
+            aclEvaluate.checkProjectWritePermission(project);
             projectValidate(project);
         });
         Map<String, Map<String, String>> resultMap = new HashMap<>();

@@ -63,10 +63,10 @@ public class NQueryMetaController extends NBasicController {
     @ResponseBody
     @Deprecated
     public List<TableMeta> getMetadataForDriver(MetaRequest metaRequest) {
-        if (metaRequest.getCube() == null) {
+        if (metaRequest.getModelAlias() == null) {
             return queryService.getMetadata(metaRequest.getProject());
         } else {
-            return queryService.getMetadata(metaRequest.getProject(), metaRequest.getCube());
+            return queryService.getMetadata(metaRequest.getProject(), metaRequest.getModelAlias());
         }
     }
 }

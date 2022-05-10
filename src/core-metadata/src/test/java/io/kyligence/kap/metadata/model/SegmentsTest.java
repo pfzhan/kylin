@@ -204,7 +204,7 @@ public class SegmentsTest {
     }
 
     public NDataSegment newReadySegment(Long startTime, Long endTime) {
-        val seg = new NDataSegment();
+        val seg = NDataSegment.empty();
         seg.setId(RandomUtil.randomUUIDStr());
         seg.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(startTime, endTime));
         seg.setStatus(SegmentStatusEnum.READY);

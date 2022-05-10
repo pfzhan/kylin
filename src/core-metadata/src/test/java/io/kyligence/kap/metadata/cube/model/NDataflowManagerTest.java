@@ -178,6 +178,17 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testGetAllModels() {
+        KylinConfig testConfig = getTestConfig();
+        List<NDataModel> noCheckHealthyModels = NDataflowManager.getInstance(testConfig, projectDefault)
+                .listUnderliningDataModels();
+        overwriteSystemProp("ylin.model.check-dependency-healthk", "true");
+        List<NDataModel> checkedHealthyModels = NDataflowManager.getInstance(testConfig, projectDefault)
+                .listUnderliningDataModels();
+        Assert.assertEquals(noCheckHealthyModels, checkedHealthyModels);
+    }
+
+    @Test
     public void testUpdateSegment() throws IOException {
         KylinConfig testConfig = getTestConfig();
         NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);

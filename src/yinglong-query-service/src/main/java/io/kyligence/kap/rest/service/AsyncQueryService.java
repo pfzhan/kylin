@@ -117,8 +117,9 @@ public class AsyncQueryService extends BasicService {
                         new InputStreamReader(is, Charset.defaultCharset()))) {
             fileInfo.setFormat(bufferedReader.readLine());
             fileInfo.setEncode(bufferedReader.readLine());
-            fileInfo.setSeparator(bufferedReader.readLine());
             fileInfo.setFileName(bufferedReader.readLine());
+            String sep = bufferedReader.readLine();
+            fileInfo.setSeparator(sep == null ? "," : sep);
             return fileInfo;
         }
     }
@@ -180,6 +181,16 @@ public class AsyncQueryService extends BasicService {
 
             return StringUtils.join(strings, "");
         }
+    }
+
+    public String searchQueryResultProject(String queryId) throws IOException {
+        for (ProjectInstance projectInstance : NProjectManager.getInstance(getConfig()).listAllProjects()) {
+            FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
+            if (fileSystem.exists(getAsyncQueryResultDir(projectInstance.getName(), queryId))) {
+                return projectInstance.getName();
+            }
+        }
+        return null;
     }
 
     public QueryStatus queryStatus(String project, String queryId) throws IOException {
@@ -355,10 +366,7 @@ public class AsyncQueryService extends BasicService {
             throws IOException {
         FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
         FileStatus[] fileStatuses = fileSystem.listStatus(dataPath);
-        if (includeHeader) {
-            IOUtils.copy(IOUtils.toInputStream(columnNames), outputStream);
-        }
-        excelWriter.writeData(fileStatuses, outputStream, separator);
+        excelWriter.writeData(fileStatuses, outputStream, columnNames, separator, includeHeader);
     }
 
     private void processJSON(OutputStream outputStream, Path dataPath, String encode) throws IOException {

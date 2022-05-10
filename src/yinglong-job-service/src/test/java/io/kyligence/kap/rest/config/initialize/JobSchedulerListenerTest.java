@@ -36,10 +36,6 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import io.kyligence.kap.common.metrics.prometheus.PrometheusMetrics;
-import io.micrometer.core.instrument.Meter;
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpStatus;
@@ -60,8 +56,12 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 
+import io.kyligence.kap.common.metrics.prometheus.PrometheusMetrics;
 import io.kyligence.kap.common.scheduler.JobFinishedNotifier;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.micrometer.core.instrument.Meter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import lombok.var;
 
 public class JobSchedulerListenerTest extends NLocalFileMetadataTestCase {
@@ -228,18 +228,23 @@ public class JobSchedulerListenerTest extends NLocalFileMetadataTestCase {
         Mockito.when(notifier.getProject()).thenReturn("project");
         KylinConfig.getInstanceFromEnv().setProperty("kylin.metrics.prometheus-enabled", "false");
         jobSyncListener.recordPrometheusMetric(notifier, meterRegistry, "model", ExecutableState.ERROR);
-        Collection<Meter> meters1 = meterRegistry.find(PrometheusMetrics.MODEL_BUILD_DURATION.getValue()).meters();
+        Collection<Meter> meters1 = meterRegistry.getMeters();
         Assert.assertEquals(0, meters1.size());
 
         KylinConfig.getInstanceFromEnv().setProperty("kylin.metrics.prometheus-enabled", "true");
-        jobSyncListener.recordPrometheusMetric(notifier, meterRegistry, "model", ExecutableState.ERROR);
-        Collection<Meter> meters2 = meterRegistry.find(PrometheusMetrics.MODEL_BUILD_DURATION.getValue()).meters();
-        Assert.assertEquals(0, meters2.size());
+        jobSyncListener.recordPrometheusMetric(notifier, meterRegistry, "", ExecutableState.ERROR);
+        Collection<Meter> meters2 = meterRegistry.getMeters();
+        Assert.assertEquals(1, meters2.size());
 
         Mockito.when(notifier.getJobType()).thenReturn(JobTypeEnum.INDEX_BUILD.toString());
         jobSyncListener.recordPrometheusMetric(notifier, meterRegistry, "model", ExecutableState.ERROR);
         Collection<Meter> meters3 = meterRegistry.find(PrometheusMetrics.MODEL_BUILD_DURATION.getValue()).meters();
-        Assert.assertNotEquals(0, meters3.size());
+        Collection<Meter> meters4 = meterRegistry.find(PrometheusMetrics.JOB_MINUTES.getValue()).meters();
+        Assert.assertEquals(1, meters3.size());
+        Assert.assertEquals(2, meters4.size());
+
+        Mockito.when(notifier.getJobType()).thenReturn("TEST");
+        jobSyncListener.recordPrometheusMetric(notifier, meterRegistry, "model", ExecutableState.SUCCEED);
     }
 
     static class ModelHandler implements HttpHandler {

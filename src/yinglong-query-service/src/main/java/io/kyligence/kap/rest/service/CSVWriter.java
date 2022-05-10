@@ -49,26 +49,28 @@ public class CSVWriter {
     private static final Logger logger = LoggerFactory.getLogger("query");
 
     private static final String QUOTE_CHAR = "\"";
-    private static final String END_OF_LINE_SYMBOLS = "\r\n";
+    private static final String END_OF_LINE_SYMBOLS = IOUtils.LINE_SEPARATOR_UNIX;
 
-    public void writeData(FileStatus[] fileStatuses, OutputStream outputStream, String separator) throws IOException {
-        Writer writer = new OutputStreamWriter(outputStream, StandardCharsets.UTF_8);
-        Boolean firstWrite = true;
-        for (FileStatus fileStatus : fileStatuses) {
-            if (!fileStatus.getPath().getName().startsWith("_")) {
-                if (fileStatus.getPath().getName().endsWith("parquet")) {
-                    if (Boolean.TRUE.equals(firstWrite)) {
-                        writer.write('\uFEFF');
-                        firstWrite = false;
+    public void writeData(FileStatus[] fileStatuses, OutputStream outputStream,
+                          String columnNames, String separator, boolean includeHeaders) throws IOException {
+
+        try (Writer writer = new OutputStreamWriter(outputStream, StandardCharsets.UTF_8)) {
+            if (includeHeaders) {
+                writer.write(columnNames.replace(",", separator));
+                writer.flush();
+            }
+            for (FileStatus fileStatus : fileStatuses) {
+                if (!fileStatus.getPath().getName().startsWith("_")) {
+                    if (fileStatus.getPath().getName().endsWith("parquet")) {
+                        writeDataByParquet(fileStatus, writer, separator);
+                    } else {
+                        writeDataByCsv(fileStatus, outputStream);
                     }
-                    writeDataByParquet(fileStatus, writer, separator);
-                } else {
-                    writeDataByCsv(fileStatus, outputStream);
                 }
             }
+
+            writer.flush();
         }
-        writer.flush();
-        writer.close();
     }
 
     public static void writeCsv(Iterator<List<Object>> rows, Writer writer, String separator) {

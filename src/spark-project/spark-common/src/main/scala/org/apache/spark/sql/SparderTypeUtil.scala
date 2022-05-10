@@ -537,5 +537,4 @@ object SparderTypeUtil extends Logging {
     builder.setNullable(field.nullable)
     builder.createStructField()
   }
-
 }

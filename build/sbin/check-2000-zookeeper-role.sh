@@ -33,7 +33,6 @@ source ${KYLIN_HOME}/sbin/init-kerberos.sh
 initKerberosIfNeeded
 
 echo "Checking Zookeeper role..."
-
 zk_connect_string=`${KYLIN_HOME}/bin/get-properties.sh kylin.env.zookeeper-connect-string`
 
 if [[ -z $zk_connect_string ]]; then

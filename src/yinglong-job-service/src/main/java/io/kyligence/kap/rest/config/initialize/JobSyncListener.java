@@ -30,11 +30,11 @@ import java.nio.charset.StandardCharsets;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -410,13 +410,25 @@ public class JobSyncListener {
 
     }
 
-    public void recordPrometheusMetric(JobFinishedNotifier notifier, MeterRegistry meterRegistry, String modelAlias, ExecutableState state) {
-        if (!KylinConfig.getInstanceFromEnv().isPrometheusMetricsEnabled() || StringUtils.isBlank(modelAlias)) {
+    public void recordPrometheusMetric(JobFinishedNotifier notifier, MeterRegistry meterRegistry, String modelAlias,
+            ExecutableState state) {
+        if (!KylinConfig.getInstanceFromEnv().isPrometheusMetricsEnabled()) {
             return;
         }
         if (state.isFinalState() || ExecutableState.ERROR == state) {
-            boolean containPrometheusJobTypeFlag = Arrays.stream(JobTypeEnum.getTypesForPrometheus())
-                    .anyMatch(jobTypeEnum -> jobTypeEnum.toString().equals(notifier.getJobType()));
+            JobTypeEnum jobTypeEnum = JobTypeEnum.getEnumByName(notifier.getJobType());
+            DistributionSummary.builder(PrometheusMetrics.JOB_MINUTES.getValue())
+                    .tags(MetricsTag.PROJECT.getVal(), notifier.getProject(), MetricsTag.SUCCEED.getVal(),
+                            (ExecutableState.SUCCEED == state) + "", MetricsTag.JOB_CATEGORY.getVal(),
+                            Objects.isNull(jobTypeEnum) ? "" : jobTypeEnum.getCategory())
+                    .distributionStatisticExpiry(Duration.ofDays(1)).register(meterRegistry)
+                    .record((notifier.getDuration() + notifier.getWaitTime()) / (60.0 * 1000.0));
+            if (StringUtils.isEmpty(modelAlias)) {
+                return;
+            }
+
+            boolean containPrometheusJobTypeFlag = JobTypeEnum.getJobTypeByCategory(JobTypeEnum.Category.BUILD).stream()
+                    .anyMatch(e -> e.toString().equals(notifier.getJobType()));
 
             if (containPrometheusJobTypeFlag) {
                 DistributionSummary.builder(PrometheusMetrics.MODEL_BUILD_DURATION.getValue())

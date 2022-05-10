@@ -31,10 +31,11 @@ import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CONNECT_C
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_DOWNLOAD_FILE;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_RANGE;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_SEGMENT_PARAMETER;
-import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.UNSUPPORTED_STREAMING_OPERATION;
 import static org.apache.kylin.common.exception.ServerErrorCode.USER_UNAUTHORIZED;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_CONFLICT_PARAMETER;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_EMPTY_PARAMETER;
 import static org.apache.kylin.metadata.model.PartitionDesc.transformTimestamp2Format;
 
 import java.io.File;
@@ -125,8 +126,7 @@ public class BaseController {
             }
         }
 
-        throw new KylinException(PROJECT_NOT_EXIST,
-                String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
+        throw new KylinException(PROJECT_NOT_EXIST, project);
     }
 
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -315,8 +315,7 @@ public class BaseController {
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         ProjectInstance prjInstance = projectManager.getProject(project);
         if (prjInstance == null) {
-            throw new KylinException(PROJECT_NOT_EXIST,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
+            throw new KylinException(PROJECT_NOT_EXIST, project);
         }
         return prjInstance.getName();
     }
@@ -337,12 +336,12 @@ public class BaseController {
 
         //both not empty
         if (ArrayUtils.isNotEmpty(ids) && ArrayUtils.isNotEmpty(names)) {
-            throw new KylinException(INVALID_SEGMENT_PARAMETER, MsgPicker.getMsg().getCONFLICT_SEGMENT_PARAMETER());
+            throw new KylinException(SEGMENT_CONFLICT_PARAMETER);
         }
 
         //both empty
         if (ArrayUtils.isEmpty(ids) && ArrayUtils.isEmpty(names)) {
-            throw new KylinException(INVALID_SEGMENT_PARAMETER, MsgPicker.getMsg().getEMPTY_SEGMENT_PARAMETER());
+            throw new KylinException(SEGMENT_EMPTY_PARAMETER);
         }
     }
 

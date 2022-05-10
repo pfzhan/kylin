@@ -173,7 +173,7 @@ public class LoadInfo {
             nodeFileMap.put(it.next(), shardFiles.get(idx));
         }
         val metric = new ClickHouseTableStorageMetric(Arrays.asList(this.nodeNames));
-        metric.collect();
+        metric.collect(false);
 
         Preconditions.checkNotNull(targetDatabase);
         Preconditions.checkNotNull(targetTable);
