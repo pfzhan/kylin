@@ -3254,4 +3254,8 @@ public abstract class KylinConfigBase implements Serializable {
     public long getClusterManagerHealCheckIntervalSecond() {
         return Long.parseLong(getOptional("kylin.engine.cluster-manager-heal-check-interval-second", "120"));
     }
+
+    public boolean isRemoveLdapCustomSecurityLimitEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.security.remove-ldap-custom-security-limit-enabled", "false"));
+    }
 }
