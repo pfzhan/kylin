@@ -296,7 +296,7 @@ public abstract class AbstractExecutable implements Executable {
         }
     }
 
-    protected void onExecuteStopHook() {
+    public void onExecuteStopHook() {
         onExecuteErrorHook(getId());
     }
 

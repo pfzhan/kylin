@@ -93,8 +93,8 @@ public class JobFilter {
             subject = subject.trim();
         }
 
-        return new JobMapperFilter(statuses, jobNames, queryStartTime, subject, modelIds, jobId, project, orderByField,
-                orderType, offset, limit);
+        return new JobMapperFilter(statuses, jobNames, queryStartTime, subject, modelIds, jobId, null, project,
+                orderByField, orderType, offset, limit);
 
     }
 

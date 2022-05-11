@@ -107,7 +107,7 @@ public class JobController extends BaseController {
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize,
             @RequestParam(value = "sort_by", required = false, defaultValue = "last_modified") String sortBy,
             @RequestParam(value = "reverse", required = false, defaultValue = "true") boolean reverse) {
-        jobService.checkJobStatus(statuses);
+        jobInfoService.checkJobStatus(statuses);
         checkRequiredArg("time_filter", timeFilter);
         JobFilter jobFilter = new JobFilter(statuses, jobNames, timeFilter, subject, key, project, sortBy, reverse);
         DataResult<List<ExecutableResponse>> executables = jobInfoService.listJobs(jobFilter, pageOffset, pageSize);
@@ -121,15 +121,15 @@ public class JobController extends BaseController {
     public EnvelopeResponse<String> dropJob(@RequestParam(value = "project", required = false) String project,
             @RequestParam(value = "job_ids", required = false) List<String> jobIds,
             @RequestParam(value = "statuses", required = false) List<String> statuses) throws IOException {
-        jobService.checkJobStatus(statuses);
+        jobInfoService.checkJobStatus(statuses);
         if (StringUtils.isBlank(project) && CollectionUtils.isEmpty(jobIds)) {
             throw new KylinException(JOB_ID_EMPTY, "delete");
         }
 
         if (null != project) {
-            jobService.batchDropJob(project, jobIds, statuses);
+            jobInfoService.batchDropJob(project, jobIds, statuses);
         } else {
-            jobService.batchDropGlobalJob(jobIds, statuses);
+            jobInfoService.batchDropGlobalJob(jobIds, statuses);
         }
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
@@ -139,17 +139,17 @@ public class JobController extends BaseController {
     @ResponseBody
     public EnvelopeResponse<String> updateJobStatus(@RequestBody JobUpdateRequest jobUpdateRequest) throws IOException {
         checkRequiredArg("action", jobUpdateRequest.getAction());
-        jobService.checkJobStatusAndAction(jobUpdateRequest);
+        jobInfoService.checkJobStatusAndAction(jobUpdateRequest);
         if (StringUtils.isBlank(jobUpdateRequest.getProject())
                 && CollectionUtils.isEmpty(jobUpdateRequest.getJobIds())) {
             throw new KylinException(JOB_ID_EMPTY, jobUpdateRequest.getAction());
         }
 
         if (!StringUtils.isEmpty(jobUpdateRequest.getProject())) {
-            jobService.batchUpdateJobStatus(jobUpdateRequest.getJobIds(), jobUpdateRequest.getProject(),
+            jobInfoService.batchUpdateJobStatus(jobUpdateRequest.getJobIds(), jobUpdateRequest.getProject(),
                     jobUpdateRequest.getAction(), jobUpdateRequest.getStatuses());
         } else {
-            jobService.batchUpdateGlobalJobStatus(jobUpdateRequest.getJobIds(), jobUpdateRequest.getAction(),
+            jobInfoService.batchUpdateGlobalJobStatus(jobUpdateRequest.getJobIds(), jobUpdateRequest.getAction(),
                     jobUpdateRequest.getStatuses());
             EventBusFactory.getInstance().postAsync(new UpdateJobStatusEventNotifier(jobUpdateRequest.getJobIds(),
                     jobUpdateRequest.getAction(), jobUpdateRequest.getStatuses()));

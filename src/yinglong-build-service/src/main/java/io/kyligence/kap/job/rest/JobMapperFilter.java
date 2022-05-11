@@ -29,11 +29,13 @@ import java.util.List;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
 @Setter
 @AllArgsConstructor
+@NoArgsConstructor
 public class JobMapperFilter {
 
     private List<String> statuses;
@@ -48,13 +50,15 @@ public class JobMapperFilter {
 
     private String jobId;
 
+    private List<String> jobIds;
+
     private String project;
 
     private String orderByFiled;
 
     private String orderType;
 
-    private int offset;
+    private int offset = -1;
 
-    private int limit;
+    private int limit = -1;
 }

@@ -203,11 +203,16 @@
       <if test="jobId != null">
         AND job_id like #{jobId}
       </if>
+      <if test="jobIds != null">
+        <foreach item="item" index="index" collection="jobIds" open="AND job_id in (" separator="," close=")">
+          #{item}
+        </foreach>
+      </if>
     </where>
     <if test="orderByFiled != null">
       order by ${orderByFiled}  ${orderType}
     </if>
-    <if test="offset!=null and limit!=null">
+    <if test="offset>=0 and limit>=0">
       limit ${offset}, ${limit}
     </if>
   </select>

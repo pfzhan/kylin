@@ -31,12 +31,25 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import io.kyligence.kap.common.metrics.MetricsCategory;
+import io.kyligence.kap.common.metrics.MetricsGroup;
+import io.kyligence.kap.common.metrics.MetricsName;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWorkContext;
+import io.kyligence.kap.common.scheduler.EventBusFactory;
+import io.kyligence.kap.common.scheduler.JobDiscardNotifier;
+import io.kyligence.kap.common.scheduler.JobReadyNotifier;
 import io.kyligence.kap.engine.spark.job.NSparkExecutable;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.job.rest.ExecutableStepResponse;
+import io.kyligence.kap.job.rest.JobMapperFilter;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
+import io.kyligence.kap.rest.request.JobUpdateRequest;
+import io.kyligence.kap.rest.service.ProjectService;
 import io.kyligence.kap.rest.util.SparkHistoryUIUtil;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import lombok.val;
 import lombok.var;
 import org.apache.commons.collections.CollectionUtils;
@@ -54,13 +67,19 @@ import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.common.ShellExecutable;
 import org.apache.kylin.job.constant.ExecutableConstants;
+import org.apache.kylin.job.constant.JobActionEnum;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.ChainedStageExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.JobTypeEnum;
+//import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.execution.Output;
 import org.apache.kylin.job.execution.StageBase;
 import org.apache.kylin.metadata.model.Segments;
+import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.rest.constant.Constant;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
 import io.kyligence.kap.job.mapper.JobInfoMapper;
@@ -71,7 +90,6 @@ import io.kyligence.kap.job.rest.JobFilter;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -87,13 +105,18 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_ACTION_ILLEGAL;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_STATUS_ILLEGAL;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_UPDATE_STATUS_FAILED;
 
 @Service
 public class JobInfoService extends BasicService {
@@ -105,6 +128,9 @@ public class JobInfoService extends BasicService {
     private static final String PARSE_ERROR_MSG = "Error parsing the executablePO: ";
     public static final String EXCEPTION_CODE_PATH = "exception_to_code.json";
     public static final String EXCEPTION_CODE_DEFAULT = "KE-030001000";
+
+    @Autowired
+    private ProjectService projectService;
 
     @Resource
     private JobInfoMapper jobInfoMapper;
@@ -120,6 +146,67 @@ public class JobInfoService extends BasicService {
         return this;
     }
 
+    public void checkJobStatus(List<String> jobStatuses) {
+        if (CollectionUtils.isEmpty(jobStatuses)) {
+            return;
+        }
+        jobStatuses.forEach(this::checkJobStatus);
+    }
+
+    public void checkJobStatus(String jobStatus) {
+        if (Objects.isNull(JobStatusEnum.getByName(jobStatus))) {
+            throw new KylinException(JOB_STATUS_ILLEGAL);
+        }
+    }
+
+    public void checkJobStatusAndAction(String jobStatus, String action) {
+        checkJobStatus(jobStatus);
+        JobActionEnum.validateValue(action);
+        JobStatusEnum jobStatusEnum = JobStatusEnum.valueOf(jobStatus);
+        if (!jobStatusEnum.checkAction(JobActionEnum.valueOf(action))) {
+            throw new KylinException(JOB_ACTION_ILLEGAL, jobStatus, jobStatusEnum.getValidActions());
+        }
+
+    }
+
+    public void checkJobStatusAndAction(JobUpdateRequest jobUpdateRequest) {
+        List<String> jobIds = jobUpdateRequest.getJobIds();
+        List<String> jobStatuses = jobUpdateRequest.getStatuses() == null ? Lists.newArrayList()
+                : jobUpdateRequest.getStatuses();
+        jobIds.stream().map(this::getJobInstance).map(ExecutableResponse::getStatus).map(JobStatusEnum::toString)
+                .forEach(jobStatuses::add);
+        checkJobStatusAndAction(jobStatuses, jobUpdateRequest.getAction());
+    }
+
+    private void checkJobStatusAndAction(List<String> jobStatuses, String action) {
+        if (CollectionUtils.isEmpty(jobStatuses)) {
+            return;
+        }
+        for (String jobStatus : jobStatuses) {
+            checkJobStatusAndAction(jobStatus, action);
+        }
+    }
+
+    /**
+     * for 3x api
+     *
+     * @param jobId
+     * @return
+     */
+    public ExecutableResponse getJobInstance(String jobId) {
+        Preconditions.checkNotNull(jobId);
+        ExecutablePO executablePO = getExecutablePOByUuid(jobId);
+        Preconditions.checkNotNull(executablePO, "Can not find the job: {}", jobId);
+        ExecutableManager executableManager = getManager(ExecutableManager.class, executablePO.getProject());
+        AbstractExecutable executable = executableManager.fromPO(executablePO);
+        return convert(executable);
+    }
+
+    @VisibleForTesting
+    public List<ProjectInstance> getReadableProjects() {
+        return projectService.getReadableProjects(null, false);
+    }
+
     // TODO model == null || !model.isFusionModel();
     // TODO query TABLE_SAMPLING, SNAPSHOT_BUILD, SNAPSHOT_REFRESH, SECOND_STORAGE_NODE_CLEAN by 'subject' (JobUtil.deduceTargetSubject)
     public DataResult<List<ExecutableResponse>> listJobs(final JobFilter jobFilter, int offset, int limit) {
@@ -130,7 +217,7 @@ public class JobInfoService extends BasicService {
         List<JobInfo> jobInfoList = jobInfoMapper
                 .selectByJobFilter(jobFilter.getJobMapperFilter(modelMetadataInvoker, offset, limit));
         List<ExecutableResponse> result = jobInfoList.stream().map(jobInfo -> deserializeExecutablePO(jobInfo)).map(
-                executablePO -> getManager(NExecutableManager.class, executablePO.getProject()).fromPO(executablePO))
+                executablePO -> getManager(ExecutableManager.class, executablePO.getProject()).fromPO(executablePO))
                 .map(this::convert).collect(Collectors.toList());
         return new DataResult<>(result, result.size());
     }
@@ -142,9 +229,9 @@ public class JobInfoService extends BasicService {
             throw new KylinException(JOB_NOT_EXIST, jobId);
         }
         AbstractExecutable executable = null;
+        ExecutableManager executableManager = getManager(ExecutableManager.class, project);
         try {
-            NExecutableManager nExecutableManager = getManager(NExecutableManager.class, project);
-            executable = nExecutableManager.fromPO(executablePO);
+            executable = executableManager.fromPO(executablePO);
         } catch (Exception e) {
             logger.error(PARSE_ERROR_MSG, e);
             return null;
@@ -164,7 +251,7 @@ public class JobInfoService extends BasicService {
         List<? extends AbstractExecutable> tasks = ((ChainedExecutable) executable).getTasks();
         for (AbstractExecutable task : tasks) {
             final ExecutableStepResponse executableStepResponse = parseToExecutableStep(task,
-                    getManager(NExecutableManager.class, project).getOutput(task.getId()), waiteTimeMap,
+                    executableManager.getOutput(task.getId(), executablePO), waiteTimeMap,
                     output.getState());
             if (task.getStatus() == ExecutableState.ERROR) {
                 executableStepResponse.setFailedStepId(output.getFailedStepId());
@@ -189,7 +276,7 @@ public class JobInfoService extends BasicService {
                     List<ExecutableStepResponse> stageResponses = Lists.newArrayList();
                     for (StageBase stage : stageBases) {
                         val stageResponse = parseStageToExecutableStep(task, stage,
-                                getManager(NExecutableManager.class, project).getOutput(stage.getId(), segmentId));
+                                executableManager.getOutput(stage.getId(), executablePO, segmentId));
                         setStage(subStages, stageResponse);
                         stageResponses.add(stageResponse);
 
@@ -240,7 +327,7 @@ public class JobInfoService extends BasicService {
         if (getExecutablePOByUuid(executablePO.getUuid()) != null) {
             throw new IllegalArgumentException("job id:" + executablePO.getUuid() + " already exists");
         }
-        jobInfoMapper.insertSelective(constructNewJobInfo(executablePO));
+        jobInfoMapper.insertSelective(constructJobInfo(executablePO));
         return executablePO;
     }
 
@@ -250,8 +337,134 @@ public class JobInfoService extends BasicService {
         val copyForWrite = JsonUtil.copyBySerialization(job, JOB_SERIALIZER, null);
         copyForWrite.setProject(job.getProject());
         if (updater.test(copyForWrite)) {
-            jobInfoMapper.updateByPrimaryKeySelective(constructNewJobInfo(copyForWrite));
+            jobInfoMapper.updateByPrimaryKeySelective(constructJobInfo(copyForWrite));
         }
+    }
+
+    public void batchDropJob(String project, List<String> jobIds, List<String> filterStatuses) {
+        aclEvaluate.checkProjectOperationPermission(project);
+        batchDropJob0(project, jobIds, filterStatuses);
+    }
+
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
+    public void batchDropGlobalJob(List<String> jobIds, List<String> filterStatuses) {
+        for (String project : projectService.getOwnedProjects()) {
+            aclEvaluate.checkProjectOperationPermission(project);
+            batchDropJob0(project, jobIds, filterStatuses);
+        }
+    }
+
+    private void batchDropJob0(String project, List<String> jobIds, List<String> filterStatuses) {
+        val jobs = getJobsByStatus(project, jobIds, filterStatuses);
+
+        ExecutableManager executableManager = getManager(ExecutableManager.class, project);
+        jobs.forEach(job -> executableManager.checkJobCanBeDeleted(job));
+
+        jobs.forEach(job -> dropJob(project, job.getId()));
+    }
+
+    private void dropJob(String project, String jobId) {
+        jobInfoMapper.deleteByPrimaryKey(jobId);
+    }
+
+    public void batchUpdateJobStatus(List<String> jobIds, String project, String action, List<String> filterStatuses)
+            throws IOException {
+        aclEvaluate.checkProjectOperationPermission(project);
+        batchUpdateJobStatus0(jobIds, project, action, filterStatuses);
+    }
+
+    public void batchUpdateGlobalJobStatus(List<String> jobIds, String action, List<String> filterStatuses) throws IOException {
+        logger.info("Owned projects is {}", projectService.getOwnedProjects());
+        for (String project : projectService.getOwnedProjects()) {
+            aclEvaluate.checkProjectOperationPermission(project);
+            batchUpdateJobStatus0(jobIds, project, action, filterStatuses);
+        }
+    }
+
+    private void batchUpdateJobStatus0(List<String> jobIds, String project, String action, List<String> filterStatuses)
+            throws IOException {
+        val executablePos = getExecutablePoByStatus(project, jobIds, filterStatuses);
+        for (ExecutablePO executablePO : executablePos) {
+            updateJobStatus(executablePO.getId(), executablePO, project, action);
+        }
+    }
+
+    @VisibleForTesting
+    public void updateJobStatus(String jobId, ExecutablePO executablePO, String project, String action) throws IOException {
+        val executableManager = getManager(ExecutableManager.class, project);
+        AbstractExecutable executable =  executableManager.fromPO(executablePO);
+        UnitOfWorkContext.UnitTask afterUnitTask = () -> EventBusFactory.getInstance()
+                .postWithLimit(new JobReadyNotifier(project));
+        JobActionEnum.validateValue(action.toUpperCase(Locale.ROOT));
+        switch (JobActionEnum.valueOf(action.toUpperCase(Locale.ROOT))) {
+            case RESUME:
+                SecondStorageUtil.checkJobResume(project, jobId, executable, executablePO);
+                executableManager.updateJobError(jobId, null, null, null, null);
+                executableManager.resumeJob(jobId, executable);
+                UnitOfWork.get().doAfterUnit(afterUnitTask);
+                MetricsGroup.hostTagCounterInc(MetricsName.JOB_RESUMED, MetricsCategory.PROJECT, project);
+                break;
+            case RESTART:
+                SecondStorageUtil.checkJobRestart(project, jobId, executable);
+                killExistApplication(executable);
+                executableManager.updateJobError(jobId, null, null, null, null);
+                executableManager.restartJob(jobId, executable);
+                UnitOfWork.get().doAfterUnit(afterUnitTask);
+                break;
+            case DISCARD:
+                discardJob(project, jobId, executable);
+                JobTypeEnum jobTypeEnum = executable.getJobType();
+                String jobType = jobTypeEnum == null ? "" : jobTypeEnum.name();
+                UnitOfWork.get().doAfterUnit(
+                        () -> EventBusFactory.getInstance().postAsync(new JobDiscardNotifier(project, jobType)));
+                break;
+            case PAUSE:
+                killExistApplication(executable);
+                executableManager.pauseJob(jobId, executablePO, executable);
+                break;
+            default:
+                throw new IllegalStateException("This job can not do this action: " + action);
+        }
+
+    }
+
+    public void killExistApplication(AbstractExecutable job) {
+        if (job instanceof ChainedExecutable) {
+            // if job's task is running spark job, will kill this application
+            ((ChainedExecutable) job).getTasks().stream() //
+                    .filter(task -> task.getStatus() == ExecutableState.RUNNING) //
+                    .filter(task -> task instanceof NSparkExecutable) //
+                    .forEach(task -> ((NSparkExecutable) task).killOrphanApplicationIfExists(task.getId()));
+        }
+    }
+
+    private void discardJob(String project, String jobId, AbstractExecutable job) {
+        if (ExecutableState.SUCCEED == job.getStatus()) {
+            throw new KylinException(JOB_UPDATE_STATUS_FAILED, "DISCARD", jobId, job.getStatus());
+        }
+        if (ExecutableState.DISCARDED == job.getStatus()) {
+            return;
+        }
+        killExistApplication(job);
+        getManager(ExecutableManager.class, project).discardJob(job.getId(), job);
+    }
+
+    private List<AbstractExecutable> getJobsByStatus(String project, List<String> jobIds, List<String> filterStatuses) {
+        return getExecutablePoByStatus(project, jobIds, filterStatuses).stream()
+                .map(executablePO -> getManager(ExecutableManager.class, executablePO.getProject()).fromPO(executablePO))
+                .collect(Collectors.toList());
+    }
+
+    private List<ExecutablePO> getExecutablePoByStatus(String project, List<String> jobIds, List<String> filterStatuses) {
+        JobMapperFilter jobMapperFilter = new JobMapperFilter();
+        jobMapperFilter.setProject(project);
+        jobMapperFilter.setStatuses(filterStatuses);
+        jobMapperFilter.setJobIds(jobIds);
+        List<JobInfo> jobInfoList = jobInfoMapper.selectByJobFilter(jobMapperFilter);
+        if (CollectionUtils.isEmpty(jobInfoList)) {
+            return new ArrayList<>();
+        }
+        return jobInfoList.stream().map(jobInfo -> deserializeExecutablePO(jobInfo)).collect(Collectors.toList());
     }
 
     public byte[] serializeExecutablePO(ExecutablePO executablePO) {
@@ -284,11 +497,12 @@ public class JobInfoService extends BasicService {
         return executableResponse;
     }
 
-    private JobInfo constructNewJobInfo(ExecutablePO executablePO) {
+    private JobInfo constructJobInfo(ExecutablePO executablePO) {
         JobInfo jobInfo = new JobInfo();
         jobInfo.setJobId(executablePO.getId());
         jobInfo.setJobType(executablePO.getJobType().name());
-        jobInfo.setJobStatus(JobStatusEnum.NEW.name());
+        ExecutableState oldStatus = ExecutableState.valueOf(executablePO.getOutput().getStatus());
+        jobInfo.setJobStatus(oldStatus.toJobStatus().name());
         jobInfo.setProject(executablePO.getProject());
         String modelName = modelMetadataInvoker.getModelNameById(executablePO.getTargetModel(),
                 executablePO.getProject());
@@ -306,6 +520,14 @@ public class JobInfoService extends BasicService {
             return deserializeExecutablePO(jobInfo);
         }
         return null;
+    }
+
+    public AbstractExecutable getExecutableByUuid(String uuid, String project) {
+        ExecutablePO executablePO = getExecutablePOByUuid(uuid);
+        if (null == executablePO) {
+            return null;
+        }
+        return getManager(ExecutableManager.class, project).fromPO(executablePO);
     }
 
     @VisibleForTesting
