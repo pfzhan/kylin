@@ -134,6 +134,39 @@ public class NQueryControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testQueryForceToTieredStorage() throws Exception {
+        final PrepareSqlRequest sql = new PrepareSqlRequest();
+        sql.setSql("SELECT * FROM empty_table");
+        sql.setProject(PROJECT);
+        sql.setForcedToTieredStorage(1);
+        sql.setForcedToIndex(true);
+        sql.setForcedToPushDown(false);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/query").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(sql))
+                .header("User-Agent", "Chrome/89.0.4389.82 Safari/537.36")
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().is5xxServerError());
+
+        Mockito.verify(nQueryController).query((PrepareSqlRequest) Mockito.any(), Mockito.anyString());
+    }
+
+    @Test
+    public void testQueryForceToTieredStorageInvalidParamter() throws Exception {
+        final PrepareSqlRequest sql = new PrepareSqlRequest();
+        sql.setSql("SELECT * FROM empty_table");
+        sql.setProject(PROJECT);
+        sql.setForcedToTieredStorage(-1);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/query").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(sql))
+                .header("User-Agent", "Chrome/89.0.4389.82 Safari/537.36")
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().is5xxServerError());
+
+        Mockito.verify(nQueryController).query((PrepareSqlRequest) Mockito.any(), Mockito.anyString());
+    }
+
+
+    @Test
     public void testStopQuery() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/query/1").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(mockPrepareSqlRequest()))

@@ -24,15 +24,20 @@
 
 package io.kyligence.kap.query.engine.exec.sparder;
 
+import java.sql.SQLException;
 import java.util.List;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.rel.RelNode;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.kylin.common.ForceToTieredStorage;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.QueryTrace;
 import org.apache.kylin.common.debug.BackdoorToggles;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.QueryErrorCode;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPRel;
 import org.apache.spark.SparkException;
@@ -134,7 +139,9 @@ public class SparderQueryPlanExec implements QueryPlanExec {
                 }
                 QueryContext.current().setForceTableIndex(true);
                 QueryContext.current().getSecondStorageUsageMap().clear();
-            } else {
+            } else if (e instanceof SQLException) {
+                handleForceToTieredStorage(e);
+            }else {
                 return ExceptionUtils.rethrow(e);
             }
         }
@@ -185,4 +192,25 @@ public class SparderQueryPlanExec implements QueryPlanExec {
                 || IndexEntity.isTableIndex(layoutId) && ctx.isHasAgg();
     }
 
+    private void handleForceToTieredStorage(final Exception e) {
+        if (e.getMessage().equals(QueryContext.ROUTE_USE_FORCEDTOTIEREDSTORAGE)){
+            ForceToTieredStorage forcedToTieredStorage = QueryContext.current().getForcedToTieredStorage();
+            boolean forceTableIndex = QueryContext.current().isForceTableIndex();
+            if (forcedToTieredStorage == ForceToTieredStorage.CH_FAIL_TO_PUSH_DOWN && !forceTableIndex) {
+                /** pushDown */
+                ExceptionUtils.rethrow(e);
+            } else if (forcedToTieredStorage == ForceToTieredStorage.CH_FAIL_TO_RETURN) {
+                /** return error */
+                QueryContext.current().setLastFailed(true);
+                QueryContext.current().setRetrySecondStorage(false);
+                throw new KylinException(QueryErrorCode.FORCED_TO_TIEREDSTORAGE_RETURN_ERROR,
+                        MsgPicker.getMsg().getFORCED_TO_TIEREDSTORAGE_RETURN_ERROR());
+            } else {
+                QueryContext.current().setLastFailed(true);
+                QueryContext.current().setRetrySecondStorage(false);
+                throw new KylinException(QueryErrorCode.FORCED_TO_TIEREDSTORAGE_INVALID_PARAMETER,
+                        MsgPicker.getMsg().getFORCED_TO_TIEREDSTORAGE_INVALID_PARAMETER());
+            }
+        }
+    }
 }

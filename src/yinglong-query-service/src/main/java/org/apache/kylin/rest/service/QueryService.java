@@ -81,12 +81,14 @@ import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.kylin.common.ForceToTieredStorage;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.QueryTrace;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.KylinTimeoutException;
+import org.apache.kylin.common.exception.QueryErrorCode;
 import org.apache.kylin.common.exception.NewQueryRefuseException;
 import org.apache.kylin.common.exception.ResourceLimitExceededException;
 import org.apache.kylin.common.msg.Message;
@@ -238,6 +240,49 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
         return "/" + project + QUERY_STORE_PATH_PREFIX + creator + MetadataConstants.FILE_SURFIX;
     }
 
+    public ForceToTieredStorage getForcedToTieredStorage(ForceToTieredStorage api) {
+        switch (api){
+            case CH_FAIL_TO_DFS:
+            case CH_FAIL_TO_PUSH_DOWN:
+            case CH_FAIL_TO_RETURN:
+                return api;
+            case CH_FAIL_TAIL:
+                break;
+            default:
+                // Do nothing
+        }
+
+        try{
+            //project
+            api = KylinConfig.getInstanceFromEnv().getProjectForcedToTieredStorage();
+            switch (api){
+                case CH_FAIL_TO_DFS:
+                case CH_FAIL_TO_PUSH_DOWN:
+                case CH_FAIL_TO_RETURN:
+                    return api;
+                default:
+                    // Do nothing
+            }
+        } catch (Exception e) {
+            // no define or invalid do nothing
+        }
+
+        try{
+            //system
+            api = KylinConfig.getInstanceFromEnv().getSystemForcedToTieredStorage();
+            switch (api){
+                case CH_FAIL_TO_DFS:
+                case CH_FAIL_TO_PUSH_DOWN:
+                case CH_FAIL_TO_RETURN:
+                    return api;
+                default:
+                    return ForceToTieredStorage.CH_FAIL_TO_DFS;
+            }
+        } catch (Exception e) {
+            return ForceToTieredStorage.CH_FAIL_TO_DFS;
+        }
+    }
+
     public SQLResponse query(SQLRequest sqlRequest) throws Exception {
         try {
             slowQueryDetector.queryStart(sqlRequest.getStopId());
@@ -245,9 +290,14 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
 
             QueryParams queryParams = new QueryParams(KapQueryUtil.getKylinConfig(sqlRequest.getProject()),
                     sqlRequest.getSql(), sqlRequest.getProject(), sqlRequest.getLimit(), sqlRequest.getOffset(), true,
-                    sqlRequest.getExecuteAs(), sqlRequest.isForcedToPushDown(), sqlRequest.isForcedToIndex(),
-                    QueryUtils.isPrepareStatementWithParams(sqlRequest), sqlRequest.isPartialMatchIndex(),
-                    sqlRequest.isAcceptPartial(), true);
+                    sqlRequest.getExecuteAs());
+            queryParams.setForcedToPushDown(sqlRequest.isForcedToPushDown());
+            queryParams.setForcedToIndex(sqlRequest.isForcedToIndex());
+            queryParams.setPrepareStatementWithParams(QueryUtils.isPrepareStatementWithParams(sqlRequest));
+            queryParams.setPartialMatchIndex(sqlRequest.isPartialMatchIndex());
+            queryParams.setAcceptPartial(sqlRequest.isAcceptPartial());
+            queryParams.setSelect(true);
+
             if (queryParams.isPrepareStatementWithParams()) {
                 queryParams.setPrepareSql(PrepareSQLUtils.fillInParams(queryParams.getSql(),
                         ((PrepareSqlRequest) sqlRequest).getParams()));
@@ -255,6 +305,22 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
             }
             queryParams.setAclInfo(getExecuteAclInfo(queryParams.getProject(), queryParams.getExecuteAs()));
             queryParams.setACLDisabledOrAdmin(isACLDisabledOrAdmin(queryParams.getProject(), queryParams.getAclInfo()));
+            int forcedToTieredStorage;
+            ForceToTieredStorage e_forcedToTieredStorage;
+            try{
+                forcedToTieredStorage = sqlRequest.getForcedToTieredStorage();
+                e_forcedToTieredStorage = getForcedToTieredStorage(ForceToTieredStorage.values()[forcedToTieredStorage]);
+            } catch (NullPointerException e) {
+                e_forcedToTieredStorage = getForcedToTieredStorage(ForceToTieredStorage.CH_FAIL_TAIL);
+            }
+            logger.trace("forcedToTieredStorage={}", e_forcedToTieredStorage);
+            if (e_forcedToTieredStorage == ForceToTieredStorage.CH_FAIL_TO_PUSH_DOWN
+                    && sqlRequest.isForcedToIndex() && !sqlRequest.isForcedToPushDown()) {
+                throw new KylinException(
+                        QueryErrorCode.FORCED_TO_TIEREDSTORAGE_AND_FORCE_TO_INDEX, MsgPicker.getMsg().getFORCED_TO_TIEREDSTORAGE_AND_FORCE_TO_INDEX());
+            }
+            queryParams.setForcedToTieredStorage(e_forcedToTieredStorage);
+            QueryContext.current().setForcedToTieredStorage(e_forcedToTieredStorage);
 
             KylinConfig projectConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                     .getProject(queryParams.getProject()).getConfig();

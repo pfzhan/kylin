@@ -1703,6 +1703,18 @@ public class Message {
         return "Cannot force the query to pushdown and index at the same time. Only one of the parameter “forcedToPushDown“ and “forced_to_index” could be used. Please check and try again.";
     }
 
+    public String getFORCED_TO_TIEREDSTORAGE_AND_FORCE_TO_INDEX() {
+        return "When force_to_index=ture, the query cannot pushdown when using tiered storage fails, forcedToTieredStorage=1 or conf=1 is invalid, please modify and try again";
+    }
+
+    public String getFORCED_TO_TIEREDSTORAGE_RETURN_ERROR() {
+        return "Query failed. Tiered storage is unavailable, please fix and try again.";
+    }
+
+    public String getFORCED_TO_TIEREDSTORAGE_INVALID_PARAMETER() {
+        return "invalid parameters, please fix and try again.";
+    }
+
     public String getSECOND_STORAGE_NODE_NOT_AVAILABLE() {
         return "Can't add node. The node does not exist or has been used by other project, please modify and try again.";
     }

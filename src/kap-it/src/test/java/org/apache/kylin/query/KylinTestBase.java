@@ -161,7 +161,10 @@ public class KylinTestBase extends NLocalFileMetadataTestCase {
             String defaultSchema, SQLException sqlException, boolean isPrepare, boolean isForced) throws Exception {
         String massagedSql = KapQueryUtil.normalMassageSql(KylinConfig.getInstanceFromEnv(), sql, 0, 0);
         QueryParams queryParams = new QueryParams(project, massagedSql, defaultSchema, isPrepare, sqlException,
-                isForced, true, 0, 0);
+                isForced);
+        queryParams.setSelect(true);
+        queryParams.setLimit(0);
+        queryParams.setOffset(0);
         return PushDownUtil.tryPushDownQuery(queryParams);
     }
 

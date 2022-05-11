@@ -3247,6 +3247,16 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.model.check-model-dependency-health", "false"));
     }
 
+    public ForceToTieredStorage getSystemForcedToTieredStorage() {
+        int i = Integer.parseInt(getOptional("kylin.system.forced-to-tiered-storage", "0"));
+        return ForceToTieredStorage.values()[i];
+    }
+
+    public ForceToTieredStorage getProjectForcedToTieredStorage() {
+        int i = Integer.parseInt(getOptional("kylin.project.forced-to-tiered-storage"));
+        return ForceToTieredStorage.values()[i];
+    }
+  
     public long getClusterManagerHealthCheckMaxTimes() {
         return Long.parseLong(getOptional("kylin.engine.cluster-manager-health-check-max-times", "10"));
     }

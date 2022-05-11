@@ -1924,6 +1924,21 @@ public class CnMessage extends Message {
     }
 
     @Override
+    public String getFORCED_TO_TIEREDSTORAGE_AND_FORCE_TO_INDEX() {
+        return "“force_to_index=ture“ 时，查询使用分层存储失败时不能下压，“forcedToTieredStorage“=1 或者 conf=1 无效，请修改后重试";
+    }
+
+    @Override
+    public String getFORCED_TO_TIEREDSTORAGE_RETURN_ERROR() {
+        return "查询失败。分层存储不可用，请修复后重试查询";
+    }
+
+    @Override
+    public String getFORCED_TO_TIEREDSTORAGE_INVALID_PARAMETER() {
+        return "无效的参数值，请修改后重试";
+    }
+
+    @Override
     public String getCANNOT_FORCE_TO_BOTH_PUSHDODWN_AND_INDEX() {
         return "不能同时强制下推和击中模型，参数 “forcedToPushDown” 和 “forced_to_index” 不能同时使用。请检查后重试。";
     }

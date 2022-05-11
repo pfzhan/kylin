@@ -54,6 +54,7 @@ import io.kyligence.kap.query.asyncprofiler.AsyncProfiling;
 import io.kyligence.kap.rest.service.QueryCacheManager;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.ForceToTieredStorage;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.debug.BackdoorToggles;
@@ -184,6 +185,21 @@ public class NQueryController extends NBasicController {
             throw new KylinException(
                     QueryErrorCode.INVALID_QUERY_PARAMS, MsgPicker.getMsg().getCANNOT_FORCE_TO_BOTH_PUSHDODWN_AND_INDEX());
         }
+        try{
+            int forcedToTieredStorage = sqlRequest.getForcedToTieredStorage();
+            if (forcedToTieredStorage == ForceToTieredStorage.CH_FAIL_TO_PUSH_DOWN.ordinal()
+                    && sqlRequest.isForcedToIndex() && !sqlRequest.isForcedToPushDown()) {
+                throw new KylinException(
+                        QueryErrorCode.FORCED_TO_TIEREDSTORAGE_AND_FORCE_TO_INDEX, MsgPicker.getMsg().getFORCED_TO_TIEREDSTORAGE_AND_FORCE_TO_INDEX());
+            } else if (forcedToTieredStorage > ForceToTieredStorage.CH_FAIL_TO_RETURN.ordinal()
+                    || forcedToTieredStorage < ForceToTieredStorage.CH_FAIL_TO_DFS.ordinal()) {
+                throw new KylinException(
+                        QueryErrorCode.FORCED_TO_TIEREDSTORAGE_INVALID_PARAMETER, MsgPicker.getMsg().getFORCED_TO_TIEREDSTORAGE_INVALID_PARAMETER());
+            }
+        } catch (NullPointerException e) {
+            //do nothing
+        }
+
         checkProjectName(sqlRequest.getProject());
         sqlRequest.setUserAgent(userAgent != null ? userAgent : "");
         QueryContext.current().record("end_http_proc");
