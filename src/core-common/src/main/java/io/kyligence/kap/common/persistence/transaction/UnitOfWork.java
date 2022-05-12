@@ -52,6 +52,8 @@ import io.kyligence.kap.common.persistence.event.ResourceCreateOrUpdateEvent;
 import io.kyligence.kap.common.persistence.event.ResourceDeleteEvent;
 import io.kyligence.kap.common.persistence.event.ResourceRelatedEvent;
 import io.kyligence.kap.common.persistence.event.StartUnit;
+import io.kyligence.kap.common.persistence.metadata.JdbcMetadataStore;
+import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.util.Unsafe;
 import lombok.AccessLevel;
@@ -88,6 +90,16 @@ public class UnitOfWork {
     public static <T> T doInTransactionWithRetry(UnitOfWorkParams<T> params) {
         val maxRetry = params.getMaxRetry();
         val f = params.getProcessor();
+        //disable transaction for data-loading node
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        MetadataStore metadataStore = ResourceStore.getKylinMetaStore(config).getMetadataStore();
+        if (config.isDataLoadingNode() && !config.isUTEnv() && metadataStore instanceof JdbcMetadataStore) {
+            try {
+                return f.process();
+            } catch (Throwable throwable) {
+                throw new IllegalStateException("Unexpected doInTransactionWithRetry end");
+            }
+        }
         // reused transaction, won't retry
         if (isAlreadyInTransaction()) {
             val unitOfWork = UnitOfWork.get();

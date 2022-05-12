@@ -53,6 +53,7 @@ import static java.lang.Math.toIntExact;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
@@ -86,6 +87,7 @@ import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.common.util.TimeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.yaml.snakeyaml.Yaml;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -96,6 +98,7 @@ import io.kyligence.kap.common.annotation.ThirdPartyDependencies;
 import io.kyligence.kap.common.constant.NonCustomProjectLevelConfig;
 import io.kyligence.kap.common.persistence.metadata.HDFSMetadataStore;
 import io.kyligence.kap.common.util.AddressUtil;
+import io.kyligence.kap.common.util.ClassLoaderUtils;
 import io.kyligence.kap.common.util.ClusterConstant;
 import io.kyligence.kap.common.util.EncryptUtil;
 import io.kyligence.kap.common.util.FileUtils;
@@ -130,6 +133,8 @@ public abstract class KylinConfigBase implements Serializable {
     public static final String DIAG_ID_PREFIX = "front_";
 
     private static final String LOOPBACK = "127.0.0.1";
+
+    private static final String SERVER_NAME_STRING = "spring.application.name";
 
     protected static final Map<String, String> STATIC_SYSTEM_ENV = new ConcurrentHashMap<>(System.getenv());
 
@@ -2060,6 +2065,56 @@ public abstract class KylinConfigBase implements Serializable {
         return this.getOptional("kylin.server.mode", "all");
     }
 
+    public String getMicroServerMode() {
+        String serverName = getApplicationConfig(SERVER_NAME_STRING);
+        if ("yinglong-common-booter".equals(serverName)) {
+            return ClusterConstant.METADATA;
+        } else if ("yinglong-query-booter".equals(serverName)) {
+            return ClusterConstant.QUERY;
+        } else if ("yinglong-smart-booter".equals(serverName)) {
+            return ClusterConstant.SMART;
+        } else if ("yinglong-data-loading-booter".equals(serverName)) {
+            return ClusterConstant.DATA_LOADING;
+        } else {
+            return null;
+        }
+    }
+
+    public String getApplicationConfig(String key) {
+        String value = properties.getProperty(key);
+        if (value != null) {
+            return value;
+        }
+        // try to parse the application.yaml
+        try {
+            String[] keys = key.split("\\.");
+            URL ymlFile = ClassLoaderUtils.getOriginClassLoader().getResource("application.yaml");
+            if (ymlFile == null) {
+                return null;
+            }
+            Iterable<Object> applicationConfigs = new Yaml().loadAll(ymlFile.openStream());
+            for (Object config : applicationConfigs) {
+                Map<String, Object> tmpConf = (Map<String, Object>) config;
+                for (int index = 0; index < keys.length - 1; index++) {
+                    tmpConf = (Map<String, Object>) tmpConf.get(keys[index]);
+                    if (tmpConf == null) {
+                        break;
+                    }
+                }
+                if (tmpConf != null) {
+                    value = (String) tmpConf.get(keys[keys.length - 1]);
+                    if (value != null) {
+                        properties.setProperty(key, value);
+                        break;
+                    }
+                }
+            }
+        } catch (IOException e) {
+            logger.error("Parse application.yaml failed.", e);
+        }
+        return value;
+    }
+
     public String getMetadataStoreType() {
         if (!isJobNode()) {
             return this.getOptional("kylin.server.store-type", "hdfs");
@@ -2069,23 +2124,39 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public boolean isJobNode() {
-        return !StringUtils.equals(ClusterConstant.ServerModeEnum.QUERY.getName(), getServerMode());
+        return !StringUtils.equals(ClusterConstant.ServerModeEnum.QUERY.getName(), getServerMode())
+                && getMicroServerMode() == null;
     }
 
     public boolean isQueryNode() {
-        return !StringUtils.equals(ClusterConstant.ServerModeEnum.JOB.getName(), getServerMode());
+        return !StringUtils.equals(ClusterConstant.ServerModeEnum.JOB.getName(), getServerMode())
+                && getMicroServerMode() == null || ClusterConstant.QUERY.equals(getMicroServerMode());
     }
 
     public boolean isJobNodeOnly() {
-        return StringUtils.equals(ClusterConstant.ServerModeEnum.JOB.getName(), getServerMode());
+        return StringUtils.equals(ClusterConstant.ServerModeEnum.JOB.getName(), getServerMode())
+                && getMicroServerMode() == null;
     }
 
     public boolean isQueryNodeOnly() {
-        return StringUtils.equals(ClusterConstant.ServerModeEnum.QUERY.getName(), getServerMode());
+        return StringUtils.equals(ClusterConstant.ServerModeEnum.QUERY.getName(), getServerMode())
+                && getMicroServerMode() == null || ClusterConstant.QUERY.equals(getMicroServerMode());
+    }
+
+    public boolean isSmartNode() {
+        return ClusterConstant.SMART.equals(getMicroServerMode());
+    }
+
+    public boolean isDataLoadingNode() {
+        return ClusterConstant.DATA_LOADING.equals(getMicroServerMode());
+    }
+
+    public boolean isMetadataNode() {
+        return ClusterConstant.METADATA.equals(getMicroServerMode());
     }
 
     public boolean isAllNode() {
-        return ClusterConstant.ALL.equals(getServerMode());
+        return ClusterConstant.ALL.equals(getServerMode()) && getMicroServerMode() == null;
     }
 
     public String[] getAllModeServers() {
