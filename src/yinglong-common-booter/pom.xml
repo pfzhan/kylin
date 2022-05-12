@@ -30,6 +30,11 @@
         </dependency>
 
         <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-loadbalancer</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-license-service</artifactId>
             <version>${project.version}</version>

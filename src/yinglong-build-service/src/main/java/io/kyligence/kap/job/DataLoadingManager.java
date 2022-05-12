@@ -29,6 +29,7 @@ import javax.sql.DataSource;
 
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -49,16 +50,16 @@ public class DataLoadingManager implements InitializingBean, DisposableBean {
     // TODO Share component instance: DataLoadingManager.
     private static DataLoadingManager dataLoadingManager = null;
 
-    @Value("${kylin.config-source}")
+    @Value("${kylin.config-source:NA}")
     private String configSource;
 
     @Resource
     private DataSource dataSource;
 
-    @Resource
+    @Autowired(required = false)
     private JobInfoMapper jobInfoMapper;
 
-    @Resource
+    @Autowired(required = false)
     private JobScheduleLockMapper scheduleLockMapper;
 
     public static DataLoadingManager getInstance() {
@@ -81,7 +82,8 @@ public class DataLoadingManager implements InitializingBean, DisposableBean {
             break;
         }
 
-        jobScheduler = jobConfig.getJobScheduler();
+//        jobScheduler = jobConfig.getJobScheduler();
+        jobScheduler = null;
     }
 
     @Override

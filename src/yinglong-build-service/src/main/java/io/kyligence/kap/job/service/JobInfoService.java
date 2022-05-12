@@ -24,78 +24,10 @@
 
 package io.kyligence.kap.job.service;
 
-import javax.annotation.Resource;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import io.kyligence.kap.common.metrics.MetricsCategory;
-import io.kyligence.kap.common.metrics.MetricsGroup;
-import io.kyligence.kap.common.metrics.MetricsName;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWorkContext;
-import io.kyligence.kap.common.scheduler.EventBusFactory;
-import io.kyligence.kap.common.scheduler.JobDiscardNotifier;
-import io.kyligence.kap.common.scheduler.JobReadyNotifier;
-import io.kyligence.kap.engine.spark.job.NSparkExecutable;
-import io.kyligence.kap.job.manager.ExecutableManager;
-import io.kyligence.kap.job.rest.ExecutableStepResponse;
-import io.kyligence.kap.job.rest.JobMapperFilter;
-import io.kyligence.kap.metadata.cube.model.NBatchConstants;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
-import io.kyligence.kap.rest.request.JobUpdateRequest;
-import io.kyligence.kap.rest.service.ProjectService;
-import io.kyligence.kap.rest.util.SparkHistoryUIUtil;
-import io.kyligence.kap.secondstorage.SecondStorageUtil;
-import lombok.val;
-import lombok.var;
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.collections.MapUtils;
-import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exception.ErrorCode;
-import org.apache.kylin.common.exception.ExceptionReason;
-import org.apache.kylin.common.exception.ExceptionResolve;
-import org.apache.kylin.common.exception.JobErrorCode;
-import org.apache.kylin.common.exception.JobExceptionReason;
-import org.apache.kylin.common.exception.JobExceptionResolve;
-import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.persistence.Serializer;
-import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.job.common.ShellExecutable;
-import org.apache.kylin.job.constant.ExecutableConstants;
-import org.apache.kylin.job.constant.JobActionEnum;
-import org.apache.kylin.job.constant.JobStatusEnum;
-import org.apache.kylin.job.execution.ChainedExecutable;
-import org.apache.kylin.job.execution.ChainedStageExecutable;
-import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.JobTypeEnum;
-//import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.execution.Output;
-import org.apache.kylin.job.execution.StageBase;
-import org.apache.kylin.metadata.model.Segments;
-import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.rest.constant.Constant;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.stereotype.Service;
-
-import io.kyligence.kap.job.mapper.JobInfoMapper;
-import io.kyligence.kap.job.domain.JobInfo;
-import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
-import io.kyligence.kap.job.rest.ExecutableResponse;
-import io.kyligence.kap.job.rest.JobFilter;
-import org.apache.kylin.common.persistence.JsonSerializer;
-import org.apache.kylin.job.dao.ExecutablePO;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.rest.response.DataResult;
-import org.apache.kylin.rest.service.BasicService;
-import org.apache.kylin.rest.util.AclEvaluate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_ACTION_ILLEGAL;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_STATUS_ILLEGAL;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_UPDATE_STATUS_FAILED;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -113,10 +45,78 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_ACTION_ILLEGAL;
-import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_NOT_EXIST;
-import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_STATUS_ILLEGAL;
-import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_UPDATE_STATUS_FAILED;
+import javax.annotation.Resource;
+
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.MapUtils;
+import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.ErrorCode;
+import org.apache.kylin.common.exception.ExceptionReason;
+import org.apache.kylin.common.exception.ExceptionResolve;
+import org.apache.kylin.common.exception.JobErrorCode;
+import org.apache.kylin.common.exception.JobExceptionReason;
+import org.apache.kylin.common.exception.JobExceptionResolve;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.persistence.JsonSerializer;
+import org.apache.kylin.common.persistence.Serializer;
+import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.job.common.ShellExecutable;
+import org.apache.kylin.job.constant.ExecutableConstants;
+import org.apache.kylin.job.constant.JobActionEnum;
+import org.apache.kylin.job.constant.JobStatusEnum;
+import org.apache.kylin.job.dao.ExecutablePO;
+import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ChainedExecutable;
+import org.apache.kylin.job.execution.ChainedStageExecutable;
+import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.execution.Output;
+import org.apache.kylin.job.execution.StageBase;
+import org.apache.kylin.metadata.model.Segments;
+import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.response.DataResult;
+import org.apache.kylin.rest.service.BasicService;
+import org.apache.kylin.rest.util.AclEvaluate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.stereotype.Service;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.common.metrics.MetricsCategory;
+import io.kyligence.kap.common.metrics.MetricsGroup;
+import io.kyligence.kap.common.metrics.MetricsName;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWorkContext;
+import io.kyligence.kap.common.scheduler.EventBusFactory;
+import io.kyligence.kap.common.scheduler.JobDiscardNotifier;
+import io.kyligence.kap.common.scheduler.JobReadyNotifier;
+import io.kyligence.kap.engine.spark.job.NSparkExecutable;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
+import io.kyligence.kap.job.domain.JobInfo;
+import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.job.mapper.JobInfoMapper;
+import io.kyligence.kap.job.rest.ExecutableResponse;
+import io.kyligence.kap.job.rest.ExecutableStepResponse;
+import io.kyligence.kap.job.rest.JobFilter;
+import io.kyligence.kap.job.rest.JobMapperFilter;
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
+import io.kyligence.kap.rest.request.JobUpdateRequest;
+import io.kyligence.kap.rest.service.ProjectService;
+import io.kyligence.kap.rest.util.SparkHistoryUIUtil;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
+import lombok.val;
+import lombok.var;
 
 @Service
 public class JobInfoService extends BasicService {
@@ -132,7 +132,7 @@ public class JobInfoService extends BasicService {
     @Autowired
     private ProjectService projectService;
 
-    @Resource
+    @Autowired(required = false)
     private JobInfoMapper jobInfoMapper;
 
     private AclEvaluate aclEvaluate;
@@ -504,9 +504,15 @@ public class JobInfoService extends BasicService {
         ExecutableState oldStatus = ExecutableState.valueOf(executablePO.getOutput().getStatus());
         jobInfo.setJobStatus(oldStatus.toJobStatus().name());
         jobInfo.setProject(executablePO.getProject());
-        String modelName = modelMetadataInvoker.getModelNameById(executablePO.getTargetModel(),
-                executablePO.getProject());
-        jobInfo.setModelName(modelName);
+
+        String subject = null;
+        if(JobTypeEnum.TABLE_SAMPLING == executablePO.getJobType()){
+            subject = executablePO.getTargetModel();
+        }else{
+            subject = modelMetadataInvoker.getModelNameById(executablePO.getTargetModel(), executablePO.getProject());
+        }
+
+        jobInfo.setSubject(subject);
         jobInfo.setModelId(executablePO.getTargetModel());
         jobInfo.setCreateTime(new Date(executablePO.getCreateTime()));
         jobInfo.setUpdateTime(new Date(executablePO.getLastModified()));

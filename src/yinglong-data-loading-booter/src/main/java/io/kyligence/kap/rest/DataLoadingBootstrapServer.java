@@ -36,7 +36,7 @@ import org.springframework.context.annotation.ImportResource;
 @SpringBootApplication
 @EnableDiscoveryClient
 @EnableCaching
-@EnableFeignClients
+@EnableFeignClients(basePackages = "io.kyligence.kap")
 @MapperScan("io.kyligence.kap.job.mapper")
 public class DataLoadingBootstrapServer {
 

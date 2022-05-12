@@ -37,7 +37,6 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletResponse;
 
-import io.kyligence.kap.job.service.JobInfoService;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
@@ -60,15 +59,16 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import io.kyligence.kap.common.persistence.transaction.UpdateJobStatusEventNotifier;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
+import io.kyligence.kap.job.rest.ExecutableResponse;
+import io.kyligence.kap.job.rest.ExecutableStepResponse;
+import io.kyligence.kap.job.rest.JobFilter;
+import io.kyligence.kap.job.service.JobInfoService;
 import io.kyligence.kap.rest.request.JobErrorRequest;
-import  io.kyligence.kap.job.rest.JobFilter;
 import io.kyligence.kap.rest.request.JobUpdateRequest;
 import io.kyligence.kap.rest.request.SparkJobTimeRequest;
 import io.kyligence.kap.rest.request.SparkJobUpdateRequest;
 import io.kyligence.kap.rest.request.StageRequest;
 import io.kyligence.kap.rest.response.EventResponse;
-import io.kyligence.kap.job.rest.ExecutableResponse;
-import io.kyligence.kap.job.rest.ExecutableStepResponse;
 import io.kyligence.kap.rest.response.JobStatisticsResponse;
 import io.kyligence.kap.rest.service.JobService;
 import io.swagger.annotations.ApiOperation;

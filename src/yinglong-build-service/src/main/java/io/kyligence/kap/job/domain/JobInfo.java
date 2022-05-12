@@ -35,11 +35,11 @@ public class JobInfo {
 
     private String project;
 
-    private String modelName;
+    private String subject;
 
     private String modelId;
 
-    private Date createTime;
+    private Date createTime = new Date();
 
     private Date updateTime;
 
@@ -79,12 +79,12 @@ public class JobInfo {
         this.project = project;
     }
 
-    public String getModelName() {
-        return modelName;
+    public String getSubject() {
+        return subject;
     }
 
-    public void setModelName(String modelName) {
-        this.modelName = modelName;
+    public void setSubject(String subject) {
+        this.subject = subject;
     }
 
     public String getModelId() {

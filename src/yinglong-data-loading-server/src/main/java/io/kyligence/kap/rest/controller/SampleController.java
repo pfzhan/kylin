@@ -44,6 +44,8 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.job.service.DTableService;
+import io.kyligence.kap.job.service.TableSampleService;
 import io.kyligence.kap.rest.request.RefreshSegmentsRequest;
 import io.kyligence.kap.rest.service.ModelBuildSupporter;
 import io.kyligence.kap.rest.service.TableSamplingService;
@@ -56,17 +58,26 @@ public class SampleController extends BaseController {
 
     private static final String TABLE = "table";
 
+    @Deprecated
     @Autowired
     @Qualifier("tableService")
     private TableService tableService;
 
     @Autowired
+    private DTableService dTableService;
+
+    @Autowired
     @Qualifier("modelBuildService")
     private ModelBuildSupporter modelBuildService;
 
+    @Deprecated
     @Autowired
     @Qualifier("tableSamplingService")
     private TableSamplingService tableSamplingService;
+
+
+    @Autowired
+    private TableSampleService tableSampleService;
 
     @ApiOperation(value = "refreshSegments", tags = {
             "AI" }, notes = "Update Body: refresh_start, refresh_end, affected_start, affected_end")
@@ -108,7 +119,7 @@ public class SampleController extends BaseController {
         TableSamplingService.checkSamplingTable(request.getQualifiedTableName());
         validatePriority(request.getPriority());
 
-        tableSamplingService.sampling(Sets.newHashSet(request.getQualifiedTableName()), request.getProject(),
+        tableSampleService.applySample(Sets.newHashSet(request.getQualifiedTableName()), request.getProject(),
                 request.getRows(), request.getPriority(), request.getYarnQueue(), request.getTag());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
@@ -120,7 +131,7 @@ public class SampleController extends BaseController {
             @RequestParam(value = "qualified_table_name") String qualifiedTableName) {
         checkProjectName(project);
         TableSamplingService.checkSamplingTable(qualifiedTableName);
-        boolean hasSamplingJob = tableSamplingService.hasSamplingJob(project, qualifiedTableName);
+        boolean hasSamplingJob = tableSampleService.hasSamplingJob(project, qualifiedTableName);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, hasSamplingJob, "");
     }
 

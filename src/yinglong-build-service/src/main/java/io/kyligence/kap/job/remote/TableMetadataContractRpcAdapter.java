@@ -22,34 +22,24 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.job.mapper;
+package io.kyligence.kap.job.remote;
 
-import java.util.List;
+import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
-import org.apache.ibatis.annotations.Mapper;
+import io.kyligence.kap.metadata.invokecontract.TableMetadataContract;
 
-import io.kyligence.kap.job.domain.JobInfo;
-import io.kyligence.kap.job.rest.JobMapperFilter;
+@Service
+public class TableMetadataContractRpcAdapter implements TableMetadataContract {
 
-@Mapper
-public interface JobInfoMapper {
-    int deleteByPrimaryKey(String jobId);
+    @Autowired(required = false)
+    private TableMetadataContractRpc tableMetadataContractRpc;
 
-    int insert(JobInfo row);
-
-    int insertSelective(JobInfo row);
-
-    JobInfo selectByPrimaryKey(String jobId);
-
-    int updateByPrimaryKeySelective(JobInfo row);
-
-    int updateByPrimaryKeyWithBLOBs(JobInfo row);
-
-    int updateByPrimaryKey(JobInfo row);
-
-    List<String> selectJobIdListByStatusBatch(String status, int batchSize);
-
-    int updateJobStatus(String jobId, String status);
-
-    List<JobInfo> selectByJobFilter(JobMapperFilter jobMapperFilter);
+    @Override
+    public TableDesc getTableDesc(String project, String tableName) {
+        EnvelopeResponse<TableDesc> tableDesc = tableMetadataContractRpc.getTableDesc(project, tableName);
+        return tableDesc.getData();
+    }
 }

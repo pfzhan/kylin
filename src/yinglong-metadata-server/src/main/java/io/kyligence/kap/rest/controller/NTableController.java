@@ -40,9 +40,6 @@ import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 
-import io.kyligence.kap.rest.request.AWSTableLoadRequest;
-import io.kyligence.kap.rest.request.UpdateAWSTableExtDescRequest;
-import io.kyligence.kap.rest.response.UpdateAWSTableExtDescResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
@@ -68,12 +65,15 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.service.NTableMetadataService;
+import io.kyligence.kap.rest.request.AWSTableLoadRequest;
 import io.kyligence.kap.rest.request.AutoMergeRequest;
 import io.kyligence.kap.rest.request.PartitionKeyRequest;
 import io.kyligence.kap.rest.request.PushDownModeRequest;
 import io.kyligence.kap.rest.request.ReloadTableRequest;
 import io.kyligence.kap.rest.request.TableLoadRequest;
 import io.kyligence.kap.rest.request.TopTableRequest;
+import io.kyligence.kap.rest.request.UpdateAWSTableExtDescRequest;
 import io.kyligence.kap.rest.response.AutoMergeConfigResponse;
 import io.kyligence.kap.rest.response.LoadTableResponse;
 import io.kyligence.kap.rest.response.NHiveTableNameResponse;
@@ -83,6 +83,7 @@ import io.kyligence.kap.rest.response.PreUnloadTableResponse;
 import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
+import io.kyligence.kap.rest.response.UpdateAWSTableExtDescResponse;
 import io.kyligence.kap.rest.service.ModelBuildSupporter;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.TableExtService;
@@ -116,6 +117,9 @@ public class NTableController extends NBasicController {
     @Autowired
     @Qualifier("tableSamplingService")
     private TableSamplingService tableSamplingService;
+
+    @Autowired
+    private NTableMetadataService tableMetadataService;
 
     @ApiOperation(value = "getTableDesc", tags = {
             "AI" }, notes = "Update Param: is_fuzzy, page_offset, page_size; Update Response: no format!")
@@ -542,5 +546,15 @@ public class NTableController extends NBasicController {
         } else if (!(tables instanceof List)) {
             throw new KylinException(INVALID_TABLE_REFRESH_PARAMETER, message.getTableRefreshParamInvalid(), false);
         }
+    }
+
+    @ApiOperation(value = "get tableDesc", tags = {
+            "AI" }, notes = "helper method for RPC-invoke get tableDesc")
+    @GetMapping(value = "/tableDesc")
+    @ResponseBody
+    public EnvelopeResponse<TableDesc> getTableDesc(@RequestParam(value = "project") String project,
+                                                    @RequestParam(value = "table") String table){
+        TableDesc tableDesc = tableMetadataService.getTableDesc(project, table);
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, tableDesc, "");
     }
 }

@@ -22,34 +22,18 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.job.mapper;
+package io.kyligence.kap.job.remote;
 
-import java.util.List;
+import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
-import org.apache.ibatis.annotations.Mapper;
+@FeignClient(name = "yinglong-common-booter", path = "/kylin")
+public interface TableMetadataContractRpc {
 
-import io.kyligence.kap.job.domain.JobInfo;
-import io.kyligence.kap.job.rest.JobMapperFilter;
-
-@Mapper
-public interface JobInfoMapper {
-    int deleteByPrimaryKey(String jobId);
-
-    int insert(JobInfo row);
-
-    int insertSelective(JobInfo row);
-
-    JobInfo selectByPrimaryKey(String jobId);
-
-    int updateByPrimaryKeySelective(JobInfo row);
-
-    int updateByPrimaryKeyWithBLOBs(JobInfo row);
-
-    int updateByPrimaryKey(JobInfo row);
-
-    List<String> selectJobIdListByStatusBatch(String status, int batchSize);
-
-    int updateJobStatus(String jobId, String status);
-
-    List<JobInfo> selectByJobFilter(JobMapperFilter jobMapperFilter);
+    @GetMapping("/api/tables/tableDesc")
+    public EnvelopeResponse<TableDesc> getTableDesc(@RequestParam(value = "project") String project,
+                                                    @RequestParam(value = "table") String table);
 }

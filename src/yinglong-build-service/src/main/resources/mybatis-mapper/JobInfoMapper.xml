@@ -6,7 +6,7 @@
     <result column="job_type" jdbcType="VARCHAR" property="jobType" />
     <result column="job_status" jdbcType="VARCHAR" property="jobStatus" />
     <result column="project" jdbcType="VARCHAR" property="project" />
-    <result column="model_name" jdbcType="VARCHAR" property="modelName" />
+    <result column="subject" jdbcType="VARCHAR" property="subject" />
     <result column="model_id" jdbcType="VARCHAR" property="modelId" />
     <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
     <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
@@ -16,7 +16,7 @@
     <result column="job_content" jdbcType="LONGVARBINARY" property="jobContent" />
   </resultMap>
   <sql id="Base_Column_List">
-    job_id, job_type, job_status, project, model_name, model_id, create_time, update_time, 
+    job_id, job_type, job_status, project, subject, model_id, create_time, update_time,
     job_duration_millis
   </sql>
   <sql id="Blob_Column_List">
@@ -36,11 +36,11 @@
   </delete>
   <insert id="insert" parameterType="io.kyligence.kap.job.domain.JobInfo">
     insert into job_info (job_id, job_type, job_status, 
-      project, model_name, model_id, 
+      project, subject, model_id,
       create_time, update_time, job_duration_millis, 
       job_content)
     values (#{jobId,jdbcType=VARCHAR}, #{jobType,jdbcType=VARCHAR}, #{jobStatus,jdbcType=VARCHAR}, 
-      #{project,jdbcType=VARCHAR}, #{modelName,jdbcType=VARCHAR}, #{modelId,jdbcType=VARCHAR}, 
+      #{project,jdbcType=VARCHAR}, #{subject,jdbcType=VARCHAR}, #{modelId,jdbcType=VARCHAR},
       #{createTime,jdbcType=TIMESTAMP}, #{updateTime,jdbcType=TIMESTAMP}, #{jobDurationMillis,jdbcType=BIGINT}, 
       #{jobContent,jdbcType=LONGVARBINARY})
   </insert>
@@ -59,8 +59,8 @@
       <if test="project != null">
         project,
       </if>
-      <if test="modelName != null">
-        model_name,
+      <if test="subject != null">
+        subject,
       </if>
       <if test="modelId != null">
         model_id,
@@ -91,8 +91,8 @@
       <if test="project != null">
         #{project,jdbcType=VARCHAR},
       </if>
-      <if test="modelName != null">
-        #{modelName,jdbcType=VARCHAR},
+      <if test="subject != null">
+        #{subject,jdbcType=VARCHAR},
       </if>
       <if test="modelId != null">
         #{modelId,jdbcType=VARCHAR},
@@ -123,8 +123,8 @@
       <if test="project != null">
         project = #{project,jdbcType=VARCHAR},
       </if>
-      <if test="modelName != null">
-        model_name = #{modelName,jdbcType=VARCHAR},
+      <if test="subject != null">
+        subject = #{subject,jdbcType=VARCHAR},
       </if>
       <if test="modelId != null">
         model_id = #{modelId,jdbcType=VARCHAR},
@@ -149,7 +149,7 @@
     set job_type = #{jobType,jdbcType=VARCHAR},
       job_status = #{jobStatus,jdbcType=VARCHAR},
       project = #{project,jdbcType=VARCHAR},
-      model_name = #{modelName,jdbcType=VARCHAR},
+      subject = #{subject,jdbcType=VARCHAR},
       model_id = #{modelId,jdbcType=VARCHAR},
       create_time = #{createTime,jdbcType=TIMESTAMP},
       update_time = #{updateTime,jdbcType=TIMESTAMP},
@@ -162,7 +162,7 @@
     set job_type = #{jobType,jdbcType=VARCHAR},
       job_status = #{jobStatus,jdbcType=VARCHAR},
       project = #{project,jdbcType=VARCHAR},
-      model_name = #{modelName,jdbcType=VARCHAR},
+      subject = #{subject,jdbcType=VARCHAR},
       model_id = #{modelId,jdbcType=VARCHAR},
       create_time = #{createTime,jdbcType=TIMESTAMP},
       update_time = #{updateTime,jdbcType=TIMESTAMP},
@@ -177,7 +177,7 @@
     from job_info
     <where>
       <if test="subject != null">
-        model_id = #{subject}
+        subject = #{subject}
       </if>
       <if test="project != null">
         AND project = #{project}

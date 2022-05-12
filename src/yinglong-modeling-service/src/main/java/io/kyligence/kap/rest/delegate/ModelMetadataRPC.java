@@ -26,14 +26,12 @@ package io.kyligence.kap.rest.delegate;
 
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import org.apache.kylin.metadata.model.Segments;
-import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
-@EnableFeignClients
 @FeignClient(name = "yinglong-common-booter", path = "/kylin/api/models/feign")
 public interface ModelMetadataRPC extends ModelMetadataContract {
 
@@ -45,6 +43,8 @@ public interface ModelMetadataRPC extends ModelMetadataContract {
     String getModelNameById(@RequestParam("modelId") String modelId, @RequestParam("project") String project);
 
     @PostMapping(value = "/feign/get_segment_by_range")
-    Segments<NDataSegment> getSegmentsByRange(String modelId, String project, String start, String end);
+    Segments<NDataSegment> getSegmentsByRange(@RequestParam("modelId") String modelId,
+            @RequestParam("project") String project, @RequestParam("start") String start,
+            @RequestParam("end") String end);
 
 }

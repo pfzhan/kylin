@@ -22,34 +22,10 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.job.mapper;
+package io.kyligence.kap.metadata.invokecontract;
 
-import java.util.List;
+import org.apache.kylin.metadata.model.TableDesc;
 
-import org.apache.ibatis.annotations.Mapper;
-
-import io.kyligence.kap.job.domain.JobInfo;
-import io.kyligence.kap.job.rest.JobMapperFilter;
-
-@Mapper
-public interface JobInfoMapper {
-    int deleteByPrimaryKey(String jobId);
-
-    int insert(JobInfo row);
-
-    int insertSelective(JobInfo row);
-
-    JobInfo selectByPrimaryKey(String jobId);
-
-    int updateByPrimaryKeySelective(JobInfo row);
-
-    int updateByPrimaryKeyWithBLOBs(JobInfo row);
-
-    int updateByPrimaryKey(JobInfo row);
-
-    List<String> selectJobIdListByStatusBatch(String status, int batchSize);
-
-    int updateJobStatus(String jobId, String status);
-
-    List<JobInfo> selectByJobFilter(JobMapperFilter jobMapperFilter);
+public interface TableMetadataContract {
+    public TableDesc getTableDesc(String project, String tableName);
 }

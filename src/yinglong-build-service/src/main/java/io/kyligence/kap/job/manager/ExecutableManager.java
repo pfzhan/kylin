@@ -463,6 +463,7 @@ public class ExecutableManager {
         return jobOutput;
     }
 
+
     /** just used to update job error mess */
     public void updateJobError(String taskOrJobId, String failedStepId, String failedSegmentId, String failedStack,
                                String failedReason) {
@@ -764,5 +765,12 @@ public class ExecutableManager {
             logger.error(e.getMessage(), e);
             return null;
         }
+    }
+
+    public void discardJob(String jobId) {
+        // send message to cancel job (job schedule receive)
+
+        // update job status
+        updateJobOutput(jobId, ExecutableState.DISCARDED);
     }
 }
