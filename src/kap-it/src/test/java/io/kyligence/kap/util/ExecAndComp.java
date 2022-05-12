@@ -43,6 +43,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.query.KylinTestBase;
@@ -212,47 +213,50 @@ public class ExecAndComp {
     @SneakyThrows
     public static void execAndCompare(List<Pair<String, String>> queries, String prj, CompareLevel compareLevel,
                                       String joinType, Map<String, CompareEntity> recAndQueryResult, Pair<String, String> views) {
+        QueryContext.current().close();
         pool.submit(() -> queries.parallelStream().forEach(query -> {
-            log.info("Exec and compare query ({}) :{}", joinType, query.getFirst());
-            String sql = changeJoinType(query.getSecond(), joinType);
-            long startTime = System.currentTimeMillis();
-            EnhancedQueryResult modelResult = queryModelWithOlapContext(prj, joinType, sql);
-            if (recAndQueryResult != null) {
-                val entity = recAndQueryResult.computeIfAbsent(query.getSecond(), k -> new CompareEntity());
-                entity.setSql(sql);
-                entity.setOlapContexts(modelResult.olapContexts);
-            }
-            List<StructField> cubeColumns = modelResult.getColumns();
-            addQueryPath(recAndQueryResult, query, sql);
-            if (compareLevel != CompareLevel.NONE) {
-                String newSql = sql;
-                if (views != null) {
-                    newSql = sql.replaceAll(views.getFirst(), views.getSecond());
+            try (val qc = QueryContext.current()) {
+                log.info("Exec and compare query ({}) :{}", joinType, query.getFirst());
+                String sql = changeJoinType(query.getSecond(), joinType);
+                long startTime = System.currentTimeMillis();
+                EnhancedQueryResult modelResult = queryModelWithOlapContext(prj, joinType, sql);
+                if (recAndQueryResult != null) {
+                    val entity = recAndQueryResult.computeIfAbsent(query.getSecond(), k -> new CompareEntity());
+                    entity.setSql(sql);
+                    entity.setOlapContexts(modelResult.olapContexts);
                 }
-                long startTs = System.currentTimeMillis();
-                val sparkResult = queryWithSpark(prj, newSql, joinType, query.getFirst());
-                if ((compareLevel == CompareLevel.SAME || compareLevel == CompareLevel.SAME_ORDER)
-                        && sparkResult.getColumns().size() != cubeColumns.size()) {
-                    log.error("Failed on compare query ({}) :{} \n cube schema: {} \n, spark schema: {}", joinType,
-                            query, cubeColumns, sparkResult.getColumns());
-                    throw new IllegalStateException("query (" + joinType + ") :" + query + " schema not match");
-                }
-                if (!inToDoList(query.getFirst()) && compareLevel == CompareLevel.SAME) {
-                    QueryResultComparator.compareColumnType(cubeColumns, sparkResult.getColumns());
-                }
+                List<StructField> cubeColumns = modelResult.getColumns();
+                addQueryPath(recAndQueryResult, query, sql);
+                if (compareLevel != CompareLevel.NONE) {
+                    String newSql = sql;
+                    if (views != null) {
+                        newSql = sql.replaceAll(views.getFirst(), views.getSecond());
+                    }
+                    long startTs = System.currentTimeMillis();
+                    val sparkResult = queryWithSpark(prj, newSql, joinType, query.getFirst());
+                    if ((compareLevel == CompareLevel.SAME || compareLevel == CompareLevel.SAME_ORDER)
+                            && sparkResult.getColumns().size() != cubeColumns.size()) {
+                        log.error("Failed on compare query ({}) :{} \n cube schema: {} \n, spark schema: {}", joinType,
+                                query, cubeColumns, sparkResult.getColumns());
+                        throw new IllegalStateException("query (" + joinType + ") :" + query + " schema not match");
+                    }
+                    if (!inToDoList(query.getFirst()) && compareLevel == CompareLevel.SAME) {
+                        QueryResultComparator.compareColumnType(cubeColumns, sparkResult.getColumns());
+                    }
 
-                log.info("Query with Spark Duration(ms): {}", System.currentTimeMillis() - startTs);
+                    log.info("Query with Spark Duration(ms): {}", System.currentTimeMillis() - startTs);
 
-                startTs = System.currentTimeMillis();
-                if (!QueryResultComparator.compareResults(sparkResult, modelResult.getQueryResult(), compareLevel)) {
-                    log.error("Failed on compare query ({}) :{}", joinType, query);
-                    throw new IllegalArgumentException("query (" + joinType + ") :" + query + " result not match");
+                    startTs = System.currentTimeMillis();
+                    if (!QueryResultComparator.compareResults(sparkResult, modelResult.getQueryResult(), compareLevel)) {
+                        log.error("Failed on compare query ({}) :{}", joinType, query);
+                        throw new IllegalArgumentException("query (" + joinType + ") :" + query + " result not match");
+                    }
+                    log.info("Compare Duration(ms): {}", System.currentTimeMillis() - startTs);
+                } else {
+                    log.info("result comparison is not available");
                 }
-                log.info("Compare Duration(ms): {}", System.currentTimeMillis() - startTs);
-            } else {
-                log.info("result comparison is not available");
+                log.info("The query ({}) : {} cost {} (ms)", joinType, query.getFirst(), System.currentTimeMillis() - startTime);
             }
-            log.info("The query ({}) : {} cost {} (ms)", joinType, query.getFirst(), System.currentTimeMillis() - startTime);
         })).get();
     }
 
