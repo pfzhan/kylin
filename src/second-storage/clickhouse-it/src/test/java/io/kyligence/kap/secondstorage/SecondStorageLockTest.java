@@ -54,12 +54,14 @@ import io.kyligence.kap.rest.controller.NModelController;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
 import io.kyligence.kap.rest.response.JobInfoResponse;
+import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import io.kyligence.kap.rest.service.FusionModelService;
 import io.kyligence.kap.rest.service.IndexPlanService;
 import io.kyligence.kap.rest.service.JobService;
 import io.kyligence.kap.rest.service.ModelBuildService;
+import io.kyligence.kap.rest.service.ModelQueryService;
 import io.kyligence.kap.rest.service.ModelSemanticHelper;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.NUserGroupService;
@@ -112,6 +114,7 @@ import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.query.relnode.OLAPContext;
+import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.IUserGroupService;
@@ -231,6 +234,9 @@ public class SecondStorageLockTest implements JobWaiter {
     @Mock
     private final NModelController nModelController = Mockito.spy(new NModelController());
 
+    @Mock
+    private final ModelQueryService modelQueryService = Mockito.spy(new ModelQueryService());
+
 
     private EmbeddedHttpServer _httpServer = null;
     protected IndexDataConstructor indexDataConstructor;
@@ -248,6 +254,8 @@ public class SecondStorageLockTest implements JobWaiter {
 
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
 
+        ReflectionTestUtils.setField(modelQueryService, "aclEvaluate", aclEvaluate);
+
         ReflectionTestUtils.setField(indexPlanService, "aclEvaluate", aclEvaluate);
 
         ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
@@ -256,6 +264,7 @@ public class SecondStorageLockTest implements JobWaiter {
         ReflectionTestUtils.setField(modelService, "indexPlanService", indexPlanService);
         ReflectionTestUtils.setField(modelService, "semanticUpdater", modelSemanticHelper);
         ReflectionTestUtils.setField(modelService, "modelBuildService", modelBuildService);
+        ReflectionTestUtils.setField(modelService, "modelQuerySupporter", modelQueryService);
 
         ReflectionTestUtils.setField(modelBuildService, "modelService", modelService);
         ReflectionTestUtils.setField(modelBuildService, "segmentHelper", segmentHelper);
@@ -307,6 +316,7 @@ public class SecondStorageLockTest implements JobWaiter {
         params.setSecondStorageDeleteLayoutIds(jobParam.getSecondStorageDeleteLayoutIds());
         assertNull(params.getSecondStorageDeleteLayoutIds());
     }
+
     @Test
     public void testSegmentLoadWithRetry() throws Exception {
         try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse()) {
@@ -640,7 +650,7 @@ public class SecondStorageLockTest implements JobWaiter {
                 setQuerySession(catalog, clickhouse[0].getJdbcUrl(), clickhouse[0].getDriverClassName());
 
                 getBuildBaseLayout(new HashSet<>(), new HashSet<>(), clickhouse, replica);
-
+                checkSegmentDisplay(replica, clickhouse.length / replica);
 
                 ProjectNodeRequest request = new ProjectNodeRequest();
                 request.setProject(getProject());
@@ -1175,6 +1185,19 @@ public class SecondStorageLockTest implements JobWaiter {
             assertNotNull(segment.getSecondStorageNodes().values());
             assertTrue(segment.getSecondStorageNodes().values().stream().findFirst().isPresent());
             assertEquals(replica, segment.getSecondStorageNodes().values().stream().findFirst().get().size());
+        });
+
+        val sum = segments.stream().mapToLong(NDataSegmentResponse::getSecondStorageSize).sum();
+
+        DataResult<List<NDataModel>> result = modelService.getModels(modelId, null, true, getProject(),
+                null, null, null, 0, 10, "last_modify", false, null,
+                null, null, null, true);
+
+        result.getValue().stream().filter(nDataModel -> modelId.equals(nDataModel.getId())).forEach(nDataModel -> {
+            val nDataModelRes = (NDataModelResponse) nDataModel;
+            assertEquals(sum, nDataModelRes.getSecondStorageSize());
+            assertEquals(shardCnt, nDataModelRes.getSecondStorageNodes().size());
+            assertEquals(replica, nDataModelRes.getSecondStorageNodes().get("pair0").size());
         });
     }
 

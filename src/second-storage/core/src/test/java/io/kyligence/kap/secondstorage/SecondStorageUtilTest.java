@@ -26,14 +26,12 @@ package io.kyligence.kap.secondstorage;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.guava20.shaded.common.collect.ImmutableList;
-import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.secondstorage.config.ClusterInfo;
 import io.kyligence.kap.secondstorage.config.Node;
 import io.kyligence.kap.secondstorage.metadata.Manager;
 import io.kyligence.kap.secondstorage.metadata.TableData;
 import io.kyligence.kap.secondstorage.metadata.TableFlow;
 import io.kyligence.kap.secondstorage.metadata.TablePartition;
-import io.kyligence.kap.secondstorage.response.SecondStorageInfo;
 import io.kyligence.kap.secondstorage.response.SecondStorageNode;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.RandomUtil;
@@ -56,13 +54,11 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Field;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({SecondStorageNodeHelper.class, NExecutableManager.class})
@@ -151,39 +147,6 @@ public class SecondStorageUtilTest extends NLocalFileMetadataTestCase {
         Map<String, List<SecondStorageNode>> pairs2 = SecondStorageUtil.convertNodesToPairs(nodes2);
         Assert.assertEquals(2, pairs2.size());
         Assert.assertEquals(1, pairs2.get("pair1").size());
-    }
-
-    @Test
-    public void setSecondStorageSizeInfo() throws Exception {
-        prepareManger();
-        NDataModel model = new NDataModel();
-        List<NDataModel> models = new ArrayList<>();
-        models.add(model);
-        List<SecondStorageInfo> newModels = SecondStorageUtil.setSecondStorageSizeInfo(models, tableFlowManager);
-        Assert.assertEquals(0, (newModels.get(0)).getSecondStorageSize());
-        Assert.assertEquals(0, (newModels.get(0)).getSecondStorageNodes().size());
-
-        Mockito.when(tableFlowManager.get(Mockito.anyString())).thenReturn(Optional.of(prepareTableFlow()));
-        List<SecondStorageInfo> secondStorageInfos = SecondStorageUtil.setSecondStorageSizeInfo(models, tableFlowManager);
-        Assert.assertEquals(0, (newModels.get(0)).getSecondStorageSize());
-        Assert.assertEquals(0, (newModels.get(0)).getSecondStorageNodes().size());
-    }
-
-    @Test
-    public void setSecondStorageSizeInfoWithHA() throws Exception {
-        prepareManger();
-        Mockito.when(tableFlowManager.get(Mockito.anyString())).thenReturn(Optional.of(prepareTableFlow2Partition()));
-        NDataModel model1 = new NDataModel();
-        model1.setProject("default");
-        List<NDataModel> models = new ArrayList<>();
-        models.add(model1);
-        NDataModel model2 = new NDataModel();
-        model2.setProject("default");
-        models.add(model2);
-        List<SecondStorageInfo> newModels = SecondStorageUtil.setSecondStorageSizeInfo(models, tableFlowManager);
-        Assert.assertEquals(2, newModels.size());
-        Assert.assertEquals(0, (newModels.get(0)).getSecondStorageSize());
-        Assert.assertEquals(2, (newModels.get(0)).getSecondStorageNodes().get("pair1").size());
     }
 
     @Test
