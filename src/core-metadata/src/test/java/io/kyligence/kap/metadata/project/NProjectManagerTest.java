@@ -25,6 +25,7 @@
 package io.kyligence.kap.metadata.project;
 
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -32,6 +33,7 @@ import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -92,6 +94,41 @@ public class NProjectManagerTest extends NLocalFileMetadataTestCase {
             manager.createProject("test_ck_project", "admin", "", null, MaintainModelType.MANUAL_MAINTAIN);
         } finally {
             NCircuitBreaker.stop();
+        }
+    }
+
+    @Test
+    public void testAddNonCustomProjectConfigs() {
+        NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
+        projectManager.updateProject("default", update_project -> {
+            LinkedHashMap<String, String> overrideKylinProps = update_project.getOverrideKylinProps();
+            overrideKylinProps.put("kylin.query.implicit-computed-column-convert", "false");
+        });
+        {
+            val project = projectManager.getProject("default");
+            Assert.assertEquals("false",
+                    project.getConfig().getExtendedOverrides().get("kylin.query.implicit-computed-column-convert"));
+        }
+        {
+            val projectInstance = new ProjectInstance();
+            projectInstance.setName("override_setting");
+            val project = projectManager.getProject("default");
+            projectInstance
+                    .setOverrideKylinProps((LinkedHashMap<String, String>) project.getConfig().getExtendedOverrides());
+            Assert.assertEquals("false",
+                    projectInstance.getOverrideKylinProps().get("kylin.query.implicit-computed-column-convert"));
+        }
+        {
+            getTestConfig().setProperty("kylin.server.non-custom-project-configs",
+                    "kylin.query.implicit-computed-column-convert");
+            projectManager.reloadAll();
+            val project = projectManager.getProject("default");
+            Assert.assertEquals("false",
+                    project.getOverrideKylinProps().get("kylin.query.implicit-computed-column-convert"));
+            Assert.assertNull(
+                    project.getLegalOverrideKylinProps().get("kylin.query.implicit-computed-column-convert"));
+            Assert.assertNull(
+                    project.getConfig().getExtendedOverrides().get("kylin.query.implicit-computed-column-convert"));
         }
     }
 }

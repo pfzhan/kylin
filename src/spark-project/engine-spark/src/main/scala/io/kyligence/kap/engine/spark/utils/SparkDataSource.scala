@@ -34,7 +34,7 @@ object SparkDataSource {
   implicit class SparkSource(sparkSession: SparkSession) {
     def table(tableDesc: TableDesc): DataFrame = {
       val params = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv)
-        .getProject(tableDesc.getProject).getOverrideKylinProps
+        .getProject(tableDesc.getProject).getLegalOverrideKylinProps
       SourceFactory
         .createEngineAdapter(tableDesc,
           classOf[NSparkCubingEngine.NSparkCubingSource])
@@ -43,7 +43,7 @@ object SparkDataSource {
 
     def table(tableDesc: TableDesc, segmentStart: String, segmentEnd: String): DataFrame = {
       val params = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv)
-        .getProject(tableDesc.getProject).getOverrideKylinProps
+        .getProject(tableDesc.getProject).getLegalOverrideKylinProps
       params.put("segmentStart", segmentStart)
       params.put("segmentEnd", segmentEnd)
       SourceFactory
