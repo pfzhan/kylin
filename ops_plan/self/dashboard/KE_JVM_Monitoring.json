@@ -3214,7 +3214,7 @@
           "value": "KE4"
         },
         "datasource": "Prometheus",
-        "definition": "label_values(jvm_memory_used_bytes{},job)",
+        "definition": "label_values(jvm_memory_used_bytes{job=~\"Kyligence Enterprise.*\"},job)",
         "description": null,
         "error": null,
         "hide": 0,
@@ -3224,7 +3224,7 @@
         "name": "job",
         "options": [],
         "query": {
-          "query": "label_values(jvm_memory_used_bytes{},job)",
+          "query": "label_values(jvm_memory_used_bytes{job=~\"Kyligence Enterprise.*\"},job)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 2,
