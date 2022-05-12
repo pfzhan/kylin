@@ -25,12 +25,13 @@ package org.apache.spark.sql.execution.datasources.jdbc
 
 import java.sql.{Connection, Driver, DriverManager, Timestamp, Types}
 import java.util.Locale
-import java.text.SimpleDateFormat
 
 import scala.collection.JavaConverters.enumerationAsScalaIteratorConverter
 import scala.util.matching.Regex
 
 import org.apache.spark.internal.Logging
+import org.apache.spark.sql.catalyst.util.{DateTimeUtils, TimestampFormatter}
+import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.jdbc.{JdbcDialect, JdbcType}
 
@@ -157,7 +158,9 @@ object ClickHouseDialect extends JdbcDialect with Logging {
 
   override def compileValue(value: Any): Any = value match {
     case ts: Timestamp =>
-      "'" + new SimpleDateFormat("yyyy-MM-dd hh:mm:ss", Locale.getDefault(Locale.Category.FORMAT)).format(ts) + "'"
+      val timestampFormatter = TimestampFormatter.getFractionFormatter(
+        DateTimeUtils.getZoneId(SQLConf.get.sessionLocalTimeZone))
+      s"'${timestampFormatter.format(ts)}'"
     case arrayValue: Array[Any] => arrayValue.map(compileValue).mkString("[", ",", "]")
     case _ => super.compileValue(value)
   }
