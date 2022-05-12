@@ -316,7 +316,7 @@ class SnapshotBuilder(var jobId: String) extends Logging with Serializable {
 
   def getSourceData(ss: SparkSession, tableDesc: TableDesc): Dataset[Row] = {
     val params = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv)
-      .getProject(tableDesc.getProject).getOverrideKylinProps
+      .getProject(tableDesc.getProject).getLegalOverrideKylinProps
     SourceFactory
       .createEngineAdapter(tableDesc, classOf[NSparkCubingEngine.NSparkCubingSource])
       .getSourceData(tableDesc, ss, params)

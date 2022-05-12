@@ -3044,14 +3044,17 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.build.skip-fresh-alluxio", FALSE));
     }
 
-    public Set<String> getNonCustomProjectConfigs() {
+    public Set<String> getUserDefinedNonCustomProjectConfigs() {
         String configs = getOptional("kylin.server.non-custom-project-configs");
-        val projectConfigNameSet = NonCustomProjectLevelConfig.listAllConfigNames();
         if (StringUtils.isEmpty(configs)) {
-            return projectConfigNameSet;
+            return Sets.newHashSet();
         }
-        val allConfigNameSet = Sets.newHashSet(configs.split(","));
-        allConfigNameSet.addAll(projectConfigNameSet);
+        return Sets.newHashSet(configs.split(","));
+    }
+
+    public Set<String> getNonCustomProjectConfigs() {
+        val allConfigNameSet = getUserDefinedNonCustomProjectConfigs();
+        allConfigNameSet.addAll(NonCustomProjectLevelConfig.listAllConfigNames());
         return allConfigNameSet;
     }
 
