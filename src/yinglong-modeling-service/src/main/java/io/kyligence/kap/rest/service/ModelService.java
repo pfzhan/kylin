@@ -1031,19 +1031,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                         nodes.addAll(partition.getShardNodes());
                     }
 
-                    // key: node_name / value: node_size
-                    Map<String, Long> nodesSize = partitions.stream()
-                            .flatMap(partition -> partition.getSizeInNode().entrySet().stream())
-                            .collect(Collectors.toMap(
-                                    Map.Entry::getKey,
-                                    Map.Entry::getValue,
-                                    Long::sum
-                            ));
-
-                    long maxNodeSize = shards.stream()
-                            .mapToLong(shard -> shard.stream().mapToLong(nodesSize::get).max().orElse(0))
-                            .sum();
-                    segment.setSecondStorageSize(maxNodeSize);
+                    segment.setSecondStorageSize(SecondStorageUtil.calculateSecondStorageSize(shards, partitions));
 
                     Map<String, List<SecondStorageNode>> pairs = SecondStorageUtil.convertNodesToPairs(new ArrayList<>(nodes));
                     segment.setSecondStorageNodes(pairs);

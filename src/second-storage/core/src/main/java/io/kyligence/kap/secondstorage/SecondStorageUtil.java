@@ -25,7 +25,6 @@
 package io.kyligence.kap.secondstorage;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
@@ -50,7 +49,6 @@ import io.kyligence.kap.secondstorage.response.SecondStorageInfo;
 import io.kyligence.kap.secondstorage.response.SecondStorageNode;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.SecondStorageConfig;
 import org.apache.kylin.common.exception.JobErrorCode;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
@@ -236,6 +234,9 @@ public class SecondStorageUtil {
 
     protected static List<SecondStorageInfo>
     setSecondStorageSizeInfo(List<NDataModel> models, Manager<TableFlow> tableFlowManager) {
+        List<Set<String>> shards = SecondStorageNodeHelper.groupsToShards(
+                SecondStorageUtil.listNodeGroup(KylinConfig.getInstanceFromEnv(), models.get(0).getProject()));
+
         return models.stream().map(model -> {
             SecondStorageInfo secondStorageInfo = new SecondStorageInfo();
             secondStorageInfo.setSecondStorageEnabled(isModelEnable(model.getProject(), model.getId()));
@@ -247,21 +248,32 @@ public class SecondStorageUtil {
                 List<TablePartition> tablePartitions = tableFlow.getTableDataList().stream()
                         .flatMap(tableData -> tableData.getPartitions().stream())
                         .collect(Collectors.toList());
-                List<String> nodesStr = Lists.newArrayList();
-                Long sizes = 0L;
+                Set<String> nodesStr = Sets.newHashSet();
+
                 for (TablePartition partition : tablePartitions) {
                     nodesStr.addAll(partition.getShardNodes());
-                    sizes += partition.getSizeInNode().values().stream()
-                            .reduce(Long::sum).orElse(0L);
                 }
 
-                List<String> nodes = nodesStr.stream().distinct().collect(Collectors.toList());
-                Map<String, List<SecondStorageNode>> pairs = convertNodesToPairs(nodes);
-                secondStorageInfo.setSecondStorageNodes(pairs);
-                secondStorageInfo.setSecondStorageSize(sizes / SecondStorageConfig.getInstanceFromEnv().getReplicaNum());
+                secondStorageInfo.setSecondStorageNodes(convertNodesToPairs(new ArrayList<>(nodesStr)));
+                secondStorageInfo.setSecondStorageSize(calculateSecondStorageSize(shards, tablePartitions));
             }
             return secondStorageInfo;
         }).collect(Collectors.toList());
+    }
+
+    public static long calculateSecondStorageSize(List<Set<String>> shards, List<TablePartition> partitions) {
+        // key: node_name / value: node_size
+        Map<String, Long> nodesSize = partitions.stream()
+                .flatMap(partition -> partition.getSizeInNode().entrySet().stream())
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue,
+                        Long::sum
+                ));
+
+        return shards.stream()
+                .mapToLong(shard -> shard.stream().mapToLong(nodesSize::get).max().orElse(0))
+                .sum();
     }
 
     public static SecondStorageNode transformNode(String name) {
