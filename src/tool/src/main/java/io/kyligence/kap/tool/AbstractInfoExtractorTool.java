@@ -698,7 +698,7 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
     }
 
     protected void exportUseInfo(File recordTime, long startTime, long endTime) {
-        Future confTask = executorService.submit(() -> {
+        Future<?> confTask = executorService.submit(() -> {
             recordTaskStartTime(USE_INFO);
             UseInfoTool.extractUseInfo(exportDir, startTime, endTime);
             recordTaskExecutorTimeToFile(USE_INFO, recordTime);
