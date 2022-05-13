@@ -27,9 +27,11 @@ package io.kyligence.kap.metadata.query;
 import java.util.List;
 
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Result;
 import org.apache.ibatis.annotations.ResultMap;
 import org.apache.ibatis.annotations.Results;
+import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.SelectProvider;
 import org.apache.ibatis.type.JdbcType;
 import org.mybatis.dynamic.sql.select.render.SelectStatementProvider;
@@ -52,4 +54,22 @@ public interface QueryStatisticsMapper {
     @SelectProvider(type = SqlProviderAdapter.class, method = "select")
     @ResultMap("QueryStatisticsResult")
     QueryStatistics selectOne(SelectStatementProvider selectStatement);
+
+    @Select({ "<script>", //
+            "select query_day as queryDay, count(1) as totalNum, ", //
+            "sum(CASE WHEN query_status = 'SUCCEEDED' THEN 1 ELSE 0 END) as succeedNum, ", //
+            "IFNULL(count(distinct submitter), 0) as activeUserNum, ", //
+            "IFNULL(sum(CASE WHEN query_status = 'SUCCEEDED' THEN duration ELSE 0 END) / sum(CASE WHEN query_status = 'SUCCEEDED' THEN 1 ELSE 0 END), 0) as avgDuration, ", //
+            "sum(CASE WHEN duration &lt; 1000 THEN 1 ELSE 0 END) as lt1sNum, ", //
+            "sum(CASE WHEN duration &lt; 3000 THEN 1 ELSE 0 END) as lt3sNum, ", //
+            "sum(CASE WHEN duration &lt; 5000 THEN 1 ELSE 0 END) as lt5sNum, ", //
+            "sum(CASE WHEN duration &lt; 10000 THEN 1 ELSE 0 END) as lt10sNum, ", //
+            "sum(CASE WHEN duration &lt; 15000 THEN 1 ELSE 0 END) as lt15sNum ", //
+            "from ${table} ", //
+            "where query_day &gt;= #{start} and query_day &lt; #{end} ", //
+            "group by query_day ", //
+            "order by query_day desc ", //
+            "</script>" })
+    List<QueryDailyStatistic> selectDaily(@Param("table") String qhTable, @Param("start") long startTime,
+            @Param("end") long endTime);
 }

@@ -712,6 +712,23 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(0, statistics.getMeanDuration(), 0.1);
     }
 
+    @Test
+    public void testGetQueryDailyStatistic() {
+        // 2022-05-13 10:00:00
+        queryHistoryDAO.insert(createQueryMetrics(1652407200000L, 1000L, true, PROJECT, true));
+        // 2022-05-13 16:00:00
+        queryHistoryDAO.insert(createQueryMetrics(1652428800000L, 2000L, true, PROJECT, true));
+        // 2022-05-12 16:00:00
+        queryHistoryDAO.insert(createQueryMetrics(1652342400000L, 5000L, true, PROJECT, true));
+        List<QueryDailyStatistic> queryDailyStatistic = queryHistoryDAO.getQueryDailyStatistic(Long.MIN_VALUE,
+                Long.MAX_VALUE);
+        Assert.assertEquals(2, queryDailyStatistic.size());
+        Assert.assertEquals(1500L, queryDailyStatistic.get(0).getAvgDuration());
+        Assert.assertEquals(2L, queryDailyStatistic.get(0).getTotalNum());
+        Assert.assertEquals(1L, queryDailyStatistic.get(1).getTotalNum());
+        Assert.assertEquals(2L, queryDailyStatistic.get(0).getLt3sNum());
+    }
+
     public static QueryMetrics createQueryMetrics(long queryTime, long duration, boolean indexHit, String project,
             boolean hitModel) {
         QueryMetrics queryMetrics = new QueryMetrics("6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1", "192.168.1.6:7070");

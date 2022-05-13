@@ -75,6 +75,10 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
     private static final Option OPTION_AUDIT_LOG = OptionBuilder.getInstance().withArgName("includeAuditLog").hasArg()
             .isRequired(false).withDescription("Specify whether to include auditLog to extract. Default true.")
             .create("includeAuditLog");
+    @SuppressWarnings("static-access")
+    private static final Option OPTION_BEFORE_DAY = OptionBuilder.getInstance().withArgName("beforeDay").hasArg()
+            .isRequired(false).withDescription("Specify the range of time to extract use info. Default last 30 days.")
+            .create("beforeDay");
 
     // Problem category
     @SuppressWarnings("static-access")
@@ -103,6 +107,7 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
         options.addOption(OPTION_CATE_META);
         options.addOption(OPTION_META);
         options.addOption(OPTION_AUDIT_LOG);
+        options.addOption(OPTION_BEFORE_DAY);
     }
 
     @Override
@@ -124,6 +129,7 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
         if (startTime >= endTime) {
             throw new KylinException(PARAMETER_TIMESTAMP_COMPARE);
         }
+        final int useInfoBeforeDay = getIntOption(optionsHelper, OPTION_BEFORE_DAY, 30);
         logger.info("Time range: start={}, end={}", startTime, endTime);
 
         // calculate time used
@@ -168,6 +174,9 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
         exportKgLogs(exportDir, startTime, endTime, recordTime);
 
         exportTieredStorage(null, exportDir, startTime, endTime, recordTime);
+
+        exportUseInfo(recordTime, DateTime.now().minusDays(useInfoBeforeDay).withTimeAtStartOfDay().getMillis(),
+                Long.MAX_VALUE);
 
         executeTimeoutTask(taskQueue);
 

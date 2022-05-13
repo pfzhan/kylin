@@ -21,30 +21,37 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.tool.constant;
 
-public enum DiagSubTaskEnum {
-    METADATA, //
-    REC_CANDIDATE, //
-    AUDIT_LOG, //
-    CLIENT, //
-    JSTACK, //
-    CONF, //
-    HADOOP_CONF, //
-    BIN, //
-    HADOOP_ENV, //
-    CATALOG_INFO, //
-    SYSTEM_METRICS, //
-    MONITOR_METRICS, //
-    SPARK_LOGS, //
-    SPARDER_HISTORY, //
-    KG_LOGS, //
-    LOG, //
-    JOB_TMP, //
-    JOB_EVENTLOGS, //
-    YARN, //
-    TIERED_STORAGE_LOGS,
-    SPARK_STREAMING_LOGS,
-    CANDIDATE_LOG,
-    USE_INFO
+package io.kyligence.kap.metadata.query;
+
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.io.Serializable;
+
+@Getter
+@Setter
+@NoArgsConstructor
+public class QueryDailyStatistic implements Serializable {
+
+    private long queryDay;
+
+    private long totalNum;
+
+    private long activeUserNum;
+
+    private long succeedNum;
+
+    private long avgDuration;
+
+    private long lt1sNum;
+
+    private long lt3sNum;
+
+    private long lt5sNum;
+
+    private long lt10sNum;
+
+    private long lt15sNum;
 }
