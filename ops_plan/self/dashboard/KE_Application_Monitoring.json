@@ -21,8 +21,8 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 904,
-  "iteration": 1652180018140,
+  "id": 1680,
+  "iteration": 1652342267446,
   "links": [],
   "panels": [
     {
@@ -766,6 +766,7 @@
           "color": {
             "mode": "thresholds"
           },
+          "decimals": 0,
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -792,7 +793,7 @@
       "id": 62,
       "options": {
         "colorMode": "value",
-        "graphMode": "area",
+        "graphMode": "none",
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
@@ -809,7 +810,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",hit_second_storage=\"true\"})",
+          "expr": "sum(increase(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",hit_second_storage=\"true\"}[$__range]))",
           "interval": "",
           "legendFormat": "query_amount%",
           "refId": "A"
@@ -826,20 +827,20 @@
           "color": {
             "mode": "thresholds"
           },
+          "decimals": 2,
           "mappings": [],
+          "max": 100,
+          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
-          }
+          },
+          "unit": "percent"
         },
         "overrides": []
       },
@@ -859,14 +860,14 @@
           "values": false
         },
         "showThresholdLabels": false,
-        "showThresholdMarkers": true,
+        "showThresholdMarkers": false,
         "text": {}
       },
       "pluginVersion": "7.5.8",
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",hit_second_storage=\"true\"})/sum(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\"})*100",
+          "expr": "sum(increase(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",hit_second_storage=\"true\"}[$__range])) / sum(increase(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\"}[$__range]))*100",
           "interval": "",
           "legendFormat": "query_ratio%",
           "refId": "A"
@@ -884,6 +885,7 @@
             "mode": "thresholds"
           },
           "mappings": [],
+          "noValue": "0",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -896,7 +898,8 @@
                 "value": 80
               }
             ]
-          }
+          },
+          "unit": "s"
         },
         "overrides": []
       },
@@ -909,7 +912,7 @@
       "id": 66,
       "options": {
         "colorMode": "value",
-        "graphMode": "area",
+        "graphMode": "none",
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
@@ -926,7 +929,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(ke_queries_seconds_sum{job=\"$job\",instance=\"$instance\",project=~\"$project\",hit_second_storage=\"true\"})/sum(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",hit_second_storage=\"true\"})",
+          "expr": "sum(increase(ke_queries_seconds_sum{job=\"$job\",instance=\"$instance\",project=~\"$project\",hit_second_storage=\"true\"}[$__range])) / sum(increase(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",hit_second_storage=\"true\"}[$__range]))",
           "interval": "",
           "legendFormat": "query_average_response_time%",
           "refId": "A"
@@ -936,289 +939,248 @@
       "type": "stat"
     },
     {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
       "datasource": "Prometheus",
       "description": "近段时间内击中分层存储的查询数趋势",
       "fieldConfig": {
-        "defaults": {},
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "graph": false,
+              "legend": false,
+              "tooltip": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
         "overrides": []
       },
-      "fill": 1,
-      "fillGradient": 0,
       "gridPos": {
         "h": 8,
         "w": 8,
         "x": 0,
         "y": 35
       },
-      "hiddenSeries": false,
       "id": 68,
-      "legend": {
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "show": true,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 1,
-      "nullPointMode": "null",
       "options": {
-        "alertThreshold": true
+        "graph": {},
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltipOptions": {
+          "mode": "single"
+        }
       },
-      "percentage": false,
       "pluginVersion": "7.5.8",
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
       "targets": [
         {
           "exemplar": true,
-          "expr": "increase(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",hit_second_storage=\"true\"}[5m])",
+          "expr": "sum(increase(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",hit_second_storage=\"true\"}[1m]))",
           "interval": "",
-          "legendFormat": "query_amount%",
+          "legendFormat": "query_amount",
           "refId": "A"
         }
       ],
-      "thresholds": [],
       "timeFrom": null,
-      "timeRegions": [],
       "timeShift": null,
       "title": "Trend of Tiered Storage Query Amount",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
+      "type": "timeseries"
     },
     {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
       "datasource": "Prometheus",
       "description": "近段时间内击中分层存储的查询比例趋势 ",
       "fieldConfig": {
-        "defaults": {},
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "graph": false,
+              "legend": false,
+              "tooltip": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "decimals": 2,
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "percent"
+        },
         "overrides": []
       },
-      "fill": 1,
-      "fillGradient": 0,
       "gridPos": {
         "h": 8,
         "w": 8,
         "x": 8,
         "y": 35
       },
-      "hiddenSeries": false,
       "id": 70,
-      "legend": {
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "show": true,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 1,
-      "nullPointMode": "null",
       "options": {
-        "alertThreshold": true
+        "graph": {},
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltipOptions": {
+          "mode": "single"
+        }
       },
-      "percentage": false,
       "pluginVersion": "7.5.8",
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
       "targets": [
         {
           "exemplar": true,
-          "expr": "increase(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",hit_second_storage=\"true\"}[5m])/increase(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\"}[5m])",
+          "expr": "sum(increase(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",hit_second_storage=\"true\"}[1m])) / sum(increase(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\"}[1m]))*100",
           "interval": "",
           "legendFormat": "query_ratio%",
           "refId": "A"
         }
       ],
-      "thresholds": [],
       "timeFrom": null,
-      "timeRegions": [],
       "timeShift": null,
       "title": "Trend of Tiered Storage Query Ratio",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
+      "type": "timeseries"
     },
     {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
       "datasource": "Prometheus",
       "description": "近段时间内击中分层存储的查询平均响应时间趋势",
       "fieldConfig": {
-        "defaults": {},
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "graph": false,
+              "legend": false,
+              "tooltip": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "s"
+        },
         "overrides": []
       },
-      "fill": 1,
-      "fillGradient": 0,
       "gridPos": {
         "h": 8,
         "w": 8,
         "x": 16,
         "y": 35
       },
-      "hiddenSeries": false,
       "id": 72,
-      "legend": {
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "show": true,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 1,
-      "nullPointMode": "null",
       "options": {
-        "alertThreshold": true
+        "graph": {},
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltipOptions": {
+          "mode": "single"
+        }
       },
-      "percentage": false,
       "pluginVersion": "7.5.8",
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
       "targets": [
         {
           "exemplar": true,
-          "expr": "rate(ke_queries_seconds_sum{job=\"$job\", instance=\"$instance\",project=~\"$project\",hit_second_storage=\"true\"}[5m]) / rate(ke_queries_seconds_count{job=\"$job\", instance=\"$instance\",project=~\"$project\",hit_second_storage=\"true\"}[5m])",
+          "expr": "sum(increase(ke_queries_seconds_sum{job=\"$job\",instance=\"$instance\",project=~\"$project\",hit_second_storage=\"true\"}[1m])) / sum(increase(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",hit_second_storage=\"true\"}[1m]))",
           "interval": "",
-          "legendFormat": "query_average_response_time%",
+          "legendFormat": "query_average_response_time",
           "refId": "A"
         }
       ],
-      "thresholds": [],
       "timeFrom": null,
-      "timeRegions": [],
       "timeShift": null,
       "title": "Trend of Tiered Storage Query Average Response Time",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
+      "type": "timeseries"
     },
     {
       "collapsed": true,
@@ -3047,6 +3009,7 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:167",
           "format": "ops",
           "label": null,
           "logBase": 1,
@@ -3055,6 +3018,7 @@
           "show": true
         },
         {
+          "$$hashKey": "object:168",
           "format": "short",
           "label": null,
           "logBase": 1,
