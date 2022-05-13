@@ -629,8 +629,6 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
             if (sqlResponse == null) {
                 try (QueryRequestLimits ignored = new QueryRequestLimits(project)) {
                     sqlResponse = queryAndUpdateCache(sqlRequest, kylinConfig);
-
-                    QueryUtils.fillInPrepareStatParams(sqlRequest, sqlResponse.isQueryPushDown());
                 }
             }
 
@@ -719,8 +717,7 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
                 if (!sqlResponse.isPrepare() && QueryMetricsContext.isStarted()) {
                     val queryMetricsContext = QueryMetricsContext.collect(QueryContext.current());
                     // KE-35556 Set stored sql a structured format json string
-
-                    queryMetricsContext.setSql(constructQueryHistorySqlText(sqlRequest, originalSql));
+                    queryMetricsContext.setSql(constructQueryHistorySqlText(sqlRequest, sqlResponse, originalSql));
                     // Set unused sql pattern null
                     queryMetricsContext.setSqlPattern(null);
                     QueryHistoryScheduler queryHistoryScheduler = QueryHistoryScheduler.getInstance();
@@ -733,7 +730,10 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
         }
     }
 
-    private String constructQueryHistorySqlText(SQLRequest sqlRequest, String originalSql) throws JsonProcessingException, ClassNotFoundException {
+    private String constructQueryHistorySqlText(SQLRequest sqlRequest, SQLResponse sqlResponse, String originalSql) throws JsonProcessingException, ClassNotFoundException {
+        // Fill in params if available
+        QueryUtils.fillInPrepareStatParams(sqlRequest, sqlResponse.isQueryPushDown());
+
         String normalizedSql = QueryContext.currentMetrics().getCorrectedSql();
         List<QueryHistorySqlParam> params = null;
         if (QueryUtils.isPrepareStatementWithParams(sqlRequest)) {
