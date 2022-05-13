@@ -187,9 +187,9 @@ public class AccessService extends BasicService {
         Message msg = MsgPicker.getMsg();
 
         if (ae == null)
-            throw new KylinException(INVALID_PARAMETER, msg.getACL_DOMAIN_NOT_FOUND());
+            throw new KylinException(INVALID_PARAMETER, msg.getAclDomainNotFound());
         if (sidToPerm == null)
-            throw new KylinException(PERMISSION_DENIED, msg.getACL_PERMISSION_REQUIRED());
+            throw new KylinException(PERMISSION_DENIED, msg.getAclPermissionRequired());
 
         MutableAclRecord acl = aclService.readAcl(new ObjectIdentityImpl(ae));
         if (Objects.isNull(acl)) {
@@ -206,11 +206,11 @@ public class AccessService extends BasicService {
     MutableAclRecord grant(AclEntity ae, Permission permission, Sid sid) {
         Message msg = MsgPicker.getMsg();
         if (ae == null)
-            throw new KylinException(INVALID_PARAMETER, msg.getACL_DOMAIN_NOT_FOUND());
+            throw new KylinException(INVALID_PARAMETER, msg.getAclDomainNotFound());
         if (permission == null)
-            throw new KylinException(PERMISSION_DENIED, msg.getACL_PERMISSION_REQUIRED());
+            throw new KylinException(PERMISSION_DENIED, msg.getAclPermissionRequired());
         if (sid == null)
-            throw new KylinException(EMPTY_USER_NAME, msg.getSID_REQUIRED());
+            throw new KylinException(EMPTY_USER_NAME, msg.getSidRequired());
 
         MutableAclRecord acl = aclService.readAcl(new ObjectIdentityImpl(ae));
         if (Objects.isNull(acl)) {
@@ -235,9 +235,9 @@ public class AccessService extends BasicService {
         Message msg = MsgPicker.getMsg();
 
         if (ae == null)
-            throw new KylinException(INVALID_PARAMETER, msg.getACL_DOMAIN_NOT_FOUND());
+            throw new KylinException(INVALID_PARAMETER, msg.getAclDomainNotFound());
         if (newPermission == null)
-            throw new KylinException(PERMISSION_DENIED, msg.getACL_PERMISSION_REQUIRED());
+            throw new KylinException(PERMISSION_DENIED, msg.getAclPermissionRequired());
 
         MutableAclRecord acl = aclService.readAcl(new ObjectIdentityImpl(ae));
         Sid sid = acl.getAclRecord().getAccessControlEntryAt(accessEntryIndex).getSid();
@@ -253,7 +253,7 @@ public class AccessService extends BasicService {
         Message msg = MsgPicker.getMsg();
 
         if (ae == null)
-            throw new KylinException(INVALID_PARAMETER, msg.getACL_DOMAIN_NOT_FOUND());
+            throw new KylinException(INVALID_PARAMETER, msg.getAclDomainNotFound());
 
         MutableAclRecord acl = aclService.readAcl(new ObjectIdentityImpl(ae));
         Sid sid = acl.getAclRecord().getAccessControlEntryAt(accessEntryIndex).getSid();
@@ -268,7 +268,7 @@ public class AccessService extends BasicService {
     public MutableAclRecord revokeWithSid(AclEntity ae, String name, boolean principal) {
         Message msg = MsgPicker.getMsg();
         if (Objects.isNull(ae)) {
-            throw new KylinException(INVALID_PARAMETER, msg.getACL_DOMAIN_NOT_FOUND());
+            throw new KylinException(INVALID_PARAMETER, msg.getAclDomainNotFound());
         }
         MutableAclRecord acl = aclService.readAcl(new ObjectIdentityImpl(ae));
         Sid sid = acl.getAclRecord().getAceBySidAndPrincipal(name, principal);
@@ -282,7 +282,7 @@ public class AccessService extends BasicService {
     public void batchRevoke(AclEntity ae, List<AccessRequest> requests) {
         Message msg = MsgPicker.getMsg();
         if (ae == null)
-            throw new KylinException(INVALID_PARAMETER, msg.getACL_DOMAIN_NOT_FOUND());
+            throw new KylinException(INVALID_PARAMETER, msg.getAclDomainNotFound());
 
         Permission emptyPermission = BasePermission.READ;
         Map<Sid, Permission> sid2perm = requests.stream()
@@ -299,9 +299,9 @@ public class AccessService extends BasicService {
         Message msg = MsgPicker.getMsg();
 
         if (ae == null)
-            throw new KylinException(INVALID_PARAMETER, msg.getACL_DOMAIN_NOT_FOUND());
+            throw new KylinException(INVALID_PARAMETER, msg.getAclDomainNotFound());
         if (parentAe == null)
-            throw new KylinException(INVALID_PARAMETER, msg.getPARENT_ACL_NOT_FOUND());
+            throw new KylinException(INVALID_PARAMETER, msg.getParentAclNotFound());
 
         MutableAclRecord acl = aclService.readAcl(new ObjectIdentityImpl(ae));
         if (Objects.isNull(acl)) {
@@ -356,7 +356,7 @@ public class AccessService extends BasicService {
         Message msg = MsgPicker.getMsg();
 
         if (ae == null) {
-            throw new KylinException(INVALID_PARAMETER, msg.getACL_DOMAIN_NOT_FOUND());
+            throw new KylinException(INVALID_PARAMETER, msg.getAclDomainNotFound());
         }
 
         // For those may have null uuid, like DataModel, won't delete Acl.
@@ -511,7 +511,7 @@ public class AccessService extends BasicService {
 
         // prevent changing owner's admin permission
         if (BasePermission.ADMINISTRATION.equals(record.getPermission(sid)))
-            throw new KylinException(PERMISSION_DENIED, msg.getREVOKE_ADMIN_PERMISSION());
+            throw new KylinException(PERMISSION_DENIED, msg.getRevokeAdminPermission());
     }
 
     private String getUserPermissionInProject(String project, String username) throws IOException {
@@ -810,7 +810,7 @@ public class AccessService extends BasicService {
         ManagedUser user = getManagedUser(username);
         if (Objects.isNull(user)) {
             val msg = MsgPicker.getMsg();
-            throw new KylinException(USER_NOT_EXIST, String.format(Locale.ROOT, msg.getUSER_NOT_FOUND(), username));
+            throw new KylinException(USER_NOT_EXIST, String.format(Locale.ROOT, msg.getUserNotFound(), username));
         }
         List<SimpleGrantedAuthority> authorities = user.getAuthorities();
         return authorities.stream().map(SimpleGrantedAuthority::getAuthority).collect(Collectors.toList());
@@ -856,7 +856,7 @@ public class AccessService extends BasicService {
 
     public void checkGlobalAdmin(List<String> usernames) throws IOException {
         if (userService.containsGlobalAdmin(new HashSet<>(usernames))) {
-            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getCHANGE_GLOBALADMIN());
+            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getChangeGlobaladmin());
         }
     }
 
@@ -864,7 +864,7 @@ public class AccessService extends BasicService {
         if (StringUtils.equalsIgnoreCase(username, KylinUserService.SUPER_ADMIN)) {
             String currentUser = AclPermissionUtil.getCurrentUsername();
             if (!isDefaultAdminHasRight || !StringUtils.equalsIgnoreCase(KylinUserService.SUPER_ADMIN, currentUser)) {
-                throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getCHANGE_DEGAULTADMIN());
+                throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getChangeDegaultadmin());
             }
         }
     }
@@ -888,9 +888,9 @@ public class AccessService extends BasicService {
     public void checkSidNotEmpty(String sid, boolean principal) {
         if (StringUtils.isEmpty(sid)) {
             if (principal) {
-                throw new KylinException(EMPTY_USER_NAME, MsgPicker.getMsg().getEMPTY_SID());
+                throw new KylinException(EMPTY_USER_NAME, MsgPicker.getMsg().getEmptySid());
             } else {
-                throw new KylinException(EMPTY_USERGROUP_NAME, MsgPicker.getMsg().getEMPTY_SID());
+                throw new KylinException(EMPTY_USERGROUP_NAME, MsgPicker.getMsg().getEmptySid());
             }
         }
     }
@@ -899,11 +899,11 @@ public class AccessService extends BasicService {
         checkSidNotEmpty(sid, principal);
         if (principal && !userService.userExists(sid)) {
             throw new KylinException(PERMISSION_DENIED,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getOPERATION_FAILED_BY_USER_NOT_EXIST(), sid));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getOperationFailedByUserNotExist(), sid));
         }
         if (!principal && !userGroupService.exists(sid)) {
             throw new KylinException(PERMISSION_DENIED,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getOPERATION_FAILED_BY_GROUP_NOT_EXIST(), sid));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getOperationFailedByGroupNotExist(), sid));
         }
     }
 

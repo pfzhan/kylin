@@ -2071,7 +2071,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         SQLResponse resp1 = queryService.doQueryWithCache(request);
         Assert.assertTrue(resp1.isException());
         Assert.assertEquals(String.format(Locale.ROOT,
-                MsgPicker.getMsg().getSQL_BLACKLIST_QUERY_CONCUTTENT_LIMIT_EXCEEDED(), "1", 1),
+                MsgPicker.getMsg().getSqlBlackListQueryConcurrentLimitExceeded(), "1", 1),
                 resp1.getExceptionMessage());
     }
 
@@ -2108,5 +2108,12 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         queryService.putIntoExceptionCache(request, sqlResponse, new RuntimeException("foo"));
         val ret2 = queryService.doQueryWithCache(request);
         Assert.assertTrue(ret2.isException());
+    }
+
+
+    @Test
+    public void testCheckSqlRequestProject() {
+        Assert.assertThrows(KylinException.class, ()->ReflectionTestUtils.invokeMethod(queryService, "checkSqlRequestProject",
+                new SQLRequest(), MsgPicker.getMsg()));
     }
 }

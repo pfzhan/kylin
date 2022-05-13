@@ -195,7 +195,7 @@ public class PushDownUtil {
         List<List<String>> returnRows = PushDownUtil.selectPartitionColumn(sql, project).getFirst();
 
         if (returnRows.isEmpty() || returnRows.get(0).get(0) == null || returnRows.get(0).get(1) == null)
-            throw new BadRequestException(String.format(Locale.ROOT, MsgPicker.getMsg().getNO_DATA_IN_TABLE(), table));
+            throw new BadRequestException(String.format(Locale.ROOT, MsgPicker.getMsg().getNoDataInTable(), table));
 
         result.setFirst(returnRows.get(0).get(0));
         result.setSecond(returnRows.get(0).get(1));
@@ -247,7 +247,7 @@ public class PushDownUtil {
         List<List<String>> returnRows = PushDownUtil.selectPartitionColumn(sql, project).getFirst();
         if (CollectionUtils.isEmpty(returnRows) || CollectionUtils.isEmpty(returnRows.get(0)))
             throw new KylinException(EMPTY_TABLE,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getNO_DATA_IN_TABLE(), table));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getNoDataInTable(), table));
 
         return returnRows.get(0).get(0);
     }

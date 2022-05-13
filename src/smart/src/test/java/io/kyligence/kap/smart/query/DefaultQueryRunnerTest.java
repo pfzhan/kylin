@@ -32,6 +32,8 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import io.kyligence.kap.smart.common.AutoTestOnLearnKylinData;
+import io.kyligence.kap.smart.query.advisor.SQLAdvice;
+import io.kyligence.kap.smart.query.advisor.SqlSyntaxAdvisor;
 
 public class DefaultQueryRunnerTest extends AutoTestOnLearnKylinData {
 
@@ -55,5 +57,34 @@ public class DefaultQueryRunnerTest extends AutoTestOnLearnKylinData {
         Assert.assertNull(olapContext2.getTopNode());
         Assert.assertNull(olapContext2.getParentOfTopNode());
         Assert.assertEquals(0, olapContext2.allOlapJoins.size());
+    }
+
+    @Test
+    public void testProposeWithMessage() {
+        SqlSyntaxAdvisor sqlSyntaxAdvisor = new SqlSyntaxAdvisor();
+
+        SQLResult sqlResult = new SQLResult();
+        sqlResult.setMessage("Non-query expression encountered in illegal context");
+        SQLAdvice advice = sqlSyntaxAdvisor.proposeWithMessage(sqlResult);
+        Assert.assertEquals("Please modify it.", advice.getSuggestion());
+        Assert.assertEquals("Not Supported SQL.", advice.getIncapableReason());
+
+        sqlResult.setMessage("Encountered \"()\" at line 12, column 234. Was expecting one of: ");
+        advice = sqlSyntaxAdvisor.proposeWithMessage(sqlResult);
+        Assert.assertEquals("Please modify it.", advice.getSuggestion());
+        Assert.assertEquals("Syntax error occurred at line (), column 12: \"234\". Please modify it.",
+                advice.getIncapableReason());
+
+        sqlResult.setMessage("default message");
+        advice = sqlSyntaxAdvisor.proposeWithMessage(sqlResult);
+        Assert.assertEquals("Please contact Kyligence technical support for more details.", advice.getSuggestion());
+        Assert.assertEquals("Something went wrong. default message", advice.getIncapableReason());
+
+        sqlResult.setMessage(
+                "From line 234, column 234 to line 23, column 234:  \"Object '234' not found( within '324')\nwhile executing SQL: \"234\"");
+        advice = sqlSyntaxAdvisor.proposeWithMessage(sqlResult);
+        Assert.assertEquals("Please modify it.", advice.getSuggestion());
+        Assert.assertEquals("The SQL has syntax error:  \"Object '234' not found( within '324') ",
+                advice.getIncapableReason());
     }
 }

@@ -888,7 +888,7 @@ public class IndexPlanServiceTest extends SourceTestCase {
         val wrongColumn = "TEST_CAL_DT.WEEK_BEG_DT";
         thrown.expect(KylinException.class);
         thrown.expectMessage(
-                String.format(Locale.ROOT, Message.getInstance().getCOLUMU_IS_NOT_DIMENSION(), wrongColumn));
+                String.format(Locale.ROOT, Message.getInstance().getColumuIsNotDimension(), wrongColumn));
         val modelId = "741ca86a-1f13-46da-a59f-95fb68615e3a";
         val request = new AggShardByColumnsRequest();
         request.setModelId(modelId);
@@ -1040,7 +1040,7 @@ public class IndexPlanServiceTest extends SourceTestCase {
 
         // delete not exists layoutIds
         thrown.expect(KylinException.class);
-        thrown.expectMessage(String.format(Locale.ROOT, Message.getInstance().getLAYOUT_NOT_EXISTS(),
+        thrown.expectMessage(String.format(Locale.ROOT, Message.getInstance().getLayoutNotExists(),
                 "1010001,20000000001,20000010001"));
         indexPlanService.removeIndexes(getProject(), modelId,
                 new HashSet<>(Arrays.asList(1010001L, 20000000001L, 20000010001L)));

@@ -51,19 +51,19 @@ public abstract class OpenUserGroupService extends NUserGroupService {
     @Override
     public void addGroup(String name) {
         throw new UnsupportedOperationException(
-                String.format(Locale.ROOT, MsgPicker.getMsg().getGroup_EDIT_NOT_ALLOWED_FOR_CUSTOM(), "addGroup"));
+                String.format(Locale.ROOT, MsgPicker.getMsg().getGroupEditNotAllowedForCustom(), "addGroup"));
     }
 
     @Override
     public void deleteGroup(String name) {
         throw new UnsupportedOperationException(
-                String.format(Locale.ROOT, MsgPicker.getMsg().getGroup_EDIT_NOT_ALLOWED_FOR_CUSTOM(), "deleteGroup"));
+                String.format(Locale.ROOT, MsgPicker.getMsg().getGroupEditNotAllowedForCustom(), "deleteGroup"));
     }
 
     @Override
     public void modifyGroupUsers(String groupName, List<String> users) {
         throw new UnsupportedOperationException(String.format(Locale.ROOT,
-                MsgPicker.getMsg().getGroup_EDIT_NOT_ALLOWED_FOR_CUSTOM(), "modifyGroupUsers"));
+                MsgPicker.getMsg().getGroupEditNotAllowedForCustom(), "modifyGroupUsers"));
     }
 
     @Override

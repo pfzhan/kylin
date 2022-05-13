@@ -54,7 +54,7 @@ public class KafkaTableUtil {
     // =========get message from topic==========
     public static List<ByteBuffer> getMessages(KafkaConfig kafkaConfig, int clusterIndex) {
         if (!KafkaTableUtil.validateKafkaConfig(kafkaConfig.getKafkaBootstrapServers())) {
-            throw new KylinException(INVALID_BROKER_DEFINITION, MsgPicker.getMsg().getINVALID_BROKER_DEFINITION());
+            throw new KylinException(INVALID_BROKER_DEFINITION, MsgPicker.getMsg().getInvalidBrokerDefinition());
         }
         return CollectKafkaStats.getMessages(kafkaConfig, clusterIndex);
     }
@@ -95,14 +95,14 @@ public class KafkaTableUtil {
 
     public static List<String> getBrokenBrokers(KafkaConfig kafkaConfig) {
         if (!KafkaTableUtil.validateKafkaConfig(kafkaConfig.getKafkaBootstrapServers())) {
-            throw new KylinException(INVALID_BROKER_DEFINITION, MsgPicker.getMsg().getINVALID_BROKER_DEFINITION());
+            throw new KylinException(INVALID_BROKER_DEFINITION, MsgPicker.getMsg().getInvalidBrokerDefinition());
         }
         return CollectKafkaStats.getBrokenBrokers(kafkaConfig);
     }
 
     public static Map<String, List<String>> getTopics(KafkaConfig kafkaConfig, final String fuzzyTopic) {
         if (!KafkaTableUtil.validateKafkaConfig(kafkaConfig.getKafkaBootstrapServers())) {
-            throw new KylinException(INVALID_BROKER_DEFINITION, MsgPicker.getMsg().getINVALID_BROKER_DEFINITION());
+            throw new KylinException(INVALID_BROKER_DEFINITION, MsgPicker.getMsg().getInvalidBrokerDefinition());
         }
         return CollectKafkaStats.getTopics(kafkaConfig, fuzzyTopic);
     }
@@ -111,7 +111,7 @@ public class KafkaTableUtil {
     public static Map<String, Object> convertMessageToFlatMap(KafkaConfig kafkaConfig, String messageType,
             String message) {
         if (StringUtils.isBlank(message)) {
-            throw new KylinException(INVALID_STREAMING_MESSAGE, MsgPicker.getMsg().getEMPTY_STREAMING_MESSAGE());
+            throw new KylinException(INVALID_STREAMING_MESSAGE, MsgPicker.getMsg().getEmptyStreamingMessage());
         }
 
         KafkaTableUtil.validateStreamMessageType(messageType);
@@ -122,18 +122,18 @@ public class KafkaTableUtil {
             throw new KylinException(STREAMING_PARSER_ERROR, e);
         } catch (Exception e) {
             logger.error("Failed to convert streaming message to flat key value.", e);
-            throw new KylinException(STREAMING_PARSER_ERROR, MsgPicker.getMsg().getPARSE_STREAMING_MESSAGE_ERROR(), e);
+            throw new KylinException(STREAMING_PARSER_ERROR, MsgPicker.getMsg().getParseStreamingMessageError(), e);
         }
         return result;
     }
 
     public static void validateStreamMessageType(String messageType) {
         if (StringUtils.isBlank(messageType)) {
-            throw new KylinException(INVALID_STREAMING_MESSAGE, MsgPicker.getMsg().getINVALID_STREAMING_MESSAGE_TYPE());
+            throw new KylinException(INVALID_STREAMING_MESSAGE, MsgPicker.getMsg().getInvalidStreamingMessageType());
         }
         if (!StringUtils.equals(messageType, CollectKafkaStats.JSON_MESSAGE)
                 && !StringUtils.equals(messageType, CollectKafkaStats.BINARY_MESSAGE)) {
-            throw new KylinException(INVALID_STREAMING_MESSAGE, MsgPicker.getMsg().getINVALID_STREAMING_MESSAGE_TYPE());
+            throw new KylinException(INVALID_STREAMING_MESSAGE, MsgPicker.getMsg().getInvalidStreamingMessageType());
         }
     }
 

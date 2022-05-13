@@ -95,7 +95,7 @@ public class AsyncTaskService implements AsyncTaskServiceSupporter {
         try (ServletOutputStream ops = response.getOutputStream()) {
             if (!onlySql) {
                 ops.write(CSV_UTF8_BOM);
-                ops.write(MsgPicker.getMsg().getQUERY_HISTORY_COLUMN_META().getBytes(StandardCharsets.UTF_8));
+                ops.write(MsgPicker.getMsg().getQueryHistoryColumnMeta().getBytes(StandardCharsets.UTF_8));
             }
             batchDownload(request, zoneOffset, timeZoneOffsetHour, queryHistoryDao, onlySql, ops);
         } catch (IOException e) {

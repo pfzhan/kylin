@@ -99,13 +99,13 @@ abstract public class ExternalAclProvider {
 
     public static void checkExternalPermission(String permission) {
         if (StringUtils.isBlank(permission)) {
-            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getEMPTY_PERMISSION());
+            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getEmptyPermission());
         }
         if (ADMINISTRATION.equalsIgnoreCase(permission) || MANAGEMENT.equalsIgnoreCase(permission)
                 || OPERATION.equalsIgnoreCase(permission) || READ.equalsIgnoreCase(permission)) {
             return;
         }
-        throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getINVALID_PERMISSION());
+        throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getInvalidPermission());
     }
 
     public static String convertToExternalPermission(int mask) {

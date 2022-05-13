@@ -107,7 +107,7 @@ public class KafkaServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetTopics() {
         expectedException.expect(KylinException.class);
-        expectedException.expectMessage(Message.getInstance().getBROKER_TIMEOUT_MESSAGE());
+        expectedException.expectMessage(Message.getInstance().getBrokerTimeoutMessage());
         kafkaService.getTopics(kafkaConfig, PROJECT, "test");
     }
 

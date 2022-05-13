@@ -34,6 +34,7 @@ import java.util.Map;
 import org.apache.commons.io.FileUtils;
 import org.apache.curator.test.TestingServer;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.spark.sql.AnalysisException;
 import org.apache.spark.sql.DDLDesc;
@@ -174,6 +175,20 @@ public class SparkSourceServiceTest extends NLocalFileMetadataTestCase {
 
         Assert.assertEquals(actureTableStructure.substring(0, actureTableStructure.lastIndexOf("TBLPROPERTIES")),
                 expectedTableStructure);
+    }
+
+    @Test
+    public void testLoadSamplesException() {
+        Assert.assertThrows(KylinException.class, () -> sparkSourceService
+                .exportTables(null, new String[] { "hive_bigints" }).getTables().get("hive_bigints"));
+        Assert.assertThrows(KylinException.class, () -> sparkSourceService
+                .exportTables("db", new String[] { "hive_bigints" }).getTables().get("hive_bigints"));
+        Assert.assertThrows(KylinException.class,
+                () -> sparkSourceService.exportTables("default", new String[] {}).getTables().get("hive_bigints"));
+        Assert.assertThrows(KylinException.class,
+                () -> sparkSourceService.exportTables("default", new String[] { "" }).getTables().get("hive_bigints"));
+        Assert.assertThrows(KylinException.class, () -> sparkSourceService
+                .exportTables("default", new String[] { "not_exits" }).getTables().get("hive_bigints"));
     }
 
     @Test

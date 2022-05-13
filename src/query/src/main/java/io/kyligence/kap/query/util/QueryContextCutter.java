@@ -157,7 +157,7 @@ public class QueryContextCutter {
                 if (ISourceAware.ID_STREAMING == tableDesc.getSourceType()
                         && tableDesc.getKafkaConfig().hasBatchTable()) {
                     throw new NoStreamingRealizationFoundException(STREAMING_TABLE_NOT_SUPPORT_AUTO_MODELING, String
-                            .format(Locale.ROOT, MsgPicker.getMsg().getSTREAMING_TABLE_NOT_SUPPORT_AUTO_MODELING()));
+                            .format(Locale.ROOT, MsgPicker.getMsg().getStreamingTableNotSupportAutoModeling()));
                 }
             }
         }

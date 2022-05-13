@@ -136,7 +136,7 @@ public class ColumnToConds extends CaseInsensitiveStringMap<List<ColumnToConds.C
             }
             if (CollectionUtils.isNotEmpty(likeConditions)) {
                 if (!isValidLikeColumnType(type)) {
-                    logger.error(MsgPicker.getMsg().getROW_ACL_NOT_STRING_TYPE());
+                    logger.error(MsgPicker.getMsg().getRowAclNotStringType());
                 } else {
                     if (CollectionUtils.isNotEmpty(intervalConditions)) {
                         result.append(" or ");

@@ -155,7 +155,7 @@ public class NProjectControllerTest extends NLocalFileMetadataTestCase {
         ProjectRequest projectRequest = mockProjectRequest();
         projectRequest.setName("^project");
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getINVALID_PROJECT_NAME());
+        thrown.expectMessage(Message.getInstance().getInvalidProjectName());
         nProjectController.saveProject(projectRequest);
     }
 

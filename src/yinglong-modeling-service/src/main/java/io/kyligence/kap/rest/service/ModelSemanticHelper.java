@@ -454,7 +454,7 @@ public class ModelSemanticHelper extends BasicService {
             .stream().filter(m -> !m.isTomb())
             .collect(Collectors.toMap(SimplifiedMeasure::fromMeasure, Function.identity(), (u, v) -> {
                 throw new KylinException(ServerErrorCode.DUPLICATE_MEASURE_EXPRESSION,
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getDUPLICATE_MEASURE_DEFINITION(), v.getName()));
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getDuplicateMeasureDefinition(), v.getName()));
             }));
 
     private Function<List<NDataModel.NamedColumn>, Map<String, NDataModel.NamedColumn>> toDimensionMap = allCols -> allCols

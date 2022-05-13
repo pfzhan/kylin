@@ -193,7 +193,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
                 + "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab");
         assertKylinExeption(() -> {
             nUserController.createUser(user);
-        }, Message.getInstance().getINVALID_NAME_LEGTHN());
+        }, Message.getInstance().getInvalidNameLength());
 
         user.setUsername("<1qaz>");
         assertKylinExeption(() -> {
@@ -246,7 +246,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         user.setUsername("中文");
         user.setPassword("p1234sgw$");
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getINVALID_NAME_CONTAINS_OTHER_CHARACTER());
+        thrown.expectMessage(Message.getInstance().getInvalidNameContainsOtherCharacter());
         nUserController.createUser(user);
     }
 

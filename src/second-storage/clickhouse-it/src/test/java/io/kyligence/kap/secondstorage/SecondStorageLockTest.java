@@ -608,24 +608,24 @@ public class SecondStorageLockTest implements JobWaiter {
         SecondStorageMetadataRequest request = new SecondStorageMetadataRequest();
         request.setProject("");
         Assert.assertThrows(
-                MsgPicker.getMsg().getEMPTY_PROJECT_NAME(),
+                MsgPicker.getMsg().getEmptyProjectName(),
                 KylinException.class,
                 () -> this.secondStorageEndpoint.sizeInNode(request));
         request.setProject("123");
         Assert.assertThrows("123", KylinException.class, () -> this.secondStorageEndpoint.sizeInNode(request));
         request.setProject(getProject());
         Assert.assertThrows(
-                String.format(Locale.ROOT, MsgPicker.getMsg().getSECOND_STORAGE_PROJECT_ENABLED(), getProject()),
+                String.format(Locale.ROOT, MsgPicker.getMsg().getSecondStorageProjectEnabled(), getProject()),
                 KylinException.class, () -> this.secondStorageEndpoint.sizeInNode(request));
 
         Assert.assertThrows(
-                MsgPicker.getMsg().getEMPTY_PROJECT_NAME(),
+                MsgPicker.getMsg().getEmptyProjectName(),
                 KylinException.class,
                 () -> this.secondStorageEndpoint.tableSync(""));
         Assert.assertThrows("123", KylinException.class, () -> this.secondStorageEndpoint.tableSync("123"));
         String project = getProject();
         Assert.assertThrows(
-                String.format(Locale.ROOT, MsgPicker.getMsg().getSECOND_STORAGE_PROJECT_ENABLED(), getProject()),
+                String.format(Locale.ROOT, MsgPicker.getMsg().getSecondStorageProjectEnabled(), getProject()),
                 KylinException.class, () -> this.secondStorageEndpoint.tableSync(project));
     }
 

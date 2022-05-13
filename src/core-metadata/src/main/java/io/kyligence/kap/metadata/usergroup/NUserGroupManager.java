@@ -123,7 +123,7 @@ public class NUserGroupManager {
         List<String> realGroups = getRealUserGroupByNames(names);
         if (realGroups.size() > 0) {
             throw new KylinException(DUPLICATE_USERGROUP_NAME,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getUSERGROUP_EXIST(), String.join(",", realGroups)));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getUserGroupExist(), String.join(",", realGroups)));
         }
         for (String name : names) {
             UserGroup userGroup = new UserGroup(name);
@@ -135,7 +135,7 @@ public class NUserGroupManager {
         String realGroupName = getRealUserGroupByName(name);
         if (StringUtils.isNotEmpty(realGroupName)) {
             throw new KylinException(DUPLICATE_USERGROUP_NAME,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getUSERGROUP_EXIST(), realGroupName));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getUserGroupExist(), realGroupName));
         }
         UserGroup userGroup = new UserGroup(name);
         crud.save(userGroup);
@@ -145,7 +145,7 @@ public class NUserGroupManager {
         String realGroupName = getRealUserGroupByName(name);
         if (StringUtils.isEmpty(realGroupName)) {
             throw new KylinException(USERGROUP_NOT_EXIST,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getUSERGROUP_NOT_EXIST(), name));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getUserGroupNotExist(), name));
         }
         crud.delete(realGroupName);
     }

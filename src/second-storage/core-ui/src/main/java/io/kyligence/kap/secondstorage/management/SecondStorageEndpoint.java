@@ -209,7 +209,7 @@ public class SecondStorageEndpoint extends NBasicController {
                 request.getSegmentNames().toArray(new String[0]));
 
         if (ArrayUtils.isEmpty(segIds)) {
-            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getINVALID_REFRESH_SEGMENT());
+            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getInvalidRefreshSegment());
         }
 
         if (!request.storageTypeSupported()) {
@@ -251,7 +251,7 @@ public class SecondStorageEndpoint extends NBasicController {
         checkProjectName(request.getProject());
         if (!SecondStorageUtil.isProjectEnable(request.getProject())) {
             throw new KylinException(SECOND_STORAGE_PROJECT_STATUS_ERROR,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getSECOND_STORAGE_PROJECT_ENABLED(), request.getProject()));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getSecondStorageProjectEnabled(), request.getProject()));
 
         }
         secondStorageService.sizeInNode(request.getProject());
@@ -263,7 +263,7 @@ public class SecondStorageEndpoint extends NBasicController {
         checkProjectName(project);
         if (!SecondStorageUtil.isProjectEnable(project)) {
             throw new KylinException(SECOND_STORAGE_PROJECT_STATUS_ERROR,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getSECOND_STORAGE_PROJECT_ENABLED(), project));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getSecondStorageProjectEnabled(), project));
 
         }
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, secondStorageService.tableSync(project), "");
@@ -309,7 +309,7 @@ public class SecondStorageEndpoint extends NBasicController {
 
     public void checkProjects(List<String> projects) {
         if (CollectionUtils.isEmpty(projects)) {
-            throw new KylinException(EMPTY_PROJECT_NAME, MsgPicker.getMsg().getEMPTY_PROJECT_NAME());
+            throw new KylinException(EMPTY_PROJECT_NAME, MsgPicker.getMsg().getEmptyProjectName());
         }
 
         for (String project : projects) {

@@ -321,7 +321,7 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
         List<Query> currentQueries = record.getQueries();
         if (currentQueries.stream().map(Query::getName).collect(Collectors.toSet()).contains(query.getName()))
             throw new KylinException(SAVE_QUERY_FAILED,
-                    String.format(Locale.ROOT, msg.getDUPLICATE_QUERY_NAME(), query.getName()));
+                    String.format(Locale.ROOT, msg.getDuplicateQueryName(), query.getName()));
 
         currentQueries.add(query);
         getStore().checkAndPutResource(getQueryKeyById(project, creator), record, QueryRecordSerializer.getInstance());
@@ -474,7 +474,7 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
         if (executeUser == null)
             return;
         if (!KylinConfig.getInstanceFromEnv().isExecuteAsEnabled()) {
-            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getEXECUTE_AS_NOT_ENABLED());
+            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getExecuteAsNotEnabled());
         }
         // check whether service account has all read privileges
         final AclTCRManager aclTCRManager = AclTCRManager.getInstance(KylinConfig.getInstanceFromEnv(),
@@ -483,7 +483,7 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
         Set<String> groups = getCurrentUserGroups();
         if (!AclPermissionUtil.isAdmin() && !aclTCRManager.isAllTablesAuthorized(username, groups))
             throw new KylinException(PERMISSION_DENIED, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getSERVICE_ACCOUNT_NOT_ALLOWED(), username, sqlRequest.getProject()));
+                    MsgPicker.getMsg().getServiceAccountNotAllowed(), username, sqlRequest.getProject()));
 
         // check whether execute user has project read permission
         List<String> grantedProjects;
@@ -503,15 +503,19 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
         if (!kylinConfig.isQueryNode()) {
             throw new KylinException(JOB_NODE_QUERY_API_INVALID);
         }
-        if (StringUtils.isBlank(sqlRequest.getProject())) {
-            throw new KylinException(EMPTY_PROJECT_NAME, msg.getEMPTY_PROJECT_NAME());
-        }
+        checkSqlRequestProject(sqlRequest, msg);
         final NProjectManager projectMgr = NProjectManager.getInstance(kylinConfig);
         if (projectMgr.getProject(sqlRequest.getProject()) == null) {
             throw new KylinException(PROJECT_NOT_EXIST, sqlRequest.getProject());
         }
         if (StringUtils.isBlank(sqlRequest.getSql())) {
-            throw new KylinException(EMPTY_SQL_EXPRESSION, msg.getNULL_EMPTY_SQL());
+            throw new KylinException(EMPTY_SQL_EXPRESSION, msg.getNullEmptySql());
+        }
+    }
+
+    private void checkSqlRequestProject(SQLRequest sqlRequest, Message msg) {
+        if (StringUtils.isBlank(sqlRequest.getProject())) {
+            throw new KylinException(EMPTY_PROJECT_NAME, msg.getEmptyProjectName());
         }
     }
 
@@ -718,7 +722,7 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
             if (isSelect) {
                 sqlResponse = query(sqlRequest);
             } else {
-                throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getNOT_SUPPORTED_SQL());
+                throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getnotSupportedSql());
             }
             if (checkCondition(queryCacheEnabled, "query cache is disabled")) {
                 // set duration for caching condition checking
@@ -751,7 +755,7 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
             if (UserStopQueryException.causedByUserStop(e)) {
                 sqlResponse.setStopByUser(true);
                 sqlResponse.setColumnMetas(Lists.newArrayList());
-                sqlResponse.setExceptionMessage(MsgPicker.getMsg().getSTOP_BY_USER_ERROR_MESSAGE());
+                sqlResponse.setExceptionMessage(MsgPicker.getMsg().getStopByUserErrorMessage());
             }
 
             sqlResponse.wrapResultOfQueryContext(queryContext);
@@ -848,11 +852,11 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
         int concurrentLimit = sqlBlacklistItem.getConcurrentLimit();
         if (concurrentLimit == 0) {
             throw new KylinException(BLACKLIST_QUERY_REJECTED, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getSQL_BLACKLIST_QUERY_REJECTED(), sqlBlacklistItem.getId()));
+                    MsgPicker.getMsg().getSqlBlacklistQueryRejected(), sqlBlacklistItem.getId()));
         }
         if (getSqlConcurrentCount(sqlBlacklistItem) >= concurrentLimit) {
             throw new KylinException(BLACKLIST_EXCEEDED_CONCURRENT_LIMIT,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getSQL_BLACKLIST_QUERY_CONCUTTENT_LIMIT_EXCEEDED(),
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getSqlBlackListQueryConcurrentLimitExceeded(),
                             sqlBlacklistItem.getId(), concurrentLimit));
         }
     }
@@ -937,7 +941,7 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
                     ADMINISTRATION, acl);
         } catch (UsernameNotFoundException e) {
             throw new KylinException(INVALID_USER_NAME,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_EXECUTE_AS_USER(), executeAs));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getInvalidExecuteAsUser(), executeAs));
         }
         return new QueryContext.AclInfo(executeAs, groupsOfExecuteUser, hasAdminPermission);
     }

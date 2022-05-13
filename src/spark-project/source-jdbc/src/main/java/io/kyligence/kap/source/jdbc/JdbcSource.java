@@ -55,7 +55,7 @@ public class JdbcSource implements ISource {
             dataSource = SourceConnectorFactory.getJdbcConnector(config);
         } catch (Exception e) {
             log.error("DataSource cannot be connected.");
-            throw new KylinException(INVALID_JDBC_SOURCE_CONFIG, MsgPicker.getMsg().getJDBC_CONNECTION_INFO_WRONG(), e);
+            throw new KylinException(INVALID_JDBC_SOURCE_CONFIG, MsgPicker.getMsg().getJdbcConnectionInfoWrong(), e);
         }
     }
 

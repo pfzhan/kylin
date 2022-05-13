@@ -43,7 +43,7 @@ public class TableUtils {
         val result = Arrays.stream(columns).filter(column -> DataType.TIMESTAMP.equals(column.getDatatype())).findAny();
         if (!result.isPresent()) {
             throw new KylinException(TIMESTAMP_COLUMN_NOT_EXIST,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getTIMESTAMP_COLUMN_NOT_EXIST()));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getTimestampColumnNotExist()));
         }
     }
 

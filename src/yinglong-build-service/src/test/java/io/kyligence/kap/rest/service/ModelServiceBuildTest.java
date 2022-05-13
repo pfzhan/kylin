@@ -528,7 +528,7 @@ public class ModelServiceBuildTest extends SourceTestCase {
     }
 
     @Test
-    @Ignore
+    @Ignore("ignore")
     public void testBuildSegmentsManually_NoPartition_FullSegExisted() throws Exception {
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         val project = "default";
@@ -940,7 +940,7 @@ public class ModelServiceBuildTest extends SourceTestCase {
         dfMgr.refreshSegment(df, df.getSegments().get(0).getSegRange());
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage(MsgPicker.getMsg().getSEGMENT_CAN_NOT_REFRESH());
+        thrown.expectMessage(MsgPicker.getMsg().getSegmentCanNotRefresh());
         val loadingRangeMgr = NDataLoadingRangeManager.getInstance(getTestConfig(), "default");
         val loadingRange = new NDataLoadingRange();
         loadingRange.setTableName("DEFAULT.TEST_KYLIN_FACT");
@@ -1631,6 +1631,11 @@ public class ModelServiceBuildTest extends SourceTestCase {
                 .filter(model -> "cb596712-3a09-46f8-aea1-988b43fe9b6c".equals(model.getUuid())).findFirst().get()
                 .getOldParams().getJoinTables().size();
         Assert.assertEquals(1, joinTablesSize);
+    }
+
+    @Test
+    public void testProposeDateFormat() {
+        Assert.assertThrows(KylinException.class, () -> DateFormat.proposeDateFormat("not_exits"));
     }
 
 }

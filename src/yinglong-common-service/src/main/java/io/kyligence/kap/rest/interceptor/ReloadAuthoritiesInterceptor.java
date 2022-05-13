@@ -92,7 +92,7 @@ public class ReloadAuthoritiesInterceptor extends HandlerInterceptorAdapter {
                     response.setContentType(MediaType.APPLICATION_JSON_VALUE);
                     ErrorResponse errorResponse = new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(request),
                             new KylinException(USER_DATA_SOURCE_CONNECTION_FAILED,
-                                    MsgPicker.getMsg().getLDAP_USER_DATA_SOURCE_CONNECTION_FAILED()));
+                                    MsgPicker.getMsg().getlDapUserDataSourceConnectionFailed()));
                     response.setCharacterEncoding("UTF-8");
                     PrintWriter writer = response.getWriter();
                     writer.print(JsonUtil.writeValueAsIndentString(errorResponse));

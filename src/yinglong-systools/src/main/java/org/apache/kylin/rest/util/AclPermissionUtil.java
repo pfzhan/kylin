@@ -127,11 +127,8 @@ public class AclPermissionUtil {
             return Collections.emptySet();
         }
 
-        return acl.getEntries()
-                .parallelStream()
-                .filter(ace -> !(ace.getSid() instanceof PrincipalSid))
-                .map(ace -> getName(ace.getSid()))
-                .collect(Collectors.toSet());
+        return acl.getEntries().parallelStream().filter(ace -> !(ace.getSid() instanceof PrincipalSid))
+                .map(ace -> getName(ace.getSid())).collect(Collectors.toSet());
     }
 
     public static boolean isAdmin(Set<String> groups) {
@@ -163,7 +160,7 @@ public class AclPermissionUtil {
     }
 
     public static boolean isSpecificPermissionInProject(String username, Set<String> userGroupsInProject,
-                                                        Permission aclPermission, MutableAclRecord acl) {
+            Permission aclPermission, MutableAclRecord acl) {
         if (Objects.isNull(acl)) {
             return false;
         }
@@ -238,12 +235,15 @@ public class AclPermissionUtil {
 
     public static void checkAclUpdatable(String project, Set<String> groups) {
         if (!AclPermissionUtil.isAclUpdatable(project, groups)) {
-            if (KylinConfig.getInstanceFromEnv().isAllowedProjectAdminGrantAcl()) {
-                throw new KylinException(PERMISSION_DENIED,
-                        MsgPicker.getMsg().getACCESS_DENY_ONLY_ADMIN_AND_PROJECT_ADMIN());
-            } else {
-                throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getACCESS_DENY_ONLY_ADMIN());
-            }
+            checkIfAllowedProjectAdminGrantAcl(KylinConfig.getInstanceFromEnv().isAllowedProjectAdminGrantAcl());
+        }
+    }
+
+    private static void checkIfAllowedProjectAdminGrantAcl(boolean isAllowedProjectAdminGrantAcl) {
+        if (isAllowedProjectAdminGrantAcl) {
+            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getAccessDenyOnlyAdminAndProjectAdmin());
+        } else {
+            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getAccessDenyOnlyAdmin());
         }
     }
 

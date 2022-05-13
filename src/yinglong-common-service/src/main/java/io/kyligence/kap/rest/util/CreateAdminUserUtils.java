@@ -83,7 +83,7 @@ public class CreateAdminUserUtils {
     public static void checkProfile(Environment env) {
         val msg = MsgPicker.getMsg();
         if (!env.acceptsProfiles(PROFILE_DEFAULT, PROFILE_CUSTOM)) {
-            throw new KylinException(FAILED_UPDATE_USER, msg.getUSER_EDIT_NOT_ALLOWED());
+            throw new KylinException(FAILED_UPDATE_USER, msg.getUserEditNotAllowed());
         }
     }
 
