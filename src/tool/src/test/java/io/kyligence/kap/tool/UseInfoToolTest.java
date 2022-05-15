@@ -82,6 +82,8 @@ public class UseInfoToolTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(new File(useInfoDir, "base").exists());
         List<String> lines = FileUtils.readLines(new File(useInfoDir, "query_daily.csv"), "utf-8");
         Assert.assertEquals(2, lines.size());
+        Assert.assertEquals("0.0", UseInfoTool.divide(2.0, 0.0, "%.1f"));
+        Assert.assertEquals("3.3", UseInfoTool.divide(10.0, 3.0, "%.1f"));
     }
 
     public static QueryMetrics createQueryMetrics(long queryTime, long duration, boolean indexHit, String project,

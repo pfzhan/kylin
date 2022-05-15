@@ -121,11 +121,14 @@ public class UseInfoTool {
                                 return executable.getWaitTime() + executable.getDuration();
                             }).sum();
                     lines.add(String.format(Locale.ROOT, "%s,%s,%s,%s", key, buildNum,
-                            buildSucceedNum == 0 ? 0.00
-                                    : String.format("%.2f", totalDuration / (buildSucceedNum * 60.0 * 1000)),
-                            String.format("%.3f", buildSucceedNum * 1.0 / buildNum)));
+                            divide(totalDuration, buildSucceedNum * 60.0 * 1000, "%.2f"),
+                            divide(buildSucceedNum * 1.0, buildNum, "%.3f")));
                 });
         FileUtils.writeLines(new File(exportDir, BUILD_DAILY_FILE_NAME), lines, false);
+    }
+
+    public static String divide(double molecular, double denominator, String format) {
+        return String.format(format, denominator == 0 ? 0.0 : molecular / denominator);
     }
 
     private static void baseInfo(File exportDir) throws IOException {
