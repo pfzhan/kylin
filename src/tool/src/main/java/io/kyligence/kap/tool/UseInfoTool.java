@@ -49,6 +49,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.guava20.shaded.common.base.MoreObjects;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.QueryDailyStatistic;
@@ -139,10 +140,12 @@ public class UseInfoTool {
         SourceUsageRecord latestRecord = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getLatestRecord();
         stringBuilder.append("license_capacity : ")
-                .append(null == latestRecord ? 0 : FileUtils.byteCountToDisplaySize(latestRecord.getLicenseCapacity()))
+                .append(FileUtils.byteCountToDisplaySize(
+                        MoreObjects.firstNonNull(latestRecord, new SourceUsageRecord()).getLicenseCapacity()))
                 .append("\n");
         stringBuilder.append("license_used_capacity : ")
-                .append(null == latestRecord ? 0 : FileUtils.byteCountToDisplaySize(latestRecord.getCurrentCapacity()))
+                .append(FileUtils.byteCountToDisplaySize(
+                        MoreObjects.firstNonNull(latestRecord, new SourceUsageRecord()).getCurrentCapacity()))
                 .append("\n");
         FileUtils.writeStringToFile(new File(exportDir, BASE_FILE_NAME), stringBuilder.toString(),
                 StandardCharsets.UTF_8, false);
