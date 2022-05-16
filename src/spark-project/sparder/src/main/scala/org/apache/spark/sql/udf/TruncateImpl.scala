@@ -44,10 +44,6 @@ object TruncateImpl {
     evaluate(BigDecimal.valueOf(value), scale).doubleValue()
   }
 
-  def evaluate(value: Float, scale: Int): Float = {
-    evaluate(BigDecimal.valueOf(value), scale).floatValue()
-  }
-
   def evaluate(value: Decimal, scale: Int): Decimal = {
     Decimal.apply(evaluate(value.toJavaBigDecimal, scale))
   }
