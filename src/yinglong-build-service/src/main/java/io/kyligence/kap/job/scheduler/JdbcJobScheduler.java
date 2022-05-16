@@ -100,7 +100,7 @@ public class JdbcJobScheduler implements JobScheduler {
         jobExecutorPoolRef = new AtomicReference<>(ThreadUtils.newDaemonScalableThreadPool("JdbcJobScheduler-Executor",
                 1, jobConfig.getJobSchedulerConsumerMaxThreads(), 5, TimeUnit.MINUTES));
 
-        // resource management
+        // resource block
         // progress report
         // status control
         jobContextRef = new AtomicReference<>(new JobContext(jobConfig));
@@ -291,7 +291,7 @@ public class JdbcJobScheduler implements JobScheduler {
         try (JobExecutor jobExecutor = new JobExecutor(jobContext, jobExecutable)) {
             jobExecutor.execute();
         } catch (Exception e) {
-            logger.error("Job execute failed: {} {}", jobExecutable.getProject(), jobExecutable.getJobId(), e);
+            logger.error("Job execute failed", e);
         }
     }
 

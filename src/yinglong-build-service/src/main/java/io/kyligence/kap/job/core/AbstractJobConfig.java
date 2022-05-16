@@ -34,9 +34,9 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.job.scheduler.JdbcJobScheduler;
-import io.kyligence.kap.job.scheduler.ProgressReporter;
 import io.kyligence.kap.job.scheduler.JobScheduler;
-import io.kyligence.kap.job.scheduler.SharedFileProgressReporter;
+import io.kyligence.kap.job.scheduler.ProgressReporter;
+import io.kyligence.kap.job.scheduler.RestfulProgressReporter;
 
 public abstract class AbstractJobConfig {
 
@@ -96,6 +96,10 @@ public abstract class AbstractJobConfig {
         return 8;
     }
 
+    public int getJobProgressReporterMaxThreads() {
+        return 6;
+    }
+
     public JobScheduler getJobScheduler() {
         String prop = null;
         try {
@@ -113,8 +117,8 @@ public abstract class AbstractJobConfig {
             prop = getProperty(JOB_PROGRESS_REPORTER_CLASS_NAME);
             return getInstance0(prop);
         } catch (Exception e) {
-            logger.error("Create instance from '{}' failed, fallback to default#SharedFileProgressReporter.", prop, e);
-            return new SharedFileProgressReporter();
+            logger.error("Create instance from '{}' failed, fallback to default#RestfulProgressReporter.", prop, e);
+            return new RestfulProgressReporter();
         }
     }
 

@@ -28,9 +28,9 @@ import io.kyligence.kap.job.core.AbstractJobExecutable;
 
 public class NodeResource {
 
-    private AbstractJobExecutable jobExecutable;
+    private final AbstractJobExecutable jobExecutable;
 
-    private int memory;
+    private final int memory;
 
     public NodeResource(AbstractJobExecutable jobExecutable) {
         this.jobExecutable = jobExecutable;

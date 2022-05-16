@@ -24,9 +24,12 @@
 
 package io.kyligence.kap.job.scheduler;
 
+import java.util.concurrent.ScheduledExecutorService;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.engine.spark.utils.ThreadUtils;
 import io.kyligence.kap.job.core.AbstractJobConfig;
 import io.kyligence.kap.job.core.AbstractJobExecutable;
 
@@ -39,7 +42,9 @@ public class JobContext {
     private final AbstractJobConfig jobConfig;
 
     private final ResourceBlocker resourceBlocker;
-    private final ProgressReporter progressReporter;
+    private final RestfulProgressReporter progressReporter;
+
+    private ScheduledExecutorService progressReportScheduler;
 
     public void close() {
         progressReporter.close();
@@ -49,7 +54,12 @@ public class JobContext {
         this.jobConfig = jobConfig;
 
         resourceBlocker = new ResourceBlocker(jobConfig);
-        progressReporter = jobConfig.getJobProgressReporter();
+        // TODO
+        // progressReporter = jobConfig.getJobProgressReporter();
+        progressReporter = new RestfulProgressReporter();
+
+        int corePoolSize = jobConfig.getJobProgressReporterMaxThreads();
+        progressReportScheduler = ThreadUtils.newDaemonThreadScheduledExecutor(corePoolSize, "JobProgressReporter");
     }
 
     public boolean isResourceBlocked(AbstractJobExecutable jobExecutable) {
@@ -64,15 +74,15 @@ public class JobContext {
         resourceBlocker.onJobUnregistered(jobExecutable);
     }
 
-    public void onJobStarted(AbstractJobExecutable jobExecutable) {
+    public void onJobStarted(JobExecutor jobExecutor) {
 
     }
 
-    public void onJobStopped(AbstractJobExecutable jobExecutable) {
+    public void onJobStopped(JobExecutor jobExecutor) {
 
     }
 
-    public void onJobFailed(AbstractJobExecutable jobExecutable) {
+    public void onJobFailed(JobExecutor jobExecutor) {
 
     }
 

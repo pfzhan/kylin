@@ -24,9 +24,10 @@
 
 package io.kyligence.kap.job.scheduler;
 
-public class SharedFileProgressReporter implements ProgressReporter {
+public class RestfulProgressReporter implements ProgressReporter {
 
     public void close() {
 
     }
+
 }
