@@ -22,37 +22,28 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.job.mapper;
+package io.kyligence.kap.job.scheduler;
 
-import java.util.Date;
-import java.util.List;
+import io.kyligence.kap.job.core.AbstractJobConfig;
 
-import org.apache.ibatis.annotations.Mapper;
+public class SharedFileProgressReporter implements ProgressReporter {
 
-import io.kyligence.kap.job.domain.JobScheduleLock;
+    private final AbstractJobConfig jobConfig;
 
-@Mapper
-public interface JobScheduleLockMapper {
+    public SharedFileProgressReporter(AbstractJobConfig jobConfig) {
+        this.jobConfig = jobConfig;
+    }
 
-    int deleteByPrimaryKey(String lockId);
+    public void start() {
+        // do nothing
+    };
 
-    int insert(JobScheduleLock row);
+    public void destroy() {
+        // do nothing
+    }
 
-    int insertSelective(JobScheduleLock row);
-
-    JobScheduleLock selectByPrimaryKey(String lockId);
-
-    int updateByPrimaryKeySelective(JobScheduleLock row);
-
-    int updateByPrimaryKey(JobScheduleLock row);
-
-    // insert if not exists
-    // TODO
-    int insertLock(String lockId, String lockInstance, Date lockExpireTime);
-
-    // TODO
-    int updateLock(String lockId, String lockInstance, Date lockExpireTime);
-
-    // TODO
-    List<String> selectNonLockedIdList(int batchSize);
+    @Override
+    public void reportProgress() {
+        // do nothing
+    }
 }

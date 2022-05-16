@@ -22,61 +22,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.job.domain;
+package io.kyligence.kap.job.core.lock;
 
-import java.util.Date;
+public class LockException extends Exception {
 
-import lombok.AllArgsConstructor;
-
-@AllArgsConstructor
-public class JobScheduleLock {
-    private String lockId;
-
-    private String lockInstance;
-
-    private Date lockExpireTime;
-
-    private Date createTime;
-
-    private Date updateTime;
-
-    public String getLockId() {
-        return lockId;
+    public LockException(String message, Throwable cause) {
+        super(message, cause);
     }
 
-    public void setLockId(String lockId) {
-        this.lockId = lockId;
-    }
-
-    public String getLockInstance() {
-        return lockInstance;
-    }
-
-    public void setLockInstance(String lockInstance) {
-        this.lockInstance = lockInstance;
-    }
-
-    public Date getLockExpireTime() {
-        return lockExpireTime;
-    }
-
-    public void setLockExpireTime(Date lockExpireTime) {
-        this.lockExpireTime = lockExpireTime;
-    }
-
-    public Date getCreateTime() {
-        return createTime;
-    }
-
-    public void setCreateTime(Date createTime) {
-        this.createTime = createTime;
-    }
-
-    public Date getUpdateTime() {
-        return updateTime;
-    }
-
-    public void setUpdateTime(Date updateTime) {
-        this.updateTime = updateTime;
-    }
 }

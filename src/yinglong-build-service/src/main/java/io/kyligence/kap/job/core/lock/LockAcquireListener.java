@@ -22,37 +22,13 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.job.core;
+package io.kyligence.kap.job.core.lock;
 
-import org.apache.kylin.common.util.RandomUtil;
+public interface LockAcquireListener {
 
-public class AbstractJobExecutable {
+    // light action
+    void onSucceed();
 
-    private String jobId;
-
-    private String project;
-
-    public AbstractJobExecutable() {
-        this.jobId = RandomUtil.randomUUIDStr();
-    }
-
-    public void execute() throws Exception {
-    }
-
-    public void cancelJob() {
-        // TODO
-    }
-
-    public String getJobId() {
-        return jobId;
-    }
-
-    public String getProject() {
-        return project;
-    }
-
-    public int computeStepDriverMemory() {
-        // TODO
-        return 0;
-    }
+    // light action
+    void onFailed();
 }

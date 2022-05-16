@@ -60,6 +60,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -105,7 +106,7 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.common.util.Unsafe;
-import io.kyligence.kap.job.DataLoadingManager;
+import io.kyligence.kap.job.JobContext;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
 import io.kyligence.kap.rest.request.Validation;
@@ -124,6 +125,9 @@ public class BaseController {
 
     @Autowired
     private ProjectService projectService;
+
+    @Resource
+    private JobContext jobContext;
 
     @Autowired
     protected UserService userService;
@@ -443,10 +447,9 @@ public class BaseController {
     }
 
     protected Map<String, List<String>> splitJobIdsByScheduleInstance(List<String> ids) {
-        DataLoadingManager dataLoadingManager = DataLoadingManager.getInstance();
         Map<String, List<String>> nodeWithJobs = new HashMap<>();
         for (String jobId : ids) {
-            String host = dataLoadingManager.getJobConfig().getJobScheduler().getJobOwner(jobId);
+            String host = jobContext.getJobScheduler().getJobNode(jobId);
             List<String> jobIds = nodeWithJobs.getOrDefault(host, new ArrayList<>());
             jobIds.add(jobId);
             nodeWithJobs.put(host, jobIds);
@@ -465,7 +468,8 @@ public class BaseController {
         return targetNodes.size() > 1 || targetNodes.size() == 1 && !targetNodes.contains(local);
     }
 
-    protected void forwardRequestToTargetNode(byte[] requestEntity, HttpHeaders headers, String node, String url) throws IOException {
+    protected void forwardRequestToTargetNode(byte[] requestEntity, HttpHeaders headers, String node, String url)
+            throws IOException {
         RestClient client = new RestClient(node);
         client.forwardPut(requestEntity, headers, url);
     }

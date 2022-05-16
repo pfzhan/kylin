@@ -51,6 +51,6 @@ public class NodeResource {
     }
 
     private int evaluateMemory(AbstractJobExecutable jobExecutable) {
-        return jobExecutable.evaluateDriverMemory();
+        return jobExecutable.computeStepDriverMemory();
     }
 }

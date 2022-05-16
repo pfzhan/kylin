@@ -88,7 +88,7 @@ import io.kyligence.kap.job.core.AbstractJobConfig;
 import io.kyligence.kap.job.execution.merger.MetadataMerger;
 import io.kyligence.kap.job.execution.stage.StageBase;
 import io.kyligence.kap.job.manager.ExecutableManager;
-import io.kyligence.kap.job.scheduler.JobContext;
+import io.kyligence.kap.job.JobContext;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;

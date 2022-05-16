@@ -35,11 +35,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.job.scheduler.JdbcJobScheduler;
-import io.kyligence.kap.job.scheduler.JobScheduler;
-import io.kyligence.kap.job.scheduler.ProgressReporter;
-import io.kyligence.kap.job.scheduler.RestfulProgressReporter;
-
 public abstract class AbstractJobConfig {
 
     private static final Logger logger = LoggerFactory.getLogger(AbstractJobConfig.class);
@@ -50,13 +45,17 @@ public abstract class AbstractJobConfig {
 
     public static final String NACOS_SOURCE = "nacos";
 
-    private static final String JOB_SCHEDULER_CLASS_NAME = "jobSchedulerClassName";
-
-    private static final String JOB_PROGRESS_REPORTER_CLASS_NAME = "jobProgressReporterClassName";
-
     public abstract String getProperty(String name);
 
     public abstract void destroy();
+
+    public int getParallelJobCountThreshold() {
+        return 20;
+    }
+
+    public int getNodeParallelJobCountThreshold() {
+        return 5;
+    }
 
     public double getMaxLocalNodeMemoryRatio() {
         return 0.5d;
@@ -66,35 +65,39 @@ public abstract class AbstractJobConfig {
         return 10;
     }
 
-    public int getJobSchedulerMasterPollIntervalSec() {
-        return 30;
+    public long getJobSchedulerMasterPollIntervalSec() {
+        return 30L;
     }
 
     public double getJobSchedulerMasterRenewalRatio() {
         return 0.85d;
     }
 
-    public int getJobSchedulerMasterExpireSec() {
-        return 60;
+    public long getJobSchedulerMasterRenewalSec() {
+        return 60L;
     }
 
-    public int getJobSchedulerProducerPollBatchSize() {
+    public int getJobSchedulerSlavePollBatchSize() {
         return 5;
     }
 
-    public int getJobSchedulerProducerPollIntervalSec() {
-        return 20;
+    public long getJobSchedulerSlavePollIntervalSec() {
+        return 20L;
     }
 
-    public double getJobSchedulerConsumerRenewalRatio() {
+    public double getJobSchedulerJobRenewalRatio() {
         return 0.75d;
     }
 
-    public int getJobSchedulerConsumerExpireSec() {
-        return 120;
+    public long getJobSchedulerJobRenewalSec() {
+        return 120L;
     }
 
     public int getJobSchedulerConsumerMaxThreads() {
+        return 8;
+    }
+
+    public int getJdbcJobLockClientMaxThreads() {
         return 8;
     }
 
@@ -111,31 +114,8 @@ public abstract class AbstractJobConfig {
         return KylinConfig.getInstanceFromEnv().getCliCommandExecutor();
     }
 
-    public JobScheduler getJobScheduler() {
-        String prop = null;
-        try {
-            prop = getProperty(JOB_SCHEDULER_CLASS_NAME);
-            return getInstance0(prop);
-        } catch (Exception e) {
-            logger.error("Create instance from '{}' failed, fallback to default#JdbcJobScheduler.", prop, e);
-            return new JdbcJobScheduler();
-        }
-    }
-
-    public ProgressReporter getJobProgressReporter() {
-        String prop = null;
-        try {
-            prop = getProperty(JOB_PROGRESS_REPORTER_CLASS_NAME);
-            return getInstance0(prop);
-        } catch (Exception e) {
-            logger.error("Create instance from '{}' failed, fallback to default#RestfulProgressReporter.", prop, e);
-            return new RestfulProgressReporter();
-        }
-    }
-
     private <T> T getInstance0(String className) throws ClassNotFoundException, NoSuchMethodException,
             IllegalAccessException, InvocationTargetException, InstantiationException {
-        className = "io.kyligence.kap.job.scheduler.JdbcJobScheduler";
         Object instance = singletonMap.get(className);
         if (Objects.isNull(instance)) {
             synchronized (this) {

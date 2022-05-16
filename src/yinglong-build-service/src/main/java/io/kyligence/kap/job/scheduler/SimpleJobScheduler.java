@@ -24,28 +24,23 @@
 
 package io.kyligence.kap.job.scheduler;
 
-import io.kyligence.kap.common.util.AddressUtil;
-import io.kyligence.kap.job.core.AbstractJobConfig;
-
 public class SimpleJobScheduler implements JobScheduler {
-
-    private AbstractJobConfig jobConfig;
 
     public SimpleJobScheduler() {
     }
 
     @Override
-    public void destroy() {
+    public void publishJob() {
 
     }
 
     @Override
-    public void start() {
+    public void subscribeJob() {
 
     }
 
     @Override
-    public String getJobOwner(String jobId) {
-        return AddressUtil.getLocalInstance();
+    public String getJobNode(String jobId) {
+        throw new UnsupportedOperationException();
     }
 }

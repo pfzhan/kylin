@@ -44,7 +44,7 @@ import io.kyligence.kap.engine.spark.utils.FileNames;
 import io.kyligence.kap.engine.spark.utils.HDFSUtils;
 import io.kyligence.kap.job.execution.AbstractExecutable;
 import io.kyligence.kap.job.execution.DefaultChainedExecutableOnModel;
-import io.kyligence.kap.job.scheduler.JobContext;
+import io.kyligence.kap.job.JobContext;
 import io.kyligence.kap.job.util.ExecutableUtils;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;

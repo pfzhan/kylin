@@ -93,7 +93,7 @@ import io.kyligence.kap.guava20.shaded.common.base.MoreObjects;
 import io.kyligence.kap.job.core.AbstractJobExecutable;
 import io.kyligence.kap.job.execution.stage.StageBase;
 import io.kyligence.kap.job.manager.ExecutableManager;
-import io.kyligence.kap.job.scheduler.JobContext;
+import io.kyligence.kap.job.JobContext;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.model.NDataModel;

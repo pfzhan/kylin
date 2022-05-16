@@ -45,7 +45,7 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.engine.spark.stats.utils.HiveTableRefChecker;
 import io.kyligence.kap.job.execution.step.JobStepType;
 import io.kyligence.kap.job.execution.step.NResourceDetectStep;
-import io.kyligence.kap.job.scheduler.JobContext;
+import io.kyligence.kap.job.JobContext;
 import io.kyligence.kap.job.util.ExecutableUtils;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;

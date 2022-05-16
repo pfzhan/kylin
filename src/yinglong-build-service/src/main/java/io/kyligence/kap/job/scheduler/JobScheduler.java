@@ -24,14 +24,15 @@
 
 package io.kyligence.kap.job.scheduler;
 
-import java.lang.reflect.InvocationTargetException;
-
 public interface JobScheduler {
 
-    void destroy();
+    String MASTER_SCHEDULER = "master_scheduler";
 
-    void start() throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException,
-    InstantiationException, IllegalAccessException;
-    
-    String getJobOwner(String jobId);
+    // master
+    void publishJob();
+
+    // slave
+    void subscribeJob();
+
+    String getJobNode(String jobId);
 }

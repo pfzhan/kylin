@@ -61,7 +61,7 @@ import org.apache.kylin.job.execution.ExecuteResult;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.scheduler.JobFinishedNotifier;
 import io.kyligence.kap.guava20.shaded.common.collect.Lists;
-import io.kyligence.kap.job.scheduler.JobContext;
+import io.kyligence.kap.job.JobContext;
 
 /**
  */

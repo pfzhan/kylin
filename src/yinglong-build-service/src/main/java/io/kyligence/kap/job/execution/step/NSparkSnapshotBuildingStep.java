@@ -48,7 +48,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.job.execution.NSparkExecutable;
-import io.kyligence.kap.job.scheduler.JobContext;
+import io.kyligence.kap.job.JobContext;
 import io.kyligence.kap.job.util.ExecutableUtils;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;

@@ -46,7 +46,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.job.execution.NSparkExecutable;
-import io.kyligence.kap.job.scheduler.JobContext;
+import io.kyligence.kap.job.JobContext;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 
 public class SparkCleanupTransactionalTableStep extends NSparkExecutable {

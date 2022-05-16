@@ -33,22 +33,22 @@ CREATE TABLE IF NOT EXISTS `job_info` (
   `job_type` varchar(50) NOT NULL,
   `job_status` varchar(50) NOT NULL,
   `project` varchar(50) NOT NULL,
-  `model_name` varchar(50) NOT NULL,
+  `subject` varchar(50) NOT NULL,
   `model_id` varchar(50) NOT NULL,
   `job_content` longblob NOT NULL,
-  `create_time` datetime DEFAULT NULL,
-  `update_time` datetime DEFAULT NULL,
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `job_duration_millis` bigint(10) NOT NULL DEFAULT '0' COMMENT 'total duration milliseconds',
   PRIMARY KEY (`job_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
-CREATE TABLE IF NOT EXISTS `job_schedule_lock` (
+CREATE TABLE IF NOT EXISTS `job_lock` (
   `lock_id` varchar(50) NOT NULL COMMENT 'what is locked',
-  `lock_instance` varchar(50) NOT NULL COMMENT 'who locked it',
+  `lock_node` varchar(50) DEFAULT NULL COMMENT 'who locked it',
   `lock_expire_time` datetime DEFAULT NULL COMMENT 'when does the lock expire',
-  `create_time` datetime DEFAULT NULL,
-  `update_time` datetime DEFAULT NULL,
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`lock_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

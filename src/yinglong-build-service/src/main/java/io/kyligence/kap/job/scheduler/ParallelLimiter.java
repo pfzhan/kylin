@@ -24,51 +24,53 @@
 
 package io.kyligence.kap.job.scheduler;
 
-import java.util.Locale;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import io.kyligence.kap.job.JobContext;
-import io.kyligence.kap.job.core.AbstractJobExecutable;
-import io.kyligence.kap.job.execution.AbstractExecutable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class JobExecutor implements AutoCloseable {
+public class ParallelLimiter {
+
+    private static final Logger logger = LoggerFactory.getLogger(ParallelLimiter.class);
 
     private final JobContext jobContext;
-    private final AbstractJobExecutable jobExecutable;
 
-    private final String originThreadName;
+    private final AtomicInteger accumulator;
 
-    public JobExecutor(JobContext jobContext, AbstractJobExecutable jobExecutable) {
+    public ParallelLimiter(JobContext jobContext) {
         this.jobContext = jobContext;
-        this.jobExecutable = jobExecutable;
-
-        this.originThreadName = Thread.currentThread().getName();
-        setThreadName();
-
+        accumulator = new AtomicInteger(0);
     }
 
-    public void execute() throws Exception {
-        // TODO
-        if (jobExecutable instanceof AbstractExecutable) {
-            ((AbstractExecutable) jobExecutable).execute(jobContext);
-        } else {
-            jobExecutable.execute();
+    public boolean tryAcquire() {
+        int threshold = jobContext.getJobConfig().getParallelJobCountThreshold();
+        if (accumulator.getAndIncrement() < threshold) {
+            return true;
         }
+
+        int c = accumulator.decrementAndGet();
+        logger.info("Acquire failed with parallel job count: {}, threshold {}", c, threshold);
+        return false;
     }
 
-    private void setThreadName() {
-        String project = jobExecutable.getProject();
-        String jobFlag = jobExecutable.getJobId().split("-")[0];
-        Thread.currentThread().setName(String.format(Locale.ROOT, "JobExecutor(project:%s,job:%s)", project, jobFlag));
+    public boolean tryRelease() {
+        // exclude master lock
+        int c = jobContext.getJobLockMapper().findCount() - 1;
+        int threshold = jobContext.getJobConfig().getParallelJobCountThreshold();
+        if (c < threshold) {
+            accumulator.set(c);
+            return true;
+        }
+        logger.info("Release failed with parallel job count: {}, threshold: {}", c, threshold);
+        return false;
     }
 
-    private void setbackThreadName() {
-        Thread.currentThread().setName(originThreadName);
+    public void start() {
+        // do nothing
     }
 
-    @Override
-    public void close() throws Exception {
-        jobContext.getResourceAcquirer().release(jobExecutable);
-        // setback thread name
-        setbackThreadName();
+    public void destroy() {
+        // do nothing
     }
 }

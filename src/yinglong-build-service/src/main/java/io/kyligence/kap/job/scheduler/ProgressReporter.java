@@ -25,5 +25,7 @@
 package io.kyligence.kap.job.scheduler;
 
 public interface ProgressReporter {
-    void close();
+
+    void reportProgress();
+
 }

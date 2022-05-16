@@ -24,249 +24,242 @@
 
 package io.kyligence.kap.job.scheduler;
 
-import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.Date;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.time.DateUtils;
+import io.kyligence.kap.job.JobContext;
 import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
 
-import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.engine.spark.utils.ThreadUtils;
-import io.kyligence.kap.job.DataLoadingManager;
-import io.kyligence.kap.job.core.AbstractJobConfig;
 import io.kyligence.kap.job.core.AbstractJobExecutable;
+import io.kyligence.kap.job.core.lock.JdbcJobLock;
+import io.kyligence.kap.job.core.lock.LockAcquireListener;
+import io.kyligence.kap.job.core.lock.LockException;
 import io.kyligence.kap.job.domain.JobInfo;
-import io.kyligence.kap.job.domain.JobScheduleLock;
 import io.kyligence.kap.job.manager.ExecutableManager;
-import io.kyligence.kap.job.mapper.JobInfoMapper;
-import io.kyligence.kap.job.mapper.JobScheduleLockMapper;
 
 public class JdbcJobScheduler implements JobScheduler {
 
     private static final Logger logger = LoggerFactory.getLogger(JdbcJobScheduler.class);
 
-    private static final String JOB_SCHEDULER_MASTER = "job_scheduler_master";
+    private final JobContext jobContext;
 
-    private final AbstractJobConfig jobConfig;
+    private final AtomicBoolean isMaster;
 
-    private final JobInfoMapper jobInfoMapper;
+    private final Map<String, JobExecutor> runningJobMap;
 
-    private final JobScheduleLockMapper scheduleLockMapper;
+    private JdbcJobLock masterLock;
 
-    private final AtomicBoolean isMaster = new AtomicBoolean(false);
+    private ScheduledExecutorService master;
 
-    private final String schedulerInstance = AddressUtil.getLocalInstance();
+    private ScheduledExecutorService slave;
 
-    private ScheduledExecutorService standbyScheduler;
+    private ThreadPoolExecutor executorPool;
 
-    private ScheduledExecutorService masterScheduler;
-
-    private ScheduledExecutorService slaveScheduler;
-
-    private AtomicReference<ThreadPoolExecutor> jobExecutorPoolRef;
-
-    private AtomicReference<JobContext> jobContextRef;
-
-    public JdbcJobScheduler() {
-        DataLoadingManager dataLoading = DataLoadingManager.getInstance();
-        jobConfig = dataLoading.getJobConfig();
-        jobInfoMapper = dataLoading.getJobInfoMapper();
-        scheduleLockMapper = dataLoading.getScheduleLockMapper();
-    }
-
-    public void start() throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException,
-            InstantiationException, IllegalAccessException {
-
-        // acquire JSM
-        standbyScheduler = ThreadUtils.newDaemonSingleThreadScheduledExecutor("JdbcJobScheduler-Standby-Singleton");
-
-        // produce job:  READY -> PENDING
-        masterScheduler = ThreadUtils.newDaemonSingleThreadScheduledExecutor("JdbcJobScheduler-Master-Singleton");
-
-        // consume job: PENDING -> RUNNING
-        slaveScheduler = ThreadUtils.newDaemonSingleThreadScheduledExecutor("JdbcJobScheduler-Slave-Singleton");
-
-        // run job: RUNNING -> FINISHED
-        jobExecutorPoolRef = new AtomicReference<>(ThreadUtils.newDaemonScalableThreadPool("JdbcJobScheduler-Executor",
-                1, jobConfig.getJobSchedulerConsumerMaxThreads(), 5, TimeUnit.MINUTES));
-
-        // resource block
-        // progress report
-        // status control
-        jobContextRef = new AtomicReference<>(new JobContext(jobConfig));
-
-        // acquire JSM
-        scheduleStandby();
-        // produce job
-        scheduleMaster();
-        // consume job
-        scheduleSlave();
+    public JdbcJobScheduler(JobContext jobContext) {
+        this.jobContext = jobContext;
+        this.isMaster = new AtomicBoolean(false);
+        this.runningJobMap = Maps.newConcurrentMap();
     }
 
     @Override
+    public void publishJob() {
+        // master lock
+        masterLock = new JdbcJobLock(JobScheduler.MASTER_SCHEDULER, jobContext.getServerNode(),
+                jobContext.getJobConfig().getJobSchedulerMasterRenewalSec(),
+                jobContext.getJobConfig().getJobSchedulerMasterRenewalRatio(), jobContext.getLockClient(),
+                new MasterAcquireListener());
+        // standby: acquire master lock
+        master.schedule(this::standby, 0, TimeUnit.SECONDS);
+
+        // master: publish job
+        master.schedule(this::produceJob, 0, TimeUnit.SECONDS);
+    }
+
+    @Override
+    public void subscribeJob() {
+        // slave: subscribe job
+        slave.schedule(this::consumeJob, 0, TimeUnit.SECONDS);
+    }
+
+    private boolean hasRunningJob() {
+        return !runningJobMap.isEmpty();
+    }
+
+    @Override
+    public String getJobNode(String jobId) {
+        String jobNode = jobContext.getJobLockMapper().findNodeById(jobId);
+        if (Objects.isNull(jobNode)) {
+            return jobContext.getServerNode();
+        }
+        return jobNode;
+    }
+
+    public void start() {
+        // standby: acquire JSM
+        // publish job:  READY -> PENDING
+        master = ThreadUtils.newDaemonSingleThreadScheduledExecutor("JdbcJobScheduler-Master");
+
+        // subscribe job: PENDING -> RUNNING
+        slave = ThreadUtils.newDaemonSingleThreadScheduledExecutor("JdbcJobScheduler-Slave");
+
+        // execute job: RUNNING -> FINISHED
+        executorPool = ThreadUtils.newDaemonScalableThreadPool("JdbcJobScheduler-Executor", 1,
+                jobContext.getJobConfig().getJobSchedulerConsumerMaxThreads(), 5, TimeUnit.MINUTES);
+
+        publishJob();
+        subscribeJob();
+    }
+
     public void destroy() {
-        if (Objects.nonNull(standbyScheduler)) {
-            standbyScheduler.shutdownNow();
-        }
 
-        if (Objects.nonNull(masterScheduler)) {
-            masterScheduler.shutdownNow();
-        }
-
-        if (Objects.nonNull(slaveScheduler)) {
-            slaveScheduler.shutdownNow();
-        }
-
-        if (Objects.nonNull(jobExecutorPoolRef)) {
-            jobExecutorPoolRef.get().shutdownNow();
-        }
-
-        if (Objects.nonNull(jobContextRef)) {
-            jobContextRef.get().close();
-        }
-    }
-
-    @Override
-    public String getJobOwner(String jobId) {
-        JobScheduleLock jobScheduleLock = scheduleLockMapper.selectByPrimaryKey(jobId);
-        if (jobScheduleLock == null) {
-            return AddressUtil.getLocalInstance();
-        }
-        return jobScheduleLock.getLockInstance();
-    }
-
-    private Date nextJSMExpireTime() {
-        Date current = new Date();
-        return DateUtils.addSeconds(current, jobConfig.getJobSchedulerMasterExpireSec());
-    }
-
-    private int getJSMRenewalDelaySec() {
-        double renewalRatio = jobConfig.getJobSchedulerMasterRenewalRatio();
-        return (int) (renewalRatio * jobConfig.getJobSchedulerMasterExpireSec());
-    }
-
-    private void scheduleStandby() {
-        int renewDelay = getJSMRenewalDelaySec();
-        int preemptDelay = jobConfig.getJobSchedulerMasterExpireSec() - renewDelay;
-        Preconditions.checkArgument(preemptDelay < renewDelay, "JdbcJobScheduler illegal renewal delay.");
-        // preempt
-        standbyScheduler.schedule(this::preemptJSM, preemptDelay, TimeUnit.SECONDS);
-
-        // renew
-        standbyScheduler.schedule(this::renewJSM, renewDelay, TimeUnit.SECONDS);
-    }
-
-    private void preemptJSM() {
-        int r = scheduleLockMapper.insertLock(JOB_SCHEDULER_MASTER, schedulerInstance, nextJobExpireTime());
-        if (r > 0) {
-            isMaster.set(true);
-            logger.info("JdbcJobScheduler preempt master success.");
-        }
-    }
-
-    private void renewJSM() {
-        int r = scheduleLockMapper.updateLock(JOB_SCHEDULER_MASTER, schedulerInstance, nextJSMExpireTime());
-        if (r > 0) {
-            if (isMaster.get()) {
-                logger.info("JdbcJobScheduler renew master success.");
-            } else {
-                isMaster.set(true);
-                logger.info("JdbcJobScheduler acquire master success, scheduler become master and produce job.");
+        if (Objects.nonNull(masterLock)) {
+            try {
+                masterLock.tryRelease();
+            } catch (LockException e) {
+                logger.error("Something's wrong when removing master lock", e);
             }
-        } else if (isMaster.get()) {
-            isMaster.set(false);
-            logger.info("JdbcJobScheduler demise master, scheduler fallback to standby and consume job.");
         }
 
-        int delay = getJSMRenewalDelaySec();
-        standbyScheduler.schedule(this::renewJSM, delay, TimeUnit.SECONDS);
+        if (Objects.nonNull(master)) {
+            master.shutdownNow();
+        }
+
+        if (Objects.nonNull(slave)) {
+            slave.shutdownNow();
+        }
+
+        if (Objects.nonNull(executorPool)) {
+            executorPool.shutdownNow();
+        }
     }
 
-    private void scheduleMaster() {
-        int delay = jobConfig.getJobSchedulerMasterPollIntervalSec();
-        if (isMaster.get()) {
-            // 1. only single master exists at concurrent time.
-            // 2. master's duty: publish job.
-            masterScheduler.schedule(this::produceJob, delay, TimeUnit.SECONDS);
-        } else {
-            masterScheduler.schedule(this::scheduleMaster, delay, TimeUnit.SECONDS);
+    private void standby() {
+        try {
+            masterLock.tryAcquireRenewal();
+        } catch (LockException e) {
+            logger.error("Something's wrong when acquiring master lock.", e);
         }
-
     }
 
     private void produceJob() {
-        // TODO enum job status
-        final String readyStatus = "READY";
-        int batchSize = jobConfig.getJobSchedulerMasterPollBatchSize();
-        List<String> readyJobIdList = jobInfoMapper.selectJobIdListByStatusBatch(readyStatus, batchSize);
-        if (readyJobIdList.isEmpty()) {
-            scheduleMaster();
-            return;
-        }
-
-        String polledJobIdInfo = readyJobIdList.stream().collect(Collectors.joining(",", "[", "]"));
-        logger.info("JdbcJobScheduler polled {} jobs: {}", readyJobIdList.size(), polledJobIdInfo);
-
-        for (String jobId : readyJobIdList) {
-            int r = scheduleLockMapper.insertLock(jobId, null, null);
-            if (r > 0) {
-                // TODO enum job status
-                jobInfoMapper.updateJobStatus(jobId, "PENDING");
+        long delaySec = jobContext.getJobConfig().getJobSchedulerMasterPollIntervalSec();
+        try {
+            // only master can publish job
+            if (!isMaster.get()) {
+                return;
             }
-        }
 
-        // maybe un-scheduled job exists, schedule job immediately
-        produceJob();
+            // parallel job count threshold
+            if (!jobContext.getParallelLimiter().tryRelease()) {
+                return;
+            }
+
+            // TODO enum job status
+            final String readyStatus = "READY";
+            int batchSize = jobContext.getJobConfig().getJobSchedulerMasterPollBatchSize();
+
+            List<String> readyJobIdList = jobContext.getJobInfoMapper().findJobIdListByStatusBatch(readyStatus,
+                    batchSize);
+            if (readyJobIdList.isEmpty()) {
+                return;
+            }
+
+            String polledJobIdInfo = readyJobIdList.stream().collect(Collectors.joining(",", "[", "]"));
+            logger.info("Scheduler polled jobs: {} {}", readyJobIdList.size(), polledJobIdInfo);
+
+            for (String jobId : readyJobIdList) {
+                if (!jobContext.getParallelLimiter().tryAcquire()) {
+                    return;
+                }
+                int r = jobContext.getJobLockMapper().upsertLock(jobId, null, null);
+                if (r > 0) {
+                    // TODO enum job status
+                    jobContext.getJobInfoMapper().updateJobStatusById(jobId, "PENDING");
+                }
+            }
+
+            // maybe more jobs exist, publish job immediately
+            delaySec = 0;
+        } catch (Exception e) {
+            logger.error("Something's wrong when publishing job", e);
+        } finally {
+            master.schedule(this::produceJob, delaySec, TimeUnit.SECONDS);
+        }
     }
 
     private void consumeJob() {
 
-        // TODO
-        // project level: concurrent job count threshold.
+        long delay = jobContext.getJobConfig().getJobSchedulerSlavePollIntervalSec();
+        try {
 
-        int batchSize = jobConfig.getJobSchedulerProducerPollBatchSize();
-//        List<String> jobIdList = scheduleLockMapper.selectNonLockedIdList(batchSize).stream()
-//                .filter(id -> !JOB_SCHEDULER_MASTER.equals(id)).collect(Collectors.toList());
-        List<String> jobIdList = new ArrayList<>();
-
-        // TODO
-        // shuffle jobs avoiding jobLock conflict
-        // Collections.shuffle(jobIdList);
-
-        final ThreadPoolExecutor jobExecutorPool = jobExecutorPoolRef.get();
-        final JobContext jobContext = jobContextRef.get();
-
-        for (String jobId : jobIdList) {
-            JobInfo jobInfo = jobInfoMapper.selectByPrimaryKey(jobId);
-            if (Objects.isNull(jobInfo)) {
-                logger.warn("[LESS_LIKELY_THINGS_HAPPENED] JdbcJobScheduler null job {}", jobId);
-            } else {
-                final AbstractJobExecutable jobExecutable = getJobExecutable(jobInfo);
-                jobContext.add(jobExecutable);
-                prepareJob(jobExecutorPool, jobContext, jobExecutable);
+            int batchSize = jobContext.getJobConfig().getJobSchedulerSlavePollBatchSize();
+            List<String> jobIdList = jobContext.getJobLockMapper().findNonLockIdList(batchSize);
+            // TODO
+            // Shuffle jobs avoiding jobLock conflict.
+            // At the same time, we should ensure the overall order.
+            if (hasRunningJob()) {
+                Collections.shuffle(jobIdList);
             }
-        }
 
-        int delay = jobConfig.getJobSchedulerProducerPollIntervalSec();
-        slaveScheduler.schedule(this::consumeJob, delay, TimeUnit.SECONDS);
+            // submit job
+            jobIdList.forEach(jobId -> {
+                if (JobScheduler.MASTER_SCHEDULER.equals(jobId)) {
+                    return;
+                }
+                JobInfo jobInfo = jobContext.getJobInfoMapper().selectByPrimaryKey(jobId);
+                if (Objects.isNull(jobInfo)) {
+                    logger.warn("Job not found: {}", jobId);
+                    return;
+                }
+                final AbstractJobExecutable jobExecutable = getJobExecutable(jobInfo);
+                if (!jobContext.getResourceAcquirer().tryAcquire(jobExecutable)) {
+                    return;
+                }
+                executorPool.execute(() -> executeJob(jobExecutable));
+            });
+        } catch (Exception e) {
+            logger.error("Something's wrong when consuming job", e);
+        } finally {
+            slave.schedule(this::consumeJob, delay, TimeUnit.SECONDS);
+        }
     }
 
-    private void scheduleSlave() {
-        int delay = jobConfig.getJobSchedulerProducerPollIntervalSec();
-        slaveScheduler.schedule(this::consumeJob, delay, TimeUnit.SECONDS);
+    private void executeJob(AbstractJobExecutable jobExecutable) {
+        try (JobExecutor jobExecutor = new JobExecutor(jobContext, jobExecutable)) {
+            JdbcJobLock jobLock = new JdbcJobLock(jobExecutable.getJobId(), jobContext.getServerNode(),
+                    jobContext.getJobConfig().getJobSchedulerJobRenewalSec(),
+                    jobContext.getJobConfig().getJobSchedulerJobRenewalRatio(), jobContext.getLockClient(),
+                    new JobAcquireListener(jobExecutable));
+            if (!jobLock.tryAcquireRenewal()) {
+                logger.info("Acquire job lock failed.");
+                return;
+            }
+
+            runningJobMap.put(jobExecutable.getJobId(), jobExecutor);
+
+            try {
+                // heavy action
+                jobExecutor.execute();
+            } finally {
+                jobLock.tryRelease();
+            }
+        } catch (Exception e) {
+            logger.error("Execute job failed", e);
+        } finally {
+            runningJobMap.remove(jobExecutable.getJobId());
+        }
     }
 
     private AbstractJobExecutable getJobExecutable(JobInfo jobInfo) {
@@ -275,29 +268,41 @@ public class JdbcJobScheduler implements JobScheduler {
                 .getJob(jobInfo.getJobId());
     }
 
-    private Date nextJobExpireTime() {
-        Date current = new Date();
-        return DateUtils.addSeconds(current, jobConfig.getJobSchedulerConsumerExpireSec());
+    private class MasterAcquireListener implements LockAcquireListener {
+
+        @Override
+        public void onSucceed() {
+            if (isMaster.compareAndSet(false, true)) {
+                logger.info("Job scheduler become master.");
+            }
+        }
+
+        @Override
+        public void onFailed() {
+            if (isMaster.compareAndSet(true, false)) {
+                logger.info("Job scheduler fallback standby.");
+            }
+            // standby
+            master.schedule(JdbcJobScheduler.this::standby, masterLock.getRenewalSec(), TimeUnit.SECONDS);
+        }
     }
 
-    private void prepareJob(ThreadPoolExecutor jobExecutorPool, JobContext jobContext,
-            AbstractJobExecutable jobExecutable) {
-        if (jobContext.isResourceBlocked(jobExecutable)) {
-            return;
-        }
-//        int r = scheduleLockMapper.updateLock(jobExecutable.getJobId(), schedulerInstance, nextJobExpireTime());
-        int r = 1;
-        if (r > 0) {
-            jobExecutorPool.execute(() -> executeJob(jobContext, jobExecutable));
-            logger.info("JdbcJobScheduler submit job: {} {}", jobExecutable.getProject(), jobExecutable.getJobId());
-        }
-    }
+    private class JobAcquireListener implements LockAcquireListener {
 
-    private void executeJob(JobContext jobContext, AbstractJobExecutable jobExecutable) {
-        try (JobExecutor jobExecutor = new JobExecutor(jobContext, jobExecutable)) {
-            jobExecutor.execute();
-        } catch (Exception e) {
-            logger.error("Job execute failed", e);
+        private final AbstractJobExecutable jobExecutable;
+
+        JobAcquireListener(AbstractJobExecutable jobExecutable) {
+            this.jobExecutable = jobExecutable;
+        }
+
+        @Override
+        public void onSucceed() {
+            // do nothing
+        }
+
+        @Override
+        public void onFailed() {
+            jobExecutable.cancelJob();
         }
     }
 

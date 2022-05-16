@@ -42,7 +42,7 @@
 
 package io.kyligence.kap.job.execution;
 
-import io.kyligence.kap.job.scheduler.JobContext;
+import io.kyligence.kap.job.JobContext;
 import org.apache.kylin.common.util.BufferedLogger;
 import org.apache.kylin.job.execution.ExecuteResult;
 import org.slf4j.LoggerFactory;

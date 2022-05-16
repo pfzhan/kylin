@@ -26,8 +26,10 @@ package io.kyligence.kap.job.scheduler;
 
 public class RestfulProgressReporter implements ProgressReporter {
 
-    public void close() {
-
+    // run in driver side
+    @Override
+    public void reportProgress() {
+        // TODO
+        // do nothing
     }
-
 }

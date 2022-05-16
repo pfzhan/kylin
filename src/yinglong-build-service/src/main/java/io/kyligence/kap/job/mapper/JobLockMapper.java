@@ -22,7 +22,40 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.job.core.lock;
+package io.kyligence.kap.job.mapper;
 
-public interface ScheduleLock {
+import java.util.Date;
+import java.util.List;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import io.kyligence.kap.job.domain.JobLock;
+
+@Mapper
+public interface JobLockMapper {
+
+    int deleteByPrimaryKey(String lockId);
+
+    int insert(JobLock row);
+
+    int insertSelective(JobLock row);
+
+    JobLock selectByPrimaryKey(String lockId);
+
+    int updateByPrimaryKeySelective(JobLock row);
+
+    int updateByPrimaryKey(JobLock row);
+
+    // --------------------------------------
+    String findNodeById(@Param("lockId") String lockId);
+
+    int findCount();
+
+    int upsertLock(@Param("lockId") String lockId, @Param("lockNode") String lockNode,
+            @Param("lockExpireTime") Date lockExpireTime);
+
+    int removeLock(@Param("lockId") String lockId, @Param("lockNode") String lockNode);
+
+    List<String> findNonLockIdList(@Param("batchSize") int batchSize);
 }

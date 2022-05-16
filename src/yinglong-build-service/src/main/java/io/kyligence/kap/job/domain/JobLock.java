@@ -22,7 +22,58 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.job.core.lock;
+package io.kyligence.kap.job.domain;
 
-public class JdbcScheduleLock implements ScheduleLock {
+import java.util.Date;
+
+public class JobLock {
+    private String lockId;
+
+    private String lockNode;
+
+    private Date lockExpireTime;
+
+    private Date createTime;
+
+    private Date updateTime;
+
+    public String getLockId() {
+        return lockId;
+    }
+
+    public void setLockId(String lockId) {
+        this.lockId = lockId;
+    }
+
+    public String getLockNode() {
+        return lockNode;
+    }
+
+    public void setLockNode(String lockNode) {
+        this.lockNode = lockNode;
+    }
+
+    public Date getLockExpireTime() {
+        return lockExpireTime;
+    }
+
+    public void setLockExpireTime(Date lockExpireTime) {
+        this.lockExpireTime = lockExpireTime;
+    }
+
+    public Date getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(Date createTime) {
+        this.createTime = createTime;
+    }
+
+    public Date getUpdateTime() {
+        return updateTime;
+    }
+
+    public void setUpdateTime(Date updateTime) {
+        this.updateTime = updateTime;
+    }
 }

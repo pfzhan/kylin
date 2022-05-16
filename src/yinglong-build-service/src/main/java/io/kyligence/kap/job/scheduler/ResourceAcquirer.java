@@ -27,6 +27,7 @@ package io.kyligence.kap.job.scheduler;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,41 +38,64 @@ import io.kyligence.kap.common.util.SystemInfoCollector;
 import io.kyligence.kap.job.core.AbstractJobConfig;
 import io.kyligence.kap.job.core.AbstractJobExecutable;
 
-public class ResourceBlocker {
+public class ResourceAcquirer {
 
-    private static final Logger logger = LoggerFactory.getLogger(ResourceBlocker.class);
+    private static final Logger logger = LoggerFactory.getLogger(ResourceAcquirer.class);
 
     private final AbstractJobConfig jobConfig;
 
     private final Semaphore memorySemaphore;
 
+    private final AtomicInteger accumulator;
+
     private final ConcurrentMap<String, NodeResource> registers;
 
-    public ResourceBlocker(AbstractJobConfig jobConfig) {
+    public ResourceAcquirer(AbstractJobConfig jobConfig) {
         this.jobConfig = jobConfig;
 
         double memoryRatio = jobConfig.getMaxLocalNodeMemoryRatio();
         memorySemaphore = new Semaphore((int) (memoryRatio * SystemInfoCollector.getAvailableMemoryInfo()));
 
+        accumulator = new AtomicInteger(0);
         registers = Maps.newConcurrentMap();
     }
 
-    public boolean isBlocked(AbstractJobExecutable jobExecutable) {
-        return Objects.isNull(registers.get(jobExecutable.getJobId()));
-    }
-
-    public void onJobRegistered(AbstractJobExecutable jobExecutable) {
+    public boolean tryAcquire(AbstractJobExecutable jobExecutable) {
+        int threshold = jobConfig.getNodeParallelJobCountThreshold();
+        if (accumulator.incrementAndGet() > threshold) {
+            int c = accumulator.decrementAndGet();
+            logger.info("Acquire failed with node parallel job count: {}, threshold {}", c, threshold);
+            return false;
+        }
         NodeResource resource = new NodeResource(jobExecutable);
         boolean acquired = memorySemaphore.tryAcquire(resource.getMemory());
         if (acquired) {
             registers.put(jobExecutable.getJobId(), resource);
             logger.info("Acquire resource success {}, available: {}MB", resource, memorySemaphore.availablePermits());
-        } else {
-            logger.warn("Acquire resource failed {}, available: {}MB", resource, memorySemaphore.availablePermits());
+            return true;
         }
+        logger.warn("Acquire resource failed {}, available: {}MB", resource, memorySemaphore.availablePermits());
+        accumulator.decrementAndGet();
+        return false;
     }
 
-    public void onJobUnregistered(AbstractJobExecutable jobExecutable) {
+    public void release(AbstractJobExecutable jobExecutable) {
+        accumulator.decrementAndGet();
+        String jobId = jobExecutable.getJobId();
+        NodeResource resource = registers.get(jobId);
+        if (Objects.isNull(resource)) {
+            logger.warn("Cannot find job's registered resource: {}", jobId);
+            return;
+        }
+        memorySemaphore.release(resource.getMemory());
         registers.remove(jobExecutable.getJobId());
+    }
+
+    public void start() {
+        // do nothing
+    }
+
+    public void destroy() {
+        // do nothing
     }
 }

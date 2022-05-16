@@ -169,6 +169,18 @@
       job_duration_millis = #{jobDurationMillis,jdbcType=BIGINT}
     where job_id = #{jobId,jdbcType=VARCHAR}
   </update>
+  <select id="findJobIdListByStatusBatch" resultType="java.lang.String">
+    select job_id
+    from job_info
+    where job_status = #{status,jdbcType=VARCHAR}
+    ORDER BY create_time ASC
+	LIMIT #{batchSize,jdbcType=SMALLINT}
+  </select>
+  <update id="updateJobStatusById">
+    update job_info
+    set job_status = #{status,jdbcType=VARCHAR}
+    where job_id = #{jobId,jdbcType=VARCHAR}
+  </update>
   <select id="selectByJobFilter" parameterType="io.kyligence.kap.job.rest.JobMapperFilter" resultMap="ResultMapWithBLOBs">
     select
     <include refid="Base_Column_List" />

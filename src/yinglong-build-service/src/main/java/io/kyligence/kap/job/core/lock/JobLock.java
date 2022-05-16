@@ -24,5 +24,14 @@
 
 package io.kyligence.kap.job.core.lock;
 
+import java.util.concurrent.TimeUnit;
+
 public interface JobLock {
+
+    boolean tryAcquire() throws LockException;
+
+    boolean tryAcquire(long time, TimeUnit unit) throws LockException;
+
+    boolean tryRelease() throws LockException;
+
 }
