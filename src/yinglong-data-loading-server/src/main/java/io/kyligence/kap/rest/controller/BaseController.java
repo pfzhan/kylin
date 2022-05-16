@@ -50,10 +50,13 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -61,6 +64,10 @@ import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import io.kyligence.kap.common.util.AddressUtil;
+import io.kyligence.kap.job.DataLoadingManager;
+import io.kyligence.kap.rest.request.JobUpdateRequest;
+import io.kyligence.kap.tool.restclient.RestClient;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.ArrayUtils;
@@ -72,6 +79,7 @@ import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.job.constant.JobActionEnum;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.exception.ForbiddenException;
@@ -84,6 +92,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -435,4 +444,31 @@ public class BaseController {
         }
     }
 
+    protected Map<String, List<String>> splitJobIdsByScheduleInstance(List<String> ids) {
+        DataLoadingManager dataLoadingManager = DataLoadingManager.getInstance();
+        Map<String, List<String>> nodeWithJobs = new HashMap<>();
+        for (String jobId : ids) {
+            String host = dataLoadingManager.getJobConfig().getJobScheduler().getJobOwner(jobId);
+            List<String> jobIds = nodeWithJobs.getOrDefault(host, new ArrayList<>());
+            jobIds.add(jobId);
+            nodeWithJobs.put(host, jobIds);
+        }
+        return nodeWithJobs;
+    }
+
+    protected boolean needRouteToOtherInstance(Map<String, List<String>> nodeWithJobs, String action,
+            HttpHeaders headers) {
+        if ("true".equals(headers.getFirst(RestClient.ROUTED))
+                || JobActionEnum.RESUME.name().equalsIgnoreCase(action)) {
+            return false;
+        }
+        Set<String> targetNodes = nodeWithJobs.keySet();
+        String local = AddressUtil.getLocalInstance();
+        return targetNodes.size() > 1 || targetNodes.size() == 1 && !targetNodes.contains(local);
+    }
+
+    protected void forwardRequestToTargetNode(byte[] requestEntity, HttpHeaders headers, String node, String url) throws IOException {
+        RestClient client = new RestClient(node);
+        client.forwardPut(requestEntity, headers, url);
+    }
 }

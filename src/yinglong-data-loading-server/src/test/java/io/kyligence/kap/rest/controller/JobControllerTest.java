@@ -39,6 +39,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -60,6 +61,7 @@ import io.kyligence.kap.rest.request.StageRequest;
 import io.kyligence.kap.rest.response.ExecutableResponse;
 import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import io.kyligence.kap.rest.service.JobService;
+import io.kyligence.kap.tool.restclient.RestClient;
 import lombok.val;
 
 public class JobControllerTest extends NLocalFileMetadataTestCase {
@@ -170,7 +172,9 @@ public class JobControllerTest extends NLocalFileMetadataTestCase {
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(jobController).updateJobStatus(Mockito.any(JobUpdateRequest.class));
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(RestClient.ROUTED, "true");
+        Mockito.verify(jobController).updateJobStatus(Mockito.any(JobUpdateRequest.class), headers);
     }
 
     @Test
@@ -183,7 +187,9 @@ public class JobControllerTest extends NLocalFileMetadataTestCase {
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(jobController).updateJobStatus(Mockito.any(JobUpdateRequest.class));
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(RestClient.ROUTED, "true");
+        Mockito.verify(jobController).updateJobStatus(Mockito.any(JobUpdateRequest.class), headers);
     }
 
     @Test
@@ -196,7 +202,9 @@ public class JobControllerTest extends NLocalFileMetadataTestCase {
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(jobController).updateJobStatus(Mockito.any(JobUpdateRequest.class));
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(RestClient.ROUTED, "true");
+        Mockito.verify(jobController).updateJobStatus(Mockito.any(JobUpdateRequest.class), headers);
     }
 
     @Test

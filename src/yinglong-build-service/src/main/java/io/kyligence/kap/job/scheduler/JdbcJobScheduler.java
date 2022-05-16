@@ -47,6 +47,7 @@ import io.kyligence.kap.job.DataLoadingManager;
 import io.kyligence.kap.job.core.AbstractJobConfig;
 import io.kyligence.kap.job.core.AbstractJobExecutable;
 import io.kyligence.kap.job.domain.JobInfo;
+import io.kyligence.kap.job.domain.JobScheduleLock;
 import io.kyligence.kap.job.mapper.JobInfoMapper;
 import io.kyligence.kap.job.mapper.JobScheduleLockMapper;
 
@@ -133,6 +134,15 @@ public class JdbcJobScheduler implements JobScheduler {
         if (Objects.nonNull(jobContextRef)) {
             jobContextRef.get().close();
         }
+    }
+
+    @Override
+    public String getJobOwner(String jobId) {
+        JobScheduleLock jobScheduleLock = scheduleLockMapper.selectByPrimaryKey(jobId);
+        if (jobScheduleLock == null) {
+            return AddressUtil.getLocalInstance();
+        }
+        return jobScheduleLock.getLockInstance();
     }
 
     private Date nextJSMExpireTime() {

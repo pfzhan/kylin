@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.job.scheduler;
 
+import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.job.core.AbstractJobConfig;
 
 public class SimpleJobScheduler implements JobScheduler {
@@ -36,5 +37,10 @@ public class SimpleJobScheduler implements JobScheduler {
     @Override
     public void destroy() {
 
+    }
+
+    @Override
+    public String getJobOwner(String jobId) {
+        return AddressUtil.getLocalInstance();
     }
 }

@@ -40,12 +40,14 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -53,6 +55,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -137,9 +140,14 @@ public class JobController extends BaseController {
     @ApiOperation(value = "updateJobStatus", tags = { "DW" }, notes = "Update Body: job_ids")
     @PutMapping(value = "/status")
     @ResponseBody
-    public EnvelopeResponse<String> updateJobStatus(@RequestBody JobUpdateRequest jobUpdateRequest) throws IOException {
+    public EnvelopeResponse<String> updateJobStatus(@RequestBody JobUpdateRequest jobUpdateRequest,
+            @RequestHeader HttpHeaders headers) throws IOException {
         checkRequiredArg("action", jobUpdateRequest.getAction());
         jobInfoService.checkJobStatusAndAction(jobUpdateRequest);
+        Map<String, List<String>> nodeWithJobs = splitJobIdsByScheduleInstance(jobUpdateRequest.getJobIds());
+        if (needRouteToOtherInstance(nodeWithJobs, jobUpdateRequest.getAction(), headers)) {
+            return remoteUpdateJobStatus(jobUpdateRequest, headers, nodeWithJobs);
+        }
         if (StringUtils.isBlank(jobUpdateRequest.getProject())
                 && CollectionUtils.isEmpty(jobUpdateRequest.getJobIds())) {
             throw new KylinException(JOB_ID_EMPTY, jobUpdateRequest.getAction());
@@ -153,6 +161,16 @@ public class JobController extends BaseController {
                     jobUpdateRequest.getStatuses());
             EventBusFactory.getInstance().postAsync(new UpdateJobStatusEventNotifier(jobUpdateRequest.getJobIds(),
                     jobUpdateRequest.getAction(), jobUpdateRequest.getStatuses()));
+        }
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
+    }
+
+    private EnvelopeResponse<String> remoteUpdateJobStatus(JobUpdateRequest jobUpdateRequest, HttpHeaders headers,
+            Map<String, List<String>> nodeWithJobs) throws IOException {
+        for (Map.Entry<String, List<String>> entry : nodeWithJobs.entrySet()) {
+            jobUpdateRequest.setJobIds(entry.getValue());
+            forwardRequestToTargetNode(JsonUtil.writeValueAsBytes(jobUpdateRequest), headers, entry.getKey(),
+                    "/jobs/status");
         }
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }

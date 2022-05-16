@@ -83,6 +83,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.persistence.transaction.BroadcastEventReadyNotifier;
+import org.springframework.http.HttpHeaders;
 
 /**
  */
@@ -96,7 +97,7 @@ public class RestClient {
     private static final int HTTP_SOCKET_TIMEOUT_MS = 120000;
 
     public static final String SCHEME_HTTP = "http://";
-    private static final String ROUTED = "routed";
+    public static final String ROUTED = "routed";
     public static final String KYLIN_API_PATH = "/kylin/api";
 
     public static boolean matchFullRestPattern(String uri) {
@@ -224,6 +225,27 @@ public class RestClient {
             }
         } finally {
             cleanup(post, response);
+        }
+        return response;
+    }
+
+    public HttpResponse forwardPut(byte[] requestEntity, HttpHeaders headers, String targetUrl) throws IOException {
+        String url = baseUrl + targetUrl;
+        HttpPut put = newPut(url);
+        put.addHeader(ROUTED, "true");
+        put.addHeader("Authorization", headers.getFirst("Authorization"));
+        put.addHeader("Cookie", headers.getFirst("Cookie"));
+        HttpResponse response = null;
+        try {
+            put.setEntity(new ByteArrayEntity(requestEntity, ContentType.APPLICATION_JSON));
+            response = client.execute(put);
+            if (response.getStatusLine().getStatusCode() != 200) {
+                String msg = EntityUtils.toString(response.getEntity());
+                throw new KylinException(CommonErrorCode.FAILED_FORWARD_METADATA_ACTION, "Invalid response "
+                        + response.getStatusLine().getStatusCode() + " with url " + url + "\n" + msg);
+            }
+        } finally {
+            cleanup(put, response);
         }
         return response;
     }

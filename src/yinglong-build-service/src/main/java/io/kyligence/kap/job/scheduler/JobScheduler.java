@@ -27,4 +27,6 @@ package io.kyligence.kap.job.scheduler;
 public interface JobScheduler {
 
     void destroy();
+    
+    String getJobOwner(String jobId);
 }
