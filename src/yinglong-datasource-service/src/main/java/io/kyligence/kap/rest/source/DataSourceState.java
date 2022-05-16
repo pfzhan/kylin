@@ -302,7 +302,7 @@ public class DataSourceState implements Runnable {
     }
 
     private void checkIsAllNode() {
-        if (!KylinConfig.getInstanceFromEnv().isJobNode()) {
+        if (!KylinConfig.getInstanceFromEnv().isJobNode() && !KylinConfig.getInstanceFromEnv().isMetadataNode()) {
             throw new KylinException(JOBNODE_API_INVALID, "Only job/all node can load hive table name");
         }
         if (!KylinConfig.getInstanceFromEnv().getLoadHiveTablenameEnabled()) {

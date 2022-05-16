@@ -29,24 +29,18 @@ import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_NOT_EXI
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_STATUS_ILLEGAL;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_UPDATE_STATUS_FAILED;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import javax.annotation.Resource;
-
+import io.kyligence.kap.job.util.JobInfoUtil;
+import io.kyligence.kap.rest.aspect.Transaction;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
@@ -100,14 +94,12 @@ import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.scheduler.JobDiscardNotifier;
 import io.kyligence.kap.common.scheduler.JobReadyNotifier;
 import io.kyligence.kap.engine.spark.job.NSparkExecutable;
-import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
+import io.kyligence.kap.job.dao.JobInfoDao;
 import io.kyligence.kap.job.domain.JobInfo;
 import io.kyligence.kap.job.manager.ExecutableManager;
-import io.kyligence.kap.job.mapper.JobInfoMapper;
 import io.kyligence.kap.job.rest.ExecutableResponse;
 import io.kyligence.kap.job.rest.ExecutableStepResponse;
 import io.kyligence.kap.job.rest.JobFilter;
-import io.kyligence.kap.job.rest.JobMapperFilter;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
@@ -132,8 +124,8 @@ public class JobInfoService extends BasicService {
     @Autowired
     private ProjectService projectService;
 
-    @Autowired(required = false)
-    private JobInfoMapper jobInfoMapper;
+    @Autowired
+    private JobInfoDao jobInfoDao;
 
     private AclEvaluate aclEvaluate;
 
@@ -195,7 +187,7 @@ public class JobInfoService extends BasicService {
      */
     public ExecutableResponse getJobInstance(String jobId) {
         Preconditions.checkNotNull(jobId);
-        ExecutablePO executablePO = getExecutablePOByUuid(jobId);
+        ExecutablePO executablePO = jobInfoDao.getExecutablePOByUuid(jobId);
         Preconditions.checkNotNull(executablePO, "Can not find the job: {}", jobId);
         ExecutableManager executableManager = getManager(ExecutableManager.class, executablePO.getProject());
         AbstractExecutable executable = executableManager.fromPO(executablePO);
@@ -214,9 +206,8 @@ public class JobInfoService extends BasicService {
         if (StringUtils.isNotEmpty(jobFilter.getProject())) {
             aclEvaluate.checkProjectOperationPermission(jobFilter.getProject());
         }
-        List<JobInfo> jobInfoList = jobInfoMapper
-                .selectByJobFilter(jobFilter.getJobMapperFilter(modelMetadataInvoker, offset, limit));
-        List<ExecutableResponse> result = jobInfoList.stream().map(jobInfo -> deserializeExecutablePO(jobInfo)).map(
+        List<JobInfo> jobInfoList = jobInfoDao.getJobInfoListByFilter(jobFilter, offset, limit);
+        List<ExecutableResponse> result = jobInfoList.stream().map(jobInfo -> JobInfoUtil.deserializeExecutablePO(jobInfo)).map(
                 executablePO -> getManager(ExecutableManager.class, executablePO.getProject()).fromPO(executablePO))
                 .map(this::convert).collect(Collectors.toList());
         return new DataResult<>(result, result.size());
@@ -224,7 +215,7 @@ public class JobInfoService extends BasicService {
 
     public List<ExecutableStepResponse> getJobDetail(String project, String jobId) {
         aclEvaluate.checkProjectOperationPermission(project);
-        ExecutablePO executablePO = getExecutablePOByUuid(jobId);
+        ExecutablePO executablePO = jobInfoDao.getExecutablePOByUuid(jobId);
         if (executablePO == null) {
             throw new KylinException(JOB_NOT_EXIST, jobId);
         }
@@ -323,24 +314,7 @@ public class JobInfoService extends BasicService {
         return executableStepList;
     }
 
-    public ExecutablePO addJob(ExecutablePO executablePO) {
-        if (getExecutablePOByUuid(executablePO.getUuid()) != null) {
-            throw new IllegalArgumentException("job id:" + executablePO.getUuid() + " already exists");
-        }
-        jobInfoMapper.insertSelective(constructJobInfo(executablePO));
-        return executablePO;
-    }
-
-    public void updateJob(String uuid, Predicate<ExecutablePO> updater) {
-        val job = getExecutablePOByUuid(uuid);
-        Preconditions.checkNotNull(job);
-        val copyForWrite = JsonUtil.copyBySerialization(job, JOB_SERIALIZER, null);
-        copyForWrite.setProject(job.getProject());
-        if (updater.test(copyForWrite)) {
-            jobInfoMapper.updateByPrimaryKeySelective(constructJobInfo(copyForWrite));
-        }
-    }
-
+    @Transaction(project = 0)
     public void batchDropJob(String project, List<String> jobIds, List<String> filterStatuses) {
         aclEvaluate.checkProjectOperationPermission(project);
         batchDropJob0(project, jobIds, filterStatuses);
@@ -360,13 +334,10 @@ public class JobInfoService extends BasicService {
         ExecutableManager executableManager = getManager(ExecutableManager.class, project);
         jobs.forEach(job -> executableManager.checkJobCanBeDeleted(job));
 
-        jobs.forEach(job -> dropJob(project, job.getId()));
+        jobs.forEach(job -> jobInfoDao.dropJob(job.getId()));
     }
 
-    private void dropJob(String project, String jobId) {
-        jobInfoMapper.deleteByPrimaryKey(jobId);
-    }
-
+    @Transaction(project = 1)
     public void batchUpdateJobStatus(List<String> jobIds, String project, String action, List<String> filterStatuses)
             throws IOException {
         aclEvaluate.checkProjectOperationPermission(project);
@@ -383,7 +354,7 @@ public class JobInfoService extends BasicService {
 
     private void batchUpdateJobStatus0(List<String> jobIds, String project, String action, List<String> filterStatuses)
             throws IOException {
-        val executablePos = getExecutablePoByStatus(project, jobIds, filterStatuses);
+        val executablePos = jobInfoDao.getExecutablePoByStatus(project, jobIds, filterStatuses);
         for (ExecutablePO executablePO : executablePos) {
             updateJobStatus(executablePO.getId(), executablePO, project, action);
         }
@@ -450,90 +421,15 @@ public class JobInfoService extends BasicService {
     }
 
     private List<AbstractExecutable> getJobsByStatus(String project, List<String> jobIds, List<String> filterStatuses) {
-        return getExecutablePoByStatus(project, jobIds, filterStatuses).stream()
+        return jobInfoDao.getExecutablePoByStatus(project, jobIds, filterStatuses).stream()
                 .map(executablePO -> getManager(ExecutableManager.class, executablePO.getProject()).fromPO(executablePO))
                 .collect(Collectors.toList());
-    }
-
-    private List<ExecutablePO> getExecutablePoByStatus(String project, List<String> jobIds, List<String> filterStatuses) {
-        JobMapperFilter jobMapperFilter = new JobMapperFilter();
-        jobMapperFilter.setProject(project);
-        jobMapperFilter.setStatuses(filterStatuses);
-        jobMapperFilter.setJobIds(jobIds);
-        List<JobInfo> jobInfoList = jobInfoMapper.selectByJobFilter(jobMapperFilter);
-        if (CollectionUtils.isEmpty(jobInfoList)) {
-            return new ArrayList<>();
-        }
-        return jobInfoList.stream().map(jobInfo -> deserializeExecutablePO(jobInfo)).collect(Collectors.toList());
-    }
-
-    public byte[] serializeExecutablePO(ExecutablePO executablePO) {
-        try (ByteArrayOutputStream buf = new ByteArrayOutputStream();
-                DataOutputStream dout = new DataOutputStream(buf);) {
-            JOB_SERIALIZER.serialize(executablePO, dout);
-            ByteSource byteSource = ByteSource.wrap(buf.toByteArray());
-            return byteSource.read();
-        } catch (IOException e) {
-            throw new RuntimeException("Serialize ExecutablePO failed, id: " + executablePO.getId(), e);
-        }
-    }
-
-    public ExecutablePO deserializeExecutablePO(JobInfo jobInfo) {
-        ByteSource byteSource = ByteSource.wrap(jobInfo.getJobContent());
-        try (InputStream is = byteSource.openStream(); DataInputStream din = new DataInputStream(is)) {
-            ExecutablePO r = JOB_SERIALIZER.deserialize(din);
-            r.setLastModified(jobInfo.getUpdateTime().getTime());
-            r.setProject(jobInfo.getProject());
-            return r;
-        } catch (IOException e) {
-            logger.warn("Error when deserializing jobInfo, id: {} " + jobInfo.getJobId(), e);
-            return null;
-        }
     }
 
     private ExecutableResponse convert(AbstractExecutable executable) {
         ExecutableResponse executableResponse = ExecutableResponse.create(executable);
         executableResponse.setStatus(executable.getStatus().toJobStatus());
         return executableResponse;
-    }
-
-    private JobInfo constructJobInfo(ExecutablePO executablePO) {
-        JobInfo jobInfo = new JobInfo();
-        jobInfo.setJobId(executablePO.getId());
-        jobInfo.setJobType(executablePO.getJobType().name());
-        ExecutableState oldStatus = ExecutableState.valueOf(executablePO.getOutput().getStatus());
-        jobInfo.setJobStatus(oldStatus.toJobStatus().name());
-        jobInfo.setProject(executablePO.getProject());
-
-        String subject = null;
-        if(JobTypeEnum.TABLE_SAMPLING == executablePO.getJobType()){
-            subject = executablePO.getTargetModel();
-        }else{
-            subject = modelMetadataInvoker.getModelNameById(executablePO.getTargetModel(), executablePO.getProject());
-        }
-
-        jobInfo.setSubject(subject);
-        jobInfo.setModelId(executablePO.getTargetModel());
-        jobInfo.setCreateTime(new Date(executablePO.getCreateTime()));
-        jobInfo.setUpdateTime(new Date(executablePO.getLastModified()));
-        jobInfo.setJobContent(serializeExecutablePO(executablePO));
-        return jobInfo;
-    }
-
-    public ExecutablePO getExecutablePOByUuid(String uuid) {
-        JobInfo jobInfo = jobInfoMapper.selectByPrimaryKey(uuid);
-        if (null != jobInfo) {
-            return deserializeExecutablePO(jobInfo);
-        }
-        return null;
-    }
-
-    public AbstractExecutable getExecutableByUuid(String uuid, String project) {
-        ExecutablePO executablePO = getExecutablePOByUuid(uuid);
-        if (null == executablePO) {
-            return null;
-        }
-        return getManager(ExecutableManager.class, project).fromPO(executablePO);
     }
 
     @VisibleForTesting

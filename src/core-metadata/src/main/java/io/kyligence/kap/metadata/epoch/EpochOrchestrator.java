@@ -66,7 +66,7 @@ public class EpochOrchestrator {
     public EpochOrchestrator(KylinConfig kylinConfig) {
         epochMgr = EpochManager.getInstance();
         String serverMode = kylinConfig.getServerMode();
-        if (!kylinConfig.isJobNode()) {
+        if (!kylinConfig.isJobNode() && !kylinConfig.isMetadataNode()) {
             logger.info("server mode: {},  no need to run EventOrchestrator", serverMode);
             return;
         }

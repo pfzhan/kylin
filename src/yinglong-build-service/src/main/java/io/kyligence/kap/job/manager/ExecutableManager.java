@@ -33,6 +33,7 @@ import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.scheduler.JobAddedNotifier;
 import io.kyligence.kap.common.scheduler.JobReadyNotifier;
 import io.kyligence.kap.common.util.AddressUtil;
+import io.kyligence.kap.job.dao.JobInfoDao;
 import io.kyligence.kap.job.service.JobInfoService;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import lombok.extern.slf4j.Slf4j;
@@ -84,8 +85,7 @@ public class ExecutableManager {
     private final KylinConfig config;
     private String project;
 
-    // private final NExecutableDao executableDao;
-    private final JobInfoService jobInfoService;
+    private final JobInfoDao jobInfoDao;
 
     private static final Set<String> REMOVE_INFO = Sets.newHashSet(ExecutableConstants.YARN_APP_ID,
             ExecutableConstants.YARN_APP_URL, ExecutableConstants.YARN_JOB_WAIT_TIME,
@@ -106,12 +106,12 @@ public class ExecutableManager {
         log.trace("Using metadata url: {}", config);
         this.config = config;
         this.project = project;
-        this.jobInfoService = SpringContext.getBean(JobInfoService.class);
+        this.jobInfoDao = SpringContext.getBean(JobInfoDao.class);
     }
 
     public void addJob(ExecutablePO executablePO) {
         addJobOutput(executablePO);
-        jobInfoService.addJob(executablePO);
+        jobInfoDao.addJob(executablePO);
 
         String jobType = executablePO.getJobType() == null ? "" : executablePO.getJobType().name();
         // dispatch job-created message out
@@ -161,7 +161,7 @@ public class ExecutableManager {
     public void updateJobOutput(String taskOrJobId, ExecutableState newStatus, Map<String, String> updateInfo,
                                 Set<String> removeInfo, String output, long byteSize, String failedMsg) {
         val jobId = extractJobId(taskOrJobId);
-        jobInfoService.updateJob(jobId, job -> {
+        jobInfoDao.updateJob(jobId, job -> {
             ExecutableOutputPO jobOutput;
             ExecutablePO taskOrJob = Objects.equals(taskOrJobId, jobId) ? job
                     : job.getTasks().stream().filter(po -> po.getId().equals(taskOrJobId)).findFirst().orElse(null);
@@ -469,7 +469,7 @@ public class ExecutableManager {
                                String failedReason) {
         val jobId = extractJobId(taskOrJobId);
 
-        jobInfoService.updateJob(jobId, job -> {
+        jobInfoDao.updateJob(jobId, job -> {
             ExecutableOutputPO jobOutput = job.getOutput();
             if (jobOutput.getFailedReason() == null || failedReason == null) {
                 jobOutput.setFailedStepId(failedStepId);
@@ -524,7 +524,7 @@ public class ExecutableManager {
     public void updateStageStatus(String taskOrJobId, String segmentId, ExecutableState newStatus,
                                   Map<String, String> updateInfo, String failedMsg, Boolean isRestart) {
         val jobId = extractJobId(taskOrJobId);
-        jobInfoService.updateJob(jobId, job -> {
+        jobInfoDao.updateJob(jobId, job -> {
             final List<Map<String, List<ExecutablePO>>> collect = job.getTasks().stream()//
                     .map(ExecutablePO::getStagesMap)//
                     .filter(MapUtils::isNotEmpty)//
@@ -610,7 +610,7 @@ public class ExecutableManager {
 
         // to redesign: merge executableDao ops
         updateJobReady(jobId, jobToRestart);
-        jobInfoService.updateJob(jobId, job -> {
+        jobInfoDao.updateJob(jobId, job -> {
             job.getOutput().setResumable(false);
             job.getOutput().resetTime();
             job.getTasks().forEach(task -> {

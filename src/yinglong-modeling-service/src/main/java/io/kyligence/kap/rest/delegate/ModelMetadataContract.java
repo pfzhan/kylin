@@ -25,6 +25,10 @@
 package io.kyligence.kap.rest.delegate;
 
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.rest.request.AddSegmentRequest;
+import io.kyligence.kap.rest.request.MergeSegmentRequest;
+import io.kyligence.kap.rest.request.ModelRequest;
+import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
 import org.apache.kylin.metadata.model.Segments;
 
 import java.util.List;
@@ -36,4 +40,23 @@ public interface ModelMetadataContract {
     String getModelNameById(String modelId, String project);
 
     Segments<NDataSegment> getSegmentsByRange(String modelId, String project, String start, String end);
+
+    String updateSecondStorageModel(String project, String modelId);
+
+    BuildBaseIndexResponse updateDataModelSemantic(String project, ModelRequest request);
+
+    void saveDateFormatIfNotExist(String project, String modelId, String format);
+
+    NDataSegment appendSegment(AddSegmentRequest request);
+
+    NDataSegment refreshSegment(String project, String indexPlanUuid, String segmentId);
+
+    NDataSegment appendPartitions(String project, String dfId, String segId, List<String[]> partitionValues);
+
+    NDataSegment mergeSegments(String project, MergeSegmentRequest mergeSegmentRequest);
+
+    void deleteSegmentById(String model, String project, String[] ids, boolean force);
+
+    void removeIndexesFromSegments(String project, String modelId, List<String> segmentIds,
+                                   List<Long> indexIds);
 }

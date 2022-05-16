@@ -25,9 +25,14 @@
 package io.kyligence.kap.rest.delegate;
 
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.rest.request.AddSegmentRequest;
+import io.kyligence.kap.rest.request.MergeSegmentRequest;
+import io.kyligence.kap.rest.request.ModelRequest;
+import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
 import org.apache.kylin.metadata.model.Segments;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
@@ -47,4 +52,38 @@ public interface ModelMetadataRPC extends ModelMetadataContract {
             @RequestParam("project") String project, @RequestParam("start") String start,
             @RequestParam("end") String end);
 
+    @PostMapping(value = "/update_second_storage_model")
+    String updateSecondStorageModel(@RequestParam("project") String project, @RequestParam("modelId") String modelId);
+
+
+    @PostMapping(value = "/update_data_model_semantic")
+    BuildBaseIndexResponse updateDataModelSemantic(@RequestParam("project") String project,
+                                                   @RequestBody ModelRequest request);
+
+    @PostMapping(value = "/save_data_format_if_not_exist")
+    void saveDateFormatIfNotExist(@RequestParam("project") String project, @RequestParam("modelId") String modelId,
+                                  @RequestParam("format") String format);
+
+    @PostMapping(value = "/append_segment")
+    NDataSegment appendSegment(@RequestBody AddSegmentRequest request);
+
+    @PostMapping(value = "/refresh_segment")
+    NDataSegment refreshSegment(@RequestParam("project") String project,
+                                @RequestParam("indexPlanUuid") String indexPlanUuid, @RequestParam("segmentId") String segmentId);
+
+    @PostMapping(value = "/append_partitions")
+    NDataSegment appendPartitions(@RequestParam("project") String project, @RequestParam("dfIF") String dfId,
+                                  @RequestParam("segId") String segId, @RequestBody List<String[]> partitionValues);
+
+    @PostMapping(value = "/merge_segments")
+    NDataSegment mergeSegments(@RequestParam("project") String project,
+                               @RequestBody MergeSegmentRequest mergeSegmentRequest);
+
+    @PostMapping(value = "/delete_segment_by_id")
+    void deleteSegmentById(@RequestParam("model") String model, @RequestParam("project") String project,
+                           @RequestBody String[] ids, @RequestParam("force") boolean force);
+
+    @PostMapping(value = "/remove_indexes_from_segments")
+    void removeIndexesFromSegments(@RequestParam("project") String project, @RequestParam("modelId") String modelId,
+                                   @RequestParam("segmentIds") List<String> segmentIds, @RequestParam("indexIds") List<Long> indexIds);
 }

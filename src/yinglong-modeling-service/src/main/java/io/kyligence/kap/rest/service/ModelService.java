@@ -96,6 +96,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import io.kyligence.kap.rest.delegate.ModelMetadataContract;
+import io.kyligence.kap.rest.request.AddSegmentRequest;
+import io.kyligence.kap.rest.request.MergeSegmentRequest;
 import io.kyligence.kap.tool.bisync.model.MeasureDef;
 import io.kyligence.kap.guava20.shaded.common.base.Supplier;
 import org.apache.calcite.sql.SqlDialect;
@@ -2193,6 +2195,16 @@ public class ModelService extends BasicService implements TableModelSupporter, P
 
     }
 
+    @Override
+    public NDataSegment appendSegment(AddSegmentRequest request) {
+        String project = request.getProject();
+        return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            val df = getManager(NDataflowManager.class, project).getDataflow(request.getModelId());
+            return getManager(NDataflowManager.class, project).appendSegment(df, request.getSegRange(),
+                    request.getStatus(), request.getMultiPartitionValues());
+        }, project);
+    }
+
     private Pair<String, String> getPartitionColMinMaxValue(String project, String table, PartitionDesc desc)
             throws Exception {
         Preconditions.checkNotNull(desc);
@@ -2284,6 +2296,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
 
     }
 
+    @Override
     public void removeIndexesFromSegments(String project, String modelId, List<String> segmentIds,
             List<Long> indexIds) {
         aclEvaluate.checkProjectOperationPermission(project);
@@ -2333,6 +2346,23 @@ public class ModelService extends BasicService implements TableModelSupporter, P
             }
             return null;
         }, project);
+    }
+
+    @Override
+    @Transaction(project = 0)
+    public NDataSegment appendPartitions(String project, String dfId, String segId, List<String[]> partitionValues) {
+        return NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project).appendPartitions(dfId, segId,
+                partitionValues);
+    }
+
+    @Override
+    @Transaction(project = 0)
+    public NDataSegment mergeSegments(String project, MergeSegmentRequest mergeSegmentRequest) {
+        NDataflow df = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .getDataflow(mergeSegmentRequest.getIndexPlanUuid());
+        return NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project).mergeSegments(df,
+                mergeSegmentRequest.getSegRange(), mergeSegmentRequest.isForce(), mergeSegmentRequest.getFileLayer(),
+                mergeSegmentRequest.getNewSegId());
     }
 
     ModelRequest convertToRequest(NDataModel modelDesc) throws IOException {
@@ -2684,6 +2714,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         getManager(NDataModelManager.class, project).updateDataModelDesc(dataModel);
     }
 
+    @Override
     @Transaction(project = 1)
     public void deleteSegmentById(String model, String project, String[] ids, boolean force) {
         aclEvaluate.checkProjectOperationPermission(project);
@@ -2719,6 +2750,15 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         }
         segmentHelper.removeSegment(project, dataflow.getUuid(), idsToDelete);
         offlineModelIfNecessary(dataflowManager, model);
+    }
+
+    @Override
+    @Transaction(project = 0)
+    public NDataSegment refreshSegment(String project, String indexPlanUuid, String segmentId) {
+        NDataflowManager dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        NDataflow df = dfManager.getDataflow(indexPlanUuid);
+        NDataSegment segment = df.getSegment(segmentId);
+        return dfManager.refreshSegment(df, segment.getSegRange());
     }
 
     private void offlineModelIfNecessary(NDataflowManager dfManager, String modelId) {

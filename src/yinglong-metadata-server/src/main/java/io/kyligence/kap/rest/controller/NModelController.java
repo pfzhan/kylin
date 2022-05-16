@@ -45,6 +45,10 @@ import java.util.regex.Pattern;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.rest.request.AddSegmentRequest;
+import io.kyligence.kap.rest.request.MergeSegmentRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -809,6 +813,8 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
+    // feign API for data_loading module
+
     @PostMapping(value = "/feign/get_model_id_by_fuzzy_name")
     @ResponseBody
     public List<String> getModelIdsByFuzzyName(@RequestParam("fuzzyName") String fuzzyName,
@@ -826,6 +832,67 @@ public class NModelController extends NBasicController {
     @ResponseBody
     public Segments<NDataSegment> getSegmentsByRange(String modelId, String project, String start, String end) {
         return modelService.getSegmentsByRange(modelId, project, start, end);
+    }
+
+    @PostMapping(value = "/feign/update_second_storage_model")
+    @ResponseBody
+    public String updateSecondStorageModel(@RequestParam("project") String project,
+                                           @RequestParam("modelId") String modelId) {
+        return modelService.updateSecondStorageModel(project, modelId);
+    }
+
+    @PostMapping(value = "/feign/update_data_model_semantic")
+    @ResponseBody
+    public void updateDataModelSemantic(@RequestParam("project") String project, @RequestBody ModelRequest request) {
+        modelService.updateDataModelSemantic(project, request);
+    }
+
+    @PostMapping(value = "/feign/save_data_format_if_not_exist")
+    @ResponseBody
+    public void saveDateFormatIfNotExist(@RequestParam("project") String project,
+                                         @RequestParam("modelId") String modelId, @RequestParam("format") String format) {
+        modelService.saveDateFormatIfNotExist(project, modelId, format);
+    }
+
+    @PostMapping(value = "/feign/append_segment")
+    @ResponseBody
+    public NDataSegment appendSegment(@RequestBody AddSegmentRequest request) {
+        return modelService.appendSegment(request);
+    }
+
+    @PostMapping(value = "/feign/refresh_segment")
+    @ResponseBody
+    public NDataSegment refreshSegment(@RequestParam("project") String project,
+                                       @RequestParam("indexPlanUuid") String indexPlanUuid, @RequestParam("segmentId") String segmentId) {
+        return modelService.refreshSegment(project, indexPlanUuid, segmentId);
+    }
+
+    @PostMapping(value = "/feign/append_partitions")
+    @ResponseBody
+    public NDataSegment appendPartitions(@RequestParam("project") String project, @RequestParam("dfIF") String dfId,
+                                         @RequestParam("segId") String segId, @RequestBody List<String[]> partitionValues) {
+        return modelService.appendPartitions(project, dfId, segId, partitionValues);
+    }
+
+    @PostMapping(value = "/feign/merge_segments")
+    @ResponseBody
+    NDataSegment mergeSegments(@RequestParam("project") String project,
+                               @RequestBody MergeSegmentRequest mergeSegmentRequest) {
+        return modelService.mergeSegments(project, mergeSegmentRequest);
+    }
+
+    @PostMapping(value = "/feign/delete_segment_by_id")
+    @ResponseBody
+    public void deleteSegmentById(@RequestParam("model") String model, @RequestParam("project") String project,
+                                  @RequestBody String[] ids, @RequestParam("force") boolean force) {
+        modelService.deleteSegmentById(model, project, ids, force);
+    }
+
+    @PostMapping(value = "/feign/remove_indexes_from_segments")
+    @ResponseBody
+    public void removeIndexesFromSegments(@RequestParam("project") String project, @RequestParam("modelId") String modelId,
+                                          @RequestParam("segmentIds") List<String> segmentIds, @RequestParam("indexIds") List<Long> indexIds) {
+        modelService.removeIndexesFromSegments(project, modelId, segmentIds, indexIds);
     }
 
 }

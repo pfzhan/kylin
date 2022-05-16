@@ -34,6 +34,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 
+import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.Pair;
@@ -96,6 +97,9 @@ public class SegmentController extends BaseController {
     @Autowired
     @Qualifier("modelBuildService")
     private ModelBuildService modelBuildService;
+
+    @Autowired(required = false)
+    private ModelMetadataInvoker modelMetadataInvoker;
 
     @ApiOperation(value = "buildIndicesManually", tags = { "DW" }, notes = "Update URL: {model}")
     @PostMapping(value = "/{model:.+}/indices")
@@ -196,7 +200,7 @@ public class SegmentController extends BaseController {
             if (ArrayUtils.isEmpty(idsDeleted)) {
                 throw new KylinException(SEGMENT_EMPTY_ID);
             }
-            modelService.deleteSegmentById(dataflowId, project, idsDeleted, force);
+            modelMetadataInvoker.deleteSegmentById(dataflowId, project, idsDeleted, force);
         }
 
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
@@ -331,7 +335,7 @@ public class SegmentController extends BaseController {
     public EnvelopeResponse<String> deleteIndexesFromSegments(@PathVariable("model") String modelId,
             @RequestBody IndexesToSegmentsRequest deleteSegmentsRequest) {
         checkProjectName(deleteSegmentsRequest.getProject());
-        modelService.removeIndexesFromSegments(deleteSegmentsRequest.getProject(), modelId,
+        modelMetadataInvoker.removeIndexesFromSegments(deleteSegmentsRequest.getProject(), modelId,
                 deleteSegmentsRequest.getSegmentIds(), deleteSegmentsRequest.getIndexIds());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }

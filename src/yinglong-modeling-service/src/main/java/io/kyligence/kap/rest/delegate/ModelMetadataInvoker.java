@@ -25,6 +25,10 @@
 package io.kyligence.kap.rest.delegate;
 
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.rest.request.AddSegmentRequest;
+import io.kyligence.kap.rest.request.MergeSegmentRequest;
+import io.kyligence.kap.rest.request.ModelRequest;
+import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
 import io.kyligence.kap.rest.service.ModelService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kylin.metadata.model.Segments;
@@ -51,6 +55,43 @@ public class ModelMetadataInvoker {
             return SpringContext.getBean(ModelService.class);
         }
         return delegate;
+    }
+
+    public String updateSecondStorageModel(String project, String modelId) {
+        return getDelegate().updateSecondStorageModel(project, modelId);
+    }
+
+    public BuildBaseIndexResponse updateDataModelSemantic(String project, ModelRequest request) {
+        return getDelegate().updateDataModelSemantic(project, request);
+    }
+
+    public void saveDateFormatIfNotExist(String project, String modelId, String format) {
+        getDelegate().saveDateFormatIfNotExist(project, modelId, format);
+    }
+
+    public NDataSegment appendSegment(AddSegmentRequest request) {
+        return getDelegate().appendSegment(request);
+    }
+
+    public NDataSegment refreshSegment(String project, String indexPlanUuid, String segmentId) {
+        return getDelegate().refreshSegment(project, indexPlanUuid, segmentId);
+    }
+
+    public NDataSegment appendPartitions(String project, String dfId, String segId, List<String[]> partitionValues) {
+        return getDelegate().appendPartitions(project, dfId, segId, partitionValues);
+    }
+
+    public NDataSegment mergeSegments(String project, MergeSegmentRequest mergeSegmentRequest) {
+        return getDelegate().mergeSegments(project, mergeSegmentRequest);
+    }
+
+    public void deleteSegmentById(String model, String project, String[] ids, boolean force) {
+        getDelegate().deleteSegmentById(model, project, ids, force);
+    }
+
+    public void removeIndexesFromSegments(String project, String modelId, List<String> segmentIds,
+                                          List<Long> indexIds) {
+        getDelegate().removeIndexesFromSegments(project, modelId, segmentIds, indexIds);
     }
 
     public List<String> getModelIdsByFuzzyName(String fuzzyName, String project) {

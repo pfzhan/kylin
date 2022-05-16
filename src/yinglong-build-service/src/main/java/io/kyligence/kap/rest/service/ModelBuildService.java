@@ -52,7 +52,6 @@ import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.exception.JobSubmissionException;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import io.kyligence.kap.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -70,6 +69,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.job.manager.JobManager;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -85,6 +85,9 @@ import io.kyligence.kap.metadata.model.util.MultiPartitionUtil;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import io.kyligence.kap.rest.aspect.Transaction;
+import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
+import io.kyligence.kap.rest.request.AddSegmentRequest;
+import io.kyligence.kap.rest.request.MergeSegmentRequest;
 import io.kyligence.kap.rest.request.PartitionsRefreshRequest;
 import io.kyligence.kap.rest.request.SegmentTimeRequest;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
@@ -110,6 +113,9 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
 
     @Autowired
     private SegmentHelper segmentHelper;
+
+    @Autowired(required = false)
+    private ModelMetadataInvoker modelMetadataInvoker;
 
     //only fo test
     public JobInfoResponse buildSegmentsManually(String project, String modelId, String start, String end)
@@ -182,9 +188,9 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
         val df = dataflowManager.getDataflow(modelId);
         val seg = df.getFirstSegment();
         if (Objects.isNull(seg)) {
-            NDataSegment newSegment = dataflowManager.appendSegment(df,
-                    SegmentRange.TimePartitionedSegmentRange.createInfinite(),
-                    needBuild ? SegmentStatusEnum.NEW : SegmentStatusEnum.READY);
+            NDataSegment newSegment = modelMetadataInvoker.appendSegment(
+                    new AddSegmentRequest(project, modelId, SegmentRange.TimePartitionedSegmentRange.createInfinite(),
+                            needBuild ? SegmentStatusEnum.NEW : SegmentStatusEnum.READY, null));
             if (!needBuild) {
                 return new LinkedList<>();
             }
@@ -245,7 +251,8 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
                         String.format(Locale.ROOT, MsgPicker.getMsg().getSegNotFound(), id, df.getModelAlias()));
             }
 
-            NDataSegment newSeg = dfMgr.refreshSegment(df, segment.getSegRange());
+            NDataSegment newSeg = modelMetadataInvoker.refreshSegment(params.getProject(), indexPlan.getUuid(), id);
+            newSeg.setDataflow(df);
 
             JobParam jobParam = new JobParam(newSeg, params.getModelId(), getUsername())
                     .withIgnoredSnapshotTables(params.getIgnoredSnapshotTables()) //
@@ -330,8 +337,8 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
             request.setPartitionDesc(params.getPartitionDesc());
             request.setProject(params.getProject());
             request.setMultiPartitionDesc(params.getMultiPartitionDesc());
-            modelService.updateDataModelSemantic(params.getProject(), request);
-            modelService.updateSecondStorageModel(params.getProject(), request.getId());
+            modelMetadataInvoker.updateDataModelSemantic(params.getProject(), request);
+            modelMetadataInvoker.updateSecondStorageModel(params.getProject(), request.getId());
             params.getSegmentHoles().clear();
         }
         List<JobInfoResponse.JobInfo> res = Lists.newArrayListWithCapacity(params.getSegmentHoles().size() + 2);
@@ -380,11 +387,11 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
                 "Load data must set start and end date");
         val segmentRangeToBuild = SourceFactory.getSource(table).getSegmentRange(params.getStart(), params.getEnd());
         modelService.checkSegmentToBuildOverlapsBuilt(project, modelId, segmentRangeToBuild);
-        modelService.saveDateFormatIfNotExist(project, modelId, params.getPartitionColFormat());
+        modelMetadataInvoker.saveDateFormatIfNotExist(project, modelId, params.getPartitionColFormat());
         checkMultiPartitionBuildParam(modelDescInTransaction, params);
-        NDataSegment newSegment = getManager(NDataflowManager.class, project).appendSegment(df, segmentRangeToBuild,
-                params.isNeedBuild() ? SegmentStatusEnum.NEW : SegmentStatusEnum.READY,
-                params.getMultiPartitionValues());
+        NDataSegment newSegment = modelMetadataInvoker.appendSegment(new AddSegmentRequest(project, modelId,
+                segmentRangeToBuild, params.isNeedBuild() ? SegmentStatusEnum.NEW : SegmentStatusEnum.READY,
+                params.getMultiPartitionValues()));
         if (!params.isNeedBuild()) {
             return null;
         }
@@ -471,9 +478,9 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
             }
             partitionValues.addAll(diffPartitions);
         }
-        dfm.appendPartitions(df.getId(), segment.getId(), partitionValues);
-        Set<Long> targetPartitions = getManager(NDataModelManager.class, project).getDataModelDesc(modelId)
-                .getMultiPartitionDesc().getPartitionIdsByValues(partitionValues);
+        modelMetadataInvoker.appendPartitions(project, df.getId(), segment.getId(), partitionValues);
+        Set<Long> targetPartitions = getManager(NDataModelManager.class, project).getDataModelDesc(modelId).getMultiPartitionDesc()
+                .getPartitionIdsByValues(partitionValues);
         return parallelBuildPartition(parallelBuild, project, modelId, segmentId, targetPartitions, priority, yarnQueue,
                 tag);
     }
@@ -572,9 +579,10 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
         val indexPlan = modelService.getIndexPlan(modelId, project);
         val df = dfManager.getDataflow(indexPlan.getUuid());
 
-        NDataSegment mergeSeg = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project).mergeSegments(
-                df, new SegmentRange.TimePartitionedSegmentRange(startAndEnd.getFirst(), startAndEnd.getSecond()),
-                true);
+        NDataSegment mergeSeg = modelMetadataInvoker.mergeSegments(project,
+                new MergeSegmentRequest(indexPlan.getUuid(),
+                        new SegmentRange.TimePartitionedSegmentRange(startAndEnd.getFirst(), startAndEnd.getSecond()),
+                        true, null, null));
 
         String jobId = getManager(SourceUsageManager.class).licenseCheckWrap(project,
                 () -> jobManager.mergeSegmentJob(

@@ -95,15 +95,8 @@ public class EpochChangedListener {
 
             log.info("start thread of project: {}", project);
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-                NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
-                scheduler.init(new JobEngineConfig(kylinConfig));
-                if (!scheduler.hasStarted()) {
-                    throw new RuntimeException("Scheduler for " + project + " has not been started");
-                }
-                StreamingScheduler ss = StreamingScheduler.getInstance(project);
-                ss.init();
-                if (!ss.getHasStarted().get()) {
-                    throw new RuntimeException("Streaming Scheduler for " + project + " has not been started");
+                if (kylinConfig.isJobNode() || kylinConfig.isDataLoadingNode()) {
+                    initSchedule(kylinConfig, project);
                 }
 
                 QueryHistoryTaskScheduler qhAccelerateScheduler = QueryHistoryTaskScheduler.getInstance(project);
@@ -125,6 +118,19 @@ public class EpochChangedListener {
                 return null;
             }, "", 1);
             InitResourceGroupUtils.initResourceGroup();
+        }
+    }
+
+    private void initSchedule(KylinConfig kylinConfig, String project) {
+        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
+        scheduler.init(new JobEngineConfig(kylinConfig));
+        if (!scheduler.hasStarted()) {
+            throw new RuntimeException("Scheduler for " + project + " has not been started");
+        }
+        StreamingScheduler ss = StreamingScheduler.getInstance(project);
+        ss.init();
+        if (!ss.getHasStarted().get()) {
+            throw new RuntimeException("Streaming Scheduler for " + project + " has not been started");
         }
     }
 

@@ -73,7 +73,7 @@ public class JobManager {
     }
 
     public String addJob(JobParam jobParam, AbstractJobHandler handler) {
-        if (!config.isJobNode() && !config.isUTEnv()) {
+        if (!config.isJobNode() && !config.isUTEnv() && !config.isDataLoadingNode()) {
             throw new KylinException(JOB_CREATE_ABANDON);
         }
         checkNotNull(project);
