@@ -83,10 +83,10 @@ public class SqlSyntaxValidatorTest extends SqlValidateTestBase {
             sqlAdvices.forEach(sqlAdvice -> {
                 String colName = "columnA".toUpperCase(Locale.ROOT);
                 Assert.assertEquals(String.format(Locale.ROOT,
-                        MsgPicker.getMsg().getBAD_SQL_COLUMN_NOT_FOUND_IN_TABLE_REASON(), colName),
+                        MsgPicker.getMsg().getBadSqlColumnNotFoundReason(), colName),
                         sqlAdvice.getIncapableReason());
                 Assert.assertEquals(String.format(Locale.ROOT,
-                        MsgPicker.getMsg().getBAD_SQL_COLUMN_NOT_FOUND_IN_TABLE_SUGGESTION(), colName),
+                        MsgPicker.getMsg().getBadSqlColumnNotFoundReason(), colName),
                         sqlAdvice.getSuggestion());
             });
         });

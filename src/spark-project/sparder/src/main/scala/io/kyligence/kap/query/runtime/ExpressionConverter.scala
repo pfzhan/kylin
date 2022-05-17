@@ -91,8 +91,41 @@ object ExpressionConverter {
             s"Invalid paramters for LIKE, expecting LIKE ... , LIKE ... ESCAPE ... ")
         }
       case SIMILAR =>
-        assert(children.size == 2)
-        k_similar(k_lit(children.head), k_lit(children.last))
+        if (children.size == 2) {
+          k_similar(k_lit(children.head), k_lit(children.last))
+        } else if (children.size == 3) {
+          if (!children.last.isInstanceOf[java.lang.String] || children.last.asInstanceOf[java.lang.String].length != 1) {
+            throw new UnsupportedOperationException(
+              s"Invalid paramters for SIMILAR TO ESCAPE, expecting a single char for ESCAPE")
+          }
+          val escapeChar = children.last.asInstanceOf[java.lang.String].charAt(0)
+          val stringReplacedWithEscapeChar = if (!children(1).asInstanceOf[java.lang.String].contains(escapeChar)) {
+            children(1)
+          } else {
+            val charArray = children(1).asInstanceOf[java.lang.String].toCharArray
+            var escapeCharReplaced = false
+            val stringDeletedEscape = new StringBuilder
+            for (i <- 0 until charArray.length) {
+              if (charArray(i) != escapeChar) {
+                stringDeletedEscape.append(charArray(i))
+                escapeCharReplaced = false
+              } else {
+                if (!escapeCharReplaced) {
+                  stringDeletedEscape.append("\\")
+                  escapeCharReplaced = true
+                } else {
+                  stringDeletedEscape.append(escapeChar)
+                  escapeCharReplaced = false
+                }
+              }
+            }
+            stringDeletedEscape.toString()
+          }
+          k_similar(k_lit(children.head), k_lit(stringReplacedWithEscapeChar))
+        } else {
+          throw new UnsupportedOperationException(
+            s"Invalid paramters for SIMILAR TO, expecting SIMILAR TO ... , SIMILAR TO ... ESCAPE ... ")
+        }
       case MINUS_PREFIX =>
         assert(children.size == 1)
         negate(k_lit(children.head))

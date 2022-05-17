@@ -30,9 +30,8 @@ import org.slf4j.LoggerFactory;
 
 public class EscapeTransformer implements KapQueryUtil.IQueryTransformer {
 
+    private static final Logger logger = LoggerFactory.getLogger(EscapeTransformer.class);
 
-    private static final Logger logger = LoggerFactory.getLogger(EscapeDialect.class);
-    
     private EscapeDialect dialect = EscapeDialect.DEFAULT;
 
     @Override
@@ -47,8 +46,7 @@ public class EscapeTransformer implements KapQueryUtil.IQueryTransformer {
     public String transform(String sql) {
         try {
             // remove the comment
-            CommentParser commentParser = new CommentParser(sql);
-            sql = commentParser.Input();
+            sql = new RawSqlParser(sql).parse().getStatementString();
         }catch (Throwable ex) {
             logger.error("Something unexpected while CommentParser transforming the query, return original query",
                     ex);
@@ -66,7 +64,7 @@ public class EscapeTransformer implements KapQueryUtil.IQueryTransformer {
             return sql;
         }
     }
-    
+
     public void setFunctionDialect(EscapeDialect newDialect) {
         this.dialect = newDialect;
     }

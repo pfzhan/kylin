@@ -159,7 +159,7 @@ public class BaseControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testCheckStartAndEndException() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getINVALID_RANGE_NOT_CONSISTENT());
+        thrown.expectMessage(Message.getInstance().getInvalidRangeNotConsistent());
         baseController.validateDataRange("10", "");
     }
 
@@ -180,21 +180,21 @@ public class BaseControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testTimeRangeInvalidStart() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getINVALID_RANGE_LESS_THAN_ZERO());
+        thrown.expectMessage(Message.getInstance().getInvalidRangeLessThanZero());
         baseController.validateDataRange("-1", "1");
     }
 
     @Test
     public void testTimeRangeInvalidEnd() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getINVALID_RANGE_LESS_THAN_ZERO());
+        thrown.expectMessage(Message.getInstance().getInvalidRangeLessThanZero());
         baseController.validateDataRange("2", "-1");
     }
 
     @Test
     public void testTimeRangeInvalidFormat() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getINVALID_RANGE_NOT_FORMAT());
+        thrown.expectMessage(Message.getInstance().getInvalidRangeNotFormat());
         baseController.validateDataRange("start", "end");
     }
 

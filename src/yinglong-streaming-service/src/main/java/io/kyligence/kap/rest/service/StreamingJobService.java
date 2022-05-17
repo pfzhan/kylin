@@ -112,7 +112,7 @@ public class StreamingJobService extends BasicService {
 
     public void launchStreamingJob(String project, String modelId, JobTypeEnum jobType) {
         checkModelStatus(project, modelId, jobType);
-        ModelUtils.checkPartitionColumn(project, modelId, MsgPicker.getMsg().getPARTITION_COLUMN_START_ERROR());
+        ModelUtils.checkPartitionColumn(project, modelId, MsgPicker.getMsg().getPartitionColumnStartError());
         StreamingScheduler scheduler = StreamingScheduler.getInstance(project);
         scheduler.submitJob(project, modelId, jobType);
     }
@@ -126,7 +126,7 @@ public class StreamingJobService extends BasicService {
         val model = modelMgr.getDataModelDesc(jobMeta.getModelId());
         if (model.isBroken() || isBatchModelBroken(model)) {
             throw new KylinException(ServerErrorCode.JOB_START_FAILURE, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getJOB_BROKEN_MODEL_START_FAILURE(), model.getAlias()));
+                    MsgPicker.getMsg().getJobBrokenModelStartFailure(), model.getAlias()));
         }
     }
 
@@ -164,7 +164,7 @@ public class StreamingJobService extends BasicService {
         try {
             StreamingUtils.parseTableRefreshInterval(tableRefreshInterval);
         } catch (Exception e) {
-            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getINVALID_CUSTOMIZE_FORMAT());
+            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getInvalidCustomizeFormat());
         }
     }
 
@@ -491,7 +491,7 @@ public class StreamingJobService extends BasicService {
         if (timeFilter > 0) {
             long startTime;
             if (timeFilter > 7 * 24 * 60) {
-                throw new KylinException(INVALID_PARAMETER, msg.getILLEGAL_TIME_FILTER());
+                throw new KylinException(INVALID_PARAMETER, msg.getIllegalTimeFilter());
             } else {
                 calendar.add(Calendar.MINUTE, -timeFilter);
                 startTime = calendar.getTimeInMillis();

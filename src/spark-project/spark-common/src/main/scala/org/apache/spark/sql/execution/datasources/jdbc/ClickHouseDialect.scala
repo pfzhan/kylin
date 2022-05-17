@@ -23,19 +23,19 @@
  */
 package org.apache.spark.sql.execution.datasources.jdbc
 
-import java.sql.{Timestamp, Types}
+import java.sql.{Connection, Driver, DriverManager, Timestamp, Types}
 import java.util.Locale
-import java.math.BigDecimal
+
+import scala.collection.JavaConverters.enumerationAsScalaIteratorConverter
 import scala.util.matching.Regex
-import java.text.SimpleDateFormat
+
 import org.apache.spark.internal.Logging
+import org.apache.spark.sql.catalyst.util.{DateTimeUtils, TimestampFormatter}
+import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.jdbc.{JdbcDialect, JdbcType}
 
 // TODO: move to clickhouse module
-/**
- * ClickHouseDialects
- */
 object ClickHouseDialect extends JdbcDialect with Logging {
 
   private[jdbc] val arrayTypePattern: Regex = "^Array\\((.*)\\)$".r
@@ -55,27 +55,25 @@ object ClickHouseDialect extends JdbcDialect with Logging {
    * see [[JDBCRDD.resolveTable(JDBCOptions)]]
    */
   override def getCatalystType(sqlType: Int,
-                               typeName: String,
-                               size: Int,
-                               md: MetadataBuilder): Option[DataType] = {
+      typeName: String,
+      size: Int,
+      md: MetadataBuilder): Option[DataType] = {
     val scale = md.build.getLong("scale").toInt
     logDebug(s"sqlType: $sqlType, typeName: $typeName, precision: $size, scale: $scale")
     sqlType match {
       case Types.ARRAY =>
         unwrapNullable(typeName) match {
           case (_, arrayTypePattern(nestType)) =>
-            toCatalystType(nestType, size, scale).map { case (nullable, dataType) => ArrayType(dataType, nullable) }
+            toCatalystType(nestType).map { case (nullable, dataType) => ArrayType(dataType, nullable) }
           case _ => None
         }
-      case _ => toCatalystType(typeName, size, scale).map(_._2)
+      case _ => toCatalystType(typeName).map(_._2)
     }
   }
 
   // Spark use a widening conversion both ways.
   // see https://github.com/apache/spark/pull/26301#discussion_r347725332
-  private[jdbc] def toCatalystType(typeName: String,
-                                   precision: Int,
-                                   scale: Int): Option[(Boolean, DataType)] = {
+  private[jdbc] def toCatalystType(typeName: String): Option[(Boolean, DataType)] = {
     val (nullable, _typeName) = unwrapNullable(typeName)
     val dataType = _typeName match {
       case "String" | "UUID" | fixedStringTypePattern() | enumTypePattern(_) => Some(StringType)
@@ -130,14 +128,39 @@ object ClickHouseDialect extends JdbcDialect with Logging {
     case _ => None
   }
 
+  override def createConnectionFactory(options: JDBCOptions): Int => Connection = {
+    val shards = ShardOptions.create(options)
+    val driverClass: String = options.driverClass
+    (partitionId: Int) => {
+      require(partitionId < shards.shards.length)
+      val url = if (partitionId == -1) {
+        shards.shards.apply(0)
+      } else {
+        shards.shards.apply(partitionId)
+      }
+      logInfo(s"Create connection for shard: $url")
+      DriverRegistry.register(driverClass)
+      val driver: Driver = DriverManager.getDrivers.asScala.collectFirst {
+        case wrapper: DriverWrapper if wrapper.wrapped.getClass.getCanonicalName == driverClass =>
+          wrapper
+        case d if d.getClass.getCanonicalName == driverClass => d
+      }.getOrElse {
+        throw new IllegalStateException(
+          s"Did not find registered driver with class $driverClass")
+      }
+      driver.connect(url, options.asConnectionProperties)
+    }
+  }
+
   override def quoteIdentifier(colName: String): String = s"`$colName`"
 
   override def isCascadingTruncateTable: Option[Boolean] = Some(false)
 
   override def compileValue(value: Any): Any = value match {
     case ts: Timestamp =>
-      "'" + new SimpleDateFormat("yyyy-MM-dd hh:mm:ss", Locale.getDefault(Locale.Category.FORMAT)).format(ts) + "'"
-    case d: BigDecimal if d.scale != 0 && d.scale != d.precision => s"toFloat64($value)"
+      val timestampFormatter = TimestampFormatter.getFractionFormatter(
+        DateTimeUtils.getZoneId(SQLConf.get.sessionLocalTimeZone))
+      s"'${timestampFormatter.format(ts)}'"
     case arrayValue: Array[Any] => arrayValue.map(compileValue).mkString("[", ",", "]")
     case _ => super.compileValue(value)
   }

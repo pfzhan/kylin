@@ -230,7 +230,7 @@ public class NIndexPlanController extends NBasicController {
         checkProjectName(project);
         checkRequiredArg(MODEL_ID, modelId);
         if (CollectionUtils.isEmpty(layoutIds)) {
-            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getLAYOUT_LIST_IS_EMPTY());
+            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getLayoutListIsEmpty());
         }
         fusionIndexService.removeIndexes(project, modelId, layoutIds);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");

@@ -162,7 +162,7 @@ public class NBasicController {
         KylinException kylinException = null;
         while (cause != null && cause.getCause() != null) {
             if (cause instanceof CannotCreateTransactionException) {
-                kylinException = new KylinException(FAILED_CONNECT_CATALOG, msg.getCONNECT_DATABASE_ERROR(), false);
+                kylinException = new KylinException(FAILED_CONNECT_CATALOG, msg.getConnectDatabaseError(), false);
             }
             if (cause instanceof KylinException) {
                 kylinException = (KylinException) cause;
@@ -211,7 +211,7 @@ public class NBasicController {
     @ResponseBody
     ErrorResponse handleAccessDenied(HttpServletRequest req, Throwable ex) {
         getLogger().error("", ex);
-        KylinException e = new KylinException(ACCESS_DENIED, MsgPicker.getMsg().getACCESS_DENY());
+        KylinException e = new KylinException(ACCESS_DENIED, MsgPicker.getMsg().getAccessDeny());
         return new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(req), e);
     }
 
@@ -367,7 +367,7 @@ public class NBasicController {
 
     public String checkProjectName(String project) {
         if (StringUtils.isEmpty(project)) {
-            throw new KylinException(EMPTY_PROJECT_NAME, MsgPicker.getMsg().getEMPTY_PROJECT_NAME());
+            throw new KylinException(EMPTY_PROJECT_NAME, MsgPicker.getMsg().getEmptyProjectName());
         }
 
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
@@ -390,9 +390,9 @@ public class NBasicController {
         }
     }
 
-    public List<String> checkSqlIsNotNull(List<String> rawSqls) {
+    public static List<String> checkSqlIsNotNull(List<String> rawSqls) {
         if (CollectionUtils.isEmpty(rawSqls)) {
-            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getSQL_LIST_IS_EMPTY());
+            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getSqlListIsEmpty());
         }
         return rawSqls;
     }
@@ -413,14 +413,14 @@ public class NBasicController {
     // Invoke this method after checkProjectName(), otherwise NPE will happen
     public void checkProjectNotSemiAuto(String project) {
         if (!NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project).isSemiAutoMode()) {
-            throw new KylinException(INCORRECT_PROJECT_MODE, MsgPicker.getMsg().getPROJECT_UNMODIFIABLE_REASON());
+            throw new KylinException(INCORRECT_PROJECT_MODE, MsgPicker.getMsg().getProjectUnmodifiableReason());
         }
     }
 
     // Invoke this method after checkProjectName(), otherwise NPE will happen
     public void checkProjectUnmodifiable(String project) {
         if (NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project).isExpertMode()) {
-            throw new KylinException(INCORRECT_PROJECT_MODE, MsgPicker.getMsg().getPROJECT_UNMODIFIABLE_REASON());
+            throw new KylinException(INCORRECT_PROJECT_MODE, MsgPicker.getMsg().getProjectUnmodifiableReason());
         }
     }
 
@@ -438,20 +438,20 @@ public class NBasicController {
 
         if (!illegalStatus.isEmpty()) {
             throw new KylinException(INVALID_PARAMETER, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getNot_IN_EFFECTIVE_COLLECTION(), illegalStatus, enumStrSet));
+                    MsgPicker.getMsg().getNotInEffectiveCollection(), illegalStatus, enumStrSet));
         }
         return formattedStatus;
     }
 
-    public void checkId(String uuid) {
+    public static void checkId(String uuid) {
         if (StringUtils.isEmpty(uuid)) {
-            throw new KylinException(EMPTY_ID, MsgPicker.getMsg().getID_CANNOT_EMPTY());
+            throw new KylinException(EMPTY_ID, MsgPicker.getMsg().getIdCannotEmpty());
         }
     }
 
-    public void validatePriority(int priority) {
+    public static void validatePriority(int priority) {
         if (!ExecutablePO.isPriorityValid(priority)) {
-            throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getINVALID_PRIORITY());
+            throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getInvalidPriority());
         }
     }
 
@@ -461,10 +461,10 @@ public class NBasicController {
 
     private void validateRange(long start, long end) {
         if (start < 0 || end < 0) {
-            throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getINVALID_RANGE_LESS_THAN_ZERO());
+            throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getInvalidRangeLessThanZero());
         }
         if (start >= end) {
-            throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getINVALID_RANGE_END_LESSTHAN_START());
+            throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getInvalidRangeEndLessthanStart());
         }
     }
 
@@ -485,24 +485,25 @@ public class NBasicController {
                 startLong = Long.parseLong(start);
                 endLong = Long.parseLong(end);
             } catch (Exception e) {
-                throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getINVALID_RANGE_NOT_FORMAT());
+                throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getInvalidRangeNotFormat());
             }
 
-            if (startLong < 0 || endLong < 0)
-                throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getINVALID_RANGE_LESS_THAN_ZERO());
+            if (startLong < 0 || endLong < 0) {
+                throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getInvalidRangeLessThanZero());
+            }
 
             try {
                 startLong = DateFormat.getFormatTimeStamp(start, transformTimestamp2Format(partitionColumnFormat));
                 endLong = DateFormat.getFormatTimeStamp(end, transformTimestamp2Format(partitionColumnFormat));
             } catch (Exception e) {
-                throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getINVALID_RANGE_NOT_FORMAT());
+                throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getInvalidRangeNotFormat());
             }
 
             if (startLong >= endLong)
-                throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getINVALID_RANGE_END_LESSTHAN_START());
+                throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getInvalidRangeEndLessthanStart());
 
         } else {
-            throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getINVALID_RANGE_NOT_CONSISTENT());
+            throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getInvalidRangeNotConsistent());
         }
     }
 
@@ -523,7 +524,7 @@ public class NBasicController {
         val kafkaConf = KafkaConfigManager.getInstance(config, project).getKafkaConfig(table);
         if (kafkaConf != null) {
             throw new KylinException(UNSUPPORTED_STREAMING_OPERATION,
-                    MsgPicker.getMsg().getSTREAMING_OPERATION_NOT_SUPPORT());
+                    MsgPicker.getMsg().getStreamingOperationNotSupport());
         }
     }
 

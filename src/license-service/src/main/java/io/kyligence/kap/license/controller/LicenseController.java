@@ -171,7 +171,7 @@ public class LicenseController extends NBasicController {
         }
 
         if (ArrayUtils.isEmpty(bytes))
-            throw new KylinException(EMPTY_FILE_CONTENT, MsgPicker.getMsg().getCONTENT_IS_EMPTY());
+            throw new KylinException(EMPTY_FILE_CONTENT, MsgPicker.getMsg().getContentIsEmpty());
 
         licenseInfoService.updateLicense(bytes);
 
@@ -185,24 +185,24 @@ public class LicenseController extends NBasicController {
         if (licenseRequest == null || Strings.isNullOrEmpty(licenseRequest.getEmail())
                 || Strings.isNullOrEmpty(licenseRequest.getUsername())
                 || Strings.isNullOrEmpty(licenseRequest.getCompany())) {
-            throw new KylinException(EMPTY_PARAMETER, MsgPicker.getMsg().getEMAIL_USERNAME_COMPANY_CAN_NOT_EMPTY());
+            throw new KylinException(EMPTY_PARAMETER, MsgPicker.getMsg().getEmailUsernameCompanyCanNotEmpty());
         }
         if (licenseRequest.getEmail().length() > MAX_NAME_LENGTH
                 || licenseRequest.getUsername().length() > MAX_NAME_LENGTH
                 || licenseRequest.getCompany().length() > MAX_NAME_LENGTH) {
-            throw new KylinException(EMPTY_PARAMETER, MsgPicker.getMsg().getEMAIL_USERNAME_COMPANY_IS_ILLEGAL());
+            throw new KylinException(EMPTY_PARAMETER, MsgPicker.getMsg().getEmailUsernameCompanyIsIllegal());
         }
         if (!licenseInfoService.filterEmail(licenseRequest.getEmail())) {
-            throw new KylinException(INVALID_EMAIL, MsgPicker.getMsg().getILLEGAL_EMAIL());
+            throw new KylinException(INVALID_EMAIL, MsgPicker.getMsg().getIllegalEmail());
         }
         if (!trialPattern.matcher(licenseRequest.getCompany()).matches()
                 || !trialPattern.matcher(licenseRequest.getUsername()).matches()) {
-            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getUSERNAME_COMPANY_IS_ILLEGAL());
+            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getUsernameCompanyIsIllegal());
         }
 
         RemoteLicenseResponse trialLicense = licenseInfoService.getTrialLicense(licenseRequest);
         if (trialLicense == null || !trialLicense.isSuccess()) {
-            throw new KylinException(REMOTE_SERVER_ERROR, MsgPicker.getMsg().getLICENSE_ERROR());
+            throw new KylinException(REMOTE_SERVER_ERROR, MsgPicker.getMsg().getLicenseError());
         }
         licenseInfoService.updateLicense(trialLicense.getData());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, licenseInfoService.extractLicenseInfo(), "");

@@ -65,7 +65,7 @@ public class NModelControllerTest extends AbstractMVCIntegrationTestCase {
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andExpect(jsonPath("$.code").value("999"))
                 .andReturn();
-        String msg = String.format(Locale.ROOT, Message.getInstance().getMODEL_ALIAS_DUPLICATED(), "nmodel_basic");
+        String msg = String.format(Locale.ROOT, Message.getInstance().getModelAliasDuplicated(), "nmodel_basic");
         JsonNode jsonNode = JsonUtil.readValueAsTree(result.getResponse().getContentAsString());
         Assert.assertTrue(jsonNode.get("msg").asText().contains(msg));
     }
@@ -89,7 +89,7 @@ public class NModelControllerTest extends AbstractMVCIntegrationTestCase {
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andExpect(jsonPath("$.code").value("999"))
                 .andReturn();
-        String msg = String.format(Locale.ROOT, Message.getInstance().getMODEL_ALIAS_DUPLICATED(),
+        String msg = String.format(Locale.ROOT, Message.getInstance().getModelAliasDuplicated(),
                 "new_MOdel, new_model");
         JsonNode jsonNode = JsonUtil.readValueAsTree(result.getResponse().getContentAsString());
         Assert.assertTrue(jsonNode.get("msg").asText().contains(msg));
@@ -122,7 +122,7 @@ public class NModelControllerTest extends AbstractMVCIntegrationTestCase {
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError())
                 .andExpect(jsonPath("$.code").value("999")).andReturn();
         JsonNode jsonNode = JsonUtil.readValueAsTree(result.getResponse().getContentAsString());
-        String msg = String.format(Locale.ROOT, Message.getInstance().getMODEL_ALIAS_DUPLICATED(),
+        String msg = String.format(Locale.ROOT, Message.getInstance().getModelAliasDuplicated(),
                 "ut_inner_join_cube_partial");
         Assert.assertTrue(jsonNode.get("msg").asText().contains(msg));
     }
@@ -139,7 +139,7 @@ public class NModelControllerTest extends AbstractMVCIntegrationTestCase {
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError())
                 .andExpect(jsonPath("$.code").value("999")).andReturn();
-        String msg = String.format(Locale.ROOT, Message.getInstance().getMODEL_ALIAS_DUPLICATED(), "nmodel_basic");
+        String msg = String.format(Locale.ROOT, Message.getInstance().getModelAliasDuplicated(), "nmodel_basic");
         JsonNode jsonNode = JsonUtil.readValueAsTree(result.getResponse().getContentAsString());
         Assert.assertTrue(jsonNode.get("msg").asText().contains(msg));
     }

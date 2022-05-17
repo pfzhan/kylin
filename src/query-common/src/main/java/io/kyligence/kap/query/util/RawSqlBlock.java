@@ -21,11 +21,30 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.apache.spark.sql.execution.datasources.jdbc.v2
-import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
-import org.apache.spark.sql.catalyst.rules.Rule
-import org.apache.spark.sql.execution.datasources.v2.V2ScanRelationPushDown2
 
-class PushDownOptimizeSuiteOneRule extends  AbstractPushDownOptimizeSuite  {
-  override def earlyScanPushDownRules: Seq[Rule[LogicalPlan]] = Nil
+package io.kyligence.kap.query.util;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class RawSqlBlock {
+
+    public enum Type {
+        COMMENT, STATEMENT
+    }
+
+    private String text;
+    private Type type;
+    private int beginLine;
+    private int beginColumn;
+    private int endLine;
+    private int endColumn;
+
+    public String getTrimmedText() {
+        return text.trim();
+    }
 }

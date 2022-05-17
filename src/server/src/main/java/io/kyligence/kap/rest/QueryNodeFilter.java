@@ -148,6 +148,7 @@ public class QueryNodeFilter implements Filter {
         notRoutePostApiSet.add("/kylin/api/system/metadata/reload");
 
         //second storage
+        routeGetApiSet.add("/kylin/api/storage/table/sync");
         notRoutePostApiSet.add("/kylin/api/storage/config/refresh");
         notRoutePostApiSet.add("/kylin/api/storage/node/status");
     }
@@ -183,7 +184,7 @@ public class QueryNodeFilter implements Filter {
                 if (CollectionUtils.isEmpty(clusterManager.getJobServers())) {
                     Message msg = MsgPicker.getMsg();
                     servletRequest.setAttribute(ERROR,
-                            new KylinException(NO_ACTIVE_ALL_NODE, msg.getNO_ACTIVE_LEADERS()));
+                            new KylinException(NO_ACTIVE_ALL_NODE, msg.getNoActiveLeaders()));
                     servletRequest.getRequestDispatcher(API_ERROR).forward(servletRequest, response);
                     return;
                 }
@@ -244,9 +245,9 @@ public class QueryNodeFilter implements Filter {
                 val manager = ResourceGroupManager.getInstance(KylinConfig.getInstanceFromEnv());
                 if (manager.isResourceGroupEnabled() && !manager.isProjectBindToResourceGroup(project)) {
                     exception = new KylinException(PROJECT_WITHOUT_RESOURCE_GROUP,
-                            msg.getPROJECT_WITHOUT_RESOURCE_GROUP());
+                            msg.getProjectWithoutResourceGroup());
                 } else {
-                    exception = new KylinException(SYSTEM_IS_RECOVER, msg.getLEADERS_HANDLE_OVER());
+                    exception = new KylinException(SYSTEM_IS_RECOVER, msg.getLeadersHandleOver());
                 }
                 ErrorResponse errorResponse = new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(servletRequest),
                         exception);
@@ -262,7 +263,7 @@ public class QueryNodeFilter implements Filter {
             } catch (Exception e) {
                 log.error("transfer failed", e);
                 servletRequest.setAttribute(ERROR,
-                        new KylinException(TRANSFER_FAILED, MsgPicker.getMsg().getTRANSFER_FAILED()));
+                        new KylinException(TRANSFER_FAILED, MsgPicker.getMsg().getTransferFailed()));
                 servletRequest.getRequestDispatcher(API_ERROR).forward(servletRequest, response);
                 return;
             }
@@ -337,7 +338,7 @@ public class QueryNodeFilter implements Filter {
     public void writeConnectionErrorResponse(HttpServletRequest servletRequest, HttpServletResponse servletResponse)
             throws IOException {
         ErrorResponse errorResponse = new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(servletRequest),
-                new KylinException(FAILED_CONNECT_CATALOG, MsgPicker.getMsg().getCONNECT_DATABASE_ERROR(), false));
+                new KylinException(FAILED_CONNECT_CATALOG, MsgPicker.getMsg().getConnectDatabaseError(), false));
         byte[] responseBody = JsonUtil.writeValueAsBytes(errorResponse);
         HttpHeaders responseHeaders = new HttpHeaders();
         responseHeaders.setContentType(MediaType.APPLICATION_JSON);

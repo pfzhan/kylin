@@ -49,25 +49,25 @@ public abstract class OpenUserService implements UserService {
     @Override
     public void createUser(UserDetails userDetails) {
         throw new UnsupportedOperationException(
-                String.format(Locale.ROOT, MsgPicker.getMsg().getUSER_EDIT_NOT_ALLOWED_FOR_CUSTOM(), "createUser"));
+                String.format(Locale.ROOT, MsgPicker.getMsg().getUserEditNotAllowedForCustom(), "createUser"));
     }
 
     @Override
     public void updateUser(UserDetails userDetails) {
         throw new UnsupportedOperationException(
-                String.format(Locale.ROOT, MsgPicker.getMsg().getUSER_EDIT_NOT_ALLOWED_FOR_CUSTOM(), "updateUser"));
+                String.format(Locale.ROOT, MsgPicker.getMsg().getUserEditNotAllowedForCustom(), "updateUser"));
     }
 
     @Override
     public void deleteUser(String s) {
         throw new UnsupportedOperationException(
-                String.format(Locale.ROOT, MsgPicker.getMsg().getUSER_EDIT_NOT_ALLOWED_FOR_CUSTOM(), "deleteUser"));
+                String.format(Locale.ROOT, MsgPicker.getMsg().getUserEditNotAllowedForCustom(), "deleteUser"));
     }
 
     @Override
     public void changePassword(String s, String s1) {
         throw new UnsupportedOperationException(
-                String.format(Locale.ROOT, MsgPicker.getMsg().getUSER_EDIT_NOT_ALLOWED_FOR_CUSTOM(), "changePassword"));
+                String.format(Locale.ROOT, MsgPicker.getMsg().getUserEditNotAllowedForCustom(), "changePassword"));
     }
 
     @Override

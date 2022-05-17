@@ -45,6 +45,7 @@ import org.apache.kylin.rest.exception.ForbiddenException;
 import org.apache.kylin.rest.exception.NotFoundException;
 import org.apache.kylin.rest.exception.UnauthorizedException;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -79,13 +80,32 @@ public class NBasicControllerTest extends NLocalFileMetadataTestCase {
 
         Mockito.when(fixtureController.request()).thenThrow(new RuntimeException(), new ForbiddenException(),
                 new NotFoundException(StringUtils.EMPTY), new AccessDeniedException(StringUtils.EMPTY),
-                new UnauthorizedException(USER_AUTH_INFO_NOTFOUND), new KylinException(UNKNOWN_ERROR_CODE, StringUtils.EMPTY));
+                new UnauthorizedException(USER_AUTH_INFO_NOTFOUND),
+                new KylinException(UNKNOWN_ERROR_CODE, StringUtils.EMPTY));
         createTestMetadata();
     }
 
     @After
     public void teardown() {
         cleanupTestMetadata();
+    }
+
+    @Test
+    public void testValidatePriority() {
+        Assert.assertThrows(KylinException.class, () -> NBasicController.validatePriority(9999));
+
+    }
+
+    @Test
+    public void testCheckId() {
+        Assert.assertThrows(KylinException.class, () -> NBasicController.checkId(""));
+
+    }
+
+    @Test
+    public void testCheckSqlIsNotNull() {
+        Assert.assertThrows(KylinException.class, () -> NBasicController.checkSqlIsNotNull(null));
+
     }
 
     @Test
@@ -153,7 +173,7 @@ public class NBasicControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testCheckStartAndEndException() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getINVALID_RANGE_NOT_CONSISTENT());
+        thrown.expectMessage(Message.getInstance().getInvalidRangeNotConsistent());
         nBasicController.validateDataRange("10", "");
     }
 
@@ -174,21 +194,21 @@ public class NBasicControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testTimeRangeInvalidStart() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getINVALID_RANGE_LESS_THAN_ZERO());
+        thrown.expectMessage(Message.getInstance().getInvalidRangeLessThanZero());
         nBasicController.validateDataRange("-1", "1");
     }
 
     @Test
     public void testTimeRangeInvalidEnd() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getINVALID_RANGE_LESS_THAN_ZERO());
+        thrown.expectMessage(Message.getInstance().getInvalidRangeLessThanZero());
         nBasicController.validateDataRange("2", "-1");
     }
 
     @Test
     public void testTimeRangeInvalidFormat() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getINVALID_RANGE_NOT_FORMAT());
+        thrown.expectMessage(Message.getInstance().getInvalidRangeNotFormat());
         nBasicController.validateDataRange("start", "end");
     }
 
@@ -237,15 +257,16 @@ public class NBasicControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testCheckSegmentParms_throwsException() {
-        String[] ids = new String[] {"TEST_ID1"};
-        String[] names = new String[] {"TEST_NAME1"};
+        String[] ids = new String[] { "TEST_ID1" };
+        String[] names = new String[] { "TEST_NAME1" };
 
         // test throwing SEGMENT_CONFLICT_PARAMETER
         try {
             nBasicController.checkSegmentParms(ids, names);
         } catch (Exception e) {
             assertTrue(e instanceof KylinException);
-            assertEquals("KE-010022214: Can't enter segment ID and name at the same time. Please re-enter.", e.toString());
+            assertEquals("KE-010022214: Can't enter segment ID and name at the same time. Please re-enter.",
+                    e.toString());
         }
 
         // test throwing SEGMENT_EMPTY_PARAMETER

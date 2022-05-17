@@ -203,7 +203,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
             val layout = parseToLayout(project, request, indexPlan.getNextTableIndexId() + 1);
             for (LayoutEntity cuboidLayout : indexPlan.getAllLayouts()) {
                 if (cuboidLayout.equals(layout) && cuboidLayout.isManual()) {
-                    throw new KylinException(ServerErrorCode.DUPLICATE_INDEX, MsgPicker.getMsg().getDUPLICATE_LAYOUT());
+                    throw new KylinException(ServerErrorCode.DUPLICATE_INDEX, MsgPicker.getMsg().getDuplicateLayout());
                 }
             }
             if (indexPlan.getLayoutEntity(request.getId()) != null && IndexEntity.isTableIndex(request.getId())) {
@@ -364,7 +364,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
             Set<Integer> invalidMeasures) {
         aclEvaluate.checkProjectWritePermission(project);
         if (CollectionUtils.isEmpty(ids)) {
-            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getLAYOUT_LIST_IS_EMPTY());
+            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getLayoutListIsEmpty());
         }
 
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
@@ -378,7 +378,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
 
         if (StringUtils.isNotEmpty(notExistsLayoutIds)) {
             throw new KylinException(INVALID_PARAMETER,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getLAYOUT_NOT_EXISTS(), notExistsLayoutIds));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getLayoutNotExists(), notExistsLayoutIds));
         }
 
         indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
@@ -465,7 +465,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
 
                 if (CollectionUtils.isNotEmpty(notExistCols)) {
                     throw new KylinException(ServerErrorCode.EFFECTIVE_DIMENSION_NOT_FIND,
-                            String.format(Locale.ROOT, MsgPicker.getMsg().getEFFECTIVE_DIMENSION_NOT_FIND(),
+                            String.format(Locale.ROOT, MsgPicker.getMsg().getEffectiveDimensionNotFind(),
                                     StringUtils.join(notExistCols.iterator(), ",")));
                 }
             }
@@ -549,7 +549,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
         for (String shardByColumn : request.getShardByColumns()) {
             if (!dimensions.containsKey(shardByColumn)) {
                 throw new KylinException(PERMISSION_DENIED,
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getCOLUMU_IS_NOT_DIMENSION(), shardByColumn));
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getColumuIsNotDimension(), shardByColumn));
             }
         }
 

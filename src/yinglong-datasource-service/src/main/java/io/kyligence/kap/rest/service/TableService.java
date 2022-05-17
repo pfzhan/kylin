@@ -342,7 +342,7 @@ public class TableService extends BasicService {
         for (String fullTableName : tables) {
             String[] parts = HadoopUtil.parseHiveTableName(fullTableName.toUpperCase(Locale.ROOT));
             Preconditions.checkArgument(!parts[1].isEmpty() && !parts[0].isEmpty(),
-                    MsgPicker.getMsg().getTABLE_PARAM_EMPTY());
+                    MsgPicker.getMsg().getTableParamEmpty());
             databaseTables.put(parts[0], parts[1]);
         }
         // load all tables first Pair<TableDesc, TableExtDesc>
@@ -371,7 +371,7 @@ public class TableService extends BasicService {
             String errorTables = StringUtils
                     .join(errorList.stream().map(error -> error.getFirst().getKey() + "." + error.getFirst().getValue())
                             .collect(Collectors.toList()), ",");
-            String errorMessage = String.format(Locale.ROOT, MsgPicker.getMsg().getHIVETABLE_NOT_FOUND(), errorTables);
+            String errorMessage = String.format(Locale.ROOT, MsgPicker.getMsg().getHiveTableNotFound(), errorTables);
             throw new KylinException(TABLE_NOT_EXIST, errorMessage);
         }
         return results.stream().map(pair -> (Pair<TableDesc, TableExtDesc>) pair.getSecond())
@@ -775,7 +775,7 @@ public class TableService extends BasicService {
         NTableMetadataManager tableManager = getManager(NTableMetadataManager.class, project);
         TableDesc tableDesc = tableManager.getTableDesc(table);
         Preconditions.checkNotNull(tableDesc,
-                String.format(Locale.ROOT, MsgPicker.getMsg().getTABLE_NOT_FOUND(), table));
+                String.format(Locale.ROOT, MsgPicker.getMsg().getTableNotFound(), table));
         Set<String> columnSet = Stream.of(tableDesc.getColumns()).map(ColumnDesc::getName)
                 .map(str -> str.toUpperCase(Locale.ROOT)).collect(Collectors.toSet());
         if (!columnSet.contains(partitionColumn.toUpperCase(Locale.ROOT))) {
@@ -785,10 +785,7 @@ public class TableService extends BasicService {
         try {
             if (tableDesc.isKafkaTable()) {
                 List<ByteBuffer> messages = kafkaService.getMessages(tableDesc.getKafkaConfig(), project, 0);
-                if (messages == null || messages.isEmpty()) {
-                    throw new KylinException(EMPTY_TABLE,
-                            String.format(Locale.ROOT, MsgPicker.getMsg().getNO_DATA_IN_TABLE(), table));
-                }
+                checkMessage(table, messages);
                 Map<String, Object> resp = kafkaService.getMessageTypeAndDecodedMessages(messages);
                 String json = ((List<String>) resp.get("message")).get(0);
                 ObjectMapper mapper = new ObjectMapper();
@@ -804,7 +801,14 @@ public class TableService extends BasicService {
 
         } catch (Exception e) {
             logger.error("Failed to get date format.", e);
-            throw new KylinException(INVALID_PARTITION_COLUMN, MsgPicker.getMsg().getPUSHDOWN_PARTITIONFORMAT_ERROR());
+            throw new KylinException(INVALID_PARTITION_COLUMN, MsgPicker.getMsg().getPushdownPartitionformatError());
+        }
+    }
+
+    private void checkMessage(String table, List<ByteBuffer> messages) {
+        if (messages == null || messages.isEmpty()) {
+            throw new KylinException(EMPTY_TABLE,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getNoDataInTable(), table));
         }
     }
 
@@ -958,7 +962,7 @@ public class TableService extends BasicService {
         NTableMetadataManager tableMetadataManager = getManager(NTableMetadataManager.class, project);
         val tableDesc = tableMetadataManager.getTableDesc(table);
         if (Objects.isNull(tableDesc)) {
-            String errorMsg = String.format(Locale.ROOT, MsgPicker.getMsg().getTABLE_NOT_FOUND(), table);
+            String errorMsg = String.format(Locale.ROOT, MsgPicker.getMsg().getTableNotFound(), table);
             throw new KylinException(TABLE_NOT_EXIST, errorMsg);
         }
 
@@ -1029,7 +1033,7 @@ public class TableService extends BasicService {
 
         val tableDesc = tableMetadataManager.getTableDesc(tableIdentity);
         if (Objects.isNull(tableDesc)) {
-            String errorMsg = String.format(Locale.ROOT, MsgPicker.getMsg().getTABLE_NOT_FOUND(), tableIdentity);
+            String errorMsg = String.format(Locale.ROOT, MsgPicker.getMsg().getTableNotFound(), tableIdentity);
             throw new KylinException(TABLE_NOT_EXIST, errorMsg);
         }
 
@@ -1093,12 +1097,12 @@ public class TableService extends BasicService {
         NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
         SegmentRange readySegmentRange = dataLoadingRange.getCoveredRange();
         if (readySegmentRange == null) {
-            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getINVALID_REFRESH_SEGMENT_BY_NO_SEGMENT());
+            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getInvalidRefreshSegmentByNoSegment());
         }
         SegmentRange segmentRangeRefresh = SourceFactory.getSource(tableDesc).getSegmentRange(start, end);
 
         if (!readySegmentRange.contains(segmentRangeRefresh)) {
-            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getINVALID_REFRESH_SEGMENT_BY_NOT_READY());
+            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getInvalidRefreshSegmentByNotReady());
         }
     }
 
@@ -1338,7 +1342,7 @@ public class TableService extends BasicService {
         val tableManager = getManager(NTableMetadataManager.class, projectName);
         val originTable = tableManager.getTableDesc(tableIdentity);
         Preconditions.checkNotNull(originTable,
-                String.format(Locale.ROOT, MsgPicker.getMsg().getTABLE_NOT_FOUND(), tableIdentity));
+                String.format(Locale.ROOT, MsgPicker.getMsg().getTableNotFound(), tableIdentity));
 
         val project = getManager(NProjectManager.class).getProject(projectName);
         val context = calcReloadContext(projectName, tableIdentity, true);
@@ -1436,7 +1440,7 @@ public class TableService extends BasicService {
             String columnNames = String.join(MsgPicker.getMsg().getCOMMA(), context.getChangeTypeColumns());
             if (root instanceof IllegalCCExpressionException) {
                 throw new KylinException(INVALID_COMPUTED_COLUMN_EXPRESSION, String.format(Locale.ROOT,
-                        MsgPicker.getMsg().getRELOAD_TABLE_CC_RETRY(), root.getMessage(), tableName, columnNames));
+                        MsgPicker.getMsg().getReloadTableCcRetry(), root.getMessage(), tableName, columnNames));
             } else if (root instanceof KylinException
                     && ((KylinException) root).getErrorCode() == QueryErrorCode.SCD2_COMMON_ERROR.toErrorCode()) {
                 throw new KylinException(TABLE_RELOAD_MODEL_RETRY, tableName, columnNames, model.getAlias());
@@ -1563,7 +1567,7 @@ public class TableService extends BasicService {
         if (Objects.nonNull(duplicatedColumns) && !duplicatedColumns.isEmpty()) {
             Map.Entry<String, String> entry = duplicatedColumns.entries().iterator().next();
             throw new KylinException(DUPLICATED_COLUMN_NAME,
-                    MsgPicker.getMsg().getTABLE_RELOAD_ADD_COLUMN_EXIST(entry.getKey(), entry.getValue()));
+                    MsgPicker.getMsg().getTableReloadAddColumnExist(entry.getKey(), entry.getValue()));
         }
     }
 
@@ -1972,7 +1976,7 @@ public class TableService extends BasicService {
         File file = new File(fileName);
         if (!file.exists() || !file.isFile()) {
             throw new KylinException(FILE_NOT_EXIST,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getFILE_NOT_EXIST(), fileName));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getFileNotExist(), fileName));
         }
     }
 
@@ -2005,7 +2009,7 @@ public class TableService extends BasicService {
             result.setCode(KylinException.CODE_SUCCESS);
         } else {
             result.setCode(KylinException.CODE_UNDEFINED);
-            result.setMsg(message.getTABLE_REFRESH_NOTFOUND());
+            result.setMsg(message.getTableRefreshNotfound());
         }
         result.setRefreshed(refreshed);
         result.setFailed(failed);
@@ -2048,7 +2052,7 @@ public class TableService extends BasicService {
                     nodes.add(data);
                 }
             } catch (Exception e) {
-                throw new KylinException(FAILED_REFRESH_CATALOG_CACHE, message.getTABLE_REFRESH_ERROR(), e);
+                throw new KylinException(FAILED_REFRESH_CATALOG_CACHE, message.getTableRefreshError(), e);
             }
         });
         if (!nodes.isEmpty()) {

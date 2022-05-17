@@ -263,7 +263,7 @@ public class TableData implements Serializable, WithLayout {
                 long size = partition.getSizeInNode().getOrDefault(nodeName, 0L);
                 if (size != 0) {
                     throw new KylinException(ServerErrorCode.SECOND_STORAGE_DELETE_NODE_FAILED,
-                            String.format(Locale.ROOT, MsgPicker.getMsg().getSECOND_STORAGE_DELETE_NODE_FAILED(), nodeName, size));
+                            String.format(Locale.ROOT, MsgPicker.getMsg().getSecondStorageDeleteNodeFailed(), nodeName, size));
                 }
 
                 sizeInNode.remove(nodeName);

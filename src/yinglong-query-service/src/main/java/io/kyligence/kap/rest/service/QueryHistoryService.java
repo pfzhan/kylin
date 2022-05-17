@@ -235,7 +235,7 @@ public class QueryHistoryService extends BasicService implements AsyncTaskQueryH
                 NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(request.getProject()))) {
             request.setAdmin(true);
         } else {
-            throw new ForbiddenException(MsgPicker.getMsg().getEXPORT_RESULT_NOT_ALLOWED());
+            throw new ForbiddenException(MsgPicker.getMsg().getExportResultNotAllowed());
         }
         List<QueryHistory> queryHistories = queryHistoryDAO.getQueryHistoriesSubmitters(request, size);
         return queryHistories.stream().map(QueryHistory::getQuerySubmitter).collect(Collectors.toList());

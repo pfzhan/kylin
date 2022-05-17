@@ -23,28 +23,16 @@
  */
 package org.apache.spark.sql.execution.datasources.v2.jdbc
 
-import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.connector.catalog.TableCapability.{BATCH_READ, TRUNCATE}
-import org.apache.spark.sql.connector.catalog.{Identifier, SupportsRead, Table, TableCapability}
+import org.apache.spark.sql.connector.catalog.Identifier
 import org.apache.spark.sql.execution.datasources.jdbc.JDBCOptions
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 
-import java.util
-import scala.collection.JavaConverters._
-
-case class ShardJDBCTable(ident: Identifier, schema: StructType, jdbcOptions: JDBCOptions)
-  extends Table with SupportsRead {
-
-  override def name(): String = ident.toString
-
-  override def capabilities(): util.Set[TableCapability] = {
-    Set(BATCH_READ, TRUNCATE).asJava
-  }
+class ShardJDBCTable(ident: Identifier, schema: StructType, jdbcOptions: JDBCOptions)
+  extends JDBCTable(ident, schema, jdbcOptions) {
 
   override def newScanBuilder(options: CaseInsensitiveStringMap): ShardJDBCScanBuilder = {
-    val mergedOptions = new JDBCOptions(
-      jdbcOptions.parameters.originalMap ++ options.asCaseSensitiveMap().asScala)
-    ShardJDBCScanBuilder(SparkSession.active, schema, mergedOptions)
+    val jdbcScanBuilder = super.newScanBuilder(options)
+    new ShardJDBCScanBuilder(jdbcScanBuilder.session, schema, jdbcScanBuilder.jdbcOptions)
   }
 }

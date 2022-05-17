@@ -969,4 +969,11 @@ public class SmartModelServiceTest extends SourceTestCase{
         }
     }
 
+    @Test
+    public void testCheckBatchSqlSize() {
+        List<String> list = Collections.nCopies(201, "sql");
+        Assert.assertTrue(list.size() > 200);
+        Assert.assertThrows(KylinException.class,
+                () -> ReflectionTestUtils.invokeMethod(modelSmartService, "checkBatchSqlSize", getTestConfig(), list));
+    }
 }

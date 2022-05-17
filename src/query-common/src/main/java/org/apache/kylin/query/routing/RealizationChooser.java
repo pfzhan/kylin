@@ -46,6 +46,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.STREAMING_MODEL_
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -63,6 +64,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.MapUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exception.KylinTimeoutException;
@@ -143,8 +145,9 @@ public class RealizationChooser {
         }
     }
 
+
     public static void multiThreadSelectLayoutCandidate(List<OLAPContext> contexts) {
-        ArrayList<Future> futureList = Lists.newArrayList();
+        ArrayList<Future<?>> futureList = Lists.newArrayList();
         try {
             KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
             String project = QueryContext.current().getProject();
@@ -180,7 +183,7 @@ public class RealizationChooser {
                 futureList.add(future);
             }
             latch.await();
-            for (Future future : futureList) {
+            for (Future<?> future : futureList) {
                 future.get();
             }
         } catch (ExecutionException e) {
@@ -190,7 +193,7 @@ public class RealizationChooser {
                 throw (NoStreamingRealizationFoundException) e.getCause();
             }
         } catch (InterruptedException e) {
-            for (Future future : futureList) {
+            for (Future<?> future : futureList) {
                 future.cancel(true);
             }
             QueryContext.current().getQueryTagInfo().setTimeout(true);
@@ -284,7 +287,7 @@ public class RealizationChooser {
             TableDesc tableDesc = tableManager.getTableDesc(tableScan.getTableName());
             if (tableDesc.getSourceType() == ISourceAware.ID_STREAMING) {
                 throw new NoStreamingRealizationFoundException(STREAMING_MODEL_NOT_FOUND,
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getNO_STREAMING_MODEL_FOUND()));
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getNoStreamingModelFound()));
             }
         }
     }
@@ -293,8 +296,8 @@ public class RealizationChooser {
             boolean isPartialMatch, boolean isPartialMatchNonEquiJoin, Multimap<NDataModel, IRealization> modelMap,
             Map<NDataModel, Map<String, String>> model2AliasMap) {
         final Map<String, String> map = matchJoins(model, context, isPartialMatch, isPartialMatchNonEquiJoin);
-        if (map == null) {
-            return null;
+        if (MapUtils.isEmpty(map)) {
+            return new ArrayList<>();
         }
         context.fixModel(model, map);
         model2AliasMap.put(model, map);
@@ -304,7 +307,7 @@ public class RealizationChooser {
         if (!hasReadySegments(model)) {
             context.unfixModel();
             logger.info("Exclude this model {} because there are no ready segments", model.getAlias());
-            return null;
+            return new ArrayList<>();
         }
 
         Set<IRealization> realizations = Sets.newHashSet(modelMap.get(model));
@@ -473,7 +476,7 @@ public class RealizationChooser {
         if ((layoutCandidate == null && layoutStreamingCandidate == NLayoutCandidate.EMPTY)
                 || (layoutStreamingCandidate == null && layoutCandidate == NLayoutCandidate.EMPTY)) {
             throw new NoStreamingRealizationFoundException(STREAMING_MODEL_NOT_FOUND,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getNO_STREAMING_MODEL_FOUND()));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getNoStreamingModelFound()));
         }
 
         if (layoutCandidate == NLayoutCandidate.EMPTY && layoutStreamingCandidate == NLayoutCandidate.EMPTY) {
@@ -491,7 +494,7 @@ public class RealizationChooser {
             context.setEmptyLayout(true);
             logger.error("The case when the type of stream and batch index different is not supported yet.");
             throw new NoStreamingRealizationFoundException(STREAMING_MODEL_NOT_FOUND,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getNO_STREAMING_MODEL_FOUND()));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getNoStreamingModelFound()));
         }
 
         NDataModel model = candidate.getRealization().getModel();
@@ -616,7 +619,7 @@ public class RealizationChooser {
             // has hanging tables
             ctx.realizationCheck.addModelIncapableReason(model,
                     RealizationCheck.IncapableReason.create(RealizationCheck.IncapableType.MODEL_BAD_JOIN_SEQUENCE));
-            return null;
+            return new HashMap<>();
         } else {
             // normal big joins
             if (ctx.getJoinsGraph() == null) {
@@ -643,7 +646,7 @@ public class RealizationChooser {
         if (!matched) {
             ctx.realizationCheck.addModelIncapableReason(model,
                     RealizationCheck.IncapableReason.create(RealizationCheck.IncapableType.MODEL_UNMATCHED_JOIN));
-            return null;
+            return new HashMap<>();
         }
         ctx.realizationCheck.addCapableModel(model, matchUp);
         return matchUp;

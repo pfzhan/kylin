@@ -139,7 +139,7 @@ public class BaseController {
         KylinException kylinException = null;
         while (cause != null && cause.getCause() != null) {
             if (cause instanceof CannotCreateTransactionException) {
-                kylinException = new KylinException(FAILED_CONNECT_CATALOG, msg.getCONNECT_DATABASE_ERROR(), false);
+                kylinException = new KylinException(FAILED_CONNECT_CATALOG, msg.getConnectDatabaseError(), false);
             }
             if (cause instanceof KylinException) {
                 kylinException = (KylinException) cause;
@@ -188,7 +188,7 @@ public class BaseController {
     @ResponseBody
     ErrorResponse handleAccessDenied(HttpServletRequest req, Throwable ex) {
         getLogger().error("", ex);
-        KylinException e = new KylinException(ACCESS_DENIED, MsgPicker.getMsg().getACCESS_DENY());
+        KylinException e = new KylinException(ACCESS_DENIED, MsgPicker.getMsg().getAccessDeny());
         return new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(req), e);
     }
 
@@ -309,7 +309,7 @@ public class BaseController {
 
     public String checkProjectName(String project) {
         if (StringUtils.isEmpty(project)) {
-            throw new KylinException(EMPTY_PROJECT_NAME, MsgPicker.getMsg().getEMPTY_PROJECT_NAME());
+            throw new KylinException(EMPTY_PROJECT_NAME, MsgPicker.getMsg().getEmptyProjectName());
         }
 
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
@@ -359,14 +359,14 @@ public class BaseController {
 
         if (!illegalStatus.isEmpty()) {
             throw new KylinException(INVALID_PARAMETER, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getNot_IN_EFFECTIVE_COLLECTION(), illegalStatus, enumStrSet));
+                    MsgPicker.getMsg().getNotInEffectiveCollection(), illegalStatus, enumStrSet));
         }
         return formattedStatus;
     }
 
     public void validatePriority(int priority) {
         if (!ExecutablePO.isPriorityValid(priority)) {
-            throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getINVALID_PRIORITY());
+            throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getInvalidPriority());
         }
     }
 
@@ -376,10 +376,10 @@ public class BaseController {
 
     private void validateRange(long start, long end) {
         if (start < 0 || end < 0) {
-            throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getINVALID_RANGE_LESS_THAN_ZERO());
+            throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getInvalidRangeLessThanZero());
         }
         if (start >= end) {
-            throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getINVALID_RANGE_END_LESSTHAN_START());
+            throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getInvalidRangeEndLessthanStart());
         }
     }
 
@@ -400,24 +400,24 @@ public class BaseController {
                 startLong = Long.parseLong(start);
                 endLong = Long.parseLong(end);
             } catch (Exception e) {
-                throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getINVALID_RANGE_NOT_FORMAT());
+                throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getInvalidRangeNotFormat());
             }
 
             if (startLong < 0 || endLong < 0)
-                throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getINVALID_RANGE_LESS_THAN_ZERO());
+                throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getInvalidRangeLessThanZero());
 
             try {
                 startLong = DateFormat.getFormatTimeStamp(start, transformTimestamp2Format(partitionColumnFormat));
                 endLong = DateFormat.getFormatTimeStamp(end, transformTimestamp2Format(partitionColumnFormat));
             } catch (Exception e) {
-                throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getINVALID_RANGE_NOT_FORMAT());
+                throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getInvalidRangeNotFormat());
             }
 
             if (startLong >= endLong)
-                throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getINVALID_RANGE_END_LESSTHAN_START());
+                throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getInvalidRangeEndLessthanStart());
 
         } else {
-            throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getINVALID_RANGE_NOT_CONSISTENT());
+            throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getInvalidRangeNotConsistent());
         }
     }
 
@@ -426,7 +426,7 @@ public class BaseController {
         val kafkaConf = KafkaConfigManager.getInstance(config, project).getKafkaConfig(table);
         if (kafkaConf != null) {
             throw new KylinException(UNSUPPORTED_STREAMING_OPERATION,
-                    MsgPicker.getMsg().getSTREAMING_OPERATION_NOT_SUPPORT());
+                    MsgPicker.getMsg().getStreamingOperationNotSupport());
         }
     }
 

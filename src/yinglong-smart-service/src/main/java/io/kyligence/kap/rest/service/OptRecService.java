@@ -633,7 +633,7 @@ public class OptRecService extends BasicService {
             checkedTableColumnMap.entrySet().removeIf(entry -> entry.getValue().size() < 2);
             if (!checkedTableColumnMap.isEmpty()) {
                 throw new KylinException(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION,
-                        MsgPicker.getMsg().get_ALIAS_CONFLICT_OF_APPROVING_RECOMMENDATION() + "\n"
+                        MsgPicker.getMsg().getAliasConflictOfApprovingRecommendation() + "\n"
                                 + JsonUtil.writeValueAsStringQuietly(checkedTableColumnMap));
             }
         }
@@ -703,7 +703,7 @@ public class OptRecService extends BasicService {
             conflictMap.entrySet().removeIf(entry -> entry.getValue().stream().allMatch(id -> id >= 0));
             if (!conflictMap.isEmpty()) {
                 throw new KylinException(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION,
-                        MsgPicker.getMsg().get_ALIAS_CONFLICT_OF_APPROVING_RECOMMENDATION() + "\n"
+                        MsgPicker.getMsg().getAliasConflictOfApprovingRecommendation() + "\n"
                                 + JsonUtil.writeValueAsStringQuietly(conflictMap));
             }
         }
@@ -714,7 +714,7 @@ public class OptRecService extends BasicService {
         String modelId = request.getModelId();
 
         if (!FusionIndexService.checkUpdateIndexEnabled(project, modelId)) {
-            throw new KylinException(STREAMING_INDEX_UPDATE_DISABLE, MsgPicker.getMsg().getSTREAMING_INDEXES_APPROVE());
+            throw new KylinException(STREAMING_INDEX_UPDATE_DISABLE, MsgPicker.getMsg().getStreamingIndexesApprove());
         }
 
         BaseIndexUpdateHelper baseIndexUpdater = new BaseIndexUpdateHelper(
@@ -936,14 +936,14 @@ public class OptRecService extends BasicService {
             try (SetLogCategory logCategory = new SetLogCategory("smart")) {
                 log.info("all recommendation ids {}, broken ref ids {}", allRecItemIds, brokenRefIds);
             }
-            throw new KylinException(REC_LIST_OUT_OF_DATE, MsgPicker.getMsg().getREC_LIST_OUT_OF_DATE());
+            throw new KylinException(REC_LIST_OUT_OF_DATE, MsgPicker.getMsg().getRecListOutOfDate());
         }
         Map<Integer, LayoutRef> layoutRefs = isAdd //
                 ? optRecV2.getAdditionalLayoutRefs() //
                 : optRecV2.getRemovalLayoutRefs();
         LayoutRef layoutRef = layoutRefs.get(-recItemId);
         if (layoutRef == null) {
-            throw new KylinException(REC_LIST_OUT_OF_DATE, MsgPicker.getMsg().getREC_LIST_OUT_OF_DATE());
+            throw new KylinException(REC_LIST_OUT_OF_DATE, MsgPicker.getMsg().getRecListOutOfDate());
         }
         return layoutRef;
     }

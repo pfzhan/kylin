@@ -91,7 +91,7 @@ public class OpenTableController extends NBasicController {
         TableDesc table = tableService.getManager(NTableMetadataManager.class, project).getTableDesc(tableName);
         if (null == table) {
             throw new KylinException(INVALID_TABLE_NAME,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getTABLE_NOT_FOUND(), tableName));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getTableNotFound(), tableName));
         }
         return table;
     }
@@ -116,7 +116,7 @@ public class OpenTableController extends NBasicController {
         checkProjectName(project);
         if (sourceType == ISourceAware.ID_STREAMING) {
             throw new KylinException(UNSUPPORTED_STREAMING_OPERATION,
-                    MsgPicker.getMsg().getSTREAMING_OPERATION_NOT_SUPPORT());
+                    MsgPicker.getMsg().getStreamingOperationNotSupport());
         }
         List<TableDesc> result = tableService.getTableDescByType(project, withExt, table, database, isFuzzy,
                 sourceType);
@@ -188,11 +188,11 @@ public class OpenTableController extends NBasicController {
         checkRequiredArg("need_sampling", request.getNeedSampling());
         validatePriority(request.getPriority());
         if (StringUtils.isEmpty(request.getTable())) {
-            throw new KylinException(INVALID_TABLE_NAME, MsgPicker.getMsg().getTABLE_NAME_CANNOT_EMPTY());
+            throw new KylinException(INVALID_TABLE_NAME, MsgPicker.getMsg().getTableNameCannotEmpty());
         }
         if (request.getNeedSampling()
                 && (request.getSamplingRows() < MIN_SAMPLING_ROWS || request.getSamplingRows() > MAX_SAMPLING_ROWS)) {
-            throw new KylinException(INVALID_TABLE_SAMPLE_RANGE, MsgPicker.getMsg().getTABLE_SAMPLE_MAX_ROWS());
+            throw new KylinException(INVALID_TABLE_SAMPLE_RANGE, MsgPicker.getMsg().getTableSampleMaxRows());
         }
 
         Pair<String, List<String>> pair = tableService.reloadTable(request.getProject(),

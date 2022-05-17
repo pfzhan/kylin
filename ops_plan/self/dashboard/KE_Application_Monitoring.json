@@ -21,8 +21,8 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 12,
-  "iteration": 1651734443337,
+  "id": 1680,
+  "iteration": 1652342267446,
   "links": [],
   "panels": [
     {
@@ -353,7 +353,7 @@
       },
       "id": 44,
       "panels": [],
-      "title": "Query/Build Analyse",
+      "title": "Query Analyse",
       "type": "row"
     },
     {
@@ -760,6 +760,444 @@
     },
     {
       "datasource": "Prometheus",
+      "description": "击中分层存储的查询数",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 27
+      },
+      "id": 62,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {},
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.5.8",
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "sum(increase(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",hit_second_storage=\"true\"}[$__range]))",
+          "interval": "",
+          "legendFormat": "query_amount%",
+          "refId": "A"
+        }
+      ],
+      "title": "Tiered Storage Query Amount",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "击中分层存储的查询比例",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 2,
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 27
+      },
+      "id": 64,
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": false,
+        "text": {}
+      },
+      "pluginVersion": "7.5.8",
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "sum(increase(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",hit_second_storage=\"true\"}[$__range])) / sum(increase(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\"}[$__range]))*100",
+          "interval": "",
+          "legendFormat": "query_ratio%",
+          "refId": "A"
+        }
+      ],
+      "title": "Tiered Storage Query Ratio",
+      "type": "gauge"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "击中分层存储的查询的平均响应时间",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 27
+      },
+      "id": 66,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {},
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.5.8",
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "sum(increase(ke_queries_seconds_sum{job=\"$job\",instance=\"$instance\",project=~\"$project\",hit_second_storage=\"true\"}[$__range])) / sum(increase(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",hit_second_storage=\"true\"}[$__range]))",
+          "interval": "",
+          "legendFormat": "query_average_response_time%",
+          "refId": "A"
+        }
+      ],
+      "title": "Tiered Storage Query Average Response Time",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "近段时间内击中分层存储的查询数趋势",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "graph": false,
+              "legend": false,
+              "tooltip": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 35
+      },
+      "id": 68,
+      "options": {
+        "graph": {},
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltipOptions": {
+          "mode": "single"
+        }
+      },
+      "pluginVersion": "7.5.8",
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "sum(increase(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",hit_second_storage=\"true\"}[1m]))",
+          "interval": "",
+          "legendFormat": "query_amount",
+          "refId": "A"
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "Trend of Tiered Storage Query Amount",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "近段时间内击中分层存储的查询比例趋势 ",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "graph": false,
+              "legend": false,
+              "tooltip": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "decimals": 2,
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 35
+      },
+      "id": 70,
+      "options": {
+        "graph": {},
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltipOptions": {
+          "mode": "single"
+        }
+      },
+      "pluginVersion": "7.5.8",
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "sum(increase(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",hit_second_storage=\"true\"}[1m])) / sum(increase(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\"}[1m]))*100",
+          "interval": "",
+          "legendFormat": "query_ratio%",
+          "refId": "A"
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "Trend of Tiered Storage Query Ratio",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "近段时间内击中分层存储的查询平均响应时间趋势",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "graph": false,
+              "legend": false,
+              "tooltip": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 35
+      },
+      "id": 72,
+      "options": {
+        "graph": {},
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltipOptions": {
+          "mode": "single"
+        }
+      },
+      "pluginVersion": "7.5.8",
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "sum(increase(ke_queries_seconds_sum{job=\"$job\",instance=\"$instance\",project=~\"$project\",hit_second_storage=\"true\"}[1m])) / sum(increase(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",hit_second_storage=\"true\"}[1m]))",
+          "interval": "",
+          "legendFormat": "query_average_response_time",
+          "refId": "A"
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "Trend of Tiered Storage Query Average Response Time",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": true,
+      "datasource": "Prometheus",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 43
+      },
+      "id": 81,
+      "panels": [],
+      "title": "Build Analyse",
+      "type": "row"
+    },
+    {
+      "datasource": "Prometheus",
       "description": "构建耗时分布情况",
       "fieldConfig": {
         "defaults": {
@@ -789,7 +1227,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 27
+        "y": 44
       },
       "id": 40,
       "options": {
@@ -885,7 +1323,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 27
+        "y": 44
       },
       "id": 34,
       "options": {
@@ -941,12 +1379,12 @@
     },
     {
       "collapsed": false,
-      "datasource": null,
+      "datasource": "Prometheus",
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 35
+        "y": 52
       },
       "id": 67,
       "panels": [],
@@ -1004,7 +1442,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 36
+        "y": 53
       },
       "id": 69,
       "options": {
@@ -1091,7 +1529,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 36
+        "y": 53
       },
       "id": 71,
       "options": {
@@ -1134,7 +1572,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 44
+        "y": 61
       },
       "id": 46,
       "panels": [],
@@ -1212,7 +1650,7 @@
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 45
+        "y": 62
       },
       "id": 63,
       "options": {
@@ -1331,7 +1769,7 @@
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 45
+        "y": 62
       },
       "id": 65,
       "options": {
@@ -1389,7 +1827,7 @@
         "h": 9,
         "w": 7,
         "x": 0,
-        "y": 54
+        "y": 71
       },
       "id": 9,
       "options": {
@@ -1509,7 +1947,7 @@
         "h": 9,
         "w": 17,
         "x": 7,
-        "y": 54
+        "y": 71
       },
       "id": 10,
       "options": {
@@ -1559,7 +1997,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 63
+        "y": 80
       },
       "id": 48,
       "panels": [],
@@ -1595,7 +2033,7 @@
         "h": 16,
         "w": 7,
         "x": 0,
-        "y": 64
+        "y": 81
       },
       "id": 11,
       "options": {
@@ -1704,7 +2142,7 @@
         "h": 8,
         "w": 17,
         "x": 7,
-        "y": 64
+        "y": 81
       },
       "id": 12,
       "options": {
@@ -1813,7 +2251,7 @@
         "h": 8,
         "w": 17,
         "x": 7,
-        "y": 72
+        "y": 89
       },
       "id": 15,
       "options": {
@@ -1875,7 +2313,7 @@
         "h": 15,
         "w": 10,
         "x": 0,
-        "y": 80
+        "y": 97
       },
       "id": 14,
       "options": {
@@ -1938,7 +2376,7 @@
         "h": 8,
         "w": 14,
         "x": 10,
-        "y": 80
+        "y": 97
       },
       "hiddenSeries": false,
       "id": 2,
@@ -2048,7 +2486,7 @@
         "h": 7,
         "w": 14,
         "x": 10,
-        "y": 88
+        "y": 105
       },
       "hiddenSeries": false,
       "id": 36,
@@ -2137,12 +2575,12 @@
     },
     {
       "collapsed": false,
-      "datasource": null,
+      "datasource": "Prometheus",
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 95
+        "y": 112
       },
       "id": 73,
       "panels": [],
@@ -2200,7 +2638,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 96
+        "y": 113
       },
       "id": 75,
       "options": {
@@ -2258,7 +2696,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 96
+        "y": 113
       },
       "id": 79,
       "options": {
@@ -2322,7 +2760,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 104
+        "y": 121
       },
       "hiddenSeries": false,
       "id": 78,
@@ -2453,7 +2891,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 104
+        "y": 121
       },
       "id": 76,
       "options": {
@@ -2488,7 +2926,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 112
+        "y": 129
       },
       "id": 50,
       "panels": [],
@@ -2514,7 +2952,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 113
+        "y": 130
       },
       "hiddenSeries": false,
       "id": 52,
@@ -2571,6 +3009,7 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:167",
           "format": "ops",
           "label": null,
           "logBase": 1,
@@ -2579,6 +3018,7 @@
           "show": true
         },
         {
+          "$$hashKey": "object:168",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -2611,7 +3051,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 113
+        "y": 130
       },
       "hiddenSeries": false,
       "id": 54,
@@ -2708,7 +3148,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 121
+        "y": 138
       },
       "hiddenSeries": false,
       "id": 56,
@@ -2805,7 +3245,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 121
+        "y": 138
       },
       "hiddenSeries": false,
       "id": 58,
@@ -2924,9 +3364,9 @@
       {
         "allValue": null,
         "current": {
-          "selected": true,
-          "text": "159.27.81.165:7036",
-          "value": "159.27.81.165:7036"
+          "selected": false,
+          "text": "10.1.2.35:12312",
+          "value": "10.1.2.35:12312"
         },
         "datasource": "Prometheus",
         "definition": "label_values(ke_db_connections{job=\"$job\"}, instance)",
@@ -2996,6 +3436,6 @@
   "timepicker": {},
   "timezone": "",
   "title": "KE Application Monitoring",
-  "uid": "HS2147DHSJ13",
-  "version": 4
+  "uid": "HS2147DHSJ12",
+  "version": 5
 }

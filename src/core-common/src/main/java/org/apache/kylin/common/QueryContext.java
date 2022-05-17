@@ -261,6 +261,8 @@ public class QueryContext implements Closeable {
 
         private AtomicLong sourceScanRows = new AtomicLong();
 
+        private List<Long> sourceScanRowsList = new ArrayList<>();
+
         public long getSourceScanBytes() {
             return sourceScanBytes.get();
         }
@@ -275,6 +277,14 @@ public class QueryContext implements Closeable {
 
         public void setSourceScanRows(long bytes) {
             sourceScanRows.set(bytes);
+        }
+
+        public void addSourceScanRows(long rows) {
+            sourceScanRowsList.add(rows);
+        }
+
+        public long calSumOfSourceScanRows() {
+            return sourceScanRowsList.stream().mapToLong(Long::longValue).sum();
         }
 
         // scanXxx from SparkUI
@@ -348,6 +358,7 @@ public class QueryContext implements Closeable {
         private String fileEncode;
         private String fileName;
         private String separator;
+        private boolean isRefused;
     }
 
     @Getter

@@ -539,7 +539,7 @@ public class TableServiceTest extends CSVSourceTestCase {
     public void testUnloadNotExistTable() {
         String tableNotExist = "DEFAULT.not_exist_table";
         thrown.expect(KylinException.class);
-        thrown.expectMessage(String.format(Locale.ROOT, MsgPicker.getMsg().getTABLE_NOT_FOUND(), tableNotExist));
+        thrown.expectMessage(String.format(Locale.ROOT, MsgPicker.getMsg().getTableNotFound(), tableNotExist));
         tableService.unloadTable("default", tableNotExist, false);
     }
 
@@ -547,7 +547,7 @@ public class TableServiceTest extends CSVSourceTestCase {
     public void testPrepareUnloadNotExistTable() throws IOException {
         String tableNotExist = "DEFAULT.not_exist_table";
         thrown.expect(KylinException.class);
-        thrown.expectMessage(String.format(Locale.ROOT, MsgPicker.getMsg().getTABLE_NOT_FOUND(), tableNotExist));
+        thrown.expectMessage(String.format(Locale.ROOT, MsgPicker.getMsg().getTableNotFound(), tableNotExist));
         tableService.preUnloadTable("default", tableNotExist);
     }
 
@@ -918,7 +918,7 @@ public class TableServiceTest extends CSVSourceTestCase {
     @Test
     public void checkRefreshDataRangeException1() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getINVALID_REFRESH_SEGMENT_BY_NO_SEGMENT());
+        thrown.expectMessage(Message.getInstance().getInvalidRefreshSegmentByNoSegment());
         tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT", "yyyy-MM-dd");
         tableService.checkRefreshDataRangeReadiness("default", "DEFAULT.TEST_KYLIN_FACT", "0", "1294364500000");
     }
@@ -926,7 +926,7 @@ public class TableServiceTest extends CSVSourceTestCase {
     @Test
     public void checkRefreshDataRangeException2() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getINVALID_REFRESH_SEGMENT_BY_NOT_READY());
+        thrown.expectMessage(Message.getInstance().getInvalidRefreshSegmentByNotReady());
         tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT", "yyyy-MM-dd");
         NDataLoadingRangeManager rangeManager = NDataLoadingRangeManager.getInstance(KylinConfig.getInstanceFromEnv(),
                 "default");
@@ -1049,7 +1049,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         Assert.assertFalse(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").isIncrementLoading());
         Assert.assertNull(dataloadingManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT"));
         thrown.expect(KylinException.class);
-        thrown.expectMessage(String.format(Locale.ROOT, Message.getInstance().getINVALID_SET_TABLE_INC_LOADING(),
+        thrown.expectMessage(String.format(Locale.ROOT, Message.getInstance().getInvalidSetTableIncLoading(),
                 "DEFAULT.TEST_ACCOUNT", "nmodel_basic_inner"));
         tableService.setPartitionKey("DEFAULT.TEST_ACCOUNT", "default", "CAL_DT", "yyyy-MM-dd");
     }
@@ -1058,7 +1058,7 @@ public class TableServiceTest extends CSVSourceTestCase {
     public void testSetFact_IncrementingExists_Exception() {
         tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT", "yyyy-MM-dd");
         thrown.expect(KylinException.class);
-        thrown.expectMessage(String.format(Locale.ROOT, Message.getInstance().getINVALID_SET_TABLE_INC_LOADING(),
+        thrown.expectMessage(String.format(Locale.ROOT, Message.getInstance().getInvalidSetTableIncLoading(),
                 "DEFAULT.TEST_ACCOUNT", "nmodel_basic_inner"));
         tableService.setPartitionKey("DEFAULT.TEST_ACCOUNT", "default", "CAL_DT", "yyyy-MM-dd");
     }
@@ -1507,6 +1507,15 @@ public class TableServiceTest extends CSVSourceTestCase {
         val table = tableMgr.getTableDesc("SSB.P_LINEORDER_STREAMING");
         Assert.assertNotNull(table);
         Assert.assertEquals(JobStatusEnum.STOPPED, streamingJobMgr.getStreamingJobByUuid(jobId).getCurrentStatus());
+
+    }
+
+    @Test
+    public void testCheckMessage() {
+        Assert.assertThrows(KylinException.class,
+                () -> ReflectionTestUtils.invokeMethod(tableService, "checkMessage", "table", null));
+        Assert.assertThrows(KylinException.class,
+                () -> ReflectionTestUtils.invokeMethod(tableService, "checkMessage", "table", new ArrayList<>()));
 
     }
 }

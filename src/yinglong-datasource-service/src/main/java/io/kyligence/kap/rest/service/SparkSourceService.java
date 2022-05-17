@@ -32,8 +32,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
@@ -66,6 +64,8 @@ import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.request.DDLRequest;
 import io.kyligence.kap.rest.response.DDLResponse;
 import io.kyligence.kap.rest.response.ExportTablesResponse;
@@ -189,8 +189,9 @@ public class SparkSourceService extends BasicService {
             columnModel.setName(name);
             columnModel.setDescription(metadata.contains(HIVE_COMMENT) ? metadata.getString(HIVE_COMMENT) : "");
             //use hive datatype if it exists , otherwise use spark datatype
-            columnModel
-                    .setDataType(metadata.contains(CHAR_VARCHAR_TYPE_STRING) ? metadata.getString(CHAR_VARCHAR_TYPE_STRING) : datatype);
+            columnModel.setDataType(
+                    metadata.contains(CHAR_VARCHAR_TYPE_STRING) ? metadata.getString(CHAR_VARCHAR_TYPE_STRING)
+                            : datatype);
             columnModels.add(columnModel);
         }
 
@@ -203,24 +204,24 @@ public class SparkSourceService extends BasicService {
 
     public ExportTablesResponse exportTables(String database, String[] tables) {
         if (database == null || database.equals("")) {
-            throw new KylinException(ServerErrorCode.INVALID_PARAMETER, MsgPicker.getMsg().getEMPTY_DATABASE());
+            throw new KylinException(ServerErrorCode.INVALID_PARAMETER, MsgPicker.getMsg().getEmptyDatabase());
         }
         if (tables.length == 0) {
-            throw new KylinException(ServerErrorCode.INVALID_PARAMETER, MsgPicker.getMsg().getEMPTY_TABLE_LIST());
+            throw new KylinException(ServerErrorCode.INVALID_PARAMETER, MsgPicker.getMsg().getEmptyTableList());
         }
         if (!databaseExists(database)) {
             throw new KylinException(ServerErrorCode.INVALID_PARAMETER,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getDATABASE_NOT_EXIST(), database));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getDatabaseNotExist(), database));
         }
         val tableResponse = new ExportTablesResponse();
         Map<String, String> tableDesc = Maps.newHashMap();
         for (String table : tables) {
             if (table.equals("")) {
-                throw new KylinException(ServerErrorCode.INVALID_PARAMETER, MsgPicker.getMsg().getEMPTY_TABLE_LIST());
+                throw new KylinException(ServerErrorCode.INVALID_PARAMETER, MsgPicker.getMsg().getEmptyTableList());
             }
             if (!tableExists(database, table)) {
                 throw new KylinException(ServerErrorCode.INVALID_PARAMETER,
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getTABLE_NOT_FOUND(), table));
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getTableNotFound(), table));
             }
             tableDesc.put(table, DdlOperation.getTableDesc(database, table).replaceAll("\t|\r|\n", " "));
         }
@@ -248,7 +249,8 @@ public class SparkSourceService extends BasicService {
     }
 
     public List<String> loadSamples(SparkSession ss, SaveMode mode) throws IOException {
-        CuratorDistributedLock lock = KylinConfig.getInstanceFromEnv().getDistributedLockFactory().lockForCurrentThread("samples");
+        CuratorDistributedLock lock = KylinConfig.getInstanceFromEnv().getDistributedLockFactory()
+                .lockForCurrentThread("samples");
         //list samples and use file-name as table name
         List<File> fileList = listSampleFiles();
         List<String> createdTables = Lists.newArrayList();

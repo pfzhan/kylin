@@ -209,7 +209,7 @@ public class OpenSmartModelControllerTest extends NLocalFileMetadataTestCase {
             OpenModelSmartController.checkNotEmpty(sqls);
         } catch (KylinException e) {
             Assert.assertEquals("999", e.getCode());
-            Assert.assertEquals(MsgPicker.getMsg().getNULL_EMPTY_SQL(), e.getMessage());
+            Assert.assertEquals(MsgPicker.getMsg().getNullEmptySql(), e.getMessage());
         }
     }
 

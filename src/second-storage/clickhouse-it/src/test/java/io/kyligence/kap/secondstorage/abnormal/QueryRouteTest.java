@@ -23,16 +23,16 @@
  */
 package io.kyligence.kap.secondstorage.abnormal;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import static io.kyligence.kap.newten.clickhouse.ClickHouseUtils.columnMapping;
 import static io.kyligence.kap.clickhouse.ClickHouseConstants.CONFIG_CLICKHOUSE_QUERY_CATALOG;
+
+import com.google.common.collect.ImmutableMap;
 import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.util.ExecAndComp;
 import io.kyligence.kap.newten.clickhouse.ClickHouseUtils;
-import static io.kyligence.kap.newten.clickhouse.ClickHouseUtils.columnMapping;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import io.kyligence.kap.secondstorage.test.ClickHouseClassRule;
 import io.kyligence.kap.secondstorage.test.EnableClickHouseJob;
@@ -47,7 +47,7 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.execution.datasource.FilePruner;
-import org.apache.spark.sql.execution.datasources.v2.jdbc.ShardJDBCScan;
+import org.apache.spark.sql.execution.datasources.v2.jdbc.JDBCScan;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.hamcrest.core.IsInstanceOf;
@@ -125,14 +125,24 @@ public class QueryRouteTest {
             sparkSession.sessionState().conf().setConfString(
                     "spark.sql.catalog." + queryCatalog + ".driver",
                     clickhouse1.getDriverClassName());
+            sparkSession.sessionState().conf().setConfString(
+                    "spark.sql.catalog." + queryCatalog + ".pushDownAggregate",
+                    "true");
+            sparkSession.sessionState().conf().setConfString(
+                    "spark.sql.catalog." + queryCatalog + ".numPartitions",
+                    String.valueOf(clickhouseNumber));
 
             //check we get the correct plan
-            Dataset<Row> groupPlan =
-                    ExecAndComp.queryModelWithoutCompute(project, testSQL);
-            ShardJDBCScan shardJDBCScan = ClickHouseUtils.findShardScan(groupPlan.queryExecution().optimizedPlan());
-            Assert.assertEquals(clickhouseNumber, shardJDBCScan.relation().parts().length);
-            List<String> expected = ImmutableList.of(columnMapping.get("PRICE"));
-            ClickHouseUtils.checkGroupBy(shardJDBCScan, expected);
+            Dataset<Row> groupPlan = ExecAndComp.queryModelWithoutCompute(project, testSQL);
+            JDBCScan jdbcScan = ClickHouseUtils.findJDBCScan(groupPlan.queryExecution().optimizedPlan());
+            Assert.assertEquals(clickhouseNumber, jdbcScan.relation().parts().length);
+            ClickHouseUtils.checkAggregateRemoved(groupPlan);
+            String[] expectedPlanFragment = new String[] {
+                    "PushedAggregates: [SUM(" + columnMapping.get("PRICE") + ")], ",
+                    "PushedFilters: [], ",
+                    "PushedGroupByColumns: [" + columnMapping.get("PRICE") + "], "
+            };
+            ClickHouseUtils.checkPushedInfo(groupPlan, expectedPlanFragment);
 
             //check result
             NLocalWithSparkSessionTest.populateSSWithCSVData(test.getTestConfig(), project, sparkSession);

@@ -200,13 +200,13 @@ public class FusionModelService extends BasicService implements TableFusionModel
                     false);
             if (existedInStreaming) {
                 throw new KylinException(ServerErrorCode.SEGMENT_UNSUPPORTED_OPERATOR,
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getFIX_STREAMING_SEGMENT()));
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getFixStreamingSegment()));
             } else {
                 targetModelId = getBatchModel(modelId, buildSegmentsRequest.getProject()).getUuid();
             }
         } else if (dataModel.getModelType() == NDataModel.ModelType.STREAMING) {
             throw new KylinException(ServerErrorCode.SEGMENT_UNSUPPORTED_OPERATOR,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getFIX_STREAMING_SEGMENT()));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getFixStreamingSegment()));
         }
 
         return modelBuildService.addIndexesToSegments(buildSegmentsRequest.getProject(),

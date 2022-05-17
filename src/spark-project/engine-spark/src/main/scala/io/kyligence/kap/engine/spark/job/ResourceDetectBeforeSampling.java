@@ -1,6 +1,5 @@
 package io.kyligence.kap.engine.spark.job;
 
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -28,8 +27,8 @@ public class ResourceDetectBeforeSampling extends SparkApplication implements Re
     protected void doExecute() {
         String tableName = getParam(NBatchConstants.P_TABLE_NAME);
         final TableDesc tableDesc = NTableMetadataManager.getInstance(config, project).getTableDesc(tableName);
-        LinkedHashMap<String, String> params = NProjectManager.getInstance(config).getProject(project)
-                .getOverrideKylinProps();
+        Map<String, String> params = NProjectManager.getInstance(config).getProject(project)
+                .getLegalOverrideKylinProps();
         long rowCount = Long.parseLong(getParam(NBatchConstants.P_SAMPLING_ROWS));
         params.put("sampleRowCount", String.valueOf(rowCount));
         final Dataset<Row> dataset = SourceFactory

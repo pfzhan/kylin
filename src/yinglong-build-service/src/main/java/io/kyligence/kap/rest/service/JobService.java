@@ -343,7 +343,7 @@ public class JobService extends BasicService implements JobSupporter {
         case ALL:
             return 0;
         default:
-            throw new KylinException(INVALID_PARAMETER, msg.getILLEGAL_TIME_FILTER());
+            throw new KylinException(INVALID_PARAMETER, msg.getIllegalTimeFilter());
         }
     }
 
@@ -366,7 +366,7 @@ public class JobService extends BasicService implements JobSupporter {
         case STOPPED:
             return ExecutableState.PAUSED;
         default:
-            throw new KylinException(INVALID_PARAMETER, msg.getILLEGAL_EXECUTABLE_STATE());
+            throw new KylinException(INVALID_PARAMETER, msg.getIllegalExecutableState());
         }
     }
 
