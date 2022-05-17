@@ -24,21 +24,41 @@
 
 package io.kyligence.kap.rest.delegate;
 
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.rest.request.AddSegmentRequest;
+import io.kyligence.kap.rest.request.DataFlowUpdateRequest;
 import io.kyligence.kap.rest.request.MergeSegmentRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
 import org.apache.kylin.metadata.model.Segments;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
+import java.util.Set;
 
 @FeignClient(name = "yinglong-common-booter", path = "/kylin/api/models/feign")
 public interface ModelMetadataRPC extends ModelMetadataContract {
+
+    @PostMapping(value = "/update_index")
+    void updateIndex(@RequestParam("project") String project, @RequestParam("epochId") long epochId,
+                     @RequestParam("modelId") String modelId, @RequestBody Set<Long> toBeDeletedLayoutIds,
+                     @RequestParam("deleteAuto") boolean deleteAuto, @RequestParam("deleteManual") boolean deleteManual);
+
+    @PostMapping(value = "/update_dataflow")
+    void updateDataflow(@RequestBody DataFlowUpdateRequest dataFlowUpdateRequest);
+
+    @PostMapping(value = "/update_index_plan")
+    void updateIndexPlan(@RequestParam("project") String project, @RequestParam("uuid") String uuid,
+                         @RequestBody IndexPlan indexplan, @RequestParam("action") String action);
+
+    @PostMapping(value = "/update_dataflow_status")
+    void updateDataflowStatus(@RequestParam("project") String project, @RequestParam("uuid") String uuid,
+                              @RequestParam("status") RealizationStatusEnum status);
 
     @PostMapping(value = "/get_model_id_by_fuzzy_name")
     List<String> getModelIdsByFuzzyName(@RequestParam("fuzzyName") String fuzzyName,

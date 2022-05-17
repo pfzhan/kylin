@@ -24,14 +24,18 @@
 
 package io.kyligence.kap.rest.delegate;
 
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.rest.request.AddSegmentRequest;
+import io.kyligence.kap.rest.request.DataFlowUpdateRequest;
 import io.kyligence.kap.rest.request.MergeSegmentRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
 import org.apache.kylin.metadata.model.Segments;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 
 import java.util.List;
+import java.util.Set;
 
 public interface ModelMetadataContract {
 
@@ -59,4 +63,13 @@ public interface ModelMetadataContract {
 
     void removeIndexesFromSegments(String project, String modelId, List<String> segmentIds,
                                    List<Long> indexIds);
+
+    void updateIndex(String project, long epochId, String modelId, Set<Long> toBeDeletedLayoutIds, boolean deleteAuto,
+                     boolean deleteManual);
+
+    void updateDataflow(DataFlowUpdateRequest dataFlowUpdateRequest);
+
+    void updateIndexPlan(String project, String uuid, IndexPlan indexplan, String action);
+
+    void updateDataflowStatus(String project, String uuid, RealizationStatusEnum status);
 }

@@ -97,9 +97,11 @@ import java.util.stream.Stream;
 
 import io.kyligence.kap.rest.delegate.ModelMetadataContract;
 import io.kyligence.kap.rest.request.AddSegmentRequest;
+import io.kyligence.kap.rest.request.DataFlowUpdateRequest;
 import io.kyligence.kap.rest.request.MergeSegmentRequest;
 import io.kyligence.kap.tool.bisync.model.MeasureDef;
 import io.kyligence.kap.guava20.shaded.common.base.Supplier;
+import lombok.experimental.Delegate;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
@@ -349,6 +351,9 @@ public class ModelService extends BasicService implements TableModelSupporter, P
     @Setter
     @Autowired(required = false)
     private List<ModelChangeSupporter> modelChangeSupporters = Lists.newArrayList();
+
+    @Delegate
+    private ModelMetadataBaseService modelMetadataBaseService = new ModelMetadataBaseService();
 
     public NDataModel getModelById(String modelId, String project) {
         NDataModelManager modelManager = getManager(NDataModelManager.class, project);

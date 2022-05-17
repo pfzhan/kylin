@@ -21,30 +21,20 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package io.kyligence.kap.rest.request;
 
-package io.kyligence.kap.rest;
+import io.kyligence.kap.metadata.cube.model.NDataSegDetails;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-import feign.RequestInterceptor;
-import feign.RequestTemplate;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
-
-import javax.servlet.http.HttpServletRequest;
-
-@Configuration
-public class FeignConfiguration implements RequestInterceptor {
-
-    @Override
-    public void apply(RequestTemplate template) {
-        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-        if (attributes != null) {
-            HttpServletRequest request = attributes.getRequest();
-            String authorization = request.getHeader("Authorization");
-            template.header("Authorization", authorization);
-            String cookie = request.getHeader("Cookie");
-            template.header("Cookie", cookie);
-        }
-    }
-
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class DataFlowUpdateRequest {
+    private String project;
+    private NDataflowUpdate dataflowUpdate;
+    private NDataSegDetails[] dataSegDetails;
+    private Integer[] layoutCounts;
 }

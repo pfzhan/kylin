@@ -24,22 +24,26 @@
 
 package io.kyligence.kap.rest.delegate;
 
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.rest.request.AddSegmentRequest;
+import io.kyligence.kap.rest.request.DataFlowUpdateRequest;
 import io.kyligence.kap.rest.request.MergeSegmentRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
 import io.kyligence.kap.rest.service.ModelService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kylin.metadata.model.Segments;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.util.SpringContext;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Set;
 
 @Slf4j
 @Component
-public class ModelMetadataInvoker {
+public class ModelMetadataInvoker extends ModelMetadataBaseInvoker {
     private static ModelMetadataContract delegate = null;
 
     public static void setDelegate(ModelMetadataContract delegate) {
@@ -55,6 +59,27 @@ public class ModelMetadataInvoker {
             return SpringContext.getBean(ModelService.class);
         }
         return delegate;
+    }
+
+    @Override
+    public void updateIndex(String project, long epochId, String modelId, Set<Long> toBeDeletedLayoutIds,
+                            boolean deleteAuto, boolean deleteManual) {
+        getDelegate().updateIndex(project, epochId, modelId, toBeDeletedLayoutIds, deleteAuto, deleteManual);
+    }
+
+    @Override
+    public void updateDataflow(DataFlowUpdateRequest dataFlowUpdateRequest) {
+        getDelegate().updateDataflow(dataFlowUpdateRequest);
+    }
+
+    @Override
+    public void updateIndexPlan(String project, String uuid, IndexPlan indexplan, String action) {
+        getDelegate().updateIndexPlan(project, uuid, indexplan, action);
+    }
+
+    @Override
+    public void updateDataflowStatus(String project, String uuid, RealizationStatusEnum status) {
+        getDelegate().updateDataflowStatus(project, uuid, status);
     }
 
     public String updateSecondStorageModel(String project, String modelId) {

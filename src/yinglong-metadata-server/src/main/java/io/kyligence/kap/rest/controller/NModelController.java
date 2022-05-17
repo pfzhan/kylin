@@ -39,14 +39,17 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.rest.request.AddSegmentRequest;
+import io.kyligence.kap.rest.request.DataFlowUpdateRequest;
 import io.kyligence.kap.rest.request.MergeSegmentRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
@@ -57,6 +60,7 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.Segments;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.util.AclPermissionUtil;
@@ -895,4 +899,31 @@ public class NModelController extends NBasicController {
         modelService.removeIndexesFromSegments(project, modelId, segmentIds, indexIds);
     }
 
+    @PostMapping(value = "/feign/update_index")
+    @ResponseBody
+    public void updateIndex(@RequestParam("project") String project, @RequestParam("epochId") long epochId,
+                            @RequestParam("modelId") String modelId, @RequestBody Set<Long> toBeDeletedLayoutIds,
+                            @RequestParam("deleteAuto") boolean deleteAuto, @RequestParam("deleteManual") boolean deleteManual) {
+        modelService.updateIndex(project, epochId, modelId, toBeDeletedLayoutIds, deleteAuto, deleteManual);
+    }
+
+    @PostMapping(value = "/feign/update_dataflow")
+    @ResponseBody
+    public void updateDataflow(@RequestBody DataFlowUpdateRequest dataFlowUpdateRequest) {
+        modelService.updateDataflow(dataFlowUpdateRequest);
+    }
+
+    @PostMapping(value = "/feign/update_index_plan")
+    @ResponseBody
+    public void updateIndexPlan(@RequestParam("project") String project, @RequestParam("uuid") String uuid,
+                                @RequestBody IndexPlan indexplan, @RequestParam("action") String action) {
+        modelService.updateIndexPlan(project, uuid, indexplan, action);
+    }
+
+    @PostMapping(value = "/feign/update_dataflow_status")
+    @ResponseBody
+    public void updateDataflowStatus(@RequestParam("project") String project, @RequestParam("uuid") String uuid,
+                                     @RequestParam("status") RealizationStatusEnum status) {
+        modelService.updateDataflowStatus(project, uuid, status);
+    }
 }
