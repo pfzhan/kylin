@@ -3299,7 +3299,7 @@ public abstract class KylinConfigBase implements Serializable {
 
     public String getSparkBuildJobHandlerClassName() {
         return getOptional("kylin.engine.spark.build-job-handler-class-name",
-                "io.kyligence.kap.engine.spark.job.DefaultSparkBuildJobJobHandler");
+                "io.kyligence.kap.engine.spark.job.DefaultSparkBuildJobHandler");
     }
 
     public String getBuildJobProgressReporter() {

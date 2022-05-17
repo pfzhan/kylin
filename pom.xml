@@ -366,6 +366,7 @@
 
         <module>src/core-metadata-extensions</module>
         <module>src/query-extensions</module>
+        <module>src/spark-project/engine-build-sdk</module>
     </modules>
 
     <dependencyManagement>
@@ -768,6 +769,11 @@
                 <artifactId>kap-spark-common</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.ke</groupId>
+                <artifactId>kap-engine-build-sdk</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.kyligence.ke</groupId>

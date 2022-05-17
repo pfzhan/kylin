@@ -131,6 +131,7 @@ public class SparkApplicationTest extends NLocalWithSparkSessionTest {
         Mockito.verify(report).updateSparkJobInfo(getTestConfig(), "/kylin/api/jobs/spark", payloadJson);
 
         Mockito.reset(application);
+        Mockito.reset(report);
         Mockito.doReturn("http://sandbox.hortonworks.com:8088/proxy/application_1561370224051_0160/").when(application)
                 .getTrackingUrl(null, ss);
         Mockito.doReturn(Boolean.FALSE).when(report).updateSparkJobInfo(getTestConfig(), "/kylin/api/jobs/spark",
