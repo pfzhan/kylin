@@ -73,13 +73,6 @@ public class NMonitorController extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, Lists.newArrayList(), "");
     }
 
-    @ApiOperation(value = "getSparkMetrics", tags = { "SM" }, notes = "Fetch Spark Metrics")
-    @GetMapping(value = "/spark/prometheus", produces = "text/plain;charset=utf-8")
-    @ResponseBody
-    public String getSparkMetricsForPrometheus() {
-        return monitorService.fetchAndMergeSparkMetrics();
-    }
-
     @ApiOperation(value = "getStatus", tags = { "SM" })
     @GetMapping(value = "/status")
     @ResponseBody

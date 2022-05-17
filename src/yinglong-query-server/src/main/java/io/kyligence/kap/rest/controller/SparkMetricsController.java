@@ -23,33 +23,31 @@
  */
 package io.kyligence.kap.rest.controller;
 
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
 import io.kyligence.kap.rest.service.MonitorService;
-import org.apache.commons.lang.StringUtils;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import io.swagger.annotations.ApiOperation;
 
-public class NMonitorControllerTest {
+@Controller
+@RequestMapping(value = "/api/monitor", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
+public class SparkMetricsController extends NBasicController {
 
-    @Mock
+    @Autowired
+    @Qualifier("monitorService")
     private MonitorService monitorService;
 
-    @InjectMocks
-    private NMonitorController nMonitorController = Mockito.spy(new NMonitorController());
-
-    @Before
-    public void setup() {
-        MockitoAnnotations.initMocks(this);
-    }
-
-    @Test
-    public void testGetSpark3MetricsForPrometheus() {
-        Mockito.when(monitorService.fetchAndMergeSparkMetrics()).thenReturn("");
-        String spark3MetricsForPrometheus = nMonitorController.getSparkMetricsForPrometheus();
-        Assert.assertTrue(StringUtils.isBlank(spark3MetricsForPrometheus));
+    @ApiOperation(value = "getSparkMetrics", tags = { "SM" }, notes = "Fetch Spark Metrics")
+    @GetMapping(value = "/spark/prometheus", produces = "text/plain;charset=utf-8")
+    @ResponseBody
+    public String getSparkMetricsForPrometheus() {
+        return monitorService.fetchAndMergeSparkMetrics();
     }
 }

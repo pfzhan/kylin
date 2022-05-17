@@ -58,6 +58,11 @@
             <artifactId>yinglong-systools</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>io.kyligence.yinglong</groupId>
+            <artifactId>yinglong-integration-service</artifactId>
+        </dependency>
+
         <!--Env & Test-->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
