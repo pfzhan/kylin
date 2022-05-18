@@ -2073,7 +2073,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         SQLResponse resp1 = queryService.doQueryWithCache(request);
         Assert.assertTrue(resp1.isException());
         Assert.assertEquals(String.format(Locale.ROOT,
-                MsgPicker.getMsg().getSQL_BLACKLIST_QUERY_CONCUTTENT_LIMIT_EXCEEDED(), "1", 1),
+                MsgPicker.getMsg().getSqlBlackListQueryConcurrentLimitExceeded(), "1", 1),
                 resp1.getExceptionMessage());
     }
 
@@ -2279,12 +2279,12 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
                 queryExec.getDefaultSchemaName(), true);
         String correctedSql = KapQueryUtil.massageSql(queryParams);
 
-        Throwable cause = new KylinException(QueryErrorCode.FORCED_TO_TIEREDSTORAGE_AND_FORCE_TO_INDEX, MsgPicker.getMsg().getFORCED_TO_TIEREDSTORAGE_AND_FORCE_TO_INDEX());
+        Throwable cause = new KylinException(QueryErrorCode.FORCED_TO_TIEREDSTORAGE_AND_FORCE_TO_INDEX, MsgPicker.getMsg().getForcedToTieredstorageAndForceToIndex());
         Mockito.doThrow(new SQLException("Error while executing SQL \"" + correctedSql + "\": " + cause.getMessage(), cause))
                 .when(queryService.queryRoutingEngine).execute(Mockito.any(), Mockito.any());
 
         final SQLResponse response = queryService.queryWithCache(sqlRequest);
-        Assert.assertTrue(response.getExceptionMessage().contains(MsgPicker.getMsg().getFORCED_TO_TIEREDSTORAGE_AND_FORCE_TO_INDEX()));
+        Assert.assertTrue(response.getExceptionMessage().contains(MsgPicker.getMsg().getForcedToTieredstorageAndForceToIndex()));
     }
 
     @Test
@@ -2305,13 +2305,19 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         String correctedSql = KapQueryUtil.massageSql(queryParams);
 
         Throwable cause = new KylinException(QueryErrorCode.FORCED_TO_TIEREDSTORAGE_RETURN_ERROR,
-                MsgPicker.getMsg().getFORCED_TO_TIEREDSTORAGE_RETURN_ERROR());
+                MsgPicker.getMsg().getForcedToTieredstorageReturnError());
         Mockito.doThrow(new SQLException("Error while executing SQL \"" + correctedSql + "\": " + cause.getMessage(), cause))
                 .when(queryService.queryRoutingEngine).execute(Mockito.any(), Mockito.any());
 
         final SQLResponse response = queryService.queryWithCache(sqlRequest);
-        Assert.assertTrue(response.getExceptionMessage().contains(MsgPicker.getMsg().getFORCED_TO_TIEREDSTORAGE_RETURN_ERROR()));
+        Assert.assertTrue(response.getExceptionMessage().contains(MsgPicker.getMsg().getForcedToTieredstorageReturnError()));
     }
 
 
+
+    @Test
+    public void testCheckSqlRequestProject() {
+        Assert.assertThrows(KylinException.class, ()->ReflectionTestUtils.invokeMethod(queryService, "checkSqlRequestProject",
+                new SQLRequest(), MsgPicker.getMsg()));
+    }
 }

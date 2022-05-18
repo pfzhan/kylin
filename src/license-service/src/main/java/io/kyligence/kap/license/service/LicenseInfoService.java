@@ -442,7 +442,7 @@ public class LicenseInfoService extends BasicService {
                     checker.accept(node);
                 } catch (NumberFormatException e) {
                     backupAndDeleteLicense("error");
-                    throw new KylinException(INVALID_LICENSE, msg.getLICENSE_INVALID_LICENSE(), CODE_ERROR, e);
+                    throw new KylinException(INVALID_LICENSE, msg.getLicenseInvalidLicense(), CODE_ERROR, e);
                 }
             }
             realNode = node;

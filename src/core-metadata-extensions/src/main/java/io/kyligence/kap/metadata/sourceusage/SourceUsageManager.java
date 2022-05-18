@@ -478,27 +478,27 @@ public class SourceUsageManager {
         if (checkProject) {
             if (info.getCapacityStatus() == OVERCAPACITY && info.getNodeStatus() == OVERCAPACITY) {
                 throw new KylinException(LICENSE_OVER_CAPACITY,
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getLICENSE_PROJECT_SOURCE_NODES_OVER_CAPACITY(),
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getlicenseProjectSourceNodesOverCapacity(),
                                 currentCapacity, capacity, info.getCurrentNode(), info.getNode()));
             } else if (info.getCapacityStatus() == OVERCAPACITY) {
                 throw new KylinException(LICENSE_OVER_CAPACITY, String.format(Locale.ROOT,
-                        MsgPicker.getMsg().getLICENSE_PROJECT_SOURCE_OVER_CAPACITY(), currentCapacity, capacity));
+                        MsgPicker.getMsg().getLicenseProjectSourceOverCapacity(), currentCapacity, capacity));
             } else if (info.getNodeStatus() == OVERCAPACITY) {
                 throw new KylinException(LICENSE_OVER_CAPACITY, String.format(Locale.ROOT,
-                        MsgPicker.getMsg().getLICENSE_NODES_OVER_CAPACITY(), info.getCurrentNode(), info.getNode()));
+                        MsgPicker.getMsg().getLicenseNodesOverCapacity(), info.getCurrentNode(), info.getNode()));
             }
             logger.info("Current capacity status of project: {} is ok", project);
         } else {
             if (info.getCapacityStatus() == OVERCAPACITY && info.getNodeStatus() == OVERCAPACITY) {
                 throw new KylinException(LICENSE_OVER_CAPACITY,
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getLICENSE_SOURCE_NODES_OVER_CAPACITY(),
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getLicenseSourceNodesOverCapacity(),
                                 currentCapacity, capacity, info.getCurrentNode(), info.getNode()));
             } else if (info.getCapacityStatus() == OVERCAPACITY) {
                 throw new KylinException(LICENSE_OVER_CAPACITY, String.format(Locale.ROOT,
-                        MsgPicker.getMsg().getLICENSE_SOURCE_OVER_CAPACITY(), currentCapacity, capacity));
+                        MsgPicker.getMsg().getLicenseSourceOverCapacity(), currentCapacity, capacity));
             } else if (info.getNodeStatus() == OVERCAPACITY) {
                 throw new KylinException(LICENSE_OVER_CAPACITY, String.format(Locale.ROOT,
-                        MsgPicker.getMsg().getLICENSE_NODES_OVER_CAPACITY(), info.getCurrentNode(), info.getNode()));
+                        MsgPicker.getMsg().getLicenseNodesOverCapacity(), info.getCurrentNode(), info.getNode()));
             }
             logger.info("Current capacity status is ok");
         }

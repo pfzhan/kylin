@@ -60,6 +60,24 @@ public class SourceUsageManagerTest extends NLocalFileMetadataTestCase {
     public ExpectedException thrown = ExpectedException.none();
 
     @Test
+    public void testCheckIsNotOverCapacityException() {
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(getTestConfig());
+            SourceUsageRecord sourceUsageRecord = new SourceUsageRecord();
+
+            sourceUsageRecord.setCapacityStatus(SourceUsageRecord.CapacityStatus.ERROR);
+            sourceUsageManager.updateSourceUsage(sourceUsageRecord);
+            // test won't throw exception
+            sourceUsageManager.checkIsOverCapacity("default");
+
+            sourceUsageRecord.setCapacityStatus(SourceUsageRecord.CapacityStatus.TENTATIVE);
+            sourceUsageManager.updateSourceUsage(sourceUsageRecord);
+            sourceUsageManager.checkIsOverCapacity("default");
+            return null;
+        }, UnitOfWork.GLOBAL_UNIT);
+
+    }
+    @Test
     public void testCheckIsNotOverCapacity() {
         UnitOfWork.doInTransactionWithRetry(() -> {
             SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(getTestConfig());

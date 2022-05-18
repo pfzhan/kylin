@@ -107,7 +107,7 @@ public class OpenSegmentController extends BaseController {
         }
         if (model.isBroken()) {
             throw new KylinException(ServerErrorCode.MODEL_BROKEN,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getBROKEN_MODEL_OPERATION_DENIED(), modelAlias));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getBrokenModelOperationDenied(), modelAlias));
         }
         return model;
     }

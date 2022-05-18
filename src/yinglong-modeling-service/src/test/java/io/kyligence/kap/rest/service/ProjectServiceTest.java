@@ -40,8 +40,6 @@ import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.util.EncryptUtil;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
@@ -77,10 +75,12 @@ import org.junit.rules.ExpectedException;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -88,6 +88,8 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.clickhouse.MockSecondStorage;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.util.EncryptUtil;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -339,7 +341,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    @Ignore
+    @Ignore("just ignore")
     public void testCleanupProjectGarbage() throws Exception {
         prepareLayoutHitCount();
         Mockito.doNothing().when(asyncTaskService).cleanupStorage();
@@ -359,7 +361,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    @Ignore
+    @Ignore("just ignore")
     public void testScheduledGarbageCleanup() {
         prepareLayoutHitCount();
         val aclManager = AclManager.getInstance(getTestConfig());
@@ -616,6 +618,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl",
                 projectConfig2.getPushDownRunnerClassName());
         Assert.assertArrayEquals(converterClassNames, projectConfig2.getPushDownConverterClassNames());
+        Assert.assertThrows(KylinException.class, () -> projectService.updateDefaultDatabase(project, "not_exits"));
     }
 
     @Test
@@ -1091,6 +1094,13 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
         val project = "default";
         MockSecondStorage.mock(project, new ArrayList<>(), this);
         projectService.dropProject(project);
+    }
+
+    @Test
+    public void testGenerateTempKeytab() {
+        Assert.assertThrows(KylinException.class, () -> projectService.generateTempKeytab(null, null));
+        MultipartFile multipartFile = new MockMultipartFile("234", new byte[] {});
+        Assert.assertThrows(KylinException.class, () -> projectService.generateTempKeytab("test", multipartFile));
     }
 
 }

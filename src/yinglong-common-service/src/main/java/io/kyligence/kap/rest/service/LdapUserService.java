@@ -116,22 +116,22 @@ public class LdapUserService implements UserService {
 
     @Override
     public void createUser(UserDetails userDetails) {
-        throw new UnsupportedOperationException(MsgPicker.getMsg().getUSER_EDIT_NOT_ALLOWED());
+        throw new UnsupportedOperationException(MsgPicker.getMsg().getUserEditNotAllowed());
     }
 
     @Override
     public void updateUser(UserDetails userDetails) {
-        throw new UnsupportedOperationException(MsgPicker.getMsg().getUSER_EDIT_NOT_ALLOWED());
+        throw new UnsupportedOperationException(MsgPicker.getMsg().getUserEditNotAllowed());
     }
 
     @Override
     public void deleteUser(String s) {
-        throw new UnsupportedOperationException(MsgPicker.getMsg().getUSER_EDIT_NOT_ALLOWED());
+        throw new UnsupportedOperationException(MsgPicker.getMsg().getUserEditNotAllowed());
     }
 
     @Override
     public void changePassword(String s, String s1) {
-        throw new UnsupportedOperationException(MsgPicker.getMsg().getUSER_EDIT_NOT_ALLOWED());
+        throw new UnsupportedOperationException(MsgPicker.getMsg().getUserEditNotAllowed());
     }
 
     @Override
@@ -155,12 +155,12 @@ public class LdapUserService implements UserService {
                 }
             }
             throw new UsernameNotFoundException(
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getUSER_NOT_FOUND(), username));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getUserNotFound(), username));
         } else {
             UserDetails ldapUser = ldapUserDetailsService.loadUserByUsername(username);
             this.asyncLoadCacheData();
             if (Objects.isNull(ldapUser)) {
-                String msg = String.format(Locale.ROOT, MsgPicker.getMsg().getUSER_NOT_FOUND(), username);
+                String msg = String.format(Locale.ROOT, MsgPicker.getMsg().getUserNotFound(), username);
                 throw new UsernameNotFoundException(msg);
             }
             return new ManagedUser(ldapUser.getUsername(), SKIPPED_LDAP, false, ldapUser.getAuthorities());

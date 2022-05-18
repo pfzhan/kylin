@@ -117,13 +117,13 @@ public enum LockTypeEnum {
     public static void checkLock(String requestLock, List<String> existLocks) {
         if (requestLock == null) return;
         if (locked(Arrays.asList(requestLock), existLocks)) {
-            throw new KylinException(SECOND_STORAGE_PROJECT_LOCKING, String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_LOCKED()));
+            throw new KylinException(SECOND_STORAGE_PROJECT_LOCKING, String.format(Locale.ROOT, MsgPicker.getMsg().getProjectLocked()));
         }
     }
 
     public static void checkLocks(List<String> requestLocks, List<String> existLocks) {
         if (locked(requestLocks, existLocks)) {
-            throw new KylinException(SECOND_STORAGE_PROJECT_LOCKING, String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_LOCKED()));
+            throw new KylinException(SECOND_STORAGE_PROJECT_LOCKING, String.format(Locale.ROOT, MsgPicker.getMsg().getProjectLocked()));
         }
     }
 

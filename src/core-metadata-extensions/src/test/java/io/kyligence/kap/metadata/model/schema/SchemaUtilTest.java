@@ -719,7 +719,7 @@ public class SchemaUtilTest extends NLocalFileMetadataTestCase {
                 resourcePath -> resourcePath.indexOf(File.separator) != resourcePath.lastIndexOf(File.separator))
                 .findAny().orElse(null);
         if (StringUtils.isBlank(anyPath)) {
-            throw new KylinException(MODEL_METADATA_FILE_ERROR, MsgPicker.getMsg().getMODEL_METADATA_PACKAGE_INVALID());
+            throw new KylinException(MODEL_METADATA_FILE_ERROR, MsgPicker.getMsg().getModelMetadataPackageInvalid());
         }
         return anyPath.split(File.separator)[1];
     }

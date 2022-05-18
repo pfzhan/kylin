@@ -69,7 +69,7 @@ public class NUnauthorisedEntryPoint implements AuthenticationEntryPoint {
             return;
         } else if (exception instanceof DisabledException) {
             setErrorResponse(request, response, HttpServletResponse.SC_UNAUTHORIZED,
-                    new KylinException(LOGIN_FAILED, MsgPicker.getMsg().getDISABLED_USER()));
+                    new KylinException(LOGIN_FAILED, MsgPicker.getMsg().getDisabledUser()));
             return;
         }
         boolean present = Optional.ofNullable(exception).map(Throwable::getCause)
@@ -80,7 +80,7 @@ public class NUnauthorisedEntryPoint implements AuthenticationEntryPoint {
         if (present) {
             setErrorResponse(request, response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
                     new KylinException(USER_DATA_SOURCE_CONNECTION_FAILED,
-                            MsgPicker.getMsg().getLDAP_USER_DATA_SOURCE_CONNECTION_FAILED()));
+                            MsgPicker.getMsg().getlDapUserDataSourceConnectionFailed()));
             return;
         }
 
@@ -90,7 +90,7 @@ public class NUnauthorisedEntryPoint implements AuthenticationEntryPoint {
 
         if (present) {
             setErrorResponse(request, response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, new KylinException(
-                    USER_DATA_SOURCE_CONNECTION_FAILED, MsgPicker.getMsg().getLDAP_USER_DATA_SOURCE_CONFIG_ERROR()));
+                    USER_DATA_SOURCE_CONNECTION_FAILED, MsgPicker.getMsg().getLdapUserDataSourceConfigError()));
             return;
         }
 

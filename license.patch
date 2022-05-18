@@ -125,12 +125,12 @@ diff --git a/src/license-service/src/main/java/io/kyligence/kap/license/service/
 +            boolean isEvaluation = info.isEvaluation();
 +            boolean isCloud = info.isCloud();
 +            if (getDefaultLicenseFile() == null) {
-+                throw new KylinException(INVALID_LICENSE, msg.getLICENSE_NO_LICENSE(), CODE_ERROR);
++                throw new KylinException(INVALID_LICENSE, msg.getLicenseNoLicense(), CODE_ERROR);
 +            }
 +
 +            String dates = info.getDates();
 +            if (dates == null) {
-+                throw new KylinException(INVALID_LICENSE, msg.getLICENSE_INVALID_LICENSE(), CODE_ERROR);
++                throw new KylinException(INVALID_LICENSE, msg.getLicenseInvalidLicense(), CODE_ERROR);
 +            }
 +            String[] split = dates.split(",");
 +            long effectDate = 0;
@@ -139,11 +139,11 @@ diff --git a/src/license-service/src/main/java/io/kyligence/kap/license/service/
 +                effectDate = DateFormat.stringToMillis(split[0]);
 +                expDate = DateFormat.stringToMillis(split[1]);
 +            } catch (Exception e) {
-+                throw new KylinException(INVALID_LICENSE, msg.getLICENSE_INVALID_LICENSE(), CODE_ERROR);
++                throw new KylinException(INVALID_LICENSE, msg.getLicenseInvalidLicense(), CODE_ERROR);
 +            }
 +            long oneDay = 1000L * 3600 * 24;
 +            if (System.currentTimeMillis() < effectDate - oneDay) {
-+                errorMsg.add(msg.getLICENSE_NOT_EFFECTIVE());
++                errorMsg.add(msg.getLicenseNotEffective());
 +            }
 +            warning = Optional.ofNullable(checkExpDate(info, expDate, oneDay, errorMsg)).orElse(warning);
 +            // check is over scale
@@ -153,9 +153,9 @@ diff --git a/src/license-service/src/main/java/io/kyligence/kap/license/service/
 +                    int maximumNodeNums = Integer.parseInt(nodes);
 +                    if (clusterManager.getServers().size() > maximumNodeNums) {
 +                        if (uploadFromWeb) {
-+                            errorMsg.add(msg.getLICENSE_OVER_VOLUME());
++                            errorMsg.add(msg.getLicenseOverVolume());
 +                        } else {
-+                            warning = msg.getLICENSE_OVER_VOLUME();
++                            warning = msg.getLicenseOverVolume();
 +                        }
 +                    }
 +                }
@@ -165,9 +165,9 @@ diff --git a/src/license-service/src/main/java/io/kyligence/kap/license/service/
 +                long l = Long.parseLong(volume);
 +                if (getLicenseCapacityInfo().getCurrentCapacity() >= l) {
 +                    if (uploadFromWeb) {
-+                        errorMsg.add(msg.getLICENSE_OVER_VOLUME());
++                        errorMsg.add(msg.getLicenseOverVolume());
 +                    } else {
-+                        warning = msg.getLICENSE_OVER_VOLUME();
++                        warning = msg.getLicenseOverVolume();
 +                    }
 +                }
 +            }
@@ -176,14 +176,14 @@ diff --git a/src/license-service/src/main/java/io/kyligence/kap/license/service/
 +            KylinVersion kylinVersion = KylinVersion.getCurrentVersion();
 +            String category = System.getProperty(Constants.KE_LICENSE_CATEGORY);
 +            if (!StringUtils.isBlank(category) && !category.startsWith(String.valueOf(kylinVersion.major))) {
-+                errorMsg.add(msg.getLICENSE_WRONG_CATEGORY());
++                errorMsg.add(msg.getlicenseWrongCategory());
 +            }
 +
 +            // read license
 +            byte[] license = extractLicenseContent();
 +            // validate signature
 +            if (!verifySignature(license)) {
-+                throw new KylinException(INVALID_LICENSE, msg.getLICENSE_INVALID_LICENSE(), CODE_ERROR);
++                throw new KylinException(INVALID_LICENSE, msg.getLicenseInvalidLicense(), CODE_ERROR);
 +            }
 +
 +            // prepare data
@@ -191,7 +191,7 @@ diff --git a/src/license-service/src/main/java/io/kyligence/kap/license/service/
 +            expDate = BytesUtil.readLong(license, 0, 8);
 +            long abs = Math.abs(expDate - oldExpDate);
 +            if (abs >= oneDay) {
-+                throw new KylinException(INVALID_LICENSE, msg.getLICENSE_INVALID_LICENSE(), CODE_ERROR);
++                throw new KylinException(INVALID_LICENSE, msg.getLicenseInvalidLicense(), CODE_ERROR);
 +            }
 +            val data = prepareHashContent(info, expDate, license);
 +            oneDay = 86543210L;
@@ -205,7 +205,7 @@ diff --git a/src/license-service/src/main/java/io/kyligence/kap/license/service/
 +                verify = verify || Bytes.equals(md5, 0, md5.length, license, off, 16);
 +            }
 +            if (!verify) {
-+                errorMsg.add(msg.getLICENSE_MISMATCH_LICENSE());
++                errorMsg.add(msg.getLicenseMismatchLicense());
 +            }
 +            if (CollectionUtils.isNotEmpty(errorMsg)) {
 +                if (errorMsg.size() == 1) {
@@ -217,15 +217,15 @@ diff --git a/src/license-service/src/main/java/io/kyligence/kap/license/service/
 +                    for (int i = 1; i <= collect.size(); i++) {
 +                        collect.set(i - 1, i + ". " + collect.get(i - 1));
 +                    }
-+                    val str = msg.getLICENSE_ERROR_PRE() + StringUtils.join(collect, "\n")
-+                            + msg.getLICENSE_ERROR_SUFF();
++                    val str = msg.getLicenseErrorPre() + StringUtils.join(collect, "\n")
++                            + msg.getLicenseErrorSuff();
 +                    throw new KylinException(INVALID_LICENSE, str, CODE_ERROR);
 +                }
 +            }
 +        } catch (KylinException e) {
 +            throw e;
 +        } catch (Exception e) {
-+            throw new KylinException(INVALID_LICENSE, msg.getLICENSE_INVALID_LICENSE(), CODE_ERROR);
++            throw new KylinException(INVALID_LICENSE, msg.getLicenseInvalidLicense(), CODE_ERROR);
 +        } finally {
 +            licenseReadWriteLock.readLock().unlock();
 +        }
@@ -259,11 +259,11 @@ diff --git a/src/license-service/src/main/java/io/kyligence/kap/license/service/
 +    private String checkExpDate(LicenseInfo info, long expDate, long oneDay, Set<String> errorMsg) {
 +        if (System.currentTimeMillis() > expDate + oneDay) {
 +            if (info.isEnterprise()) {
-+                return MsgPicker.getMsg().getLICENSE_EXPIRED();
++                return MsgPicker.getMsg().getLicenseExpired();
 +            } else if (info.isCloud() && System.currentTimeMillis() < expDate + oneDay * 30) {
-+                return MsgPicker.getMsg().getLICENSE_EXPIRED();
++                return MsgPicker.getMsg().getLicenseExpired();
 +            }
-+            errorMsg.add(MsgPicker.getMsg().getLICENSE_EXPIRED());
++            errorMsg.add(MsgPicker.getMsg().getLicenseExpired());
 +        }
 +
          return null;

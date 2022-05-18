@@ -125,7 +125,7 @@ public class NAsyncQueryControllerV2 extends NBasicController {
     private String searchProject(String queryId) throws IOException {
         String project = asyncQueryService.searchQueryResultProject(queryId);
         if (project == null) {
-            throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
+            throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getQueryResultNotFound());
         }
         return project;
     }

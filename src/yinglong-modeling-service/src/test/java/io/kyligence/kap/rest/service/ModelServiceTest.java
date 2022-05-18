@@ -1825,7 +1825,7 @@ public class ModelServiceTest extends SourceTestCase {
                 .filter(col -> !col.getName().equalsIgnoreCase("LO_PARTITIONCOLUMN")).collect(Collectors.toList());
         modelRequest.setAllNamedColumns(newColumns);
         thrown.expect(KylinException.class);
-        thrown.expectMessage(MsgPicker.getMsg().getTIMESTAMP_PARTITION_COLUMN_NOT_EXIST());
+        thrown.expectMessage(MsgPicker.getMsg().getTimestampPartitionColumnNotExist());
         modelService.createModel(modelRequest.getProject(), modelRequest);
     }
 
@@ -2551,6 +2551,9 @@ public class ModelServiceTest extends SourceTestCase {
     @Test
     public void testCCNameCheck() {
         ModelService.checkCCName("cc_1");
+        Assert.assertThrows(
+                "The computed column name \"@\" is invalid. Please starts with a letter, and use only letters, numbers, and underlines. Please rename it.",
+                KylinException.class, () -> ModelService.checkCCName("@"));
         try {
             // HIVE
             ModelService.checkCCName("LOCAL");
@@ -3398,7 +3401,7 @@ public class ModelServiceTest extends SourceTestCase {
         when(modelRequest.getDimensionNameIdMap()).thenReturn(new HashMap<>(0));
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage(MsgPicker.getMsg().getTIMESTAMP_PARTITION_COLUMN_NOT_EXIST());
+        thrown.expectMessage(MsgPicker.getMsg().getTimestampPartitionColumnNotExist());
         modelService.validateFusionModelDimension(modelRequest);
     }
 
@@ -3414,7 +3417,7 @@ public class ModelServiceTest extends SourceTestCase {
         modelRequest.setRootFactTableName(dataModel.getRootFactTableName());
         when(modelRequest.getDimensionNameIdMap()).thenReturn(new HashMap<>(0));
         thrown.expect(KylinException.class);
-        thrown.expectMessage(MsgPicker.getMsg().getTIMESTAMP_PARTITION_COLUMN_NOT_EXIST());
+        thrown.expectMessage(MsgPicker.getMsg().getTimestampPartitionColumnNotExist());
         modelService.validateFusionModelDimension(modelRequest);
     }
 
@@ -3526,7 +3529,7 @@ public class ModelServiceTest extends SourceTestCase {
         } catch (KylinException e) {
             Assert.assertEquals("KE-010011006", e.getErrorCode().getCodeString());
             Assert.assertEquals(String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getFILTER_CONDITION_ON_ANTI_FLATTEN_LOOKUP(), "TEST_ORDER"), e.getMessage());
+                    MsgPicker.getMsg().getFilterConditionOnAntiFlattenLookup(), "TEST_ORDER"), e.getMessage());
         }
 
     }
@@ -4224,7 +4227,7 @@ public class ModelServiceTest extends SourceTestCase {
             model.setPartitionDesc(null);
         });
         thrown.expect(KylinException.class);
-        thrown.expectMessage(MsgPicker.getMsg().getPARTITION_COLUMN_SAVE_ERROR());
+        thrown.expectMessage(MsgPicker.getMsg().getPartitionColumnSaveError());
         modelService.updatePartitionColumn(project, modelId, null, null);
     }
 
@@ -4240,7 +4243,7 @@ public class ModelServiceTest extends SourceTestCase {
             model.setPartitionDesc(partitionDesc);
         });
         thrown.expect(KylinException.class);
-        thrown.expectMessage(MsgPicker.getMsg().getPARTITION_COLUMN_SAVE_ERROR());
+        thrown.expectMessage(MsgPicker.getMsg().getPartitionColumnSaveError());
         modelService.updatePartitionColumn(project, modelId, partitionDesc, null);
     }
 
@@ -4249,7 +4252,7 @@ public class ModelServiceTest extends SourceTestCase {
         val modelId = "511a9163-7888-4a60-aa24-ae735937cc87";
         val project = "streaming_test";
         thrown.expect(KylinException.class);
-        thrown.expectMessage(MsgPicker.getMsg().getPARTITION_COLUMN_SAVE_ERROR());
+        thrown.expectMessage(MsgPicker.getMsg().getPartitionColumnSaveError());
         modelService.updatePartitionColumn(project, modelId, null, null);
     }
 
@@ -4357,7 +4360,7 @@ public class ModelServiceTest extends SourceTestCase {
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
             Assert.assertTrue(e.getMessage().contains(
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_NULL_VALUE(), "override_props")));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getInvalidNullValue(), "override_props")));
         }
         LinkedHashMap<String, String> prop = new LinkedHashMap<>();
         request.setOverrideProps(prop);
@@ -4368,7 +4371,7 @@ public class ModelServiceTest extends SourceTestCase {
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
             Assert.assertTrue(e.getMessage().contains(String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getINVALID_INTEGER_FORMAT(), "spark.executor.cores")));
+                    MsgPicker.getMsg().getInvalidIntegerFormat(), "spark.executor.cores")));
         }
         prop.clear();
         prop.put("kylin.engine.spark-conf.spark.executor.instances", "1.2");
@@ -4378,7 +4381,7 @@ public class ModelServiceTest extends SourceTestCase {
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
             Assert.assertTrue(e.getMessage().contains(String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getINVALID_INTEGER_FORMAT(), "spark.executor.instances")));
+                    MsgPicker.getMsg().getInvalidIntegerFormat(), "spark.executor.instances")));
         }
         prop.clear();
         prop.put("kylin.engine.spark-conf.spark.sql.shuffle.partitions", "1.2");
@@ -4388,7 +4391,7 @@ public class ModelServiceTest extends SourceTestCase {
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
             Assert.assertTrue(e.getMessage().contains(String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getINVALID_INTEGER_FORMAT(), "spark.sql.shuffle.partitions")));
+                    MsgPicker.getMsg().getInvalidIntegerFormat(), "spark.sql.shuffle.partitions")));
         }
         prop.clear();
         prop.put("kylin.engine.spark-conf.spark.executor.memory", "3");
@@ -4398,7 +4401,7 @@ public class ModelServiceTest extends SourceTestCase {
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
             Assert.assertTrue(e.getMessage().contains(
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_MEMORY_SIZE(), "spark.executor.memory")));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getInvalidMemorySize(), "spark.executor.memory")));
         }
         prop.clear();
         prop.put("kylin.cube.aggrgroup.is-base-cuboid-always-valid", "ddd");
@@ -4408,7 +4411,7 @@ public class ModelServiceTest extends SourceTestCase {
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
             Assert.assertTrue(e.getMessage().contains(String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getINVALID_BOOLEAN_FORMAT(), "is-base-cuboid-always-valid")));
+                    MsgPicker.getMsg().getInvalidBooleanFormat(), "is-base-cuboid-always-valid")));
         }
         prop.clear();
         prop.put("kylin.engine.spark-conf.spark.executor.memory", null);
@@ -4418,7 +4421,7 @@ public class ModelServiceTest extends SourceTestCase {
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
             Assert.assertTrue(e.getMessage().contains(String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getINVALID_NULL_VALUE(), "kylin.engine.spark-conf.spark.executor.memory")));
+                    MsgPicker.getMsg().getInvalidNullValue(), "kylin.engine.spark-conf.spark.executor.memory")));
         }
     }
 
@@ -4432,7 +4435,7 @@ public class ModelServiceTest extends SourceTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertTrue(e.getMessage().contains(MsgPicker.getMsg().getINVALID_AUTO_MERGE_CONFIG()));
+            Assert.assertTrue(e.getMessage().contains(MsgPicker.getMsg().getInvalidAutoMergeConfig()));
         }
         request.setAutoMergeEnabled(false);
         request.setVolatileRange(new VolatileRange(2, true, null));
@@ -4441,7 +4444,7 @@ public class ModelServiceTest extends SourceTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertTrue(e.getMessage().contains(MsgPicker.getMsg().getINVALID_VOLATILE_RANGE_CONFIG()));
+            Assert.assertTrue(e.getMessage().contains(MsgPicker.getMsg().getInvalidVolatileRangeConfig()));
         }
         request.setVolatileRange(null);
         request.setRetentionRange(new RetentionRange(-1, true, null));
@@ -4450,7 +4453,7 @@ public class ModelServiceTest extends SourceTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertTrue(e.getMessage().contains(MsgPicker.getMsg().getINVALID_RETENTION_RANGE_CONFIG()));
+            Assert.assertTrue(e.getMessage().contains(MsgPicker.getMsg().getInvalidRetentionRangeConfig()));
         }
         request.setRetentionRange(new RetentionRange(1, true, AutoMergeTimeEnum.MONTH));
         modelService.checkModelConfigParameters(request);
@@ -4953,7 +4956,7 @@ public class ModelServiceTest extends SourceTestCase {
         val project = "default";
         val modelId = "cb596712-3a09-46f8-aea1-988b43fe9b6c";
         thrown.expect(KylinException.class);
-        thrown.expectMessage(MsgPicker.getMsg().getTABLE_NO_COLUMNS_PERMISSION());
+        thrown.expectMessage(MsgPicker.getMsg().getTableNoColumnsPermission());
 
         AclTCRManager manager = AclTCRManager.getInstance(getTestConfig(), project);
         Set<String> columns = new HashSet<>();
@@ -4978,5 +4981,39 @@ public class ModelServiceTest extends SourceTestCase {
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("u1", "ANALYST", Constant.ROLE_ANALYST));
         modelService.checkTableHasColumnPermission(project, modelId, columns);
+    }
+
+    @Test
+    public void testBuildExceptionMessage() {
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        NDataModel dataModel = modelManager.getDataModelDesc("a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94");
+        Assert.assertThrows("model [test_encoding], Something went wrong. test", KylinException.class,
+                () -> ReflectionTestUtils.invokeMethod(ModelService.class, "buildExceptionMessage", dataModel,
+                        new RuntimeException("test")));
+
+        Assert.assertThrows(
+                "Can’t save model \"test_encoding\". Please ensure that the used column \"test\" exist in source table \"DEFAULT.TEST_ENCODING\".",
+                KylinException.class,
+                () -> ReflectionTestUtils.invokeMethod(ModelService.class, "buildExceptionMessage", dataModel,
+                        new RuntimeException("cannot resolve 'test' given input columns")));
+    }
+
+    @Test
+    public void testUpdateReusedModelsAndIndexPlans() {
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        NDataModel dataModel = modelManager.getDataModelDesc("a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94");
+        ModelRequest modelRequest = new ModelRequest(dataModel);
+        ReflectionTestUtils.setField(modelRequest, "uuid", null);
+
+        List<ModelRequest> modelRequestList = Arrays.asList(modelRequest);
+        Assert.assertThrows(KylinException.class, () -> ReflectionTestUtils.invokeMethod(modelService,
+                "updateReusedModelsAndIndexPlans", "default", modelRequestList));
+    }
+
+    @Test
+    public void testBuildDuplicateCCException() {
+        Assert.assertThrows("The computed column name \"test\" has been used in the current model. Please rename it.\n",
+                KylinException.class, () -> ReflectionTestUtils.invokeMethod(modelService, "buildDuplicateCCException",
+                        new HashSet<>(Arrays.asList("test"))));
     }
 }

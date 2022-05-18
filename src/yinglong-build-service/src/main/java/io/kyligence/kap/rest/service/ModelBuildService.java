@@ -138,7 +138,7 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
         NDataModel modelDesc = getManager(NDataModelManager.class, project).getDataModelDesc(modelId);
         if (!modelDesc.isMultiPartitionModel() && !CollectionUtils.isEmpty(multiPartitionValues)) {
             throw new KylinException(PARTITION_VALUE_NOT_SUPPORT, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getPARTITION_VALUE_NOT_SUPPORT(), modelDesc.getAlias()));
+                    MsgPicker.getMsg().getPartitionValueNotSupport(), modelDesc.getAlias()));
         }
         if (PartitionDesc.isEmptyPartitionDesc(modelDesc.getPartitionDesc())) {
             return fullBuildSegmentsManually(new FullBuildSegmentParams(project, modelId, needBuild)
@@ -175,7 +175,7 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
         if (model.getPartitionDesc() != null
                 && !StringUtils.isEmpty(model.getPartitionDesc().getPartitionDateColumn())) {
             //increment build model
-            throw new IllegalArgumentException(MsgPicker.getMsg().getCAN_NOT_BUILD_SEGMENT());
+            throw new IllegalArgumentException(MsgPicker.getMsg().getCanNotBuildSegment());
 
         }
         val dataflowManager = getManager(NDataflowManager.class, project);
@@ -241,7 +241,7 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
             NDataSegment segment = df.getSegment(id);
             if (segment == null) {
                 throw new IllegalArgumentException(
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getSEG_NOT_FOUND(), id, df.getModelAlias()));
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getSegNotFound(), id, df.getModelAlias()));
             }
 
             NDataSegment newSeg = dfMgr.refreshSegment(df, segment.getSegRange());
@@ -423,7 +423,7 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
         NDataModel modelDesc = getManager(NDataModelManager.class, project).getDataModelDesc(modelId);
         if (ManagementType.MODEL_BASED != modelDesc.getManagementType()) {
             throw new KylinException(PERMISSION_DENIED, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getCAN_NOT_BUILD_INDICES_MANUALLY(), modelDesc.getAlias()));
+                    MsgPicker.getMsg().getCanNotBuildIndicesManually(), modelDesc.getAlias()));
         }
 
         NDataflow df = getManager(NDataflowManager.class, project).getDataflow(modelId);
@@ -514,7 +514,7 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
                 refreshStart, refreshEnd);
         if (!response.getAffectedStart().equals(affectedStart) || !response.getAffectedEnd().equals(affectedEnd)) {
             throw new KylinException(PERMISSION_DENIED,
-                    MsgPicker.getMsg().getSEGMENT_CAN_NOT_REFRESH_BY_SEGMENT_CHANGE());
+                    MsgPicker.getMsg().getSegmentCanNotRefreshBySegmentChange());
         }
         TableDesc tableDesc = getManager(NTableMetadataManager.class, project).getTableDesc(table);
         SegmentRange segmentRange = SourceFactory.getSource(tableDesc).getSegmentRange(refreshStart, refreshEnd);

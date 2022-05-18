@@ -24,13 +24,14 @@
 
 package io.kyligence.kap.smart.query.advisor;
 
-import io.kyligence.kap.smart.query.SQLResult;
-import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.metadata.realization.NoRealizationFoundException;
-
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.metadata.realization.NoRealizationFoundException;
+
+import io.kyligence.kap.smart.query.SQLResult;
 
 public abstract class AbstractSqlAdvisor implements ISqlAdvisor {
     private static final String MSG_UNSUPPORTED_SQL = "Not Supported SQL.";
@@ -60,7 +61,7 @@ public abstract class AbstractSqlAdvisor implements ISqlAdvisor {
         switch (message) {
         case MSG_UNSUPPORTED_SQL:
         case MSG_UNSUPPORTED_SQL2:
-            return SQLAdvice.build(MSG_UNSUPPORTED_SQL, MsgPicker.getMsg().getBAD_SQL_SUGGEST());
+            return SQLAdvice.build(MSG_UNSUPPORTED_SQL, MsgPicker.getMsg().getBadSqlSuggest());
         default:
             break;
         }
@@ -68,8 +69,8 @@ public abstract class AbstractSqlAdvisor implements ISqlAdvisor {
         // parse error from calcite
         Matcher m = PTN_SYNTAX_UNEXPECTED_TOKEN.matcher(message);
         if (m.matches()) {
-            return SQLAdvice.build(String.format(Locale.ROOT, MsgPicker.getMsg().getUNEXPECTED_TOKEN(), m.group(1),
-                    m.group(2), m.group(3)), MsgPicker.getMsg().getBAD_SQL_SUGGEST());
+            return SQLAdvice.build(String.format(Locale.ROOT, MsgPicker.getMsg().getUnexpectedToken(), m.group(1),
+                    m.group(2), m.group(3)), MsgPicker.getMsg().getBadSqlSuggest());
         }
 
         // syntax error from calcite
@@ -78,8 +79,8 @@ public abstract class AbstractSqlAdvisor implements ISqlAdvisor {
             return proposeSyntaxError(m.group(1));
         }
 
-        return SQLAdvice.build(String.format(Locale.ROOT, MsgPicker.getMsg().getDEFAULT_REASON(), message),
-                MsgPicker.getMsg().getDEFAULT_SUGGEST());
+        return SQLAdvice.build(String.format(Locale.ROOT, MsgPicker.getMsg().getDefaultReason(), message),
+                MsgPicker.getMsg().getDefaultSuggest());
     }
 
     private SQLAdvice proposeSyntaxError(String message) {
@@ -90,8 +91,8 @@ public abstract class AbstractSqlAdvisor implements ISqlAdvisor {
                 tblName = m.group(3) + "." + tblName;
             }
             return SQLAdvice.build(
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getBAD_SQL_TABLE_NOT_FOUND_REASON(), tblName),
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getBAD_SQL_TABLE_NOT_FOUND_SUGGEST(), tblName));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getBadSqlTableNotFoundReason(), tblName),
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getBadSqlTableNotFoundSuggest(), tblName));
         }
 
         m = PTN_SYNTAX_COLUMN_MISSING.matcher(message);
@@ -100,19 +101,18 @@ public abstract class AbstractSqlAdvisor implements ISqlAdvisor {
             String tblName = m.group(2);
             if (tblName == null) {
                 return SQLAdvice.build(
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getBAD_SQL_COLUMN_NOT_FOUND_REASON(), colName),
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getBAD_SQL_COLUMN_NOT_FOUND_SUGGEST(), colName));
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getBadSqlColumnNotFoundReason(), colName),
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getBadSqlColumnNotFoundSuggest(), colName));
             } else {
                 return SQLAdvice.build(
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getBAD_SQL_COLUMN_NOT_FOUND_IN_TABLE_REASON(),
-                                colName),
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getBAD_SQL_COLUMN_NOT_FOUND_IN_TABLE_SUGGESTION(),
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getBadSqlColumnNotFoundInTableReason(), colName),
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getBadSqlColumnNotFoundInTableSuggestion(),
                                 colName));
             }
         }
 
-        return SQLAdvice.build(String.format(Locale.ROOT, MsgPicker.getMsg().getBAD_SQL_REASON(), message),
-                MsgPicker.getMsg().getBAD_SQL_SUGGEST());
+        return SQLAdvice.build(String.format(Locale.ROOT, MsgPicker.getMsg().getBadSqlReason(), message),
+                MsgPicker.getMsg().getBadSqlSuggest());
     }
 
     SQLAdvice adviseSyntaxError(SQLResult sqlResult) {

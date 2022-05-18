@@ -325,7 +325,7 @@ public class OpenSegmentControllerTest extends NLocalFileMetadataTestCase {
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
         String contentAsString = result.getResponse().getContentAsString();
-        Assert.assertTrue(contentAsString.contains(MsgPicker.getMsg().getEMPTY_SEGMENT_PARAMETER()));
+        Assert.assertTrue(contentAsString.contains(MsgPicker.getMsg().getEmptySegmentParameter()));
     }
 
     @Test

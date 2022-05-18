@@ -103,7 +103,7 @@ public class AsyncQueryUtil {
                 osw.write(metaString);
             }
         } else {
-            throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
+            throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getQueryResultNotFound());
         }
     }
 
@@ -120,7 +120,7 @@ public class AsyncQueryUtil {
                 osw.write(separator);
             }
         } else {
-            throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
+            throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getQueryResultNotFound());
         }
     }
 

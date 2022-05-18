@@ -158,7 +158,7 @@ public class SQLRequest implements Serializable, ProjectInsensitiveRequest, Vali
         val message = MsgPicker.getMsg();
         if (!CollectionUtils.isEmpty(errors)) {
             if (errors.get(0).getField().equalsIgnoreCase("user_defined_tag")) {
-                return message.getINVALID_USER_TAG();
+                return message.getInvalidUserTag();
             }
         }
         return "";

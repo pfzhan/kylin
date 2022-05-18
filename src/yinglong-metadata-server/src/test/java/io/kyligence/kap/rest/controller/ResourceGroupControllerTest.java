@@ -125,7 +125,7 @@ public class ResourceGroupControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getRESOURCE_GROUP_FIELD_IS_NULL());
+        thrown.expectMessage(Message.getInstance().getResourceGroupFieldIsNull());
         resourceGroupController.updateResourceGroup(request);
 
     }
@@ -141,7 +141,7 @@ public class ResourceGroupControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getRESOURCE_GROUP_FIELD_IS_NULL());
+        thrown.expectMessage(Message.getInstance().getResourceGroupFieldIsNull());
         resourceGroupController.updateResourceGroup(request);
     }
 
@@ -157,7 +157,7 @@ public class ResourceGroupControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getRESOURCE_GROUP_FIELD_IS_NULL());
+        thrown.expectMessage(Message.getInstance().getResourceGroupFieldIsNull());
         resourceGroupController.updateResourceGroup(request);
     }
 
@@ -173,7 +173,7 @@ public class ResourceGroupControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getRESOURCE_GROUP_FIELD_IS_NULL());
+        thrown.expectMessage(Message.getInstance().getResourceGroupFieldIsNull());
         resourceGroupController.updateResourceGroup(request);
     }
 
@@ -249,7 +249,7 @@ public class ResourceGroupControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getRESOURCE_GROUP_DISABLED_WITH_INVLIAD_PARAM());
+        thrown.expectMessage(Message.getInstance().getResourceGroupDisabledWithInvliadParam());
         resourceGroupController.updateResourceGroup(request);
     }
 
@@ -272,7 +272,7 @@ public class ResourceGroupControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getRESOURCE_CAN_NOT_BE_EMPTY());
+        thrown.expectMessage(Message.getInstance().getResourceCanNotBeEmpty());
         resourceGroupController.updateResourceGroup(request);
     }
 
@@ -292,7 +292,7 @@ public class ResourceGroupControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getEMPTY_RESOURCE_GROUP_ID());
+        thrown.expectMessage(Message.getInstance().getEmptyResourceGroupId());
         resourceGroupController.updateResourceGroup(request);
     }
 
@@ -316,7 +316,7 @@ public class ResourceGroupControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getDUPLICATED_RESOURCE_GROUP_ID("123"));
+        thrown.expectMessage(Message.getInstance().getdDuplicatedResourceGroupId("123"));
         resourceGroupController.updateResourceGroup(request);
     }
 
@@ -341,7 +341,7 @@ public class ResourceGroupControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getEMPTY_KYLIN_INSTANCE_IDENTITY());
+        thrown.expectMessage(Message.getInstance().getEmptyKylinInstanceIdentity());
         resourceGroupController.updateResourceGroup(request);
     }
 
@@ -367,7 +367,7 @@ public class ResourceGroupControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getEMPTY_KYLIN_INSTANCE_RESOURCE_GROUP_ID());
+        thrown.expectMessage(Message.getInstance().getEmptyKylinInstanceResourceGroupId());
         resourceGroupController.updateResourceGroup(request);
     }
 
@@ -394,7 +394,7 @@ public class ResourceGroupControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getRESOURCE_GROUP_ID_NOT_EXIST_IN_KYLIN_INSTANCE("1"));
+        thrown.expectMessage(Message.getInstance().getResourceGroupIdNotExistInKylinInstance("1"));
         resourceGroupController.updateResourceGroup(request);
     }
 
@@ -422,7 +422,7 @@ public class ResourceGroupControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getDUPLICATED_KYLIN_INSTANCE());
+        thrown.expectMessage(Message.getInstance().getDuplicatedKylinInstance());
         resourceGroupController.updateResourceGroup(request);
     }
 
@@ -452,7 +452,7 @@ public class ResourceGroupControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getEMPTY_PROJECT_IN_MAPPING_INFO());
+        thrown.expectMessage(Message.getInstance().getEmptyProjectInMappingInfo());
         resourceGroupController.updateResourceGroup(request);
     }
 
@@ -514,7 +514,7 @@ public class ResourceGroupControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getEMPTY_RESOURCE_GROUP_ID_IN_MAPPING_INFO());
+        thrown.expectMessage(Message.getInstance().getEmptyResourceGroupIdInMappingInfo());
         resourceGroupController.updateResourceGroup(request);
     }
 
@@ -546,7 +546,7 @@ public class ResourceGroupControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getRESOURCE_GROUP_ID_NOT_EXIST_IN_MAPPING_INFO("1"));
+        thrown.expectMessage(Message.getInstance().getResourceGroupIdNotExistInMappingInfo("1"));
         resourceGroupController.updateResourceGroup(request);
     }
 
@@ -599,7 +599,7 @@ public class ResourceGroupControllerTest extends NLocalFileMetadataTestCase {
 
         thrown.expect(KylinException.class);
         thrown.expectMessage(String.format(Locale.ROOT,
-                Message.getInstance().getPROJECT_BINDING_RESOURCE_GROUP_INVALID(), map.get("project")));
+                Message.getInstance().getProjectBindingResourceGroupInvalid(), map.get("project")));
         resourceGroupController.updateResourceGroup(request);
     }
 
@@ -643,7 +643,7 @@ public class ResourceGroupControllerTest extends NLocalFileMetadataTestCase {
 
         thrown.expect(KylinException.class);
         thrown.expectMessage(String.format(Locale.ROOT,
-                Message.getInstance().getPROJECT_BINDING_RESOURCE_GROUP_INVALID(), map.get("project")));
+                Message.getInstance().getProjectBindingResourceGroupInvalid(), map.get("project")));
         resourceGroupController.updateResourceGroup(request);
     }
 

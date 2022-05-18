@@ -178,10 +178,10 @@ public class NProjectController extends NBasicController {
         checkRequiredArg("name", projectRequest.getName());
         if (StringUtils.isEmpty(projectRequest.getName())
                 || !StringUtils.containsOnly(projectDesc.getName(), VALID_PROJECT_NAME)) {
-            throw new KylinException(INVALID_PROJECT_NAME, MsgPicker.getMsg().getINVALID_PROJECT_NAME());
+            throw new KylinException(INVALID_PROJECT_NAME, MsgPicker.getMsg().getInvalidProjectName());
         }
         if (projectRequest.getName().length() > MAX_NAME_LENGTH) {
-            throw new KylinException(PROJECT_NAME_ILLEGAL, MsgPicker.getMsg().getPROJECT_NAME_IS_ILLEGAL());
+            throw new KylinException(PROJECT_NAME_ILLEGAL, MsgPicker.getMsg().getProjectNameIsIllegal());
         }
 
         ProjectInstance createdProj = projectService.createProject(projectDesc.getName(), projectDesc);

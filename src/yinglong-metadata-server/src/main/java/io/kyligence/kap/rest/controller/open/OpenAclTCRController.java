@@ -91,7 +91,7 @@ public class OpenAclTCRController extends NBasicController {
         } else if (sidType.equalsIgnoreCase(MetadataConstants.TYPE_GROUP)) {
             mergeSidAclTCR(project, sid, false, requests);
         } else {
-            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getINVALID_SID_TYPE());
+            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getInvalidSidType());
         }
 
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
@@ -105,7 +105,7 @@ public class OpenAclTCRController extends NBasicController {
         if (!hasProjectPermission) {
             Message msg = MsgPicker.getMsg();
             throw new KylinException(ACCESS_DENIED,
-                    String.format(Locale.ROOT, msg.getGRANT_TABLE_WITH_SID_HAS_NOT_PROJECT_PERMISSION(), sid, project));
+                    String.format(Locale.ROOT, msg.getGrantTableWithSidHasNotProjectPermission(), sid, project));
         }
         aclTCRService.mergeAclTCR(project, sid, principal, requests);
     }
@@ -142,7 +142,7 @@ public class OpenAclTCRController extends NBasicController {
         } else if (sidType.equalsIgnoreCase(MetadataConstants.TYPE_GROUP)) {
             mergeSidAclTCR(project, sid, false, requests);
         } else {
-            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getINVALID_SID_TYPE());
+            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getInvalidSidType());
         }
 
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");

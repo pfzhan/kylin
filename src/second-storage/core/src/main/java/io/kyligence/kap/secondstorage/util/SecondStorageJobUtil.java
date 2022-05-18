@@ -64,7 +64,7 @@ public class SecondStorageJobUtil {
                 .collect(Collectors.toList());
         if (!jobs.isEmpty()) {
             throw new KylinException(JobErrorCode.SECOND_STORAGE_JOB_EXISTS,
-                    MsgPicker.getMsg().getSECOND_STORAGE_CONCURRENT_OPERATE());
+                    MsgPicker.getMsg().getSecondStorageConcurrentOperate());
         }
     }
 
@@ -75,7 +75,7 @@ public class SecondStorageJobUtil {
                 .collect(Collectors.toList());
         if (!jobs.isEmpty()) {
             throw new KylinException(JobErrorCode.SECOND_STORAGE_JOB_EXISTS,
-                    MsgPicker.getMsg().getSECOND_STORAGE_CONCURRENT_OPERATE());
+                    MsgPicker.getMsg().getSecondStorageConcurrentOperate());
         }
     }
 }

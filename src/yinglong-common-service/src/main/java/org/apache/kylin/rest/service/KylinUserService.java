@@ -89,7 +89,7 @@ public class KylinUserService implements UserService {
     public void createUser(UserDetails user) {
         if (getKylinUserManager().exists(user.getUsername())) {
             throw new KylinException(DUPLICATE_USER_NAME,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getUSER_EXISTS(), user.getUsername()));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getUserExists(), user.getUsername()));
         }
         updateUser(user);
     }
@@ -102,7 +102,7 @@ public class KylinUserService implements UserService {
         ManagedUser managedUser = (ManagedUser) user;
 
         if (!managedUser.getAuthorities().contains(new SimpleGrantedAuthority(Constant.GROUP_ALL_USERS))) {
-            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getINVALID_REMOVE_USER_FROM_ALL_USER());
+            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getInvalidRemoveUserFromAllUser());
         }
         getKylinUserManager().update(managedUser);
         logger.trace("update user : {}", user.getUsername());
@@ -151,7 +151,7 @@ public class KylinUserService implements UserService {
             throw new UsernameNotFoundException(USER_LOGIN_FAILED.getMsg());
         }
         if (managedUser == null) {
-            throw new UsernameNotFoundException(String.format(Locale.ROOT, msg.getUSER_NOT_FOUND(), userName));
+            throw new UsernameNotFoundException(String.format(Locale.ROOT, msg.getUserNotFound(), userName));
         }
         logger.trace("load user : {}", userName);
         return managedUser;

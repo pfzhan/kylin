@@ -231,7 +231,7 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
         Mockito.doReturn(true).when(asyncQueryService).hasPermission(Mockito.anyString(), Mockito.anyString());
         Mockito.doThrow(new IOException()).when(asyncQueryService).getFileInfo(Mockito.anyString(),
                 Mockito.anyString());
-        Mockito.doThrow(new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND()))
+        Mockito.doThrow(new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getQueryResultNotFound()))
                 .when(asyncQueryService)
                 .checkStatus(Mockito.anyString(), Mockito.any(), Mockito.anyString(), Mockito.anyString());
 
@@ -417,7 +417,7 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
                     Assert.assertEquals("KE-020040001",
                             ((NAsyncQueryIllegalParamException) result.getResolvedException()).getErrorCode()
                                     .getCodeString());
-                    Assert.assertEquals(MsgPicker.getMsg().getASYNC_QUERY_TIME_FORMAT_ERROR(),
+                    Assert.assertEquals(MsgPicker.getMsg().getAsyncQueryTimeFormatError(),
                             result.getResolvedException().getMessage());
                 });
     }
@@ -588,7 +588,7 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
                     Assert.assertTrue(result.getResolvedException() instanceof KylinException);
                     KylinException resolvedException = (KylinException) result.getResolvedException();
                     Assert.assertEquals("KE-010024001", resolvedException.getErrorCode().getCodeString());
-                    Assert.assertEquals(MsgPicker.getMsg().getFORBIDDEN_EXPORT_ASYNC_QUERY_RESULT(),
+                    Assert.assertEquals(MsgPicker.getMsg().getForbiddenExportAsyncQueryResult(),
                             resolvedException.getMessage());
                 });
 
@@ -648,7 +648,7 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
                     Assert.assertEquals("KE-020040001",
                             ((NAsyncQueryIllegalParamException) result.getResolvedException()).getErrorCode()
                                     .getCodeString());
-                    Assert.assertEquals(MsgPicker.getMsg().getASYNC_QUERY_PROJECT_NAME_EMPTY(),
+                    Assert.assertEquals(MsgPicker.getMsg().getAsyncQueryProjectNameEmpty(),
                             result.getResolvedException().getMessage());
                 });
     }
@@ -662,7 +662,7 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
                     Assert.assertEquals("KE-020040001",
                             ((NAsyncQueryIllegalParamException) result.getResolvedException()).getErrorCode()
                                     .getCodeString());
-                    Assert.assertEquals(MsgPicker.getMsg().getASYNC_QUERY_PROJECT_NAME_EMPTY(),
+                    Assert.assertEquals(MsgPicker.getMsg().getAsyncQueryProjectNameEmpty(),
                             result.getResolvedException().getMessage());
                 });
     }
@@ -676,7 +676,7 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
                     Assert.assertEquals("KE-020040001",
                             ((NAsyncQueryIllegalParamException) result.getResolvedException()).getErrorCode()
                                     .getCodeString());
-                    Assert.assertEquals(MsgPicker.getMsg().getASYNC_QUERY_PROJECT_NAME_EMPTY(),
+                    Assert.assertEquals(MsgPicker.getMsg().getAsyncQueryProjectNameEmpty(),
                             result.getResolvedException().getMessage());
                 });
     }
@@ -690,7 +690,7 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
                     Assert.assertEquals("KE-020040001",
                             ((NAsyncQueryIllegalParamException) result.getResolvedException()).getErrorCode()
                                     .getCodeString());
-                    Assert.assertEquals(MsgPicker.getMsg().getASYNC_QUERY_PROJECT_NAME_EMPTY(),
+                    Assert.assertEquals(MsgPicker.getMsg().getAsyncQueryProjectNameEmpty(),
                             result.getResolvedException().getMessage());
                 });
     }
@@ -704,7 +704,7 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
                     Assert.assertEquals("KE-020040001",
                             ((NAsyncQueryIllegalParamException) result.getResolvedException()).getErrorCode()
                                     .getCodeString());
-                    Assert.assertEquals(MsgPicker.getMsg().getASYNC_QUERY_PROJECT_NAME_EMPTY(),
+                    Assert.assertEquals(MsgPicker.getMsg().getAsyncQueryProjectNameEmpty(),
                             result.getResolvedException().getMessage());
                 });
     }
@@ -718,7 +718,7 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
                     Assert.assertEquals("KE-020040001",
                             ((NAsyncQueryIllegalParamException) result.getResolvedException()).getErrorCode()
                                     .getCodeString());
-                    Assert.assertEquals(MsgPicker.getMsg().getASYNC_QUERY_PROJECT_NAME_EMPTY(),
+                    Assert.assertEquals(MsgPicker.getMsg().getAsyncQueryProjectNameEmpty(),
                             result.getResolvedException().getMessage());
                 });
     }

@@ -204,12 +204,12 @@ public class SparderQueryPlanExec implements QueryPlanExec {
                 QueryContext.current().setLastFailed(true);
                 QueryContext.current().setRetrySecondStorage(false);
                 throw new KylinException(QueryErrorCode.FORCED_TO_TIEREDSTORAGE_RETURN_ERROR,
-                        MsgPicker.getMsg().getFORCED_TO_TIEREDSTORAGE_RETURN_ERROR());
+                        MsgPicker.getMsg().getForcedToTieredstorageReturnError());
             } else {
                 QueryContext.current().setLastFailed(true);
                 QueryContext.current().setRetrySecondStorage(false);
                 throw new KylinException(QueryErrorCode.FORCED_TO_TIEREDSTORAGE_INVALID_PARAMETER,
-                        MsgPicker.getMsg().getFORCED_TO_TIEREDSTORAGE_INVALID_PARAMETER());
+                        MsgPicker.getMsg().getForcedToTieredstorageInvalidParameter());
             }
         }
     }

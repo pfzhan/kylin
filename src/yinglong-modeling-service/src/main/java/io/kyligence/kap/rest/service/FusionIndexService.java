@@ -127,7 +127,7 @@ public class FusionIndexService extends BasicService {
             if (!indexChangeEnable(project, request.getModelId(), request.getIndexRange(),
                     Lists.newArrayList(IndexEntity.Range.HYBRID, Range.STREAMING))) {
                 throw new KylinException(ServerErrorCode.STREAMING_INDEX_UPDATE_DISABLE,
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getSTREAMING_INDEXES_ADD()));
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getStreamingIndexesAdd()));
             }
             FusionModel fusionModel = getManager(FusionModelManager.class, project).getFusionModel(request.getModelId());
             String batchId = fusionModel.getBatchModel().getUuid();
@@ -184,7 +184,7 @@ public class FusionIndexService extends BasicService {
             if (!indexChangeEnable(project, request.getModelId(), request.getIndexRange(),
                     Lists.newArrayList(IndexEntity.Range.HYBRID, Range.STREAMING))) {
                 throw new KylinException(ServerErrorCode.STREAMING_INDEX_UPDATE_DISABLE,
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getSTREAMING_INDEXES_EDIT()));
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getStreamingIndexesEdit()));
             }
             FusionModel fusionModel = getManager(FusionModelManager.class, project).getFusionModel(request.getModelId());
             String batchId = fusionModel.getBatchModel().getUuid();
@@ -253,7 +253,7 @@ public class FusionIndexService extends BasicService {
             if (!indexChangeEnable(project, model, indexRange,
                     Lists.newArrayList(IndexEntity.Range.HYBRID, Range.STREAMING, Range.EMPTY))) {
                 throw new KylinException(ServerErrorCode.STREAMING_INDEX_UPDATE_DISABLE,
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getSTREAMING_INDEXES_DELETE()));
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getStreamingIndexesDelete()));
             }
             FusionModel fusionModel = getManager(FusionModelManager.class, project).getFusionModel(model);
             String batchId = fusionModel.getBatchModel().getUuid();
@@ -272,7 +272,7 @@ public class FusionIndexService extends BasicService {
         NDataModel modelDesc = getManager(NDataModelManager.class, project).getDataModelDesc(modelId);
         if (modelDesc.isStreaming() && checkStreamingJobAndSegments(project, modelId)) {
             throw new KylinException(ServerErrorCode.STREAMING_INDEX_UPDATE_DISABLE,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getSTREAMING_INDEXES_DELETE()));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getStreamingIndexesDelete()));
 
         }
         indexPlanService.removeIndexes(project, modelId, ids);
@@ -419,7 +419,7 @@ public class FusionIndexService extends BasicService {
             String modelId) {
         if ((streamResponse.getDecreaseLayouts() > 0 || streamResponse.getIncreaseLayouts() > 0)
                 && checkStreamingJobAndSegments(project, modelId)) {
-            throw new KylinException(ServerErrorCode.STREAMING_INDEX_UPDATE_DISABLE, MsgPicker.getMsg().getSTREAMING_INDEXES_EDIT());
+            throw new KylinException(ServerErrorCode.STREAMING_INDEX_UPDATE_DISABLE, MsgPicker.getMsg().getStreamingIndexesEdit());
         }
     }
 
@@ -437,7 +437,7 @@ public class FusionIndexService extends BasicService {
     private static void checkStreamingIndexEnabled(String project, NDataModel model) throws KylinException {
         if (NDataModel.ModelType.STREAMING == model.getModelType()
                 && checkStreamingJobAndSegments(project, model.getUuid())) {
-            throw new KylinException(ServerErrorCode.STREAMING_INDEX_UPDATE_DISABLE, MsgPicker.getMsg().getSTREAMING_INDEXES_DELETE());
+            throw new KylinException(ServerErrorCode.STREAMING_INDEX_UPDATE_DISABLE, MsgPicker.getMsg().getStreamingIndexesDelete());
         }
     }
 

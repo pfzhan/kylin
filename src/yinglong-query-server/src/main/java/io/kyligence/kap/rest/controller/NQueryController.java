@@ -183,18 +183,18 @@ public class NQueryController extends NBasicController {
             @RequestHeader(value = "User-Agent") String userAgent) {
         if (sqlRequest.isForcedToIndex() && sqlRequest.isForcedToPushDown()) {
             throw new KylinException(
-                    QueryErrorCode.INVALID_QUERY_PARAMS, MsgPicker.getMsg().getCANNOT_FORCE_TO_BOTH_PUSHDODWN_AND_INDEX());
+                    QueryErrorCode.INVALID_QUERY_PARAMS, MsgPicker.getMsg().getCannotForceToBothPushdodwnAndIndex());
         }
         try{
             int forcedToTieredStorage = sqlRequest.getForcedToTieredStorage();
             if (forcedToTieredStorage == ForceToTieredStorage.CH_FAIL_TO_PUSH_DOWN.ordinal()
                     && sqlRequest.isForcedToIndex() && !sqlRequest.isForcedToPushDown()) {
                 throw new KylinException(
-                        QueryErrorCode.FORCED_TO_TIEREDSTORAGE_AND_FORCE_TO_INDEX, MsgPicker.getMsg().getFORCED_TO_TIEREDSTORAGE_AND_FORCE_TO_INDEX());
+                        QueryErrorCode.FORCED_TO_TIEREDSTORAGE_AND_FORCE_TO_INDEX, MsgPicker.getMsg().getForcedToTieredstorageAndForceToIndex());
             } else if (forcedToTieredStorage > ForceToTieredStorage.CH_FAIL_TO_RETURN.ordinal()
                     || forcedToTieredStorage < ForceToTieredStorage.CH_FAIL_TO_DFS.ordinal()) {
                 throw new KylinException(
-                        QueryErrorCode.FORCED_TO_TIEREDSTORAGE_INVALID_PARAMETER, MsgPicker.getMsg().getFORCED_TO_TIEREDSTORAGE_INVALID_PARAMETER());
+                        QueryErrorCode.FORCED_TO_TIEREDSTORAGE_INVALID_PARAMETER, MsgPicker.getMsg().getForcedToTieredstorageInvalidParameter());
             }
         } catch (NullPointerException e) {
             //do nothing
@@ -335,7 +335,7 @@ public class NQueryController extends NBasicController {
             queryHistoryService.downloadQueryHistories(request, response, zoneOffset,
                     timeZoneOffsetHour, false);
         } catch (TimeoutException e) {
-            throw new KylinTimeoutException(MsgPicker.getMsg().getDOWNLOAD_QUERY_HISTORY_TIMEOUT());
+            throw new KylinTimeoutException(MsgPicker.getMsg().getDownloadQueryHistoryTimeout());
         } catch (Exception e) {
             throw new KylinException(FAILED_DOWNLOAD_FILE, e.getMessage());
         }
@@ -367,7 +367,7 @@ public class NQueryController extends NBasicController {
         try {
             queryHistoryService.downloadQueryHistories(request, response, null, null, true);
         } catch (TimeoutException e) {
-            throw new KylinTimeoutException(MsgPicker.getMsg().getDOWNLOAD_QUERY_HISTORY_TIMEOUT());
+            throw new KylinTimeoutException(MsgPicker.getMsg().getDownloadQueryHistoryTimeout());
         } catch (Exception e) {
             throw new KylinException(FAILED_DOWNLOAD_FILE, e.getMessage());
         }
@@ -487,7 +487,7 @@ public class NQueryController extends NBasicController {
 
         if ((isAdmin() && !config.isAdminUserExportAllowed())
                 || (!isAdmin() && !config.isNoneAdminUserExportAllowed())) {
-            throw new ForbiddenException(msg.getEXPORT_RESULT_NOT_ALLOWED());
+            throw new ForbiddenException(msg.getExportResultNotAllowed());
         }
 
         SQLResponse result = queryService.queryWithCache(sqlRequest);
@@ -582,10 +582,10 @@ public class NQueryController extends NBasicController {
     private void checkQueryName(String queryName) {
         val msg = MsgPicker.getMsg();
         if (StringUtils.isEmpty(queryName)) {
-            throw new KylinException(INVALID_PARAMETER, msg.getEMPTY_QUERY_NAME());
+            throw new KylinException(INVALID_PARAMETER, msg.getEmptyQueryName());
         }
         if (!queryNamePattern.matcher(queryName).matches()) {
-            throw new KylinException(INVALID_NAME, msg.getINVALID_QUERY_NAME());
+            throw new KylinException(INVALID_NAME, msg.getInvalidQueryName());
         }
     }
 }

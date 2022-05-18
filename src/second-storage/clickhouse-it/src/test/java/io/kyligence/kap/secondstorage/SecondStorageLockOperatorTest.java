@@ -343,7 +343,7 @@ public class SecondStorageLockOperatorTest extends SecondStorageMetadataHelperTe
                     RecoverRequest req = new RecoverRequest();
                     req.setProject(getProject());
                     req.setModelName(getNDataModelManager().getDataModelDesc(getModelId()).getAlias());
-                    assertThrows(MsgPicker.getMsg().getPROJECT_LOCKED(), KylinException.class, () -> this.openSecondStorageEndpoint.recoverModel(req));
+                    assertThrows(MsgPicker.getMsg().getProjectLocked(), KylinException.class, () -> this.openSecondStorageEndpoint.recoverModel(req));
 
                     return null;
                 });
@@ -368,7 +368,7 @@ public class SecondStorageLockOperatorTest extends SecondStorageMetadataHelperTe
 
                 return lockAndUnlock(() -> {
                     String project = getProject();
-                    assertThrows(MsgPicker.getMsg().getPROJECT_LOCKED(), KylinException.class, () -> segmentController.deleteSegments(modelId, project, true, false, null, null));
+                    assertThrows(MsgPicker.getMsg().getProjectLocked(), KylinException.class, () -> segmentController.deleteSegments(modelId, project, true, false, null, null));
                     return null;
                 });
             });

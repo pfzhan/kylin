@@ -41,6 +41,7 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.AclEntity;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
@@ -678,7 +679,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testACLTCREmptyTables() throws IOException {
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getEMPTY_TABLE_LIST());
+        thrown.expectMessage(Message.getInstance().getEmptyTableList());
         val requests = getFillRequest();
         requests.get(0).setTables(null);
         aclTCRService.updateAclTCR(projectDefault, user1, true, requests);
@@ -1174,7 +1175,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testACLTCRInvalidDataTypeLikeCondition() throws IOException {
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getROW_ACL_NOT_STRING_TYPE());
+        thrown.expectMessage(Message.getInstance().getRowAclNotStringType());
         AclTCRRequest request = new AclTCRRequest();
         request.setDatabaseName("DEFAULT");
         AclTCRRequest.Table u1t1 = new AclTCRRequest.Table();
@@ -1336,6 +1337,18 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         responses = accessService.getUserOrGroupAclPermissions(projects, "ANALYST", true);
         Assert.assertEquals(1, responses.size());
         Assert.assertEquals("OPERATION", responses.get(0).getProjectPermission());
+    }
+
+    @Test
+    public void testCheckRow() {
+        Message msg = MsgPicker.getMsg();
+        AclTCRRequest.Row row = new AclTCRRequest.Row();
+
+        Assert.assertThrows(msg.getEmptyColumnName(), KylinException.class,
+                () -> ReflectionTestUtils.invokeMethod(AclTCRService.class, "checkRow", msg, row));
+        row.setColumnName("column");
+        Assert.assertThrows(msg.getEmptyItems(), KylinException.class,
+                () -> ReflectionTestUtils.invokeMethod(AclTCRService.class, "checkRow", msg, row));
     }
 
     private void addGroupAndGrantPermission(String group, Permission permission) throws IOException {

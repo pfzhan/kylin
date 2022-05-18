@@ -127,14 +127,14 @@ public class SecondStorageUtil {
         NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         final IndexPlan indexPlan = indexPlanManager.getIndexPlan(model);
         if (!indexPlan.containBaseTableLayout()) {
-            throw new KylinException(BASE_TABLE_INDEX_NOT_AVAILABLE, MsgPicker.getMsg().getBASE_TABLE_INDEX_NOT_AVAILABLE());
+            throw new KylinException(BASE_TABLE_INDEX_NOT_AVAILABLE, MsgPicker.getMsg().getBaseTableIndexNotAvailable());
         }
         if (indexPlan.getModel().isIncrementBuildOnExpertMode()) {
             boolean containPartitionCol = indexPlan.getBaseTableLayout().getColumns().stream().anyMatch(col -> {
                 return col.getTableDotName().equals(indexPlan.getModel().getPartitionDesc().getPartitionDateColumn());
             });
            if (!containPartitionCol) {
-               throw new KylinException(PARTITION_COLUMN_NOT_AVAILABLE, MsgPicker.getMsg().getPARTITION_COLUMN_NOT_AVAILABLE());
+               throw new KylinException(PARTITION_COLUMN_NOT_AVAILABLE, MsgPicker.getMsg().getPartitionColumnNotAvailable());
            }
         }
     }
@@ -182,7 +182,7 @@ public class SecondStorageUtil {
             String name = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                     .getDataModelDesc(modelId).getAlias();
             throw new KylinException(JobErrorCode.SECOND_STORAGE_JOB_EXISTS,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getSECOND_STORAGE_JOB_EXISTS(), name));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getSecondStorageJobExists(), name));
         }
     }
 
@@ -414,7 +414,7 @@ public class SecondStorageUtil {
             canRestart = finishedCount < 3;
         }
         if (!canRestart) {
-            throw new KylinException(ServerErrorCode.JOB_RESTART_FAILED, MsgPicker.getMsg().getJOB_RESTART_FAILED());
+            throw new KylinException(ServerErrorCode.JOB_RESTART_FAILED, MsgPicker.getMsg().getJobRestartFailed());
         }
     }
 
@@ -430,7 +430,7 @@ public class SecondStorageUtil {
                     : Long.parseLong(segment.getSegRange().getEnd().toString());
         }
         if (SecondStorageLockUtils.containsKey(modelId, new SegmentRange.TimePartitionedSegmentRange(startTime, endTime))) {
-            throw new KylinException(ServerErrorCode.SEGMENT_DROP_FAILED, MsgPicker.getMsg().getSEGMENT_DROP_FAILED());
+            throw new KylinException(ServerErrorCode.SEGMENT_DROP_FAILED, MsgPicker.getMsg().getSegmentDropFailed());
         }
     }
 
@@ -453,7 +453,7 @@ public class SecondStorageUtil {
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
         long runningJobsCount = scheduler.getContext().getRunningJobs().keySet().stream().filter(id -> id.startsWith(jobId)).count();
         if (secondStorageLoading && runningJobsCount > 0) {
-            throw new KylinException(ServerErrorCode.JOB_RESUME_FAILED, MsgPicker.getMsg().getJOB_RESUME_FAILED());
+            throw new KylinException(ServerErrorCode.JOB_RESUME_FAILED, MsgPicker.getMsg().getJobResumeFailed());
         }
     }
 }

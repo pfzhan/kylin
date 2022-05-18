@@ -1472,7 +1472,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
                             Assert.assertFalse(OLAPContext.getNativeRealizations().stream().allMatch(NativeQueryRealization::isSecondStorage));
                         }catch (Exception e){
                             Assert.assertTrue(e instanceof SQLException && e.getCause() instanceof KylinException);
-                            Assert.assertTrue(e.getMessage().contains(MsgPicker.getMsg().getFORCED_TO_TIEREDSTORAGE_AND_FORCE_TO_INDEX()));
+                            Assert.assertTrue(e.getMessage().contains(MsgPicker.getMsg().getForcedToTieredstorageAndForceToIndex()));
                         }
                         return null;
                     },
@@ -1507,7 +1507,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
                             Assert.assertFalse(OLAPContext.getNativeRealizations().stream().allMatch(NativeQueryRealization::isSecondStorage));
                         }catch (Exception e){
                             Assert.assertTrue(e instanceof SQLException && e.getCause() instanceof KylinException);
-                            Assert.assertTrue(e.getMessage().contains(MsgPicker.getMsg().getFORCED_TO_TIEREDSTORAGE_RETURN_ERROR()));
+                            Assert.assertTrue(e.getMessage().contains(MsgPicker.getMsg().getForcedToTieredstorageReturnError()));
                         }
                         return null;
                     },
@@ -1542,7 +1542,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
                             Assert.assertFalse(OLAPContext.getNativeRealizations().stream().allMatch(NativeQueryRealization::isSecondStorage));
                         }catch (Exception e){
                             Assert.assertTrue(e instanceof SQLException && e.getCause() instanceof KylinException);
-                            Assert.assertTrue(e.getMessage().contains(MsgPicker.getMsg().getFORCED_TO_TIEREDSTORAGE_INVALID_PARAMETER()));
+                            Assert.assertTrue(e.getMessage().contains(MsgPicker.getMsg().getForcedToTieredstorageInvalidParameter()));
                         }
                         return null;
                     },

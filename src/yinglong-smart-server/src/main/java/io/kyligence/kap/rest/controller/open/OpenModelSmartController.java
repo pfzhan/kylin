@@ -261,14 +261,14 @@ public class OpenModelSmartController extends NBasicController {
         }
         if (model.isBroken()) {
             throw new KylinException(ServerErrorCode.MODEL_BROKEN,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getBROKEN_MODEL_OPERATION_DENIED(), modelAlias));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getBrokenModelOperationDenied(), modelAlias));
         }
         return model;
     }
 
     static void checkNotEmpty(List<String> sqls) {
         if (CollectionUtils.isEmpty(sqls)) {
-            throw new KylinException(EMPTY_SQL_EXPRESSION, MsgPicker.getMsg().getNULL_EMPTY_SQL());
+            throw new KylinException(EMPTY_SQL_EXPRESSION, MsgPicker.getMsg().getNullEmptySql());
         }
     }
 }
