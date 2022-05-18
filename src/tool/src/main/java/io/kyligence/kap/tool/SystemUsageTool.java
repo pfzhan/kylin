@@ -57,8 +57,8 @@ import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord;
 
-public class UseInfoTool {
-    private UseInfoTool() {
+public class SystemUsageTool {
+    private SystemUsageTool() {
     }
 
     private static final Logger logger = LoggerFactory.getLogger("diag");
@@ -67,7 +67,7 @@ public class UseInfoTool {
     private static final String BASE_FILE_NAME = "base";
 
     public static void extractUseInfo(File exportDir, long startTime, long endTime) {
-        File destDir = new File(exportDir, "use_info");
+        File destDir = new File(exportDir, "system_usage");
 
         try {
             FileUtils.forceMkdir(destDir);
@@ -75,7 +75,7 @@ public class UseInfoTool {
             queryDailyInfo(destDir, startTime, endTime);
             buildDailyInfo(destDir, startTime, endTime);
         } catch (Exception e) {
-            logger.error("Failed to extract use info", e);
+            logger.error("Failed to extract system usage", e);
         }
     }
 
@@ -83,7 +83,8 @@ public class UseInfoTool {
         RDBMSQueryHistoryDAO queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance();
         List<QueryDailyStatistic> queryDailyStatisticList = queryHistoryDAO.getQueryDailyStatistic(startTime, endTime);
         List<String> lines = Lists.newArrayList();
-        lines.add("日期,日活用户,查询数量,查询成功数量,平均耗时(秒),1s内查询数,3s内查询数,5s内查询数,10s内查询数,15s内查询数");
+        lines.add(
+                "date,active_users,number_of_queries,number_of_successful_queries,average_time_spent_seconds,number_of_queries_within_1s,number_of_queries_within_3s,number_of_queries_within_5s,number_of_queries_within_10s,number_of_queries_within_15s");
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
         queryDailyStatisticList.forEach(e -> lines.add(String.format(Locale.ROOT, "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s",
                 simpleDateFormat.format(new Date(e.getQueryDay())), e.getActiveUserNum(), e.getTotalNum(),
@@ -105,7 +106,7 @@ public class UseInfoTool {
                 .filter(e -> JobTypeEnum.Category.BUILD.equals(e.getJobType().getCategory()))
                 .collect(Collectors.groupingBy(e -> simpleDateFormat.format(new Date(e.getLastModified()))));
         List<String> lines = Lists.newArrayList();
-        lines.add("日期,构建任务数,平均构建耗时(分钟),构建成功率");
+        lines.add("date,number_of_build_tasks,average_build_time_minutes,build_success_rate");
         dailyBuildExecutableMap.entrySet().stream()
                 .sorted(Map.Entry.<String, List<ExecutablePO>> comparingByKey().reversed()).forEachOrdered(entry -> {
                     String key = entry.getKey();

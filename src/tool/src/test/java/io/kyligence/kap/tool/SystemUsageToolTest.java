@@ -46,7 +46,7 @@ import io.kyligence.kap.metadata.query.QueryHistoryInfo;
 import io.kyligence.kap.metadata.query.QueryMetrics;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 
-public class UseInfoToolTest extends NLocalFileMetadataTestCase {
+public class SystemUsageToolTest extends NLocalFileMetadataTestCase {
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
@@ -74,16 +74,16 @@ public class UseInfoToolTest extends NLocalFileMetadataTestCase {
         FileUtils.forceMkdir(mainDir);
         // 2022-05-13 10:00:00
         queryHistoryDAO.insert(createQueryMetrics(1652407200000L, 1000L, true, "default", true));
-        UseInfoTool.extractUseInfo(mainDir, Long.MIN_VALUE, Long.MAX_VALUE);
+        SystemUsageTool.extractUseInfo(mainDir, Long.MIN_VALUE, Long.MAX_VALUE);
 
-        File useInfoDir = new File(mainDir, "use_info");
+        File useInfoDir = new File(mainDir, "system_usage");
         Assert.assertTrue(new File(useInfoDir, "query_daily.csv").exists());
         Assert.assertTrue(new File(useInfoDir, "build_daily.csv").exists());
         Assert.assertTrue(new File(useInfoDir, "base").exists());
         List<String> lines = FileUtils.readLines(new File(useInfoDir, "query_daily.csv"), "utf-8");
         Assert.assertEquals(2, lines.size());
-        Assert.assertEquals("0.0", UseInfoTool.divide(2.0, 0.0, "%.1f"));
-        Assert.assertEquals("3.3", UseInfoTool.divide(10.0, 3.0, "%.1f"));
+        Assert.assertEquals("0.0", SystemUsageTool.divide(2.0, 0.0, "%.1f"));
+        Assert.assertEquals("3.3", SystemUsageTool.divide(10.0, 3.0, "%.1f"));
     }
 
     public static QueryMetrics createQueryMetrics(long queryTime, long duration, boolean indexHit, String project,

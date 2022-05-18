@@ -175,7 +175,7 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
 
         exportTieredStorage(null, exportDir, startTime, endTime, recordTime);
 
-        exportUseInfo(recordTime, DateTime.now().minusDays(useInfoBeforeDay).withTimeAtStartOfDay().getMillis(),
+        exportSystemUsageInfo(recordTime, DateTime.now().minusDays(useInfoBeforeDay).withTimeAtStartOfDay().getMillis(),
                 Long.MAX_VALUE);
 
         executeTimeoutTask(taskQueue);
