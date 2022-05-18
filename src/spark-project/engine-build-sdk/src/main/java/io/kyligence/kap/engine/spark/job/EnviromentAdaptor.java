@@ -21,22 +21,15 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 package io.kyligence.kap.engine.spark.job;
 
 import java.util.Map;
 
-public interface IJobProgressReport {
+import org.apache.spark.sql.SparkSession;
 
-    boolean updateSparkJobInfo(Map<String, String> params, String url, String json);
+public interface EnviromentAdaptor {
 
-    boolean updateSparkJobExtraInfo(Map<String, String> params, String url, String project, String jobId,
-            Map<String, String> extraInfo);
 
-    default boolean executeFinish(Map<String, String> params, String project, String jobId) {
-        return true;
-    }
-
-    default void initArgsParams(Map<String, String> argsParams) {
-    }
-
+    Boolean prepareEnviroment(SparkSession spark, Map<String, String> params);
 }

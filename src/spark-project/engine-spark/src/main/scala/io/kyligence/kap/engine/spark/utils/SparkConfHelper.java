@@ -77,14 +77,13 @@ public class SparkConfHelper {
     public static final String MAX_CORES = "spark.cores.max";
     public static final String COUNT_DISTICT = "count_distinct";
 
-    private static List<SparkConfRule> EXECUTOR_RULES = Lists.newArrayList(new ExecutorMemoryRule(),
+    private static final List<SparkConfRule> EXECUTOR_RULES = Lists.newArrayList(new ExecutorMemoryRule(),
             new ExecutorCoreRule(), new ExecutorOverheadRule(), new ExecutorInstancesRule(),
             new ShufflePartitionsRule(), new StandaloneConfRule(), new YarnConfRule());
 
     public void generateSparkConf() {
-        KylinConfig.getInstanceFromEnv().getSparkBuildConfExtraRules().stream().forEach(rule -> {
-            EXECUTOR_RULES.add((SparkConfRule) ClassUtil.newInstance(rule));
-        });
+        KylinConfig.getInstanceFromEnv().getSparkBuildConfExtraRules()
+                .forEach(rule -> EXECUTOR_RULES.add((SparkConfRule) ClassUtil.newInstance(rule)));
         EXECUTOR_RULES.forEach(sparkConfRule -> sparkConfRule.apply(this));
     }
 

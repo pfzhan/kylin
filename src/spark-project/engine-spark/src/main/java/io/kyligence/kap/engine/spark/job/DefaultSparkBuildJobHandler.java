@@ -47,8 +47,6 @@ import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.exception.ExecuteException;
-import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,12 +57,10 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.cluster.ClusterManagerFactory;
 import io.kyligence.kap.cluster.IClusterManager;
 import io.kyligence.kap.guava20.shaded.common.util.concurrent.UncheckedTimeoutException;
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import lombok.val;
 
 public class DefaultSparkBuildJobHandler implements ISparkJobHandler {
     private static final Logger logger = LoggerFactory.getLogger(DefaultSparkBuildJobHandler.class);
-    private final String SLASH = "/";
     private static final String SPACE = " ";
     private static final String SUBMIT_LINE_FORMAT = " \\\n";
 
@@ -90,15 +86,13 @@ public class DefaultSparkBuildJobHandler implements ISparkJobHandler {
     }
 
     @Override
-    public void checkApplicationJar(KylinConfig config, String path) throws ExecuteException {
-        if (config.isUTEnv()) {
-            return;
-        }
+    public void checkApplicationJar(KylinConfig config) throws ExecuteException {
         // Application-jar:
         // Path to a bundled jar including your application and all dependencies.
         // The URL must be globally visible inside of your cluster,
         // for instance, an hdfs:// path or a file:// path that is present on all nodes.
         try {
+            String path = config.getKylinJobJarPath();
             final String failedMsg = "Application jar should be only one bundled jar.";
             URI uri = new URI(path);
             if (Objects.isNull(uri.getScheme()) || uri.getScheme().startsWith("file:/")) {
@@ -132,14 +126,6 @@ public class DefaultSparkBuildJobHandler implements ISparkJobHandler {
         return path.toString();
     }
 
-    public Object generateSparkCmd(KylinConfig config, String hadoopConf, String kylinJobJar, String appArgs) {
-        val desc = new SparkAppDescription();
-        desc.setHadoopConfDir(hadoopConf);
-        desc.setKylinJobJar(kylinJobJar);
-        desc.setAppArgs(appArgs);
-        return generateSparkCmd(config, desc);
-    }
-
     @Override
     public Object generateSparkCmd(KylinConfig config, SparkAppDescription desc) {
         // Hadoop conf dir.
@@ -164,14 +150,11 @@ public class DefaultSparkBuildJobHandler implements ISparkJobHandler {
 
         // Spark jars.
         cmdBuilder.append(SPACE).append("--jars");
-        //TODO 会有多个jar吗
-        cmdBuilder.append(SPACE).append(String.join(desc.getCOMMA(), desc.getSparkJars()));
+        cmdBuilder.append(SPACE).append(String.join(desc.getComma(), desc.getSparkJars()));
         cmdBuilder.append(SUBMIT_LINE_FORMAT);
 
-        //TODO 不要了
-        // Log4j config files.
         cmdBuilder.append(SPACE).append("--files");
-        cmdBuilder.append(SPACE).append(String.join(desc.getCOMMA(), desc.getSparkFiles()));
+        cmdBuilder.append(SPACE).append(String.join(desc.getComma(), desc.getSparkFiles()));
         cmdBuilder.append(SUBMIT_LINE_FORMAT);
 
         // Spark conf.
@@ -242,25 +225,17 @@ public class DefaultSparkBuildJobHandler implements ISparkJobHandler {
     }
 
     @Override
-    public String runSparkSubmit(Object cmd, BufferedLogger patternedLogger, String parentId, String project,
-            ExecutableState status) throws ExecuteException {
+    public Map<String, String> runSparkSubmit(Object cmd, String parentId) throws ExecuteException {
+        Map<String, String> updateInfo = Maps.newHashMap();
         try {
+            val patternedLogger = new BufferedLogger(logger);
             CliCommandExecutor exec = new CliCommandExecutor();
             CliCommandExecutor.CliCmdExecResult r = exec.execute((String) cmd, patternedLogger, parentId);
             if (StringUtils.isNotEmpty(r.getProcessId())) {
-                try {
-                    Map<String, String> updateInfo = Maps.newHashMap();
-                    updateInfo.put("process_id", r.getProcessId());
-                    EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-                        NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                                .updateJobOutput(parentId, status, updateInfo, null, null);
-                        return null;
-                    }, project);
-                } catch (Exception e) {
-                    logger.warn("failed to record process id.");
-                }
+                updateInfo.put("process_id", r.getProcessId());
             }
-            return r.getCmd();
+            updateInfo.put("output", r.getCmd());
+            return updateInfo;
         } catch (Exception e) {
             logger.warn("failed to execute spark submit command.");
             throw new ExecuteException(e);

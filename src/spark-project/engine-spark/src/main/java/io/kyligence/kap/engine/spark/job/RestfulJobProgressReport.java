@@ -26,10 +26,12 @@ package io.kyligence.kap.engine.spark.job;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
@@ -39,7 +41,6 @@ import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,14 +55,13 @@ public class RestfulJobProgressReport implements IJobProgressReport {
      * @param json
      */
     @Override
-    public Boolean updateSparkJobInfo(KylinConfig config, String url, String json) {
+    public boolean updateSparkJobInfo(Map<String, String> params, String url, String json) {
         String serverAddress = System.getProperty("spark.driver.rest.server.address", "127.0.0.1:7070");
         String requestApi = String.format(Locale.ROOT, "http://%s%s", serverAddress, url);
-
+        Long timeOut = Long.parseLong(params.get(ParamsConstants.TIME_OUT));
         try {
-            Long timeout = config.getUpdateJobInfoTimeout();
-            RequestConfig defaultRequestConfig = RequestConfig.custom().setSocketTimeout(timeout.intValue())
-                    .setConnectTimeout(timeout.intValue()).setConnectionRequestTimeout(timeout.intValue())
+            RequestConfig defaultRequestConfig = RequestConfig.custom().setSocketTimeout(timeOut.intValue())
+                    .setConnectTimeout(timeOut.intValue()).setConnectionRequestTimeout(timeOut.intValue())
                     .setStaleConnectionCheckEnabled(true).build();
             CloseableHttpClient httpClient = HttpClients.custom().setDefaultRequestConfig(defaultRequestConfig).build();
             HttpPut httpPut = new HttpPut(requestApi);
@@ -74,7 +74,7 @@ public class RestfulJobProgressReport implements IJobProgressReport {
                 return true;
             } else {
                 InputStream inputStream = response.getEntity().getContent();
-                String responseContent = IOUtils.toString(inputStream);
+                String responseContent = IOUtils.toString(inputStream, Charset.defaultCharset());
                 logger.warn("update spark job failed, info: {}", responseContent);
             }
         } catch (Exception e) {
@@ -88,7 +88,7 @@ public class RestfulJobProgressReport implements IJobProgressReport {
      * update spark job extra info, link yarn_application_tracking_url & yarn_application_id
      */
     @Override
-    public Boolean updateSparkJobExtraInfo(KylinConfig config, String url, String project, String jobId,
+    public boolean updateSparkJobExtraInfo(Map<String, String> params, String url, String project, String jobId,
             Map<String, String> extraInfo) {
         Map<String, String> payload = new HashMap<>(5);
         payload.put("project", project);
@@ -100,12 +100,15 @@ public class RestfulJobProgressReport implements IJobProgressReport {
             String payloadJson = JsonUtil.writeValueAsString(payload);
             int retry = 3;
             for (int i = 0; i < retry; i++) {
-                if (updateSparkJobInfo(config, url, payloadJson)) {
+                if (updateSparkJobInfo(params, url, payloadJson)) {
                     return Boolean.TRUE;
                 }
                 Thread.sleep(3000);
                 logger.warn("retry request rest api update spark extra job info");
             }
+        } catch (InterruptedException exception) {
+            logger.error("update spark job extra info failed!", exception);
+            Thread.currentThread().interrupt();
         } catch (Exception e) {
             logger.error("update spark job extra info failed!", e);
         }

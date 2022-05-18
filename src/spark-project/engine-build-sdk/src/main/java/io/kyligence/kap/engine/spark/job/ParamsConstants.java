@@ -24,9 +24,12 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import java.util.Map;
-import org.apache.spark.sql.SparkSession;
+public class ParamsConstants {
 
-public interface EnviromentAdaptor {
-    Boolean prepareEnviroment(SparkSession spark, Map<String, String> params);
+    private ParamsConstants() {
+        throw new IllegalStateException("Utility class");
+    }
+
+    public static final String TIME_OUT = "time_out";
+    public static final String JOB_TMP_DIR = "job_tmp_dir";
 }

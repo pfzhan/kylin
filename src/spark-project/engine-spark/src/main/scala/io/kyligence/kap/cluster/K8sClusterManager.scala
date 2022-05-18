@@ -66,5 +66,4 @@ class K8sClusterManager extends IClusterManager with Logging {
     false
   }
 
-  override def fetchContainerLimit(): ContainerLimit = ???
 }

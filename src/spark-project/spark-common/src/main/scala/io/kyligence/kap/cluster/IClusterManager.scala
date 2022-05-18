@@ -45,15 +45,7 @@ trait IClusterManager {
 
   def applicationExisted(jobId: String): Boolean
 
-  def fetchContainerLimit(): ContainerLimit
 }
-
-case class ContainerLimit(memeoryLimit: MemoryLimit, cpuLimit: CPULimit)
-
-// memory unit is MB
-case class MemoryLimit(minimum: Int, maximum: Int)
-
-case class CPULimit(minimum: Int, maximum: Int)
 
 // memory unit is MB
 case class ResourceInfo(memory: Int, vCores: Int) {

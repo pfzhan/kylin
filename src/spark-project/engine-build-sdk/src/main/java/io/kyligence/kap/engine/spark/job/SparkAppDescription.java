@@ -72,6 +72,6 @@ public class SparkAppDescription {
 
     private Set<String> sparkFiles;
 
-    private String COMMA;
+    private String comma;
 
 }

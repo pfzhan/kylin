@@ -28,15 +28,13 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.BufferedLogger;
 import org.apache.kylin.job.exception.ExecuteException;
-import org.apache.kylin.job.execution.ExecutableState;
 
 public interface ISparkJobHandler {
 
     void killOrphanApplicationIfExists(String jobStepId, KylinConfig config, Map<String, String> sparkConf);
 
-    void checkApplicationJar(KylinConfig config, String path) throws ExecuteException;
+    void checkApplicationJar(KylinConfig config) throws ExecuteException;
 
     String createArgsFileOnRemoteFileSystem(KylinConfig config, String project, String jobId,
             Map<String, String> params) throws ExecuteException;
@@ -49,7 +47,6 @@ public interface ISparkJobHandler {
     default void prepareEnviroment(String project, String jobStepId, Map<String, String> params) {
     }
 
-    String runSparkSubmit(Object cmd, BufferedLogger patternedLogger, String parentId, String project,
-            ExecutableState status) throws ExecuteException;
+    Map<String, String> runSparkSubmit(Object cmd, String parentId) throws ExecuteException;
 
 }

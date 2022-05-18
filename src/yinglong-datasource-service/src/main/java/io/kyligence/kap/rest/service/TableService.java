@@ -779,8 +779,7 @@ public class TableService extends BasicService {
 
         NTableMetadataManager tableManager = getManager(NTableMetadataManager.class, project);
         TableDesc tableDesc = tableManager.getTableDesc(table);
-        Preconditions.checkNotNull(tableDesc,
-                String.format(Locale.ROOT, MsgPicker.getMsg().getTableNotFound(), table));
+        Preconditions.checkNotNull(tableDesc, String.format(Locale.ROOT, MsgPicker.getMsg().getTableNotFound(), table));
         Set<String> columnSet = Stream.of(tableDesc.getColumns()).map(ColumnDesc::getName)
                 .map(str -> str.toUpperCase(Locale.ROOT)).collect(Collectors.toSet());
         if (!columnSet.contains(partitionColumn.toUpperCase(Locale.ROOT))) {

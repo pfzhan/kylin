@@ -47,17 +47,19 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
-import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.common.persistence.RawResource;
+import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.ShellException;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.ExecuteResult;
+import org.apache.kylin.query.util.QueryParams;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.Maps;
@@ -87,6 +89,24 @@ public class AsyncQueryJobTest extends NLocalFileMetadataTestCase {
     @After
     public void destroy() {
         cleanupTestMetadata();
+    }
+
+    @Test
+    public void testAsyncQueryJob() throws ExecuteException, JsonProcessingException, ShellException {
+        CliCommandExecutor executor = Mockito.spy(new CliCommandExecutor());
+        Mockito.doReturn(new CliCommandExecutor.CliCmdExecResult(0, "mock", "mock")).when(executor)
+                .execute(Mockito.any(), Mockito.any(), Mockito.any());
+        AsyncQueryJob asyncQueryJob = Mockito.spy(new AsyncQueryJob());
+        Assert.assertNotNull(asyncQueryJob.getCliCommandExecutor());
+        Mockito.doNothing().when(asyncQueryJob).killOrphanApplicationIfExists(Mockito.any());
+        Mockito.doReturn(executor).when(asyncQueryJob).getCliCommandExecutor();
+
+        QueryParams queryParams = new QueryParams("default", "select 1", "", false, true, true);
+        asyncQueryJob.setProject(queryParams.getProject());
+        Assert.assertTrue(asyncQueryJob.submit(queryParams).succeed());
+
+        Mockito.doReturn(null).when(asyncQueryJob).getCliCommandExecutor();
+        Assert.assertFalse(asyncQueryJob.submit(queryParams).succeed());
     }
 
     @Test
@@ -130,7 +150,6 @@ public class AsyncQueryJobTest extends NLocalFileMetadataTestCase {
         }
     }
 
-    @Ignore
     @Test
     public void testDumpMetadataAndCreateArgsFile() throws ExecuteException, IOException {
         QueryParams queryParams = new QueryParams("default", "select 1", "", false, true, true);
@@ -143,7 +162,8 @@ public class AsyncQueryJobTest extends NLocalFileMetadataTestCase {
 
         overwriteSystemProp(ASYNC_HADOOP_CONF, ASYNC_HADOOP_CONF_VALUE);
         AsyncQueryJob asyncQueryJob = new AsyncQueryJob() {
-            protected ExecuteResult runSparkSubmit(String hadoopConf, String jars, String kylinJobJar, String appArgs) {
+            @Override
+            protected ExecuteResult runSparkSubmit(String hadoopConf, String kylinJobJar, String appArgs) {
                 Assert.assertEquals(ASYNC_HADOOP_CONF_VALUE, hadoopConf);
                 Assert.assertTrue(appArgs.contains(ASYNC_QUERY_CLASS));
                 val desc = this.getSparkAppDesc();
@@ -201,7 +221,7 @@ public class AsyncQueryJobTest extends NLocalFileMetadataTestCase {
                 rawResourceMap.put(zipEntry.getName(), raw);
             }
         }
-        Assert.assertEquals(74, rawResourceMap.size());
+        Assert.assertEquals(81, rawResourceMap.size());
     }
 
     private void testKylinConfig(FileSystem workingFileSystem, FileStatus metaFileStatus) throws IOException {
@@ -213,10 +233,10 @@ public class AsyncQueryJobTest extends NLocalFileMetadataTestCase {
         }
         Assert.assertTrue(properties.size() > 0);
         Assert.assertFalse(properties.getProperty("kylin.query.queryhistory.url").contains("hdfs"));
-        Assert.assertEquals(properties.getProperty("kylin.query.async-query.spark-conf.spark.yarn.queue"),
-                ASYNC_QUERY_SPARK_QUEUE);
-        Assert.assertEquals(properties.getProperty(ASYNC_QUERY_SPARK_EXECUTOR_CORES), "5");
-        Assert.assertEquals(properties.getProperty(ASYNC_QUERY_SPARK_EXECUTOR_MEMORY), "12288m");
+        Assert.assertEquals(ASYNC_QUERY_SPARK_QUEUE,
+                properties.getProperty("kylin.query.async-query.spark-conf.spark.yarn.queue"));
+        Assert.assertEquals("5", properties.getProperty(ASYNC_QUERY_SPARK_EXECUTOR_CORES));
+        Assert.assertEquals("12288m", properties.getProperty(ASYNC_QUERY_SPARK_EXECUTOR_MEMORY));
     }
 
     private void testSparkArgs(String asyncQueryJobPath, FSDataInputStream open, FileStatus jobFileStatus)

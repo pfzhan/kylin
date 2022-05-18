@@ -25,11 +25,14 @@
 package io.kyligence.kap.engine.spark.job;
 
 import java.util.Map;
+
 import org.apache.spark.sql.SparkSession;
 
 public class DefaultEnviromentAdaptor implements EnviromentAdaptor {
     @Override
     public Boolean prepareEnviroment(SparkSession spark, Map<String, String> params) {
+
+
         return true;
     }
 }

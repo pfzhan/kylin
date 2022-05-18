@@ -24,9 +24,11 @@
 
 package io.kyligence.kap.engine.spark.job.stage
 
+import java.util
+
 import com.google.common.base.Throwables
 import io.kyligence.kap.engine.spark.application.SparkApplication
-import io.kyligence.kap.engine.spark.job.KylinBuildEnv
+import io.kyligence.kap.engine.spark.job.{KylinBuildEnv, ParamsConstants}
 import io.kyligence.kap.metadata.cube.model.{NBatchConstants, NDataSegment}
 import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.common.util.JsonUtil
@@ -73,7 +75,11 @@ trait StageExec extends Logging {
     payload.put("err_msg", errMsg)
     payload.put("update_info", updateInfo)
     val json = JsonUtil.writeValueAsString(payload)
-    context.report.updateSparkJobInfo(KylinConfig.getInstanceFromEnv, url, json)
+    val params = new util.HashMap[String, String]()
+    val config = KylinConfig.getInstanceFromEnv
+    params.put(ParamsConstants.TIME_OUT, config.getUpdateJobInfoTimeout.toString)
+    params.put(ParamsConstants.JOB_TMP_DIR, config.getJobTmpDir(project, true))
+    context.getReport.updateSparkJobInfo(params, url, json)
   }
 
   def onStageFinished(result: Boolean): Unit = {

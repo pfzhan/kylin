@@ -35,6 +35,7 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.exception.KylinRuntimeException;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.BufferedLogger;
 import org.apache.kylin.common.util.CliCommandExecutor;
@@ -50,6 +51,7 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -89,7 +91,6 @@ public class AsyncQueryJob extends NSparkExecutable {
     @Override
     protected ExecuteResult runSparkSubmit(String hadoopConf, String kylinJobJar, String appArgs) {
         val patternedLogger = new BufferedLogger(logger);
-
         try {
             killOrphanApplicationIfExists(getId());
             val desc = getSparkAppDesc();
@@ -97,12 +98,17 @@ public class AsyncQueryJob extends NSparkExecutable {
             desc.setKylinJobJar(kylinJobJar);
             desc.setAppArgs(appArgs);
             String cmd = (String) sparkJobHandler.generateSparkCmd(KylinConfig.getInstanceFromEnv(), desc);
-            CliCommandExecutor exec = new CliCommandExecutor();
+            CliCommandExecutor exec = getCliCommandExecutor();
             CliCommandExecutor.CliCmdExecResult r = exec.execute(cmd, patternedLogger, getId());
             return ExecuteResult.createSucceed(r.getCmd());
         } catch (Exception e) {
             return ExecuteResult.createError(e);
         }
+    }
+
+    @VisibleForTesting
+    public CliCommandExecutor getCliCommandExecutor() {
+        return new CliCommandExecutor();
     }
 
     @Override
@@ -149,7 +155,7 @@ public class AsyncQueryJob extends NSparkExecutable {
         KylinConfig config = KylinConfigExt.createInstance(originConfig, overrideCopy);
         String kylinJobJar = config.getKylinJobJarPath();
         if (StringUtils.isEmpty(kylinJobJar) && !config.isUTEnv()) {
-            throw new RuntimeException("Missing kylin job jar");
+            throw new KylinRuntimeException("Missing kylin job jar");
         }
 
         ObjectMapper fieldOnlyMapper = new ObjectMapper();

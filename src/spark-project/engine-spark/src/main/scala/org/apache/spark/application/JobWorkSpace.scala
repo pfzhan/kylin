@@ -22,17 +22,18 @@
 
 package org.apache.spark.application
 
+import java.util
+import java.util.concurrent.CountDownLatch
+
 import io.kyligence.kap.common.util.Unsafe
 import io.kyligence.kap.engine.spark.application.SparkApplication
-import io.kyligence.kap.engine.spark.job.KylinBuildEnv
+import io.kyligence.kap.engine.spark.job.{KylinBuildEnv, ParamsConstants}
 import io.kyligence.kap.engine.spark.scheduler._
 import org.apache.commons.lang.StringUtils
 import org.apache.commons.lang3.exception.ExceptionUtils
-import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.common.util.JsonUtil
 import org.apache.spark.internal.Logging
 import org.apache.spark.scheduler.KylinJobEventLoop
-
 import java.util
 import java.util.concurrent.CountDownLatch
 
@@ -149,6 +150,10 @@ class JobWorkSpace(eventLoop: KylinJobEventLoop, monitor: JobMonitor, worker: Jo
     payload.put("failed_stack", failedStack)
     payload.put("failed_reason", failedReason)
     val json = JsonUtil.writeValueAsString(payload)
-    context.report.updateSparkJobInfo(KylinConfig.getInstanceFromEnv, url, json);
+    val params = new util.HashMap[String, String]()
+    val config = KylinBuildEnv.get().kylinConfig
+    params.put(ParamsConstants.TIME_OUT, config.getUpdateJobInfoTimeout.toString)
+    params.put(ParamsConstants.JOB_TMP_DIR, config.getJobTmpDir(project, true))
+    context.getReport.updateSparkJobInfo(params, url, json);
   }
 }

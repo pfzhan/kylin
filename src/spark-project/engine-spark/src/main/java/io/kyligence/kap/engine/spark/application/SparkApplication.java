@@ -63,6 +63,7 @@ import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.spark.SparkConf;
 import org.apache.spark.application.NoRetryException;
+import org.apache.spark.launcher.SparkLauncher;
 import org.apache.spark.sql.KylinSession;
 import org.apache.spark.sql.KylinSession$;
 import org.apache.spark.sql.SparderEnv;
@@ -88,7 +89,9 @@ import io.kyligence.kap.engine.spark.job.IJobProgressReport;
 import io.kyligence.kap.engine.spark.job.KylinBuildEnv;
 import io.kyligence.kap.engine.spark.job.LogJobInfoUtils;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
+import io.kyligence.kap.engine.spark.job.ParamsConstants;
 import io.kyligence.kap.engine.spark.job.ResourceDetect;
+import io.kyligence.kap.engine.spark.job.RestfulJobProgressReport;
 import io.kyligence.kap.engine.spark.job.SegmentBuildJob;
 import io.kyligence.kap.engine.spark.job.SparkJobConstants;
 import io.kyligence.kap.engine.spark.job.UdfManager;
@@ -108,7 +111,7 @@ public abstract class SparkApplication implements Application {
     private static final Logger logger = LoggerFactory.getLogger(SparkApplication.class);
     private Map<String, String> params = Maps.newHashMap();
     public static final String JOB_NAME_PREFIX = "job_step_";
-    public IJobProgressReport report;
+    private IJobProgressReport report;
 
     protected volatile KylinConfig config;
     protected volatile String jobId;
@@ -169,6 +172,12 @@ public abstract class SparkApplication implements Application {
 
     public KylinConfig getConfig() {
         return config;
+    }
+
+    public IJobProgressReport getReport() {
+        if (report == null)
+            return new RestfulJobProgressReport();
+        return report;
     }
 
     /// backwards compatibility, must have been initialized before invoking #doExecute.
@@ -256,6 +265,7 @@ public abstract class SparkApplication implements Application {
                 .setAndUnsetThreadLocalConfig(KylinConfig.loadKylinConfigFromHdfs(hdfsMetalUrl))) {
             config = autoCloseConfig.get();
             report = (IJobProgressReport) ClassUtil.newInstance(config.getBuildJobProgressReporter());
+            report.initArgsParams(getParams());
             //// KylinBuildEnv
             final KylinBuildEnv buildEnv = KylinBuildEnv.getOrCreate(config);
             atomicBuildEnv.set(buildEnv);
@@ -281,9 +291,12 @@ public abstract class SparkApplication implements Application {
 
             /// backwards compatibility
             ss = getSparkSession();
-            EnviromentAdaptor adaptor = (EnviromentAdaptor) ClassUtil
-                    .newInstance(config.getBuildJobEnviromentAdaptor());
-            adaptor.prepareEnviroment(ss, params);
+            val master = ss.conf().get(SparkLauncher.SPARK_MASTER, "");
+            if (!master.equals("local")) {
+                EnviromentAdaptor adaptor = (EnviromentAdaptor) ClassUtil
+                        .newInstance(config.getBuildJobEnviromentAdaptor());
+                adaptor.prepareEnviroment(ss, params);
+            }
 
             if (config.useDynamicS3RoleCredentialInTable()) {
                 val tableMetadataManager = NTableMetadataManager.getInstance(config, project);
@@ -314,6 +327,7 @@ public abstract class SparkApplication implements Application {
             }
             destroySparkSession();
             extraDestroy();
+            executeFinish();
         }
     }
 
@@ -408,6 +422,14 @@ public abstract class SparkApplication implements Application {
         infos.recordStageId("");
     }
 
+    protected void executeFinish() {
+        try {
+            getReport().executeFinish(getReportParams(), project, getJobId());
+        } catch (Exception e) {
+            logger.error("executeFinish failed", e);
+        }
+    }
+
     protected void chooseContentSize(SparkConfHelper helper) {
         Path shareDir = config.getJobTmpShareDir(project, jobId);
         // add content size with unit
@@ -448,11 +470,19 @@ public abstract class SparkApplication implements Application {
             Map<String, String> extraInfo = new HashMap<>();
             extraInfo.put("yarn_job_wait_time", ((Long) KylinBuildEnv.get().buildJobInfos().waitTime()).toString());
             extraInfo.put("yarn_job_run_time", ((Long) KylinBuildEnv.get().buildJobInfos().buildTime()).toString());
-            report.updateSparkJobExtraInfo(KylinConfig.getInstanceFromEnv(), "/kylin/api/jobs/wait_and_run_time",
-                    project, jobId, extraInfo);
+
+            getReport().updateSparkJobExtraInfo(getReportParams(), "/kylin/api/jobs/wait_and_run_time", project, jobId,
+                    extraInfo);
         } catch (Exception e) {
             logger.warn("Error occurred when generate job info.", e);
         }
+    }
+
+    private Map<String, String> getReportParams() {
+        val reportParams = new HashMap<String, String>();
+        reportParams.put(ParamsConstants.TIME_OUT, String.valueOf(config.getUpdateJobInfoTimeout()));
+        reportParams.put(ParamsConstants.JOB_TMP_DIR, config.getJobTmpDir(project, true));
+        return reportParams;
     }
 
     protected String generateInfo() {
@@ -536,7 +566,7 @@ public abstract class SparkApplication implements Application {
 
         sparkSession = createSpark(sparkConf);
         if (!config.isUTEnv() && !sparkConf.get("spark.master").startsWith("k8s")) {
-            report.updateSparkJobExtraInfo(KylinConfig.getInstanceFromEnv(), "/kylin/api/jobs/spark", project, jobId,
+            getReport().updateSparkJobExtraInfo(getReportParams(), "/kylin/api/jobs/spark", project, jobId,
                     getTrackingInfo(sparkSession, config.isTrackingUrlIpAddressEnabled()));
         }
 
@@ -592,4 +622,5 @@ public abstract class SparkApplication implements Application {
         clusterMonitor.monitorSparkMaster(atomicBuildEnv, atomicSparkSession, atomicDisconnectSparkMasterTimes,
                 atomicUnreachableSparkMaster);
     }
+
 }
