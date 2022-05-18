@@ -151,9 +151,13 @@ object SecondStorage extends LogEx {
         database <- tableData.map(_.getDatabase)
         table <- tableData.map(_.getTable)
         catalog <- queryCatalog()
+        numPartition <- tableData.map(_.getSchemaURLSize)
       } yield {
         sparkSession.read
           .option(ShardOptions.SHARD_URLS, shardJDBCURLs)
+          .option(ShardOptions.PUSHDOWN_AGGREGATE, true)
+          .option(ShardOptions.PUSHDOWN_LIMIT, true)
+          .option(ShardOptions.PUSHDOWN_NUM_PARTITIONS, numPartition)
           .table(s"$catalog.$database.$table")
       }
     } catch {

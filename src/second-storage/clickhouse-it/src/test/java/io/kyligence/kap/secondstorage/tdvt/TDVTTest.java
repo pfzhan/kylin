@@ -167,15 +167,6 @@ public class TDVTTest implements JobWaiter {
         sparkSession.sessionState().conf().setConfString(
                 "spark.sql.catalog." + queryCatalog + ".driver",
                 clickhouse.getDriverClassName());
-        sparkSession.sessionState().conf().setConfString(
-                "spark.sql.catalog." + queryCatalog + ".pushDownAggregate",
-                "true");
-        sparkSession.sessionState().conf().setConfString(
-                "spark.sql.catalog." + queryCatalog + ".pushDownLimit",
-                "true");
-        sparkSession.sessionState().conf().setConfString(
-                "spark.sql.catalog." + queryCatalog + ".numPartitions",
-                String.valueOf(clickhouseNumber));
     }
 
     @AfterClass

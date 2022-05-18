@@ -234,6 +234,14 @@ public class TableData implements Serializable, WithLayout {
         return QueryContext.current().getSecondStorageUrls().get(0);
     }
 
+    public int getSchemaURLSize() {
+        if (partitions.isEmpty()) {
+            return 0;
+        }
+
+        return QueryContext.current().getSecondStorageUrls().size();
+    }
+
     public boolean containSegments(Set<String> segmentIds) {
         if (allSegmentIds == null) {
             allSegmentIds = partitions.stream().map(TablePartition::getSegmentId).collect(Collectors.toSet());
