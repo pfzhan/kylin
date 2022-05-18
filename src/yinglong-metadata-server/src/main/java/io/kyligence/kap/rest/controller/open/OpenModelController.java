@@ -257,7 +257,7 @@ public class OpenModelController extends NBasicController {
         }
         if (model.isBroken()) {
             throw new KylinException(ServerErrorCode.MODEL_BROKEN,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getBROKEN_MODEL_OPERATION_DENIED(), modelAlias));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getBrokenModelOperationDenied(), modelAlias));
         }
         return model;
     }
@@ -271,7 +271,7 @@ public class OpenModelController extends NBasicController {
         val dataModel = getModel(modelAlias, projectName);
         if (dataModel.isStreaming()) {
             throw new KylinException(UNSUPPORTED_STREAMING_OPERATION,
-                    MsgPicker.getMsg().getSTREAMING_OPERATION_NOT_SUPPORT());
+                    MsgPicker.getMsg().getStreamingOperationNotSupport());
         }
         NModelDescResponse result = modelService.getModelDesc(dataModel.getAlias(), projectName);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, result, "");

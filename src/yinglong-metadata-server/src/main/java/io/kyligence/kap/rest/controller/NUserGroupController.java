@@ -213,19 +213,19 @@ public class NUserGroupController extends NBasicController {
     public void checkGroupName(String groupName) {
         val msg = MsgPicker.getMsg();
         if (StringUtils.isEmpty(groupName)) {
-            throw new KylinException(EMPTY_USERGROUP_NAME, msg.getEMPTY_GROUP_NAME());
+            throw new KylinException(EMPTY_USERGROUP_NAME, msg.getEmptyGroupName());
         }
         if (groupName.startsWith(".")) {
-            throw new KylinException(INVALID_USERGROUP_NAME, msg.getINVALID_NAME_START_WITH_DOT());
+            throw new KylinException(INVALID_USERGROUP_NAME, msg.getInvalidNameStartWithDot());
         }
         if (!groupName.equals(groupName.trim())) {
-            throw new KylinException(INVALID_USERGROUP_NAME, msg.getINVALID_NAME_START_OR_END_WITH_BLANK());
+            throw new KylinException(INVALID_USERGROUP_NAME, msg.getInvalidNameStartOrEndWithBlank());
         }
         if (Pattern.compile("[^\\x00-\\xff]").matcher(groupName).find()) {
-            throw new KylinException(INVALID_USERGROUP_NAME, msg.getINVALID_NAME_CONTAINS_OTHER_CHARACTER());
+            throw new KylinException(INVALID_USERGROUP_NAME, msg.getInvalidNameContainsOtherCharacter());
         }
         if (Pattern.compile("[\\\\/:*?\"<>|]").matcher(groupName).find()) {
-            throw new KylinException(INVALID_USERGROUP_NAME, msg.getINVALID_NAME_CONTAINS_INLEGAL_CHARACTER());
+            throw new KylinException(INVALID_USERGROUP_NAME, msg.getInvalidNameContainsInlegalCharacter());
         }
     }
 }

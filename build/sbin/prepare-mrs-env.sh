@@ -45,4 +45,3 @@ then
      export IS_MRS_PLATFORM='true'
    fi
 fi
-

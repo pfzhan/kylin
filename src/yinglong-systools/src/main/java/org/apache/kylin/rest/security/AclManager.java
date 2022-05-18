@@ -157,7 +157,7 @@ public class AclManager {
             AclRecord record = getAclRecordByCache(AclPermissionUtil.objID(oid));
             if (record == null) {
                 throw new NotFoundException(
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getACL_INFO_NOT_FOUND(), oid));
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getAclInfoNotFound(), oid));
             }
 
             Acl parentAcl = null;
@@ -188,7 +188,7 @@ public class AclManager {
         if (!deleteChildren && !children.isEmpty()) {
             Message msg = MsgPicker.getMsg();
             throw new KylinException(PERMISSION_DENIED,
-                    String.format(Locale.ROOT, msg.getIDENTITY_EXIST_CHILDREN(), objectIdentity));
+                    String.format(Locale.ROOT, msg.getIdentityExistChildren(), objectIdentity));
         }
         for (ObjectIdentity oid : children) {
             deleteAcl(oid, deleteChildren);

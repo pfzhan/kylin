@@ -14,16 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.spark.sql.execution.datasources.v2
 
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.catalyst.rules.Rule
-import org.apache.spark.sql.execution.datasources.v2.pushdown.PushQuery
 
-object V2ScanRelationPushDown2 extends Rule[LogicalPlan] {
-  override def apply(plan: LogicalPlan): LogicalPlan = plan transform {
-    case PushQuery(pushed: PushQuery) =>
-      pushed.push()
+object PreV2ScanRelationPushDown extends Rule[LogicalPlan] {
+
+  def apply(plan: LogicalPlan): LogicalPlan = {
+    val pushdownRules = Seq[LogicalPlan => LogicalPlan]()
+
+    pushdownRules.foldLeft(plan) { (newPlan, pushDownRule) =>
+      pushDownRule(newPlan)
+    }
   }
 }
-

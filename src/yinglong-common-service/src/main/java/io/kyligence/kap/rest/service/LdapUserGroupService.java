@@ -98,17 +98,17 @@ public class LdapUserGroupService extends NUserGroupService {
 
     @Override
     public void addGroup(String name) {
-        throw new UnsupportedOperationException(MsgPicker.getMsg().getGroup_EDIT_NOT_ALLOWED());
+        throw new UnsupportedOperationException(MsgPicker.getMsg().getGroupEditNotAllowed());
     }
 
     @Override
     public void deleteGroup(String name) {
-        throw new UnsupportedOperationException(MsgPicker.getMsg().getGroup_EDIT_NOT_ALLOWED());
+        throw new UnsupportedOperationException(MsgPicker.getMsg().getGroupEditNotAllowed());
     }
 
     @Override
     public void modifyGroupUsers(String groupName, List<String> users) {
-        throw new UnsupportedOperationException(MsgPicker.getMsg().getGroup_EDIT_NOT_ALLOWED());
+        throw new UnsupportedOperationException(MsgPicker.getMsg().getGroupEditNotAllowed());
     }
 
     @Override

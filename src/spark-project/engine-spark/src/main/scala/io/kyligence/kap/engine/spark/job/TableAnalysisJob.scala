@@ -60,7 +60,7 @@ class TableAnalysisJob(tableDesc: TableDesc,
     val numPartitions = instances * cores
     val rowsTakenInEachPartition = rowCount / numPartitions
     val params = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv)
-      .getProject(tableDesc.getProject).getOverrideKylinProps
+      .getProject(tableDesc.getProject).getLegalOverrideKylinProps
     params.put("sampleRowCount", String.valueOf(rowCount))
     val dataFrame = SourceFactory
       .createEngineAdapter(tableDesc, classOf[NSparkCubingEngine.NSparkCubingSource])

@@ -105,7 +105,7 @@ public class CognosParenthesesEscapeTransformerTest {
         String originalSql = "select count(*) COU FrOm --comment0\n" + "---comment1\n" + "(  --comment2\n"
                 + "test_kylin_fact left join EDW.TEST_CAL_DT on TEST_CAL_DT.CAL_DT = test_kylin_fact.CAL_DT\n" + ")\n"
                 + "left join TEST_ACCOUNT on SELLER_ID = ACCOUNT_ID";
-        String expectedSql = "select count(*) COU FrOm \n" + "\n" + "  \n"
+        String expectedSql = "select count(*) COU FrOm\n" + "\n"
                 + "test_kylin_fact left join EDW.TEST_CAL_DT on TEST_CAL_DT.CAL_DT = test_kylin_fact.CAL_DT\n" + "\n"
                 + "left join TEST_ACCOUNT on SELLER_ID = ACCOUNT_ID";
         originalSql = QueryUtil.removeCommentInSql(originalSql);
@@ -143,7 +143,7 @@ public class CognosParenthesesEscapeTransformerTest {
                 Charset.defaultCharset());
         originalSql = QueryUtil.removeCommentInSql(originalSql);
         String transformed = convertTransformer.completion(originalSql).replaceAll("[\n]+", "");
-        expectedSql = expectedSql.replaceAll("[\n]+", "");
+        expectedSql = expectedSql.replaceAll("[\n]+", "").substring(0, expectedSql.length() - 1);
         Assert.assertEquals(expectedSql, transformed);
     }
 }

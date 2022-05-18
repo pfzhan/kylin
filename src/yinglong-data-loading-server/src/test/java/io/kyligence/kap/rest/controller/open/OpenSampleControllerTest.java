@@ -145,7 +145,7 @@ public class OpenSampleControllerTest extends NLocalFileMetadataTestCase {
         request.setRows(20000);
         request.setQualifiedTableName("SSB.P_LINEORDER");
 
-        String errorMsg = MsgPicker.getMsg().getSTREAMING_OPERATION_NOT_SUPPORT();
+        String errorMsg = MsgPicker.getMsg().getStreamingOperationNotSupport();
         final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/sampling_jobs") //
                 .contentType(MediaType.APPLICATION_JSON) //
                 .content(JsonUtil.writeValueAsString(request)) //

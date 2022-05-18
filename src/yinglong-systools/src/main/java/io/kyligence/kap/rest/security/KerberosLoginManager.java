@@ -72,13 +72,12 @@ public class KerberosLoginManager {
                 ugi = UserGroupInformation.getLoginUser();
             }
         } catch (Exception e) {
-            logger.error("Fetch project {} ugi error, principal: {}.", projectName, principal, e);
             try {
                 ugi = UserGroupInformation.getLoginUser();
             } catch (Exception ex) {
                 logger.error("Fetch login user error.", projectName, principal, ex);
             }
-            throw new KylinException(INVALID_KERBEROS_FILE, MsgPicker.getMsg().getKERBEROS_INFO_ERROR(), e);
+            throw new KylinException(INVALID_KERBEROS_FILE, MsgPicker.getMsg().getKerberosInfoError(), e);
         }
 
         return ugi;
@@ -106,7 +105,7 @@ public class KerberosLoginManager {
         try {
             UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytab);
         } catch (Exception e) {
-            throw new KylinException(INVALID_KERBEROS_FILE, MsgPicker.getMsg().getKERBEROS_INFO_ERROR(), e);
+            throw new KylinException(INVALID_KERBEROS_FILE, MsgPicker.getMsg().getKerberosInfoError(), e);
         }
     }
 
@@ -117,7 +116,7 @@ public class KerberosLoginManager {
 
         UserGroupInformation ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytab);
         if (!checkExistsTablesAccess(ugi, project)) {
-            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getPROJECT_HIVE_PERMISSION_ERROR());
+            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getProjectHivePermissionError());
         }
     }
 

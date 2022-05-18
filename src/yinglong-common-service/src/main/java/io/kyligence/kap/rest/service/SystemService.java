@@ -176,7 +176,7 @@ public class SystemService extends BasicService {
 
                 DiagInfo diagInfo = diagMap.getIfPresent(uuid);
                 if (Objects.isNull(diagInfo) || !"DONE".equals(diagInfo.getStage())) {
-                    throw new KylinException(DIAG_FAILED, MsgPicker.getMsg().getDIAG_FAILED());
+                    throw new KylinException(DIAG_FAILED, MsgPicker.getMsg().getDiagFailed());
                 }
             } catch (Exception ex) {
                 handleDiagException(uuid, ex);
@@ -234,7 +234,7 @@ public class SystemService extends BasicService {
         File exportFile = diagInfo == null ? null : diagInfo.getExportFile();
         if (exportFile == null) {
             throw new KylinException(DIAG_UUID_NOT_EXIST,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_ID(), uuid));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getInvalidId(), uuid));
         }
         if (QUERY != diagInfo.getDiagType() || !KylinConfig.getInstanceFromEnv().isAllowedNonAdminGenerateQueryDiagPackage()) {
             aclEvaluate.checkIsGlobalAdmin();
@@ -242,7 +242,7 @@ public class SystemService extends BasicService {
         String zipFilePath = findZipFile(exportFile);
         if (zipFilePath == null) {
             throw new KylinException(FILE_NOT_EXIST, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getDIAG_PACKAGE_NOT_AVAILABLE(), exportFile.getAbsoluteFile()));
+                    MsgPicker.getMsg().getDiagPackageNotAvailable(), exportFile.getAbsoluteFile()));
         }
         return zipFilePath;
     }
@@ -276,7 +276,7 @@ public class SystemService extends BasicService {
         DiagInfo diagInfo = diagMap.getIfPresent(uuid);
         if (Objects.isNull(diagInfo)) {
             throw new KylinException(DIAG_UUID_NOT_EXIST,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_ID(), uuid));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getInvalidId(), uuid));
         }
         if (QUERY != diagInfo.getDiagType() || !KylinConfig.getInstanceFromEnv().isAllowedNonAdminGenerateQueryDiagPackage()) {
             aclEvaluate.checkIsGlobalAdmin();
@@ -298,7 +298,7 @@ public class SystemService extends BasicService {
         DiagInfo diagInfo = diagMap.getIfPresent(diagProgressRequest.getDiagId());
         if (Objects.isNull(diagInfo)) {
             throw new KylinException(DIAG_UUID_NOT_EXIST,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_ID(), diagProgressRequest.getDiagId()));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getInvalidId(), diagProgressRequest.getDiagId()));
         }
         diagInfo.setStage(diagProgressRequest.getStage());
         diagInfo.setProgress(diagProgressRequest.getProgress());
@@ -310,7 +310,7 @@ public class SystemService extends BasicService {
         DiagInfo diagInfo = diagMap.getIfPresent(uuid);
         if (diagInfo == null) {
             throw new KylinException(DIAG_UUID_NOT_EXIST,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_ID(), uuid));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getInvalidId(), uuid));
         }
         if (QUERY != diagInfo.getDiagType() || !KylinConfig.getInstanceFromEnv().isAllowedNonAdminGenerateQueryDiagPackage()) {
             aclEvaluate.checkIsGlobalAdmin();

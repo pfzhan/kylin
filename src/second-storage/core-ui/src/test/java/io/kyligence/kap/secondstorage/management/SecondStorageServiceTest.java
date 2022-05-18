@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.secondstorage.management;
 
-import com.google.common.collect.Lists;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -139,24 +138,5 @@ public class SecondStorageServiceTest extends NLocalFileMetadataTestCase {
         Mockito.when(executableManager.getJob("job1")).thenReturn(job1);
         Mockito.when(executableManager.getJob("job2")).thenReturn(job2);
         Assert.assertEquals(1, secondStorageService.validateProjectDisable(projectEnableRequest.getProject()).size());
-    }
-
-    @Test
-    public void projecLoad() {
-        PowerMockito.mockStatic(NProjectManager.class);
-        val projectManager = Mockito.mock(NProjectManager.class);
-        PowerMockito.when(NProjectManager.getInstance(Mockito.any(KylinConfig.class)))
-                .thenAnswer(invocation -> projectManager);
-        Mockito.when(projectManager.listAllProjects()).thenReturn(Collections.emptyList());
-
-        
-        ClusterInfo clusterInfo = new ClusterInfo();
-        Map<String, List<Node>> cluster = new HashMap<>();
-        clusterInfo.setCluster(cluster);
-        cluster.put("pair1", Collections.singletonList(new Node().setName("node01").setIp("127.0.0.1").setPort(9000)));
-        SecondStorageNodeHelper.initFromCluster(clusterInfo, null);
-        prepareManger();
-        Assert.assertEquals(1, secondStorageService.projectLoadData(Lists.newArrayList("project")).getLoads().size());
-
     }
 }

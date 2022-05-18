@@ -289,7 +289,7 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
             Assert.assertEquals(((NoStreamingRealizationFoundException) e).getErrorCode().getCodeString(),
                     STREAMING_MODEL_NOT_FOUND.toErrorCode().getCodeString());
             Assert.assertEquals(e.getMessage(),
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getNO_STREAMING_MODEL_FOUND()));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getNoStreamingModelFound()));
             Assert.assertTrue(context.storageContext.isBatchCandidateEmpty());
             Assert.assertTrue(context.storageContext.isStreamCandidateEmpty());
         }
@@ -354,7 +354,7 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
             Assert.assertEquals(((NoStreamingRealizationFoundException) e).getErrorCode().getCodeString(),
                     STREAMING_MODEL_NOT_FOUND.toErrorCode().getCodeString());
             Assert.assertEquals(e.getMessage(),
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getNO_STREAMING_MODEL_FOUND()));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getNoStreamingModelFound()));
         }
         Assert.assertTrue(context.storageContext.isStreamCandidateEmpty());
 
@@ -374,7 +374,7 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
             Assert.assertEquals(((NoStreamingRealizationFoundException) e).getErrorCode().getCodeString(),
                     STREAMING_MODEL_NOT_FOUND.toErrorCode().getCodeString());
             Assert.assertEquals(e.getMessage(),
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getNO_STREAMING_MODEL_FOUND()));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getNoStreamingModelFound()));
         }
         Assert.assertTrue(context2.storageContext.isBatchCandidateEmpty());
     }

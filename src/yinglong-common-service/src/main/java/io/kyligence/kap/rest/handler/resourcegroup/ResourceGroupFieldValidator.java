@@ -43,7 +43,7 @@ public class ResourceGroupFieldValidator implements IResourceGroupRequestValidat
         if (Objects.isNull(request.getResourceGroupEntities())
                 || Objects.isNull(request.getKylinInstances())
                 || Objects.isNull(request.getResourceGroupMappingInfoList())) {
-            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getRESOURCE_GROUP_FIELD_IS_NULL());
+            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getResourceGroupFieldIsNull());
         }
     }
 }

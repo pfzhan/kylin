@@ -554,13 +554,13 @@ public class MetaStoreServiceTest extends ServiceTestBase {
 
         Assert.assertTrue(
                 modelSchemaChange.getNewItems().stream().anyMatch(sc -> sc.getType() == SchemaNodeType.MODEL_FACT
-                        && sc.isCreatable() && sc.getDetail().equals("LINEORDER")));
+                        && sc.isCreatable() && sc.getDetail().equals("SSB.LINEORDER")));
         Assert.assertTrue(modelSchemaChange.getNewItems().stream().anyMatch(
                 sc -> sc.getType() == SchemaNodeType.MODEL_JOIN && sc.getDetail().equals("LINEORDER-CUSTOMER")));
 
         Assert.assertTrue(
                 modelSchemaChange.getReduceItems().stream().anyMatch(sc -> sc.getType() == SchemaNodeType.MODEL_FACT
-                        && sc.isCreatable() && sc.getDetail().equals("P_LINEORDER")));
+                        && sc.isCreatable() && sc.getDetail().equals("SSB.P_LINEORDER")));
 
         Assert.assertTrue(modelSchemaChange.getReduceItems().stream().anyMatch(
                 sc -> sc.getType() == SchemaNodeType.MODEL_JOIN && sc.getDetail().equals("P_LINEORDER-CUSTOMER")));
@@ -746,7 +746,7 @@ public class MetaStoreServiceTest extends ServiceTestBase {
                 .get("missing_table_model");
         Assert.assertNotNull(modelSchemaChange);
 
-        Assert.assertEquals(9, modelSchemaChange.getDifferences());
+        Assert.assertEquals(11, modelSchemaChange.getDifferences());
         Assert.assertTrue(
                 modelSchemaChange.getMissingItems().stream().anyMatch(sc -> sc.getType() == SchemaNodeType.MODEL_TABLE
                         && sc.getDetail().equals("SSB.CUSTOMER_NEW") && !sc.isImportable()));

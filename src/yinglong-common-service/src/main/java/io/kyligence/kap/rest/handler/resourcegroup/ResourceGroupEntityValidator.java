@@ -51,7 +51,7 @@ public class ResourceGroupEntityValidator implements IResourceGroupRequestValida
         for (ResourceGroupEntity entity : entities) {
             String entityId = entity.getId();
             if (StringUtils.isBlank(entityId)) {
-                throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getEMPTY_RESOURCE_GROUP_ID());
+                throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getEmptyResourceGroupId());
             } else {
                 if (!entityIds.containsKey(entityId)) {
                     entityIds.put(entityId, 1);
@@ -60,7 +60,7 @@ public class ResourceGroupEntityValidator implements IResourceGroupRequestValida
                 }
                 if (entityIds.get(entityId) > 1) {
                     throw new KylinException(INVALID_PARAMETER,
-                            MsgPicker.getMsg().getDUPLICATED_RESOURCE_GROUP_ID(entityId));
+                            MsgPicker.getMsg().getdDuplicatedResourceGroupId(entityId));
                 }
             }
         }

@@ -154,32 +154,32 @@ public class NProjectSmartController extends NBasicController {
         // either disabled or arguments not empty
         if (request.isFreqEnable() && StringUtils.isEmpty(request.getFreqValue())) {
             throw new KylinException(EMPTY_FREQUENCY_RULE_VALUE,
-                    MsgPicker.getMsg().getFREQUENCY_THRESHOLD_CAN_NOT_EMPTY());
+                    MsgPicker.getMsg().getFrequencyThresholdCanNotEmpty());
         }
 
         if (request.isDurationEnable()
                 && (StringUtils.isEmpty(request.getMinDuration()) || StringUtils.isEmpty(request.getMaxDuration()))) {
-            throw new KylinException(EMPTY_DURATION_RULE_VALUE, MsgPicker.getMsg().getDELAY_THRESHOLD_CAN_NOT_EMPTY());
+            throw new KylinException(EMPTY_DURATION_RULE_VALUE, MsgPicker.getMsg().getDelayThresholdCanNotEmpty());
         }
 
         if (request.isCountEnable() && StringUtils.isEmpty(request.getCountValue())) {
-            throw new KylinException(EMPTY_COUNT_RULE_VALUE, MsgPicker.getMsg().getFREQUENCY_THRESHOLD_CAN_NOT_EMPTY());
+            throw new KylinException(EMPTY_COUNT_RULE_VALUE, MsgPicker.getMsg().getFrequencyThresholdCanNotEmpty());
         }
 
         if (request.isRecommendationEnable() && StringUtils.isEmpty(request.getRecommendationsValue().trim())) {
-            throw new KylinException(EMPTY_REC_RULE_VALUE, MsgPicker.getMsg().getRECOMMENDATION_LIMIT_NOT_EMPTY());
+            throw new KylinException(EMPTY_REC_RULE_VALUE, MsgPicker.getMsg().getRecommendationLimitNotEmpty());
         }
 
         if (StringUtils.isEmpty(request.getMinHitCount())) {
-            throw new KylinException(EMPTY_MIN_HIT_COUNT, MsgPicker.getMsg().getMIN_HIT_COUNT_NOT_EMPTY());
+            throw new KylinException(EMPTY_MIN_HIT_COUNT, MsgPicker.getMsg().getMinHitCountNotEmpty());
         }
 
         if (StringUtils.isEmpty(request.getEffectiveDays())) {
-            throw new KylinException(EMPTY_EFFECTIVE_DAYS, MsgPicker.getMsg().getEFFECTIVE_DAYS_NOT_EMPTY());
+            throw new KylinException(EMPTY_EFFECTIVE_DAYS, MsgPicker.getMsg().getEffectiveDaysNotEmpty());
         }
 
         if (StringUtils.isEmpty(request.getUpdateFrequency())) {
-            throw new KylinException(EMPTY_UPDATE_FREQUENCY, MsgPicker.getMsg().getUPDATE_FREQUENCY_NOT_EMPTY());
+            throw new KylinException(EMPTY_UPDATE_FREQUENCY, MsgPicker.getMsg().getUpdateFrequencyNotEmpty());
         }
         checkRange(request.getRecommendationsValue(), 0, Integer.MAX_VALUE);
         checkRange(request.getMinHitCount(), 1, Integer.MAX_VALUE);
@@ -198,7 +198,7 @@ public class NProjectSmartController extends NBasicController {
 
         if (!inRightRange) {
             throw new KylinException(INVALID_RANGE,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_RANGE(), value, start, end));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getInvalidRange(), value, start, end));
         }
     }
 

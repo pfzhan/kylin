@@ -53,6 +53,6 @@ public class ResourceGroupDisabledValidator implements IResourceGroupRequestVali
                 && CollectionUtils.isEmpty(request.getResourceGroupMappingInfoList())) {
             return;
         }
-        throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getRESOURCE_GROUP_DISABLED_WITH_INVLIAD_PARAM());
+        throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getResourceGroupDisabledWithInvliadParam());
     }
 }

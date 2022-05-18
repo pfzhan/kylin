@@ -119,7 +119,7 @@ public class OpenSampleController extends BaseController {
         TableDesc table = tableService.getManager(NTableMetadataManager.class, project).getTableDesc(tableName);
         if (null == table) {
             throw new KylinException(INVALID_TABLE_NAME,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getTABLE_NOT_FOUND(), tableName));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getTableNotFound(), tableName));
         }
         return table;
     }

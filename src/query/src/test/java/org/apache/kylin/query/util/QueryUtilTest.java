@@ -269,45 +269,45 @@ public class QueryUtilTest extends NLocalFileMetadataTestCase {
     public void testRemoveCommentInSql() {
         //test remove comment when last comment is --
         Assert.assertEquals(
-                "select sum(ITEM_COUNT) \nfrom TEST_KYLIN_FACT  \ngroup by CAL_DT  \n" + "order by SELLER_ID;  \n\n\n",
+                "select sum(ITEM_COUNT)\nfrom TEST_KYLIN_FACT\ngroup by CAL_DT\n" + "order by SELLER_ID",
                 QueryUtil.removeCommentInSql(
                         "select sum(ITEM_COUNT) --1 /* 7 */\nfrom TEST_KYLIN_FACT  --2 /* 7 */\ngroup by CAL_DT  --3 /* 7 */\n"
                                 + "order by SELLER_ID;  --4 /* 7 */\n--5\n/* 7 */\n--6"));
         Assert.assertEquals(
-                "select sum(ITEM_COUNT) \nfrom TEST_KYLIN_FACT  \ngroup by CAL_DT  \n" + "order by SELLER_ID  \n\n\n",
+                "select sum(ITEM_COUNT)\nfrom TEST_KYLIN_FACT\ngroup by CAL_DT\n" + "order by SELLER_ID",
                 QueryUtil.removeCommentInSql(
                         "select sum(ITEM_COUNT) --1 /* 7 */\nfrom TEST_KYLIN_FACT  --2 /* 7 */\ngroup by CAL_DT  --3 /* 7 */\n"
                                 + "order by SELLER_ID  --4 /* 7 */\n--5\n/* 7 */\n--6"));
 
         //test remove comment when last comment is /* */
         Assert.assertEquals(
-                "select sum(ITEM_COUNT) \nfrom TEST_KYLIN_FACT  \ngroup by CAL_DT  \n" + "order by SELLER_ID;  \n\n",
+                "select sum(ITEM_COUNT)\nfrom TEST_KYLIN_FACT\ngroup by CAL_DT\n" + "order by SELLER_ID",
                 QueryUtil.removeCommentInSql(
                         "select sum(ITEM_COUNT) --1 /* 7 */\nfrom TEST_KYLIN_FACT  --2 /* 7 */\ngroup by CAL_DT  --3 /* 7 */\n"
                                 + "order by SELLER_ID;  --4 /* 7 */\n--5\n/* 7 */"));
         Assert.assertEquals(
-                "select sum(ITEM_COUNT) \nfrom TEST_KYLIN_FACT  \ngroup by CAL_DT  \n" + "order by SELLER_ID  \n\n",
+                "select sum(ITEM_COUNT)\nfrom TEST_KYLIN_FACT\ngroup by CAL_DT\n" + "order by SELLER_ID",
                 QueryUtil.removeCommentInSql(
                         "select sum(ITEM_COUNT) --1 /* 7 */\nfrom TEST_KYLIN_FACT  --2 /* 7 */\ngroup by CAL_DT  --3 /* 7 */\n"
                                 + "order by SELLER_ID  --4 /* 7 */\n--5\n/* 7 */"));
 
         //test remove comment when comment contain ''
-        Assert.assertEquals("select sum(ITEM_COUNT) 'sum_count' \nfrom TEST_KYLIN_FACT 'table' ",
+        Assert.assertEquals("select sum(ITEM_COUNT) 'sum_count'\nfrom TEST_KYLIN_FACT 'table'",
                 QueryUtil.removeCommentInSql(
                         "select sum(ITEM_COUNT) 'sum_count' -- 'comment' \nfrom TEST_KYLIN_FACT 'table' --comment"));
-        Assert.assertEquals("select sum(ITEM_COUNT) ",
+        Assert.assertEquals("select sum(ITEM_COUNT)",
                 QueryUtil.removeCommentInSql("select sum(ITEM_COUNT) -- 'comment' --"));
 
         //test remove comment when comment contain , \t /
-        Assert.assertEquals("select sum(ITEM_COUNT) ",
+        Assert.assertEquals("select sum(ITEM_COUNT)",
                 QueryUtil.removeCommentInSql("select sum(ITEM_COUNT) -- , --\t --/ --"));
 
-        Assert.assertEquals("select 1 ", QueryUtil.removeCommentInSql("select 1 --注释"));
-        Assert.assertEquals("select 1 ", QueryUtil.removeCommentInSql("select 1 /* 注释 */"));
-        Assert.assertEquals("select 1\t", QueryUtil.removeCommentInSql("select 1\t--注释"));
-        Assert.assertEquals("select 1\t", QueryUtil.removeCommentInSql("select 1\t/* 注释 */"));
-        Assert.assertEquals("select 1\n", QueryUtil.removeCommentInSql("select 1\n--注释"));
-        Assert.assertEquals("select 1\t", QueryUtil.removeCommentInSql("select 1\t/* 注释 */"));
+        Assert.assertEquals("select 1", QueryUtil.removeCommentInSql("select 1 --注释"));
+        Assert.assertEquals("select 1", QueryUtil.removeCommentInSql("select 1 /* 注释 */"));
+        Assert.assertEquals("select 1", QueryUtil.removeCommentInSql("select 1\t--注释"));
+        Assert.assertEquals("select 1", QueryUtil.removeCommentInSql("select 1\t/* 注释 */"));
+        Assert.assertEquals("select 1", QueryUtil.removeCommentInSql("select 1\n--注释"));
+        Assert.assertEquals("select 1", QueryUtil.removeCommentInSql("select 1\t/* 注释 */"));
         Assert.assertEquals("select 1,\n2", QueryUtil.removeCommentInSql("select 1,--注释\n2"));
         Assert.assertEquals("select 1,\n2", QueryUtil.removeCommentInSql("select 1,/* 注释 */\n2"));
         Assert.assertEquals("select 4/\n2", QueryUtil.removeCommentInSql("select 4/-- 注释\n2"));
@@ -316,7 +316,7 @@ public class QueryUtilTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("select 1 'constant_1'", QueryUtil.removeCommentInSql("select 1 'constant_1'--注释''"));
         Assert.assertEquals("select 1 'constant_1'", QueryUtil.removeCommentInSql("select 1 'constant_1'/* 注释 */"));
 
-        Assert.assertEquals("select 1;", QueryUtil.removeCommentInSql("select 1;--注释"));
+        Assert.assertEquals("select 1", QueryUtil.removeCommentInSql("select 1;--注释"));
         Assert.assertEquals("select 1", QueryUtil.removeCommentInSql("select 1--注释"));
 
         Assert.assertEquals("select 'abc-1'", QueryUtil.removeCommentInSql("select 'abc-1'"));

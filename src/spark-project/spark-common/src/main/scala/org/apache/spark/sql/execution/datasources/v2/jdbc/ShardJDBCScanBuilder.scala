@@ -25,90 +25,28 @@ package org.apache.spark.sql.execution.datasources.v2.jdbc
 
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.connector.read._
-import org.apache.spark.sql.connector.read.sqlpushdown.{SQLStatement, SupportsSQLPushDown}
-import org.apache.spark.sql.execution.datasources.PartitioningUtils
-import org.apache.spark.sql.execution.datasources.jdbc.{JDBCOptions, JDBCRDD, ShardJDBCRelation}
-import org.apache.spark.sql.execution.datasources.v2.pushdown.sql.{OrderDesc, SQLBuilder, SingleCatalystStatement, SingleSQLStatement}
-import org.apache.spark.sql.jdbc.JdbcDialects
-import org.apache.spark.sql.sources.Filter
+import org.apache.spark.sql.execution.datasources.jdbc.{JDBCOptions, ShardJDBCUtil, ShardOptions}
 import org.apache.spark.sql.types.StructType
 
-case class ShardJDBCScanBuilder(
+class ShardJDBCScanBuilder(
     session: SparkSession,
     schema: StructType,
     jdbcOptions: JDBCOptions)
-  extends ScanBuilder with SupportsSQLPushDown {
-
-  private val isCaseSensitive = session.sessionState.conf.caseSensitiveAnalysis
-
-  private var pushedFilter = Array.empty[Filter]
-
-  private var statement: SingleSQLStatement = _
-
-  private var prunedSchema = schema
-
-  def pushFilters(filters: Array[Filter]): Array[Filter] = {
-    if (jdbcOptions.pushDownPredicate) {
-      val dialect = JdbcDialects.get(jdbcOptions.url)
-      val (pushed, unSupported) = filters.partition(JDBCRDD.compileFilter(_, dialect).isDefined)
-      this.pushedFilter = pushed
-      unSupported
-    } else {
-      filters
-    }
-  }
-
-  def pushedFilters(): Array[Filter] = pushedFilter
-
-  override def pruneColumns(requiredSchema: StructType): Unit = {
-    // JDBC doesn't support nested column pruning.
-    // TODO (SPARK-32593): JDBC support nested column and nested column pruning.
-    val requiredCols = requiredSchema.fields.map(PartitioningUtils.getColName(_, isCaseSensitive))
-      .toSet
-    val fields = schema.fields.filter { field =>
-      val colName = PartitioningUtils.getColName(field, isCaseSensitive)
-      requiredCols.contains(colName)
-    }
-    prunedSchema = StructType(fields)
-  }
+  extends JDBCScanBuilder(session, schema, jdbcOptions) {
 
   override def build(): Scan = {
-    val relationSchema = if (statement != null) {
-      prunedSchema
+    val scan = super.build().asInstanceOf[JDBCScan]
+    val relation = scan.relation
+
+    // TODO supports logical partitions and shard partitions together
+    val shards = ShardOptions.create(jdbcOptions)
+    if (shards.shards.length == 1) {
+      scan
     } else {
-      schema
+      // Replace logical partitions of JDBC to shard partitions of ClickHouse.
+      val newParts = ShardJDBCUtil.shardPartition(shards)
+      val newRelation = relation.copy(parts = newParts)(relation.sparkSession)
+      scan.copy(relation = newRelation)
     }
-    val relation = ShardJDBCRelation(session, relationSchema, jdbcOptions)
-    ShardJDBCScan(relation, prunedSchema, pushedFilter, statement)
   }
-
-
-  private def toSQLStatement(catalystStatement: SingleCatalystStatement): SingleSQLStatement = {
-    val projects = catalystStatement.projects
-    val filters = catalystStatement.filters
-    val groupBy = catalystStatement.groupBy
-    val orders = catalystStatement.orders
-    SingleSQLStatement (
-      relation = jdbcOptions.tableOrQuery,
-      projects = if (projects.isEmpty) None else Some(projects.map(SQLBuilder.expressionToSql(_))),
-      filters = if (filters.isEmpty) None else Some(filters),
-      groupBy = if (groupBy.isEmpty) None else Some(groupBy.map(SQLBuilder.expressionToSql(_))),
-      orders = orders.map {order => OrderDesc(SQLBuilder.expressionToSql(order.child),
-        order.direction.sql, order.nullOrdering.sql)},
-      limitOpt = catalystStatement.limitOpt,
-      url = Some(jdbcOptions.url)
-    )
-  }
-
-  override def isMultiplePartitionExecution: Boolean = true
-
-  override def pushStatement(push: SQLStatement, outputSchema: StructType): Array[Filter] = {
-    statement = toSQLStatement(push.asInstanceOf[SingleCatalystStatement])
-    if (outputSchema != null) {
-      prunedSchema = outputSchema
-    }
-    statement.filters.map(f => pushFilters(f.toArray)).getOrElse(Array.empty)
-  }
-
-  override def pushedStatement(): SQLStatement = statement
 }

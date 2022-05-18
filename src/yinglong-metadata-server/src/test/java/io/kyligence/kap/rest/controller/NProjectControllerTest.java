@@ -62,7 +62,6 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import io.kyligence.kap.common.constant.NonCustomProjectLevelConfig;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.MaintainModelType;
@@ -156,7 +155,7 @@ public class NProjectControllerTest extends NLocalFileMetadataTestCase {
         ProjectRequest projectRequest = mockProjectRequest();
         projectRequest.setName("^project");
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getINVALID_PROJECT_NAME());
+        thrown.expectMessage(Message.getInstance().getInvalidProjectName());
         nProjectController.saveProject(projectRequest);
     }
 
@@ -401,35 +400,62 @@ public class NProjectControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testUpdateProjectConfig() throws Exception {
-        Map<String, String> map = new HashMap<>();
-        map.put("a", "b");
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/{project}/config", "default")
-                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(map))
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+        {
+            Map<String, String> map = new HashMap<>();
+            map.put("a", "b");
+            mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/{project}/config", "default")
+                    .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(map))
+                    .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                    .andExpect(MockMvcResultMatchers.status().isOk());
 
-        Mockito.verify(nProjectController).updateProjectConfig("default", map);
+            Mockito.verify(nProjectController).updateProjectConfig("default", map);
 
-        map.put("kylin.source.default", "1");
+            map.put("kylin.source.default", "1");
 
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/{project}/config", "default")
-                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(map))
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
-        Mockito.doThrow(KylinException.class).when(nProjectController).updateProjectConfig("default", map);
+            mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/{project}/config", "default")
+                    .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(map))
+                    .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                    .andExpect(MockMvcResultMatchers.status().isInternalServerError());
+            Mockito.doThrow(KylinException.class).when(nProjectController).updateProjectConfig("default", map);
+        }
+        {
+            Map<String, String> map = new HashMap<>();
+            getTestConfig().setProperty("kylin.server.non-custom-project-configs", "kylin.job.retry");
+            map.put("kylin.job.retry", "1");
+            mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/{project}/config", "default")
+                    .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(map))
+                    .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                    .andExpect(MockMvcResultMatchers.status().isInternalServerError());
+            Mockito.doThrow(KylinException.class).when(nProjectController).updateProjectConfig("default", map);
+        }
     }
 
     @Test
     public void testDeleteProjectConfigException() throws Exception {
-        ProjectConfigRequest request = new ProjectConfigRequest();
-        request.setProject("default");
-        request.setConfigName("kylin.source.default");
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/projects/config/deletion")
-                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
+        {
+            ProjectConfigRequest request = new ProjectConfigRequest();
+            request.setProject("default");
+            request.setConfigName("kylin.source.default");
+            mockMvc.perform(MockMvcRequestBuilders.post("/api/projects/config/deletion")
+                    .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                    .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                    .andExpect(MockMvcResultMatchers.status().isInternalServerError());
 
-        Mockito.doThrow(KylinException.class).when(nProjectController).deleteProjectConfig(request);
+            Mockito.doThrow(KylinException.class).when(nProjectController).deleteProjectConfig(request);
+        }
+        {
+            ProjectConfigRequest request = new ProjectConfigRequest();
+            request.setProject("default");
+            getTestConfig().setProperty("kylin.server.non-custom-project-configs", "kylin.job.retry");
+            request.setConfigName("kylin.job.retry");
+            mockMvc.perform(MockMvcRequestBuilders.post("/api/projects/config/deletion")
+                    .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                    .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                    .andExpect(MockMvcResultMatchers.status().isInternalServerError());
+
+            Mockito.doThrow(KylinException.class).when(nProjectController).deleteProjectConfig(request);
+        }
+
     }
 
     @Test
@@ -439,7 +465,7 @@ public class NProjectControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         Mockito.verify(nProjectController).getNonCustomProjectConfigs();
-        Assert.assertEquals(17, NonCustomProjectLevelConfig.listAllConfigNames().size());
+        Assert.assertEquals(17, getTestConfig().getNonCustomProjectConfigs().size());
     }
 
     @Test

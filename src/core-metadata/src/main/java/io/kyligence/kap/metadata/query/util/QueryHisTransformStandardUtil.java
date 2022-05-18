@@ -27,6 +27,7 @@ package io.kyligence.kap.metadata.query.util;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.Lists;
 
@@ -35,21 +36,27 @@ import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryInfo;
 import io.kyligence.kap.metadata.query.QueryHistoryInfoResponse;
 import io.kyligence.kap.metadata.query.QueryHistoryResponse;
+import io.kyligence.kap.metadata.query.QueryHistorySql;
 import io.kyligence.kap.metadata.query.QueryRealization;
 
 public class QueryHisTransformStandardUtil {
+
+    private static final String QUERY_HISTORIES = "query_histories";
+    private static final String SIZE = "size";
+
     public static Map<String, Object> transformQueryHistory(Map<String, Object> queryHistories) {
         HashMap<String, Object> data = new HashMap<>();
-        data.put("size", queryHistories.get("size"));
+        data.put(SIZE, queryHistories.get(SIZE));
         List<QueryHistoryResponse> queryHistoryResponses = Lists.newArrayList();
-        if (queryHistories.get("query_histories") == null) {
+        if (queryHistories.get(QUERY_HISTORIES) == null) {
             return data;
         }
-        List<QueryHistory> queryHistoriesList = (List<QueryHistory>)queryHistories.get("query_histories");
+        List<QueryHistory> queryHistoriesList = (List<QueryHistory>)queryHistories.get(QUERY_HISTORIES);
         for (QueryHistory qh : queryHistoriesList) {
             QueryHistoryResponse history = new QueryHistoryResponse();
             history.setQueryRealizations(qh.getQueryRealizations());
-            history.setSql(qh.getSql());
+            QueryHistorySql queryHistorySql = qh.getQueryHistorySql();
+            history.setSql(queryHistorySql.getSqlWithParameterBindingComment());
             history.setQueryTime(qh.getQueryTime());
             history.setDuration(qh.getDuration());
             history.setHostName(qh.getHostName());
@@ -69,7 +76,7 @@ public class QueryHisTransformStandardUtil {
             history.setQueryHistoryInfo(transformQueryHisInfo(qh.getQueryHistoryInfo()));
             queryHistoryResponses.add(history);
         }
-        data.put("query_histories", queryHistoryResponses);
+        data.put(QUERY_HISTORIES, queryHistoryResponses);
         return data;
     }
 
@@ -94,5 +101,25 @@ public class QueryHisTransformStandardUtil {
                 qh.isExactlyMatch(), qh.getScanSegmentNum(), qh.getState(), qh.isExecutionError(), qh.getErrorMsg(),
                 qh.getQuerySnapshots(), qh.getRealizationMetrics(), qh.getTraces(), qh.getCacheType(), qh.getQueryMsg());
         return queryHistoryInfoResponse;
+    }
+
+    @SuppressWarnings("unchecked")
+    public static Map<String, Object> transformQueryHistorySqlForDisplay(Map<String, Object> querHistoryMap) {
+        Map<String, Object> data = new HashMap<>();
+        data.put(SIZE, querHistoryMap.get(SIZE));
+
+        Object queryHistoryListObject;
+        if ((queryHistoryListObject = querHistoryMap.get(QUERY_HISTORIES)) == null) {
+            return data;
+        }
+
+        List<QueryHistory> queryHistoryList = (List<QueryHistory>) queryHistoryListObject;
+        data.put(QUERY_HISTORIES, queryHistoryList.stream().map(qh -> {
+            QueryHistorySql queryHistorySql = qh.getQueryHistorySql();
+            qh.setSql(queryHistorySql.getSqlWithParameterBindingComment());
+            return qh;
+        }).collect(Collectors.toList()));
+
+        return data;
     }
 }

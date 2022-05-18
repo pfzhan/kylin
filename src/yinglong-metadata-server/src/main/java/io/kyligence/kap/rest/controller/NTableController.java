@@ -488,11 +488,11 @@ public class NTableController extends NBasicController {
     public EnvelopeResponse<String> reloadTable(@RequestBody ReloadTableRequest request) {
         checkProjectName(request.getProject());
         if (StringUtils.isEmpty(request.getTable())) {
-            throw new KylinException(INVALID_TABLE_NAME, MsgPicker.getMsg().getTABLE_NAME_CANNOT_EMPTY());
+            throw new KylinException(INVALID_TABLE_NAME, MsgPicker.getMsg().getTableNameCannotEmpty());
         }
         if (request.isNeedSample()
                 && (request.getMaxRows() < MIN_SAMPLING_ROWS || request.getMaxRows() > MAX_SAMPLING_ROWS)) {
-            throw new KylinException(INVALID_TABLE_SAMPLE_RANGE, MsgPicker.getMsg().getTABLE_SAMPLE_MAX_ROWS());
+            throw new KylinException(INVALID_TABLE_SAMPLE_RANGE, MsgPicker.getMsg().getTableSampleMaxRows());
         }
         tableService.reloadTable(request.getProject(), request.getTable(), request.isNeedSample(), request.getMaxRows(),
                 request.isNeedBuild(), request.getPriority(), request.getYarnQueue());
@@ -555,11 +555,11 @@ public class NTableController extends NBasicController {
         val message = MsgPicker.getMsg();
         Object tables = refreshRequest.get("tables");
         if (tables == null) {
-            throw new KylinException(INVALID_TABLE_REFRESH_PARAMETER, message.getTABLE_REFRESH_PARAM_INVALID(), false);
+            throw new KylinException(INVALID_TABLE_REFRESH_PARAMETER, message.getTableRefreshParamInvalid(), false);
         } else if (refreshRequest.keySet().size() > 1) {
-            throw new KylinException(INVALID_TABLE_REFRESH_PARAMETER, message.getTABLE_REFRESH_PARAM_MORE(), false);
+            throw new KylinException(INVALID_TABLE_REFRESH_PARAMETER, message.getTableRefreshParamMore(), false);
         } else if (!(tables instanceof List)) {
-            throw new KylinException(INVALID_TABLE_REFRESH_PARAMETER, message.getTABLE_REFRESH_PARAM_INVALID(), false);
+            throw new KylinException(INVALID_TABLE_REFRESH_PARAMETER, message.getTableRefreshParamInvalid(), false);
         }
     }
 }

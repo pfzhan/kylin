@@ -24,11 +24,12 @@ package io.kyligence.kap.query.runtime.plan
 import com.google.common.cache.{Cache, CacheBuilder}
 import io.kyligence.kap.engine.spark.utils.LogEx
 import io.kyligence.kap.metadata.query.StructField
+import io.kyligence.kap.metadata.state.QueryShareStateManager
 import io.kyligence.kap.query.engine.RelColumnMetaDataExtractor
 import io.kyligence.kap.query.engine.exec.ExecuteResult
-import io.kyligence.kap.query.util.SparkJobTrace
+import io.kyligence.kap.query.util.{SparkJobTrace, SparkQueryJobManager}
 import org.apache.calcite.rel.`type`.RelDataType
-import org.apache.kylin.common.exception.KylinTimeoutException
+import org.apache.kylin.common.exception.{KylinTimeoutException, NewQueryRefuseException}
 import org.apache.kylin.common.util.{HadoopUtil, RandomUtil}
 import org.apache.kylin.common.{KapConfig, KylinConfig, QueryContext}
 import org.apache.kylin.query.SlowQueryDetector
@@ -92,6 +93,18 @@ object ResultPlan extends LogEx {
         s"after: ${SparderEnv.getSparkSession.sessionState.conf.autoBroadcastJoinThreshold}]")
       sparkContext.setLocalProperty("source_scan_rows", QueryContext.current().getMetrics.getSourceScanRows.toString)
       logDebug(s"source_scan_rows is ${QueryContext.current().getMetrics.getSourceScanRows.toString}")
+
+      // judge whether to refuse the new big query
+      val sumOfSourceScanRows = QueryContext.current.getMetrics.calSumOfSourceScanRows
+      if(QueryShareStateManager.isShareStateSwitchEnabled
+        && sumOfSourceScanRows >= KapConfig.getInstanceFromEnv.getBigQuerySourceScanRowsThreshold
+        && SparkQueryJobManager.isNewBigQueryRefuse) {
+        QueryContext.current().getQueryTagInfo.setRefused(true)
+        throw new NewQueryRefuseException("Refuse new big query, sum of source_scan_rows is " + sumOfSourceScanRows
+          + ", refuse query threshold is " + KapConfig.getInstanceFromEnv.getBigQuerySourceScanRowsThreshold
+          + ". Current step: Collecting dataset for sparder. ")
+      }
+
       QueryContext.current.record("executed_plan")
       QueryContext.currentTrace().endLastSpan()
       val jobTrace = new SparkJobTrace(jobGroup, QueryContext.currentTrace(), QueryContext.current().getQueryId, sparkContext)
@@ -135,6 +148,7 @@ object ResultPlan extends LogEx {
         logWarning(s"Query timeouts after: ${KylinConfig.getInstanceFromEnv.getQueryTimeoutSeconds}s")
         throw new KylinTimeoutException("The query exceeds the set time limit of "
           + KylinConfig.getInstanceFromEnv.getQueryTimeoutSeconds + "s. Current step: Collecting dataset for sparder. ")
+      case e: Throwable => throw e
     } finally {
       QueryContext.current().setExecutionID(QueryToExecutionIDCache.getQueryExecutionID(queryId))
     }

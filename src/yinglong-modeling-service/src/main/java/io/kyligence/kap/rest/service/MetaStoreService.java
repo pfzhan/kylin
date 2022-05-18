@@ -244,7 +244,7 @@ public class MetaStoreService extends BasicService {
                 }
                 if (dataModelDesc.isBroken()) {
                     throw new KylinException(MODEL_EXPORT_ERROR,
-                            String.format(Locale.ROOT, MsgPicker.getMsg().getEXPORT_BROKEN_MODEL(), modelId));
+                            String.format(Locale.ROOT, MsgPicker.getMsg().getExportBrokenModel(), modelId));
                 }
 
                 NDataModel modelDesc = modelManager.copyForWrite(dataModelDesc);
@@ -290,7 +290,7 @@ public class MetaStoreService extends BasicService {
                 }
             }
             if (CollectionUtils.isEmpty(newResourceStore.listResourcesRecursively(META_ROOT_PATH))) {
-                throw new KylinException(MODEL_METADATA_FILE_ERROR, MsgPicker.getMsg().getEXPORT_AT_LEAST_ONE_MODEL());
+                throw new KylinException(MODEL_METADATA_FILE_ERROR, MsgPicker.getMsg().getExportAtLeastOneModel());
             }
 
             // add version file
@@ -395,7 +395,7 @@ public class MetaStoreService extends BasicService {
         }
 
         if (!valid) {
-            throw new KylinException(MODEL_METADATA_FILE_ERROR, MsgPicker.getMsg().getILLEGAL_MODEL_METADATA_FILE());
+            throw new KylinException(MODEL_METADATA_FILE_ERROR, MsgPicker.getMsg().getIllegalModelMetadataFile());
         }
 
         Map<String, RawResource> rawResourceMap = getRawResourceFromUploadFile(uploadFile);
@@ -423,7 +423,7 @@ public class MetaStoreService extends BasicService {
         MetadataChecker.VerifyResult verifyResult = metadataChecker
                 .verifyModelMetadata(Lists.newArrayList(rawResourceList));
         if (!verifyResult.isModelMetadataQualified()) {
-            throw new KylinException(MODEL_METADATA_FILE_ERROR, MsgPicker.getMsg().getMODEL_METADATA_PACKAGE_INVALID());
+            throw new KylinException(MODEL_METADATA_FILE_ERROR, MsgPicker.getMsg().getModelMetadataPackageInvalid());
         }
     }
 
@@ -432,7 +432,7 @@ public class MetaStoreService extends BasicService {
                 resourcePath -> resourcePath.indexOf(File.separator) != resourcePath.lastIndexOf(File.separator))
                 .findAny().orElse(null);
         if (StringUtils.isBlank(anyPath)) {
-            throw new KylinException(MODEL_METADATA_FILE_ERROR, MsgPicker.getMsg().getMODEL_METADATA_PACKAGE_INVALID());
+            throw new KylinException(MODEL_METADATA_FILE_ERROR, MsgPicker.getMsg().getModelMetadataPackageInvalid());
         }
         return anyPath.split(File.separator)[1];
     }
@@ -601,7 +601,7 @@ public class MetaStoreService extends BasicService {
             String details = exceptions.stream().map(Exception::getMessage).collect(Collectors.joining("\n"));
 
             throw new KylinException(MODEL_IMPORT_ERROR,
-                    String.format(Locale.ROOT, "%s%n%s", MsgPicker.getMsg().getIMPORT_MODEL_EXCEPTION(), details),
+                    String.format(Locale.ROOT, "%s%n%s", MsgPicker.getMsg().getImportModelException(), details),
                     exceptions);
         }
     }
@@ -664,7 +664,7 @@ public class MetaStoreService extends BasicService {
 
             if (dataModel == null) {
                 throw new KylinException(MODEL_IMPORT_ERROR, String.format(Locale.ROOT,
-                        msg.getCAN_NOT_OVERWRITE_MODEL(), modelImport.getOriginalName(), modelImport.getImportType()));
+                        msg.getCanNotOverwriteModel(), modelImport.getOriginalName(), modelImport.getImportType()));
             }
 
             val modelSchemaChange = checkResult.getModels().get(modelImport.getOriginalName());
@@ -675,7 +675,7 @@ public class MetaStoreService extends BasicService {
                     createType = "NEW";
                 }
                 throw new KylinException(MODEL_IMPORT_ERROR,
-                        String.format(Locale.ROOT, msg.getUN_SUITABLE_IMPORT_TYPE(createType),
+                        String.format(Locale.ROOT, msg.getUnSuitableImportType(createType),
                                 modelImport.getImportType(), modelImport.getOriginalName()));
             }
         } else if (modelImport.getImportType() == ModelImportRequest.ImportType.NEW) {
@@ -696,7 +696,7 @@ public class MetaStoreService extends BasicService {
 
             if (modelSchemaChange == null || !modelSchemaChange.creatable()) {
                 throw new KylinException(MODEL_IMPORT_ERROR,
-                        String.format(Locale.ROOT, msg.getUN_SUITABLE_IMPORT_TYPE(null), modelImport.getImportType(),
+                        String.format(Locale.ROOT, msg.getUnSuitableImportType(null), modelImport.getImportType(),
                                 modelImport.getTargetName()));
             }
 

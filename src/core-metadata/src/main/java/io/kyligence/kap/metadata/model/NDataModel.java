@@ -617,7 +617,7 @@ public class NDataModel extends RootPersistentEntity {
         TblColRef result = tableRef.getColumn(column.toUpperCase(Locale.ROOT));
         if (result == null)
             throw new KylinException(COLUMN_NOT_EXIST,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getBAD_SQL_COLUMN_NOT_FOUND_REASON(),
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getBadSqlColumnNotFoundReason(),
                             String.format(Locale.ROOT, "%s.%s", table, column)));
         return result;
     }
@@ -642,7 +642,7 @@ public class NDataModel extends RootPersistentEntity {
 
         if (result == null)
             throw new RuntimeException(
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getBAD_SQL_COLUMN_NOT_FOUND_REASON(), input));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getBadSqlColumnNotFoundReason(), input));
         return result;
     }
 
@@ -675,7 +675,7 @@ public class NDataModel extends RootPersistentEntity {
             }
             if (result == null) {
                 throw new KylinException(TABLE_NOT_EXIST,
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getTABLE_NOT_FOUND(), table));
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getTableNotFound(), table));
             }
         }
         return result;
@@ -1050,7 +1050,7 @@ public class NDataModel extends RootPersistentEntity {
 
             if (lookups.contains(getRootFactTableName())) {
                 throw new KylinException(TABLE_JOIN_RELATIONSHIP_ERROR,
-                        MsgPicker.getMsg().getDIMENSION_TABLE_USED_IN_THIS_MODEL());
+                        MsgPicker.getMsg().getDimensionTableUsedInThisModel());
             }
         }
     }
@@ -1149,7 +1149,7 @@ public class NDataModel extends RootPersistentEntity {
                     }
                 }
             } catch (Exception e) {
-                throw new KylinException(FAILED_UPDATE_MODEL, MsgPicker.getMsg().getINIT_MEASURE_FAILED(), e);
+                throw new KylinException(FAILED_UPDATE_MODEL, MsgPicker.getMsg().getInitMeasureFailed(), e);
             }
         }
 

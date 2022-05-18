@@ -223,7 +223,7 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         Map<String, String> newOverrides = Maps.newLinkedHashMap(this.overrideProps);
         ProjectInstance ownerPrj = NProjectManager.getInstance(config).getProject(project);
         // cube inherit the project override props
-        Map<String, String> prjOverrideProps = ownerPrj.getOverrideKylinProps();
+        Map<String, String> prjOverrideProps = ownerPrj.getLegalOverrideKylinProps();
         for (Map.Entry<String, String> entry : prjOverrideProps.entrySet()) {
             if (!newOverrides.containsKey(entry.getKey())) {
                 newOverrides.put(entry.getKey(), entry.getValue());

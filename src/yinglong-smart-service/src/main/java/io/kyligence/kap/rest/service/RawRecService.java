@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.query.QueryHistorySql;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -117,8 +118,10 @@ public class RawRecService extends BasicService
         List<String> sqlList = Lists.newArrayList();
         ListMultimap<String, QueryHistory> queryHistoryMap = ArrayListMultimap.create();
         queryHistories.forEach(queryHistory -> {
-            sqlList.add(queryHistory.getSql());
-            queryHistoryMap.put(queryHistory.getSql(), queryHistory);
+            QueryHistorySql queryHistorySql = queryHistory.getQueryHistorySql();
+            String normalizedSql = queryHistorySql.getNormalizedSql();
+            sqlList.add(normalizedSql);
+            queryHistoryMap.put(normalizedSql, queryHistory);
         });
 
         KylinConfig kylinConfig = getManager(NProjectManager.class).getProject(project).getConfig();

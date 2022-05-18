@@ -22,18 +22,20 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 package org.apache.spark.sql.execution.datasources.jdbc.v2
+
 import com.google.common.cache.{CacheBuilder, CacheLoader, LoadingCache}
-import io.kyligence.kap.engine.spark.utils.JavaOptionals.toRichOptional
-import io.kyligence.kap.metadata.cube.model.NDataflowManager
-import io.kyligence.kap.secondstorage.ColumnMapping.secondStorageColumnToKapColumn
-import io.kyligence.kap.secondstorage.NameUtil
-import io.kyligence.kap.secondstorage.SecondStorage.tableFlowManager
 import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.metadata.datatype.DataType
 import org.apache.spark.sql.connector.catalog.Identifier
 import org.apache.spark.sql.execution.datasources.jdbc.{JDBCOptions, JDBCRDD}
 import org.apache.spark.sql.execution.datasources.v2.jdbc.ShardJDBCTableCatalog
 import org.apache.spark.sql.types.{BooleanType, StructType}
+
+import io.kyligence.kap.engine.spark.utils.JavaOptionals.toRichOptional
+import io.kyligence.kap.metadata.cube.model.NDataflowManager
+import io.kyligence.kap.secondstorage.ColumnMapping.secondStorageColumnToKapColumn
+import io.kyligence.kap.secondstorage.NameUtil
+import io.kyligence.kap.secondstorage.SecondStorage.tableFlowManager
 
 class SecondStorageCatalog extends ShardJDBCTableCatalog {
 

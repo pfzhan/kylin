@@ -74,7 +74,7 @@ public class EscapeTransformerTest {
     @Test
     public void testSqlwithComment() {
         String originalSQL = "select --test comment will remove\n \"--wont remove in quote\", /* will remove multi line comment*/ { fn count(*) } from tbl";
-        String expectedSQL = "select\n \"--wont remove in quote\", count(*) from tbl";
+        String expectedSQL = "select\n\"--wont remove in quote\", count(*) from tbl";
 
         String transformedSQL = transformer.transform(originalSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);
@@ -314,11 +314,11 @@ public class EscapeTransformerTest {
                 + ", 'abc\"def', \"abc'def\""
                 + " --test comment will remove\n \"--won't remove in quote, /*test*/\", /* will remove multi line comment*/ { fn count(*) }"
                 + " from tbl where a in ('a--b') and c in (\"a---b\", 'a--b', '')";
-        String transformedSQL = new CommentParser(originalSQL).Input();
+        String transformedSQL = (new RawSqlParser(originalSQL)).parse().getStatementString();
 
         String expectedSQL =
-                "\rselect 'a---b'+\"a--b\", 'ab''cd', \"abc\"\"cd\" , 'abc\"def', \"abc'def\" \n"
-                + " \"--won't remove in quote, /*test*/\",  { fn count(*) } from tbl where a in ('a--b') and c in (\"a---b\", 'a--b', '')";
+                "select 'a---b'+\"a--b\", 'ab''cd', \"abc\"\"cd\" , 'abc\"def', \"abc'def\"\n"
+                + "\"--won't remove in quote, /*test*/\", { fn count(*) } from tbl where a in ('a--b') and c in (\"a---b\", 'a--b', '')";
         Assert.assertEquals(expectedSQL, transformedSQL);
     }
 
@@ -326,9 +326,9 @@ public class EscapeTransformerTest {
     public void testReserveHintQuery() throws Exception {
         String originalSQL = "select /**/ /*+*//*+ some hint */ --test comment will remove\n"
                 + " \"--won't remove in quote, /*test*/\", /* will remove multi line comment*/ { fn count(*) } from tbl";
-        String transformedSQL = new CommentParser(originalSQL).Input();
+        String transformedSQL = (new RawSqlParser(originalSQL)).parse().getStatementString();
 
-        String expectedSQL = "select  /*+*//*+ some hint */ \n \"--won't remove in quote, /*test*/\",  { fn count(*) } from tbl";
+        String expectedSQL = "select /*+*//*+ some hint */\n\"--won't remove in quote, /*test*/\", { fn count(*) } from tbl";
         Assert.assertEquals(expectedSQL, transformedSQL);
     }
 
@@ -372,12 +372,12 @@ public class EscapeTransformerTest {
     @Test
     public void testSubstring() {
         String originString = "select substring( lstg_format_name   from   1  for   4 ) from test_kylin_fact limit 10;";
-        String expectedSql = "select substring(lstg_format_name, 1, 4) from test_kylin_fact limit 10;";
+        String expectedSql = "select substring(lstg_format_name, 1, 4) from test_kylin_fact limit 10";
         String transformedSQL = transformer.transform(originString);
         Assert.assertEquals(expectedSql, transformedSQL);
 
         originString = "select substring( lstg_format_name   from   1  ) from test_kylin_fact limit 10;";
-        expectedSql = "select substring(lstg_format_name, 1) from test_kylin_fact limit 10;";
+        expectedSql = "select substring(lstg_format_name, 1) from test_kylin_fact limit 10";
         transformedSQL = transformer.transform(originString);
         Assert.assertEquals(expectedSql, transformedSQL);
 
@@ -390,7 +390,7 @@ public class EscapeTransformerTest {
         expectedSql = "select distinct substring(\"ZB_POLICY_T_VIEW\".\"DIMENSION1\", "
                 + "position ('|1|' in \"ZB_POLICY_T_VIEW\".\"DIMENSION1\") + 3, "
                 + "(position ('|2|' in \"ZB_POLICY_T_VIEW\".\"DIMENSION1\") - position ('|1|' in \"ZB_POLICY_T_VIEW\".\"DIMENSION1\")) - 3) as \"memberUniqueName\" "
-                + "from \"FRPDB0322\".\"ZB_POLICY_T_VIEW\" \"ZB_POLICY_T_VIEW\" limit10;";
+                + "from \"FRPDB0322\".\"ZB_POLICY_T_VIEW\" \"ZB_POLICY_T_VIEW\" limit10";
         transformedSQL = transformer.transform(originString);
         Assert.assertEquals(expectedSql, transformedSQL);
     }
@@ -398,12 +398,12 @@ public class EscapeTransformerTest {
     @Test
     public void timestampdiffOrTimestampaddReplace() {
         String originString = "select timestampdiff(second,   \"calcs\".time0,   calcs.time1) as c1 from tdvt.calcs;";
-        String expectedSql = "select TIMESTAMPDIFF(second, \"calcs\".time0, calcs.time1) as c1 from tdvt.calcs;";
+        String expectedSql = "select TIMESTAMPDIFF(second, \"calcs\".time0, calcs.time1) as c1 from tdvt.calcs";
         String transformedSQL = transformer.transform(originString);
         Assert.assertEquals(expectedSql, transformedSQL);
 
         originString = "select timestampdiff(year, cast(time0  as timestamp), cast(datetime0 as timestamp)) from tdvt.calcs;";
-        expectedSql = "select TIMESTAMPDIFF(year, cast(time0 as timestamp), cast(datetime0 as timestamp)) from tdvt.calcs;";
+        expectedSql = "select TIMESTAMPDIFF(year, cast(time0 as timestamp), cast(datetime0 as timestamp)) from tdvt.calcs";
         transformedSQL = transformer.transform(originString);
         Assert.assertEquals(expectedSql, transformedSQL);
     }
@@ -461,7 +461,7 @@ public class EscapeTransformerTest {
     @Test
     public void testGroupingSets() {
         String originString = "select sum(price) as GMV group by grouping sets((lstg_format_name, cal_dt, slr_segment_cd), (cal_dt, slr_segment_cd), (lstg_format_name, slr_segment_cd));";
-        String expectedSQL = "select sum(price) as GMV group by grouping sets((lstg_format_name, cal_dt, slr_segment_cd),(cal_dt, slr_segment_cd),(lstg_format_name, slr_segment_cd));";
+        String expectedSQL = "select sum(price) as GMV group by grouping sets((lstg_format_name, cal_dt, slr_segment_cd),(cal_dt, slr_segment_cd),(lstg_format_name, slr_segment_cd))";
         String replacedString = transformer.transform(originString);
         Assert.assertEquals(expectedSQL, replacedString);
     }

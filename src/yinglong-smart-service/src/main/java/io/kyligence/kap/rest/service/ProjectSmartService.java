@@ -214,7 +214,7 @@ public class ProjectSmartService extends BasicService implements ProjectSmartSer
         aclEvaluate.checkProjectReadPermission(project);
         Map<String, Set<Integer>> modelToRecMap = getModelToRecMap(project);
         if (getAsyncAccTask(project).isAlreadyRunning()) {
-            throw new KylinException(ONGOING_OPTIMIZATION, MsgPicker.getMsg().getPROJECT_ONGOING_OPTIMIZATION());
+            throw new KylinException(ONGOING_OPTIMIZATION, MsgPicker.getMsg().getProjectOngoingOptimization());
         }
 
         QueryHistoryTaskScheduler scheduler = QueryHistoryTaskScheduler.getInstance(project);

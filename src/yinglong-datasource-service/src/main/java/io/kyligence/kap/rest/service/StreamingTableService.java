@@ -74,7 +74,7 @@ public class StreamingTableService extends TableService {
         String tableIdentity = tableDesc.getIdentity();
         val originTable = tableManager.getTableDesc(tableIdentity);
         Preconditions.checkNotNull(originTable,
-                String.format(Locale.ROOT, MsgPicker.getMsg().getTABLE_NOT_FOUND(), tableIdentity));
+                String.format(Locale.ROOT, MsgPicker.getMsg().getTableNotFound(), tableIdentity));
         List<String> jobs = Lists.newArrayList();
         val context = new ReloadTableContext();
         context.setTableDesc(tableDesc);
@@ -119,7 +119,7 @@ public class StreamingTableService extends TableService {
                     .getTableDesc(batchTableName);
             if (!checkColumnsMatch(batchTableDesc.getColumns(), streamingRequest.getTableDesc().getColumns())) {
                 throw new KylinException(RELOAD_TABLE_FAILED, String.format(Locale.ROOT,
-                        MsgPicker.getMsg().getBATCH_STREAM_TABLE_NOT_MATCH(), batchTableName));
+                        MsgPicker.getMsg().getBatchStreamTableNotMatch(), batchTableName));
             }
             TableUtils.checkTimestampColumn(batchTableDesc);
             streamingRequest.getTableDesc().setColumns(batchTableDesc.getColumns().clone());

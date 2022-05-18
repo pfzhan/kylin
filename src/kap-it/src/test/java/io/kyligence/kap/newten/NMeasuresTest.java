@@ -36,12 +36,12 @@ import static org.apache.kylin.metadata.model.FunctionDesc.FUNC_TOP_N;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.util.ExecAndComp;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.math.RandomUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -94,7 +94,9 @@ import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.smart.util.CubeUtils;
+import io.kyligence.kap.util.ExecAndComp;
 import lombok.val;
 import scala.collection.mutable.WrappedArray;
 
@@ -803,5 +805,16 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
         AfterBuildResourceMerger merger = new AfterBuildResourceMerger(config, getProject());
         val layoutIds = toBuildLayouts.stream().map(LayoutEntity::getId).collect(Collectors.toSet());
         merger.mergeAfterIncrement(df.getUuid(), oneSeg.getId(), layoutIds, buildStore);
+
+        Assert.assertFalse(merger.getProjectConfig(buildStore).isSnapshotManualManagementEnabled());
+        NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
+        projectManager.updateProject(getProject(), update_project -> {
+            LinkedHashMap<String, String> overrideKylinProps = update_project.getOverrideKylinProps();
+            overrideKylinProps.put("kylin.snapshot.manual-management-enabled", "true");
+        });
+        getTestConfig().setProperty("kylin.server.non-custom-project-configs",
+                "kylin.snapshot.manual-management-enabled");
+        projectManager.reloadAll();
+        Assert.assertFalse(merger.getProjectConfig(buildStore).isSnapshotManualManagementEnabled());
     }
 }

@@ -21,13 +21,22 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.apache.spark.sql.execution.datasources.jdbc.v2
+package org.apache.kylin.rest.util;
 
-import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
-import org.apache.spark.sql.catalyst.rules.Rule
-import org.apache.spark.sql.execution.datasources.v2.V2ScanRelationPushDown
+import org.apache.kylin.common.exception.KylinException;
+import org.junit.Assert;
+import org.junit.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 
+public class QueryRequestLimitsTest {
 
-class PushDownOptimizeSuiteTwoRules extends  AbstractPushDownOptimizeSuite  {
-  override def earlyScanPushDownRules: Seq[Rule[LogicalPlan]] = V2ScanRelationPushDown :: Nil
+    @Test
+    public void testCheckRequest() {
+        try {
+            ReflectionTestUtils.invokeMethod(QueryRequestLimits.class, "checkRequest", true);
+        } catch (Exception e) {
+            Assert.fail(e.getMessage());
+        }
+        Assert.assertThrows(KylinException.class, () -> ReflectionTestUtils.invokeMethod(QueryRequestLimits.class, "checkRequest", false));
+    }
 }

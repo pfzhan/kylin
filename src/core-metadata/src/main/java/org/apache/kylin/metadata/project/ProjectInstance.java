@@ -45,6 +45,7 @@ package org.apache.kylin.metadata.project;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -175,7 +176,7 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
             overrideKylinProps.put(EXPOSE_COMPUTED_COLUMN_CONF,
                     String.valueOf(maintainModelType == MaintainModelType.MANUAL_MAINTAIN));
         }
-        this.config = KylinConfigExt.createInstance(config, this.overrideKylinProps);
+        this.config = KylinConfigExt.createInstance(config, filterNonCustomConfigs(this.overrideKylinProps));
     }
 
     // ============================================================================
@@ -282,6 +283,10 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
         return overrideKylinProps;
     }
 
+    public Map<String, String> getLegalOverrideKylinProps() {
+        return filterNonCustomConfigs(overrideKylinProps);
+    }
+
     public void putOverrideKylinProps(String key, String value) {
         overrideKylinProps.put(StringUtils.trim(key), StringUtils.trim(value));
     }
@@ -299,8 +304,16 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
         overrideKylinProps = KylinConfig.trimKVFromMap(overrideKylinProps);
         this.overrideKylinProps = overrideKylinProps;
         if (config != null) {
-            this.config = KylinConfigExt.createInstance(config.base(), overrideKylinProps);
+            this.config = KylinConfigExt.createInstance(config.base(), filterNonCustomConfigs(overrideKylinProps));
         }
+    }
+
+    private LinkedHashMap<String, String> filterNonCustomConfigs(LinkedHashMap<String, String> overrideKylinProps) {
+        val nonCustomConfigs = KylinConfig.getInstanceFromEnv().getUserDefinedNonCustomProjectConfigs();
+        val filteredOverrideKylinProps = new LinkedHashMap<String, String>();
+        overrideKylinProps.entrySet().stream().filter(entry -> !nonCustomConfigs.contains(entry.getKey()))
+                .forEach(entry -> filteredOverrideKylinProps.put(entry.getKey(), entry.getValue()));
+        return filteredOverrideKylinProps;
     }
 
     @Override

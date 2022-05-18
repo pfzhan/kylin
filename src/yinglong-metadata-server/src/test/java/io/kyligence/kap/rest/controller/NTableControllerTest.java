@@ -300,7 +300,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void batchLoadTables_DateRange_LessThan0_Exception() throws Exception {
-        String errorMsg = Message.getInstance().getINVALID_RANGE_LESS_THAN_ZERO();
+        String errorMsg = Message.getInstance().getInvalidRangeLessThanZero();
         DateRangeRequest request = new DateRangeRequest();
         request.setProject("default");
         request.setTable("DEFAULT.TEST_KYLIN_FACT");
@@ -340,7 +340,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testSetDateRang_lessThan0_exception() throws Exception {
-        String errorMsg = Message.getInstance().getINVALID_RANGE_LESS_THAN_ZERO();
+        String errorMsg = Message.getInstance().getInvalidRangeLessThanZero();
         final DateRangeRequest dateRangeRequest = mockDateRangeRequest();
         dateRangeRequest.setStart("-1");
         dateRangeRequest.setTable("TEST_KYLIN_FACT");

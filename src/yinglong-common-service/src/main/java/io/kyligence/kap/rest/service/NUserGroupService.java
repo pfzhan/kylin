@@ -150,10 +150,10 @@ public class NUserGroupService implements IUserGroupService {
 
         for (String user : moveList) {
             if (StringUtils.equalsIgnoreCase(KylinUserService.SUPER_ADMIN, user)) {
-                throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getCHANGE_GLOBALADMIN());
+                throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getChangeGlobaladmin());
             }
             if (StringUtils.equalsIgnoreCase(currentUser, user)) {
-                throw new KylinException(FAILED_UPDATE_USER, msg.getSELF_EDIT_FORBIDDEN());
+                throw new KylinException(FAILED_UPDATE_USER, msg.getSelfEditForbidden());
             }
         }
 
@@ -207,7 +207,7 @@ public class NUserGroupService implements IUserGroupService {
             }
         }
         throw new KylinException(USERGROUP_NOT_EXIST,
-                String.format(Locale.ROOT, MsgPicker.getMsg().getGROUP_UUID_NOT_EXIST(), uuid));
+                String.format(Locale.ROOT, MsgPicker.getMsg().getGroupUuidNotExist(), uuid));
     }
 
     @Override
@@ -219,7 +219,7 @@ public class NUserGroupService implements IUserGroupService {
             }
         }
         throw new KylinException(USERGROUP_NOT_EXIST,
-                String.format(Locale.ROOT, MsgPicker.getMsg().getUSERGROUP_NOT_EXIST(), groupName));
+                String.format(Locale.ROOT, MsgPicker.getMsg().getUserGroupNotExist(), groupName));
     }
 
     public boolean exists(String name) {
@@ -234,7 +234,7 @@ public class NUserGroupService implements IUserGroupService {
         val groups = getAllUserGroups();
         if (!groups.contains(groupName)) {
             throw new KylinException(INVALID_PARAMETER,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getUSERGROUP_NOT_EXIST(), groupName));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getUserGroupNotExist(), groupName));
         }
     }
 

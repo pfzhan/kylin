@@ -45,6 +45,6 @@ public class ResourceGroupEnabledValidator implements IResourceGroupRequestValid
         if (CollectionUtils.isNotEmpty(request.getResourceGroupEntities())) {
             return;
         }
-        throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getRESOURCE_CAN_NOT_BE_EMPTY());
+        throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getResourceCanNotBeEmpty());
     }
 }

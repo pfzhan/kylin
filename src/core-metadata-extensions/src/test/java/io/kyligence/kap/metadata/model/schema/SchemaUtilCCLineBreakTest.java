@@ -70,7 +70,7 @@ public class SchemaUtilCCLineBreakTest extends NLocalFileMetadataTestCase {
     public void testDifferentLineBreakInCC() throws IOException {
         val file = new File(
                 "src/test/resources/ut_meta/schema_utils/model_cc_different_line_breaks/COR_KYL_MOD_PNL_RISK_RESULTS_b5c17c85a59e74f18a2b7f18c7575c16.zip");
-        String expr = "(CASE WHEN PNL_RISK_RESULTS_VD.MEASURE = fx_family_enriched.attribute_id AND fx_family_enriched.gcrs_product_code = fx_family_enriched.producthierarchy_gcrs_codeid \n"
+        String expr = "(CASE WHEN PNL_RISK_RESULTS_VD.MEASURE = FX_FAMILY_ENRICHED.ATTRIBUTE_ID AND FX_FAMILY_ENRICHED.GCRS_PRODUCT_CODE = FX_FAMILY_ENRICHED.PRODUCTHIERARCHY_GCRS_CODEID \n"
                 + "THEN 1 ELSE 0 END)";
         Map<String, RawResource> rawResourceMap = getRawResourceFromUploadFile(file);
         String srcProject = getModelMetadataProjectName(rawResourceMap.keySet());

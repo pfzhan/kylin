@@ -139,14 +139,16 @@ public class IndexDataConstructor {
         buildIndex(dfName, segmentRange, toBuildLayouts, isAppend, null);
     }
 
-    public void buildIndex(String dfName, SegmentRange segmentRange, Set<LayoutEntity> toBuildLayouts, boolean isAppend,
-            List<String[]> partitionValues) throws Exception {
+    // return segment id
+    public String buildIndex(String dfName, SegmentRange segmentRange, Set<LayoutEntity> toBuildLayouts,
+            boolean isAppend, List<String[]> partitionValues) throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, project);
         NDataflow df = dsMgr.getDataflow(dfName);
         // ready dataflow, segment, cuboid layout
         NDataSegment oneSeg = dsMgr.appendSegment(df, segmentRange, SegmentStatusEnum.NEW, partitionValues);
         buildSegment(dfName, oneSeg, toBuildLayouts, isAppend, partitionValues);
+        return oneSeg.getId();
     }
 
     public void buildSegment(String dfName, NDataSegment segment, Set<LayoutEntity> toBuildLayouts, boolean isAppend,
@@ -208,11 +210,78 @@ public class IndexDataConstructor {
             val merger = new AfterBuildResourceMerger(config, project);
             val sparkStep = job.getSparkCubingStep();
             merger.merge(job.getTargetModelId(), job.getSegmentIds(), ExecutableUtils.getLayoutIds(sparkStep),
-                    ExecutableUtils.getRemoteStore(config, sparkStep), job.getJobType(),
-                    job.getTargetPartitions());
+                    ExecutableUtils.getRemoteStore(config, sparkStep), job.getJobType(), job.getTargetPartitions());
         }
         indexDataRepo.persistBuildData();
         buildCount++;
+    }
+
+    public void buildMultiPartition(List<BuildInfo> buildInfos) throws InterruptedException {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        val indexDataRepo = new IndexDataWarehouse(config, project, buildCount + "");
+        if (indexDataRepo.reuseBuildData()) {
+            buildCount++;
+            return;
+        }
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, project);
+        NExecutableManager execMgr = NExecutableManager.getInstance(config, project);
+
+        List<NSparkCubingJob> jobs = Lists.newArrayList();
+        for (BuildInfo buildInfo : buildInfos) {
+            val dfName = buildInfo.dataflowId;
+            val partitionValues = buildInfo.partitionValues;
+            val segment = buildInfo.segment;
+            val toBuildLayouts = buildInfo.toBuildLayouts;
+            NDataflow df = dsMgr.getDataflow(dfName);
+            Set<JobBucket> buckets = Sets.newHashSet();
+            if (CollectionUtils.isNotEmpty(partitionValues)) {
+                NDataModelManager modelManager = NDataModelManager.getInstance(config, project);
+                Set<Long> targetPartitions = modelManager.getDataModelDesc(dfName).getMultiPartitionDesc()
+                        .getPartitionIdsByValues(partitionValues);
+                val bucketStart = new AtomicLong(segment.getMaxBucketId());
+                toBuildLayouts.forEach(layout -> {
+                    targetPartitions.forEach(partition -> {
+                        buckets.add(new JobBucket(segment.getId(), layout.getId(), bucketStart.incrementAndGet(),
+                                partition));
+                    });
+                });
+                dsMgr.updateDataflow(df.getId(),
+                        copyForWrite -> copyForWrite.getSegment(segment.getId()).setMaxBucketId(bucketStart.get()));
+            }
+            NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(segment), toBuildLayouts, "ADMIN", buckets);
+            job.setJobType(JobTypeEnum.SUB_PARTITION_BUILD);
+            NSparkCubingStep sparkStep = job.getSparkCubingStep();
+            StorageURL distMetaUrl = StorageURL.valueOf(sparkStep.getDistMetaUrl());
+            Assert.assertEquals("hdfs", distMetaUrl.getScheme());
+            Assert.assertTrue(distMetaUrl.getParameter("path").startsWith(config.getHdfsWorkingDirectory()));
+
+            // launch the job
+            execMgr.addJob(job);
+            jobs.add(job);
+        }
+        if (!wait(jobs)) {
+            throw new IllegalStateException(firstFailedJobErrorMessage(execMgr, jobs.get(0)));
+        }
+        for (val job : jobs) {
+            val merger = new AfterBuildResourceMerger(config, project);
+            val sparkStep = job.getSparkCubingStep();
+            merger.merge(job.getTargetModelId(), job.getSegmentIds(), ExecutableUtils.getLayoutIds(sparkStep),
+                    ExecutableUtils.getRemoteStore(config, sparkStep), job.getJobType(), job.getTargetPartitions());
+        }
+        indexDataRepo.persistBuildData();
+        buildCount++;
+    }
+
+    public void buildMultiPartition(String dfName, String segmentId, Set<LayoutEntity> toBuildLayouts, boolean isAppend,
+            List<String[]> partitionValues) throws Exception {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, project);
+        NDataflow df = dsMgr.getDataflow(dfName);
+        // ready dataflow, segment, cuboid layout
+        dsMgr.appendPartitions(df.getId(), segmentId, partitionValues);
+        NDataSegment segment = df.getSegment(segmentId);
+        buildMultiPartition(
+                Lists.newArrayList(new BuildInfo(dfName, segment, toBuildLayouts, isAppend, partitionValues)));
     }
 
     @Data

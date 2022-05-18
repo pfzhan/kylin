@@ -48,6 +48,7 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.kyligence.kap.query.util.RawSqlParser;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.query.security.AccessDeniedException;
 import org.apache.spark.sql.catalyst.analysis.NoSuchDatabaseException;
@@ -56,7 +57,6 @@ import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.query.engine.QueryExec;
-import io.kyligence.kap.query.util.CommentParser;
 import io.kyligence.kap.query.util.KapQueryUtil;
 import lombok.extern.slf4j.Slf4j;
 
@@ -66,6 +66,10 @@ public class QueryUtil {
     private static final Pattern SELECT_PATTERN = Pattern.compile("^select", Pattern.CASE_INSENSITIVE);
     private static final Pattern LIMIT_PATTERN = Pattern.compile("(limit\\s+[0-9;]+)$", Pattern.CASE_INSENSITIVE);
     static List<KapQueryUtil.IQueryTransformer> tableDetectTransformers = Collections.emptyList();
+
+    private QueryUtil() {
+        throw new IllegalStateException("Utility class");
+    }
 
     public static String normalizeForTableDetecting(String project, String sql) {
         KylinConfig kylinConfig = KapQueryUtil.getKylinConfig(project);
@@ -145,7 +149,7 @@ public class QueryUtil {
     public static String removeCommentInSql(String sql) {
         // match two patterns, one is "-- comment", the other is "/* comment */"
         try {
-            return new CommentParser(sql).Input();
+            return new RawSqlParser(sql).parse().getStatementString();
         } catch (Exception ex) {
             log.error("Something unexpected while removing comments in the query, return original query", ex);
             return sql;

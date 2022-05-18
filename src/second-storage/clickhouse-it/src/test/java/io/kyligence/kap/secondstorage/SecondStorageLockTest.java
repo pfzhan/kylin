@@ -54,12 +54,14 @@ import io.kyligence.kap.rest.controller.NModelController;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
 import io.kyligence.kap.rest.response.JobInfoResponse;
+import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import io.kyligence.kap.rest.service.FusionModelService;
 import io.kyligence.kap.rest.service.IndexPlanService;
 import io.kyligence.kap.rest.service.JobService;
 import io.kyligence.kap.rest.service.ModelBuildService;
+import io.kyligence.kap.rest.service.ModelQueryService;
 import io.kyligence.kap.rest.service.ModelSemanticHelper;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.NUserGroupService;
@@ -74,7 +76,9 @@ import io.kyligence.kap.secondstorage.enums.LockTypeEnum;
 import io.kyligence.kap.secondstorage.management.SecondStorageEndpoint;
 import io.kyligence.kap.secondstorage.management.SecondStorageScheduleService;
 import io.kyligence.kap.secondstorage.management.SecondStorageService;
+import io.kyligence.kap.secondstorage.management.request.ProjectLoadRequest;
 import io.kyligence.kap.secondstorage.management.request.ProjectNodeRequest;
+import io.kyligence.kap.secondstorage.management.request.ProjectRecoveryResponse;
 import io.kyligence.kap.secondstorage.management.request.ProjectTableSyncResponse;
 import io.kyligence.kap.secondstorage.management.request.SecondStorageMetadataRequest;
 import io.kyligence.kap.secondstorage.management.request.StorageRequest;
@@ -110,6 +114,7 @@ import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.query.relnode.OLAPContext;
+import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.IUserGroupService;
@@ -156,6 +161,7 @@ import static io.kyligence.kap.newten.clickhouse.ClickHouseUtils.configClickhous
 import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_PROJECT_STATUS_ERROR;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
@@ -228,6 +234,9 @@ public class SecondStorageLockTest implements JobWaiter {
     @Mock
     private final NModelController nModelController = Mockito.spy(new NModelController());
 
+    @Mock
+    private final ModelQueryService modelQueryService = Mockito.spy(new ModelQueryService());
+
 
     private EmbeddedHttpServer _httpServer = null;
     protected IndexDataConstructor indexDataConstructor;
@@ -245,6 +254,8 @@ public class SecondStorageLockTest implements JobWaiter {
 
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
 
+        ReflectionTestUtils.setField(modelQueryService, "aclEvaluate", aclEvaluate);
+
         ReflectionTestUtils.setField(indexPlanService, "aclEvaluate", aclEvaluate);
 
         ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
@@ -253,6 +264,7 @@ public class SecondStorageLockTest implements JobWaiter {
         ReflectionTestUtils.setField(modelService, "indexPlanService", indexPlanService);
         ReflectionTestUtils.setField(modelService, "semanticUpdater", modelSemanticHelper);
         ReflectionTestUtils.setField(modelService, "modelBuildService", modelBuildService);
+        ReflectionTestUtils.setField(modelService, "modelQuerySupporter", modelQueryService);
 
         ReflectionTestUtils.setField(modelBuildService, "modelService", modelService);
         ReflectionTestUtils.setField(modelBuildService, "segmentHelper", segmentHelper);
@@ -304,6 +316,7 @@ public class SecondStorageLockTest implements JobWaiter {
         params.setSecondStorageDeleteLayoutIds(jobParam.getSecondStorageDeleteLayoutIds());
         assertNull(params.getSecondStorageDeleteLayoutIds());
     }
+
     @Test
     public void testSegmentLoadWithRetry() throws Exception {
         try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse()) {
@@ -595,24 +608,24 @@ public class SecondStorageLockTest implements JobWaiter {
         SecondStorageMetadataRequest request = new SecondStorageMetadataRequest();
         request.setProject("");
         Assert.assertThrows(
-                MsgPicker.getMsg().getEMPTY_PROJECT_NAME(),
+                MsgPicker.getMsg().getEmptyProjectName(),
                 KylinException.class,
                 () -> this.secondStorageEndpoint.sizeInNode(request));
         request.setProject("123");
         Assert.assertThrows("123", KylinException.class, () -> this.secondStorageEndpoint.sizeInNode(request));
         request.setProject(getProject());
         Assert.assertThrows(
-                String.format(Locale.ROOT, MsgPicker.getMsg().getSECOND_STORAGE_PROJECT_ENABLED(), getProject()),
+                String.format(Locale.ROOT, MsgPicker.getMsg().getSecondStorageProjectEnabled(), getProject()),
                 KylinException.class, () -> this.secondStorageEndpoint.sizeInNode(request));
 
         Assert.assertThrows(
-                MsgPicker.getMsg().getEMPTY_PROJECT_NAME(),
+                MsgPicker.getMsg().getEmptyProjectName(),
                 KylinException.class,
                 () -> this.secondStorageEndpoint.tableSync(""));
         Assert.assertThrows("123", KylinException.class, () -> this.secondStorageEndpoint.tableSync("123"));
         String project = getProject();
         Assert.assertThrows(
-                String.format(Locale.ROOT, MsgPicker.getMsg().getSECOND_STORAGE_PROJECT_ENABLED(), getProject()),
+                String.format(Locale.ROOT, MsgPicker.getMsg().getSecondStorageProjectEnabled(), getProject()),
                 KylinException.class, () -> this.secondStorageEndpoint.tableSync(project));
     }
 
@@ -637,7 +650,7 @@ public class SecondStorageLockTest implements JobWaiter {
                 setQuerySession(catalog, clickhouse[0].getJdbcUrl(), clickhouse[0].getDriverClassName());
 
                 getBuildBaseLayout(new HashSet<>(), new HashSet<>(), clickhouse, replica);
-
+                checkSegmentDisplay(replica, clickhouse.length / replica);
 
                 ProjectNodeRequest request = new ProjectNodeRequest();
                 request.setProject(getProject());
@@ -711,9 +724,44 @@ public class SecondStorageLockTest implements JobWaiter {
     @Test
     public void testProjectSecondStorageJobs() {
         try {
-            EnvelopeResponse<List<String>> jobs2 = secondStorageEndpoint.getProjectSecondStorageJobs("error");
+            secondStorageEndpoint.getProjectSecondStorageJobs("error");
         } catch (KylinException e) {
             assertEquals(SECOND_STORAGE_PROJECT_STATUS_ERROR.toErrorCode(), e.getErrorCode());
+        }
+    }
+
+    @Test
+    public void testProjectLoadWithOneNodeDown() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse()) {
+
+            final String catalog = "default";
+
+            Unsafe.setProperty(ClickHouseLoad.SOURCE_URL, getSourceUrl());
+            Unsafe.setProperty(ClickHouseLoad.ROOT_PATH, getLocalWorkingDirectory());
+            val clickhouse = new JdbcDatabaseContainer[]{clickhouse1};
+            int replica = 1;
+            configClickhouseWith(clickhouse, replica, catalog, () -> {
+                List<String> allPairs = SecondStorageNodeHelper.getAllPairs();
+                secondStorageService.changeProjectSecondStorageState(getProject(), allPairs, true);
+                Assert.assertEquals(clickhouse.length, SecondStorageUtil.listProjectNodes(getProject()).size());
+                secondStorageService.changeModelSecondStorageState(getProject(), modelId, true);
+                setQuerySession(catalog, clickhouse[0].getJdbcUrl(), clickhouse[0].getDriverClassName());
+
+                getBuildBaseLayout(new HashSet<>(), new HashSet<>(), clickhouse, replica);
+
+                Map<String, Map<String, Boolean>> nodeStatusMap = ImmutableMap.of("pair0", ImmutableMap.of("node00", false));
+                secondStorageEndpoint.updateNodeStatus(nodeStatusMap);
+
+                ProjectLoadRequest request = new ProjectLoadRequest();
+                request.setProjects(ImmutableList.of(getProject()));
+                EnvelopeResponse<List<ProjectRecoveryResponse>> response = this.secondStorageEndpoint.projectLoad(request);
+                assertEquals("000", response.getCode());
+                waitAllJobFinish();
+
+                getTableFlow().getTableDataList().forEach(tableData -> tableData.getPartitions().forEach(p -> assertNotEquals(0, (long) p.getSizeInNode().getOrDefault("node00", 0L))));
+
+                return true;
+            });
         }
     }
 
@@ -816,7 +864,7 @@ public class SecondStorageLockTest implements JobWaiter {
             checkSecondStorageMetadata(existTablePlanLayoutIds, existTableDataLayoutIds);
             checkSecondStorageSegmentMetadata(getAllSegmentIds(), layout01);
             checkSecondStorageSegmentMetadata(getAllSegmentIds(), layout02);
-            checkSegmentDisplayNodes(replica, clickhouse.length / replica);
+            checkSegmentDisplay(replica, clickhouse.length / replica);
 
             // removed old index
             indexPlanService.removeIndexes(getProject(), modelId, ImmutableSet.of(layout01));
@@ -1129,7 +1177,7 @@ public class SecondStorageLockTest implements JobWaiter {
         waitJobFinish(getProject(), jobInfo.getJobId());
     }
 
-    private void checkSegmentDisplayNodes(int replica, int shardCnt) {
+    private void checkSegmentDisplay(int replica, int shardCnt) {
         List<NDataSegmentResponse> segments = modelService.getSegmentsResponse(modelId, getProject(), "0", "" + (Long.MAX_VALUE - 1), null,
                 null, null, false, null, false);
         segments.forEach(segment -> {
@@ -1137,6 +1185,19 @@ public class SecondStorageLockTest implements JobWaiter {
             assertNotNull(segment.getSecondStorageNodes().values());
             assertTrue(segment.getSecondStorageNodes().values().stream().findFirst().isPresent());
             assertEquals(replica, segment.getSecondStorageNodes().values().stream().findFirst().get().size());
+        });
+
+        val sum = segments.stream().mapToLong(NDataSegmentResponse::getSecondStorageSize).sum();
+
+        DataResult<List<NDataModel>> result = modelService.getModels(modelId, null, true, getProject(),
+                null, null, null, 0, 10, "last_modify", false, null,
+                null, null, null, true);
+
+        result.getValue().stream().filter(nDataModel -> modelId.equals(nDataModel.getId())).forEach(nDataModel -> {
+            val nDataModelRes = (NDataModelResponse) nDataModel;
+            assertEquals(sum, nDataModelRes.getSecondStorageSize());
+            assertEquals(shardCnt, nDataModelRes.getSecondStorageNodes().size());
+            assertEquals(replica, nDataModelRes.getSecondStorageNodes().get("pair0").size());
         });
     }
 

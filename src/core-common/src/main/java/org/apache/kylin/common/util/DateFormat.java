@@ -222,7 +222,7 @@ public class DateFormat {
             return daysToEpoch * 24 * 60 * 60 * 1000;
         } catch (NumberFormatException e) {
         }
-        throw new KylinException(INVALID_TIME_PARTITION_COLUMN, MsgPicker.getMsg().getINVALID_TIME_FORMAT());
+        throw new KylinException(INVALID_TIME_PARTITION_COLUMN, MsgPicker.getMsg().getInvalidTimeFormat());
     }
 
     public static boolean isSupportedDateFormat(String dateStr) {
@@ -250,7 +250,7 @@ public class DateFormat {
             if (sampleData.matches(patternMap.getKey()))
                 return patternMap.getValue();
         }
-        throw new KylinException(INVALID_TIME_PARTITION_COLUMN, MsgPicker.getMsg().getINVALID_TIME_FORMAT());
+        throw new KylinException(INVALID_TIME_PARTITION_COLUMN, MsgPicker.getMsg().getInvalidTimeFormat());
     }
 
     /**

@@ -188,7 +188,7 @@ public class TableExtService extends BasicService {
         if (originTableDesc != null && (originTableDesc.getSourceType() == ISourceAware.ID_STREAMING
                 || tableDesc.getSourceType() == ISourceAware.ID_STREAMING)) {
             throw new KylinException(PROJECT_NOT_EXIST,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getSAME_TABLE_NAME_EXIST(), tableDesc.getIdentity()));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getSameTableNameExist(), tableDesc.getIdentity()));
         }
     }
 }
