@@ -153,8 +153,8 @@ import io.kyligence.kap.query.engine.PrepareSqlStateParam;
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.query.engine.QueryRoutingEngine;
 import io.kyligence.kap.query.engine.data.QueryResult;
-import io.kyligence.kap.query.util.CommentParser;
 import io.kyligence.kap.query.util.KapQueryUtil;
+import io.kyligence.kap.query.util.RawSqlParser;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.cluster.DefaultClusterManager;
 import io.kyligence.kap.rest.config.AppConfig;
@@ -1411,6 +1411,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testQueryWithParam() {
         final String sql = "select * from test where col1 = ?;";
+        final String sqlFullTextString = "select * from test where col1 = ?";
         String filledSql = "select * from test where col1 = 'value1'";
         final String project = "default";
         final PrepareSqlRequest request = new PrepareSqlRequest();
@@ -1429,13 +1430,13 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         overwriteSystemProp("kylin.query.replace-dynamic-params-enabled", "true");
         Mockito.when(SpringContext.getBean(QueryService.class)).thenReturn(queryService);
         queryService.doQueryWithCache(request);
-        Assert.assertEquals(queryContext.getUserSQL(), sql);
-        Assert.assertEquals(queryContext.getMetrics().getCorrectedSql(), filledSql);
+        Assert.assertEquals(sqlFullTextString, queryContext.getUserSQL());
+        Assert.assertEquals(filledSql, queryContext.getMetrics().getCorrectedSql());
 
         overwriteSystemProp("kylin.query.replace-dynamic-params-enabled", "false");
         queryService.doQueryWithCache(request);
-        Assert.assertEquals(queryContext.getUserSQL(), sql);
-        Assert.assertEquals(queryContext.getMetrics().getCorrectedSql(), filledSql);
+        Assert.assertEquals(sqlFullTextString, queryContext.getUserSQL());
+        Assert.assertEquals(filledSql, queryContext.getMetrics().getCorrectedSql());
 
         queryContext.getMetrics().setCorrectedSql(filledSql);
         QueryMetricsContext.start(queryContext.getQueryId(), "localhost:7070");
@@ -1788,7 +1789,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
                 .filter(file -> Files.isRegularFile(file)).map(path -> {
                     try {
                         String sql = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
-                        return new CommentParser(sql).Input();
+                        return new RawSqlParser(sql).parse().getStatementString();
                     } catch (Exception e) {
                         return null;
                     }
@@ -2070,7 +2071,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         SQLResponse resp1 = queryService.doQueryWithCache(request);
         Assert.assertTrue(resp1.isException());
         Assert.assertEquals(String.format(Locale.ROOT,
-                MsgPicker.getMsg().getSQL_BLACKLIST_QUERY_CONCUTTENT_LIMIT_EXCEEDED(), "1", 1),
+                MsgPicker.getMsg().getSqlBlackListQueryConcurrentLimitExceeded(), "1", 1),
                 resp1.getExceptionMessage());
     }
 
@@ -2107,5 +2108,12 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         queryService.putIntoExceptionCache(request, sqlResponse, new RuntimeException("foo"));
         val ret2 = queryService.doQueryWithCache(request);
         Assert.assertTrue(ret2.isException());
+    }
+
+
+    @Test
+    public void testCheckSqlRequestProject() {
+        Assert.assertThrows(KylinException.class, ()->ReflectionTestUtils.invokeMethod(queryService, "checkSqlRequestProject",
+                new SQLRequest(), MsgPicker.getMsg()));
     }
 }

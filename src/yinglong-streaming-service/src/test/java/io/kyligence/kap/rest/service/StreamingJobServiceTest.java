@@ -1011,7 +1011,7 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
             copy.setPartitionDesc(null);
         });
         thrown.expect(KylinException.class);
-        thrown.expectMessage(MsgPicker.getMsg().getPARTITION_COLUMN_START_ERROR());
+        thrown.expectMessage(MsgPicker.getMsg().getPartitionColumnStartError());
         streamingJobService.launchStreamingJob(PROJECT, modelId, JobTypeEnum.STREAMING_BUILD);
     }
 
@@ -1024,7 +1024,7 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
             copy.setPartitionDesc(Mockito.spy(PartitionDesc.class));
         });
         thrown.expect(KylinException.class);
-        thrown.expectMessage(MsgPicker.getMsg().getPARTITION_COLUMN_START_ERROR());
+        thrown.expectMessage(MsgPicker.getMsg().getPartitionColumnStartError());
         streamingJobService.launchStreamingJob(PROJECT, modelId, JobTypeEnum.STREAMING_BUILD);
     }
 
@@ -1039,7 +1039,7 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
             copy.setPartitionDesc(mock);
         });
         thrown.expect(KylinException.class);
-        thrown.expectMessage(MsgPicker.getMsg().getPARTITION_COLUMN_START_ERROR());
+        thrown.expectMessage(MsgPicker.getMsg().getPartitionColumnStartError());
         streamingJobService.launchStreamingJob(PROJECT, modelId, JobTypeEnum.STREAMING_BUILD);
     }
 

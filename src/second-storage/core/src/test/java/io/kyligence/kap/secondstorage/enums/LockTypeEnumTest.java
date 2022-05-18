@@ -50,13 +50,14 @@ public class LockTypeEnumTest {
         LockTypeEnum.checkLocks(null, existLocks);
 
         Exception exception = Assertions.assertThrows(KylinException.class, () -> LockTypeEnum.checkLocks(requestLocks, existLocks));
-        Assertions.assertEquals(exception.getMessage(), MsgPicker.getMsg().getPROJECT_LOCKED());
+        Assertions.assertEquals(exception.getMessage(), MsgPicker.getMsg().getProjectLocked());
         MsgPicker.setMsg("cn");
         Exception exception2 = Assertions.assertThrows(KylinException.class, () -> LockTypeEnum.checkLocks(requestLocks, existLocks2));
-        Assertions.assertEquals(exception2.getMessage(), MsgPicker.getMsg().getPROJECT_LOCKED());
+        Assertions.assertEquals(exception2.getMessage(), MsgPicker.getMsg().getProjectLocked());
         MsgPicker.setMsg("en");
+
         Exception exception3 = Assertions.assertThrows(KylinException.class, () -> LockTypeEnum.checkLocks(existLocks2, requestLocks));
-        Assertions.assertEquals(exception3.getMessage(), MsgPicker.getMsg().getPROJECT_LOCKED());
+        Assertions.assertEquals(exception3.getMessage(), MsgPicker.getMsg().getProjectLocked());
 
         LockTypeEnum.checkLocks(existLocks2, requestLocks2);
     }

@@ -447,7 +447,7 @@ public class ModelSmartService extends BasicService implements ModelSmartSupport
         int limit = kylinConfig.getSuggestModelSqlLimit();
         if (sqls.size() > limit) {
             throw new KylinException(SQL_NUMBER_EXCEEDS_LIMIT,
-                    String.format(Locale.ROOT, msg.getSQL_NUMBER_EXCEEDS_LIMIT(), limit));
+                    String.format(Locale.ROOT, msg.getSqlNumberExceedsLimit(), limit));
         }
     }
 

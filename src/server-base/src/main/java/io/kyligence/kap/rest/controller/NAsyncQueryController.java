@@ -206,11 +206,11 @@ public class NAsyncQueryController extends NBasicController {
                 return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, true, "");
             } else {
                 return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, false,
-                        MsgPicker.getMsg().getCLEAN_FOLDER_FAIL());
+                        MsgPicker.getMsg().getCleanFolderFail());
             }
         } catch (ParseException e) {
-            logger.error(MsgPicker.getMsg().getASYNC_QUERY_TIME_FORMAT_ERROR(), e);
-            throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getASYNC_QUERY_TIME_FORMAT_ERROR());
+            logger.error(MsgPicker.getMsg().getAsyncQueryTimeFormatError(), e);
+            throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getAsyncQueryTimeFormatError());
         }
     }
 
@@ -222,7 +222,7 @@ public class NAsyncQueryController extends NBasicController {
             @RequestParam(value = "project", required = false) String project) throws IOException {
         if (project == null) {
             if (sqlRequest == null) {
-                throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getASYNC_QUERY_PROJECT_NAME_EMPTY());
+                throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getAsyncQueryProjectNameEmpty());
             }
             project = sqlRequest.getProject();
         }
@@ -236,7 +236,7 @@ public class NAsyncQueryController extends NBasicController {
         if (result)
             return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, true, "");
         else
-            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, false, MsgPicker.getMsg().getCLEAN_FOLDER_FAIL());
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, false, MsgPicker.getMsg().getCleanFolderFail());
     }
 
     @ApiOperation(value = "query", tags = { "QE" }, notes = "Update Response: query_id")
@@ -248,7 +248,7 @@ public class NAsyncQueryController extends NBasicController {
             throws IOException {
         if (project == null) {
             if (sqlRequest == null) {
-                throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getASYNC_QUERY_PROJECT_NAME_EMPTY());
+                throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getAsyncQueryProjectNameEmpty());
             }
             project = sqlRequest.getProject();
         }
@@ -289,7 +289,7 @@ public class NAsyncQueryController extends NBasicController {
             @RequestParam(value = "project", required = false) String project) throws IOException {
         if (project == null) {
             if (sqlRequest == null) {
-                throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getASYNC_QUERY_PROJECT_NAME_EMPTY());
+                throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getAsyncQueryProjectNameEmpty());
             }
             project = sqlRequest.getProject();
         }
@@ -312,7 +312,7 @@ public class NAsyncQueryController extends NBasicController {
             throws IOException {
         if (project == null) {
             if (sqlRequest == null) {
-                throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getASYNC_QUERY_PROJECT_NAME_EMPTY());
+                throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getAsyncQueryProjectNameEmpty());
             }
             project = sqlRequest.getProject();
         }
@@ -335,7 +335,7 @@ public class NAsyncQueryController extends NBasicController {
             @RequestParam(value = "project", required = false) String project) throws IOException {
         if (project == null) {
             if (sqlRequest == null) {
-                throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getASYNC_QUERY_PROJECT_NAME_EMPTY());
+                throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getAsyncQueryProjectNameEmpty());
             }
             project = sqlRequest.getProject();
         }
@@ -344,13 +344,13 @@ public class NAsyncQueryController extends NBasicController {
         KylinConfig config = queryService.getConfig();
         Message msg = MsgPicker.getMsg();
         if (!asyncQueryService.hasPermission(queryId, project)) {
-            throw new KylinException(ACCESS_DENIED, msg.getFORBIDDEN_EXPORT_ASYNC_QUERY_RESULT());
+            throw new KylinException(ACCESS_DENIED, msg.getForbiddenExportAsyncQueryResult());
         }
         asyncQueryService.checkStatus(queryId, AsyncQueryService.QueryStatus.SUCCESS, project,
-                MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
+                MsgPicker.getMsg().getQueryResultNotFound());
         if (((isAdmin() && !config.isAdminUserExportAllowed())
                 || (!isAdmin() && !config.isNoneAdminUserExportAllowed()))) {
-            throw new ForbiddenException(msg.getEXPORT_RESULT_NOT_ALLOWED());
+            throw new ForbiddenException(msg.getExportResultNotAllowed());
         }
         AsyncQueryService.FileInfo fileInfo = asyncQueryService.getFileInfo(project, queryId);
         String format = fileInfo.getFormat();
@@ -374,7 +374,7 @@ public class NAsyncQueryController extends NBasicController {
             @RequestParam(value = "project", required = false) String project) throws IOException {
         if (project == null) {
             if (sqlRequest == null) {
-                throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getASYNC_QUERY_PROJECT_NAME_EMPTY());
+                throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getAsyncQueryProjectNameEmpty());
             }
             project = sqlRequest.getProject();
         }

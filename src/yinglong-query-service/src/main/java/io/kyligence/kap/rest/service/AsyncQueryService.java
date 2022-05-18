@@ -95,7 +95,7 @@ public class AsyncQueryService extends BasicService {
     }
 
     public List<List<String>> getMetaData(String project, String queryId) throws IOException {
-        checkStatus(queryId, QueryStatus.SUCCESS, project, MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
+        checkStatus(queryId, QueryStatus.SUCCESS, project, MsgPicker.getMsg().getQueryResultNotFound());
         Path asyncQueryResultDir = getAsyncQueryResultDir(project, queryId);
         List<List<String>> result = Lists.newArrayList();
         FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
@@ -126,13 +126,13 @@ public class AsyncQueryService extends BasicService {
 
     public void retrieveSavedQueryResult(String project, String queryId, boolean includeHeader,
             HttpServletResponse response, String fileFormat, String encode, String separator) throws IOException {
-        checkStatus(queryId, QueryStatus.SUCCESS, project, MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
+        checkStatus(queryId, QueryStatus.SUCCESS, project, MsgPicker.getMsg().getQueryResultNotFound());
 
         FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
         Path dataPath = getAsyncQueryResultDir(project, queryId);
 
         if (!fileSystem.exists(dataPath)) {
-            throw new BadRequestException(MsgPicker.getMsg().getQUERY_RESULT_FILE_NOT_FOUND());
+            throw new BadRequestException(MsgPicker.getMsg().getQueryResultFileNotFound());
         }
 
         try (ServletOutputStream outputStream = response.getOutputStream()) {
@@ -173,7 +173,7 @@ public class AsyncQueryService extends BasicService {
         Path dataPath = new Path(getAsyncQueryResultDir(project, queryId), AsyncQueryUtil.getFailureFlagFileName());
 
         if (!fileSystem.exists(dataPath)) {
-            throw new BadRequestException(msg.getQUERY_EXCEPTION_FILE_NOT_FOUND());
+            throw new BadRequestException(msg.getQueryExceptionFileNotFound());
         }
         try (FSDataInputStream inputStream = fileSystem.open(dataPath);
                 InputStreamReader reader = new InputStreamReader(inputStream, Charset.defaultCharset())) {
@@ -234,7 +234,7 @@ public class AsyncQueryService extends BasicService {
     }
 
     public long fileStatus(String project, String queryId) throws IOException {
-        checkStatus(queryId, QueryStatus.SUCCESS, project, MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
+        checkStatus(queryId, QueryStatus.SUCCESS, project, MsgPicker.getMsg().getQueryResultNotFound());
         Path asyncQueryResultDir = getAsyncQueryResultDir(project, queryId);
         if (AsyncQueryUtil.getFileSystem().exists(asyncQueryResultDir) && AsyncQueryUtil.getFileSystem().isDirectory(asyncQueryResultDir)) {
             long totalFileSize = 0;
@@ -245,7 +245,7 @@ public class AsyncQueryService extends BasicService {
             }
             return totalFileSize;
         } else {
-            throw new BadRequestException(MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
+            throw new BadRequestException(MsgPicker.getMsg().getQueryResultNotFound());
         }
     }
 
@@ -283,7 +283,7 @@ public class AsyncQueryService extends BasicService {
     public boolean deleteByQueryId(String project, String queryId) throws IOException {
         Path resultDir = getAsyncQueryResultDir(project, queryId);
         if (queryStatus(project, queryId) == QueryStatus.MISS) {
-            throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
+            throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getQueryResultNotFound());
         }
         logger.info("clean async query result for query id [{}]", queryId);
         return AsyncQueryUtil.getFileSystem().delete(resultDir, true);
@@ -326,7 +326,7 @@ public class AsyncQueryService extends BasicService {
 
     public String asyncQueryResultPath(String project, String queryId) throws IOException {
         if (queryStatus(project, queryId) == QueryStatus.MISS) {
-            throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
+            throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getQueryResultNotFound());
         }
         return getAsyncQueryResultDir(project, queryId).toString();
     }

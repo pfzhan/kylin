@@ -52,6 +52,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PROJECT_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_PROJECT_STATUS_ERROR;
@@ -208,7 +209,7 @@ public class SecondStorageEndpoint extends NBasicController {
                 request.getSegmentNames().toArray(new String[0]));
 
         if (ArrayUtils.isEmpty(segIds)) {
-            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getINVALID_REFRESH_SEGMENT());
+            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getInvalidRefreshSegment());
         }
 
         if (!request.storageTypeSupported()) {
@@ -250,7 +251,7 @@ public class SecondStorageEndpoint extends NBasicController {
         checkProjectName(request.getProject());
         if (!SecondStorageUtil.isProjectEnable(request.getProject())) {
             throw new KylinException(SECOND_STORAGE_PROJECT_STATUS_ERROR,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getSECOND_STORAGE_PROJECT_ENABLED(), request.getProject()));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getSecondStorageProjectEnabled(), request.getProject()));
 
         }
         secondStorageService.sizeInNode(request.getProject());
@@ -262,7 +263,7 @@ public class SecondStorageEndpoint extends NBasicController {
         checkProjectName(project);
         if (!SecondStorageUtil.isProjectEnable(project)) {
             throw new KylinException(SECOND_STORAGE_PROJECT_STATUS_ERROR,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getSECOND_STORAGE_PROJECT_ENABLED(), project));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getSecondStorageProjectEnabled(), project));
 
         }
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, secondStorageService.tableSync(project), "");
@@ -270,12 +271,14 @@ public class SecondStorageEndpoint extends NBasicController {
 
     @PostMapping(value = "/project/load", produces = {HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
     public EnvelopeResponse<List<ProjectRecoveryResponse>> projectLoad(@RequestBody ProjectLoadRequest request) {
+        checkProjects(request.getProjects());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                 secondStorageService.projectLoadData(request.getProjects()).getLoads(), "");
     }
 
     @PostMapping(value = "/project/clean", produces = {HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
     public EnvelopeResponse<Map<String, Map<String, String>>> projectClean(@RequestBody ProjectCleanRequest request) {
+        checkProjects(request.getProjects());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, secondStorageService.projectClean(request.getProjects()), "");
     }
 
@@ -301,6 +304,16 @@ public class SecondStorageEndpoint extends NBasicController {
         val model = modelManager.getDataModelDescByAlias(modelName);
         if (Objects.isNull(model)) {
             throw new KylinException(MODEL_NAME_NOT_EXIST, modelName);
+        }
+    }
+
+    public void checkProjects(List<String> projects) {
+        if (CollectionUtils.isEmpty(projects)) {
+            throw new KylinException(EMPTY_PROJECT_NAME, MsgPicker.getMsg().getEmptyProjectName());
+        }
+
+        for (String project : projects) {
+            checkProjectName(project);
         }
     }
 }

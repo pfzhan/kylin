@@ -231,7 +231,7 @@ public class StreamingTableServiceTest extends NLocalFileMetadataTestCase {
         streamingRequest.setKafkaConfig(kafkaConfig);
         thrown.expect(KylinException.class);
         thrown.expectMessage(String.format(Locale.ROOT,
-                MsgPicker.getMsg().getBATCH_STREAM_TABLE_NOT_MATCH(), batchTableName));
+                MsgPicker.getMsg().getBatchStreamTableNotMatch(), batchTableName));
         streamingTableService.checkColumns(streamingRequest);
     }
 
@@ -255,7 +255,7 @@ public class StreamingTableServiceTest extends NLocalFileMetadataTestCase {
         kafkaConfig.setStartingOffsets("latest");
         streamingRequest.setKafkaConfig(kafkaConfig);
         thrown.expect(KylinException.class);
-        thrown.expectMessage(MsgPicker.getMsg().getTIMESTAMP_COLUMN_NOT_EXIST());
+        thrown.expectMessage(MsgPicker.getMsg().getTimestampColumnNotExist());
         streamingTableService.checkColumns(streamingRequest);
     }
 
@@ -278,7 +278,7 @@ public class StreamingTableServiceTest extends NLocalFileMetadataTestCase {
         kafkaConfig.setStartingOffsets("latest");
         streamingRequest.setKafkaConfig(kafkaConfig);
         thrown.expect(KylinException.class);
-        thrown.expectMessage(MsgPicker.getMsg().getTIMESTAMP_COLUMN_NOT_EXIST());
+        thrown.expectMessage(MsgPicker.getMsg().getTimestampColumnNotExist());
         streamingTableService.checkColumns(streamingRequest);
     }
 }

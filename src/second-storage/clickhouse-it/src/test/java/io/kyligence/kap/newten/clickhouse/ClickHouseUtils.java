@@ -52,23 +52,23 @@ import org.apache.kylin.job.handler.AbstractJobHandler;
 import org.apache.kylin.job.handler.SecondStorageSegmentLoadJobHandler;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.spark.SparkConf;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.catalyst.plans.logical.Aggregate;
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan;
+import org.apache.spark.sql.execution.ExplainMode;
 import org.apache.spark.sql.execution.datasource.FilePruner;
 import org.apache.spark.sql.execution.datasources.HadoopFsRelation;
 import org.apache.spark.sql.execution.datasources.LogicalRelation;
-import org.apache.spark.sql.execution.datasources.jdbc.ShardOptions$;
 import org.apache.spark.sql.execution.datasources.v2.DataSourceV2Relation;
 import org.apache.spark.sql.execution.datasources.v2.DataSourceV2ScanRelation;
 import org.apache.spark.sql.execution.datasources.v2.V1ScanWrapper;
-import org.apache.spark.sql.execution.datasources.v2.jdbc.ShardJDBCScan;
+import org.apache.spark.sql.execution.datasources.v2.jdbc.JDBCScan;
 import org.apache.spark.sql.execution.datasources.v2.jdbc.ShardJDBCTable;
-import org.apache.spark.sql.execution.datasources.v2.pushdown.sql.SingleSQLStatement;
 import org.junit.Assert;
 import org.testcontainers.containers.ClickHouseContainer;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.utility.DockerImageName;
-import scala.collection.JavaConverters;
 import scala.runtime.AbstractFunction1;
 
 import java.io.File;
@@ -82,19 +82,15 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static io.kyligence.kap.clickhouse.ClickHouseConstants.CONFIG_CLICKHOUSE_QUERY_CATALOG;
@@ -185,9 +181,13 @@ public class ClickHouseUtils {
             if (setupDataByDefault) {
                 setupData(connection, (data) -> {
                     data.createTable();
-                    data.insertData(1, 1L, "2", "not date");
-                    data.insertData(2, 2L, "2", "not date");
-                    data.insertData(3, 3L, "3", "not date");
+                    data.insertData(1, 2L, "2", "2021-01-01");
+                    data.insertData(2, 3L, "3", "2021-01-01");
+                    data.insertData(3, 4L, "3", "2021-01-02");
+                    data.insertData(4, 5L, "3", "2021-01-06");
+                    data.insertData(5, 6L, "2", "2021-01-31");
+                    data.insertData(6, 7L, "2", "2021-01-11");
+                    data.insertData(7, 3L, "4", "2021-01-04");
                     return true;
                 });
             }
@@ -274,22 +274,6 @@ public class ClickHouseUtils {
             CheckedFunction<PrepareTestData, R> lambda) throws Exception {
         PrepareTestData prepareTestData = new PrepareTestData(connection);
         return lambda.apply(prepareTestData);
-    }
-
-    static public String shardJDBCURL(JdbcDatabaseContainer<?>... clickhouse) {
-        List<String> urls =
-                Arrays.stream(clickhouse).map(JdbcDatabaseContainer::getJdbcUrl).collect(Collectors.toList());
-        return ShardOptions$.MODULE$.buildSharding(JavaConverters.asScalaBuffer(urls));
-    }
-
-    static public String replicaJBDCURL(int replicaNum, JdbcDatabaseContainer<?>... clickhouse) {
-        List<String> urls = Arrays.stream(clickhouse).map(JdbcDatabaseContainer::getJdbcUrl).collect(Collectors.toList());
-        ListIterator<String> it = urls.listIterator();
-        List<String> nameUrls = new ArrayList<>();
-        while (it.hasNext()) {
-            nameUrls.add(String.format(Locale.ROOT, "node%04d@%s", it.nextIndex(), it.next()));
-        }
-        return String.join(",", nameUrls);
     }
 
     public static <T> T configClickhouseWith(JdbcDatabaseContainer<?>[] clickhouse, int replica, String queryCatalog, final Callable<T> lambda) throws Exception {
@@ -383,22 +367,56 @@ public class ClickHouseUtils {
                 })).toOptional().map(logical -> (DataSourceV2ScanRelation)logical);
     }
 
-    static public ShardJDBCScan findShardScan(LogicalPlan logicalPlan) {
+    static public JDBCScan findJDBCScan(LogicalPlan logicalPlan) {
         Optional<DataSourceV2ScanRelation> plan = findDataSourceV2ScanRelation(logicalPlan);
 
         Assert.assertTrue(plan.isPresent());
         Assert.assertTrue(plan.get().scan() instanceof V1ScanWrapper);
         V1ScanWrapper wrapper = (V1ScanWrapper)plan.get().scan();
-        Assert.assertTrue(wrapper.v1Scan() instanceof ShardJDBCScan);
-        return (ShardJDBCScan) wrapper.v1Scan();
+        Assert.assertTrue(wrapper.v1Scan() instanceof JDBCScan);
+        return (JDBCScan) wrapper.v1Scan();
     }
 
-    static String removeLeadingAndTrailingQuotes(String s) {
-        Matcher m = _extraQuotes.matcher(s);
-        if (m.find()) {
-            s = m.group(2);
+    public static void checkAggregateRemoved(Dataset ds) {
+        checkAggregateRemoved(ds, true);
+    }
+
+    public static void checkAggregateRemoved(Dataset ds, boolean removed) {
+        Optional<Aggregate> optional = new RichOption<>(
+                ds.queryExecution().optimizedPlan().find(new AbstractFunction1<LogicalPlan, Object>() {
+                    @Override
+                    public Object apply(LogicalPlan v1) {
+                        return v1 instanceof Aggregate;
+                    }
+                })).toOptional().map(logical -> (Aggregate)logical);
+        if (removed) {
+            assert !optional.isPresent();
+        } else {
+            assert optional.isPresent();
         }
-        return s;
+    }
+
+    public static void checkPushedInfo(Dataset ds, String ... keywords) {
+        Optional<DataSourceV2ScanRelation> v2ScanRelation =
+                ClickHouseUtils.findDataSourceV2ScanRelation(ds.queryExecution().optimizedPlan());
+        Assert.assertTrue(v2ScanRelation.isPresent());
+        checkKeywordsExistsInExplain(ds, keywords);
+    }
+
+    private static void checkKeywordsExistsInExplain(Dataset ds, String ... keywords) {
+        checkKeywordsExistsInExplain(ds, ExplainMode.fromString("extended"), keywords);
+    }
+
+    private static void checkKeywordsExistsInExplain(Dataset ds, ExplainMode mode, String ... keywords) {
+        String normalizedOutput = getNormalizedExplain(ds, mode);
+        for (String key: keywords) {
+            assert normalizedOutput.contains(key);
+        }
+    }
+
+    private static String getNormalizedExplain(Dataset ds, ExplainMode mode) {
+        String output = ds.queryExecution().explainString(ExplainMode.fromString(mode.name()));
+        return output.replaceAll("#\\d+", "#x");
     }
 
     static public FilePruner findFilePruner(LogicalPlan logicalPlan) {
@@ -428,21 +446,6 @@ public class ClickHouseUtils {
     */
     public static final Map<String, String> columnMapping = ImmutableMap.of(
             "PRICE", "c9");
-
-    public static void checkGroupBy(ShardJDBCScan shardJDBCScan, List<String> expectGroupBy) {
-        SingleSQLStatement statement = shardJDBCScan.pushedStatement();
-        Assert.assertNotNull(statement);
-        Assert.assertNotNull(statement.groupBy().get());
-        List<String> groupBy = scala.collection.JavaConverters.seqAsJavaList(statement.groupBy().get());
-        Assert.assertEquals(expectGroupBy.size(), groupBy.size());
-
-        List<String> expected = expectGroupBy.stream()
-                .map(s -> s.toLowerCase(Locale.ROOT)).collect(Collectors.toList());
-        List<String> actual = groupBy.stream()
-                .map(s -> removeLeadingAndTrailingQuotes(s).toLowerCase(Locale.ROOT)).collect(Collectors.toList());
-        Assert.assertEquals(expected, actual);
-        log.info(statement.toSQL(null));
-    }
 
     public static void InjectNewPushDownRule(SparkConf conf) {
         conf.set("spark.sql.extensions", "io.kyligence.kap.query.SQLPushDownExtensions");

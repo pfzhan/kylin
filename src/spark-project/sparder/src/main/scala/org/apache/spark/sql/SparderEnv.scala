@@ -72,7 +72,7 @@ object SparderEnv extends Logging {
       initSpark(() => doInitSpark())
     }
     if (spark == null)
-      throw new KylinException(ServerErrorCode.SPARK_FAILURE, MsgPicker.getMsg.getSPARK_FAILURE)
+      throw new KylinException(ServerErrorCode.SPARK_FAILURE, MsgPicker.getMsg.getSparkFailure)
     spark
   }
 

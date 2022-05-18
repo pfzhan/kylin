@@ -338,7 +338,7 @@ public class ImportModelContext implements AutoCloseable {
                     .map(entry -> handleException(entry.getKey(), entry.getValue())).collect(Collectors.joining("\n"));
 
             throw new KylinException(MODEL_METADATA_FILE_ERROR,
-                    String.format(Locale.ROOT, "%s%n%s", MsgPicker.getMsg().getIMPORT_MODEL_EXCEPTION(), details),
+                    String.format(Locale.ROOT, "%s%n%s", MsgPicker.getMsg().getImportModelException(), details),
                     exceptionMap.values());
         }
     }
@@ -473,7 +473,7 @@ public class ImportModelContext implements AutoCloseable {
 
     private String handleException(String modelAlias, Exception exception) {
         if (exception instanceof RuntimeException && exception.getMessage().contains("call on Broken Entity")) {
-            return String.format(Locale.ROOT, MsgPicker.getMsg().getIMPORT_BROKEN_MODEL(), modelAlias);
+            return String.format(Locale.ROOT, MsgPicker.getMsg().getImportBrokenModel(), modelAlias);
         }
         return exception.getMessage();
     }

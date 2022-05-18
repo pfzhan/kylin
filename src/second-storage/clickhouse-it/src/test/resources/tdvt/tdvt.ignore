@@ -77,8 +77,6 @@ sql093:KE-29251,不支持的日期范围
 sql148:KE-29251,不支持的日期范围
 sql180:KE-29251,不支持的日期范围
 sql191:KE-29251,不支持的日期范围
-sql041:KE-29248, timezone
-sql044:KE-29248, timezone
 sql618:divide float,e.g. x /24.0, x is integer, related with PromotePrecision
 sql745:divide float,e.g. x /24.0, x is integer, related with PromotePrecision
 sql746:divide float,e.g. x /24.0, x is integer, related with PromotePrecision

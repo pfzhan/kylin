@@ -84,7 +84,10 @@ public enum QueryErrorCode implements ErrorCodeSupplier {
     // 20070XXX parse error
     PROFILING_NOT_ENABLED("KE-020070001"),
     PROFILING_ALREADY_STARTED("KE-020070002"),
-    PROFILER_ALREADY_DUMPED("KE-020070003");
+    PROFILER_ALREADY_DUMPED("KE-020070003"),
+
+    // 20080XXX query limit
+    REFUSE_NEW_QUERY("KE-020080001");
 
     private final ErrorCode errorCode;
 

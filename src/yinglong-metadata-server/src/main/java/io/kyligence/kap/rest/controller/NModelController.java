@@ -311,9 +311,9 @@ public class NModelController extends NBasicController {
         try {
             response = modelService.getLatestDataRange(project, modelId, partitionDesc);
         } catch (KylinTimeoutException e) {
-            throw new KylinException(FAILED_DETECT_DATA_RANGE, MsgPicker.getMsg().getPUSHDOWN_DATARANGE_TIMEOUT());
+            throw new KylinException(FAILED_DETECT_DATA_RANGE, MsgPicker.getMsg().getpushdownDatarangeTimeout());
         } catch (Exception e) {
-            throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getPUSHDOWN_DATARANGE_ERROR());
+            throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getPushdownDatarangeError());
         }
 
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
@@ -474,7 +474,7 @@ public class NModelController extends NBasicController {
                 return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, timestamp + "", "");
             }
         } catch (Exception e) {
-            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getINVALID_CUSTOMIZE_FORMAT());
+            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getInvalidCustomizeFormat());
         }
     }
 
@@ -670,10 +670,10 @@ public class NModelController extends NBasicController {
     public void validatePartitionDesc(PartitionDesc partitionDesc) {
         if (partitionDesc != null) {
             if (partitionDesc.isEmpty()) {
-                throw new KylinException(INVALID_PARTITION_COLUMN, MsgPicker.getMsg().getPARTITION_COLUMN_NOT_EXIST());
+                throw new KylinException(INVALID_PARTITION_COLUMN, MsgPicker.getMsg().getPartitionColumnNotExist());
             }
             if (!isSupportFormatsFormats(partitionDesc)) {
-                throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getINVALID_CUSTOMIZE_FORMAT());
+                throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getInvalidCustomizeFormat());
             }
             if (partitionDesc.getPartitionDateFormat() != null && !partitionDesc.partitionColumnIsTimestamp()) {
                 validateDateTimeFormatPattern(partitionDesc.getPartitionDateFormat());

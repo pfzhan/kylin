@@ -3013,6 +3013,20 @@ public abstract class KylinConfigBase implements Serializable {
         return Integer.parseInt(this.getOptional("kylin.server.aad-token-clock-skew-seconds", "0"));
     }
 
+    @ThirdPartyDependencies({
+            @ThirdPartyDependencies.ThirdPartyDependent(repository = "static-user-manager", classes = {
+                    "StaticAuthenticationProvider" }) })
+    public String getOktaOauth2Issuer() {
+        return getOptional("kylin.server.okta-oauth2-issuer", "");
+    }
+
+    @ThirdPartyDependencies({
+            @ThirdPartyDependencies.ThirdPartyDependent(repository = "static-user-manager", classes = {
+                    "StaticAuthenticationProvider" }) })
+    public String getOktaClientId() {
+        return getOptional("kylin.server.okta-client-id", "");
+    }
+
     public long buildResourceStateCheckInterval() {
         return TimeUtil.timeStringAs(getOptional("kylin.build.resource.state-check-interval-seconds", "10s"),
                 TimeUnit.SECONDS);
@@ -3030,13 +3044,18 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.build.skip-fresh-alluxio", FALSE));
     }
 
-    public Set<String> getNonCustomProjectConfigs() {
+    public Set<String> getUserDefinedNonCustomProjectConfigs() {
         String configs = getOptional("kylin.server.non-custom-project-configs");
         if (StringUtils.isEmpty(configs)) {
-            return NonCustomProjectLevelConfig.listAllConfigNames();
-        } else {
-            return Sets.newHashSet(configs.split(","));
+            return Sets.newHashSet();
         }
+        return Sets.newHashSet(configs.split(","));
+    }
+
+    public Set<String> getNonCustomProjectConfigs() {
+        val allConfigNameSet = getUserDefinedNonCustomProjectConfigs();
+        allConfigNameSet.addAll(NonCustomProjectLevelConfig.listAllConfigNames());
+        return allConfigNameSet;
     }
 
     public String getDiagObfLevel() {
@@ -3229,6 +3248,14 @@ public abstract class KylinConfigBase implements Serializable {
 
     public boolean checkModelDependencyHealthy() {
         return Boolean.parseBoolean(getOptional("kylin.model.check-model-dependency-health", "false"));
+    }
+
+    public long getClusterManagerHealthCheckMaxTimes() {
+        return Long.parseLong(getOptional("kylin.engine.cluster-manager-health-check-max-times", "10"));
+    }
+
+    public long getClusterManagerHealCheckIntervalSecond() {
+        return Long.parseLong(getOptional("kylin.engine.cluster-manager-heal-check-interval-second", "120"));
     }
 
     public boolean isRemoveLdapCustomSecurityLimitEnabled() {

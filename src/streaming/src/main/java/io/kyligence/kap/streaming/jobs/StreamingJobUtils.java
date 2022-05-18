@@ -110,7 +110,7 @@ public class StreamingJobUtils {
         } catch (Exception e) {
             logger.error("read kafka jaas file error ", e);
         }
-        throw new KylinException(READ_KAFKA_JAAS_FILE_ERROR, MsgPicker.getMsg().getREAD_KAFKA_JAAS_FILE_ERROR());
+        throw new KylinException(READ_KAFKA_JAAS_FILE_ERROR, MsgPicker.getMsg().getReadKafkaJaasFileError());
     }
 
 }

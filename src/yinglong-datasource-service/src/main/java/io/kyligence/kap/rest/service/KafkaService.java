@@ -59,7 +59,7 @@ public class KafkaService extends BasicService {
 
         Map<String, Object> brokenBrokersMap = Maps.newHashMap();
         brokenBrokersMap.put("failed_servers", brokenBrokers);
-        throw new KylinException(BROKER_TIMEOUT_MESSAGE, MsgPicker.getMsg().getBROKER_TIMEOUT_MESSAGE())
+        throw new KylinException(BROKER_TIMEOUT_MESSAGE, MsgPicker.getMsg().getBrokerTimeoutMessage())
                 .withData(brokenBrokersMap);
     }
 
@@ -74,7 +74,7 @@ public class KafkaService extends BasicService {
         try {
             return KafkaTableUtil.getMessages(kafkaConfig, clusterIndex);
         } catch (TimeoutException e) {
-            throw new KylinException(STREAMING_TIMEOUT_MESSAGE, MsgPicker.getMsg().getSTREAMING_TIMEOUT_MESSAGE());
+            throw new KylinException(STREAMING_TIMEOUT_MESSAGE, MsgPicker.getMsg().getStreamingTimeoutMessage());
         }
     }
 

@@ -196,12 +196,12 @@ public class EscapeTransformerCalciteTest {
     @Test
     public void testSubstring() {
         String originString = "select substring( lstg_format_name   from   1  for   4 ) from test_kylin_fact limit 10;";
-        String expectedSql = "select SUBSTRING(lstg_format_name, 1, 4) from test_kylin_fact limit 10;";
+        String expectedSql = "select SUBSTRING(lstg_format_name, 1, 4) from test_kylin_fact limit 10";
         String transformedSQL = transformer.transform(originString);
         Assert.assertEquals(expectedSql, transformedSQL);
 
         originString = "select substring( lstg_format_name   from   1  ) from test_kylin_fact limit 10;";
-        expectedSql = "select SUBSTRING(lstg_format_name, 1) from test_kylin_fact limit 10;";
+        expectedSql = "select SUBSTRING(lstg_format_name, 1) from test_kylin_fact limit 10";
         transformedSQL = transformer.transform(originString);
         Assert.assertEquals(expectedSql, transformedSQL);
 
@@ -214,7 +214,7 @@ public class EscapeTransformerCalciteTest {
         expectedSql = "select distinct SUBSTRING(\"ZB_POLICY_T_VIEW\".\"DIMENSION1\", "
                 + "position ('|1|' in \"ZB_POLICY_T_VIEW\".\"DIMENSION1\") + 3, "
                 + "(position ('|2|' in \"ZB_POLICY_T_VIEW\".\"DIMENSION1\") - position ('|1|' in \"ZB_POLICY_T_VIEW\".\"DIMENSION1\")) - 3) as \"memberUniqueName\" "
-                + "from \"FRPDB0322\".\"ZB_POLICY_T_VIEW\" \"ZB_POLICY_T_VIEW\" limit10;";
+                + "from \"FRPDB0322\".\"ZB_POLICY_T_VIEW\" \"ZB_POLICY_T_VIEW\" limit10";
         transformedSQL = transformer.transform(originString);
         Assert.assertEquals(expectedSql, transformedSQL);
     }
@@ -222,12 +222,12 @@ public class EscapeTransformerCalciteTest {
     @Test
     public void testTimestampdiffOrTimestampaddReplace() {
         String originString = "select timestampdiff(second,   time0,   time1) as c1 from tdvt.calcs;";
-        String expectedSql = "select TIMESTAMPDIFF(second, time0, time1) as c1 from tdvt.calcs;";
+        String expectedSql = "select TIMESTAMPDIFF(second, time0, time1) as c1 from tdvt.calcs";
         String transformedSQL = transformer.transform(originString);
         Assert.assertEquals(expectedSql, transformedSQL);
 
         originString = "select timestampdiff(year, cast(time0  as timestamp), cast(datetime0 as timestamp)) from tdvt.calcs;";
-        expectedSql = "select TIMESTAMPDIFF(year, cast(time0 as timestamp), cast(datetime0 as timestamp)) from tdvt.calcs;";
+        expectedSql = "select TIMESTAMPDIFF(year, cast(time0 as timestamp), cast(datetime0 as timestamp)) from tdvt.calcs";
         transformedSQL = transformer.transform(originString);
         Assert.assertEquals(expectedSql, transformedSQL);
     }
@@ -286,7 +286,7 @@ public class EscapeTransformerCalciteTest {
     @Test
     public void testGroupingSets() {
         String originSQL = "select sum(price) as GMV group by grouping sets((lstg_format_name, cal_dt, slr_segment_cd), (cal_dt, slr_segment_cd), (lstg_format_name, slr_segment_cd));";
-        String expectedSQL = "select sum(price) as GMV group by grouping sets((lstg_format_name, cal_dt, slr_segment_cd),(cal_dt, slr_segment_cd),(lstg_format_name, slr_segment_cd));";
+        String expectedSQL = "select sum(price) as GMV group by grouping sets((lstg_format_name, cal_dt, slr_segment_cd),(cal_dt, slr_segment_cd),(lstg_format_name, slr_segment_cd))";
         String transformedSQL = transformer.transform(originSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);
     }

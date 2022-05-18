@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.service;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_ACTION_ILLEGAL;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_STATUS_ILLEGAL;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_UPDATE_STATUS_FAILED;
+import static org.apache.kylin.job.constant.JobStatusEnum.SKIP;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
@@ -1398,6 +1399,11 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         getTestConfig().setProperty("kylin.history-server.enable", "false");
         result = jobService.parseToExecutableStep(task, stepOutput, waiteTimeMap, jobState);
         assert !result.getInfo().containsKey(ExecutableConstants.SPARK_HISTORY_APP_URL);
+    }
 
+    @Test
+    public void testParseToExecutableState() {
+        Assert.assertThrows(KylinException.class,
+                () -> ReflectionTestUtils.invokeMethod(new JobService(), "parseToExecutableState", SKIP));
     }
 }

@@ -93,7 +93,7 @@ public class ResourceGroupCheckerFilter implements Filter {
         if (!manager.isProjectBindToResourceGroup(project)) {
             Message msg = MsgPicker.getMsg();
             request.setAttribute(ERROR,
-                    new KylinException(PROJECT_WITHOUT_RESOURCE_GROUP, msg.getPROJECT_WITHOUT_RESOURCE_GROUP()));
+                    new KylinException(PROJECT_WITHOUT_RESOURCE_GROUP, msg.getProjectWithoutResourceGroup()));
             request.getRequestDispatcher(API_ERROR).forward(request, response);
             return;
         }

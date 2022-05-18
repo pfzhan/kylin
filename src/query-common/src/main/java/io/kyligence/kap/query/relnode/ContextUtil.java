@@ -172,13 +172,13 @@ public class ContextUtil {
     }
 
     private static boolean hasCountConstant(KapAggregateRel aggRel) {
-        return aggRel.aggCalls.stream().anyMatch(func -> !func.isDistinct() && func.getArgList().isEmpty()
+        return aggRel.aggregateCalls.stream().anyMatch(func -> !func.isDistinct() && func.getArgList().isEmpty()
                 && func.getAggregation() instanceof SqlCountAggFunction);
     }
 
     private static Set<Integer> collectAggInputIndex(KapAggregateRel aggRel) {
         Set<Integer> inputColsIndex = Sets.newHashSet();
-        for (AggregateCall aggregateCall : aggRel.aggCalls) {
+        for (AggregateCall aggregateCall : aggRel.aggregateCalls) {
             if (aggregateCall.getArgList() == null)
                 continue;
             inputColsIndex.addAll(aggregateCall.getArgList());

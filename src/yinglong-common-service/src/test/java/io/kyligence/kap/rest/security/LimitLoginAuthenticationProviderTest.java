@@ -176,4 +176,17 @@ public class LimitLoginAuthenticationProviderTest extends NLocalFileMetadataTest
         limitLoginAuthenticationProvider.setPasswordEncoder(new BCryptPasswordEncoder());
     }
 
+    @Test
+    public void testBuildBadCredentialsException() {
+        Assert.assertThrows(BadCredentialsException.class,
+                () -> ReflectionTestUtils.invokeMethod(limitLoginAuthenticationProvider, "buildBadCredentialsException",
+                        "userName", new BadCredentialsException("test")));
+    }
+
+    @Test
+    public void testBuildLockedException() {
+        Assert.assertThrows(LockedException.class, () -> ReflectionTestUtils
+                .invokeMethod(limitLoginAuthenticationProvider, "buildLockedException", "userName"));
+    }
+
 }

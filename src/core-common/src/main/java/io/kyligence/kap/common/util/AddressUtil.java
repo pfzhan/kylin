@@ -105,4 +105,8 @@ public class AddressUtil {
             return false;
         }
     }
+
+    public static String concatInstanceName() {
+        return AddressUtil.getLocalHostExactAddress() + ":" + KylinConfig.getInstanceFromEnv().getServerPort();
+    }
 }

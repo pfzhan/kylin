@@ -329,7 +329,7 @@ public class StreamingScheduler {
                 String model = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                         .getDataModelDesc(modelId).getAlias();
                 throw new KylinException(ServerErrorCode.REPEATED_START_ERROR,
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getJOB_START_FAILURE(), model));
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getJobStartFailure(), model));
             }
         }
     }

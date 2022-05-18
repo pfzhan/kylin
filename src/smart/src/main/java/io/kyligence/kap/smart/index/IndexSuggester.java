@@ -37,6 +37,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.FunctionDesc;
@@ -132,7 +133,7 @@ class IndexSuggester {
                 }
 
                 Map<String, String> aliasMap = RealizationChooser.matchJoins(model, ctx);
-                if (aliasMap == null) {
+                if (MapUtils.isEmpty(aliasMap)) {
                     throw new PendingException(String.format(Locale.ROOT,
                             getMsgTemplateByModelMaintainType(JOIN_NOT_MATCHED, Type.TABLE), model.getAlias()));
                 }

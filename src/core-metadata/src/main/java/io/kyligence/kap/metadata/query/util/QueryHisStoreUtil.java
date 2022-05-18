@@ -100,12 +100,7 @@ public class QueryHisStoreUtil {
 
     private static void createQueryHistoryIfNotExist(BasicDataSource dataSource, String qhTableName)
             throws SQLException, IOException {
-        try (Connection connection = dataSource.getConnection()) {
-            if (JdbcUtil.isTableExists(connection, qhTableName)) {
-                return;
-            }
-        } catch (Exception e) {
-            log.error("Fail to know if table {} exists", qhTableName, e);
+        if(JdbcTableUtil.isTableExist(dataSource, qhTableName)) {
             return;
         }
         try (Connection connection = dataSource.getConnection()) {

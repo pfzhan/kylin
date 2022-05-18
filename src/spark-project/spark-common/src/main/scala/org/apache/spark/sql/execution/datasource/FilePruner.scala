@@ -262,7 +262,12 @@ class FilePruner(val session: SparkSession,
     val totalFileCount = selected.flatMap(partition => partition.files).size
     QueryContext.current().getMetrics.setFileCount(totalFileCount)
     val totalFileSize = selected.flatMap(partition => partition.files).map(_.getLen).sum
-    val sourceRows = selected.map(seg => dataflow.getSegment(seg.segmentID).getLayout(layout.getId).getRows).sum
+    val sourceRows = selected.map(seg => {
+      val layoutRows = dataflow.getSegment(seg.segmentID).getLayout(layout.getId).getRows
+      logInfo(s"Source scan rows: Query Id: ${QueryContext.current().getQueryId}, Segment Id: ${seg.segmentID}, " +
+        s"Layout Id: ${layout.getId}, rows: $layoutRows.")
+      layoutRows
+    }).sum
     setShufflePartitions(totalFileSize, sourceRows, session)
     if (selected.isEmpty) {
       val value = Seq.empty[PartitionDirectory]

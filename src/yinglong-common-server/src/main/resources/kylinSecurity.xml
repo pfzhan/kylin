@@ -260,6 +260,7 @@
             <scr:intercept-url pattern="/api/health/**" access="permitAll"/>
             <scr:intercept-url pattern="/api/prometheus" access="permitAll"/>
             <scr:intercept-url pattern="/api/monitor/spark/prometheus" access="permitAll"/>
+            <scr:intercept-url pattern="/api/monitor/alert" access="hasRole('ROLE_ADMIN')"/>
             <scr:intercept-url pattern="/api/user/update_user" access="permitAll"/>
             <scr:intercept-url pattern="/api/metastore/cleanup" access="permitAll"/>
             <scr:intercept-url pattern="/api/metastore/cleanup_storage" access="permitAll"/>
@@ -331,6 +332,7 @@
             <scr:intercept-url pattern="/api/streaming_jobs/dataflow/**" access="permitAll"/>
             <scr:intercept-url pattern="/api/epoch/maintenance_mode" access="permitAll"/>
             <scr:intercept-url pattern="/api/config/is_cloud" access="permitAll"/>
+            <scr:intercept-url pattern="/api/monitor/alert" access="hasRole('ROLE_ADMIN')"/>
             <scr:intercept-url pattern="/api/system/license/file" access="permitAll"/>
             <scr:intercept-url pattern="/api/system/license/content" access="permitAll"/>
             <scr:intercept-url pattern="/api/system/license/trial" access="permitAll"/>

@@ -23,8 +23,12 @@
  */
 package io.kyligence.kap.newten.clickhouse;
 
+import java.sql.Connection;
+import java.util.List;
+
+import scala.collection.JavaConversions;
+
 import com.google.common.collect.ImmutableList;
-import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -36,10 +40,8 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.testcontainers.containers.JdbcDatabaseContainer;
-import scala.collection.JavaConversions;
 
-import java.sql.Connection;
-import java.util.List;
+import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 
 @Slf4j
 public class ClickHouseV1QueryTest extends NLocalWithSparkSessionTest {

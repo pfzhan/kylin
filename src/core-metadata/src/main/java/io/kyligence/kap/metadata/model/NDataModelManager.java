@@ -238,7 +238,7 @@ public class NDataModelManager {
             if (existingModel.getAlias().equalsIgnoreCase(model.getAlias())
                     || existingModel.getUuid().equals(model.getUuid())) {
                 throw new IllegalArgumentException(
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getDUPLICATE_MODEL_NAME(), model.getAlias()));
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getDuplicateModelName(), model.getAlias()));
             }
         }
     }

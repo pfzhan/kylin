@@ -127,7 +127,7 @@ public class CollectKafkaStats {
         try {
             topicsMap.putAll(consumer.listTopics(Duration.ofMillis(CONSUMER_LIST_TOPICS_TIMEOUT)));
         } catch (TimeoutException e) {
-            throw new KylinException(BROKER_TIMEOUT_MESSAGE, MsgPicker.getMsg().getBROKER_TIMEOUT_MESSAGE());
+            throw new KylinException(BROKER_TIMEOUT_MESSAGE, MsgPicker.getMsg().getBrokerTimeoutMessage());
         }
 
         for (String topic : topicsMap.keySet()) {

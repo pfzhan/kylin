@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.engine.spark.job.stage.build.partition
 
+import io.kyligence.kap.engine.spark.builder.{DictionaryBuilderHelper, PartitionDictionaryBuilderHelper}
 import io.kyligence.kap.engine.spark.job.stage.BuildParam
 import io.kyligence.kap.engine.spark.job.stage.build.FlatTableAndDictBase
 import io.kyligence.kap.engine.spark.job.stage.build.FlatTableAndDictBase.Statistics
@@ -31,6 +32,7 @@ import io.kyligence.kap.engine.spark.job.{PartitionExec, SegmentJob}
 import io.kyligence.kap.engine.spark.model.PartitionFlatTableDesc
 import io.kyligence.kap.metadata.cube.model.NDataSegment
 import org.apache.commons.lang3.StringUtils
+import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.sql.{Dataset, Row}
 
 import java.util.Objects
@@ -94,5 +96,13 @@ abstract class PartitionFlatTableAndDictBase(private val jobContext: SegmentJob,
 
     logInfo(s"Segment $segmentId single partition condition: $converted")
     FLAT_TABLE.where(converted)
+  }
+
+  override def prepareForDict(): (Set[TblColRef], Set[TblColRef], Set[TblColRef], Set[TblColRef]) = {
+    val dictCols = PartitionDictionaryBuilderHelper.extractTreeRelatedGlobalDictToBuild(dataSegment, spanningTree.getIndices).asScala.toSet
+    val encodeCols = DictionaryBuilderHelper.extractTreeRelatedGlobalDicts(dataSegment, spanningTree.getIndices).asScala.toSet
+    val dictColsWithoutCc = dictCols.filter(!_.getColumnDesc.isComputedColumn)
+    val encodeColsWithoutCc = encodeCols.filter(!_.getColumnDesc.isComputedColumn)
+    (dictCols, encodeCols, dictColsWithoutCc, encodeColsWithoutCc)
   }
 }

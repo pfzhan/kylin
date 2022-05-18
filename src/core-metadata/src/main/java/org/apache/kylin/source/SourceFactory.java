@@ -120,7 +120,7 @@ public class SourceFactory {
                     .newInstance(aware.getConfig());
         } catch (Exception e) {
             log.error("Failed to create source: SourceType={}", aware.getSourceType());
-            throw new KylinException(INVALID_JDBC_SOURCE_CONFIG, MsgPicker.getMsg().getJDBC_CONNECTION_INFO_WRONG(), e);
+            throw new KylinException(INVALID_JDBC_SOURCE_CONFIG, MsgPicker.getMsg().getJdbcConnectionInfoWrong(), e);
         }
     }
 

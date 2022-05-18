@@ -55,20 +55,20 @@ public class ResourceGroupKylinInstanceValidator implements IResourceGroupReques
         List<KylinInstance> instances = request.getKylinInstances();
         for (KylinInstance instance : instances) {
             if (StringUtils.isBlank(instance.getInstance())) {
-                throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getEMPTY_KYLIN_INSTANCE_IDENTITY());
+                throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getEmptyKylinInstanceIdentity());
             }
             if (StringUtils.isBlank(instance.getResourceGroupId())) {
                 throw new KylinException(INVALID_PARAMETER,
-                        MsgPicker.getMsg().getEMPTY_KYLIN_INSTANCE_RESOURCE_GROUP_ID());
+                        MsgPicker.getMsg().getEmptyKylinInstanceResourceGroupId());
             }
             if (!resourceGroups.contains(instance.getResourceGroupId())) {
                 throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg()
-                        .getRESOURCE_GROUP_ID_NOT_EXIST_IN_KYLIN_INSTANCE(instance.getResourceGroupId()));
+                        .getResourceGroupIdNotExistInKylinInstance(instance.getResourceGroupId()));
             }
         }
         val identities = instances.stream().map(KylinInstance::getInstance).collect(Collectors.toList());
         if (identities.size() != Sets.newHashSet(identities).size()) {
-            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getDUPLICATED_KYLIN_INSTANCE());
+            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getDuplicatedKylinInstance());
         }
     }
 }

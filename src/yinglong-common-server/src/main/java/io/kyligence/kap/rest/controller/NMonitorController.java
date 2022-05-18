@@ -30,18 +30,23 @@ import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_RANGE;
 import java.util.List;
 import java.util.Locale;
 
+import javax.validation.Valid;
+
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.rest.request.AlertMessageRequest;
 import io.kyligence.kap.rest.response.ClusterStatisticStatusResponse;
 import io.kyligence.kap.rest.response.ClusterStatusResponse;
 import io.kyligence.kap.rest.response.ExecutorMemoryResponse;
@@ -113,5 +118,12 @@ public class NMonitorController extends NBasicController {
         }
 
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, result, "");
+    }
+
+    @ApiOperation(value = "alert", tags = { "SM" })
+    @PostMapping(value = "/alert")
+    @ResponseBody
+    public void alert(@RequestBody @Valid AlertMessageRequest alertMessageRequest) {
+        monitorService.handleAlertMessage(alertMessageRequest);
     }
 }

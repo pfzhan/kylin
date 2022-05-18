@@ -76,7 +76,7 @@ public class QueryUtils {
         }
     }
 
-    public static void updateQueryContextSQLMetrics() {
+    public static void updateQueryContextSQLMetrics(String alternativeSql) {
         QueryContext queryContext = QueryContext.current();
         if (StringUtils.isEmpty(queryContext.getMetrics().getCorrectedSql())
                 && queryContext.getQueryTagInfo().isStorageCacheUsed()) {
@@ -88,13 +88,13 @@ public class QueryUtils {
                 logger.warn("Failed to get connection, project: {}", queryContext.getProject(), e);
             }
             QueryParams queryParams = new QueryParams(KapQueryUtil.getKylinConfig(queryContext.getProject()),
-                    queryContext.getUserSQL(), queryContext.getProject(), queryContext.getLimit(),
+                    alternativeSql, queryContext.getProject(), queryContext.getLimit(),
                     queryContext.getOffset(), defaultSchema, false);
             queryParams.setAclInfo(queryContext.getAclInfo());
             queryContext.getMetrics().setCorrectedSql(KapQueryUtil.massageSql(queryParams));
         }
         if (StringUtils.isEmpty(queryContext.getMetrics().getCorrectedSql())) {
-            queryContext.getMetrics().setCorrectedSql(queryContext.getUserSQL());
+            queryContext.getMetrics().setCorrectedSql(alternativeSql);
         }
         queryContext.getMetrics()
                 .setSqlPattern(queryContext.getMetrics().getCorrectedSql());
