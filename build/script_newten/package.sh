@@ -50,6 +50,38 @@ echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit
 cat > build/CHANGELOG.md <<'EOL'
 ### Release History
 
+#### Kyligence Enterprise 4.5.13.0 release note
+
+**Enhancement**
+
+- Refactor query pushdown to tiered storage, adding support for 10+ pushdown functions
+- Add tiered storage query statistics dashboard in Grafana
+- Fix SQL copied from query history to automatically remove newlines and spaces
+- KOptimize the content of query history preservation
+- Provide a recoverable escape channel when the spark master service of the build job is abnormal
+- Add Protection strategy of Query stability
+- Estimate the resource consumption of spark before submitting the task
+- Support for varchar comparison calculation in where condition to be pushed down to tiered storage
+- (Beta)Second flat table supports columnar storage
+- Add protection measures to upgrade script to avoid data deletion caused by the user executing the upgrade script in the old installation path
+
+**Bugfix**
+
+- Fixed high-risk vulnerability Directory Traversal
+- When repairing an instance in an instance pair, if other instance pairs under the same project is abnormal, the data size of the tiered storage in the model list and segment list is incorrect
+- Optimization suggestions for batches of computed columns with the same expression, the interface prompts that the number of indexes generated is inconsistent with the actual number of indexes generated
+- When importing a model, the case of the expressions in the CC column with the same name is different, so the model cannot be imported
+- For a specific query, no index optimization suggestions were generated
+- The query page selects "limit 500" by default, and the query history sql does not display "limit 500"
+- Two models with the same name refer to tables with the same name of the same structure in different libraries, allowing overriding imports between models
+- When the query uses CubePriority to specify the model priority, the content of CubePriority cannot be seen in the query history
+- JDBC dynamically passes parameters, hits the cached query, does not convert ? into actual values
+- Configurations that prohibit overriding at the project level can be added at the project level
+- Data recovery on ClickHouse instances fails when routing to non-epoch nodes
+- The model sets multi-level partitions, the global dictionary is missing, the query results are incorrect
+- The build job fails in resource detection step, but it can be restored after restarting the job
+- Syntax error with ESCAPE in SIMILAR TO
+
 #### Kyligence Enterprise 4.5.12.0 release note
 
 **Enhancement**
