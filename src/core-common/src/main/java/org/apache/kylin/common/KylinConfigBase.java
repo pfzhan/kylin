@@ -3259,7 +3259,7 @@ public abstract class KylinConfigBase implements Serializable {
         int i = Integer.parseInt(getOptional("kylin.project.forced-to-tiered-storage"));
         return ForceToTieredStorage.values()[i];
     }
-  
+
     public long getClusterManagerHealthCheckMaxTimes() {
         return Long.parseLong(getOptional("kylin.engine.cluster-manager-health-check-max-times", "10"));
     }
