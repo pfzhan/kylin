@@ -25,6 +25,7 @@
 package io.kyligence.kap.job.scheduler;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
@@ -36,6 +37,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.time.DateUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,6 +50,7 @@ import io.kyligence.kap.job.core.AbstractJobConfig;
 import io.kyligence.kap.job.core.AbstractJobExecutable;
 import io.kyligence.kap.job.domain.JobInfo;
 import io.kyligence.kap.job.domain.JobScheduleLock;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.job.mapper.JobInfoMapper;
 import io.kyligence.kap.job.mapper.JobScheduleLockMapper;
 
@@ -235,8 +238,9 @@ public class JdbcJobScheduler implements JobScheduler {
         // project level: concurrent job count threshold.
 
         int batchSize = jobConfig.getJobSchedulerProducerPollBatchSize();
-        List<String> jobIdList = scheduleLockMapper.selectNonLockedIdList(batchSize).stream()
-                .filter(id -> !JOB_SCHEDULER_MASTER.equals(id)).collect(Collectors.toList());
+//        List<String> jobIdList = scheduleLockMapper.selectNonLockedIdList(batchSize).stream()
+//                .filter(id -> !JOB_SCHEDULER_MASTER.equals(id)).collect(Collectors.toList());
+        List<String> jobIdList = new ArrayList<>();
 
         // TODO
         // shuffle jobs avoiding jobLock conflict
@@ -267,7 +271,8 @@ public class JdbcJobScheduler implements JobScheduler {
 
     private AbstractJobExecutable getJobExecutable(JobInfo jobInfo) {
         // TODO
-        return null;
+        return ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), jobInfo.getProject())
+                .getJob(jobInfo.getJobId());
     }
 
     private Date nextJobExpireTime() {
@@ -280,7 +285,8 @@ public class JdbcJobScheduler implements JobScheduler {
         if (jobContext.isResourceBlocked(jobExecutable)) {
             return;
         }
-        int r = scheduleLockMapper.updateLock(jobExecutable.getJobId(), schedulerInstance, nextJobExpireTime());
+//        int r = scheduleLockMapper.updateLock(jobExecutable.getJobId(), schedulerInstance, nextJobExpireTime());
+        int r = 1;
         if (r > 0) {
             jobExecutorPool.execute(() -> executeJob(jobContext, jobExecutable));
             logger.info("JdbcJobScheduler submit job: {} {}", jobExecutable.getProject(), jobExecutable.getJobId());

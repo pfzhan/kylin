@@ -24,13 +24,12 @@
 
 package io.kyligence.kap.job.manager;
 
+import io.kyligence.kap.rest.delegate.TableMetadataInvoker;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import io.kyligence.kap.job.delegate.TableMetadataInvoker;
 
 // RPC version of TableMetadataManager
 @Service

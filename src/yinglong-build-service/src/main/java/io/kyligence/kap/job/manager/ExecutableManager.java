@@ -24,57 +24,80 @@
 
 package io.kyligence.kap.job.manager;
 
+import static io.kyligence.kap.job.execution.AbstractExecutable.RUNTIME_INFO;
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_DOWNLOAD_FILE;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_STATE_TRANSFER_ILLEGAL;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_UPDATE_STATUS_FAILED;
+
+import java.io.BufferedReader;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.lang.reflect.Constructor;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.MapUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.util.Array;
+import org.apache.kylin.common.util.ClassUtil;
+import org.apache.kylin.common.util.CliCommandExecutor;
+import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.ShellException;
+import org.apache.kylin.job.constant.ExecutableConstants;
+import org.apache.kylin.job.dao.ExecutableOutputPO;
+import org.apache.kylin.job.dao.ExecutablePO;
+import org.apache.kylin.job.execution.DefaultOutput;
+import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.execution.Output;
+import org.apache.kylin.rest.util.SpringContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.scheduler.JobAddedNotifier;
 import io.kyligence.kap.common.scheduler.JobReadyNotifier;
 import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.job.dao.JobInfoDao;
-import io.kyligence.kap.job.service.JobInfoService;
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.execution.ChainedExecutable;
+import io.kyligence.kap.job.execution.ChainedStageExecutable;
+import io.kyligence.kap.job.execution.DefaultChainedExecutable;
+import io.kyligence.kap.job.execution.DefaultChainedExecutableOnModel;
+import io.kyligence.kap.job.execution.handler.ExecutableHandler;
+import io.kyligence.kap.job.execution.stage.StageBase;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
-import lombok.extern.slf4j.Slf4j;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import lombok.val;
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.collections.MapUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.util.ClassUtil;
-import org.apache.kylin.common.util.CliCommandExecutor;
-import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.common.util.ShellException;
-import org.apache.kylin.job.constant.ExecutableConstants;
-import org.apache.kylin.job.dao.ExecutableOutputPO;
-import org.apache.kylin.job.dao.ExecutablePO;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.ChainedExecutable;
-import org.apache.kylin.job.execution.ChainedStageExecutable;
-import org.apache.kylin.job.execution.DefaultChainedExecutable;
-import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
-import org.apache.kylin.job.execution.DefaultOutput;
-import org.apache.kylin.job.execution.ExecutableHandler;
-import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.Output;
-import org.apache.kylin.job.execution.StageBase;
-import org.apache.kylin.rest.util.SpringContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.lang.reflect.Constructor;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_STATE_TRANSFER_ILLEGAL;
-import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_UPDATE_STATUS_FAILED;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ExecutableManager {
@@ -82,6 +105,8 @@ public class ExecutableManager {
     private static final Logger logger = LoggerFactory.getLogger(ExecutableManager.class);
     /** Dummy value to reflection */
     private static final Object DUMMY_OBJECT = new Object();
+    private static final String PARSE_ERROR_MSG = "Error parsing the executablePO: ";
+    private static final int LOG_DEFAULT_DISPLAY_HEAD_AND_TAIL_SIZE = 100;
     private final KylinConfig config;
     private String project;
 
@@ -107,6 +132,56 @@ public class ExecutableManager {
         this.config = config;
         this.project = project;
         this.jobInfoDao = SpringContext.getBean(JobInfoDao.class);
+    }
+
+    public static ExecutablePO toPO(AbstractExecutable executable, String project) {
+        ExecutablePO result = new ExecutablePO();
+        result.setProject(project);
+        result.setName(executable.getName());
+        result.setUuid(executable.getId());
+        result.setType(executable.getClass().getName());
+        result.setParams(executable.getParams());
+        result.setJobType(executable.getJobType());
+        result.setTargetModel(executable.getTargetSubject());
+        result.setTargetSegments(executable.getTargetSegments());
+        result.setTargetPartitions(executable.getTargetPartitions());
+        result.getOutput().setResumable(executable.isResumable());
+        result.setPriority(executable.getPriority());
+        result.setTag(executable.getTag());
+        Map<String, Object> runTimeInfo = executable.getRunTimeInfo();
+        if (runTimeInfo != null && runTimeInfo.size() > 0) {
+            Set<NDataSegment> segments = (HashSet<NDataSegment>) runTimeInfo.get(RUNTIME_INFO);
+            if (segments != null) {
+                result.getSegments().addAll(segments);
+            }
+        }
+        if (executable instanceof ChainedExecutable) {
+            List<ExecutablePO> tasks = Lists.newArrayList();
+            for (AbstractExecutable task : ((ChainedExecutable) executable).getTasks()) {
+                tasks.add(toPO(task, project));
+            }
+            result.setTasks(tasks);
+            if (executable instanceof DefaultChainedExecutableOnModel) {
+                val handler = ((DefaultChainedExecutableOnModel) executable).getHandler();
+                if (handler != null) {
+                    result.setHandlerType(handler.getClass().getName());
+                }
+            }
+        }
+        if (executable instanceof ChainedStageExecutable) {
+            Map<String, List<ExecutablePO>> taskMap = Maps.newHashMap();
+            final Map<String, List<StageBase>> tasksMap = Optional
+                    .ofNullable(((ChainedStageExecutable) executable).getStagesMap()).orElse(Maps.newHashMap());
+            for (Map.Entry<String, List<StageBase>> entry : tasksMap.entrySet()) {
+                final List<ExecutablePO> executables = entry.getValue().stream().map(stage -> toPO(stage, project))
+                        .collect(Collectors.toList());
+                taskMap.put(entry.getKey(), executables);
+            }
+            if (MapUtils.isNotEmpty(taskMap)) {
+                result.setStagesMap(taskMap);
+            }
+        }
+        return result;
     }
 
     public void addJob(ExecutablePO executablePO) {
@@ -211,8 +286,7 @@ public class ExecutableManager {
             if (needDestroyProcess(oldStatus, newStatus)) {
                 logger.debug("need kill {}, from {} to {}", taskOrJobId, oldStatus, newStatus);
                 // kill spark-submit process
-                val context = UnitOfWork.get();
-                context.doAfterUnit(() -> destroyProcess(taskOrJobId));
+                destroyProcess(taskOrJobId);
             }
             return true;
         });
@@ -329,6 +403,22 @@ public class ExecutableManager {
         }
     }
 
+    public AbstractExecutable getJob(String id) {
+        if (id == null) {
+            return null;
+        }
+        ExecutablePO executablePO = jobInfoDao.getExecutablePOByUuid(id);
+        if (executablePO == null) {
+            return null;
+        }
+        try {
+            return fromPO(executablePO);
+        } catch (Exception e) {
+            logger.error(PARSE_ERROR_MSG, e);
+            return null;
+        }
+    }
+
     public AbstractExecutable fromPO(ExecutablePO executablePO) {
         if (executablePO == null) {
             logger.warn("executablePO is null");
@@ -394,6 +484,26 @@ public class ExecutableManager {
         }
     }
 
+    public long getCreateTime(String id) {
+        ExecutablePO executablePO = jobInfoDao.getExecutablePOByUuid(extractJobId(id));
+        if (executablePO == null) {
+            return 0L;
+        }
+        return executablePO.getOutput().getCreateTime();
+    }
+
+    public Output getOutput(String id) {
+        val jobOutput = getJobOutput(id);
+        assertOutputNotNull(jobOutput, id);
+        return parseOutput(jobOutput);
+    }
+
+    public Output getOutput(String id, String segmentId) {
+        val jobOutput = getJobOutput(id, segmentId);
+        assertOutputNotNull(jobOutput, id, segmentId);
+        return parseOutput(jobOutput);
+    }
+
     public Output getOutput(String id, ExecutablePO executablePO, String segmentId) {
         val jobOutput = getJobOutput(id, executablePO, segmentId);
         assertOutputNotNull(jobOutput, id, segmentId);
@@ -404,6 +514,21 @@ public class ExecutableManager {
         val jobOutput = getJobOutput(id, executablePO);
         assertOutputNotNull(jobOutput, id);
         return parseOutput(jobOutput);
+    }
+
+    //TODO this will directly access db, need cache?
+    public ExecutableOutputPO getJobOutput(String taskOrJobId) {
+        val jobId = extractJobId(taskOrJobId);
+        val executablePO = jobInfoDao.getExecutablePOByUuid(jobId);
+        ExecutableOutputPO jobOutput = getExecutableOutputPO(taskOrJobId, jobId, executablePO);
+        assertOutputNotNull(jobOutput, taskOrJobId);
+        return jobOutput;
+    }
+
+    public ExecutableOutputPO getJobOutput(String taskOrJobId, String segmentId) {
+        val jobId = extractJobId(taskOrJobId);
+        val executablePO = jobInfoDao.getExecutablePOByUuid(jobId);
+        return getJobOutput(jobId, executablePO, segmentId);
     }
 
     public ExecutableOutputPO getJobOutput(String taskOrJobId, ExecutablePO executablePO) {
@@ -773,4 +898,374 @@ public class ExecutableManager {
         // update job status
         updateJobOutput(jobId, ExecutableState.DISCARDED);
     }
+
+    public void updateJobOutputToHDFS(String resPath, ExecutableOutputPO obj) {
+        DataOutputStream dout = null;
+        try {
+            Path path = new Path(resPath);
+            FileSystem fs = HadoopUtil.getWorkingFileSystem();
+            dout = fs.create(path, true);
+            JsonUtil.writeValue(dout, obj);
+        } catch (Exception e) {
+            // the operation to update output to hdfs failed, next task should not be interrupted.
+            logger.error("update job output [{}] to HDFS failed.", resPath, e);
+        } finally {
+            IOUtils.closeQuietly(dout);
+        }
+    }
+
+    public ExecutableOutputPO getJobOutputFromHDFS(String resPath) {
+        DataInputStream din = null;
+        try {
+            val path = new Path(resPath);
+            FileSystem fs = HadoopUtil.getWorkingFileSystem();
+            if (!fs.exists(path)) {
+                val executableOutputPO = new ExecutableOutputPO();
+                executableOutputPO.setContent("job output not found, please check kylin.log");
+                return executableOutputPO;
+            }
+
+            din = fs.open(path);
+            return JsonUtil.readValue(din, ExecutableOutputPO.class);
+        } catch (Exception e) {
+            // If the output file on hdfs is corrupt, give an empty output
+            logger.error("get job output [{}] from HDFS failed.", resPath, e);
+            val executableOutputPO = new ExecutableOutputPO();
+            executableOutputPO.setContent("job output broken, please check kylin.log");
+            return executableOutputPO;
+        } finally {
+            IOUtils.closeQuietly(din);
+        }
+    }
+
+    public void makeStageSuccess(String taskOrJobId) {
+        val jobId = extractJobId(taskOrJobId);
+        AbstractExecutable job = getJob(jobId);
+        if (job == null) {
+            return;
+        }
+        if (job instanceof DefaultChainedExecutable) {
+            List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
+            tasks.forEach(task -> {
+                if (task instanceof ChainedStageExecutable && StringUtils.equals(taskOrJobId, task.getId())) {
+                    final Map<String, List<StageBase>> tasksMap = ((ChainedStageExecutable) task).getStagesMap();
+                    if (MapUtils.isNotEmpty(tasksMap)) {
+                        for (Map.Entry<String, List<StageBase>> entry : tasksMap.entrySet()) {
+                            Optional.ofNullable(entry.getValue()).orElse(Lists.newArrayList())//
+                                    .stream() //
+                                    .filter(stage -> stage.getStatus(entry.getKey()) != ExecutableState.SUCCEED)//
+                                    .forEach(stage -> //
+                                            updateStageStatus(stage.getId(), entry.getKey(), ExecutableState.SUCCEED, null, null));
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    public void makeStageError(String taskOrJobId) {
+        val jobId = extractJobId(taskOrJobId);
+        AbstractExecutable job = getJob(jobId);
+        if (job == null) {
+            return;
+        }
+        if (job instanceof DefaultChainedExecutable) {
+            List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
+            tasks.forEach(task -> {
+                if (task instanceof ChainedStageExecutable && StringUtils.equals(taskOrJobId, task.getId())) {
+                    final Map<String, List<StageBase>> tasksMap = ((ChainedStageExecutable) task).getStagesMap();
+                    if (MapUtils.isNotEmpty(tasksMap)) {
+                        for (Map.Entry<String, List<StageBase>> entry : tasksMap.entrySet()) {
+                            Optional.ofNullable(entry.getValue()).orElse(Lists.newArrayList())//
+                                    .stream() //
+                                    .filter(stage -> stage.getStatus(entry.getKey()) == ExecutableState.RUNNING)//
+                                    .forEach(stage -> //
+                                            updateStageStatus(stage.getId(), entry.getKey(), ExecutableState.ERROR, null, null));
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    public long countCuttingInJobByModel(String model, AbstractExecutable job) {
+        return getAllExecutables().stream() //
+                .filter(e -> e.getTargetSubject() != null) //
+                .filter(e -> e.getTargetSubject().equals(model))
+                .filter(executable -> executable.getCreateTime() > job.getCreateTime()).count();
+    }
+
+    public List<AbstractExecutable> getAllExecutables() {
+        List<AbstractExecutable> ret = Lists.newArrayList();
+        for (ExecutablePO po : jobInfoDao.getJobs(project)) {
+            try {
+                AbstractExecutable ae = fromPO(po);
+                ret.add(ae);
+            } catch (Exception e) {
+                logger.error(PARSE_ERROR_MSG, e);
+            }
+        }
+        return ret;
+    }
+
+    public long countByModelAndStatus(String model, Predicate<ExecutableState> predicate) {
+        return listExecByModelAndStatus(model, predicate, null).size();
+    }
+
+    public List<AbstractExecutable> listExecByModelAndStatus(String model, Predicate<ExecutableState> predicate,
+                                                                                            JobTypeEnum... jobTypes) {
+        return listExecutablePOByModelAndStatus(model, predicate, jobTypes).stream().map(this::fromPO)
+                .collect(Collectors.toList());
+    }
+
+    public List<ExecutablePO> listExecutablePOByModelAndStatus(String model, Predicate<ExecutableState> predicate,
+                                                               List<ExecutablePO> jobs, JobTypeEnum... jobTypes) {
+        boolean allPass = Array.isEmpty(jobTypes);
+        return jobs.stream() //
+                .filter(job -> job.getTargetModel() != null) //
+                .filter(job -> job.getTargetModel().equals(model)) //
+                .filter(job -> predicate.test(ExecutableState.valueOf(job.getOutput().getStatus()))) //
+                .filter(job -> allPass || Lists.newArrayList(jobTypes).contains(job.getJobType())) //
+                .collect(Collectors.toList());
+    }
+
+    public List<ExecutablePO> listExecutablePOByModelAndStatus(String model, Predicate<ExecutableState> predicate,
+                                                               JobTypeEnum... jobTypes) {
+        return listExecutablePOByModelAndStatus(model, predicate, jobInfoDao.getJobs(project), jobTypes);
+    }
+
+    public void setJobResumable(final String taskOrJobId) {
+        final String jobId = extractJobId(taskOrJobId);
+        AbstractExecutable job = getJob(jobId);
+        if (Objects.isNull(job)) {
+            return;
+        }
+        if (Objects.equals(taskOrJobId, jobId)) {
+            jobInfoDao.updateJob(jobId, executablePO -> {
+                executablePO.getOutput().setResumable(true);
+                return true;
+            });
+        } else {
+            jobInfoDao.updateJob(jobId, executablePO -> {
+                executablePO.getTasks().stream().filter(o -> Objects.equals(taskOrJobId, o.getId()))
+                        .forEach(t -> t.getOutput().setResumable(true));
+                return true;
+            });
+        }
+    }
+
+    public List<AbstractExecutable> listMultiPartitionModelExec(String model, Predicate<ExecutableState> predicate,
+            JobTypeEnum jobType, Set<Long> targetPartitions, Set<String> segmentIds) {
+        return getAllExecutables().stream().filter(e -> e.getTargetSubject() != null)
+                .filter(e -> e.getTargetSubject().equals(model)).filter(e -> predicate.test(e.getStatus()))
+                .filter(e -> {
+                    /**
+                     *  Select jobs which partition is overlap.
+                     *  Attention: Refresh/Index build job will include all partitions.
+                     */
+                    boolean checkAllPartition = CollectionUtils.isEmpty(targetPartitions)
+                            || JobTypeEnum.INDEX_REFRESH == e.getJobType() //
+                            || JobTypeEnum.INDEX_REFRESH == jobType //
+                            || JobTypeEnum.INDEX_BUILD == e.getJobType() //
+                            || JobTypeEnum.INDEX_BUILD == jobType;
+                    if (checkAllPartition) {
+                        return true;
+                    }
+                    return !Sets.intersection(e.getTargetPartitions(), targetPartitions).isEmpty();
+                }).filter(e -> {
+                    if (CollectionUtils.isEmpty(segmentIds)) {
+                        return true;
+                    }
+                    return !Sets.intersection(new HashSet<>(e.getTargetSegments()), segmentIds).isEmpty();
+                }).collect(Collectors.toList());
+    }
+
+    public List<ExecutablePO> getAllJobs() {
+        return jobInfoDao.getJobs(project);
+    }
+
+    public List<ExecutablePO> getAllJobs(long timeStartInMillis, long timeEndInMillis) {
+        return jobInfoDao.getJobs(project, timeStartInMillis, timeEndInMillis);
+    }
+
+    public Output getOutputFromHDFSByJobId(String jobId) {
+        return getOutputFromHDFSByJobId(jobId, jobId);
+    }
+
+    public Output getOutputFromHDFSByJobId(String jobId, String stepId) {
+        return getOutputFromHDFSByJobId(jobId, stepId, LOG_DEFAULT_DISPLAY_HEAD_AND_TAIL_SIZE);
+    }
+
+    /**
+     * get job output from hdfs json file;
+     * if json file contains logPath,
+     * the logPath is spark driver log hdfs path(*.json.log), read sample data from log file.
+     *
+     * @param jobId
+     * @return
+     */
+    public Output getOutputFromHDFSByJobId(String jobId, String stepId, int nLines) {
+        String outputStorePath = KylinConfig.getInstanceFromEnv().getJobTmpOutputStorePath(project, stepId);
+        ExecutableOutputPO jobOutput = getJobOutputFromHDFS(outputStorePath);
+        assertOutputNotNull(jobOutput, outputStorePath);
+
+        if (Objects.nonNull(jobOutput.getLogPath())) {
+            if (isHdfsPathExists(jobOutput.getLogPath())) {
+                if (nLines == LOG_DEFAULT_DISPLAY_HEAD_AND_TAIL_SIZE) {
+                    jobOutput.setContent(getSampleDataFromHDFS(jobOutput.getLogPath(), nLines));
+                } else {
+                    jobOutput.setContentStream(getLogStream(jobOutput.getLogPath()));
+                }
+            } else if (StringUtils.isEmpty(jobOutput.getContent()) && Objects.nonNull(getJob(jobId))
+                    && getJob(jobId).getStatus() == ExecutableState.RUNNING) {
+                jobOutput.setContent("Wait a moment ... ");
+            }
+        }
+
+        return parseOutput(jobOutput);
+    }
+
+    public InputStream getLogStream(String resPath) {
+        try {
+            FileSystem fs = HadoopUtil.getWorkingFileSystem();
+
+            Path path = new Path(resPath);
+            if (!fs.exists(path)) {
+                return null;
+            }
+            return fs.open(path);
+        } catch (IOException e) {
+            logger.error("get FileSystem from hdfs log file [{}] failed!", resPath, e);
+            throw new KylinException(FAILED_DOWNLOAD_FILE, e);
+        }
+    }
+
+    /**
+     * check the hdfs path exists.
+     *
+     * @param hdfsPath
+     * @return
+     */
+    public boolean isHdfsPathExists(String hdfsPath) {
+        if (StringUtils.isBlank(hdfsPath)) {
+            return false;
+        }
+
+        Path path = new Path(hdfsPath);
+        FileSystem fs = HadoopUtil.getWorkingFileSystem();
+        try {
+            return fs.exists(path);
+        } catch (IOException e) {
+            logger.error("check the hdfs path [{}] exists failed, ", hdfsPath, e);
+        }
+
+        return false;
+    }
+
+    /**
+     * get sample data from hdfs log file.
+     * specified the lines, will get the first num lines and last num lines.
+     *
+     * @param resPath
+     * @return
+     */
+    public String getSampleDataFromHDFS(String resPath, final int nLines) {
+        try {
+            Path path = new Path(resPath);
+            FileSystem fs = HadoopUtil.getWorkingFileSystem();
+            if (!fs.exists(path)) {
+                return null;
+            }
+
+            FileStatus fileStatus = fs.getFileStatus(path);
+            try (FSDataInputStream din = fs.open(path);
+                 BufferedReader reader = new BufferedReader(new InputStreamReader(din, Charset.defaultCharset()))) {
+
+                String line;
+                StringBuilder sampleData = new StringBuilder();
+                for (int i = 0; i < nLines && (line = reader.readLine()) != null; i++) {
+                    if (sampleData.length() > 0) {
+                        sampleData.append('\n');
+                    }
+                    sampleData.append(line);
+                }
+
+                int offset = sampleData.toString().getBytes(Charset.defaultCharset()).length + 1;
+                if (offset < fileStatus.getLen()) {
+                    sampleData.append("\n================================================================\n");
+                    sampleData.append(tailHdfsFileInputStream(din, offset, fileStatus.getLen(), nLines));
+                }
+                return sampleData.toString();
+            }
+        } catch (IOException e) {
+            logger.error("get sample data from hdfs log file [{}] failed!", resPath, e);
+            return null;
+        }
+    }
+
+    /**
+     * get the last N_LINES lines from the end of hdfs file input stream;
+     * reference: https://olapio.atlassian.net/wiki/spaces/PD/pages/1306918958
+     *
+     * @param hdfsDin
+     * @param startPos
+     * @param endPos
+     * @param nLines
+     * @return
+     * @throws IOException
+     */
+    private String tailHdfsFileInputStream(FSDataInputStream hdfsDin, final long startPos, final long endPos,
+                                           final int nLines) throws IOException {
+        Preconditions.checkNotNull(hdfsDin);
+        Preconditions.checkArgument(startPos < endPos && startPos >= 0);
+        Preconditions.checkArgument(nLines >= 0);
+
+        Deque<String> deque = new ArrayDeque<>();
+        int buffSize = 8192;
+        byte[] byteBuf = new byte[buffSize];
+
+        long pos = endPos;
+
+        // cause by log last char is \n
+        hdfsDin.seek(pos - 1);
+        int lastChar = hdfsDin.read();
+        if ('\n' == lastChar) {
+            pos--;
+        }
+
+        int bytesRead = (int) ((pos - startPos) % buffSize);
+        if (bytesRead == 0) {
+            bytesRead = buffSize;
+        }
+
+        pos -= bytesRead;
+        int lines = nLines;
+        while (lines > 0 && pos >= startPos) {
+            bytesRead = hdfsDin.read(pos, byteBuf, 0, bytesRead);
+
+            int last = bytesRead;
+            for (int i = bytesRead - 1; i >= 0 && lines > 0; i--) {
+                if (byteBuf[i] == '\n') {
+                    deque.push(new String(byteBuf, i, last - i, StandardCharsets.UTF_8));
+                    lines--;
+                    last = i;
+                }
+            }
+
+            if (lines > 0 && last > 0) {
+                deque.push(new String(byteBuf, 0, last, StandardCharsets.UTF_8));
+            }
+
+            bytesRead = buffSize;
+            pos -= bytesRead;
+        }
+
+        StringBuilder sb = new StringBuilder();
+        while (!deque.isEmpty()) {
+            sb.append(deque.pop());
+        }
+
+        return sb.length() > 0 && sb.charAt(0) == '\n' ? sb.substring(1) : sb.toString();
+    }
+
 }

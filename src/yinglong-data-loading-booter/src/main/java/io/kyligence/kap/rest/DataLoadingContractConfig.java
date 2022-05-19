@@ -24,8 +24,12 @@
 
 package io.kyligence.kap.rest;
 
+import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
+import io.kyligence.kap.rest.delegate.JobMetadataRPC;
 import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
 import io.kyligence.kap.rest.delegate.ModelMetadataRPC;
+import io.kyligence.kap.rest.delegate.TableMetadataInvoker;
+import io.kyligence.kap.rest.delegate.TableMetadataRPC;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationContext;
@@ -40,6 +44,8 @@ public class DataLoadingContractConfig implements InitializingBean, ApplicationC
     @Override
     public void afterPropertiesSet() throws Exception {
         ModelMetadataInvoker.setDelegate(applicationContext.getBean(ModelMetadataRPC.class));
+        JobMetadataInvoker.setDelegate(applicationContext.getBean(JobMetadataRPC.class));
+        TableMetadataInvoker.setDelegate(applicationContext.getBean(TableMetadataRPC.class));
     }
 
     @Override

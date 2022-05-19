@@ -82,8 +82,9 @@ public class DataLoadingManager implements InitializingBean, DisposableBean {
             break;
         }
 
-//        jobScheduler = jobConfig.getJobScheduler();
-        jobScheduler = null;
+        jobScheduler = jobConfig.getJobScheduler();
+        jobScheduler.start();
+//        jobScheduler = null;
     }
 
     @Override

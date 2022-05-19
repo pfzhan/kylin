@@ -195,7 +195,7 @@ public class JobController extends BaseController {
         Map<String, String> result = new HashMap<>();
         result.put(JOB_ID_ARG_NAME, jobId);
         result.put(STEP_ID_ARG_NAME, stepId);
-        result.put("cmd_output", jobService.getJobOutput(project, jobId, stepId));
+        result.put("cmd_output", jobInfoService.getJobOutput(project, jobId, stepId));
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, result, "");
     }
 
@@ -263,7 +263,7 @@ public class JobController extends BaseController {
         checkProjectName(request.getProject());
         logger.info("updateJobError errorRequest is : {}", request);
 
-        jobService.updateJobError(request.getProject(), request.getJobId(), request.getFailedStepId(),
+        jobInfoService.updateJobError(request.getProject(), request.getJobId(), request.getFailedStepId(),
                 request.getFailedSegmentId(), request.getFailedStack(), request.getFailedReason());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
@@ -283,7 +283,7 @@ public class JobController extends BaseController {
         }
         checkProjectName(stageRequest.getProject());
         logger.info("updateStageStatus stageRequest is : {}", stageRequest);
-        jobService.updateStageStatus(stageRequest.getProject(), stageRequest.getTaskId(), stageRequest.getSegmentId(),
+        jobInfoService.updateStageStatus(stageRequest.getProject(), stageRequest.getTaskId(), stageRequest.getSegmentId(),
                 stageRequest.getStatus(), stageRequest.getUpdateInfo(), stageRequest.getErrMsg());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
@@ -299,7 +299,7 @@ public class JobController extends BaseController {
     @ResponseBody
     public EnvelopeResponse<String> updateSparkJobInfo(@RequestBody SparkJobUpdateRequest sparkJobUpdateRequest) {
         checkProjectName(sparkJobUpdateRequest.getProject());
-        jobService.updateSparkJobInfo(sparkJobUpdateRequest.getProject(), sparkJobUpdateRequest.getJobId(),
+        jobInfoService.updateSparkJobInfo(sparkJobUpdateRequest.getProject(), sparkJobUpdateRequest.getJobId(),
                 sparkJobUpdateRequest.getTaskId(), sparkJobUpdateRequest.getYarnAppId(),
                 sparkJobUpdateRequest.getYarnAppUrl());
 
@@ -317,7 +317,7 @@ public class JobController extends BaseController {
     @ResponseBody
     public EnvelopeResponse<String> updateSparkJobTime(@RequestBody SparkJobTimeRequest sparkJobTimeRequest) {
         checkProjectName(sparkJobTimeRequest.getProject());
-        jobService.updateSparkTimeInfo(sparkJobTimeRequest.getProject(), sparkJobTimeRequest.getJobId(),
+        jobInfoService.updateSparkTimeInfo(sparkJobTimeRequest.getProject(), sparkJobTimeRequest.getJobId(),
                 sparkJobTimeRequest.getTaskId(), sparkJobTimeRequest.getYarnJobWaitTime(),
                 sparkJobTimeRequest.getYarnJobRunTime());
 

@@ -28,6 +28,7 @@ import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_ACTION_
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_NOT_EXIST;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_STATUS_ILLEGAL;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_UPDATE_STATUS_FAILED;
+import static org.apache.kylin.query.util.AsyncQueryUtil.ASYNC_QUERY_JOB_ID_PRE;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -39,8 +40,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.job.util.JobInfoUtil;
-import io.kyligence.kap.rest.aspect.Transaction;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
@@ -55,18 +54,13 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.job.common.ShellExecutable;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.constant.JobActionEnum;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.dao.ExecutablePO;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.ChainedExecutable;
-import org.apache.kylin.job.execution.ChainedStageExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.Output;
-import org.apache.kylin.job.execution.StageBase;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
@@ -93,20 +87,26 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWorkContext;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.scheduler.JobDiscardNotifier;
 import io.kyligence.kap.common.scheduler.JobReadyNotifier;
-import io.kyligence.kap.engine.spark.job.NSparkExecutable;
 import io.kyligence.kap.job.dao.JobInfoDao;
 import io.kyligence.kap.job.domain.JobInfo;
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.execution.ChainedExecutable;
+import io.kyligence.kap.job.execution.ChainedStageExecutable;
+import io.kyligence.kap.job.execution.NSparkExecutable;
+import io.kyligence.kap.job.execution.ShellExecutable;
+import io.kyligence.kap.job.execution.stage.StageBase;
 import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.job.rest.ExecutableResponse;
 import io.kyligence.kap.job.rest.ExecutableStepResponse;
 import io.kyligence.kap.job.rest.JobFilter;
+import io.kyligence.kap.job.util.JobInfoUtil;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.rest.aspect.Transaction;
 import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
 import io.kyligence.kap.rest.request.JobUpdateRequest;
 import io.kyligence.kap.rest.service.ProjectService;
 import io.kyligence.kap.rest.util.SparkHistoryUIUtil;
-import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import lombok.val;
 import lombok.var;
 
@@ -363,20 +363,21 @@ public class JobInfoService extends BasicService {
     @VisibleForTesting
     public void updateJobStatus(String jobId, ExecutablePO executablePO, String project, String action) throws IOException {
         val executableManager = getManager(ExecutableManager.class, project);
-        AbstractExecutable executable =  executableManager.fromPO(executablePO);
+        AbstractExecutable executable = executableManager.fromPO(executablePO);
         UnitOfWorkContext.UnitTask afterUnitTask = () -> EventBusFactory.getInstance()
                 .postWithLimit(new JobReadyNotifier(project));
         JobActionEnum.validateValue(action.toUpperCase(Locale.ROOT));
         switch (JobActionEnum.valueOf(action.toUpperCase(Locale.ROOT))) {
             case RESUME:
-                SecondStorageUtil.checkJobResume(project, jobId, executable, executablePO);
+                // TODO SecondStorage
+//                SecondStorageUtil.checkJobResume(project, jobId, executable, executablePO);
                 executableManager.updateJobError(jobId, null, null, null, null);
                 executableManager.resumeJob(jobId, executable);
                 UnitOfWork.get().doAfterUnit(afterUnitTask);
                 MetricsGroup.hostTagCounterInc(MetricsName.JOB_RESUMED, MetricsCategory.PROJECT, project);
                 break;
             case RESTART:
-                SecondStorageUtil.checkJobRestart(project, jobId, executable);
+//                SecondStorageUtil.checkJobRestart(project, jobId, executable);
                 killExistApplication(executable);
                 executableManager.updateJobError(jobId, null, null, null, null);
                 executableManager.restartJob(jobId, executable);
@@ -397,6 +398,74 @@ public class JobInfoService extends BasicService {
                 throw new IllegalStateException("This job can not do this action: " + action);
         }
 
+    }
+
+    public void updateJobError(String project, String jobId, String failedStepId, String failedSegmentId,
+                               String failedStack, String failedReason) {
+        if (StringUtils.isBlank(failedStepId)) {
+            return;
+        }
+        val executableManager = getManager(ExecutableManager.class, project);
+        executableManager.updateJobError(jobId, failedStepId, failedSegmentId, failedStack, failedReason);
+    }
+
+    public void updateStageStatus(String project, String taskId, String segmentId, String status,
+                                  Map<String, String> updateInfo, String errMsg) {
+        final ExecutableState newStatus = convertToExecutableState(status);
+        val executableManager = getManager(ExecutableManager.class, project);
+        executableManager.updateStageStatus(taskId, segmentId, newStatus, updateInfo, errMsg);
+    }
+
+    public ExecutableState convertToExecutableState(String status) {
+        if (StringUtils.isBlank(status)) {
+            return null;
+        }
+        return ExecutableState.valueOf(status);
+    }
+
+    /**
+     * update the spark job info, such as yarnAppId, yarnAppUrl.
+     *
+     * @param project
+     * @param jobId
+     * @param taskId
+     * @param yarnAppId
+     * @param yarnAppUrl
+     */
+    public void updateSparkJobInfo(String project, String jobId, String taskId, String yarnAppId, String yarnAppUrl) {
+        val executableManager = getManager(ExecutableManager.class, project);
+        Map<String, String> extraInfo = Maps.newHashMap();
+        extraInfo.put(ExecutableConstants.YARN_APP_ID, yarnAppId);
+        extraInfo.put(ExecutableConstants.YARN_APP_URL, yarnAppUrl);
+
+        if (jobId.contains(ASYNC_QUERY_JOB_ID_PRE)) {
+            return;
+        }
+
+        executableManager.updateJobOutput(taskId, null, extraInfo, null, null);
+    }
+
+    public void updateSparkTimeInfo(String project, String jobId, String taskId, String waitTime, String buildTime) {
+        val executableManager = getManager(ExecutableManager.class, project);
+        Map<String, String> extraInfo = Maps.newHashMap();
+        extraInfo.put(ExecutableConstants.YARN_JOB_WAIT_TIME, waitTime);
+        extraInfo.put(ExecutableConstants.YARN_JOB_RUN_TIME, buildTime);
+
+        if (jobId.contains(ASYNC_QUERY_JOB_ID_PRE)) {
+            return;
+        }
+
+        executableManager.updateJobOutput(taskId, null, extraInfo, null, null);
+    }
+
+    public String getJobOutput(String project, String jobId) {
+        return getJobOutput(project, jobId, jobId);
+    }
+
+    public String getJobOutput(String project, String jobId, String stepId) {
+        aclEvaluate.checkProjectOperationPermission(project);
+        val executableManager = getManager(ExecutableManager.class, project);
+        return executableManager.getOutputFromHDFSByJobId(jobId, stepId).getVerboseMsg();
     }
 
     public void killExistApplication(AbstractExecutable job) {
@@ -554,7 +623,7 @@ public class JobInfoService extends BasicService {
 
         result.setDuration(AbstractExecutable.getDuration(stageOutput));
 
-        val indexCount = Optional.ofNullable(task.getParam(NBatchConstants.P_INDEX_COUNT)).orElse("0");
+        String indexCount = Optional.ofNullable(task.getParam(NBatchConstants.P_INDEX_COUNT)).orElse("0");
         result.setIndexCount(Long.parseLong(indexCount));
         if (result.getStatus() == JobStatusEnum.FINISHED) {
             result.setSuccessIndexCount(Long.parseLong(indexCount));

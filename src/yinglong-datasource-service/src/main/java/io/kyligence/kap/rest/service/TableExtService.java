@@ -37,9 +37,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.rest.request.S3TableExtInfo;
-import io.kyligence.kap.rest.request.UpdateAWSTableExtDescRequest;
-import io.kyligence.kap.rest.response.UpdateAWSTableExtDescResponse;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -68,11 +65,16 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.aspect.Transaction;
+import io.kyligence.kap.rest.delegate.TableMetadataContract;
+import io.kyligence.kap.rest.request.S3TableExtInfo;
+import io.kyligence.kap.rest.request.UpdateAWSTableExtDescRequest;
 import io.kyligence.kap.rest.response.LoadTableResponse;
+import io.kyligence.kap.rest.response.UpdateAWSTableExtDescResponse;
 import io.kyligence.kap.rest.security.KerberosLoginManager;
+import lombok.experimental.Delegate;
 
 @Component("tableExtService")
-public class TableExtService extends BasicService {
+public class TableExtService extends BasicService implements TableMetadataContract {
     private static final Logger logger = LoggerFactory.getLogger(TableExtService.class);
 
     @Autowired
@@ -82,6 +84,19 @@ public class TableExtService extends BasicService {
     @Autowired
     private AclEvaluate aclEvaluate;
 
+    @Delegate
+    private final TableMetadataBaseServer tableMetadataBaseServer = new TableMetadataBaseServer();
+
+    /**
+     * Load a group of  tables
+     *
+     * @return an array of table name sets:
+     * [0] : tables that loaded successfully
+     * [1] : tables that didn't load due to running sample job todo
+     * [2] : tables that didn't load due to other error
+     * @throws Exception if reading hive metadata error
+     */
+    @Transaction(project = 1, retry = 1)
     public LoadTableResponse loadDbTables(String[] dbTables, String project, boolean isDb) throws Exception {
         aclEvaluate.checkProjectWritePermission(project);
         Map<String, Set<String>> dbTableMap = classifyDbTables(dbTables, isDb);

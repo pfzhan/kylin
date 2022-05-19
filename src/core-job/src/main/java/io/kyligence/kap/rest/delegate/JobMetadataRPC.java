@@ -21,34 +21,18 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package io.kyligence.kap.rest.delegate;
 
-package io.kyligence.kap.rest;
+import org.springframework.cloud.openfeign.EnableFeignClients;
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
-import io.kyligence.kap.job.remote.TableMetadataContractRpc;
-import org.apache.kylin.rest.util.SpringContext;
-import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.InitializingBean;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
-
-import io.kyligence.kap.job.delegate.TableMetadataInvoker;
-import io.kyligence.kap.job.remote.TableMetadataContractRpcAdapter;
-import org.springframework.stereotype.Service;
-
-@Service
-public class TableConfig implements InitializingBean, ApplicationContextAware {
-    ApplicationContext applicationContext = null;
-
-    @Override
-    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-        this.applicationContext = applicationContext;
-    }
-
-    @Override
-    public void afterPropertiesSet() throws Exception {
-
-        TableMetadataContractRpcAdapter delegate = applicationContext.getBean(TableMetadataContractRpcAdapter.class);
-
-        TableMetadataInvoker.setDelegate(delegate);
-    }
+@EnableFeignClients
+@FeignClient(name = "yinglong-common-booter", path = "/kylin/api/jobs/feign")
+public interface JobMetadataRPC extends JobMetadataContract {
+    @PostMapping(value = "/update_statistics")
+    void updateStatistics(@RequestParam("project") String project, @RequestParam("date") long date,
+            @RequestParam(value = "model", required = false) String model, @RequestParam("duration") long duration,
+            @RequestParam("byteSize") long byteSize, @RequestParam("dataCount") int deltaCount);
 }

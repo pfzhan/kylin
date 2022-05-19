@@ -47,6 +47,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.TableRefresh;
@@ -65,9 +66,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.service.NTableMetadataService;
 import io.kyligence.kap.rest.request.AWSTableLoadRequest;
 import io.kyligence.kap.rest.request.AutoMergeRequest;
+import io.kyligence.kap.rest.request.MergeAndUpdateTableExtRequest;
 import io.kyligence.kap.rest.request.PartitionKeyRequest;
 import io.kyligence.kap.rest.request.PushDownModeRequest;
 import io.kyligence.kap.rest.request.ReloadTableRequest;
@@ -117,9 +118,6 @@ public class NTableController extends NBasicController {
     @Autowired
     @Qualifier("tableSamplingService")
     private TableSamplingService tableSamplingService;
-
-    @Autowired
-    private NTableMetadataService tableMetadataService;
 
     @ApiOperation(value = "getTableDesc", tags = {
             "AI" }, notes = "Update Param: is_fuzzy, page_offset, page_size; Update Response: no format!")
@@ -550,11 +548,29 @@ public class NTableController extends NBasicController {
 
     @ApiOperation(value = "get tableDesc", tags = {
             "AI" }, notes = "helper method for RPC-invoke get tableDesc")
-    @GetMapping(value = "/tableDesc")
+    @GetMapping(value = "/feign/get_table_desc")
     @ResponseBody
-    public EnvelopeResponse<TableDesc> getTableDesc(@RequestParam(value = "project") String project,
-                                                    @RequestParam(value = "table") String table){
-        TableDesc tableDesc = tableMetadataService.getTableDesc(project, table);
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, tableDesc, "");
+    public TableDesc getTableDesc(@RequestParam(value = "project") String project,
+            @RequestParam(value = "table") String table) {
+        return tableExtService.getTableDesc(project, table);
+    }
+
+    @PostMapping(value = "/feign/merge_and_update_table_ext")
+    @ResponseBody
+    public void mergeAndUpdateTableExt(@RequestParam("project") String project,
+                                       @RequestBody MergeAndUpdateTableExtRequest request) {
+        tableExtService.mergeAndUpdateTableExt(project, request);
+    }
+
+    @PostMapping(value = "/feign/save_table_ext")
+    @ResponseBody
+    public void saveTableExt(@RequestParam("project") String project, @RequestBody TableExtDesc tableExt) {
+        tableExtService.saveTableExt(project, tableExt);
+    }
+
+    @PostMapping(value = "/feign/update_table_desc")
+    @ResponseBody
+    public void updateTableDesc(@RequestParam("project") String project, @RequestBody TableDesc tableDesc) {
+        tableExtService.updateTableDesc(project, tableDesc);
     }
 }

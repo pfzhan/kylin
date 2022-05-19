@@ -26,10 +26,15 @@ package io.kyligence.kap.job.scheduler;
 
 import java.util.Locale;
 
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.kyligence.kap.job.core.AbstractJobExecutable;
 
 public class JobExecutor implements AutoCloseable {
 
+    private static final Logger logger = LoggerFactory.getLogger(JobExecutor.class);
     private final JobContext jobContext;
     private final AbstractJobExecutable jobExecutable;
 
@@ -46,6 +51,11 @@ public class JobExecutor implements AutoCloseable {
 
     public void execute() throws Exception {
         // TODO
+        if (jobExecutable instanceof AbstractExecutable) {
+            ((AbstractExecutable) jobExecutable).execute(jobContext);
+        } else {
+            jobExecutable.execute();
+        }
     }
 
     private void setThreadName() {

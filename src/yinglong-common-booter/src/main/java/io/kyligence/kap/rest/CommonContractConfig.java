@@ -24,13 +24,18 @@
 
 package io.kyligence.kap.rest;
 
-import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
-import io.kyligence.kap.rest.service.ModelService;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
+
+import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
+import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
+import io.kyligence.kap.rest.delegate.TableMetadataInvoker;
+import io.kyligence.kap.rest.service.JobMetadataService;
+import io.kyligence.kap.rest.service.ModelService;
+import io.kyligence.kap.rest.service.TableExtService;
 
 @Component
 public class CommonContractConfig implements InitializingBean, ApplicationContextAware {
@@ -40,6 +45,8 @@ public class CommonContractConfig implements InitializingBean, ApplicationContex
     @Override
     public void afterPropertiesSet() throws Exception {
         ModelMetadataInvoker.setDelegate(applicationContext.getBean(ModelService.class));
+        JobMetadataInvoker.setDelegate(applicationContext.getBean(JobMetadataService.class));
+        TableMetadataInvoker.setDelegate(applicationContext.getBean(TableExtService.class));
     }
 
     @Override

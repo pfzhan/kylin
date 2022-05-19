@@ -27,12 +27,12 @@ package io.kyligence.kap.job.handler;
 import static org.apache.kylin.job.factory.JobFactoryConstant.CUBE_JOB_FACTORY;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.factory.JobFactory;
 import org.apache.kylin.job.model.JobParam;
 
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.factory.JobFactory;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;

@@ -27,13 +27,11 @@ package io.kyligence.kap.job.service;
 import java.util.List;
 import java.util.Set;
 
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -42,12 +40,13 @@ import org.springframework.stereotype.Service;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.engine.spark.job.NTableSamplingJob;
 import io.kyligence.kap.job.domain.JobInfo;
+import io.kyligence.kap.job.execution.NTableSamplingJob;
 import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.job.manager.TableMetadataManagerService;
 import io.kyligence.kap.job.mapper.JobInfoMapper;
 import io.kyligence.kap.job.rest.JobMapperFilter;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import lombok.val;
 
 @Service
@@ -94,7 +93,7 @@ public class TableSampleService extends BasicService {
                 val samplingJob = NTableSamplingJob.create(tableDesc, project, getUsername(), rows, priority, yarnQueue,
                         tag);
                 jobIds.add(samplingJob.getId());
-                execMgr.addJob(NExecutableManager.toPO(samplingJob, project));
+                execMgr.addJob(ExecutableManager.toPO(samplingJob, project));
 
                 // job statistics
                 long startOfDay = TimeUtil.getDayStart(System.currentTimeMillis());

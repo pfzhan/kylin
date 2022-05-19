@@ -52,7 +52,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -64,10 +63,6 @@ import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import io.kyligence.kap.common.util.AddressUtil;
-import io.kyligence.kap.job.DataLoadingManager;
-import io.kyligence.kap.rest.request.JobUpdateRequest;
-import io.kyligence.kap.tool.restclient.RestClient;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.ArrayUtils;
@@ -108,11 +103,14 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
+import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.common.util.Unsafe;
+import io.kyligence.kap.job.DataLoadingManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
 import io.kyligence.kap.rest.request.Validation;
 import io.kyligence.kap.rest.service.ProjectService;
+import io.kyligence.kap.tool.restclient.RestClient;
 import lombok.SneakyThrows;
 import lombok.val;
 

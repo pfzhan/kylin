@@ -21,25 +21,19 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-package io.kyligence.kap.job.remote;
+package io.kyligence.kap.rest.delegate;
 
 import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+import org.apache.kylin.metadata.model.TableExtDesc;
 
-import io.kyligence.kap.metadata.invokecontract.TableMetadataContract;
+import io.kyligence.kap.rest.request.MergeAndUpdateTableExtRequest;
 
-@Service
-public class TableMetadataContractRpcAdapter implements TableMetadataContract {
+public interface TableMetadataContract {
+    void mergeAndUpdateTableExt(String project, MergeAndUpdateTableExtRequest request);
 
-    @Autowired(required = false)
-    private TableMetadataContractRpc tableMetadataContractRpc;
+    void saveTableExt(String project, TableExtDesc tableExt);
 
-    @Override
-    public TableDesc getTableDesc(String project, String tableName) {
-        EnvelopeResponse<TableDesc> tableDesc = tableMetadataContractRpc.getTableDesc(project, tableName);
-        return tableDesc.getData();
-    }
+    void updateTableDesc(String project, TableDesc tableDesc);
+
+    TableDesc getTableDesc(String project, String tableName);
 }

@@ -31,13 +31,8 @@ import java.util.Optional;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.job.SecondStorageCleanJobUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.ChainedExecutable;
-import org.apache.kylin.job.execution.ChainedStageExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.StageBase;
 import org.apache.kylin.metadata.model.TableDesc;
 
 import com.clearspring.analytics.util.Lists;
@@ -46,8 +41,12 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.engine.spark.job.NSparkSnapshotJob;
-import io.kyligence.kap.engine.spark.job.NTableSamplingJob;
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.execution.ChainedExecutable;
+import io.kyligence.kap.job.execution.ChainedStageExecutable;
+import io.kyligence.kap.job.execution.NSparkSnapshotJob;
+import io.kyligence.kap.job.execution.NTableSamplingJob;
+import io.kyligence.kap.job.execution.stage.StageBase;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
@@ -158,8 +157,9 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
                 executableResponse.setTargetSubject("The snapshot is deleted");
                 executableResponse.setTargetSubjectError(true);
             }
-        } else if (SecondStorageCleanJobUtil.isProjectCleanJob(abstractExecutable)) {
-            executableResponse.setTargetSubject(abstractExecutable.getProject());
+            // TODO SecondStorage
+//        } else if (SecondStorageCleanJobUtil.isProjectCleanJob(abstractExecutable)) {
+//            executableResponse.setTargetSubject(abstractExecutable.getProject());
         } else {
             val dataflow = NDataflowManager
                     .getInstance(KylinConfig.getInstanceFromEnv(), abstractExecutable.getProject())

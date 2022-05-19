@@ -22,18 +22,39 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.job.remote;
+package io.kyligence.kap.job.execution;
 
-import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.apache.kylin.common.util.TimeUtil;
 
-@FeignClient(name = "yinglong-common-booter", path = "/kylin")
-public interface TableMetadataContractRpc {
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
+import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
+import lombok.val;
 
-    @GetMapping("/api/tables/tableDesc")
-    public EnvelopeResponse<TableDesc> getTableDesc(@RequestParam(value = "project") String project,
-                                                    @RequestParam(value = "table") String table);
+public class DefaultChainedExecutableOnTable extends DefaultChainedExecutable {
+
+    public DefaultChainedExecutableOnTable() {
+        super();
+    }
+
+    public DefaultChainedExecutableOnTable(Object notSetId) {
+        super(notSetId);
+    }
+
+    public String getTableIdentity() {
+        return getParam(NBatchConstants.P_TABLE_NAME);
+    }
+
+    @Override
+    public String getTargetSubjectAlias() {
+        return getTableIdentity();
+    }
+
+    @Override
+    protected void afterUpdateOutput(String jobId) {
+        val job = getExecutableManager(getProject()).getJob(jobId);
+        long duration = job.getDuration();
+        long endTime = job.getEndTime();
+        long startOfDay = TimeUtil.getDayStart(endTime);
+        JobMetadataInvoker.getInstance().updateStatistics(project, startOfDay, null, duration, 0, 0);
+    }
 }

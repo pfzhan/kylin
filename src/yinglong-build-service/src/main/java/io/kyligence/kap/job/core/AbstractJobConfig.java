@@ -28,6 +28,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentMap;
 
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.CliCommandExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -98,6 +100,15 @@ public abstract class AbstractJobConfig {
 
     public int getJobProgressReporterMaxThreads() {
         return 6;
+    }
+
+    // TODO implement this method instead of calling from kylinConfig
+    public String getJobTmpOutputStorePath(String project, String jobId) {
+        return KylinConfig.getInstanceFromEnv().getJobTmpOutputStorePath(project, jobId);
+    }
+
+    public CliCommandExecutor getCliCommandExecutor() {
+        return KylinConfig.getInstanceFromEnv().getCliCommandExecutor();
     }
 
     public JobScheduler getJobScheduler() {

@@ -26,6 +26,9 @@ package io.kyligence.kap.job.domain;
 
 import java.util.Date;
 
+import lombok.AllArgsConstructor;
+
+@AllArgsConstructor
 public class JobScheduleLock {
     private String lockId;
 

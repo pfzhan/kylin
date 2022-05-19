@@ -40,6 +40,11 @@ public class SimpleJobScheduler implements JobScheduler {
     }
 
     @Override
+    public void start() {
+
+    }
+
+    @Override
     public String getJobOwner(String jobId) {
         return AddressUtil.getLocalInstance();
     }

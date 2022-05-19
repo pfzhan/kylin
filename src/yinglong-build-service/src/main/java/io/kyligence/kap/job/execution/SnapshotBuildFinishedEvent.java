@@ -21,20 +21,24 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package io.kyligence.kap.job.execution;
 
-package io.kyligence.kap.metadata.service;
-
-import io.kyligence.kap.metadata.invokecontract.TableMetadataContract;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.TableDesc;
-import org.springframework.stereotype.Service;
 
-@Service
-public class NTableMetadataService implements TableMetadataContract {
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-    @Override
-    public TableDesc getTableDesc(String project, String tableName) {
-        return NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getTableDesc(tableName);
-    }
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class SnapshotBuildFinishedEvent {
+
+    private TableDesc tableDesc;
+
+    private String selectedPartCol;
+
+    private boolean isIncrementalBuild;
+
 }
+

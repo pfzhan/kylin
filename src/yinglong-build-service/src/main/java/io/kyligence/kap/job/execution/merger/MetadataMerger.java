@@ -22,26 +22,29 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.job.delegate;
+package io.kyligence.kap.job.execution.merger;
 
-import io.kyligence.kap.metadata.invokecontract.TableMetadataContract;
-import org.apache.kylin.metadata.model.TableDesc;
-import org.springframework.stereotype.Service;
+import java.util.Set;
 
-@Service
-public class TableMetadataInvoker {
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.job.execution.JobTypeEnum;
 
-    private static TableMetadataContract delegate = null;
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.metadata.cube.model.NDataLayout;
+import lombok.Getter;
 
-    public static synchronized void setDelegate(TableMetadataContract delegate) {
-        if (TableMetadataInvoker.delegate != null) {
-            throw new RuntimeException("TableMetadataInvoker.tableMetadataContract already have an instance");
-        }
+public abstract class MetadataMerger {
+    @Getter
+    private final KylinConfig config;
 
-        TableMetadataInvoker.delegate = delegate;
+    protected MetadataMerger(KylinConfig config) {
+        this.config = config;
     }
 
-    public TableDesc getTableDesc(String project, String tableName) {
-        return delegate.getTableDesc(project, tableName);
-    }
+    public abstract NDataLayout[] merge(String dataflowId, Set<String> segmentIds, Set<Long> layoutIds,
+            ResourceStore remoteResourceStore, JobTypeEnum jobType, Set<Long> partitions);
+
+    public abstract void merge(AbstractExecutable abstractExecutable);
+
 }

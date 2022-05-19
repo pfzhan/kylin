@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.rest.initialize;
 
+import io.kyligence.kap.job.util.ExecutableUtils;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -41,5 +42,6 @@ public class BuildAppInitializer implements InitializingBean {
     @Override
     public void afterPropertiesSet() throws Exception {
         EventBusFactory.getInstance().registerService(jobService);
+        ExecutableUtils.initJobFactory();
     }
 }

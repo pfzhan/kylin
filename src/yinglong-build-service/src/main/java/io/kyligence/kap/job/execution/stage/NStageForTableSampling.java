@@ -22,8 +22,25 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.delegate;
+package io.kyligence.kap.job.execution.stage;
 
-public class TableInvoker {
+import io.kyligence.kap.guava20.shaded.common.base.MoreObjects;
 
+public class NStageForTableSampling extends StageBase {
+    public NStageForTableSampling() {
+    }
+
+    public NStageForTableSampling(Object notSetId) {
+        super(notSetId);
+    }
+
+    public NStageForTableSampling(String name) {
+        super(name);
+    }
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this).add("id", getId()).add("name", getName()).add("state", getStatus())
+                .toString();
+    }
 }

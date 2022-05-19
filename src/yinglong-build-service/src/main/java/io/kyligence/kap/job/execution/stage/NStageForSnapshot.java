@@ -22,10 +22,25 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.invokecontract;
+package io.kyligence.kap.job.execution.stage;
 
-import org.apache.kylin.metadata.model.TableDesc;
+import io.kyligence.kap.guava20.shaded.common.base.MoreObjects;
 
-public interface TableMetadataContract {
-    public TableDesc getTableDesc(String project, String tableName);
+public class NStageForSnapshot extends StageBase {
+    public NStageForSnapshot() {
+    }
+
+    public NStageForSnapshot(Object notSetId) {
+        super(notSetId);
+    }
+
+    public NStageForSnapshot(String name) {
+        super(name);
+    }
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this).add("id", getId()).add("name", getName()).add("state", getStatus())
+                .toString();
+    }
 }

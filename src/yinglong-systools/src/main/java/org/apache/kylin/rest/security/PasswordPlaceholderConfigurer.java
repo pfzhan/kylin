@@ -43,7 +43,6 @@
 package org.apache.kylin.rest.security;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.PrintWriter;
 import java.lang.reflect.Method;
 import java.nio.charset.Charset;
@@ -51,14 +50,12 @@ import java.util.Locale;
 import java.util.Properties;
 import java.util.Set;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.StringBuilderWriter;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigBase;
 import org.apache.kylin.rest.exception.PasswordDecryptionException;
 import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer;
 import org.springframework.core.io.ByteArrayResource;
-import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
