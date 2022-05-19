@@ -52,8 +52,10 @@ import org.apache.spark.sql.AnalysisException;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparderEnv;
+import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.catalog.Database;
 import org.apache.spark.sql.catalyst.catalog.CatalogTableType;
+import org.apache.spark.sql.internal.SQLConf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -110,7 +112,7 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
         return tables;
     }
 
-    private boolean checkTableAccess(String tableName) {
+    public boolean checkTableAccess(String tableName) {
         boolean isAccess = true;
         try {
             val spark = SparderEnv.getSparkSession();
@@ -121,16 +123,16 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
             } else {
                 needCheckTables.add(tableName);
             }
-
-            FileSystem fs = HadoopUtil.getWorkingFileSystem();
+            String hiveSpecFsLocation = spark.sessionState().conf().getConf(SQLConf.HIVE_SPECIFIC_FS_LOCATION());
+            FileSystem fs = null == hiveSpecFsLocation ? HadoopUtil.getWorkingFileSystem()
+                    : HadoopUtil.getFileSystem(hiveSpecFsLocation);
             for (String table : needCheckTables) {
-                String loc = spark.sql("desc formatted " + table).where("col_name == 'Location'").head().getString(1);
-                fs.listStatus(new Path(loc));
+                fs.listStatus(new Path(getLoc(spark, table, hiveSpecFsLocation)));
             }
         } catch (Exception e) {
             isAccess = false;
             try {
-                logger.error("Read hive table {} error, ugi name: {}.", tableName,
+                logger.error("Read hive table {} error:{}, ugi name: {}.", tableName, e.getMessage(),
                         UserGroupInformation.getCurrentUser().getUserName());
             } catch (IOException ex) {
                 logger.error("fetch user curr ugi info error.", e);
@@ -303,5 +305,13 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
     @Override
     public void createWrapperView(String origTableName, String viewName) throws Exception {
         throw new UnsupportedOperationException("unsupport create wrapper view");
+    }
+
+    public String getLoc(SparkSession spark, String table, String hiveSpecFsLocation) {
+        String loc = spark.sql("desc formatted " + table).where("col_name == 'Location'").head().getString(1);
+        if (null == hiveSpecFsLocation || null == loc) {
+            return loc;
+        }
+        return loc.replace("hdfs://hacluster", hiveSpecFsLocation);
     }
 }
