@@ -250,6 +250,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
             _httpServer = EmbeddedHttpServer.startServer(getLocalWorkingDirectory());
         }
 
+        overwriteSystemProp("kylin.second-storage.query-pushdown-limit", "0");
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         overwriteSystemProp("kylin.second-storage.class", ClickHouseStorage.class.getCanonicalName());
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());

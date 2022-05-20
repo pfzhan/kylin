@@ -528,6 +528,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kylin.second-storage.load-retry-interval", "30000"));
     }
 
+    public int getSecondStorageQueryPushdownLimit() {
+        return Integer.parseInt(getOptional("kylin.second-storage.query-pushdown-limit", "0"));
+    }
+
     public int getMetadataCacheMaxNum() {
         return Integer.parseInt(getOptional("kylin.metadata.cache.max-num", String.valueOf(Integer.MAX_VALUE)));
     }
