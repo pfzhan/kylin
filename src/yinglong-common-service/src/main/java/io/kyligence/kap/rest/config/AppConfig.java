@@ -45,6 +45,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.http.CacheControl;
+import org.springframework.http.HttpMethod;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
@@ -195,6 +196,8 @@ public class AppConfig implements WebMvcConfigurer {
 
     @Bean
     public MultipartResolver multipartResolver() {
-        return new CommonsMultipartResolver();
+        CommonsMultipartResolver commonsMultipartResolver = new CommonsMultipartResolver();
+        commonsMultipartResolver.setSupportedMethods(HttpMethod.POST.name(), HttpMethod.PUT.name());
+        return commonsMultipartResolver;
     }
 }
