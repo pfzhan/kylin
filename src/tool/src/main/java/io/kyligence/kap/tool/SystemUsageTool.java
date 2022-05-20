@@ -88,8 +88,8 @@ public class SystemUsageTool {
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
         queryDailyStatisticList.forEach(e -> lines.add(String.format(Locale.ROOT, "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s",
                 simpleDateFormat.format(new Date(e.getQueryDay())), e.getActiveUserNum(), e.getTotalNum(),
-                e.getSucceedNum(), String.format("%.1f", e.getAvgDuration() / 1000.0), e.getLt1sNum(), e.getLt3sNum(),
-                e.getLt5sNum(), e.getLt10sNum(), e.getLt15sNum())));
+                e.getSucceedNum(), divide(e.getTotalDuration(), e.getSucceedNum() * 1000.0, "%.1f"), e.getLt1sNum(),
+                e.getLt3sNum(), e.getLt5sNum(), e.getLt10sNum(), e.getLt15sNum())));
         FileUtils.writeLines(new File(exportDir, QUERY_DAILY_FILE_NAME), lines, false);
     }
 
@@ -119,7 +119,7 @@ public class SystemUsageTool {
                             .mapToDouble(e -> {
                                 AbstractExecutable executable = KylinConfig.getInstanceFromEnv()
                                         .getManager(e.getProject(), NExecutableManager.class).fromPO(e);
-                                return executable.getWaitTime() + executable.getDuration();
+                                return executable.getDurationFromStepOrStageDurationSum();
                             }).sum();
                     lines.add(String.format(Locale.ROOT, "%s,%s,%s,%s", key, buildNum,
                             divide(totalDuration, buildSucceedNum * 60.0 * 1000, "%.2f"),

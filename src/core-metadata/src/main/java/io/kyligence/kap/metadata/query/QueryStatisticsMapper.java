@@ -58,8 +58,8 @@ public interface QueryStatisticsMapper {
     @Select({ "<script>", //
             "select query_day as queryDay, count(1) as totalNum, ", //
             "sum(CASE WHEN query_status = 'SUCCEEDED' THEN 1 ELSE 0 END) as succeedNum, ", //
-            "IFNULL(count(distinct submitter), 0) as activeUserNum, ", //
-            "IFNULL(sum(CASE WHEN query_status = 'SUCCEEDED' THEN duration ELSE 0 END) / sum(CASE WHEN query_status = 'SUCCEEDED' THEN 1 ELSE 0 END), 0) as avgDuration, ", //
+            "count(distinct submitter) as activeUserNum, ", //
+            "sum(CASE WHEN query_status = 'SUCCEEDED' THEN duration ELSE 0 END) as totalDuration, ", //
             "sum(CASE WHEN duration &lt; 1000 THEN 1 ELSE 0 END) as lt1sNum, ", //
             "sum(CASE WHEN duration &lt; 3000 THEN 1 ELSE 0 END) as lt3sNum, ", //
             "sum(CASE WHEN duration &lt; 5000 THEN 1 ELSE 0 END) as lt5sNum, ", //

@@ -43,7 +43,7 @@ public class QueryDailyStatistic implements Serializable {
 
     private long succeedNum;
 
-    private long avgDuration;
+    private long totalDuration;
 
     private long lt1sNum;
 

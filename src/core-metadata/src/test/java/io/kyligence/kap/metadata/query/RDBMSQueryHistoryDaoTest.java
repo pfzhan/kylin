@@ -723,7 +723,7 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
         List<QueryDailyStatistic> queryDailyStatistic = queryHistoryDAO.getQueryDailyStatistic(Long.MIN_VALUE,
                 Long.MAX_VALUE);
         Assert.assertEquals(2, queryDailyStatistic.size());
-        Assert.assertEquals(1500L, queryDailyStatistic.get(0).getAvgDuration());
+        Assert.assertEquals(3000L, queryDailyStatistic.get(0).getTotalDuration());
         Assert.assertEquals(2L, queryDailyStatistic.get(0).getTotalNum());
         Assert.assertEquals(1L, queryDailyStatistic.get(1).getTotalNum());
         Assert.assertEquals(2L, queryDailyStatistic.get(0).getLt3sNum());
