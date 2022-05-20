@@ -88,7 +88,6 @@ import org.apache.kylin.common.QueryTrace;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.KylinTimeoutException;
-import org.apache.kylin.common.exception.QueryErrorCode;
 import org.apache.kylin.common.exception.NewQueryRefuseException;
 import org.apache.kylin.common.exception.ResourceLimitExceededException;
 import org.apache.kylin.common.msg.Message;
@@ -314,11 +313,6 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
                 e_forcedToTieredStorage = getForcedToTieredStorage(ForceToTieredStorage.CH_FAIL_TAIL);
             }
             logger.trace("forcedToTieredStorage={}", e_forcedToTieredStorage);
-            if (e_forcedToTieredStorage == ForceToTieredStorage.CH_FAIL_TO_PUSH_DOWN
-                    && sqlRequest.isForcedToIndex() && !sqlRequest.isForcedToPushDown()) {
-                throw new KylinException(
-                        QueryErrorCode.FORCED_TO_TIEREDSTORAGE_AND_FORCE_TO_INDEX, MsgPicker.getMsg().getForcedToTieredstorageAndForceToIndex());
-            }
             queryParams.setForcedToTieredStorage(e_forcedToTieredStorage);
             QueryContext.current().setForcedToTieredStorage(e_forcedToTieredStorage);
 
