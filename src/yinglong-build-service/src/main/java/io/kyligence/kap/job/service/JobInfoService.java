@@ -31,6 +31,7 @@ import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_UPDATE_
 import static org.apache.kylin.query.util.AsyncQueryUtil.ASYNC_QUERY_JOB_ID_PRE;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -40,8 +41,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import lombok.SneakyThrows;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.ErrorCode;
@@ -754,5 +757,14 @@ public class JobInfoService extends BasicService {
         val stepRatio = (float) ExecutableResponse.calculateSuccessStage(task, segmentId,
                 stageBases, true) / stepCount;
         segmentSubStages.setStepRatio(stepRatio);
+    }
+
+    @SneakyThrows
+    public InputStream getAllJobOutput(String project, String jobId, String stepId) {
+        aclEvaluate.checkProjectOperationPermission(project);
+        val executableManager = getManager(ExecutableManager.class, project);
+        val output = executableManager.getOutputFromHDFSByJobId(jobId, stepId, Integer.MAX_VALUE);
+        return Optional.ofNullable(output.getVerboseMsgStream()).orElse(
+                IOUtils.toInputStream(Optional.ofNullable(output.getVerboseMsg()).orElse(StringUtils.EMPTY), "UTF-8"));
     }
 }

@@ -46,12 +46,16 @@ public class JobMapperFilter {
 
     private Date queryStartTime;
 
-    private String subject;
+    // for sql condition: in (...)
+    private List<String> subjects;
 
+    // for sql condition: in (...)
     private List<String> modelIds;
 
+    // for fuzzy match
     private String jobId;
 
+    // for sql condition: in (...)
     private List<String> jobIds;
 
     private String project;

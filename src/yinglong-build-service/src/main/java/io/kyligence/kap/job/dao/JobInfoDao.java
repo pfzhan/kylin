@@ -30,6 +30,7 @@ import io.kyligence.kap.job.rest.JobFilter;
 import io.kyligence.kap.job.rest.JobMapperFilter;
 import io.kyligence.kap.job.util.JobInfoUtil;
 import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
+import io.kyligence.kap.rest.delegate.TableMetadataInvoker;
 import lombok.val;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.util.JsonUtil;
@@ -60,8 +61,12 @@ public class JobInfoDao {
     @Autowired(required = false)
     private ModelMetadataInvoker modelMetadataInvoker;
 
+    @Autowired(required = false)
+    private TableMetadataInvoker tableMetadataInvoker;
+
     public List<JobInfo> getJobInfoListByFilter(final JobFilter jobFilter, int offset, int limit) {
-        JobMapperFilter jobMapperFilter = jobFilter.getJobMapperFilter(modelMetadataInvoker, offset, limit);
+        JobMapperFilter jobMapperFilter = jobFilter.getJobMapperFilter(modelMetadataInvoker, tableMetadataInvoker,
+                offset, limit);
         List<JobInfo> jobInfoList = jobInfoMapper.selectByJobFilter(jobMapperFilter);
         return jobInfoList;
     }

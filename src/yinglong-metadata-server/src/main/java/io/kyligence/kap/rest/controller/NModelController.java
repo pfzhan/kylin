@@ -823,7 +823,7 @@ public class NModelController extends NBasicController {
     @ResponseBody
     public List<String> getModelIdsByFuzzyName(@RequestParam("fuzzyName") String fuzzyName,
             @RequestParam("project") String project) {
-        return modelService.getModelIdsByFuzzyName(fuzzyName, project);
+        return modelService.getModelNamesByFuzzyName(fuzzyName, project);
     }
 
     @PostMapping(value = "/feign/get_model_name_by_id")

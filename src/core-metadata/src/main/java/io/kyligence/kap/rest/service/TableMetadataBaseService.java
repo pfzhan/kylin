@@ -32,7 +32,9 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.rest.request.MergeAndUpdateTableExtRequest;
 
-public class TableMetadataBaseServer {
+import java.util.List;
+
+public class TableMetadataBaseService {
     public void mergeAndUpdateTableExt(String project, MergeAndUpdateTableExtRequest request) {
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project)

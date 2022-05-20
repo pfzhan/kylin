@@ -380,10 +380,10 @@ public class ModelService extends BasicService implements TableModelSupporter, P
     }
 
     @Override
-    public List<String> getModelIdsByFuzzyName(String fuzzyName, String project) {
+    public List<String> getModelNamesByFuzzyName(String fuzzyName, String project) {
         if (StringUtils.isNotEmpty(project)) {
             NDataModelManager modelManager = getManager(NDataModelManager.class, project);
-            return modelManager.getModelIdsByFuzzyName(fuzzyName);
+            return modelManager.getModelNamesByFuzzyName(fuzzyName);
         }
 
         List<String> modelIds = new ArrayList<>();
@@ -391,7 +391,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         List<ProjectInstance> projectInstances = projectService.getReadableProjects(null, false);
         for (ProjectInstance projectInstance : projectInstances) {
             NDataModelManager modelManager = getManager(NDataModelManager.class, projectInstance.getName());
-            modelIds.addAll(modelManager.getModelIdsByFuzzyName(fuzzyName));
+            modelIds.addAll(modelManager.getModelNamesByFuzzyName(fuzzyName));
         }
         return modelIds;
     }

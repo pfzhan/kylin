@@ -33,7 +33,7 @@ import org.apache.kylin.rest.util.SpringContext;
 import io.kyligence.kap.common.persistence.metadata.JdbcMetadataStore;
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.rest.request.MergeAndUpdateTableExtRequest;
-import io.kyligence.kap.rest.service.TableMetadataBaseServer;
+import io.kyligence.kap.rest.service.TableMetadataBaseService;
 
 public class TableMetadataBaseInvoker {
     public static TableMetadataBaseInvoker getInstance() {
@@ -50,7 +50,7 @@ public class TableMetadataBaseInvoker {
         }
     }
 
-    private final TableMetadataBaseServer tableMetadataBaseServer = new TableMetadataBaseServer();
+    private final TableMetadataBaseService tableMetadataBaseServer = new TableMetadataBaseService();
 
     public void mergeAndUpdateTableExt(String project, MergeAndUpdateTableExtRequest request) {
         tableMetadataBaseServer.mergeAndUpdateTableExt(project, request);

@@ -201,8 +201,8 @@ public class NDataModelManager {
                 .orElse(null);
     }
     
-    public List<String> getModelIdsByFuzzyName(String fuzzyName) {
-        return crud.listAll().stream().filter(model -> model.getAlias().contains(fuzzyName)).map(model -> model.getId())
+    public List<String> getModelNamesByFuzzyName(String fuzzyName) {
+        return crud.listAll().stream().filter(model -> StringUtils.containsIgnoreCase(model.getAlias(), fuzzyName)).map(model -> model.getAlias())
                 .collect(Collectors.toList());
     }
 

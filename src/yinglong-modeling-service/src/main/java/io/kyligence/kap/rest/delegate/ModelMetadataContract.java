@@ -39,7 +39,7 @@ import java.util.Set;
 
 public interface ModelMetadataContract {
 
-    List<String> getModelIdsByFuzzyName(String fuzzyName, String project);
+    List<String> getModelNamesByFuzzyName(String fuzzyName, String project);
 
     String getModelNameById(String modelId, String project);
 

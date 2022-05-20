@@ -210,7 +210,7 @@ public class JobController extends BaseController {
         checkRequiredArg(JOB_ID_ARG_NAME, jobId);
         checkRequiredArg(STEP_ID_ARG_NAME, stepId);
         String downloadFilename = String.format(Locale.ROOT, "%s_%s.log", projectName, stepId);
-        InputStream jobOutput = jobService.getAllJobOutput(projectName, jobId, stepId);
+        InputStream jobOutput = jobInfoService.getAllJobOutput(projectName, jobId, stepId);
         setDownloadResponse(jobOutput, downloadFilename, MediaType.APPLICATION_OCTET_STREAM_VALUE, response);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }

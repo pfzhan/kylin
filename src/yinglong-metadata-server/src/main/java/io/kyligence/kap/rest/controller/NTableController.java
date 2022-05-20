@@ -555,6 +555,13 @@ public class NTableController extends NBasicController {
         return tableExtService.getTableDesc(project, table);
     }
 
+    @GetMapping(value = "/feign/get_table_names_by_fuzzy_key")
+    @ResponseBody
+    public List<String> getTableNamesByFuzzyKey(@RequestParam(value = "project") String project,
+                                                @RequestParam(value = "fuzzyKey") String fuzzyKey) {
+        return tableExtService.getTableNamesByFuzzyKey(project, fuzzyKey);
+    }
+
     @PostMapping(value = "/feign/merge_and_update_table_ext")
     @ResponseBody
     public void mergeAndUpdateTableExt(@RequestParam("project") String project,

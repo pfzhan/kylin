@@ -33,6 +33,7 @@ import java.util.TimeZone;
 
 import com.google.common.base.Preconditions;
 import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
+import io.kyligence.kap.rest.delegate.TableMetadataInvoker;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -69,16 +70,23 @@ public class JobFilter {
      * for mybatis query
      * @return JobMapperFilter
      */
-    public JobMapperFilter getJobMapperFilter(ModelMetadataInvoker modelMetadataInvoker, int offset, int limit) {
+    public JobMapperFilter getJobMapperFilter(ModelMetadataInvoker modelMetadataInvoker,
+            TableMetadataInvoker tableMetadataInvoker, int offset, int limit) {
         Date queryStartTime = getQueryStartTime(timeFilter);
 
-        List<String> modelIds = new ArrayList<>();
+        List<String> subjects = new ArrayList<>();
+        if (StringUtils.isNotEmpty(subject)) {
+            subjects.add(subject.trim());
+        }
+        // transform 'key' to subjects
         if (StringUtils.isNotEmpty(key)) {
-            modelIds = modelMetadataInvoker.getModelIdsByFuzzyName(key, project);
+            subjects.addAll(modelMetadataInvoker.getModelNamesByFuzzyName(key, project));
+            subjects.addAll(tableMetadataInvoker.getTableNamesByFuzzyKey(project, key));
         }
 
+        // if 'key' can not be transformed to 'subjects', then fuzzy query job id by 'key'
         String jobId = null;
-        if (StringUtils.isNotEmpty(key) && modelIds.isEmpty()) {
+        if (StringUtils.isNotEmpty(key) && subjects.isEmpty()) {
             jobId = "%" + key + "%";
         }
 
@@ -89,13 +97,8 @@ public class JobFilter {
             orderType = "DESC";
         }
 
-        if (StringUtils.isNotEmpty(subject)) {
-            subject = subject.trim();
-        }
-
-        return new JobMapperFilter(statuses, jobNames, queryStartTime, subject, modelIds, jobId, null, project,
+        return new JobMapperFilter(statuses, jobNames, queryStartTime, subjects, null, jobId, null, project,
                 orderByField, orderType, offset, limit);
-
     }
 
     private Date getQueryStartTime(int timeFilter) {

@@ -37,6 +37,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -85,7 +86,10 @@ public class TableExtService extends BasicService implements TableMetadataContra
     private AclEvaluate aclEvaluate;
 
     @Delegate
-    private final TableMetadataBaseServer tableMetadataBaseServer = new TableMetadataBaseServer();
+    private final TableMetadataBaseService tableMetadataBaseServer = new TableMetadataBaseService();
+
+    @Autowired
+    private ProjectService projectService;
 
     /**
      * Load a group of  tables
@@ -335,5 +339,21 @@ public class TableExtService extends BasicService implements TableMetadataContra
             throw new KylinException(PROJECT_NOT_EXIST,
                     String.format(Locale.ROOT, MsgPicker.getMsg().getSameTableNameExist(), tableDesc.getIdentity()));
         }
+    }
+
+    @Override
+    public List<String> getTableNamesByFuzzyKey(String project, String fuzzyKey) {
+        if (StringUtils.isNotEmpty(project)) {
+            NTableMetadataManager nTableMetadataManager = getManager(NTableMetadataManager.class, project);
+            return nTableMetadataManager.getTableNamesByFuzzyKey(fuzzyKey);
+        }
+        List<String> tableNames = new ArrayList<>();
+        // query from all projects
+        List<ProjectInstance> projectInstances = projectService.getReadableProjects(null, false);
+        for (ProjectInstance projectInstance : projectInstances) {
+            NTableMetadataManager nTableMetadataManager = getManager(NTableMetadataManager.class, projectInstance.getName());
+            tableNames.addAll(nTableMetadataManager.getTableNamesByFuzzyKey(fuzzyKey));
+        }
+        return tableNames;
     }
 }

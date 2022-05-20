@@ -68,7 +68,7 @@ public class TableSampleService extends BasicService {
 
     private List<JobInfo> existingRunningSamplingJobs(String project, String table) {
         JobMapperFilter jobMapperFilter = JobMapperFilter.builder()
-                .jobNames(Lists.newArrayList(JobTypeEnum.TABLE_SAMPLING.name())).project(project).subject(table)
+                .jobNames(Lists.newArrayList(JobTypeEnum.TABLE_SAMPLING.name())).project(project).subjects(Lists.newArrayList(table))
                 .statuses(Lists.newArrayList(JobStatusEnum.PENDING.name(), JobStatusEnum.RUNNING.name())).offset(0)
                 .limit(10).build();
         return jobInfoMapper.selectByJobFilter(jobMapperFilter);

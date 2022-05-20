@@ -34,6 +34,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import io.kyligence.kap.rest.request.MergeAndUpdateTableExtRequest;
 
+import java.util.List;
+
 @EnableFeignClients
 @FeignClient(name = "yinglong-common-booter", path = "/kylin/api/tables/feign")
 public interface TableMetadataRPC extends TableMetadataContract {
@@ -51,4 +53,8 @@ public interface TableMetadataRPC extends TableMetadataContract {
     @GetMapping("/get_table_desc")
     TableDesc getTableDesc(@RequestParam(value = "project") String project,
             @RequestParam(value = "table") String table);
+
+    @GetMapping("/get_table_names_by_fuzzy_key")
+    List<String> getTableNamesByFuzzyKey(@RequestParam(value = "project") String project,
+            @RequestParam(value = "fuzzyKey") String fuzzyKey);
 }

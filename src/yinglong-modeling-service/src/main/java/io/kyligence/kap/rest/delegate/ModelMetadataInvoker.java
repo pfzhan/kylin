@@ -119,8 +119,8 @@ public class ModelMetadataInvoker extends ModelMetadataBaseInvoker {
         getDelegate().removeIndexesFromSegments(project, modelId, segmentIds, indexIds);
     }
 
-    public List<String> getModelIdsByFuzzyName(String fuzzyName, String project) {
-        return getDelegate().getModelIdsByFuzzyName(fuzzyName, project);
+    public List<String> getModelNamesByFuzzyName(String fuzzyName, String project) {
+        return getDelegate().getModelNamesByFuzzyName(fuzzyName, project);
     }
 
     public String getModelNameById(String modelId, String project) {

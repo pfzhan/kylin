@@ -176,11 +176,8 @@
     <include refid="Blob_Column_List" />
     from job_info
     <where>
-      <if test="subject != null">
-        subject = #{subject}
-      </if>
       <if test="project != null">
-        AND project = #{project}
+        project = #{project}
       </if>
       <if test="queryStartTime != null">
         AND update_time >= #{queryStartTime}
@@ -205,6 +202,11 @@
       </if>
       <if test="jobIds != null">
         <foreach item="item" index="index" collection="jobIds" open="AND job_id in (" separator="," close=")">
+          #{item}
+        </foreach>
+      </if>
+      <if test="subjects != null">
+        <foreach item="item" index="index" collection="subjects" open="AND subject in (" separator="," close=")">
           #{item}
         </foreach>
       </if>
