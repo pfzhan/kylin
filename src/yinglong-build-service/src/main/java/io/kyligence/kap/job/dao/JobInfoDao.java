@@ -29,6 +29,7 @@ import io.kyligence.kap.job.mapper.JobInfoMapper;
 import io.kyligence.kap.job.rest.JobFilter;
 import io.kyligence.kap.job.rest.JobMapperFilter;
 import io.kyligence.kap.job.util.JobInfoUtil;
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
 import io.kyligence.kap.rest.delegate.TableMetadataInvoker;
 import lombok.val;
@@ -135,9 +136,12 @@ public class JobInfoDao {
         jobInfo.setProject(executablePO.getProject());
 
         String subject = null;
-        if(JobTypeEnum.TABLE_SAMPLING == executablePO.getJobType()){
+        if (JobTypeEnum.TABLE_SAMPLING == executablePO.getJobType()) {
             subject = executablePO.getTargetModel();
-        }else{
+        } else if (JobTypeEnum.SNAPSHOT_REFRESH == executablePO.getJobType()
+                || JobTypeEnum.SNAPSHOT_BUILD == executablePO.getJobType()) {
+            subject = executablePO.getParams().get(NBatchConstants.P_TABLE_NAME);
+        } else {
             subject = modelMetadataInvoker.getModelNameById(executablePO.getTargetModel(), executablePO.getProject());
         }
 

@@ -27,6 +27,7 @@ package io.kyligence.kap.job.service;
 import java.util.List;
 import java.util.Set;
 
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
@@ -68,7 +69,8 @@ public class TableSampleService extends BasicService {
 
     private List<JobInfo> existingRunningSamplingJobs(String project, String table) {
         JobMapperFilter jobMapperFilter = JobMapperFilter.builder()
-                .jobNames(Lists.newArrayList(JobTypeEnum.TABLE_SAMPLING.name())).project(project).subjects(Lists.newArrayList(table))
+                .jobNames(Lists.newArrayList(JobTypeEnum.TABLE_SAMPLING.name())).project(project)
+                .subjects(Lists.newArrayList(table))
                 .statuses(Lists.newArrayList(JobStatusEnum.PENDING.name(), JobStatusEnum.RUNNING.name())).offset(0)
                 .limit(10).build();
         return jobInfoMapper.selectByJobFilter(jobMapperFilter);
@@ -78,6 +80,7 @@ public class TableSampleService extends BasicService {
             Object tag) {
         aclEvaluate.checkProjectWritePermission(project);
         ExecutableManager execMgr = ExecutableManager.getInstance(getConfig(), project);
+        NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getConfig(), project);
         JobStatisticsManager jobStatisticsManager = JobStatisticsManager.getInstance(getConfig(), project);
 
         List<String> jobIds = Lists.newArrayList();
@@ -89,7 +92,7 @@ public class TableSampleService extends BasicService {
                 }
 
                 JobManager.checkStorageQuota(project);
-                val tableDesc = tableMetadataManagerService.getTableDesc(project, table);
+                val tableDesc = tableMgr.getTableDesc(table);
                 val samplingJob = NTableSamplingJob.create(tableDesc, project, getUsername(), rows, priority, yarnQueue,
                         tag);
                 jobIds.add(samplingJob.getId());
@@ -97,7 +100,7 @@ public class TableSampleService extends BasicService {
 
                 // job statistics
                 long startOfDay = TimeUtil.getDayStart(System.currentTimeMillis());
-//                jobStatisticsManager.updateStatistics(startOfDay, 0, 0, 1);
+                //                jobStatisticsManager.updateStatistics(startOfDay, 0, 0, 1);
 
                 return null;
             }, project, 1);

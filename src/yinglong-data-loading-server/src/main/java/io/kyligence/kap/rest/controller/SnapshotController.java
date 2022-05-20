@@ -35,6 +35,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import io.kyligence.kap.job.service.SnapshotJobService;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.response.DataResult;
@@ -79,8 +80,8 @@ public class SnapshotController extends BaseController {
     private static final Logger logger = LoggerFactory.getLogger(SnapshotController.class);
 
     @Autowired
-    @Qualifier("snapshotService")
-    private SnapshotService snapshotService;
+    @Qualifier("snapshotJobService")
+    private SnapshotJobService snapshotService;
 
     @ApiOperation(value = "config partition col for snapshot Tables", tags = { "AI" }, notes = "config partition col")
     @PostMapping(value = "/config")
