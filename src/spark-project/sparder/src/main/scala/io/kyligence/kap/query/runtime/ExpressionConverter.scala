@@ -230,7 +230,11 @@ object ExpressionConverter {
               k_lit(children.head),
               scale.asInstanceOf[Int])
           case "truncate" =>
-            k_truncate(k_lit(children.head), children.apply(1).asInstanceOf[Int])
+            if (children.size == 1) {
+              k_truncate(k_lit(children.head), 0)
+            } else {
+              k_truncate(k_lit(children.head), children.apply(1).asInstanceOf[Int])
+            }
           case "cot" =>
             k_lit(1).divide(tan(k_lit(children.head)))
           // null handling funcs
