@@ -97,7 +97,10 @@ public enum ErrorCodeServer implements ErrorCodeProducer {
     // 100122XX index
     RULE_BASED_INDEX_METADATA_INCONSISTENT("KE-010012201"),
     INDEX_DUPLICATE("KE-010012202"),
-    INDEX_PARAMETER_INVALID("KE-010012203");
+    INDEX_PARAMETER_INVALID("KE-010012203"),
+
+    // 10043XX parameter check
+    REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY("KE-010043201");
 
     private final ErrorCode errorCode;
     private final ErrorMsg errorMsg;

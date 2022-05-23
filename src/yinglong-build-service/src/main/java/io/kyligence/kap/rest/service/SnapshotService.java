@@ -52,6 +52,7 @@ import java.util.stream.Stream;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
+import org.apache.kylin.common.exception.code.ErrorCodeServer;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.StringUtil;
@@ -757,7 +758,7 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
 
     private void checkTableAndCol(String project, Map<String, String> table2PartCol) {
         if (table2PartCol.isEmpty()) {
-            return;
+            throw new KylinException(ErrorCodeServer.REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY, "table_partition_col");
         }
         Set<TableDesc> tables = checkAndGetTable(project, table2PartCol.keySet());
         checkTablePermission(tables);
