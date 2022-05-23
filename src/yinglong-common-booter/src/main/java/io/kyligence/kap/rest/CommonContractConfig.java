@@ -24,6 +24,9 @@
 
 package io.kyligence.kap.rest;
 
+import io.kyligence.kap.rest.delegate.TableSamplingContract;
+import io.kyligence.kap.rest.delegate.TableSamplingInvoker;
+import io.kyligence.kap.rest.delegate.TableSamplingRPC;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationContext;
@@ -47,6 +50,7 @@ public class CommonContractConfig implements InitializingBean, ApplicationContex
         ModelMetadataInvoker.setDelegate(applicationContext.getBean(ModelService.class));
         JobMetadataInvoker.setDelegate(applicationContext.getBean(JobMetadataService.class));
         TableMetadataInvoker.setDelegate(applicationContext.getBean(TableExtService.class));
+        TableSamplingInvoker.setDelegate(applicationContext.getBean(TableSamplingRPC.class));
     }
 
     @Override

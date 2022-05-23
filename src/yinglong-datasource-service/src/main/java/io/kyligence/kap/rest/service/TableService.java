@@ -66,6 +66,7 @@ import java.util.stream.Stream;
 import javax.servlet.http.HttpServletRequest;
 
 import io.kyligence.kap.rest.request.S3TableExtInfo;
+import io.kyligence.kap.rest.delegate.TableSamplingInvoker;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -201,8 +202,7 @@ public class TableService extends BasicService {
     private TableFusionModelSupporter fusionModelService;
 
     @Autowired(required = false)
-    @Qualifier("tableSamplingService")
-    private TableSamplingSupporter tableSamplingService;
+    private  TableSamplingInvoker tableSamplingInvoker;
 
     @Autowired
     private TableIndexPlanSupporter indexPlanService;
@@ -1179,7 +1179,7 @@ public class TableService extends BasicService {
             List<String> buildingJobs = innerReloadTable(projectName, tableIdentity, needBuild, null);
             pair.setSecond(buildingJobs);
             if (needSample && maxRows > 0) {
-                List<String> jobIds = tableSamplingService.sampling(Sets.newHashSet(tableIdentity), projectName,
+                List<String> jobIds = tableSamplingInvoker.sampling(Sets.newHashSet(tableIdentity), projectName,
                         maxRows, priority, yarnQueue, null);
                 if (CollectionUtils.isNotEmpty(jobIds)) {
                     pair.setFirst(jobIds.get(0));
@@ -1197,7 +1197,7 @@ public class TableService extends BasicService {
             List<String> buildingJobs = innerReloadTable(projectName, tableExtInfo.getName(), needBuild, tableExtInfo);
             pair.setSecond(buildingJobs);
             if (needSample && maxRows > 0) {
-                List<String> jobIds = tableSamplingService.sampling(Sets.newHashSet(tableExtInfo.getName()), projectName,
+                List<String> jobIds = tableSamplingInvoker.sampling(Sets.newHashSet(tableExtInfo.getName()), projectName,
                         maxRows, priority, yarnQueue, null);
                 if (CollectionUtils.isNotEmpty(jobIds)) {
                     pair.setFirst(jobIds.get(0));

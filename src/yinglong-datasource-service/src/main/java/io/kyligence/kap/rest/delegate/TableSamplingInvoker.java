@@ -22,14 +22,39 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.service;
+package io.kyligence.kap.rest.delegate;
 
-import io.kyligence.kap.rest.delegate.TableSamplingContract;
+import io.kyligence.kap.rest.service.TableSamplingSupporter;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.kylin.rest.util.SpringContext;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Set;
 
-public interface TableSamplingSupporter extends TableSamplingContract  {
-    List<String> sampling(Set<String> tables, String project, int rows, int priority, String yarnQueue,
-                          Object tag);
+@Slf4j
+@Component
+public class TableSamplingInvoker {
+
+    private static TableSamplingContract delegate = null;
+
+    public static void setDelegate(TableSamplingContract delegate) {
+        if (TableSamplingInvoker.delegate != null) {
+            log.warn("Delegate is replaced as {}, origin value is {}", delegate, TableSamplingInvoker.delegate);
+        }
+        TableSamplingInvoker.delegate = delegate;
+    }
+
+    public TableSamplingContract getDelegate() {
+        if (delegate == null) {
+            return SpringContext.getBean(TableSamplingSupporter.class);
+        }
+        return delegate;
+    }
+
+    public List<String> sampling(Set<String> tables, String project, int rows, int priority, String yarnQueue,
+                          Object tag) {
+        return getDelegate().sampling(tables, project, rows, priority, yarnQueue, tag);
+    }
+
 }

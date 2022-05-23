@@ -27,6 +27,8 @@ package io.kyligence.kap.rest.controller;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Set;
 
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.request.SamplingRequest;
@@ -119,7 +121,7 @@ public class SampleController extends BaseController {
         TableSamplingService.checkSamplingTable(request.getQualifiedTableName());
         validatePriority(request.getPriority());
 
-        tableSampleService.applySample(Sets.newHashSet(request.getQualifiedTableName()), request.getProject(),
+        tableSampleService.sampling(Sets.newHashSet(request.getQualifiedTableName()), request.getProject(),
                 request.getRows(), request.getPriority(), request.getYarnQueue(), request.getTag());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
@@ -135,4 +137,12 @@ public class SampleController extends BaseController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, hasSamplingJob, "");
     }
 
+    @PostMapping(value = "/feign/sampling")
+    @ResponseBody
+    public List<String> sampling(@RequestBody Set<String> tables, @RequestParam("project") String project,
+            @RequestParam("rows") int rows, @RequestParam("priority") int priority,
+            @RequestParam(value = "yarnQueue", required = false, defaultValue = "") String yarnQueue,
+            @RequestParam(value = "tag", required = false) Object tag) {
+        return tableSampleService.sampling(tables, project, rows, priority, yarnQueue, tag);
+    }
 }

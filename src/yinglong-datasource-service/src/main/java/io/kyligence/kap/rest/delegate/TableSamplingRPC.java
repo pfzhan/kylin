@@ -22,14 +22,23 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.service;
+package io.kyligence.kap.rest.delegate;
 
-import io.kyligence.kap.rest.delegate.TableSamplingContract;
+import org.springframework.cloud.openfeign.EnableFeignClients;
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 import java.util.Set;
 
-public interface TableSamplingSupporter extends TableSamplingContract  {
-    List<String> sampling(Set<String> tables, String project, int rows, int priority, String yarnQueue,
-                          Object tag);
+@EnableFeignClients
+@FeignClient(name = "yinglong-data-loading-booter", path = "/kylin/api/tables/feign")
+public interface TableSamplingRPC extends TableSamplingContract {
+
+    @PostMapping(value = "/sampling")
+    List<String> sampling(@RequestBody Set<String> tables, @RequestParam("project") String project,
+            @RequestParam("rows") int rows, @RequestParam("priority") int priority,
+            @RequestParam("yarnQueue") String yarnQueue, @RequestParam("tag") Object tag);
 }

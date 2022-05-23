@@ -30,6 +30,8 @@ import io.kyligence.kap.rest.delegate.ModelMetadataContract;
 import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
 import io.kyligence.kap.rest.delegate.TableMetadataContract;
 import io.kyligence.kap.rest.delegate.TableMetadataInvoker;
+import io.kyligence.kap.rest.delegate.TableSamplingContract;
+import io.kyligence.kap.rest.delegate.TableSamplingInvoker;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationContext;
@@ -46,6 +48,7 @@ public class ContractConfig implements InitializingBean, ApplicationContextAware
         ModelMetadataInvoker.setDelegate(applicationContext.getBean(ModelMetadataContract.class));
         JobMetadataInvoker.setDelegate(applicationContext.getBean(JobMetadataContract.class));
         TableMetadataInvoker.setDelegate(applicationContext.getBean(TableMetadataContract.class));
+        TableSamplingInvoker.setDelegate(applicationContext.getBean(TableSamplingContract.class));
     }
 
     @Override

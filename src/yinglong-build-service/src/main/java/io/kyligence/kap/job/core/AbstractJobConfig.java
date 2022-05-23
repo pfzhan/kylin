@@ -135,6 +135,7 @@ public abstract class AbstractJobConfig {
 
     private <T> T getInstance0(String className) throws ClassNotFoundException, NoSuchMethodException,
             IllegalAccessException, InvocationTargetException, InstantiationException {
+        className = "io.kyligence.kap.job.scheduler.JdbcJobScheduler";
         Object instance = singletonMap.get(className);
         if (Objects.isNull(instance)) {
             synchronized (this) {

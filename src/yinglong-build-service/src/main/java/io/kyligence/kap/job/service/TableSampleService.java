@@ -28,10 +28,12 @@ import java.util.List;
 import java.util.Set;
 
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
+import io.kyligence.kap.rest.service.TableSamplingSupporter;
+
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
-import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.rest.service.BasicService;
@@ -51,7 +53,7 @@ import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import lombok.val;
 
 @Service
-public class TableSampleService extends BasicService {
+public class TableSampleService extends BasicService implements TableSamplingSupporter {
 
     @Autowired
     private AclEvaluate aclEvaluate;
@@ -76,12 +78,12 @@ public class TableSampleService extends BasicService {
         return jobInfoMapper.selectByJobFilter(jobMapperFilter);
     }
 
-    public List<String> applySample(Set<String> tables, String project, int rows, int priority, String yarnQueue,
-            Object tag) {
+    @Override
+    public List<String> sampling(Set<String> tables, String project, int rows, int priority, String yarnQueue,
+                                 Object tag) {
         aclEvaluate.checkProjectWritePermission(project);
         ExecutableManager execMgr = ExecutableManager.getInstance(getConfig(), project);
         NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getConfig(), project);
-        JobStatisticsManager jobStatisticsManager = JobStatisticsManager.getInstance(getConfig(), project);
 
         List<String> jobIds = Lists.newArrayList();
         for (String table : tables) {
@@ -100,14 +102,10 @@ public class TableSampleService extends BasicService {
 
                 // job statistics
                 long startOfDay = TimeUtil.getDayStart(System.currentTimeMillis());
-                //                jobStatisticsManager.updateStatistics(startOfDay, 0, 0, 1);
-
+                JobMetadataInvoker.getInstance().updateStatistics(project, startOfDay, null, 0, 0, 1);
                 return null;
             }, project, 1);
-
         }
-
         return jobIds;
-
     }
 }

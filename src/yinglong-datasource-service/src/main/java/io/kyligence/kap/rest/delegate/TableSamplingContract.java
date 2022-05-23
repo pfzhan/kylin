@@ -22,14 +22,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.service;
-
-import io.kyligence.kap.rest.delegate.TableSamplingContract;
+package io.kyligence.kap.rest.delegate;
 
 import java.util.List;
 import java.util.Set;
 
-public interface TableSamplingSupporter extends TableSamplingContract  {
+public interface TableSamplingContract {
     List<String> sampling(Set<String> tables, String project, int rows, int priority, String yarnQueue,
                           Object tag);
 }

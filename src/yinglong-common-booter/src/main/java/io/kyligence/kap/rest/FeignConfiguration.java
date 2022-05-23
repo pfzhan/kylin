@@ -22,14 +22,30 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.service;
+package io.kyligence.kap.rest;
 
-import io.kyligence.kap.rest.delegate.TableSamplingContract;
+import javax.servlet.http.HttpServletRequest;
 
-import java.util.List;
-import java.util.Set;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
-public interface TableSamplingSupporter extends TableSamplingContract  {
-    List<String> sampling(Set<String> tables, String project, int rows, int priority, String yarnQueue,
-                          Object tag);
+import feign.RequestInterceptor;
+import feign.RequestTemplate;
+
+@Configuration
+public class FeignConfiguration implements RequestInterceptor {
+
+    @Override
+    public void apply(RequestTemplate template) {
+        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attributes != null) {
+            HttpServletRequest request = attributes.getRequest();
+            String authorization = request.getHeader("Authorization");
+            template.header("Authorization", authorization);
+            String cookie = request.getHeader("Cookie");
+            template.header("Cookie", cookie);
+        }
+    }
+
 }

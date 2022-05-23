@@ -41,6 +41,7 @@ import java.util.Set;
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.collections.CollectionUtils;
+import io.kyligence.kap.rest.delegate.TableSamplingInvoker;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -116,8 +117,7 @@ public class NTableController extends NBasicController {
     private ModelBuildSupporter modelBuildService;
 
     @Autowired
-    @Qualifier("tableSamplingService")
-    private TableSamplingService tableSamplingService;
+    private TableSamplingInvoker tableSamplingInvoker;
 
     @ApiOperation(value = "getTableDesc", tags = {
             "AI" }, notes = "Update Param: is_fuzzy, page_offset, page_size; Update Response: no format!")
@@ -246,8 +246,8 @@ public class NTableController extends NBasicController {
         }
 
         if (!loadTableResponse.getLoaded().isEmpty() && Boolean.TRUE.equals(tableLoadRequest.getNeedSampling())) {
-            TableSamplingService.checkSamplingRows(tableLoadRequest.getSamplingRows());
-            tableSamplingService.sampling(loadTableResponse.getLoaded(), tableLoadRequest.getProject(),
+            checkSamplingRows(tableLoadRequest.getSamplingRows());
+            tableSamplingInvoker.sampling(loadTableResponse.getLoaded(), tableLoadRequest.getProject(),
                     tableLoadRequest.getSamplingRows(), tableLoadRequest.getPriority(), tableLoadRequest.getYarnQueue(),
                     tableLoadRequest.getTag());
         }
