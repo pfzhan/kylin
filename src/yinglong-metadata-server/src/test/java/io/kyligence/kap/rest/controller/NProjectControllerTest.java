@@ -304,6 +304,18 @@ public class NProjectControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testUpdateSnapshotConfigWithDefaultSnapshotManualManagementEnabled() throws Exception {
+        val request = new SnapshotConfigRequest();
+
+        Mockito.doNothing().when(projectService).updateSnapshotConfig("default", request);
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/{project}/snapshot_config", "default")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+        Mockito.verify(nProjectController).updateSnapshotConfig("default", request);
+    }
+
+    @Test
     public void testUpdateShardNumConfig() throws Exception {
         val request = new ShardNumConfigRequest();
         Mockito.doNothing().when(projectService).updateShardNumConfig("default", request);
