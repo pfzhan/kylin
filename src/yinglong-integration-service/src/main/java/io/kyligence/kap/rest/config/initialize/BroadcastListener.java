@@ -42,13 +42,11 @@ import io.kyligence.kap.common.persistence.transaction.AuditLogBroadcastEventNot
 import io.kyligence.kap.common.persistence.transaction.BroadcastEventReadyNotifier;
 import io.kyligence.kap.common.persistence.transaction.EpochCheckBroadcastNotifier;
 import io.kyligence.kap.common.persistence.transaction.StopQueryBroadcastEventNotifier;
-import io.kyligence.kap.common.persistence.transaction.UpdateJobStatusEventNotifier;
 import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.rest.broadcaster.Broadcaster;
 import io.kyligence.kap.rest.service.AclTCRService;
 import io.kyligence.kap.rest.service.AuditLogService;
-import io.kyligence.kap.rest.service.JobService;
 import lombok.extern.slf4j.Slf4j;
 
 @Component
@@ -67,9 +65,6 @@ public class BroadcastListener {
 
     @Autowired
     private AccessService accessService;
-
-    @Autowired
-    private JobService jobService;
 
     private Broadcaster broadcaster = Broadcaster.getInstance(KylinConfig.getInstanceFromEnv(), this);
 
@@ -96,10 +91,6 @@ public class BroadcastListener {
             accessService.updateAccessFromRemote(null, (AccessBatchGrantEventNotifier) notifier, null);
         } else if (notifier instanceof AccessRevokeEventNotifier) {
             accessService.updateAccessFromRemote(null, null, (AccessRevokeEventNotifier) notifier);
-        } else if (notifier instanceof UpdateJobStatusEventNotifier) {
-            UpdateJobStatusEventNotifier updateJobStatusEventNotifier = (UpdateJobStatusEventNotifier) notifier;
-            jobService.batchUpdateGlobalJobStatus(updateJobStatusEventNotifier.getJobIds(),
-                    updateJobStatusEventNotifier.getAction(), updateJobStatusEventNotifier.getStatuses());
         } else if (notifier instanceof AclTCRRevokeEventNotifier) {
             AclTCRRevokeEventNotifier aclTCRRevokeEventNotifier = (AclTCRRevokeEventNotifier) notifier;
             aclTCRService.revokeAclTCR(aclTCRRevokeEventNotifier.getSid(), aclTCRRevokeEventNotifier.isPrinciple());

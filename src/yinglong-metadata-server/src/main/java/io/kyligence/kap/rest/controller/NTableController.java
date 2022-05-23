@@ -29,6 +29,7 @@ import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLI
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_REFRESH_PARAMETER;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_SAMPLING_RANGE_INVALID;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_NOT_EXIST;
 
 import java.io.IOException;
@@ -41,7 +42,6 @@ import java.util.Set;
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.collections.CollectionUtils;
-import io.kyligence.kap.rest.delegate.TableSamplingInvoker;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -67,6 +67,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.rest.delegate.TableSamplingInvoker;
 import io.kyligence.kap.rest.request.AWSTableLoadRequest;
 import io.kyligence.kap.rest.request.AutoMergeRequest;
 import io.kyligence.kap.rest.request.MergeAndUpdateTableExtRequest;
@@ -86,10 +87,8 @@ import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
 import io.kyligence.kap.rest.response.UpdateAWSTableExtDescResponse;
-import io.kyligence.kap.rest.service.ModelBuildSupporter;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.TableExtService;
-import io.kyligence.kap.rest.service.TableSamplingService;
 import io.kyligence.kap.rest.service.TableService;
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
@@ -99,6 +98,8 @@ import lombok.val;
 public class NTableController extends NBasicController {
 
     private static final String TABLE = "table";
+    private static final int MAX_SAMPLING_ROWS = 20_000_000;
+    private static final int MIN_SAMPLING_ROWS = 10_000;
 
     @Autowired
     @Qualifier("tableService")
@@ -111,10 +112,6 @@ public class NTableController extends NBasicController {
     @Autowired
     @Qualifier("modelService")
     private ModelService modelService;
-
-    @Autowired
-    @Qualifier("modelBuildService")
-    private ModelBuildSupporter modelBuildService;
 
     @Autowired
     private TableSamplingInvoker tableSamplingInvoker;
@@ -276,8 +273,8 @@ public class NTableController extends NBasicController {
         loadTableResponse.getLoaded().addAll(loadByTable.getLoaded());
 
         if (!loadTableResponse.getLoaded().isEmpty() && Boolean.TRUE.equals(tableLoadRequest.getNeedSampling())) {
-            TableSamplingService.checkSamplingRows(tableLoadRequest.getSamplingRows());
-            tableSamplingService.sampling(loadTableResponse.getLoaded(), tableLoadRequest.getProject(),
+            checkSamplingRows(tableLoadRequest.getSamplingRows());
+            tableSamplingInvoker.sampling(loadTableResponse.getLoaded(), tableLoadRequest.getProject(),
                     tableLoadRequest.getSamplingRows(), tableLoadRequest.getPriority(), tableLoadRequest.getYarnQueue(),
                     tableLoadRequest.getTag());
         }
@@ -475,7 +472,7 @@ public class NTableController extends NBasicController {
             throw new KylinException(INVALID_TABLE_NAME, MsgPicker.getMsg().getTableNameCannotEmpty());
         }
         if (request.isNeedSample()) {
-            TableSamplingService.checkSamplingRows(request.getMaxRows());
+            checkSamplingRows(request.getMaxRows());
         }
         tableService.reloadTable(request.getProject(), request.getTable(), request.isNeedSample(), request.getMaxRows(),
                 request.isNeedBuild(), request.getPriority(), request.getYarnQueue());
@@ -579,5 +576,11 @@ public class NTableController extends NBasicController {
     @ResponseBody
     public void updateTableDesc(@RequestParam("project") String project, @RequestBody TableDesc tableDesc) {
         tableExtService.updateTableDesc(project, tableDesc);
+    }
+
+    public static void checkSamplingRows(int rows) {
+        if (rows > MAX_SAMPLING_ROWS || rows < MIN_SAMPLING_ROWS) {
+            throw new KylinException(JOB_SAMPLING_RANGE_INVALID, MIN_SAMPLING_ROWS, MAX_SAMPLING_ROWS);
+        }
     }
 }

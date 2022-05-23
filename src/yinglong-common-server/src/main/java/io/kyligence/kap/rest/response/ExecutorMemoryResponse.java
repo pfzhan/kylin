@@ -21,15 +21,22 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-package io.kyligence.kap.rest.service;
-
-import io.kyligence.kap.rest.delegate.TableSamplingContract;
+package io.kyligence.kap.rest.response;
 
 import java.util.List;
-import java.util.Set;
 
-public interface TableSamplingSupporter extends TableSamplingContract {
-    List<String> sampling(Set<String> tables, String project, int rows, int priority, String yarnQueue,
-                          Object tag);
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+public class ExecutorMemoryResponse {
+
+    @JsonProperty("name")
+    private String executorName;
+
+    @JsonProperty("mem_infos")
+    private List<String> memInfos;
 }

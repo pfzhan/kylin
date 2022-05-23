@@ -202,7 +202,7 @@ public class TableService extends BasicService {
     private TableFusionModelSupporter fusionModelService;
 
     @Autowired(required = false)
-    private  TableSamplingInvoker tableSamplingInvoker;
+    private TableSamplingInvoker tableSamplingInvoker;
 
     @Autowired
     private TableIndexPlanSupporter indexPlanService;

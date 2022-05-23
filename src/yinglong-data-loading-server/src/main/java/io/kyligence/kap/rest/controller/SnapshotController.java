@@ -68,7 +68,6 @@ import io.kyligence.kap.rest.response.SnapshotColResponse;
 import io.kyligence.kap.rest.response.SnapshotInfoResponse;
 import io.kyligence.kap.rest.response.SnapshotPartitionsResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
-import io.kyligence.kap.rest.service.SnapshotService;
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
 

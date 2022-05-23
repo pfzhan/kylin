@@ -34,10 +34,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
-import io.kyligence.kap.rest.request.S3TableExtInfo;
-import io.kyligence.kap.rest.request.AWSTableLoadRequest;
-import io.kyligence.kap.rest.request.UpdateAWSTableExtDescRequest;
-import io.kyligence.kap.rest.response.UpdateAWSTableExtDescResponse;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
@@ -69,19 +65,23 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.rest.delegate.TableSamplingInvoker;
+import io.kyligence.kap.rest.request.AWSTableLoadRequest;
 import io.kyligence.kap.rest.request.AutoMergeRequest;
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.PartitionKeyRequest;
 import io.kyligence.kap.rest.request.PushDownModeRequest;
 import io.kyligence.kap.rest.request.ReloadTableRequest;
+import io.kyligence.kap.rest.request.S3TableExtInfo;
 import io.kyligence.kap.rest.request.TableLoadRequest;
 import io.kyligence.kap.rest.request.TopTableRequest;
+import io.kyligence.kap.rest.request.UpdateAWSTableExtDescRequest;
 import io.kyligence.kap.rest.response.LoadTableResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
+import io.kyligence.kap.rest.response.UpdateAWSTableExtDescResponse;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.TableExtService;
-import io.kyligence.kap.rest.service.TableSamplingService;
 import io.kyligence.kap.rest.service.TableService;
 import lombok.val;
 
@@ -103,7 +103,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
     private TableExtService tableExtService;
 
     @Mock
-    private TableSamplingService tableSamplingService;
+    private TableSamplingInvoker tableSamplingInvoker;
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
@@ -588,7 +588,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
         tableLoadRequest.setNeedSampling(true);
         tableLoadRequest.setSamplingRows(20000);
         initMockito(loadTableResponse, tableLoadRequest);
-        Assert.assertNotNull(tableSamplingService);
+        Assert.assertNotNull(tableSamplingInvoker);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/tables") //
                 .contentType(MediaType.APPLICATION_JSON) //
                 .content(JsonUtil.writeValueAsString(tableLoadRequest)) //
