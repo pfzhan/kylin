@@ -50,6 +50,7 @@ import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 
+import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.query.asyncprofiler.AsyncProfiling;
 import io.kyligence.kap.rest.service.QueryCacheManager;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
@@ -426,6 +427,19 @@ public class NQueryController extends NBasicController {
         request.setFilterModelName(modelAlias);
         List<String> modelNames = queryHistoryService.getQueryHistoryModels(request, size);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, modelNames, "");
+    }
+
+    @ApiOperation(value = "queryHistoryTiredStorageMetrics", tags = {"QE"}, notes = "Update Param: project, query_id")
+    @GetMapping(value = "/query_history/tired_storage_metrics")
+    @ResponseBody
+    public EnvelopeResponse<QueryHistory> queryHistoryTiredStorageMetrics(@RequestParam(value = "project") String project,
+                                                                          @RequestParam(value = "query_id") String queryId) {
+        checkProjectName(project);
+        checkRequiredArg("query_id", queryId);
+        QueryHistoryRequest request = new QueryHistoryRequest();
+        request.setProject(project);
+        request.setSql(queryId);
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, queryHistoryService.queryTiredStorageMetric(request), "");
     }
 
     @ApiOperation(value = "getServers", tags = { "QE" })

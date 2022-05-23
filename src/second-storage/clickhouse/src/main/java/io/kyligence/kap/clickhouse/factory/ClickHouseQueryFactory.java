@@ -22,42 +22,15 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.secondstorage;
+package io.kyligence.kap.clickhouse.factory;
 
-import java.util.Map;
+import io.kyligence.kap.clickhouse.database.ClickHouseQueryOperator;
+import io.kyligence.kap.secondstorage.database.QueryOperator;
+import io.kyligence.kap.secondstorage.factory.SecondStorageQueryOperatorFactory;
 
-public interface SecondStorageUpdater {
-    /**
-     * Clean second storage model
-     * if needed, return clean job id
-     * @param project project
-     * @param modelId model id
-     * @return clean job id
-     */
-    String cleanModel(final String project, final String modelId);
-
-    /**
-     * disable model
-     * @param project project
-     * @param modelId model id
-     * @return clean job id
-     */
-    String disableModel(final String project, final String modelId);
-
-    /**
-     * Update model index
-     * if needed, return clean index id
-     * @param project project
-     * @param modelId model id
-     * @return clean index job id
-     */
-    String updateIndex(String project, String modelId);
-
-    /**
-     * Get query metric , like scan rows / scan bytes
-     * @param project project
-     * @param queryId query id
-     * @return metrics
-     */
-    Map<String, Object> getQueryMetric(String project, String queryId);
+public class ClickHouseQueryFactory implements SecondStorageQueryOperatorFactory {
+    @Override
+    public QueryOperator getQueryOperator(String project) {
+        return new ClickHouseQueryOperator(project);
+    }
 }

@@ -158,6 +158,23 @@ public class QueryHistoryService extends BasicService implements AsyncTaskQueryH
         return data;
     }
 
+    public QueryHistory queryTiredStorageMetric(QueryHistoryRequest request) {
+        processRequestParams(request);
+
+        if (haveSpaces(request.getSql())) {
+            return new QueryHistory();
+        }
+
+        QueryHistoryDAO queryHistoryDAO = getQueryHistoryDao();
+        List<QueryHistory> queryHistories = queryHistoryDAO.getQueryHistoriesByConditions(request, 1, 0);
+
+        if (queryHistories.isEmpty()) {
+            return new QueryHistory();
+        }
+
+        return queryHistories.get(0);
+    }
+
     private void processRequestParams(QueryHistoryRequest request) {
         Preconditions.checkArgument(StringUtils.isNotEmpty(request.getProject()));
         aclEvaluate.checkProjectReadPermission(request.getProject());

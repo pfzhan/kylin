@@ -528,6 +528,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kylin.second-storage.load-retry-interval", "30000"));
     }
 
+    public boolean getSecondStorageQueryMetricCollect() {
+        return Boolean.parseBoolean(getOptional("kylin.second-storage.query-metric-collect", TRUE));
+    }
+
     public int getSecondStorageQueryPushdownLimit() {
         return Integer.parseInt(getOptional("kylin.second-storage.query-pushdown-limit", "0"));
     }
