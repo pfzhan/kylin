@@ -49,8 +49,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.rest.delegate.TableMetadataInvoker;
-import io.kyligence.kap.rest.request.MergeAndUpdateTableExtRequest;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
@@ -60,7 +58,6 @@ import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.dao.ExecutablePO;
-import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.exception.JobSubmissionException;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.manager.JobManager;
@@ -98,6 +95,9 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import io.kyligence.kap.rest.aspect.Transaction;
 import io.kyligence.kap.rest.constant.SnapshotStatus;
+import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
+import io.kyligence.kap.rest.delegate.TableMetadataInvoker;
+import io.kyligence.kap.rest.request.MergeAndUpdateTableExtRequest;
 import io.kyligence.kap.rest.request.SnapshotRequest;
 import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.response.NInitTablesResponse;
@@ -214,8 +214,8 @@ public class SnapshotJobService extends BasicService implements SnapshotSupporte
             JobManager.checkStorageQuota(project);
             getManager(SourceUsageManager.class).licenseCheckWrap(project, () -> {
                 for (TableDesc tableDesc : tables) {
-                    JobStatisticsManager jobStatisticsManager = JobStatisticsManager.getInstance(getConfig(), project);
-                    jobStatisticsManager.updateStatistics(TimeUtil.getDayStart(System.currentTimeMillis()), 0, 0, 1);
+                    long startOfDay = TimeUtil.getDayStart(System.currentTimeMillis());
+                    JobMetadataInvoker.getInstance().updateStatistics(project, startOfDay, null, 0, 0, 1);
 
                     SnapshotRequest.TableOption option = decideBuildOption(tableDesc,
                             options.get(tableDesc.getIdentity()));
