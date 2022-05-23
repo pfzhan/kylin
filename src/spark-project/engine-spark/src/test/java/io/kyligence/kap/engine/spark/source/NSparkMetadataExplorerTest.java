@@ -29,8 +29,12 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparderEnv;
+import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.internal.SQLConf;
 import org.junit.Assert;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import io.kyligence.kap.common.util.TempMetadataBuilder;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
@@ -142,5 +146,37 @@ public class NSparkMetadataExplorerTest extends NLocalWithSparkSessionTest {
         sparkMetadataExplorer.loadSampleData("SSB.PART", TempMetadataBuilder.TEMP_TEST_METADATA + "/data/");
         List<Row> rows = ss.sql("select * from part").collectAsList();
         Assert.assertTrue(rows != null && rows.size() > 0);
+    }
+
+    @Test
+    public void testGetLoc() throws Exception {
+        NSparkMetadataExplorer sparkMetadataExplorer = new NSparkMetadataExplorer();
+        NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getTestConfig(), "default");
+        TableDesc fact = tableMgr.getTableDesc("DEFAULT.TEST_KYLIN_FACT");
+        sparkMetadataExplorer.createSampleTable(fact);
+        SparkSession sparkSession = Mockito.mock(SparkSession.class, Mockito.RETURNS_DEEP_STUBS);
+        Mockito.when(sparkSession.sql("desc formatted " + "TEST_KYLIN_FACT").where("col_name == 'Location'").head()
+                .getString(1)).thenReturn(
+                        "hdfs://hacluster//KAP/src/spark-project/examples/test_data/27578/spark-warehouse/test_kylin_fact");
+        Assert.assertTrue(
+                sparkMetadataExplorer.getLoc(sparkSession, "TEST_KYLIN_FACT", null).contains("hdfs://hacluster"));
+        Assert.assertTrue(sparkMetadataExplorer.getLoc(sparkSession, "TEST_KYLIN_FACT", "hdfs://writecluster")
+                .contains("hdfs://writecluster"));
+        Mockito.when(sparkSession.sql("desc formatted " + "TEST_KYLIN_FACT").where("col_name == 'Location'").head()
+                .getString(1)).thenReturn(null);
+        Assert.assertNull(sparkMetadataExplorer.getLoc(sparkSession, "TEST_KYLIN_FACT", "hdfs://writecluster"));
+    }
+
+    @Test
+    public void testCheckTableAccess() throws Exception {
+        NSparkMetadataExplorer sparkMetadataExplorer = new NSparkMetadataExplorer();
+        NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getTestConfig(), "default");
+        TableDesc fact = tableMgr.getTableDesc("DEFAULT.TEST_KYLIN_FACT");
+        sparkMetadataExplorer.createSampleTable(fact);
+        Assert.assertTrue(sparkMetadataExplorer.checkTableAccess("DEFAULT.TEST_KYLIN_FACT"));
+        SparderEnv.getSparkSession().sessionState().conf().setConf(SQLConf.HIVE_SPECIFIC_FS_LOCATION(),
+                "hdfs://writecluster");
+        Assert.assertFalse(sparkMetadataExplorer.checkTableAccess("DEFAULT.TEST_KYLIN_FACT"));
+        SparderEnv.getSparkSession().sessionState().conf().unsetConf(SQLConf.HIVE_SPECIFIC_FS_LOCATION());
     }
 }

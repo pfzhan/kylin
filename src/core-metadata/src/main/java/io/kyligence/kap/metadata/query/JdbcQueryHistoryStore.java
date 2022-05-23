@@ -183,6 +183,13 @@ public class JdbcQueryHistoryStore {
         }
     }
 
+    public List<QueryDailyStatistic> queryHistoryDailyStatistic(long startTime, long endTime) {
+        try (SqlSession session = sqlSessionFactory.openSession()) {
+            QueryStatisticsMapper mapper = session.getMapper(QueryStatisticsMapper.class);
+            return mapper.selectDaily(qhTableName, startTime, endTime);
+        }
+    }
+    
     public List<QueryHistory> queryQueryHistoriesSubmitters(QueryHistoryRequest request, int size) {
         try (SqlSession session = sqlSessionFactory.openSession()) {
             QueryHistoryMapper mapper = session.getMapper(QueryHistoryMapper.class);

@@ -994,10 +994,9 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                 }
             }
         }
-        List<NDataSegment> indexFiltered = new LinkedList<>();
-        segs.forEach(segment -> filterSeg(withAllIndexes, withoutAnyIndexes, allToComplement,
-                indexPlan.getAllLayoutIds(false), indexFiltered, segment));
-        segmentResponseList = indexFiltered.stream()
+        segmentResponseList = segs.stream()
+                .filter(segment -> filterSeg(withAllIndexes, withoutAnyIndexes, allToComplement,
+                        indexPlan.getAllLayoutIds(false), segment))
                 .filter(segment -> !StringUtils.isNotEmpty(status) || status
                         .equalsIgnoreCase(SegmentUtil.getSegmentStatusToDisplay(segs, segment, executables).toString()))
                 .map(segment -> new NDataSegmentResponse(dataflow, segment, executables)).collect(Collectors.toList());
@@ -1043,28 +1042,23 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         }
     }
 
-    private void filterSeg(Collection<Long> withAllIndexes, Collection<Long> withoutAnyIndexes, boolean allToComplement,
-            Set<Long> allIndexWithoutTobeDel, List<NDataSegment> indexFiltered, NDataSegment segment) {
+    private boolean filterSeg(Collection<Long> withAllIndexes, Collection<Long> withoutAnyIndexes,
+            boolean allToComplement, Set<Long> allIndexWithoutTobeDel, NDataSegment segment) {
         if (allToComplement) {
             // find seg that does not have all indexes(don't include tobeDeleted)
             val segLayoutIds = segment.getSegDetails().getLayouts().stream().map(NDataLayout::getLayoutId)
                     .collect(Collectors.toSet());
-            if (!Sets.difference(allIndexWithoutTobeDel, segLayoutIds).isEmpty()) {
-                indexFiltered.add(segment);
-            }
-        } else if (withAllIndexes != null && !withAllIndexes.isEmpty()) {
-            // find seg that has all required indexes
-            if (segment.getLayoutIds().containsAll(withAllIndexes)) {
-                indexFiltered.add(segment);
-            }
-        } else if (withoutAnyIndexes != null && !withoutAnyIndexes.isEmpty()) {
-            // find seg that miss any of the indexes
-            if (!segment.getLayoutIds().containsAll(withoutAnyIndexes)) {
-                indexFiltered.add(segment);
-            }
-        } else {
-            indexFiltered.add(segment);
+            return !Sets.difference(allIndexWithoutTobeDel, segLayoutIds).isEmpty();
         }
+        if (CollectionUtils.isNotEmpty(withAllIndexes)) {
+            // find seg that has all required indexes
+            return segment.getLayoutIds().containsAll(withAllIndexes);
+        }
+        if (CollectionUtils.isNotEmpty(withoutAnyIndexes)) {
+            // find seg that miss any of the indexes
+            return !segment.getLayoutIds().containsAll(withoutAnyIndexes);
+        }
+        return true;
     }
 
     public Segments<NDataSegment> getSegmentsByRange(String modelId, String project, String start, String end) {

@@ -699,6 +699,27 @@ public class ModelServiceTest extends SourceTestCase {
         Assert.assertEquals(seg2.isFlatTableReady(), seg2Resp.isFlatTableReady());
         Assert.assertEquals(seg2.isFactViewReady(), seg2Resp.isFactViewReady());
     }
+    @Test
+    public void testGetSegmentsResponseCore() {
+        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        NDataflowManager dataflowManager = modelService.getManager(NDataflowManager.class, "default");
+        NDataflow dataflow = dataflowManager.getDataflow(modelId);
+        {
+            val responseList = modelService.getSegmentsResponseCore(modelId, "default", "0", "" + Long.MAX_VALUE,
+                    "ONLINE", null, null, Collections.emptyList(), true, dataflow);
+            Assert.assertEquals(1, responseList.size());
+        }
+        {
+            val responseList = modelService.getSegmentsResponseCore(modelId, "default", "0", "" + Long.MAX_VALUE,
+                    "ONLINE", Lists.newArrayList(10001L), null, Collections.emptyList(), false, dataflow);
+            Assert.assertEquals(1, responseList.size());
+        }
+        {
+            val responseList = modelService.getSegmentsResponseCore(modelId, "default", "0", "" + Long.MAX_VALUE,
+                    "ONLINE", null, Lists.newArrayList(10002L), Collections.emptyList(), false, dataflow);
+            Assert.assertEquals(0, responseList.size());
+        }
+    }
 
     @Test
     public void testGetSegmentResponseWithPartitions() {
