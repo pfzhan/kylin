@@ -61,6 +61,7 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.persistence.UnitMessages;
 import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
 import io.kyligence.kap.common.persistence.metadata.jdbc.RawResourceRowMapper;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 import lombok.Getter;
 import lombok.val;
@@ -129,6 +130,9 @@ public class JdbcMetadataStore extends MetadataStore {
             @Override
             public Object handle() {
                 checkEpochModified(unitPath, epochId);
+                if (UnitOfWork.get().isTransparent()) {
+                    throw new IllegalStateException("Transaction is in transparent mode, please use feign api to update core metadata.");
+                }
                 int affectedRow;
                 if (bs != null) {
                     val result = jdbcTemplate.query(

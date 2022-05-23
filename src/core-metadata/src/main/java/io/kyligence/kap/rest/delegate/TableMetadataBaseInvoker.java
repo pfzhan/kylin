@@ -30,7 +30,7 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.rest.util.SpringContext;
 
-import io.kyligence.kap.common.persistence.metadata.JdbcMetadataStore;
+import io.kyligence.kap.common.persistence.metadata.HDFSMetadataStore;
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.rest.request.MergeAndUpdateTableExtRequest;
 import io.kyligence.kap.rest.service.TableMetadataBaseService;
@@ -39,7 +39,7 @@ public class TableMetadataBaseInvoker {
     public static TableMetadataBaseInvoker getInstance() {
         MetadataStore metadataStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv())
                 .getMetadataStore();
-        if (!(metadataStore instanceof JdbcMetadataStore) && KylinConfig.getInstanceFromEnv().isDataLoadingNode()) {
+        if (metadataStore instanceof HDFSMetadataStore) {
             throw new KylinRuntimeException("This request cannot be route to metadata server");
         }
         if (SpringContext.getApplicationContext() == null) {

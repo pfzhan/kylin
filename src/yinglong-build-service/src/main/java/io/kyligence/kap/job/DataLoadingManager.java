@@ -27,6 +27,7 @@ package io.kyligence.kap.job;
 import javax.annotation.Resource;
 import javax.sql.DataSource;
 
+import org.apache.kylin.common.KylinConfig;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -82,8 +83,10 @@ public class DataLoadingManager implements InitializingBean, DisposableBean {
             break;
         }
 
-        jobScheduler = jobConfig.getJobScheduler();
-        jobScheduler.start();
+        if (KylinConfig.getInstanceFromEnv().isDataLoadingNode()) {
+            jobScheduler = jobConfig.getJobScheduler();
+            jobScheduler.start();
+        }
 //        jobScheduler = null;
     }
 

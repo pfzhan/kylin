@@ -29,7 +29,7 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.rest.util.SpringContext;
 import org.springframework.stereotype.Component;
 
-import io.kyligence.kap.common.persistence.metadata.JdbcMetadataStore;
+import io.kyligence.kap.common.persistence.metadata.HDFSMetadataStore;
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.rest.service.JobMetadataService;
 import lombok.extern.slf4j.Slf4j;
@@ -62,7 +62,7 @@ public class JobMetadataInvoker {
     public static JobMetadataInvoker getInstance() {
         MetadataStore metadataStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv())
                 .getMetadataStore();
-        if (!(metadataStore instanceof JdbcMetadataStore) && KylinConfig.getInstanceFromEnv().isDataLoadingNode()) {
+        if (metadataStore instanceof HDFSMetadataStore) {
             throw new KylinRuntimeException("This request cannot be route to metadata server");
         }
         if (SpringContext.getApplicationContext() == null) {

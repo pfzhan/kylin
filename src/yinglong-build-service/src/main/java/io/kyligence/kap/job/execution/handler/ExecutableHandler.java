@@ -37,6 +37,7 @@ import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.rest.delegate.ModelMetadataBaseInvoker;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -99,7 +100,7 @@ public abstract class ExecutableHandler {
         if (RealizationStatusEnum.ONLINE == status && isOffline) {
             dfManager.updateDataflowStatus(df.getId(), RealizationStatusEnum.OFFLINE);
         } else if (RealizationStatusEnum.OFFLINE == status && !isOffline) {
-            dfManager.updateDataflowStatus(df.getId(), RealizationStatusEnum.ONLINE);
+            ModelMetadataBaseInvoker.getInstance().updateDataflowStatus(project, df.getId(), RealizationStatusEnum.ONLINE);
         }
     }
 }

@@ -38,7 +38,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.common.ExecutableUtil;
-import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.exception.JobSubmissionException;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.model.JobParam;
@@ -52,6 +51,7 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -101,9 +101,8 @@ public abstract class AbstractJobHandler {
             Map<String, String> info = Maps.newHashMap();
             info.put(DEPENDENT_FILES, StringUtils.join(deps, ","));
             executableManager.updateJobOutput(po.getId(), null, info, null, null);
-            JobStatisticsManager jobStatisticsManager = JobStatisticsManager.getInstance(kylinConfig, project);
             long startOfDay = TimeUtil.getDayStart(System.currentTimeMillis());
-            jobStatisticsManager.updateStatistics(startOfDay, jobParam.getModel(), 0, 0, 1);
+            JobMetadataInvoker.getInstance().updateStatistics(project, startOfDay, jobParam.getModel(), 0, 0, 1);
         }
     }
 

@@ -43,6 +43,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.rest.delegate.ModelMetadataBaseInvoker;
 import lombok.val;
 
 public class ExecutableAddSegmentHandler extends ExecutableHandler {
@@ -98,7 +99,8 @@ public class ExecutableAddSegmentHandler extends ExecutableHandler {
             val model = df.getModel();
             Preconditions.checkState(ManagementType.TABLE_ORIENTED == model.getManagementType());
             if (checkOnline(model) && !df.getIndexPlan().isOfflineManually()) {
-                dfManager.updateDataflowStatus(df.getId(), RealizationStatusEnum.ONLINE);
+                ModelMetadataBaseInvoker.getInstance().updateDataflowStatus(getProject(), df.getId(),
+                        RealizationStatusEnum.ONLINE);
             }
         }
     }
