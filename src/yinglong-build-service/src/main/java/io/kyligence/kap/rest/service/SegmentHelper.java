@@ -28,11 +28,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.job.manager.JobManager;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -161,14 +161,14 @@ public class SegmentHelper extends BasicService implements SegmentHelperSupporte
 
     private void handleJobAndOldSeg(String project, NDataSegment seg, NDataflow df, NDataflowManager dfMgr)
             throws IOException {
-        val jobManager = getManager(NExecutableManager.class, project);
-        val jobs = jobManager.getAllExecutables();
+        val executableManager = getManager(ExecutableManager.class, project);
+        val jobs = executableManager.getAllExecutables();
         var segmentDeleted = false;
         for (val job : jobs) {
             if (!job.getStatus().isFinalState()) {
                 if (job.getTargetSegments().contains(seg.getId())) {
                     logger.info("Cancel and discard the job {} related with segment {}.", job.getId(), seg.getId());
-                    jobManager.discardJob(job.getId());
+                    executableManager.discardJob(job.getId());
                     segmentDeleted = true;
                 }
             }

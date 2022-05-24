@@ -24,9 +24,9 @@
 
 package io.kyligence.kap.job.execution.handler;
 
+import io.kyligence.kap.job.manager.JobManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 

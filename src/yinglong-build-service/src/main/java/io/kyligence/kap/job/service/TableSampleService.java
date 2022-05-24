@@ -27,6 +27,7 @@ package io.kyligence.kap.job.service;
 import java.util.List;
 import java.util.Set;
 
+import io.kyligence.kap.job.manager.JobManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
 import io.kyligence.kap.rest.service.TableSamplingSupporter;
@@ -35,7 +36,6 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.springframework.beans.factory.annotation.Autowired;
