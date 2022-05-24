@@ -35,7 +35,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-import io.kyligence.kap.job.service.SnapshotJobService;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.response.DataResult;
@@ -56,6 +55,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.google.common.base.CaseFormat;
 
+import io.kyligence.kap.job.service.SnapshotJobService;
 import io.kyligence.kap.rest.constant.SnapshotStatus;
 import io.kyligence.kap.rest.request.SnapshotRequest;
 import io.kyligence.kap.rest.request.SnapshotTableConfigRequest;

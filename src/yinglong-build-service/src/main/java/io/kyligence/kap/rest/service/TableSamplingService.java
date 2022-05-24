@@ -46,7 +46,6 @@ import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -57,7 +56,7 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.rest.aspect.Transaction;
 import lombok.val;
 
-@Component("tableSamplingService")
+//@Component("tableSamplingService")
 public class TableSamplingService extends BasicService implements TableSamplingSupporter {
 
     private static final int MAX_SAMPLING_ROWS = 20_000_000;

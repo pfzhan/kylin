@@ -24,9 +24,6 @@
 
 package io.kyligence.kap.rest;
 
-import io.kyligence.kap.rest.delegate.TableSamplingContract;
-import io.kyligence.kap.rest.delegate.TableSamplingInvoker;
-import io.kyligence.kap.rest.delegate.TableSamplingRPC;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationContext;
@@ -36,6 +33,8 @@ import org.springframework.stereotype.Component;
 import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
 import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
 import io.kyligence.kap.rest.delegate.TableMetadataInvoker;
+import io.kyligence.kap.rest.delegate.TableSamplingInvoker;
+import io.kyligence.kap.rest.delegate.TableSamplingRPC;
 import io.kyligence.kap.rest.service.JobMetadataService;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.TableExtService;

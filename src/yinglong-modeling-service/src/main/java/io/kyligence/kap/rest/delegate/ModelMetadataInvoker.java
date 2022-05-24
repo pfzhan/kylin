@@ -24,8 +24,21 @@
 
 package io.kyligence.kap.rest.delegate;
 
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
+
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.model.Segments;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+import org.apache.kylin.rest.util.SpringContext;
+import org.awaitility.Awaitility;
+import org.springframework.stereotype.Component;
+
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.rest.request.AddSegmentRequest;
 import io.kyligence.kap.rest.request.DataFlowUpdateRequest;
 import io.kyligence.kap.rest.request.MergeSegmentRequest;
@@ -33,13 +46,6 @@ import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
 import io.kyligence.kap.rest.service.ModelService;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kylin.metadata.model.Segments;
-import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-import org.apache.kylin.rest.util.SpringContext;
-import org.springframework.stereotype.Component;
-
-import java.util.List;
-import java.util.Set;
 
 @Slf4j
 @Component
@@ -95,7 +101,10 @@ public class ModelMetadataInvoker extends ModelMetadataBaseInvoker {
     }
 
     public NDataSegment appendSegment(AddSegmentRequest request) {
-        return getDelegate().appendSegment(request);
+        NDataSegment segment = getDelegate().appendSegment(request);
+        waitForSync(() -> NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject())
+                .getDataflow(request.getModelId()).getSegment(segment.getId()) != null);
+        return segment;
     }
 
     public NDataSegment refreshSegment(String project, String indexPlanUuid, String segmentId) {
@@ -129,5 +138,9 @@ public class ModelMetadataInvoker extends ModelMetadataBaseInvoker {
 
     public Segments<NDataSegment> getSegmentsByRange(String modelId, String project, String start, String end) {
         return getDelegate().getSegmentsByRange(modelId, project, start, end);
+    }
+
+    private void waitForSync(Callable<Boolean> callable) {
+        Awaitility.await().atMost(5, TimeUnit.SECONDS).until(callable);
     }
 }

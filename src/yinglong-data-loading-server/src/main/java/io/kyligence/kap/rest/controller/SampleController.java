@@ -25,12 +25,17 @@
 package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_NAME;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_SAMPLING_RANGE_INVALID;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.Message;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.request.SamplingRequest;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,7 +55,6 @@ import io.kyligence.kap.job.service.DTableService;
 import io.kyligence.kap.job.service.TableSampleService;
 import io.kyligence.kap.rest.request.RefreshSegmentsRequest;
 import io.kyligence.kap.rest.service.ModelBuildSupporter;
-import io.kyligence.kap.rest.service.TableSamplingService;
 import io.kyligence.kap.rest.service.TableService;
 import io.swagger.annotations.ApiOperation;
 
@@ -59,6 +63,8 @@ import io.swagger.annotations.ApiOperation;
 public class SampleController extends BaseController {
 
     private static final String TABLE = "table";
+    private static final int MAX_SAMPLING_ROWS = 20_000_000;
+    private static final int MIN_SAMPLING_ROWS = 10_000;
 
     @Deprecated
     @Autowired
@@ -71,12 +77,6 @@ public class SampleController extends BaseController {
     @Autowired
     @Qualifier("modelBuildService")
     private ModelBuildSupporter modelBuildService;
-
-    @Deprecated
-    @Autowired
-    @Qualifier("tableSamplingService")
-    private TableSamplingService tableSamplingService;
-
 
     @Autowired
     private TableSampleService tableSampleService;
@@ -117,8 +117,8 @@ public class SampleController extends BaseController {
     public EnvelopeResponse<String> submitSampling(@RequestBody SamplingRequest request) {
         checkProjectName(request.getProject());
         checkParamLength("tag", request.getTag(), 1024);
-        TableSamplingService.checkSamplingRows(request.getRows());
-        TableSamplingService.checkSamplingTable(request.getQualifiedTableName());
+        checkSamplingRows(request.getRows());
+        checkSamplingTable(request.getQualifiedTableName());
         validatePriority(request.getPriority());
 
         tableSampleService.sampling(Sets.newHashSet(request.getQualifiedTableName()), request.getProject(),
@@ -132,7 +132,7 @@ public class SampleController extends BaseController {
     public EnvelopeResponse<Boolean> hasSamplingJob(@RequestParam(value = "project") String project,
             @RequestParam(value = "qualified_table_name") String qualifiedTableName) {
         checkProjectName(project);
-        TableSamplingService.checkSamplingTable(qualifiedTableName);
+        checkSamplingTable(qualifiedTableName);
         boolean hasSamplingJob = tableSampleService.hasSamplingJob(project, qualifiedTableName);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, hasSamplingJob, "");
     }
@@ -144,5 +144,22 @@ public class SampleController extends BaseController {
             @RequestParam(value = "yarnQueue", required = false, defaultValue = "") String yarnQueue,
             @RequestParam(value = "tag", required = false) Object tag) {
         return tableSampleService.sampling(tables, project, rows, priority, yarnQueue, tag);
+    }
+
+    public static void checkSamplingRows(int rows) {
+        if (rows > MAX_SAMPLING_ROWS || rows < MIN_SAMPLING_ROWS) {
+            throw new KylinException(JOB_SAMPLING_RANGE_INVALID, MIN_SAMPLING_ROWS, MAX_SAMPLING_ROWS);
+        }
+    }
+
+    public static void checkSamplingTable(String tableName) {
+        Message msg = MsgPicker.getMsg();
+        if (tableName == null || StringUtils.isEmpty(tableName.trim())) {
+            throw new KylinException(INVALID_TABLE_NAME, msg.getFailedForNoSamplingTable());
+        }
+
+        if (tableName.contains(" ") || !tableName.contains(".") || tableName.split("\\.").length != 2) {
+            throw new KylinException(INVALID_TABLE_NAME, msg.getSamplingFailedForIllegalTableName());
+        }
     }
 }
