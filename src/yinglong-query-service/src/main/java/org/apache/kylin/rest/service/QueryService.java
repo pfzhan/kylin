@@ -239,7 +239,7 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
         return "/" + project + QUERY_STORE_PATH_PREFIX + creator + MetadataConstants.FILE_SURFIX;
     }
 
-    public ForceToTieredStorage getForcedToTieredStorage(ForceToTieredStorage api) {
+    public ForceToTieredStorage getForcedToTieredStorage(String project, ForceToTieredStorage api) {
         switch (api){
             case CH_FAIL_TO_DFS:
             case CH_FAIL_TO_PUSH_DOWN:
@@ -252,8 +252,9 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
         }
 
         try{
-            //project
-            api = KylinConfig.getInstanceFromEnv().getProjectForcedToTieredStorage();
+            //project level config
+            ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project);
+            api = projectInstance.getConfig().getProjectForcedToTieredStorage();
             switch (api){
                 case CH_FAIL_TO_DFS:
                 case CH_FAIL_TO_PUSH_DOWN:
@@ -305,16 +306,16 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
             queryParams.setAclInfo(getExecuteAclInfo(queryParams.getProject(), queryParams.getExecuteAs()));
             queryParams.setACLDisabledOrAdmin(isACLDisabledOrAdmin(queryParams.getProject(), queryParams.getAclInfo()));
             int forcedToTieredStorage;
-            ForceToTieredStorage e_forcedToTieredStorage;
+            ForceToTieredStorage enumForcedToTieredStorage;
             try{
                 forcedToTieredStorage = sqlRequest.getForcedToTieredStorage();
-                e_forcedToTieredStorage = getForcedToTieredStorage(ForceToTieredStorage.values()[forcedToTieredStorage]);
+                enumForcedToTieredStorage = getForcedToTieredStorage(sqlRequest.getProject(), ForceToTieredStorage.values()[forcedToTieredStorage]);
             } catch (NullPointerException e) {
-                e_forcedToTieredStorage = getForcedToTieredStorage(ForceToTieredStorage.CH_FAIL_TAIL);
+                enumForcedToTieredStorage = getForcedToTieredStorage(sqlRequest.getProject(), ForceToTieredStorage.CH_FAIL_TAIL);
             }
-            logger.debug("forcedToTieredStorage={}", e_forcedToTieredStorage);
-            queryParams.setForcedToTieredStorage(e_forcedToTieredStorage);
-            QueryContext.current().setForcedToTieredStorage(e_forcedToTieredStorage);
+            logger.debug("forcedToTieredStorage={}", enumForcedToTieredStorage);
+            queryParams.setForcedToTieredStorage(enumForcedToTieredStorage);
+            QueryContext.current().setForcedToTieredStorage(enumForcedToTieredStorage);
             QueryContext.current().setForceTableIndex(queryParams.isForcedToIndex());
 
             KylinConfig projectConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
