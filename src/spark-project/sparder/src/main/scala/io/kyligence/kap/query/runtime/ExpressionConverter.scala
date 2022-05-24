@@ -353,7 +353,7 @@ object ExpressionConverter {
           case "log10" =>
             log10(k_lit(children.head))
           case "ln" =>
-            log(Math.E, k_lit(children.head))
+            log(k_lit(children.head))
           case "exp" =>
             exp(k_lit(children.head))
           case "acos" =>
