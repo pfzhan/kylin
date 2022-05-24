@@ -2273,6 +2273,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         sqlRequest.setProject(project);
         sqlRequest.setForcedToTieredStorage(1);
         sqlRequest.setForcedToIndex(true);
+        sqlRequest.setForcedToPushDown(false);
 
         QueryParams queryParams = new QueryParams(KapQueryUtil.getKylinConfig(sqlRequest.getProject()),
                 sqlRequest.getSql(), sqlRequest.getProject(), sqlRequest.getLimit(), sqlRequest.getOffset(),

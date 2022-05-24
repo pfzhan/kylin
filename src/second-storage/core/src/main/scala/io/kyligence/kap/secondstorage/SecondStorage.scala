@@ -97,6 +97,15 @@ object SecondStorage extends LogEx {
 
   private def queryCatalog() = Option.apply(secondStoragePlugin.queryCatalog())
 
+  private def forcedToTieredStorageHandler() = {
+    var forcedToTieredStorage : ForceToTieredStorage = QueryContext.current.getForcedToTieredStorage
+    if (forcedToTieredStorage == null) {
+      forcedToTieredStorage = ForceToTieredStorage.CH_FAIL_TO_DFS
+    }
+    if (forcedToTieredStorage != ForceToTieredStorage.CH_FAIL_TO_DFS) {
+      throw new SQLException(QueryContext.ROUTE_USE_FORCEDTOTIEREDSTORAGE)
+    }
+  }
   def trySecondStorage(
                         sparkSession: SparkSession,
                         dataflow: NDataflow,
@@ -138,6 +147,9 @@ object SecondStorage extends LogEx {
       QueryContext.current().setLastFailed(false)
       QueryContext.current().getSecondStorageUsageMap.put(layout.getId, true)
     }
+    if (enableSSForThisQuery && result.isEmpty) {
+      forcedToTieredStorageHandler()
+    }
 
     result
   }
@@ -163,10 +175,7 @@ object SecondStorage extends LogEx {
     } catch {
       case NonFatal(e) =>
         logDebug("Failed to use second storage table-index", e)
-        val forcedToTieredStorage = Optional.ofNullable(QueryContext.current.getForcedToTieredStorage).orElse(ForceToTieredStorage.CH_FAIL_TO_DFS)
-        if (forcedToTieredStorage != ForceToTieredStorage.CH_FAIL_TO_DFS) {
-          throw new SQLException(QueryContext.ROUTE_USE_FORCEDTOTIEREDSTORAGE)
-        }
+        forcedToTieredStorageHandler()
         QueryContext.current().setLastFailed(true);
         None
     }

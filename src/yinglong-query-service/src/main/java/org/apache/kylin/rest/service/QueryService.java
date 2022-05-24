@@ -312,9 +312,10 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
             } catch (NullPointerException e) {
                 e_forcedToTieredStorage = getForcedToTieredStorage(ForceToTieredStorage.CH_FAIL_TAIL);
             }
-            logger.trace("forcedToTieredStorage={}", e_forcedToTieredStorage);
+            logger.debug("forcedToTieredStorage={}", e_forcedToTieredStorage);
             queryParams.setForcedToTieredStorage(e_forcedToTieredStorage);
             QueryContext.current().setForcedToTieredStorage(e_forcedToTieredStorage);
+            QueryContext.current().setForceTableIndex(queryParams.isForcedToIndex());
 
             KylinConfig projectConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                     .getProject(queryParams.getProject()).getConfig();

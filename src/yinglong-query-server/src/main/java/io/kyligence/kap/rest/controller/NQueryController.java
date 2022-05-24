@@ -53,7 +53,6 @@ import javax.validation.Valid;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.query.asyncprofiler.AsyncProfiling;
 import io.kyligence.kap.rest.service.QueryCacheManager;
-import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.ForceToTieredStorage;
@@ -593,12 +592,7 @@ public class NQueryController extends NBasicController {
         }
         try{
             int forcedToTieredStorage = sqlRequest.getForcedToTieredStorage();
-            if (forcedToTieredStorage == ForceToTieredStorage.CH_FAIL_TO_PUSH_DOWN.ordinal()
-                    && sqlRequest.isForcedToIndex() && !sqlRequest.isForcedToPushDown()
-                    && SecondStorageUtil.isProjectEnable(sqlRequest.getProject())) {
-                throw new KylinException(
-                        QueryErrorCode.FORCED_TO_TIEREDSTORAGE_AND_FORCE_TO_INDEX, MsgPicker.getMsg().getForcedToTieredstorageAndForceToIndex());
-            } else if (forcedToTieredStorage > ForceToTieredStorage.CH_FAIL_TO_RETURN.ordinal()
+            if (forcedToTieredStorage > ForceToTieredStorage.CH_FAIL_TO_RETURN.ordinal()
                     || forcedToTieredStorage < ForceToTieredStorage.CH_FAIL_TO_DFS.ordinal()) {
                 throw new KylinException(
                         QueryErrorCode.FORCED_TO_TIEREDSTORAGE_INVALID_PARAMETER, MsgPicker.getMsg().getForcedToTieredstorageInvalidParameter());

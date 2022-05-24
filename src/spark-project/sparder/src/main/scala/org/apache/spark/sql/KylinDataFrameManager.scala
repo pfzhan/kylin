@@ -22,7 +22,7 @@
 
 package org.apache.spark.sql
 
-import java.sql.{SQLException, Timestamp}
+import java.sql.Timestamp
 
 import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataflow, NDataflowManager}
 import io.kyligence.kap.metadata.model.FusionModelManager
