@@ -138,7 +138,7 @@
   <column caption="ITEM_COUNT_MAX" datatype="integer" name="[ITEM_COUNT_MAX]" role="measure" type="quantitative">
     <calculation class="tableau" formula="MAX([ITEM_COUNT])"/>
   </column>
-  <column caption="COUNT_PRICE" datatype="integer" name="[COUNT_PRICE]" role="measure" type="quantitative">
+  <column caption="COUNT_PRICE" datatype="integer" name="[COUNT_PRICE]" role="measure" type="quantitative" hidden="true">
     <calculation class="tableau" formula="COUNT([PRICE])"/>
   </column>
   <column caption="SUM_DEAL_AMOUNT" datatype="real" name="[SUM_DEAL_AMOUNT]" role="measure" type="quantitative" hidden="true">
