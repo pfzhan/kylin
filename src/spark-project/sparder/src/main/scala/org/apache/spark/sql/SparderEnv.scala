@@ -24,12 +24,6 @@
 
 package org.apache.spark.sql
 
-import java.lang.{Boolean => JBoolean, String => JString}
-import java.security.PrivilegedAction
-import java.util.concurrent.locks.ReentrantLock
-import java.util.concurrent.{Callable, ExecutorService}
-import java.util.Map
-
 import io.kyligence.kap.common.util.DefaultHostInfoFetcher
 import io.kyligence.kap.metadata.model.NTableMetadataManager
 import io.kyligence.kap.metadata.project.NProjectManager
@@ -38,8 +32,8 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.security.UserGroupInformation
 import org.apache.kylin.common.exception.{KylinException, KylinTimeoutException, ServerErrorCode}
 import org.apache.kylin.common.msg.MsgPicker
+import org.apache.kylin.common.util.{HadoopUtil, S3AUtil}
 import org.apache.kylin.common.{KylinConfig, QueryContext}
-import org.apache.kylin.common.util.{HadoopUtil, Pair, S3AUtil}
 import org.apache.kylin.metadata.model.TableExtDesc
 import org.apache.spark.internal.Logging
 import org.apache.spark.scheduler.{SparkListener, SparkListenerEvent, SparkListenerLogRollUp}
@@ -48,9 +42,16 @@ import org.apache.spark.sql.catalyst.parser.ParseException
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.execution.datasource.{KylinSourceStrategy, LayoutFileSourceStrategy}
 import org.apache.spark.sql.execution.ui.PostQueryExecutionForKylin
+import org.apache.spark.sql.hive.ReplaceLocationRule
 import org.apache.spark.sql.udf.UdfManager
 import org.apache.spark.util.{ThreadUtils, Utils}
-import org.apache.spark.{SparkConf, SparkContext, SparkEnv}
+import org.apache.spark.{SparkConf, SparkContext}
+
+import java.lang.{Boolean => JBoolean, String => JString}
+import java.security.PrivilegedAction
+import java.util.Map
+import java.util.concurrent.locks.ReentrantLock
+import java.util.concurrent.{Callable, ExecutorService}
 
 // scalastyle:off
 object SparderEnv extends Logging {
@@ -225,6 +226,7 @@ object SparderEnv extends Logging {
             .withExtensions { ext =>
               ext.injectPlannerStrategy(_ => KylinSourceStrategy)
               ext.injectPlannerStrategy(_ => LayoutFileSourceStrategy)
+              ext.injectPostHocResolutionRule(ReplaceLocationRule)
             }
             .enableHiveSupport()
             .getOrCreateKylinSession()
@@ -237,6 +239,7 @@ object SparderEnv extends Logging {
             .withExtensions { ext =>
             ext.injectPlannerStrategy(_ => KylinSourceStrategy)
             ext.injectPlannerStrategy(_ => LayoutFileSourceStrategy)
+            ext.injectPostHocResolutionRule(ReplaceLocationRule)
           }
             .enableHiveSupport()
             .getOrCreateKylinSession()
