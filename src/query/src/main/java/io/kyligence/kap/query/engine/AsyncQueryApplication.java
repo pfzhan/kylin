@@ -105,6 +105,10 @@ public class AsyncQueryApplication extends SparkApplication {
         try {
             QueryMetricsContext queryMetricsContext = QueryMetricsContext.collect(queryContext);
             queryMetricsContext.setSql(constructQueryHistorySqlText(queryParams, queryContext.getUserSQL()));
+            // KE-36662 Using sql_pattern as normalized_sql storage
+            String normalizedSql = QueryContext.currentMetrics().getCorrectedSql();
+            queryMetricsContext.setSqlPattern(normalizedSql);
+
             RDBMSQueryHistoryDAO.getInstance().insert(queryMetricsContext);
         } catch (Exception e) {
             logger.error("async query job, save query history failed", e);
@@ -114,7 +118,6 @@ public class AsyncQueryApplication extends SparkApplication {
     private String constructQueryHistorySqlText(QueryParams queryParams, String originalSql)
             throws JsonProcessingException, ClassNotFoundException {
 
-        String normalizedSql = QueryContext.currentMetrics().getCorrectedSql();
         List<QueryHistorySqlParam> params = null;
         if (queryParams.isPrepareStatementWithParams()) {
             params = new ArrayList<>();
@@ -127,7 +130,8 @@ public class AsyncQueryApplication extends SparkApplication {
             }
         }
 
-        return QueryHistoryUtil.toQueryHistorySqlText(new QueryHistorySql(originalSql, normalizedSql, params));
+        // KE-36662 Do not store normalized_sql in sql_text, as it may exceed storage limitation
+        return QueryHistoryUtil.toQueryHistorySqlText(new QueryHistorySql(originalSql, null, params));
     }
 
     public static void main(String[] args) {

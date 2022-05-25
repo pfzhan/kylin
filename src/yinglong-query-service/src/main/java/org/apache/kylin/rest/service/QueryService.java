@@ -718,8 +718,9 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
                     val queryMetricsContext = QueryMetricsContext.collect(QueryContext.current());
                     // KE-35556 Set stored sql a structured format json string
                     queryMetricsContext.setSql(constructQueryHistorySqlText(sqlRequest, sqlResponse, originalSql));
-                    // Set unused sql pattern null
-                    queryMetricsContext.setSqlPattern(null);
+                    // KE-36662 Using sql_pattern as normalized_sql storage
+                    String normalizedSql = QueryContext.currentMetrics().getCorrectedSql();
+                    queryMetricsContext.setSqlPattern(normalizedSql);
                     QueryHistoryScheduler queryHistoryScheduler = QueryHistoryScheduler.getInstance();
                     queryHistoryScheduler.offerQueryHistoryQueue(queryMetricsContext);
                     EventBusFactory.getInstance().postAsync(queryMetricsContext);
@@ -734,7 +735,6 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
         // Fill in params if available
         QueryUtils.fillInPrepareStatParams(sqlRequest, sqlResponse.isQueryPushDown());
 
-        String normalizedSql = QueryContext.currentMetrics().getCorrectedSql();
         List<QueryHistorySqlParam> params = null;
         if (QueryUtils.isPrepareStatementWithParams(sqlRequest)) {
             params = new ArrayList<>();
@@ -747,7 +747,8 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
             }
         }
 
-        return QueryHistoryUtil.toQueryHistorySqlText(new QueryHistorySql(originalSql, normalizedSql, params));
+        // KE-36662 Do not store normalized_sql in sql_text, as it may exceed storage limitation
+        return QueryHistoryUtil.toQueryHistorySqlText(new QueryHistorySql(originalSql, null, params));
     }
 
     private void collectToQueryContext(SQLResponse sqlResponse) {

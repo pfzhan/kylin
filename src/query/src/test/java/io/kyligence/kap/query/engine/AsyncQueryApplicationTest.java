@@ -106,7 +106,6 @@ public class AsyncQueryApplicationTest {
         try (MockedStatic<QueryContext> queryContextMockedStatic = mockStatic(QueryContext.class)) {
             QueryContext.Metrics metrics = mock(QueryContext.Metrics.class);
             queryContextMockedStatic.when(QueryContext::currentMetrics).thenReturn(metrics);
-            when(metrics.getCorrectedSql()).thenReturn("select col1 from table1");
             QueryParams queryParams = mock(QueryParams.class);
             when(queryParams.isPrepareStatementWithParams()).thenReturn(true);
             PrepareSqlStateParam prepareSqlStateParam = new PrepareSqlStateParam("java.lang.Integer", "1001");
@@ -115,7 +114,7 @@ public class AsyncQueryApplicationTest {
             String result = (String) ReflectionTestUtils.invokeMethod(asyncQueryApplication,
                     "constructQueryHistorySqlText", queryParams, "-- comment\nselect col1 from table1");
             assertEquals(
-                    "{\"sql\":\"-- comment\\nselect col1 from table1\",\"normalized_sql\":\"select col1 from table1\",\"params\":[{\"pos\":1,\"java_type\":\"java.lang.Integer\",\"data_type\":\"INTEGER\",\"value\":\"1001\"}]}",
+                    "{\"sql\":\"-- comment\\nselect col1 from table1\",\"normalized_sql\":null,\"params\":[{\"pos\":1,\"java_type\":\"java.lang.Integer\",\"data_type\":\"INTEGER\",\"value\":\"1001\"}]}",
                     result);
         }
     }

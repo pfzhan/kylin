@@ -58,6 +58,7 @@ public class QueryMetrics extends SchedulerEventNotifier {
     protected String projectName;
 
     protected String sql;
+    // KE-36662 Using sql_pattern as normalized_sql storage
     protected String sqlPattern;
 
     protected String submitter;
