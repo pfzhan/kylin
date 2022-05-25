@@ -1603,17 +1603,19 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
                         OLAPContext.clearThreadLocalContexts();
                         ExecAndComp.queryModel(getProject(), sql, null);
 
+                        List<Boolean> reverseForceTableIndex = Arrays.asList(true, false);
                         for (ForceToTieredStorage f : ForceToTieredStorage.values()){
-                            System.out.println(f);
-                            sql = "select order_id from TEST_KYLIN_FACT limit 100000";
-                            OLAPContext.clearThreadLocalContexts();
-                            QueryContext.current().setForcedToTieredStorage(f);
-                            try{
-                                Dataset<Row> rows = ExecAndComp.queryModel(getProject(), sql, null);
-                                Assert.assertFalse(OLAPContext.getNativeRealizations().stream().allMatch(NativeQueryRealization::isSecondStorage));
-                            } catch (Exception e) {
-                                //do nothing
-                            }
+                            reverseForceTableIndex.forEach(forceTableIndex ->{
+                                OLAPContext.clearThreadLocalContexts();
+                                QueryContext.current().setForceTableIndex(forceTableIndex);
+                                QueryContext.current().setForcedToTieredStorage(f);
+                                try{
+                                    Dataset<Row> rows = ExecAndComp.queryModel(getProject(), sql, null);
+                                    Assert.assertFalse(OLAPContext.getNativeRealizations().stream().allMatch(NativeQueryRealization::isSecondStorage));
+                                } catch (Exception e) {
+                                    //do nothing
+                                }
+                            });
                         }
                         return null;
                     }, clickhouse);

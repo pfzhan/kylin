@@ -196,18 +196,19 @@ public class SparderQueryPlanExec implements QueryPlanExec {
         if (e.getMessage().equals(QueryContext.ROUTE_USE_FORCEDTOTIEREDSTORAGE)){
             ForceToTieredStorage forcedToTieredStorage = QueryContext.current().getForcedToTieredStorage();
             boolean forceTableIndex = QueryContext.current().isForceTableIndex();
+            QueryContext.current().setLastFailed(true);
+            QueryContext.current().setRetrySecondStorage(false);
             if (forcedToTieredStorage == ForceToTieredStorage.CH_FAIL_TO_PUSH_DOWN && !forceTableIndex) {
                 /** pushDown */
                 ExceptionUtils.rethrow(e);
             } else if (forcedToTieredStorage == ForceToTieredStorage.CH_FAIL_TO_RETURN) {
                 /** return error */
-                QueryContext.current().setLastFailed(true);
-                QueryContext.current().setRetrySecondStorage(false);
                 throw new KylinException(QueryErrorCode.FORCED_TO_TIEREDSTORAGE_RETURN_ERROR,
                         MsgPicker.getMsg().getForcedToTieredstorageReturnError());
+            } else if (forcedToTieredStorage == ForceToTieredStorage.CH_FAIL_TO_PUSH_DOWN) {
+                throw new KylinException(QueryErrorCode.FORCED_TO_TIEREDSTORAGE_RETURN_ERROR,
+                        MsgPicker.getMsg().getForcedToTieredstorageAndForceToIndex());
             } else {
-                QueryContext.current().setLastFailed(true);
-                QueryContext.current().setRetrySecondStorage(false);
                 throw new KylinException(QueryErrorCode.FORCED_TO_TIEREDSTORAGE_INVALID_PARAMETER,
                         MsgPicker.getMsg().getForcedToTieredstorageInvalidParameter());
             }
