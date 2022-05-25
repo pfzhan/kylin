@@ -24,7 +24,12 @@
 package org.apache.spark.sql.hive
 
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.internal.{BaseSessionStateBuilder, SessionState}
+import org.apache.spark.sql.catalyst.catalog.HiveTableRelation
+import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
+import org.apache.spark.sql.catalyst.rules.Rule
+import org.apache.spark.sql.catalyst.util.FSNamespaceUtils
+import org.apache.spark.sql.execution.command.DDLUtils
+import org.apache.spark.sql.internal.{BaseSessionStateBuilder, SQLConf, SessionState}
 
 /**
  * hive session  hava some rule exp: find datasource table rule
@@ -42,6 +47,21 @@ class KylinHiveSessionStateBuilder(sparkSession: SparkSession,
   override protected def newBuilder: NewBuilder =
     new KylinHiveSessionStateBuilder(_, _)
 
+}
+
+case class ReplaceLocationRule(sparkSession: SparkSession) extends Rule[LogicalPlan] {
+  override def apply(plan: LogicalPlan): LogicalPlan = plan resolveOperators {
+    case relation: HiveTableRelation
+      if DDLUtils.isHiveTable(relation.tableMeta) =>
+      val specFS = sparkSession.sessionState.conf.getConf(SQLConf.HIVE_SPECIFIC_FS_LOCATION)
+      val specCatalog = FSNamespaceUtils.replaceLocWithSpecPrefix(specFS,
+        relation.tableMeta.storage)
+      val specTableMeta = relation.tableMeta.copy(storage = specCatalog)
+      val specRelation = if (specFS != null && specCatalog.locationUri.isDefined) {
+        relation.copy(tableMeta = specTableMeta)
+      } else relation
+      specRelation
+  }
 }
 
 /**
