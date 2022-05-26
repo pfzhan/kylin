@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.rest.delegate;
 
+import java.util.List;
+
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.rest.util.SpringContext;
@@ -31,8 +33,6 @@ import org.springframework.stereotype.Component;
 import io.kyligence.kap.rest.request.MergeAndUpdateTableExtRequest;
 import io.kyligence.kap.rest.service.TableExtService;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.List;
 
 @Slf4j
 @Component
@@ -70,10 +70,6 @@ public class TableMetadataInvoker extends TableMetadataBaseInvoker {
     @Override
     public void updateTableDesc(String project, TableDesc tableDesc) {
         getDelegate().updateTableDesc(project, tableDesc);
-    }
-
-    public TableDesc getTableDesc(String project, String tableName) {
-        return getDelegate().getTableDesc(project, tableName);
     }
 
     public List<String> getTableNamesByFuzzyKey(String project, String fuzzyKey) {

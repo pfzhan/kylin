@@ -49,7 +49,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.job.manager.JobManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
@@ -57,10 +56,8 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.common.util.TimeUtil;
-import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.exception.JobSubmissionException;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
@@ -81,11 +78,11 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.engine.spark.job.NSparkSnapshotJob;
+import io.kyligence.kap.job.JobContext;
 import io.kyligence.kap.job.domain.JobInfo;
+import io.kyligence.kap.job.execution.NSparkSnapshotJob;
 import io.kyligence.kap.job.manager.ExecutableManager;
-import io.kyligence.kap.job.mapper.JobInfoMapper;
-import io.kyligence.kap.job.rest.JobMapperFilter;
+import io.kyligence.kap.job.manager.JobManager;
 import io.kyligence.kap.metadata.acl.AclTCRDigest;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -121,20 +118,15 @@ public class SnapshotJobService extends BasicService implements SnapshotSupporte
     private TableService tableService;
 
     @Autowired
-    private JobInfoMapper jobInfoMapper;
-
-    @Autowired
     private TableMetadataInvoker tableMetadataInvoker;
 
+    @Autowired
+    private JobContext jobContext;
+
     private List<JobInfo> fetchAllRunningSnapshotTasks(String project, List<String> tables){
-        JobMapperFilter mapperFilter = JobMapperFilter.builder()
-                .jobNames(Lists.newArrayList(SNAPSHOT_BUILD.name(), SNAPSHOT_REFRESH.name()))
-                .statuses(Lists.newArrayList(JobStatusEnum.PENDING.name(), JobStatusEnum.RUNNING.name()))
-                .subjects(tables)
-                .project(project)
-                .offset(0).limit(10000)
-                .build();
-        return jobInfoMapper.selectByJobFilter(mapperFilter);
+        return jobContext.fetchAllRunningJobs(project,
+                Lists.newArrayList(SNAPSHOT_BUILD.name(), SNAPSHOT_REFRESH.name()),
+                tables);
     }
 
     private List<JobInfo> fetchAllRunningSnapshotTasks(String project, Set<TableDesc> tables){
@@ -229,7 +221,7 @@ public class SnapshotJobService extends BasicService implements SnapshotSupporte
                     NSparkSnapshotJob job = NSparkSnapshotJob.create(tableDesc, BasicService.getUsername(),
                             option.getPartitionCol(), option.isIncrementalBuild(), option.getPartitionsToBuild(),
                             isRefresh, yarnQueue, tag);
-                    ExecutablePO po = NExecutableManager.toPO(job, project);
+                    ExecutablePO po = ExecutableManager.toPO(job, project);
                     po.setPriority(priority);
                     execMgr.addJob(po);
 

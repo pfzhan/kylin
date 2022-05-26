@@ -132,7 +132,7 @@ public class JobInfoDao {
         jobInfo.setJobId(executablePO.getId());
         jobInfo.setJobType(executablePO.getJobType().name());
         ExecutableState oldStatus = ExecutableState.valueOf(executablePO.getOutput().getStatus());
-        jobInfo.setJobStatus(oldStatus.toJobStatus().name());
+        jobInfo.setJobStatus(ExecutableState.READY.name());
         jobInfo.setProject(executablePO.getProject());
 
         String subject = null;

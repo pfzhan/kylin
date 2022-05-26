@@ -23,12 +23,12 @@
  */
 package io.kyligence.kap.rest.delegate;
 
+import java.util.List;
+
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 
 import io.kyligence.kap.rest.request.MergeAndUpdateTableExtRequest;
-
-import java.util.List;
 
 public interface TableMetadataContract {
     void mergeAndUpdateTableExt(String project, MergeAndUpdateTableExtRequest request);
@@ -36,8 +36,6 @@ public interface TableMetadataContract {
     void saveTableExt(String project, TableExtDesc tableExt);
 
     void updateTableDesc(String project, TableDesc tableDesc);
-
-    TableDesc getTableDesc(String project, String tableName);
 
     List<String> getTableNamesByFuzzyKey(String project, String fuzzyKey);
 }

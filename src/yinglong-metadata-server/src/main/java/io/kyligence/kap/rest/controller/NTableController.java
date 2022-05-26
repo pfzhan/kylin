@@ -543,15 +543,6 @@ public class NTableController extends NBasicController {
         }
     }
 
-    @ApiOperation(value = "get tableDesc", tags = {
-            "AI" }, notes = "helper method for RPC-invoke get tableDesc")
-    @GetMapping(value = "/feign/get_table_desc")
-    @ResponseBody
-    public TableDesc getTableDesc(@RequestParam(value = "project") String project,
-            @RequestParam(value = "table") String table) {
-        return tableExtService.getTableDesc(project, table);
-    }
-
     @GetMapping(value = "/feign/get_table_names_by_fuzzy_key")
     @ResponseBody
     public List<String> getTableNamesByFuzzyKey(@RequestParam(value = "project") String project,

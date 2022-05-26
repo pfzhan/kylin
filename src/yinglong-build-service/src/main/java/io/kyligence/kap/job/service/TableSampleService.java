@@ -27,14 +27,8 @@ package io.kyligence.kap.job.service;
 import java.util.List;
 import java.util.Set;
 
-import io.kyligence.kap.job.manager.JobManager;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
-import io.kyligence.kap.rest.service.TableSamplingSupporter;
-
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.kylin.common.util.TimeUtil;
-import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -43,13 +37,15 @@ import org.springframework.stereotype.Service;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.job.JobContext;
 import io.kyligence.kap.job.domain.JobInfo;
 import io.kyligence.kap.job.execution.NTableSamplingJob;
 import io.kyligence.kap.job.manager.ExecutableManager;
-import io.kyligence.kap.job.manager.TableMetadataManagerService;
-import io.kyligence.kap.job.mapper.JobInfoMapper;
-import io.kyligence.kap.job.rest.JobMapperFilter;
+import io.kyligence.kap.job.manager.JobManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
+import io.kyligence.kap.rest.service.TableSamplingSupporter;
 import lombok.val;
 
 @Service
@@ -58,11 +54,8 @@ public class TableSampleService extends BasicService implements TableSamplingSup
     @Autowired
     private AclEvaluate aclEvaluate;
 
-    @Autowired(required = false)
-    private JobInfoMapper jobInfoMapper;
-
     @Autowired
-    private TableMetadataManagerService tableMetadataManagerService;
+    private JobContext jobContext;
 
     public boolean hasSamplingJob(String project, String table) {
         aclEvaluate.checkProjectWritePermission(project);
@@ -70,12 +63,9 @@ public class TableSampleService extends BasicService implements TableSamplingSup
     }
 
     private List<JobInfo> existingRunningSamplingJobs(String project, String table) {
-        JobMapperFilter jobMapperFilter = JobMapperFilter.builder()
-                .jobNames(Lists.newArrayList(JobTypeEnum.TABLE_SAMPLING.name())).project(project)
-                .subjects(Lists.newArrayList(table))
-                .statuses(Lists.newArrayList(JobStatusEnum.PENDING.name(), JobStatusEnum.RUNNING.name())).offset(0)
-                .limit(10).build();
-        return jobInfoMapper.selectByJobFilter(jobMapperFilter);
+        return jobContext.fetchAllRunningJobs(project,
+                Lists.newArrayList(JobTypeEnum.TABLE_SAMPLING.name()),
+                Lists.newArrayList(table));
     }
 
     @Override

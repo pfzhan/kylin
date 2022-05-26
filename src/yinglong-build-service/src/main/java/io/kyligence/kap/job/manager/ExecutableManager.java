@@ -893,10 +893,7 @@ public class ExecutableManager {
     }
 
     public void discardJob(String jobId) {
-        // send message to cancel job (job schedule receive)
-
-        // update job status
-        updateJobOutput(jobId, ExecutableState.DISCARDED);
+        discardJob(jobId, getJob(jobId));
     }
 
     public void updateJobOutputToHDFS(String resPath, ExecutableOutputPO obj) {

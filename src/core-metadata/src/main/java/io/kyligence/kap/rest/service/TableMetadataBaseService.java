@@ -54,8 +54,4 @@ public class TableMetadataBaseService {
             return null;
         }, project);
     }
-
-    public TableDesc getTableDesc(String project, String tableName) {
-        return NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getTableDesc(tableName);
-    }
 }

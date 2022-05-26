@@ -24,20 +24,27 @@
 
 package io.kyligence.kap.job;
 
+import java.util.List;
 import java.util.Objects;
 
 import javax.annotation.Resource;
 
+import org.apache.kylin.job.constant.JobStatusEnum;
+import org.apache.kylin.job.execution.ExecutableState;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.stereotype.Component;
+
+import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.job.core.AbstractJobConfig;
 import io.kyligence.kap.job.core.config.FileJobConfig;
 import io.kyligence.kap.job.core.lock.JdbcLockClient;
+import io.kyligence.kap.job.domain.JobInfo;
 import io.kyligence.kap.job.mapper.JobInfoMapper;
 import io.kyligence.kap.job.mapper.JobLockMapper;
+import io.kyligence.kap.job.rest.JobMapperFilter;
 import io.kyligence.kap.job.scheduler.JdbcJobScheduler;
 import io.kyligence.kap.job.scheduler.ParallelLimiter;
 import io.kyligence.kap.job.scheduler.ResourceAcquirer;
@@ -158,4 +165,16 @@ public class JobContext implements InitializingBean, DisposableBean {
         return jobScheduler;
     }
 
+    public List<JobInfo> fetchAllRunningJobs(String project, List<String> jobNames, List<String> subjects) {
+        JobMapperFilter mapperFilter = JobMapperFilter.builder()
+                .jobNames(jobNames)
+                .statuses(Lists.newArrayList(ExecutableState.READY.name(),
+                        JobStatusEnum.PENDING.name(),
+                        JobStatusEnum.RUNNING.name()))
+                .subjects(subjects)
+                .project(project)
+                .offset(0).limit(10000)
+                .build();
+        return jobInfoMapper.selectByJobFilter(mapperFilter);
+    }
 }

@@ -50,10 +50,6 @@ public interface TableMetadataRPC extends TableMetadataContract {
     @PostMapping(value = "/update_table_desc")
     void updateTableDesc(@RequestParam("project") String project, @RequestBody TableDesc tableDesc);
 
-    @GetMapping("/get_table_desc")
-    TableDesc getTableDesc(@RequestParam(value = "project") String project,
-            @RequestParam(value = "table") String table);
-
     @GetMapping("/get_table_names_by_fuzzy_key")
     List<String> getTableNamesByFuzzyKey(@RequestParam(value = "project") String project,
             @RequestParam(value = "fuzzyKey") String fuzzyKey);
