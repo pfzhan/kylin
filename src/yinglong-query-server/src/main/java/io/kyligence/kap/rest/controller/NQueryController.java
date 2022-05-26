@@ -50,7 +50,6 @@ import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 
-import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.query.asyncprofiler.AsyncProfiling;
 import io.kyligence.kap.rest.service.QueryCacheManager;
 import org.apache.commons.io.IOUtils;
@@ -431,8 +430,8 @@ public class NQueryController extends NBasicController {
     @ApiOperation(value = "queryHistoryTiredStorageMetrics", tags = {"QE"}, notes = "Update Param: project, query_id")
     @GetMapping(value = "/query_history/tired_storage_metrics")
     @ResponseBody
-    public EnvelopeResponse<QueryHistory> queryHistoryTiredStorageMetrics(@RequestParam(value = "project") String project,
-                                                                          @RequestParam(value = "query_id") String queryId) {
+    public EnvelopeResponse<Map<String, Long>> queryHistoryTiredStorageMetrics(@RequestParam(value = "project") String project,
+                                                                               @RequestParam(value = "query_id") String queryId) {
         checkProjectName(project);
         checkRequiredArg("query_id", queryId);
         QueryHistoryRequest request = new QueryHistoryRequest();

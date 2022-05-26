@@ -50,6 +50,8 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.metadata.query.QueryHistoryInfo;
 import io.kyligence.kap.metadata.query.QueryMetrics;
+import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
+import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDaoTest;
 import io.kyligence.kap.newten.clickhouse.ClickHouseUtils;
 import io.kyligence.kap.newten.clickhouse.EmbeddedHttpServer;
 import io.kyligence.kap.rest.controller.NModelController;
@@ -168,6 +170,7 @@ import java.util.stream.Collectors;
 
 import static io.kyligence.kap.newten.clickhouse.ClickHouseUtils.configClickhouseWith;
 import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_PROJECT_STATUS_ERROR;
+import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -549,6 +552,22 @@ public class SecondStorageLockTest implements JobWaiter {
         }
     }
 
+    @Test
+    public void testSecondStorageMetricsEndpoint() throws Exception {
+        EnvelopeResponse<Map<String, Long>> r1 = nQueryController.queryHistoryTiredStorageMetrics(getProject(), "12 3");
+        assertEquals(0L, r1.getData().get("total_scan_count").longValue());
+
+        EnvelopeResponse<Map<String, Long>> r2 = nQueryController.queryHistoryTiredStorageMetrics(getProject(), "123");
+        assertEquals(0L, r2.getData().get("total_scan_count").longValue());
+
+        val dao = RDBMSQueryHistoryDAO.getInstance();
+        QueryMetrics queryMetrics = RDBMSQueryHistoryDaoTest.createQueryMetrics(1580311512000L, 1L, true, getProject(), true);
+        dao.insert(queryMetrics);
+        EnvelopeResponse<Map<String, Long>> r3 = nQueryController.queryHistoryTiredStorageMetrics(getProject(), queryMetrics.getQueryId());
+        assertEquals(queryMetrics.getTotalScanCount(), r3.getData().get("total_scan_count").longValue());
+
+    }
+
     private void testSecondStorageMetricsWithRetry(int replica, JdbcDatabaseContainer<?>... clickhouse) throws Exception{
         final String catalog = "default";
         Unsafe.setProperty(ClickHouseLoad.SOURCE_URL, getSourceUrl());
@@ -801,7 +820,7 @@ public class SecondStorageLockTest implements JobWaiter {
             JobParam jobParam = SecondStorageJobParamUtil.of(getProject(), getDataFlow().getModel().getUuid(), "ADMIN",
                     segments.stream().map(NDataSegment::getId));
             String jobId = ClickHouseUtils.simulateJobMangerAddJob(jobParam, localHandler);
-            TimeUnit.MILLISECONDS.sleep(20000);
+            await().atMost(20, TimeUnit.SECONDS);
             PowerMockito.doCallRealMethod().when(InsertInto.class);
             InsertInto.insertInto(Mockito.anyString(), Mockito.anyString());
             waitJobFinish(getProject(), jobId);
@@ -1076,7 +1095,7 @@ public class SecondStorageLockTest implements JobWaiter {
             JobParam jobParam = SecondStorageJobParamUtil.of(getProject(), getDataFlow().getModel().getUuid(), "ADMIN",
                     segments.stream().map(NDataSegment::getId));
             String jobId = ClickHouseUtils.simulateJobMangerAddJob(jobParam, localHandler);
-            TimeUnit.MILLISECONDS.sleep(20000);
+            await().atMost(20, TimeUnit.SECONDS);
             PowerMockito.doCallRealMethod().when(InsertInto.class);
             InsertInto.insertInto(Mockito.anyString(), Mockito.anyString());
             waitJobEnd(getProject(), jobId);
