@@ -25,6 +25,7 @@
 package io.kyligence.kap.engine.spark.job
 
 import java.io.IOException
+
 import com.google.common.collect.Maps
 import io.kyligence.kap.engine.spark.builder.SegmentFlatTable
 import io.kyligence.kap.engine.spark.model.SegmentFlatTableDesc
@@ -35,6 +36,7 @@ import org.apache.hadoop.fs.Path
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.datasource.storage.StorageStoreUtils
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils
+import org.apache.spark.sql.SparderEnv
 
 import scala.collection.JavaConverters._
 
@@ -86,7 +88,7 @@ class RDSegmentBuildExec(private val jobContext: RDSegmentBuildJob, //
       logInfo(s"Detected source: $sourceName $leaves ${paths.asScala.mkString(",")}")
       val startTime = System.currentTimeMillis()
       logInfo(s"Detect source size start time is $startTime")
-      val resourceSize = ResourceDetectUtils.getResourceSize(config.isConcurrencyFetchDataSourceSize,
+      val resourceSize = ResourceDetectUtils.getResourceSize(SparderEnv.getHadoopConfiguration(),config.isConcurrencyFetchDataSourceSize,
         paths.asScala.map(path => new Path(path)): _*)
       val endTime = System.currentTimeMillis()
       logInfo(s"Detect source size end time is $endTime")

@@ -208,7 +208,7 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
         tableExtDesc.setLastModified(0);
         tableExtDesc.init(prj);
 
-        tableExtDesc.addDataSourceProp("location", tableMeta.sdLocation);
+        tableExtDesc.addDataSourceProp(TableExtDesc.LOCATION_PROPERTY_KEY, tableMeta.sdLocation);
         tableExtDesc.addDataSourceProp("owner", tableMeta.owner);
         tableExtDesc.addDataSourceProp("create_time", tableMeta.createTime);
         tableExtDesc.addDataSourceProp("last_access_time", tableMeta.lastAccessTime);
@@ -217,6 +217,8 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
         tableExtDesc.addDataSourceProp("total_file_number", String.valueOf(tableMeta.fileNum));
         tableExtDesc.addDataSourceProp("hive_inputFormat", tableMeta.sdInputFormat);
         tableExtDesc.addDataSourceProp("hive_outputFormat", tableMeta.sdOutputFormat);
+        tableExtDesc.addDataSourceProp(TableExtDesc.S3_ROLE_PROPERTY_KEY, tableMeta.s3Role);
+        tableExtDesc.addDataSourceProp(TableExtDesc.S3_ENDPOINT_KEY, tableMeta.s3Endpoint);
         return Pair.newPair(tableDesc, tableExtDesc);
     }
 

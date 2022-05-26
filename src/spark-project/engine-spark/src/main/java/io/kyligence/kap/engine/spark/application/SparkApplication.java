@@ -107,6 +107,7 @@ import io.kyligence.kap.engine.spark.utils.SparkConfHelper;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.query.pushdown.SparkSubmitter;
 import lombok.val;
 import scala.runtime.AbstractFunction1;
@@ -352,6 +353,12 @@ public abstract class SparkApplication implements Application {
 
             /// backwards compatibility
             ss = getSparkSession();
+
+            if (config.useDynamicS3RoleCredentialInTable()) {
+                val tableMetadataManager = NTableMetadataManager.getInstance(config, project);
+                tableMetadataManager.listAllTables().forEach(tableDesc -> SparderEnv
+                        .addS3CredentialFromTableToSpark(tableMetadataManager.getOrCreateTableExt(tableDesc), ss));
+            }
 
             if (!config.isUTEnv()) {
                 Unsafe.setProperty("kylin.env", config.getDeployEnv());

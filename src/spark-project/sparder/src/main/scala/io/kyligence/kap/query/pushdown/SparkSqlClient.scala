@@ -97,7 +97,7 @@ object SparkSqlClient {
       try {
         val basePartitionSize = config.getBaseShufflePartitionSize
         val paths = ResourceDetectUtils.getPaths(df.queryExecution.sparkPlan)
-        val sourceTableSize = ResourceDetectUtils.getResourceSize(config.isConcurrencyFetchDataSourceSize,
+        val sourceTableSize = ResourceDetectUtils.getResourceSize(SparderEnv.getHadoopConfiguration(), config.isConcurrencyFetchDataSourceSize,
           paths: _*) + "b"
         val partitions = Math.max(1, JavaUtils.byteStringAsMb(sourceTableSize) / basePartitionSize).toString
         df.sparkSession.sessionState.conf.setLocalProperty("spark.sql.shuffle.partitions", partitions)

@@ -981,8 +981,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public String getQueryExtensionFactory() {
-        return getOptional("kylin.extension.query.factory",
-                "io.kyligence.kap.query.QueryExtensionFactoryEnterprise");
+        return getOptional("kylin.extension.query.factory", "io.kyligence.kap.query.QueryExtensionFactoryEnterprise");
     }
 
     public String getMetadataExtensionFactory() {
@@ -3278,5 +3277,10 @@ public abstract class KylinConfigBase implements Serializable {
 
     public boolean isRemoveLdapCustomSecurityLimitEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.security.remove-ldap-custom-security-limit-enabled", "false"));
+    }
+
+    public boolean useDynamicS3RoleCredentialInTable() {
+        return Boolean.parseBoolean(getOptional("kylin.env.use-dynamic-S3-role-credential-in-table", "false"));
+
     }
 }
