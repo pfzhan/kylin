@@ -54,6 +54,7 @@ import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDaoTest;
 import io.kyligence.kap.newten.clickhouse.ClickHouseUtils;
 import io.kyligence.kap.newten.clickhouse.EmbeddedHttpServer;
+import io.kyligence.kap.rest.controller.NAdminController;
 import io.kyligence.kap.rest.controller.NModelController;
 import io.kyligence.kap.rest.controller.NQueryController;
 import io.kyligence.kap.rest.request.ModelRequest;
@@ -254,6 +255,9 @@ public class SecondStorageLockTest implements JobWaiter {
 
     @Mock
     private final QueryHistoryService queryHistoryService = Mockito.spy(new QueryHistoryService());
+
+    @Mock
+    private final NAdminController nAdminController = Mockito.spy(new NAdminController());
 
     private EmbeddedHttpServer _httpServer = null;
     protected IndexDataConstructor indexDataConstructor;
@@ -604,6 +608,10 @@ public class SecondStorageLockTest implements JobWaiter {
             q1.collectSecondStorageMetric(ImmutableList.of(m1));
             assertEquals(0L, m1.getTotalScanCount());
             assertEquals(0L, m1.getTotalScanBytes());
+
+            EnvelopeResponse<String> ers = nAdminController.getPublicConfig();
+            assertEquals("000", ers.getCode());
+            assertTrue(ers.getData().contains("kylin.second-storage.query-metric-collect"));
 
             System.setProperty("kylin.second-storage.query-metric-collect", "true");
             q1.init();
