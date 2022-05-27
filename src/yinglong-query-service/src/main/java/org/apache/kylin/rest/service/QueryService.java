@@ -663,6 +663,9 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
             } else {
                 return new SQLResponse(null, null, 0, true, e.getMessage());
             }
+        } catch (Throwable t) {
+            QueryContext.current().getMetrics().setException(true);
+            return new SQLResponse(null, null, 0, true, t.getMessage());
         } finally {
             BackdoorToggles.cleanToggles();
             if (QueryMetricsContext.isStarted()) {
