@@ -101,9 +101,43 @@ public class SparkSourceServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testExecuteSQL() {
-        String sql = "show databases";
-        DDLDesc ddlDesc = new DDLDesc("show databases", null, null, DDLDesc.DDLType.NONE);
-        Assert.assertEquals(ddlDesc, sparkSourceService.executeSQL(sql));
+        {
+            String sql = "create external table default.SALES(name string, district string)"
+                    + " partitioned by (year int) row format serde 'org.apache.hadoop.hive.serde2.OpenCSVSerde'"
+                    + " location '../examples/test_case_data/localmeta/data'";
+            DDLDesc ddlDesc = new DDLDesc(sql, "default", "SALES", DDLDesc.DDLType.CREATE_TABLE);
+            Assert.assertEquals(ddlDesc, sparkSourceService.executeSQL(sql));
+        }
+        {
+            String sql = "alter table default.SALES add partition(year=2020)";
+            DDLDesc ddlDesc = new DDLDesc(sql, "default", "SALES", DDLDesc.DDLType.ADD_PARTITION);
+            Assert.assertEquals(ddlDesc, sparkSourceService.executeSQL(sql));
+        }
+        {
+            String sql = "drop table default.SALES";
+            DDLDesc ddlDesc = new DDLDesc(sql, "default", "SALES", DDLDesc.DDLType.DROP_TABLE);
+            Assert.assertEquals(ddlDesc, sparkSourceService.executeSQL(sql));
+        }
+        {
+            String sql = "create database sales_db";
+            DDLDesc ddlDesc = new DDLDesc(sql, "sales_db", null, DDLDesc.DDLType.CREATE_DATABASE);
+            Assert.assertEquals(ddlDesc, sparkSourceService.executeSQL(sql));
+        }
+        {
+            String sql = "drop database sales_db";
+            DDLDesc ddlDesc = new DDLDesc(sql, "sales_db", null, DDLDesc.DDLType.DROP_DATABASE);
+            Assert.assertEquals(ddlDesc, sparkSourceService.executeSQL(sql));
+        }
+        {
+            String sql = "create view COUNTRY_VIEW as select * from COUNTRY";
+            DDLDesc ddlDesc = new DDLDesc(sql, "default", "COUNTRY_VIEW", DDLDesc.DDLType.CREATE_VIEW);
+            Assert.assertEquals(ddlDesc, sparkSourceService.executeSQL(sql));
+        }
+        {
+            String sql = "show databases";
+            DDLDesc ddlDesc = new DDLDesc(sql, null, null, DDLDesc.DDLType.NONE);
+            Assert.assertEquals(ddlDesc, sparkSourceService.executeSQL(sql));
+        }
     }
 
     @Test
@@ -124,9 +158,25 @@ public class SparkSourceServiceTest extends NLocalFileMetadataTestCase {
     public void testGetTableDesc() {
         try {
             sparkSourceService.getTableDesc("default", "COUNTRY");
+            DDLRequest ddlRequest = new DDLRequest();
+            ddlRequest.setSql("use default;create table COUNTRY_PARQUET like COUNTRY using parquet;");
+            sparkSourceService.executeSQL(ddlRequest);
+            sparkSourceService.getTableDesc("default", "COUNTRY_PARQUET");
         } catch (Exception e) {
             Assert.fail(e.getMessage());
         }
+    }
+
+    @Test
+    public void testMsck() {
+        DDLRequest ddlRequest = new DDLRequest();
+        ddlRequest.setSql("use default;create external table default.SALES(name string, district string)"
+                + " partitioned by (year int) row format serde 'org.apache.hadoop.hive.serde2.OpenCSVSerde'"
+                + " location '../examples/test_case_data/localmeta/data';"
+                + " alter table SALES add partition(year=2020);");
+        sparkSourceService.executeSQL(ddlRequest);
+        List diffList = sparkSourceService.msck("default", "SALES");
+        Assert.assertTrue(diffList.isEmpty());
     }
 
     @Test
@@ -179,16 +229,31 @@ public class SparkSourceServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testLoadSamplesException() {
-        Assert.assertThrows(KylinException.class, () -> sparkSourceService
-                .exportTables(null, new String[] { "hive_bigints" }).getTables().get("hive_bigints"));
-        Assert.assertThrows(KylinException.class, () -> sparkSourceService
-                .exportTables("db", new String[] { "hive_bigints" }).getTables().get("hive_bigints"));
-        Assert.assertThrows(KylinException.class,
-                () -> sparkSourceService.exportTables("default", new String[] {}).getTables().get("hive_bigints"));
-        Assert.assertThrows(KylinException.class,
-                () -> sparkSourceService.exportTables("default", new String[] { "" }).getTables().get("hive_bigints"));
-        Assert.assertThrows(KylinException.class, () -> sparkSourceService
-                .exportTables("default", new String[] { "not_exits" }).getTables().get("hive_bigints"));
+        try {
+            sparkSourceService.exportTables(null, new String[] { "hive_bigints" }).getTables().get("hive_bigints");
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+        }
+        try {
+            sparkSourceService.exportTables("db", new String[] { "hive_bigints" }).getTables().get("hive_bigints");
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+        }
+        try {
+            sparkSourceService.exportTables("default", new String[] {}).getTables().get("hive_bigints");
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+        }
+        try {
+            sparkSourceService.exportTables("default", new String[] { "" }).getTables().get("hive_bigints");
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+        }
+        try {
+            sparkSourceService.exportTables("default", new String[] { "not_exits" }).getTables().get("hive_bigints");
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+        }
     }
 
     @Test
