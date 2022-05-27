@@ -24,12 +24,19 @@
 
 package io.kyligence.kap.rest.service;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_NAME;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_SAMPLING_RANGE_INVALID;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.Message;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -52,6 +59,9 @@ import lombok.val;
 
 @Component("tableSamplingService")
 public class TableSamplingService extends BasicService implements TableSamplingSupporter {
+
+    private static final int MAX_SAMPLING_ROWS = 20_000_000;
+    private static final int MIN_SAMPLING_ROWS = 10_000;
 
     @Autowired
     private AclEvaluate aclEvaluate;
@@ -102,5 +112,22 @@ public class TableSamplingService extends BasicService implements TableSamplingS
         Map<String, AbstractExecutable> map = Maps.newHashMap();
         jobs.forEach(job -> map.put(job.getTargetSubject(), job));
         return map;
+    }
+
+    public static void checkSamplingRows(int rows) {
+        if (rows > MAX_SAMPLING_ROWS || rows < MIN_SAMPLING_ROWS) {
+            throw new KylinException(JOB_SAMPLING_RANGE_INVALID, MIN_SAMPLING_ROWS, MAX_SAMPLING_ROWS);
+        }
+    }
+
+    public static void checkSamplingTable(String tableName) {
+        Message msg = MsgPicker.getMsg();
+        if (tableName == null || StringUtils.isEmpty(tableName.trim())) {
+            throw new KylinException(INVALID_TABLE_NAME, msg.getFailedForNoSamplingTable());
+        }
+
+        if (tableName.contains(" ") || !tableName.contains(".") || tableName.split("\\.").length != 2) {
+            throw new KylinException(INVALID_TABLE_NAME, msg.getSamplingFailedForIllegalTableName());
+        }
     }
 }
