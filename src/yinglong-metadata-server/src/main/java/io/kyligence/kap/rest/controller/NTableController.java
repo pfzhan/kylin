@@ -29,8 +29,6 @@ import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLI
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_REFRESH_PARAMETER;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_SAMPLE_RANGE;
-import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_SAMPLING_RANGE_INVALID;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_NOT_EXIST;
 
 import java.io.IOException;
@@ -53,8 +51,6 @@ import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.TableRefresh;
 import org.apache.kylin.rest.response.TableRefreshAll;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
@@ -99,9 +95,6 @@ import lombok.val;
 public class NTableController extends NBasicController {
 
     private static final String TABLE = "table";
-    private static final int MAX_SAMPLING_ROWS = 20_000_000;
-    private static final int MIN_SAMPLING_ROWS = 10_000;
-    private static final Logger logger = LoggerFactory.getLogger(NTableController.class);
 
     @Autowired
     @Qualifier("tableService")
@@ -250,7 +243,7 @@ public class NTableController extends NBasicController {
         }
 
         if (!loadTableResponse.getLoaded().isEmpty() && Boolean.TRUE.equals(tableLoadRequest.getNeedSampling())) {
-            checkSamplingRows(tableLoadRequest.getSamplingRows());
+            TableSamplingService.checkSamplingRows(tableLoadRequest.getSamplingRows());
             tableSamplingService.sampling(loadTableResponse.getLoaded(), tableLoadRequest.getProject(),
                     tableLoadRequest.getSamplingRows(), tableLoadRequest.getPriority(), tableLoadRequest.getYarnQueue(),
                     tableLoadRequest.getTag());
@@ -457,12 +450,6 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
-    private void checkSamplingRows(int rows) {
-        if (rows > MAX_SAMPLING_ROWS || rows < MIN_SAMPLING_ROWS) {
-            throw new KylinException(JOB_SAMPLING_RANGE_INVALID, MIN_SAMPLING_ROWS, MAX_SAMPLING_ROWS);
-        }
-    }
-
     @ApiOperation(value = "prepareReload", tags = { "AI" })
     @GetMapping(value = "/prepare_reload", produces = { HTTP_VND_APACHE_KYLIN_JSON,
             HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
@@ -483,9 +470,8 @@ public class NTableController extends NBasicController {
         if (StringUtils.isEmpty(request.getTable())) {
             throw new KylinException(INVALID_TABLE_NAME, MsgPicker.getMsg().getTableNameCannotEmpty());
         }
-        if (request.isNeedSample()
-                && (request.getMaxRows() < MIN_SAMPLING_ROWS || request.getMaxRows() > MAX_SAMPLING_ROWS)) {
-            throw new KylinException(INVALID_TABLE_SAMPLE_RANGE, MsgPicker.getMsg().getTableSampleMaxRows());
+        if (request.isNeedSample()) {
+            TableSamplingService.checkSamplingRows(request.getMaxRows());
         }
         tableService.reloadTable(request.getProject(), request.getTable(), request.isNeedSample(), request.getMaxRows(),
                 request.isNeedBuild(), request.getPriority(), request.getYarnQueue());
