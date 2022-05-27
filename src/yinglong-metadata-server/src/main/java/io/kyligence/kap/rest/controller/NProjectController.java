@@ -27,10 +27,11 @@ package io.kyligence.kap.rest.controller;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PARAMETER;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PROJECT_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NAME_ILLEGAL;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.CONFIG_NOT_SUPPORT_DELETE;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.CONFIG_NOT_SUPPORT_EDIT;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_NOT_EXIST;
 
 import java.io.File;
@@ -43,7 +44,7 @@ import java.util.Set;
 
 import javax.validation.Valid;
 
-import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.guava20.shaded.common.collect.Sets;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -74,6 +75,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 
 import io.kyligence.kap.common.util.FileUtils;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.request.ComputedColumnConfigRequest;
 import io.kyligence.kap.rest.request.DataSourceTypeRequest;
 import io.kyligence.kap.rest.request.DefaultDatabaseRequest;
@@ -263,8 +265,6 @@ public class NProjectController extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, true, "");
     }
 
-
-
     @ApiOperation(value = "updateShardNumConfig", tags = { "SM" }, notes = "Add URL: {project}; ")
     @PutMapping(value = "/{project:.+}/shard_num_config")
     @ResponseBody
@@ -442,8 +442,9 @@ public class NProjectController extends NBasicController {
         if (MapUtils.isEmpty(request)) {
             throw new KylinException(EMPTY_PARAMETER, MsgPicker.getMsg().getConfigMapEmpty());
         }
-        if (!Collections.disjoint(request.keySet(), KylinConfig.getInstanceFromEnv().getNonCustomProjectConfigs())) {
-            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getConfigNotSupportEdit());
+        Set<String> keySet = Sets.newHashSet(request.keySet());
+        if (!Collections.disjoint(keySet, KylinConfig.getInstanceFromEnv().getNonCustomProjectConfigs())) {
+            throw new KylinException(CONFIG_NOT_SUPPORT_EDIT, keySet.iterator().next());
         }
         projectService.updateProjectConfig(project, request);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
@@ -456,7 +457,7 @@ public class NProjectController extends NBasicController {
         checkProjectName(request.getProject());
         checkRequiredArg("config_name", request.getConfigName());
         if (KylinConfig.getInstanceFromEnv().getNonCustomProjectConfigs().contains(request.getConfigName())) {
-            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getConfigNotSupportDelete());
+            throw new KylinException(CONFIG_NOT_SUPPORT_DELETE, request.getConfigName());
         }
         projectService.deleteProjectConfig(request.getProject(), request.getConfigName());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");

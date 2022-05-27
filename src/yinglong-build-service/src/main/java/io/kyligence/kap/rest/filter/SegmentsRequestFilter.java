@@ -24,9 +24,11 @@
 
 package io.kyligence.kap.rest.filter;
 
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.BOOLEAN_TYPE_CHECK;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -44,7 +46,6 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.exception.ErrorCode;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.response.ErrorResponse;
@@ -106,8 +107,7 @@ public class SegmentsRequestFilter implements Filter {
 
     private void checkRequiredArg(String fieldName, Object fieldValue) {
         if (fieldValue == null || StringUtils.isEmpty(String.valueOf(fieldValue))) {
-            throw new KylinException(ServerErrorCode.INVALID_PARAMETER,
-                    String.format(Locale.ROOT, "'%s' is required.", fieldName));
+            throw new KylinException(REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY, fieldName);
         }
     }
 
@@ -116,8 +116,7 @@ public class SegmentsRequestFilter implements Filter {
         String booleanString = String.valueOf(fieldValue);
         if (!String.valueOf(true).equalsIgnoreCase(booleanString)
                 && !String.valueOf(false).equalsIgnoreCase(booleanString)) {
-            throw new KylinException(ServerErrorCode.INVALID_PARAMETER,
-                    String.format(Locale.ROOT, "'%s' must be boolean type.", fieldName));
+            throw new KylinException(BOOLEAN_TYPE_CHECK, booleanString, "Boolean");
         }
     }
 

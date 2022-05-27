@@ -23,9 +23,10 @@
  */
 package io.kyligence.kap.rest.service;
 
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.INDEX_DUPLICATE;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.LAYOUT_LIST_EMPTY;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.LAYOUT_NOT_EXISTS;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -42,8 +43,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.secondstorage.SecondStorageUpdater;
-import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -115,6 +114,8 @@ import io.kyligence.kap.rest.response.IndexGraphResponse;
 import io.kyligence.kap.rest.response.IndexResponse;
 import io.kyligence.kap.rest.response.IndexStatResponse;
 import io.kyligence.kap.rest.response.TableIndexResponse;
+import io.kyligence.kap.secondstorage.SecondStorageUpdater;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import lombok.Setter;
 import lombok.val;
 import lombok.var;
@@ -364,7 +365,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
             Set<Integer> invalidMeasures) {
         aclEvaluate.checkProjectWritePermission(project);
         if (CollectionUtils.isEmpty(ids)) {
-            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getLayoutListIsEmpty());
+            throw new KylinException(LAYOUT_LIST_EMPTY);
         }
 
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
@@ -377,8 +378,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
                 .map(String::valueOf).collect(Collectors.joining(","));
 
         if (StringUtils.isNotEmpty(notExistsLayoutIds)) {
-            throw new KylinException(INVALID_PARAMETER,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getLayoutNotExists(), notExistsLayoutIds));
+            throw new KylinException(LAYOUT_NOT_EXISTS, notExistsLayoutIds);
         }
 
         indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
@@ -576,7 +576,8 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
                 .collect(Collectors.toList()));
 
         val df = getManager(NDataflowManager.class, project).getDataflow(modelId);
-        Segments<NDataSegment> segments = df.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING, SegmentStatusEnum.NEW);
+        Segments<NDataSegment> segments = df.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING,
+                SegmentStatusEnum.NEW);
 
         val executableManager = getManager(NExecutableManager.class, project);
         List<AbstractExecutable> executables = executableManager.listExecByModelAndStatus(modelId,
@@ -1231,7 +1232,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
 
     @Override
     public void onUpdateBaseIndex(Object indexUpdateHelper) {
-        val baseIndexUpdater = (BaseIndexUpdateHelper)indexUpdateHelper;
+        val baseIndexUpdater = (BaseIndexUpdateHelper) indexUpdateHelper;
         baseIndexUpdater.update(this);
     }
 

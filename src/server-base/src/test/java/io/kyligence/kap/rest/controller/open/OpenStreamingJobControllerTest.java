@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.controller.open;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY;
 
 import java.util.Collections;
 
@@ -143,7 +144,7 @@ public class OpenStreamingJobControllerTest extends NLocalFileMetadataTestCase {
                 .accept(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON);
         val errMsg = mockMvc.perform(mockRequestBuilder).andExpect(MockMvcResultMatchers.status().is5xxServerError())
                 .andReturn().getResolvedException().getMessage();
-        Assert.assertEquals("'job_ids' is required.", errMsg);
+        Assert.assertEquals(REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY.getMsg("job_ids"), errMsg);
     }
 
     @Test
@@ -173,6 +174,6 @@ public class OpenStreamingJobControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON));
         val errMsg = mockMvc.perform(mockRequestBuilder).andExpect(MockMvcResultMatchers.status().is5xxServerError())
                 .andReturn().getResolvedException().getMessage();
-        Assert.assertEquals("'job_id' is required.", errMsg);
+        Assert.assertEquals(REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY.getMsg("job_id"), errMsg);
     }
 }

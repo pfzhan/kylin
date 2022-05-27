@@ -29,9 +29,9 @@ import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLI
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_MODEL;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_DETECT_DATA_RANGE;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_MODEL;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARTITION_COLUMN;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_RANGE;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.DATETIME_FORMAT_PARSE_ERROR;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_INVALID;
 
 import java.io.IOException;
@@ -47,7 +47,6 @@ import java.util.regex.Pattern;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -115,6 +114,7 @@ import io.kyligence.kap.tool.bisync.BISyncModel;
 import io.kyligence.kap.tool.bisync.SyncContext;
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Controller
@@ -460,21 +460,17 @@ public class NModelController extends NBasicController {
     @PostMapping(value = "/check_partition_desc")
     @ResponseBody
     public EnvelopeResponse<String> checkPartitionDesc(@RequestBody PartitionDesc partitionDesc) {
-        try {
-            validatePartitionDesc(partitionDesc);
-            String partitionDateFormat = partitionDesc.getPartitionDateFormat();
-            PartitionDesc.TimestampType timestampType = partitionDesc.getTimestampType();
-            if (timestampType == null) {
-                SimpleDateFormat simpleDateFormat = new SimpleDateFormat(partitionDateFormat,
-                        Locale.getDefault(Locale.Category.FORMAT));
-                String dateFormat = simpleDateFormat.format(new Date());
-                return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, dateFormat, "");
-            } else {
-                long timestamp = System.currentTimeMillis() / timestampType.millisecondRatio;
-                return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, timestamp + "", "");
-            }
-        } catch (Exception e) {
-            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getInvalidCustomizeFormat());
+        validatePartitionDesc(partitionDesc);
+        String partitionDateFormat = partitionDesc.getPartitionDateFormat();
+        PartitionDesc.TimestampType timestampType = partitionDesc.getTimestampType();
+        if (timestampType == null) {
+            SimpleDateFormat simpleDateFormat = new SimpleDateFormat(partitionDateFormat,
+                    Locale.getDefault(Locale.Category.FORMAT));
+            String dateFormat = simpleDateFormat.format(new Date());
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, dateFormat, "");
+        } else {
+            long timestamp = System.currentTimeMillis() / timestampType.millisecondRatio;
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, timestamp + "", "");
         }
     }
 
@@ -673,7 +669,7 @@ public class NModelController extends NBasicController {
                 throw new KylinException(INVALID_PARTITION_COLUMN, MsgPicker.getMsg().getPartitionColumnNotExist());
             }
             if (!isSupportFormatsFormats(partitionDesc)) {
-                throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getInvalidCustomizeFormat());
+                throw new KylinException(DATETIME_FORMAT_PARSE_ERROR, partitionDesc.getPartitionDateFormat());
             }
             if (partitionDesc.getPartitionDateFormat() != null && !partitionDesc.partitionColumnIsTimestamp()) {
                 validateDateTimeFormatPattern(partitionDesc.getPartitionDateFormat());

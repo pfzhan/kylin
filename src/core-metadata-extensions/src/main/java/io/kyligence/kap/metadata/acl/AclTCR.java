@@ -24,7 +24,7 @@
 
 package io.kyligence.kap.metadata.acl;
 
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.PARAMETER_INVALID_SUPPORT_LIST;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -103,7 +103,6 @@ public class AclTCR extends RootPersistentEntity {
         }
         return table.get(dbTblName).getColumn().contains(columnName);
     }
-
 
     public boolean isColumnAuthorized(String columnIdentity) {
         int sepIdx = columnIdentity.lastIndexOf('.');
@@ -302,8 +301,7 @@ public class AclTCR extends RootPersistentEntity {
 
         private static void validateValue(String value) {
             if (!validValues.contains(value.toUpperCase(Locale.ROOT))) {
-                throw new KylinException(INVALID_PARAMETER,
-                        "Invalid value in parameter \"type\". The value should be \"AND\" or \"OR\".");
+                throw new KylinException(PARAMETER_INVALID_SUPPORT_LIST, "type", "AND or OR");
             }
         }
 

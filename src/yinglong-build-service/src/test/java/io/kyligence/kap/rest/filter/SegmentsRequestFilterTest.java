@@ -24,6 +24,9 @@
 
 package io.kyligence.kap.rest.filter;
 
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.BOOLEAN_TYPE_CHECK;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY;
+
 import java.io.IOException;
 
 import javax.servlet.FilterChain;
@@ -32,7 +35,6 @@ import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.HttpMethod;
 
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.util.JsonUtil;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -87,8 +89,8 @@ class SegmentsRequestFilterTest {
         Assertions.assertEquals(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, response.getStatus());
         JsonNode jsonNode = JsonUtil.readValueAsTree(response.getContentAsString());
         Assertions.assertEquals("999", jsonNode.get("code").asText());
-        Assertions.assertEquals("KE-010000003", jsonNode.get("error_code").asText());
-        Assertions.assertEquals("KE-010000003(Invalid Parameter):'build_all_sub_partitions' must be boolean type.",
+        Assertions.assertEquals(BOOLEAN_TYPE_CHECK.getErrorCode().getCode(), jsonNode.get("error_code").asText());
+        Assertions.assertEquals(BOOLEAN_TYPE_CHECK.getCodeMsg("null", "Boolean"),
                 jsonNode.get("msg").asText());
 
         chain = new MockFilterChain();
@@ -102,8 +104,9 @@ class SegmentsRequestFilterTest {
         Assertions.assertEquals(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, response.getStatus());
         jsonNode = JsonUtil.readValueAsTree(response.getContentAsString());
         Assertions.assertEquals("999", jsonNode.get("code").asText());
-        Assertions.assertEquals("KE-010000003", jsonNode.get("error_code").asText());
-        Assertions.assertEquals("KE-010000003(Invalid Parameter):'build_all_sub_partitions' is required.",
+        Assertions.assertEquals(REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY.getErrorCode().getCode(),
+                jsonNode.get("error_code").asText());
+        Assertions.assertEquals(REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY.getCodeMsg("build_all_sub_partitions"),
                 jsonNode.get("msg").asText());
 
         chain = new MockFilterChain();
@@ -117,8 +120,8 @@ class SegmentsRequestFilterTest {
         Assertions.assertEquals(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, response.getStatus());
         jsonNode = JsonUtil.readValueAsTree(response.getContentAsString());
         Assertions.assertEquals("999", jsonNode.get("code").asText());
-        Assertions.assertEquals("KE-010000003", jsonNode.get("error_code").asText());
-        Assertions.assertEquals("KE-010000003(Invalid Parameter):'build_all_sub_partitions' must be boolean type.",
+        Assertions.assertEquals(BOOLEAN_TYPE_CHECK.getErrorCode().getCode(), jsonNode.get("error_code").asText());
+        Assertions.assertEquals(BOOLEAN_TYPE_CHECK.getCodeMsg("123", "Boolean"),
                 jsonNode.get("msg").asText());
 
         chain = new MockFilterChain();
@@ -151,27 +154,27 @@ class SegmentsRequestFilterTest {
             Assertions.fail();
         } catch (Exception e) {
             Assertions.assertTrue(e instanceof KylinException);
-            Assertions.assertEquals(ServerErrorCode.INVALID_PARAMETER.toErrorCode().getCodeString(),
+            Assertions.assertEquals(REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY.getErrorCode().getCode(),
                     ((KylinException) e).getErrorCode().getCodeString());
-            Assertions.assertEquals("'test' is required.", e.getMessage());
+            Assertions.assertEquals(REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY.getMsg("test"), e.getMessage());
         }
         try {
             filter.checkBooleanArg("test", "");
             Assertions.fail();
         } catch (Exception e) {
             Assertions.assertTrue(e instanceof KylinException);
-            Assertions.assertEquals(ServerErrorCode.INVALID_PARAMETER.toErrorCode().getCodeString(),
+            Assertions.assertEquals(REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY.getErrorCode().getCode(),
                     ((KylinException) e).getErrorCode().getCodeString());
-            Assertions.assertEquals("'test' is required.", e.getMessage());
+            Assertions.assertEquals(REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY.getMsg("test"), e.getMessage());
         }
         try {
             filter.checkBooleanArg("test", "123");
             Assertions.fail();
         } catch (Exception e) {
             Assertions.assertTrue(e instanceof KylinException);
-            Assertions.assertEquals(ServerErrorCode.INVALID_PARAMETER.toErrorCode().getCodeString(),
+            Assertions.assertEquals(BOOLEAN_TYPE_CHECK.getErrorCode().getCode(),
                     ((KylinException) e).getErrorCode().getCodeString());
-            Assertions.assertEquals("'test' must be boolean type.", e.getMessage());
+            Assertions.assertEquals(BOOLEAN_TYPE_CHECK.getMsg("123", "Boolean"), e.getMessage());
         }
         filter.checkBooleanArg("test", "true");
         filter.checkBooleanArg("test", "false");

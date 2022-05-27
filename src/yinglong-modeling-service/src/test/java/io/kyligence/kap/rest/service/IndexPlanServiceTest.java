@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.service;
 import static io.kyligence.kap.metadata.cube.model.IndexEntity.Source.CUSTOM_TABLE_INDEX;
 import static io.kyligence.kap.metadata.cube.model.IndexEntity.Source.RECOMMENDED_TABLE_INDEX;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.INDEX_DUPLICATE;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.LAYOUT_NOT_EXISTS;
 import static org.apache.kylin.metadata.model.SegmentStatusEnum.READY;
 import static org.apache.kylin.metadata.model.SegmentStatusEnum.WARNING;
 import static org.hamcrest.Matchers.is;
@@ -571,12 +572,12 @@ public class IndexPlanServiceTest extends SourceTestCase {
                         .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT"))
                         .sortByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID")).build());
 
-        Assert.assertFalse(
-                indexPlanService.getManager(NIndexPlanManager.class, "default").getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                        .getAllLayouts().stream().anyMatch(l -> l.getId() == 20000040000L));
-        Assert.assertTrue(
-                indexPlanService.getManager(NIndexPlanManager.class, "default").getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                        .getAllLayouts().stream().anyMatch(l -> l.getId() == 20000040000L + IndexEntity.INDEX_ID_STEP));
+        Assert.assertFalse(indexPlanService.getManager(NIndexPlanManager.class, "default")
+                .getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getAllLayouts().stream()
+                .anyMatch(l -> l.getId() == 20000040000L));
+        Assert.assertTrue(indexPlanService.getManager(NIndexPlanManager.class, "default")
+                .getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getAllLayouts().stream()
+                .anyMatch(l -> l.getId() == 20000040000L + IndexEntity.INDEX_ID_STEP));
     }
 
     @Test
@@ -635,9 +636,9 @@ public class IndexPlanServiceTest extends SourceTestCase {
                         .sortByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")).build());
         indexPlanService.removeTableIndex("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", 20000040001L);
 
-        Assert.assertFalse(
-                indexPlanService.getManager(NIndexPlanManager.class, "default").getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                        .getAllLayouts().stream().anyMatch(l -> l.getId() == 20000040001L));
+        Assert.assertFalse(indexPlanService.getManager(NIndexPlanManager.class, "default")
+                .getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getAllLayouts().stream()
+                .anyMatch(l -> l.getId() == 20000040001L));
     }
 
     @Test
@@ -668,12 +669,12 @@ public class IndexPlanServiceTest extends SourceTestCase {
                         .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT"))
                         .sortByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID")).build());
 
-        Assert.assertFalse(
-                indexPlanService.getManager(NIndexPlanManager.class, "default").getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                        .getAllLayouts().stream().anyMatch(l -> l.getId() == prevMaxId));
-        Assert.assertTrue(
-                indexPlanService.getManager(NIndexPlanManager.class, "default").getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                        .getAllLayouts().stream().anyMatch(l -> l.getId() == prevMaxId + IndexEntity.INDEX_ID_STEP));
+        Assert.assertFalse(indexPlanService.getManager(NIndexPlanManager.class, "default")
+                .getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getAllLayouts().stream()
+                .anyMatch(l -> l.getId() == prevMaxId));
+        Assert.assertTrue(indexPlanService.getManager(NIndexPlanManager.class, "default")
+                .getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getAllLayouts().stream()
+                .anyMatch(l -> l.getId() == prevMaxId + IndexEntity.INDEX_ID_STEP));
         executables = getRunningExecutables("default", modelId);
         Assert.assertEquals(1, executables.size());
         // Assert.assertTrue(clean.get());
@@ -693,12 +694,13 @@ public class IndexPlanServiceTest extends SourceTestCase {
                         .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT"))
                         .sortByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID")).isLoadData(false).build());
 
-        Assert.assertTrue(indexPlanService.getManager(NIndexPlanManager.class, project).getIndexPlan(modelId).getAllLayouts().stream()
+        Assert.assertTrue(indexPlanService.getManager(NIndexPlanManager.class, project).getIndexPlan(modelId)
+                .getAllLayouts().stream().anyMatch(l -> l.getId() == existLayoutId));
+        Assert.assertTrue(indexPlanService.getManager(NIndexPlanManager.class, project).getIndexPlan(modelId)
+                .getToBeDeletedIndexes().stream().map(IndexEntity::getLayouts).flatMap(List::stream)
                 .anyMatch(l -> l.getId() == existLayoutId));
-        Assert.assertTrue(indexPlanService.getManager(NIndexPlanManager.class, project).getIndexPlan(modelId).getToBeDeletedIndexes()
-                .stream().map(IndexEntity::getLayouts).flatMap(List::stream).anyMatch(l -> l.getId() == existLayoutId));
-        Assert.assertTrue(indexPlanService.getManager(NIndexPlanManager.class, project).getIndexPlan(modelId).getAllLayouts().stream()
-                .anyMatch(l -> l.getId() == maxTableLayoutId + IndexEntity.INDEX_ID_STEP));
+        Assert.assertTrue(indexPlanService.getManager(NIndexPlanManager.class, project).getIndexPlan(modelId)
+                .getAllLayouts().stream().anyMatch(l -> l.getId() == maxTableLayoutId + IndexEntity.INDEX_ID_STEP));
         NDataflow df = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getDataflow(modelId);
         NDataSegment segment = df.getLatestReadySegment();
         Assert.assertNotNull(segment.getLayout(existLayoutId));
@@ -887,8 +889,7 @@ public class IndexPlanServiceTest extends SourceTestCase {
     public void testUpdateAggShard_WithInvalidColumn() {
         val wrongColumn = "TEST_CAL_DT.WEEK_BEG_DT";
         thrown.expect(KylinException.class);
-        thrown.expectMessage(
-                String.format(Locale.ROOT, Message.getInstance().getColumuIsNotDimension(), wrongColumn));
+        thrown.expectMessage(String.format(Locale.ROOT, Message.getInstance().getColumuIsNotDimension(), wrongColumn));
         val modelId = "741ca86a-1f13-46da-a59f-95fb68615e3a";
         val request = new AggShardByColumnsRequest();
         request.setModelId(modelId);
@@ -1040,8 +1041,7 @@ public class IndexPlanServiceTest extends SourceTestCase {
 
         // delete not exists layoutIds
         thrown.expect(KylinException.class);
-        thrown.expectMessage(String.format(Locale.ROOT, Message.getInstance().getLayoutNotExists(),
-                "1010001,20000000001,20000010001"));
+        thrown.expectMessage(LAYOUT_NOT_EXISTS.getMsg("1010001,20000000001,20000010001"));
         indexPlanService.removeIndexes(getProject(), modelId,
                 new HashSet<>(Arrays.asList(1010001L, 20000000001L, 20000010001L)));
 

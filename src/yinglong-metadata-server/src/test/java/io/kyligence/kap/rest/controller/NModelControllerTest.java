@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.PARAMETER_INVALID_SUPPORT_LIST;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
@@ -767,7 +768,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 Lists.newArrayList("OFFLINE", "BROKEN"));
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage("is not a valid value");
+        thrown.expectMessage(PARAMETER_INVALID_SUPPORT_LIST.getMsg("status", "ONLINE, OFFLINE, WARNING, BROKEN"));
         status = Lists.newArrayList("OFF", null, "broken");
         nBasicController.formatStatus(status, ModelStatusToDisplayEnum.class);
     }

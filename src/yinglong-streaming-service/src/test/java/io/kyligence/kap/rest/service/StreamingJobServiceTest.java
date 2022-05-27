@@ -23,7 +23,7 @@
  */
 package io.kyligence.kap.rest.service;
 
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -291,27 +291,18 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         val jobId = StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_BUILD.name());
         var jobFilter = new StreamingJobFilter("", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
                 Collections.EMPTY_LIST, "", "last_modified", true, Collections.singletonList(jobId));
-        try {
-            var list = streamingJobService.getStreamingJobList(jobFilter, 0, 20);
-            Assert.fail();
-        } catch (Exception e) {
-            Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals(INVALID_PARAMETER.toErrorCode(), ((KylinException) e).getErrorCode());
-            Assert.assertEquals("project is required when filter by jobid.", e.getMessage());
-        }
+        List<String> jobIds = Collections.singletonList(jobId);
+        Assert.assertThrows(REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY.getMsg("project"), KylinException.class,
+                () -> streamingJobService.getStreamingJobList(jobFilter, 0, 20));
     }
 
     @Test
     public void testGetAllStreamingJobsById_WithoutProject() {
         val jobId = StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_BUILD.name());
-        try {
-            streamingJobService.getAllStreamingJobsById("", Collections.singletonList(jobId));
-            Assert.fail();
-        } catch (Exception e) {
-            Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals(INVALID_PARAMETER.toErrorCode(), ((KylinException) e).getErrorCode());
-            Assert.assertEquals("project is required when filter by jobid.", e.getMessage());
-        }
+
+        List<String> jobIds = Collections.singletonList(jobId);
+        Assert.assertThrows(REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY.getMsg("project"), KylinException.class,
+                () -> streamingJobService.getAllStreamingJobsById("", jobIds));
     }
 
     @Test
@@ -345,11 +336,13 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
 
         // test ModelIndex & PartitionDesc
         {
-            modelMap.put(MODEL_ID, streamingJobService.getManager(NDataModelManager.class, PROJECT).getDataModelDesc("4965c827-fbb4-4ea1-a744-3f341a3b030d"));
+            modelMap.put(MODEL_ID, streamingJobService.getManager(NDataModelManager.class, PROJECT)
+                    .getDataModelDesc("4965c827-fbb4-4ea1-a744-3f341a3b030d"));
             val jobResponse = new StreamingJobResponse(buildMeta);
             streamingJobService.setModelInfo(jobResponse, modelMap);
             Assert.assertEquals(64, jobResponse.getModelIndexes().intValue());
-            Assert.assertEquals("SSB_STREAMING.LO_PARTITIONCOLUMN", jobResponse.getPartitionDesc().getPartitionDateColumn());
+            Assert.assertEquals("SSB_STREAMING.LO_PARTITIONCOLUMN",
+                    jobResponse.getPartitionDesc().getPartitionDateColumn());
         }
 
         // condition: can't get model from modelMap

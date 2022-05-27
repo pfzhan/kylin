@@ -25,9 +25,14 @@
 package io.kyligence.kap.rest.controller;
 
 import static org.apache.kylin.common.exception.CommonErrorCode.UNKNOWN_ERROR_CODE;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.PARAMETER_INVALID_SUPPORT_LIST;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_CONFLICT_PARAMETER;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_EMPTY_PARAMETER;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.TIME_INVALID_RANGE_LESS_THAN_ZERO;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.TIME_INVALID_RANGE_NOT_CONSISTENT;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.TIME_INVALID_RANGE_NOT_FORMAT_MS;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.USER_AUTH_INFO_NOTFOUND;
 
 import java.text.SimpleDateFormat;
@@ -36,8 +41,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.rest.service.ProjectService;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -67,8 +70,10 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
 import io.kyligence.kap.rest.controller.fake.HandleErrorController;
+import io.kyligence.kap.rest.service.ProjectService;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BaseControllerTest extends NLocalFileMetadataTestCase {
@@ -92,7 +97,8 @@ public class BaseControllerTest extends NLocalFileMetadataTestCase {
 
         Mockito.when(handleErrorController.request()).thenThrow(new RuntimeException(), new ForbiddenException(),
                 new NotFoundException(StringUtils.EMPTY), new AccessDeniedException(StringUtils.EMPTY),
-                new UnauthorizedException(USER_AUTH_INFO_NOTFOUND), new KylinException(UNKNOWN_ERROR_CODE, StringUtils.EMPTY));
+                new UnauthorizedException(USER_AUTH_INFO_NOTFOUND),
+                new KylinException(UNKNOWN_ERROR_CODE, StringUtils.EMPTY));
         createTestMetadata();
 
         projectService = Mockito.mock(ProjectService.class);
@@ -152,14 +158,14 @@ public class BaseControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testCheckRequiredArgException() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("'model' is required");
+        thrown.expectMessage(REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY.getMsg("model"));
         baseController.checkRequiredArg("model", "");
     }
 
     @Test
     public void testCheckStartAndEndException() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getInvalidRangeNotConsistent());
+        thrown.expectMessage(TIME_INVALID_RANGE_NOT_CONSISTENT.getMsg());
         baseController.validateDataRange("10", "");
     }
 
@@ -180,21 +186,21 @@ public class BaseControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testTimeRangeInvalidStart() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getInvalidRangeLessThanZero());
+        thrown.expectMessage(TIME_INVALID_RANGE_LESS_THAN_ZERO.getMsg());
         baseController.validateDataRange("-1", "1");
     }
 
     @Test
     public void testTimeRangeInvalidEnd() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getInvalidRangeLessThanZero());
+        thrown.expectMessage(TIME_INVALID_RANGE_LESS_THAN_ZERO.getMsg());
         baseController.validateDataRange("2", "-1");
     }
 
     @Test
     public void testTimeRangeInvalidFormat() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getInvalidRangeNotFormat());
+        thrown.expectMessage(TIME_INVALID_RANGE_NOT_FORMAT_MS.getMsg());
         baseController.validateDataRange("start", "end");
     }
 
@@ -229,7 +235,7 @@ public class BaseControllerTest extends NLocalFileMetadataTestCase {
                 Lists.newArrayList("OFFLINE", "BROKEN"));
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage("is not a valid value");
+        thrown.expectMessage(PARAMETER_INVALID_SUPPORT_LIST.getMsg("status", "ONLINE, OFFLINE, WARNING, BROKEN"));
         status = Lists.newArrayList("OFF", null, "broken");
         baseController.formatStatus(status, ModelStatusToDisplayEnum.class);
     }
@@ -261,10 +267,11 @@ public class BaseControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testCheckProjectName() {
         try (MockedStatic<KylinConfig> kylinConfigMockedStatic = Mockito.mockStatic(KylinConfig.class);
-             MockedStatic<NProjectManager> nProjectManagerMockedStatic = Mockito.mockStatic(NProjectManager.class)) {
+                MockedStatic<NProjectManager> nProjectManagerMockedStatic = Mockito.mockStatic(NProjectManager.class)) {
             kylinConfigMockedStatic.when(KylinConfig::getInstanceFromEnv).thenReturn(Mockito.mock(KylinConfig.class));
             NProjectManager projectManager = Mockito.mock(NProjectManager.class);
-            nProjectManagerMockedStatic.when(() -> NProjectManager.getInstance(Mockito.any())).thenReturn(projectManager);
+            nProjectManagerMockedStatic.when(() -> NProjectManager.getInstance(Mockito.any()))
+                    .thenReturn(projectManager);
             Mockito.when(projectManager.getProject(Mockito.anyString())).thenReturn(null);
 
             try {
@@ -280,7 +287,7 @@ public class BaseControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testCheckSegmentParams() {
         try {
-            baseController.checkSegmentParams(new String[] {"id1"}, new String[] {"name1"});
+            baseController.checkSegmentParams(new String[] { "id1" }, new String[] { "name1" });
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);

@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.service;
 
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_CHECK_FAIL;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY;
 
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -35,7 +36,6 @@ import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.exception.code.ErrorCodeServer;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.exception.JobSubmissionException;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -507,11 +507,10 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals(ErrorCodeServer.REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY.getErrorCode().getCode(),
+            Assert.assertEquals(REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY.getErrorCode().getCode(),
                     ((KylinException) e).getErrorCode().getCodeString());
-            Assert.assertEquals(ErrorCodeServer.REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY.getMsg("table_partition_col"),
-                    e.getMessage());
-            Assert.assertEquals(ErrorCodeServer.REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY.getErrorSuggest().getString(),
+            Assert.assertEquals(REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY.getMsg("table_partition_col"), e.getMessage());
+            Assert.assertEquals(REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY.getErrorSuggest().getString(),
                     ((KylinException) e).getSuggestionString());
         }
     }
