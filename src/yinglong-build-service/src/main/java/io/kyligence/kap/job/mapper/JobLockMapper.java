@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.job.mapper;
 
-import java.util.Date;
 import java.util.List;
 
 import org.apache.ibatis.annotations.Mapper;
@@ -34,26 +33,25 @@ import io.kyligence.kap.job.domain.JobLock;
 
 @Mapper
 public interface JobLockMapper {
-
-    int deleteByPrimaryKey(String lockId);
+    int deleteByPrimaryKey(Long id);
 
     int insert(JobLock row);
 
     int insertSelective(JobLock row);
 
-    JobLock selectByPrimaryKey(String lockId);
+    JobLock selectByPrimaryKey(Long id);
 
     int updateByPrimaryKeySelective(JobLock row);
 
     int updateByPrimaryKey(JobLock row);
 
     // --------------------------------------
-    String findNodeById(@Param("lockId") String lockId);
+    String findNodeByLockId(@Param("lockId") String lockId);
 
     int findCount();
 
     int upsertLock(@Param("lockId") String lockId, @Param("lockNode") String lockNode,
-            @Param("lockExpireTime") Date lockExpireTime);
+            @Param("renewalSec") long renewalSec);
 
     int removeLock(@Param("lockId") String lockId, @Param("lockNode") String lockNode);
 

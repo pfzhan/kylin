@@ -55,7 +55,7 @@
             <property name="useActualColumnNames" value="false"/>
         </table>
 
-        <table tableName="job_schedule_lock" domainObjectName="JobScheduleLock" mapperName="JobScheduleLockMapper"
+        <table tableName="job_lock" domainObjectName="JobLock" mapperName="JobLockMapper"
                enableCountByExample="false" enableUpdateByExample="false" enableDeleteByExample="false"
                enableSelectByExample="false" selectByExampleQueryId="false">
             <property name="useActualColumnNames" value="false"/>

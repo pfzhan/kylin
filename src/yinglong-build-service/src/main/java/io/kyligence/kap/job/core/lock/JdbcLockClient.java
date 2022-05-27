@@ -68,12 +68,7 @@ public class JdbcLockClient {
         }
     }
 
-    @Deprecated
     public boolean tryAcquire(JdbcJobLock jobLock) throws LockException {
-        return tryAcquireInternal(jobLock);
-    }
-
-    public boolean tryAcquireRenewal(JdbcJobLock jobLock) throws LockException {
         boolean acquired = tryAcquireInternal(jobLock);
         if (acquired) {
             // register renewal
@@ -116,7 +111,7 @@ public class JdbcLockClient {
         boolean acquired = false;
         try {
             int r = jobContext.getJobLockMapper().upsertLock(jobLock.getLockId(), jobLock.getLockNode(),
-                    jobLock.getNextExpireTime());
+                    jobLock.getRenewalSec());
             acquired = r > 0;
             return acquired;
         } catch (Exception e) {

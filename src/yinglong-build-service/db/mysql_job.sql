@@ -29,6 +29,7 @@ USE `kylin`;
 SET NAMES utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `job_info` (
+  `id` bigint(10) NOT NULL AUTO_INCREMENT,
   `job_id` varchar(50) NOT NULL,
   `job_type` varchar(50) NOT NULL,
   `job_status` varchar(50) NOT NULL,
@@ -39,18 +40,21 @@ CREATE TABLE IF NOT EXISTS `job_info` (
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
   `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `job_duration_millis` bigint(10) NOT NULL DEFAULT '0' COMMENT 'total duration milliseconds',
-  PRIMARY KEY (`job_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_job_id` (`job_id`)
+) AUTO_INCREMENT=10000 ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
 CREATE TABLE IF NOT EXISTS `job_lock` (
+  `id` bigint(10) NOT NULL AUTO_INCREMENT,
   `lock_id` varchar(50) NOT NULL COMMENT 'what is locked',
   `lock_node` varchar(50) DEFAULT NULL COMMENT 'who locked it',
   `lock_expire_time` datetime DEFAULT NULL COMMENT 'when does the lock expire',
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
   `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`lock_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_lock_id` (`lock_id`)
+) AUTO_INCREMENT=10000 ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
 commit;

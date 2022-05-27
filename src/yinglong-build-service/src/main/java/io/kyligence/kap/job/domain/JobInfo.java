@@ -27,6 +27,8 @@ package io.kyligence.kap.job.domain;
 import java.util.Date;
 
 public class JobInfo {
+    private Long id;
+
     private String jobId;
 
     private String jobType;
@@ -39,13 +41,21 @@ public class JobInfo {
 
     private String modelId;
 
-    private Date createTime = new Date();
+    private Date createTime;
 
     private Date updateTime;
 
     private Long jobDurationMillis;
 
     private byte[] jobContent;
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
 
     public String getJobId() {
         return jobId;

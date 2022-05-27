@@ -34,7 +34,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.job.JobContext;
 import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +41,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.engine.spark.utils.ThreadUtils;
+import io.kyligence.kap.job.JobContext;
 import io.kyligence.kap.job.core.AbstractJobExecutable;
 import io.kyligence.kap.job.core.lock.JdbcJobLock;
 import io.kyligence.kap.job.core.lock.LockAcquireListener;
@@ -99,7 +99,7 @@ public class JdbcJobScheduler implements JobScheduler {
 
     @Override
     public String getJobNode(String jobId) {
-        String jobNode = jobContext.getJobLockMapper().findNodeById(jobId);
+        String jobNode = jobContext.getJobLockMapper().findNodeByLockId(jobId);
         if (Objects.isNull(jobNode)) {
             return jobContext.getServerNode();
         }
@@ -147,7 +147,7 @@ public class JdbcJobScheduler implements JobScheduler {
 
     private void standby() {
         try {
-            masterLock.tryAcquireRenewal();
+            masterLock.tryAcquire();
         } catch (LockException e) {
             logger.error("Something's wrong when acquiring master lock.", e);
         }
@@ -183,10 +183,10 @@ public class JdbcJobScheduler implements JobScheduler {
                 if (!jobContext.getParallelLimiter().tryAcquire()) {
                     return;
                 }
-                int r = jobContext.getJobLockMapper().upsertLock(jobId, null, null);
+                int r = jobContext.getJobLockMapper().upsertLock(jobId, null, 0L);
                 if (r > 0) {
                     // TODO enum job status
-                    jobContext.getJobInfoMapper().updateJobStatusById(jobId, "PENDING");
+                    jobContext.getJobInfoMapper().updateJobStatusByJobId(jobId, "PENDING");
                 }
             }
 
@@ -218,7 +218,7 @@ public class JdbcJobScheduler implements JobScheduler {
                 if (JobScheduler.MASTER_SCHEDULER.equals(jobId)) {
                     return;
                 }
-                JobInfo jobInfo = jobContext.getJobInfoMapper().selectByPrimaryKey(jobId);
+                JobInfo jobInfo = jobContext.getJobInfoMapper().selectByJobId(jobId);
                 if (Objects.isNull(jobInfo)) {
                     logger.warn("Job not found: {}", jobId);
                     return;
@@ -242,7 +242,7 @@ public class JdbcJobScheduler implements JobScheduler {
                     jobContext.getJobConfig().getJobSchedulerJobRenewalSec(),
                     jobContext.getJobConfig().getJobSchedulerJobRenewalRatio(), jobContext.getLockClient(),
                     new JobAcquireListener(jobExecutable));
-            if (!jobLock.tryAcquireRenewal()) {
+            if (!jobLock.tryAcquire()) {
                 logger.info("Acquire job lock failed.");
                 return;
             }

@@ -2,34 +2,40 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="io.kyligence.kap.job.mapper.JobLockMapper">
   <resultMap id="BaseResultMap" type="io.kyligence.kap.job.domain.JobLock">
-    <id column="lock_id" jdbcType="VARCHAR" property="lockId" />
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="lock_id" jdbcType="VARCHAR" property="lockId" />
     <result column="lock_node" jdbcType="VARCHAR" property="lockNode" />
     <result column="lock_expire_time" jdbcType="TIMESTAMP" property="lockExpireTime" />
     <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
     <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
   </resultMap>
   <sql id="Base_Column_List">
-    lock_id, lock_node, lock_expire_time, create_time, update_time
+    id, lock_id, lock_node, lock_expire_time, create_time, update_time
   </sql>
-  <select id="selectByPrimaryKey" parameterType="java.lang.String" resultMap="BaseResultMap">
+  <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
     select 
     <include refid="Base_Column_List" />
     from job_lock
-    where lock_id = #{lockId,jdbcType=VARCHAR}
+    where id = #{id,jdbcType=BIGINT}
   </select>
-  <delete id="deleteByPrimaryKey" parameterType="java.lang.String">
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
     delete from job_lock
-    where lock_id = #{lockId,jdbcType=VARCHAR}
+    where id = #{id,jdbcType=BIGINT}
   </delete>
   <insert id="insert" parameterType="io.kyligence.kap.job.domain.JobLock">
-    insert into job_lock (lock_id, lock_node, lock_expire_time, 
-      create_time, update_time)
-    values (#{lockId,jdbcType=VARCHAR}, #{lockNode,jdbcType=VARCHAR}, #{lockExpireTime,jdbcType=TIMESTAMP}, 
-      #{createTime,jdbcType=TIMESTAMP}, #{updateTime,jdbcType=TIMESTAMP})
+    insert into job_lock (id, lock_id, lock_node, 
+      lock_expire_time, create_time, update_time
+      )
+    values (#{id,jdbcType=BIGINT}, #{lockId,jdbcType=VARCHAR}, #{lockNode,jdbcType=VARCHAR}, 
+      #{lockExpireTime,jdbcType=TIMESTAMP}, #{createTime,jdbcType=TIMESTAMP}, #{updateTime,jdbcType=TIMESTAMP}
+      )
   </insert>
   <insert id="insertSelective" parameterType="io.kyligence.kap.job.domain.JobLock">
     insert into job_lock
     <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        id,
+      </if>
       <if test="lockId != null">
         lock_id,
       </if>
@@ -47,6 +53,9 @@
       </if>
     </trim>
     <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        #{id,jdbcType=BIGINT},
+      </if>
       <if test="lockId != null">
         #{lockId,jdbcType=VARCHAR},
       </if>
@@ -67,6 +76,9 @@
   <update id="updateByPrimaryKeySelective" parameterType="io.kyligence.kap.job.domain.JobLock">
     update job_lock
     <set>
+      <if test="lockId != null">
+        lock_id = #{lockId,jdbcType=VARCHAR},
+      </if>
       <if test="lockNode != null">
         lock_node = #{lockNode,jdbcType=VARCHAR},
       </if>
@@ -80,18 +92,19 @@
         update_time = #{updateTime,jdbcType=TIMESTAMP},
       </if>
     </set>
-    where lock_id = #{lockId,jdbcType=VARCHAR}
+    where id = #{id,jdbcType=BIGINT}
   </update>
   <update id="updateByPrimaryKey" parameterType="io.kyligence.kap.job.domain.JobLock">
     update job_lock
-    set lock_node = #{lockNode,jdbcType=VARCHAR},
+    set lock_id = #{lockId,jdbcType=VARCHAR},
+      lock_node = #{lockNode,jdbcType=VARCHAR},
       lock_expire_time = #{lockExpireTime,jdbcType=TIMESTAMP},
       create_time = #{createTime,jdbcType=TIMESTAMP},
       update_time = #{updateTime,jdbcType=TIMESTAMP}
-    where lock_id = #{lockId,jdbcType=VARCHAR}
+    where id = #{id,jdbcType=BIGINT}
   </update>
 
-  <select id="findNodeById" resultType="java.lang.String">
+  <select id="findNodeByLockId" resultType="java.lang.String">
     SELECT lock_node
     FROM job_lock
     WHERE lock_id = #{lockId,jdbcType=VARCHAR}
@@ -106,22 +119,22 @@
     insert into job_lock
     <trim prefix="(" suffix=")" suffixOverrides=",">
       lock_id,
-      <if test="lockNode != null and lockExpireTime != null">
+      <if test="lockNode != null">
         lock_node,
         lock_expire_time,
       </if>
     </trim>
     <trim prefix="values (" suffix=")" suffixOverrides=",">
       #{lockId,jdbcType=VARCHAR},
-      <if test="lockNode != null and lockExpireTime != null">
+      <if test="lockNode != null">
         #{lockNode,jdbcType=VARCHAR},
-        #{lockExpireTime,jdbcType=TIMESTAMP},
+        TIMESTAMPADD(SECOND,#{renewalSec,jdbcType=BIGINT},CURRENT_TIMESTAMP),
       </if>
     </trim>
     on duplicate key update
     <trim suffixOverrides=",">
-      lock_id = lock_id,
-      <if test="lockNode != null and lockExpireTime != null">
+      id = id,
+      <if test="lockNode != null">
         lock_node = IF (lock_expire_time IS NULL OR lock_expire_time <![CDATA[<]]> CURRENT_TIMESTAMP, VALUES(lock_node), lock_node),
         lock_expire_time = IF (lock_node = VALUES(lock_node) OR lock_expire_time IS NULL OR lock_expire_time <![CDATA[<]]> CURRENT_TIMESTAMP, VALUES(lock_expire_time), lock_expire_time),
       </if>

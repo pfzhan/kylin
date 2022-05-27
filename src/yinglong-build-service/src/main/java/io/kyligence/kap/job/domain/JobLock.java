@@ -27,6 +27,8 @@ package io.kyligence.kap.job.domain;
 import java.util.Date;
 
 public class JobLock {
+    private Long id;
+
     private String lockId;
 
     private String lockNode;
@@ -36,6 +38,14 @@ public class JobLock {
     private Date createTime;
 
     private Date updateTime;
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
 
     public String getLockId() {
         return lockId;

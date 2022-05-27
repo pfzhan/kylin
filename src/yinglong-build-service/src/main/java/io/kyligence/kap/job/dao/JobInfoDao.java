@@ -89,7 +89,7 @@ public class JobInfoDao {
         if (getExecutablePOByUuid(executablePO.getUuid()) != null) {
             throw new IllegalArgumentException("job id:" + executablePO.getUuid() + " already exists");
         }
-        jobInfoMapper.insertSelective(constructJobInfo(executablePO));
+        jobInfoMapper.insertJobInfoSelective(constructJobInfo(executablePO));
         return executablePO;
     }
 
@@ -99,12 +99,12 @@ public class JobInfoDao {
         val copyForWrite = JsonUtil.copyBySerialization(job, JOB_SERIALIZER, null);
         copyForWrite.setProject(job.getProject());
         if (updater.test(copyForWrite)) {
-            jobInfoMapper.updateByPrimaryKeySelective(constructJobInfo(copyForWrite));
+            jobInfoMapper.updateByJobIdSelective(constructJobInfo(copyForWrite));
         }
     }
 
     public ExecutablePO getExecutablePOByUuid(String uuid) {
-        JobInfo jobInfo = jobInfoMapper.selectByPrimaryKey(uuid);
+        JobInfo jobInfo = jobInfoMapper.selectByJobId(uuid);
         if (null != jobInfo) {
             return JobInfoUtil.deserializeExecutablePO(jobInfo);
         }
@@ -124,7 +124,7 @@ public class JobInfoDao {
     }
 
     public void dropJob(String jobId) {
-        jobInfoMapper.deleteByPrimaryKey(jobId);
+        jobInfoMapper.deleteByJobId(jobId);
     }
 
     private JobInfo constructJobInfo(ExecutablePO executablePO) {

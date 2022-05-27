@@ -2,7 +2,8 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="io.kyligence.kap.job.mapper.JobInfoMapper">
   <resultMap id="BaseResultMap" type="io.kyligence.kap.job.domain.JobInfo">
-    <id column="job_id" jdbcType="VARCHAR" property="jobId" />
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="job_id" jdbcType="VARCHAR" property="jobId" />
     <result column="job_type" jdbcType="VARCHAR" property="jobType" />
     <result column="job_status" jdbcType="VARCHAR" property="jobStatus" />
     <result column="project" jdbcType="VARCHAR" property="project" />
@@ -16,35 +17,176 @@
     <result column="job_content" jdbcType="LONGVARBINARY" property="jobContent" />
   </resultMap>
   <sql id="Base_Column_List">
-    job_id, job_type, job_status, project, subject, model_id, create_time, update_time,
+    id, job_id, job_type, job_status, project, subject, model_id, create_time, update_time, 
     job_duration_millis
   </sql>
   <sql id="Blob_Column_List">
     job_content
   </sql>
-  <select id="selectByPrimaryKey" parameterType="java.lang.String" resultMap="ResultMapWithBLOBs">
+  <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="ResultMapWithBLOBs">
     select 
     <include refid="Base_Column_List" />
     ,
     <include refid="Blob_Column_List" />
     from job_info
-    where job_id = #{jobId,jdbcType=VARCHAR}
+    where id = #{id,jdbcType=BIGINT}
   </select>
-  <delete id="deleteByPrimaryKey" parameterType="java.lang.String">
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
     delete from job_info
-    where job_id = #{jobId,jdbcType=VARCHAR}
+    where id = #{id,jdbcType=BIGINT}
   </delete>
   <insert id="insert" parameterType="io.kyligence.kap.job.domain.JobInfo">
-    insert into job_info (job_id, job_type, job_status, 
-      project, subject, model_id,
-      create_time, update_time, job_duration_millis, 
-      job_content)
-    values (#{jobId,jdbcType=VARCHAR}, #{jobType,jdbcType=VARCHAR}, #{jobStatus,jdbcType=VARCHAR}, 
-      #{project,jdbcType=VARCHAR}, #{subject,jdbcType=VARCHAR}, #{modelId,jdbcType=VARCHAR},
-      #{createTime,jdbcType=TIMESTAMP}, #{updateTime,jdbcType=TIMESTAMP}, #{jobDurationMillis,jdbcType=BIGINT}, 
-      #{jobContent,jdbcType=LONGVARBINARY})
+    insert into job_info (id, job_id, job_type, 
+      job_status, project, subject, 
+      model_id, create_time, update_time, 
+      job_duration_millis, job_content)
+    values (#{id,jdbcType=BIGINT}, #{jobId,jdbcType=VARCHAR}, #{jobType,jdbcType=VARCHAR}, 
+      #{jobStatus,jdbcType=VARCHAR}, #{project,jdbcType=VARCHAR}, #{subject,jdbcType=VARCHAR}, 
+      #{modelId,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP}, #{updateTime,jdbcType=TIMESTAMP}, 
+      #{jobDurationMillis,jdbcType=BIGINT}, #{jobContent,jdbcType=LONGVARBINARY})
   </insert>
   <insert id="insertSelective" parameterType="io.kyligence.kap.job.domain.JobInfo">
+    insert into job_info
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        id,
+      </if>
+      <if test="jobId != null">
+        job_id,
+      </if>
+      <if test="jobType != null">
+        job_type,
+      </if>
+      <if test="jobStatus != null">
+        job_status,
+      </if>
+      <if test="project != null">
+        project,
+      </if>
+      <if test="subject != null">
+        subject,
+      </if>
+      <if test="modelId != null">
+        model_id,
+      </if>
+      <if test="createTime != null">
+        create_time,
+      </if>
+      <if test="updateTime != null">
+        update_time,
+      </if>
+      <if test="jobDurationMillis != null">
+        job_duration_millis,
+      </if>
+      <if test="jobContent != null">
+        job_content,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        #{id,jdbcType=BIGINT},
+      </if>
+      <if test="jobId != null">
+        #{jobId,jdbcType=VARCHAR},
+      </if>
+      <if test="jobType != null">
+        #{jobType,jdbcType=VARCHAR},
+      </if>
+      <if test="jobStatus != null">
+        #{jobStatus,jdbcType=VARCHAR},
+      </if>
+      <if test="project != null">
+        #{project,jdbcType=VARCHAR},
+      </if>
+      <if test="subject != null">
+        #{subject,jdbcType=VARCHAR},
+      </if>
+      <if test="modelId != null">
+        #{modelId,jdbcType=VARCHAR},
+      </if>
+      <if test="createTime != null">
+        #{createTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="updateTime != null">
+        #{updateTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="jobDurationMillis != null">
+        #{jobDurationMillis,jdbcType=BIGINT},
+      </if>
+      <if test="jobContent != null">
+        #{jobContent,jdbcType=LONGVARBINARY},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="io.kyligence.kap.job.domain.JobInfo">
+    update job_info
+    <set>
+      <if test="jobId != null">
+        job_id = #{jobId,jdbcType=VARCHAR},
+      </if>
+      <if test="jobType != null">
+        job_type = #{jobType,jdbcType=VARCHAR},
+      </if>
+      <if test="jobStatus != null">
+        job_status = #{jobStatus,jdbcType=VARCHAR},
+      </if>
+      <if test="project != null">
+        project = #{project,jdbcType=VARCHAR},
+      </if>
+      <if test="subject != null">
+        subject = #{subject,jdbcType=VARCHAR},
+      </if>
+      <if test="modelId != null">
+        model_id = #{modelId,jdbcType=VARCHAR},
+      </if>
+      <if test="createTime != null">
+        create_time = #{createTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="updateTime != null">
+        update_time = #{updateTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="jobDurationMillis != null">
+        job_duration_millis = #{jobDurationMillis,jdbcType=BIGINT},
+      </if>
+      <if test="jobContent != null">
+        job_content = #{jobContent,jdbcType=LONGVARBINARY},
+      </if>
+    </set>
+    where id = #{id,jdbcType=BIGINT}
+  </update>
+  <update id="updateByPrimaryKeyWithBLOBs" parameterType="io.kyligence.kap.job.domain.JobInfo">
+    update job_info
+    set job_id = #{jobId,jdbcType=VARCHAR},
+      job_type = #{jobType,jdbcType=VARCHAR},
+      job_status = #{jobStatus,jdbcType=VARCHAR},
+      project = #{project,jdbcType=VARCHAR},
+      subject = #{subject,jdbcType=VARCHAR},
+      model_id = #{modelId,jdbcType=VARCHAR},
+      create_time = #{createTime,jdbcType=TIMESTAMP},
+      update_time = #{updateTime,jdbcType=TIMESTAMP},
+      job_duration_millis = #{jobDurationMillis,jdbcType=BIGINT},
+      job_content = #{jobContent,jdbcType=LONGVARBINARY}
+    where id = #{id,jdbcType=BIGINT}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="io.kyligence.kap.job.domain.JobInfo">
+    update job_info
+    set job_id = #{jobId,jdbcType=VARCHAR},
+      job_type = #{jobType,jdbcType=VARCHAR},
+      job_status = #{jobStatus,jdbcType=VARCHAR},
+      project = #{project,jdbcType=VARCHAR},
+      subject = #{subject,jdbcType=VARCHAR},
+      model_id = #{modelId,jdbcType=VARCHAR},
+      create_time = #{createTime,jdbcType=TIMESTAMP},
+      update_time = #{updateTime,jdbcType=TIMESTAMP},
+      job_duration_millis = #{jobDurationMillis,jdbcType=BIGINT}
+    where id = #{id,jdbcType=BIGINT}
+  </update>
+
+  <delete id="deleteByJobId" parameterType="java.lang.String">
+    delete from job_info
+    where job_id = #{jobId,jdbcType=BIGINT}
+  </delete>
+  <insert id="insertJobInfoSelective" parameterType="io.kyligence.kap.job.domain.JobInfo">
     insert into job_info
     <trim prefix="(" suffix=")" suffixOverrides=",">
       <if test="jobId != null">
@@ -111,7 +253,15 @@
       </if>
     </trim>
   </insert>
-  <update id="updateByPrimaryKeySelective" parameterType="io.kyligence.kap.job.domain.JobInfo">
+  <select id="selectByJobId" parameterType="java.lang.String" resultMap="ResultMapWithBLOBs">
+    select
+    <include refid="Base_Column_List" />
+    ,
+    <include refid="Blob_Column_List" />
+    from job_info
+    where job_id = #{jobId,jdbcType=VARCHAR}
+  </select>
+  <update id="updateByJobIdSelective" parameterType="io.kyligence.kap.job.domain.JobInfo">
     update job_info
     <set>
       <if test="jobType != null">
@@ -144,31 +294,6 @@
     </set>
     where job_id = #{jobId,jdbcType=VARCHAR}
   </update>
-  <update id="updateByPrimaryKeyWithBLOBs" parameterType="io.kyligence.kap.job.domain.JobInfo">
-    update job_info
-    set job_type = #{jobType,jdbcType=VARCHAR},
-      job_status = #{jobStatus,jdbcType=VARCHAR},
-      project = #{project,jdbcType=VARCHAR},
-      subject = #{subject,jdbcType=VARCHAR},
-      model_id = #{modelId,jdbcType=VARCHAR},
-      create_time = #{createTime,jdbcType=TIMESTAMP},
-      update_time = #{updateTime,jdbcType=TIMESTAMP},
-      job_duration_millis = #{jobDurationMillis,jdbcType=BIGINT},
-      job_content = #{jobContent,jdbcType=LONGVARBINARY}
-    where job_id = #{jobId,jdbcType=VARCHAR}
-  </update>
-  <update id="updateByPrimaryKey" parameterType="io.kyligence.kap.job.domain.JobInfo">
-    update job_info
-    set job_type = #{jobType,jdbcType=VARCHAR},
-      job_status = #{jobStatus,jdbcType=VARCHAR},
-      project = #{project,jdbcType=VARCHAR},
-      subject = #{subject,jdbcType=VARCHAR},
-      model_id = #{modelId,jdbcType=VARCHAR},
-      create_time = #{createTime,jdbcType=TIMESTAMP},
-      update_time = #{updateTime,jdbcType=TIMESTAMP},
-      job_duration_millis = #{jobDurationMillis,jdbcType=BIGINT}
-    where job_id = #{jobId,jdbcType=VARCHAR}
-  </update>
   <select id="findJobIdListByStatusBatch" resultType="java.lang.String">
     select job_id
     from job_info
@@ -176,7 +301,7 @@
     ORDER BY create_time ASC
 	LIMIT #{batchSize,jdbcType=SMALLINT}
   </select>
-  <update id="updateJobStatusById">
+  <update id="updateJobStatusByJobId">
     update job_info
     set job_status = #{status,jdbcType=VARCHAR}
     where job_id = #{jobId,jdbcType=VARCHAR}
@@ -192,20 +317,20 @@
         project = #{project}
       </if>
       <if test="queryStartTime != null">
-        AND update_time >= #{queryStartTime}
+        AND update_time &gt;= #{queryStartTime}
       </if>
       <if test="statuses != null">
-        <foreach item="item" index="index" collection="statuses" open="AND job_status in (" separator="," close=")">
+        <foreach close=")" collection="statuses" index="index" item="item" open="AND job_status in (" separator=",">
           #{item}
         </foreach>
       </if>
       <if test="jobNames != null">
-        <foreach item="item" index="index" collection="jobNames" open="AND job_type in (" separator="," close=")">
+        <foreach close=")" collection="jobNames" index="index" item="item" open="AND job_type in (" separator=",">
           #{item}
         </foreach>
       </if>
       <if test="modelIds != null">
-        <foreach item="item" index="index" collection="modelIds" open="AND model_id in (" separator="," close=")">
+        <foreach close=")" collection="modelIds" index="index" item="item" open="AND model_id in (" separator=",">
           #{item}
         </foreach>
       </if>
@@ -213,12 +338,12 @@
         AND job_id like #{jobId}
       </if>
       <if test="jobIds != null">
-        <foreach item="item" index="index" collection="jobIds" open="AND job_id in (" separator="," close=")">
+        <foreach close=")" collection="jobIds" index="index" item="item" open="AND job_id in (" separator=",">
           #{item}
         </foreach>
       </if>
       <if test="subjects != null">
-        <foreach item="item" index="index" collection="subjects" open="AND subject in (" separator="," close=")">
+        <foreach close=")" collection="subjects" index="index" item="item" open="AND subject in (" separator=",">
           #{item}
         </foreach>
       </if>
@@ -226,7 +351,7 @@
     <if test="orderByFiled != null">
       order by ${orderByFiled}  ${orderType}
     </if>
-    <if test="offset>=0 and limit>=0">
+    <if test="offset&gt;=0 and limit&gt;=0">
       limit ${offset}, ${limit}
     </if>
   </select>

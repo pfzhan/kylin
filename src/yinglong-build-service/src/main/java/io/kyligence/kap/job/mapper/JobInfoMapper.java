@@ -34,13 +34,13 @@ import io.kyligence.kap.job.rest.JobMapperFilter;
 
 @Mapper
 public interface JobInfoMapper {
-    int deleteByPrimaryKey(String jobId);
+    int deleteByPrimaryKey(Long id);
 
     int insert(JobInfo row);
 
     int insertSelective(JobInfo row);
 
-    JobInfo selectByPrimaryKey(String jobId);
+    JobInfo selectByPrimaryKey(Long id);
 
     int updateByPrimaryKeySelective(JobInfo row);
 
@@ -48,9 +48,19 @@ public interface JobInfoMapper {
 
     int updateByPrimaryKey(JobInfo row);
 
+    // ----------------------------------------
+
+    int deleteByJobId(@Param("jobId") String jobId);
+
+    int insertJobInfoSelective(JobInfo jobInfo);
+
+    JobInfo selectByJobId(@Param("jobId") String jobId);
+
+    int updateByJobIdSelective(JobInfo jobInfo);
+
     List<String> findJobIdListByStatusBatch(@Param("status") String status, @Param("batchSize") int batchSize);
 
-    int updateJobStatusById(@Param("jobId") String jobId, @Param("status") String status);
+    int updateJobStatusByJobId(@Param("jobId") String jobId, @Param("status") String status);
 
     List<JobInfo> selectByJobFilter(JobMapperFilter jobMapperFilter);
 }

@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.job.core.lock;
 
-import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 public class JdbcJobLock implements JobLock {
@@ -53,10 +52,6 @@ public class JdbcJobLock implements JobLock {
         return lockClient.tryAcquire(this);
     }
 
-    public boolean tryAcquireRenewal() throws LockException {
-        return lockClient.tryAcquireRenewal(this);
-    }
-
     @Override
     public boolean tryAcquire(long time, TimeUnit unit) throws LockException {
         throw new UnsupportedOperationException();
@@ -78,10 +73,6 @@ public class JdbcJobLock implements JobLock {
 
     public String getLockNode() {
         return lockNode;
-    }
-
-    public Date getNextExpireTime() {
-        return new Date(System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(renewalSec));
     }
 
     public long getRenewalSec() {
