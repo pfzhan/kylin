@@ -155,6 +155,7 @@
         <spring-beans.version>5.3.18</spring-beans.version>
         <spring-core.version>5.3.18</spring-core.version>
         <spring-tx.version>5.3.19</spring-tx.version>
+        <spring-security-web.version>5.6.4</spring-security-web.version>
         <opensaml.version>2.6.6</opensaml.version>
         <aspectj.version>1.8.9</aspectj.version>
         <unboundid-ldapsdk.version>3.1.1</unboundid-ldapsdk.version>
@@ -2202,6 +2203,11 @@
             </dependency>
 
             <!-- Spring Security -->
+            <dependency>
+                <groupId>org.springframework.security</groupId>
+                <artifactId>spring-security-web</artifactId>
+                <version>${spring-security-web.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.springframework.security.extensions</groupId>
                 <artifactId>spring-security-saml2-core</artifactId>
