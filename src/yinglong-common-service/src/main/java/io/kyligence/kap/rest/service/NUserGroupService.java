@@ -193,7 +193,7 @@ public class NUserGroupService implements IUserGroupService {
     public List<UserGroup> getUserGroupsFilterByGroupName(String userGroupName) {
         aclEvaluate.checkIsGlobalAdmin();
         return StringUtils.isEmpty(userGroupName) ? listUserGroups()
-                : getUserGroupManager().getAllGroups().stream().filter(userGroup -> userGroup.getGroupName()
+                : listUserGroups().stream().filter(userGroup -> userGroup.getGroupName()
                         .toUpperCase(Locale.ROOT).contains(userGroupName.toUpperCase(Locale.ROOT)))
                         .collect(Collectors.toList());
     }
