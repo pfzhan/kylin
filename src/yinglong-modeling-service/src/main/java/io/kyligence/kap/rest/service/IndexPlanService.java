@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
@@ -1058,13 +1059,15 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
         aclEvaluate.checkProjectWritePermission(project);
         // update = delete + create
         Set<Long> needDelete = checkNeedUpdateBaseIndex(project, request, isAuo);
+        List<LayoutEntity> needRetainAggLayout = getNeedRetainAggLayout(project, request, needDelete);
         deleteOrMarkTobeDelete(project, request.getModelId(), needDelete);
+        removeFromBlackList(project, request, needDelete, needRetainAggLayout);
 
         if (createIfNotExistAggLayout) {
-            request.getSourceTypes().add(Source.BASE_TABLE_INDEX);
+            request.getSourceTypes().add(Source.BASE_AGG_INDEX);
         }
         if (createIfNotExistTableLayout) {
-            request.getSourceTypes().add(Source.BASE_AGG_INDEX);
+            request.getSourceTypes().add(Source.BASE_TABLE_INDEX);
         }
         if (request.getSourceTypes().isEmpty()) {
             return BuildBaseIndexResponse.EMPTY;
@@ -1073,6 +1076,49 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
         BuildBaseIndexResponse response = createBaseIndex(project, request);
         response.setIndexUpdateType(needDelete);
         return response;
+    }
+
+    private List<LayoutEntity> getNeedRetainAggLayout(String project, CreateBaseIndexRequest request,
+            Set<Long> needDelete) {
+        if (CollectionUtils.isEmpty(needDelete)) {
+            return Collections.emptyList();
+        }
+        String modelId = request.getModelId();
+        IndexPlan indexPlan = getIndexPlan(project, modelId);
+        LayoutEntity baseAggLayout = indexPlan.getBaseAggLayout();
+        if (baseAggLayout != null) {
+            long baseLaoutId = baseAggLayout.getId();
+            if (indexPlan.getRuleBaseLayouts().contains(indexPlan.getBaseAggLayout())
+                    && needDelete.contains(baseLaoutId)) {
+                return indexPlan.getRuleBaseLayouts().stream().filter(r -> r.getId() == baseLaoutId)
+                        .collect(Collectors.toList());
+            }
+        }
+        return Collections.emptyList();
+    }
+
+    @Transaction(project = 0)
+    private void removeFromBlackList(String project, CreateBaseIndexRequest request, Set<Long> needDelete,
+            List<LayoutEntity> needRetainAggLayout) {
+        if (CollectionUtils.isEmpty(needRetainAggLayout)) {
+            return;
+        }
+
+        String modelId = request.getModelId();
+        IndexPlan indexPlan = getIndexPlan(project, modelId);
+        Set<Long> layoutIdMapping = new HashSet<>(indexPlan.getRuleBasedIndex().getLayoutIdMapping());
+
+        List<LayoutEntity> retainLayout = needRetainAggLayout.stream()
+                .filter(l -> layoutIdMapping.contains(l.getId()) && needDelete.contains(l.getId()))
+                .collect(Collectors.toList());
+        Set<Long> retainLayoutIds = retainLayout.stream().map(LayoutEntity::getId).collect(Collectors.toSet());
+        if (CollectionUtils.isNotEmpty(retainLayout)) {
+            NIndexPlanManager indexPlanManager = getManager(NIndexPlanManager.class, project);
+            indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
+                copyForWrite.getRuleBasedIndex().getLayoutBlackList().removeAll(retainLayoutIds);
+                copyForWrite.getRuleBaseLayouts().addAll(retainLayout);
+            });
+        }
     }
 
     private Set<Long> checkNeedUpdateBaseIndex(String project, CreateBaseIndexRequest request, boolean isAuto) {

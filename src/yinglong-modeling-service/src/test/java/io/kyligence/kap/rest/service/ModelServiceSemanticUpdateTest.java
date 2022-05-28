@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -539,6 +540,103 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
                 .findFirst().orElse(null);
         Assert.assertNotNull(newCcCol);
         Assert.assertNotEquals(ccCol.getId(), newCcCol.getId());
+    }
+
+    @Test
+    public void testModelAddDimensions() throws Exception {
+        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        String project = getProject();
+        val modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val model = modelMgr.getDataModelDesc(modelId);
+
+        // delete all indexes and agg groups
+        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
+        val LayoutList = indexPlanManager.getIndexPlan(modelId).getAllLayouts().stream().map(LayoutEntity::getId)
+                .collect(Collectors.toSet());
+        indexPlanService.removeIndexes(getProject(), modelId, LayoutList);
+        indexPlanService.updateRuleBasedCuboid(getProject(), UpdateRuleBasedCuboidRequest.builder()
+                .project(getProject()).modelId(modelId).aggregationGroups(java.util.Collections.emptyList()).build());
+
+        // modify dimensions and measures, 2 dimensions and 1 measures
+        val request = JsonUtil.readValue(JsonUtil.writeValueAsString(model), ModelRequest.class);
+        request.setProject(project);
+        request.setUuid(modelId);
+        request.setSimplifiedDimensions(model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
+                .filter(f -> f.getAliasDotColumn().contains("TEST_KYLIN_FACT")).collect(Collectors.toList())
+                .subList(0, 2));
+        request.setSimplifiedMeasures(
+                model.getAllMeasures().stream().filter(m -> !m.isTomb()).filter(m -> m.getId() == 100000)
+                        .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()).subList(0, 1));
+
+        request.setWithBaseIndex(true);
+        val requestj = JsonUtil.readValue(JsonUtil.writeValueAsString(request), ModelRequest.class);
+        modelService.updateDataModelSemantic(getProject(), requestj);
+
+        // add 1 agg groups
+        NAggregationGroup newAggregationGroup = new NAggregationGroup();
+        newAggregationGroup.setIncludes(new Integer[] { 1, 2 });
+        newAggregationGroup.setMeasures(new Integer[] { 100000 });
+        val selectRule = new SelectRule();
+        selectRule.mandatoryDims = new Integer[0];
+        selectRule.hierarchyDims = new Integer[0][0];
+        selectRule.jointDims = new Integer[0][0];
+        newAggregationGroup.setSelectRule(selectRule);
+
+        indexPlanService.updateRuleBasedCuboid(getProject(),
+                UpdateRuleBasedCuboidRequest.builder().project(getProject()).modelId(modelId)
+                        .aggregationGroups(Lists.<NAggregationGroup> newArrayList(newAggregationGroup)).build());
+
+        val originPlan1 = indexPlanManager.getIndexPlan(modelId);
+        Long bAL = indexPlanManager.getIndexPlan(modelId).getBaseAggLayout().getId();
+        java.util.Set<Long> allLIs = indexPlanManager.getIndexPlan(modelId).getAllLayoutIds(false);
+
+        // add new dimenssion
+        val request3 = JsonUtil.readValue(JsonUtil.writeValueAsString(model), ModelRequest.class);
+        request3.setProject(project);
+        request3.setUuid(modelId);
+        request3.setSimplifiedDimensions(model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
+                .filter(f -> f.getAliasDotColumn().contains("TEST_KYLIN_FACT")).collect(Collectors.toList())
+                .subList(0, 3));
+        request3.setSimplifiedMeasures(
+                model.getAllMeasures().stream().filter(m -> !m.isTomb()).filter(m -> m.getId() == 100000)
+                        .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()).subList(0, 1));
+
+        request3.setWithBaseIndex(true);
+        val requestj3 = JsonUtil.readValue(JsonUtil.writeValueAsString(request3), ModelRequest.class);
+        modelService.updateDataModelSemantic(getProject(), requestj3);
+
+        // get all layout, baselaout
+        Long bAL2 = indexPlanManager.getIndexPlan(modelId).getBaseAggLayout().getId();
+        java.util.Set<Long> allLIs2 = indexPlanManager.getIndexPlan(modelId).getAllLayoutIds(false);
+
+        Assert.assertNotEquals(bAL, bAL2);
+        Assert.assertNotEquals(allLIs.size(), allLIs2.size());
+        Assert.assertTrue(allLIs2.contains(bAL));
+
+        // for test coverage
+        // delete base agg layout
+        val LayoutListBase = indexPlanManager.getIndexPlan(modelId).getBaseAggLayout().getId();
+        HashSet<Long> toDeleteIds = new HashSet<>();
+        toDeleteIds.add(LayoutListBase);
+        indexPlanService.removeIndexes(getProject(), modelId, toDeleteIds);
+        indexPlanService.updateRuleBasedCuboid(getProject(), UpdateRuleBasedCuboidRequest.builder()
+                .project(getProject()).modelId(modelId).aggregationGroups(java.util.Collections.emptyList()).build());
+
+        // add new dimenssion
+        val request4 = JsonUtil.readValue(JsonUtil.writeValueAsString(model), ModelRequest.class);
+        request4.setProject(project);
+        request4.setUuid(modelId);
+        request4.setSimplifiedDimensions(model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
+                .filter(f -> f.getAliasDotColumn().contains("TEST_KYLIN_FACT")).collect(Collectors.toList())
+                .subList(0, 4));
+        request4.setSimplifiedMeasures(
+                model.getAllMeasures().stream().filter(m -> !m.isTomb()).filter(m -> m.getId() == 100000)
+                        .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()).subList(0, 1));
+
+        request4.setWithBaseIndex(true);
+        val requestj4 = JsonUtil.readValue(JsonUtil.writeValueAsString(request4), ModelRequest.class);
+        modelService.updateDataModelSemantic(getProject(), requestj4);
+
     }
 
     @Test
