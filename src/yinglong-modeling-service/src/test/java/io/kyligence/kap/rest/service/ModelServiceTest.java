@@ -5146,6 +5146,44 @@ public class ModelServiceTest extends SourceTestCase {
     }
 
     @Test
+    public void testExportTDSCheckColumnPermission() {
+        val project = "default";
+        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        NDataModel dataModel = modelManager.getDataModelDesc(modelId);
+
+        Set<String> authColumns = Sets.newHashSet();
+        List<String> dimensions = Lists.newArrayList();
+        List<String> measurs = Lists.newArrayList();
+
+        Assert.assertEquals(true, modelService.checkColumnPermission(dataModel, authColumns, null, measurs));
+        Assert.assertEquals(true, modelService.checkColumnPermission(dataModel, authColumns, null, null));
+        Assert.assertEquals(true, modelService.checkColumnPermission(dataModel, authColumns, dimensions, null));
+        Assert.assertEquals(true, modelService.checkColumnPermission(dataModel, authColumns, dimensions, measurs));
+
+        authColumns.add("DEFAULT.TEST_KYLIN_FACT.PRICE");
+        authColumns.add("DEFAULT.TEST_KYLIN_FACT.ITEM_COUNT");
+        authColumns.add("EDW.TEST_CAL_DT.CAL_DT");
+        authColumns.add("DEFAULT.TEST_ACCOUNT.ACCOUNT_ID");
+
+        dimensions.add("DEFAULT.TEST_KYLIN_FACT.DEAL_AMOUNT");
+        dimensions.add("DEFAULT.TEST_KYLIN_FACT.TRANS_ID");
+
+        Assert.assertEquals(false, modelService.checkColumnPermission(dataModel, authColumns, dimensions, measurs));
+
+        authColumns.add("DEFAULT.TEST_KYLIN_FACT.TRANS_ID");
+
+        measurs.add("SUM_NEST4");
+        measurs.add("COUNT_CAL_DT");
+        Assert.assertEquals(false, modelService.checkColumnPermission(dataModel, authColumns, dimensions, measurs));
+
+        authColumns.add("DEFAULT.TEST_KYLIN_FACT.NEST3");
+        Assert.assertEquals(true, modelService.checkColumnPermission(dataModel, authColumns, dimensions, measurs));
+
+    }
+
+    @Test
     public void testBuildExceptionMessage() {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         NDataModel dataModel = modelManager.getDataModelDesc("a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94");

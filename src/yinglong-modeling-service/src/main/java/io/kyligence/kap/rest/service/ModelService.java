@@ -220,6 +220,7 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.RetentionRange;
 import io.kyligence.kap.metadata.model.VolatileRange;
 import io.kyligence.kap.metadata.model.schema.AffectedModelContext;
+import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 import io.kyligence.kap.metadata.model.util.MultiPartitionUtil;
 import io.kyligence.kap.metadata.model.util.scd2.SCD2CondChecker;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
@@ -3843,13 +3844,6 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         return BISyncTool.dumpHasPermissionToBISyncModel(syncContext, authTables, authColumns, dimensions, measures);
     }
 
-    private boolean checkMeasurePermission(Set<String> columns, NDataModel.Measure measure, List<String> measures) {
-        Set<String> measureColumns = measure.getFunction().getParameters().stream()
-                .filter(parameterDesc -> parameterDesc.getColRef() != null)
-                .map(parameterDesc -> parameterDesc.getColRef().getCanonicalName()).collect(Collectors.toSet());
-        return columns.containsAll(measureColumns) && (measures != null && measures.contains(measure.getName()));
-    }
-
     public BISyncModel exportTDSDimensionsAndMeasuresByAdmin(SyncContext syncContext, List<String> dimensions,
             List<String> measures) {
         String projectName = syncContext.getProjectName();
@@ -3908,17 +3902,77 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                 .map(TblColRef::getCanonicalName).collect(Collectors.toSet()).stream().anyMatch(authColumns::contains))
                 .count();
 
-        List<MeasureDef> measureDefs = model.getEffectiveMeasures().values().stream()
-                .filter(measure -> checkMeasurePermission(authColumns, measure, measures)).map(MeasureDef::new)
-                .collect(Collectors.toList());
-
         if (jointCount != model.getJoinTables().size() || singleTableCount == 0
-                || (dimensions != null && !authColumns.containsAll(dimensions))
-                || (measures != null && measureDefs.size() != measures.size())) {
+                || !checkColumnPermission(model, authColumns, dimensions, measures)) {
             throw new KylinException(ServerErrorCode.INVALID_TABLE_AUTH,
                     MsgPicker.getMsg().getTableNoColumnsPermission());
         }
 
+    }
+
+    public boolean checkColumnPermission(NDataModel model, Set<String> authColumns, List<String> dimensions,
+            List<String> measures) {
+
+        if (!checkDimensionPermission(model, authColumns, dimensions)) {
+            return false;
+        }
+        if (measures == null || measures.size() == 0) {
+            return true;
+        }
+        List<MeasureDef> authMeasures = model.getEffectiveMeasures().values().stream()
+                .filter(measure -> measures.contains(measure.getName()))
+                .filter(measure -> checkMeasurePermission(authColumns, measure, model)).map(MeasureDef::new)
+                .collect(Collectors.toList());
+        return authMeasures.size() == measures.size();
+
+    }
+
+    private boolean checkDimensionPermission(NDataModel model, Set<String> authColumns, List<String> dimensions) {
+        if (dimensions == null || dimensions.size() == 0) {
+            return true;
+        }
+        List<ComputedColumnDesc> computedColumnDescs = model.getComputedColumnDescs().stream()
+                .filter(cc -> dimensions.contains(cc.getTableIdentity() + "." + cc.getColumnName()))
+                .collect(Collectors.toList());
+
+        long authComputedCount = computedColumnDescs.stream()
+                .filter(cc -> authColumns.containsAll(ComputedColumnUtil.getCCUsedColsWithModel(model, cc))).count();
+
+        if (computedColumnDescs.size() != authComputedCount) {
+            return false;
+        }
+
+        List<String> normalColumns = dimensions.stream()
+                .filter(column -> !computedColumnDescs.stream()
+                        .map(cc -> cc.getTableIdentity() + "." + cc.getColumnName()).collect(Collectors.toList())
+                        .contains(column))
+                .collect(Collectors.toList());
+        return authColumns.containsAll(normalColumns);
+    }
+
+    private boolean checkMeasurePermission(Set<String> authColumns, NDataModel.Measure measure, NDataModel model) {
+        Set<String> measureColumns = measure.getFunction().getParameters().stream()
+                .filter(parameterDesc -> parameterDesc.getColRef() != null)
+                .map(parameterDesc -> parameterDesc.getColRef().getCanonicalName()).collect(Collectors.toSet());
+
+        List<ComputedColumnDesc> computedColumnDescs = model.getComputedColumnDescs().stream()
+                .filter(cc -> measureColumns.contains(cc.getTableIdentity() + "." + cc.getColumnName()))
+                .collect(Collectors.toList());
+
+        long authComputedCount = computedColumnDescs.stream()
+                .filter(cc -> authColumns.containsAll(ComputedColumnUtil.getCCUsedColsWithModel(model, cc))).count();
+
+        if (computedColumnDescs.size() != authComputedCount) {
+            return false;
+        }
+
+        List<String> normalColumns = measureColumns.stream()
+                .filter(column -> !computedColumnDescs.stream()
+                        .map(cc -> cc.getTableIdentity() + "." + cc.getColumnName()).collect(Collectors.toList())
+                        .contains(column))
+                .collect(Collectors.toList());
+
+        return authColumns.containsAll(normalColumns);
     }
 
     private Set<String> getAllAuthTables(String project, Set<String> groups, String user) {
