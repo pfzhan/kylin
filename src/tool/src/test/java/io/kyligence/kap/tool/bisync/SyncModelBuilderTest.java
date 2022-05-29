@@ -33,9 +33,11 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.ModelJoinRelationTypeEnum;
+import org.apache.kylin.metadata.model.TblColRef;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -127,23 +129,25 @@ public class SyncModelBuilderTest extends NLocalFileMetadataTestCase {
             allAuthTables.addAll(auths.getTables());
             allAuthColumns.addAll(auths.getColumns());
         }
+
+        Set<String> newAuthColumns = convertColumns(syncContext.getDataflow().getModel(), allAuthColumns);
         List<String> dimensions = Lists.newArrayList();
         //"ORDER_ID", "PRICE", "CAL_DT", "PRICE", "ITEM_COUNT", "LEAF_CATEG_ID"
-        dimensions.add("DEFAULT.TEST_KYLIN_FACT.ORDER_ID");
-        dimensions.add("DEFAULT.TEST_KYLIN_FACT.PRICE");
-        dimensions.add("DEFAULT.TEST_KYLIN_FACT.CAL_DT");
-        dimensions.add("DEFAULT.TEST_KYLIN_FACT.PRICE");
-        dimensions.add("DEFAULT.TEST_KYLIN_FACT.ITEM_COUNT");
-        dimensions.add("DEFAULT.TEST_KYLIN_FACT.LEAF_CATEG_ID");
+        dimensions.add("TEST_KYLIN_FACT.ORDER_ID");
+        dimensions.add("TEST_KYLIN_FACT.PRICE");
+        dimensions.add("TEST_KYLIN_FACT.CAL_DT");
+        dimensions.add("TEST_KYLIN_FACT.PRICE");
+        dimensions.add("TEST_KYLIN_FACT.ITEM_COUNT");
+        dimensions.add("TEST_KYLIN_FACT.LEAF_CATEG_ID");
         //"ORDER_ID", "TEST_TIME_ENC", "TEST_DATE_ENC"
-        dimensions.add("DEFAULT.TEST_ORDER.ORDER_ID");
-        dimensions.add("DEFAULT.TEST_ORDER.TEST_TIME_ENC");
+        dimensions.add("TEST_ORDER.ORDER_ID");
+        dimensions.add("TEST_ORDER.TEST_TIME_ENC");
         dimensions.add("DEFAULT.TEST_ORDER.TEST_DATE_ENC");
         //"ORDER_ID", "PRICE", "CAL_DT", "TRANS_ID"
-        dimensions.add("DEFAULT.TEST_MEASURE.ORDER_ID");
-        dimensions.add("DEFAULT.TEST_MEASURE.PRICE");
-        dimensions.add("DEFAULT.TEST_MEASURE.CAL_DT");
-        dimensions.add("DEFAULT.TEST_MEASURE.TRANS_ID");
+        dimensions.add("TEST_MEASURE.ORDER_ID");
+        dimensions.add("TEST_MEASURE.PRICE");
+        dimensions.add("TEST_MEASURE.CAL_DT");
+        dimensions.add("TEST_MEASURE.TRANS_ID");
 
         List<String> measures = Lists.newArrayList();
         measures.add("TRANS_CNT");
@@ -161,7 +165,7 @@ public class SyncModelBuilderTest extends NLocalFileMetadataTestCase {
 
         syncContext.setModelElement(SyncContext.ModelElement.CUSTOM_COLS);
         TableauDatasourceModel datasource = (TableauDatasourceModel) BISyncTool
-                .dumpHasPermissionToBISyncModel(syncContext, allAuthTables, allAuthColumns, dimensions, measures);
+                .dumpHasPermissionToBISyncModel(syncContext, allAuthTables, newAuthColumns, dimensions, measures);
         ByteArrayOutputStream outStream = new ByteArrayOutputStream();
         datasource.dump(outStream);
         Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector_permission.tds"),
@@ -240,6 +244,16 @@ public class SyncModelBuilderTest extends NLocalFileMetadataTestCase {
                 outStream3.toString(Charset.defaultCharset().name()));
     }
 
+    private Set<String> convertColumns(NDataModel model, Set<String> authColumns) {
+        Set<String> newAuthColumns = Sets.newHashSet();
+        model.getAllTables().forEach(tableRef -> {
+            List<TblColRef> collect = tableRef.getColumns().stream()
+                    .filter(column -> authColumns.contains(column.getCanonicalName())).collect(Collectors.toList());
+            collect.forEach(x -> newAuthColumns.add(x.getAliasDotName()));
+        });
+        return newAuthColumns;
+    }
+
     @Test
     public void testCheckCC() throws Exception {
         Set<String> groups = new HashSet<>();
@@ -259,23 +273,24 @@ public class SyncModelBuilderTest extends NLocalFileMetadataTestCase {
             allAuthColumns.addAll(auths.getColumns());
         }
         val cc_syncContext = SyncModelTestUtil.createSyncContext(project, modelId, KylinConfig.getInstanceFromEnv());
+        Set<String> newAuthColumns = convertColumns(cc_syncContext.getDataflow().getModel(), allAuthColumns);
         List<String> dimensions = Lists.newArrayList();
         //"ORDER_ID", "PRICE", "CAL_DT", "PRICE", "ITEM_COUNT", "LEAF_CATEG_ID"
-        dimensions.add("DEFAULT.TEST_KYLIN_FACT.ORDER_ID");
-        dimensions.add("DEFAULT.TEST_KYLIN_FACT.PRICE");
-        dimensions.add("DEFAULT.TEST_KYLIN_FACT.CAL_DT");
-        dimensions.add("DEFAULT.TEST_KYLIN_FACT.PRICE");
-        dimensions.add("DEFAULT.TEST_KYLIN_FACT.ITEM_COUNT");
-        dimensions.add("DEFAULT.TEST_KYLIN_FACT.LEAF_CATEG_ID");
+        dimensions.add("TEST_KYLIN_FACT.ORDER_ID");
+        dimensions.add("TEST_KYLIN_FACT.PRICE");
+        dimensions.add("TEST_KYLIN_FACT.CAL_DT");
+        dimensions.add("TEST_KYLIN_FACT.PRICE");
+        dimensions.add("TEST_KYLIN_FACT.ITEM_COUNT");
+        dimensions.add("TEST_KYLIN_FACT.LEAF_CATEG_ID");
         //"ORDER_ID", "TEST_TIME_ENC", "TEST_DATE_ENC"
-        dimensions.add("DEFAULT.TEST_ORDER.ORDER_ID");
-        dimensions.add("DEFAULT.TEST_ORDER.TEST_TIME_ENC");
-        dimensions.add("DEFAULT.TEST_ORDER.TEST_DATE_ENC");
+        dimensions.add("TEST_ORDER.ORDER_ID");
+        dimensions.add("TEST_ORDER.TEST_TIME_ENC");
+        dimensions.add("TEST_ORDER.TEST_DATE_ENC");
         //"ORDER_ID", "PRICE", "CAL_DT", "TRANS_ID"
-        dimensions.add("DEFAULT.TEST_MEASURE.ORDER_ID");
-        dimensions.add("DEFAULT.TEST_MEASURE.PRICE");
-        dimensions.add("DEFAULT.TEST_MEASURE.CAL_DT");
-        dimensions.add("DEFAULT.TEST_MEASURE.TRANS_ID");
+        dimensions.add("TEST_MEASURE.ORDER_ID");
+        dimensions.add("TEST_MEASURE.PRICE");
+        dimensions.add("TEST_MEASURE.CAL_DT");
+        dimensions.add("TEST_MEASURE.TRANS_ID");
 
         List<String> measures = Lists.newArrayList();
         measures.add("TRANS_CNT");
@@ -293,7 +308,7 @@ public class SyncModelBuilderTest extends NLocalFileMetadataTestCase {
 
         cc_syncContext.setModelElement(SyncContext.ModelElement.CUSTOM_COLS);
         TableauDatasourceModel datasource3 = (TableauDatasourceModel) BISyncTool
-                .dumpHasPermissionToBISyncModel(cc_syncContext, allAuthTables, allAuthColumns, dimensions, measures);
+                .dumpHasPermissionToBISyncModel(cc_syncContext, allAuthTables, newAuthColumns, dimensions, measures);
         ByteArrayOutputStream outStream3 = new ByteArrayOutputStream();
         datasource3.dump(outStream3);
         Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector_cc.tds"),
@@ -328,23 +343,25 @@ public class SyncModelBuilderTest extends NLocalFileMetadataTestCase {
         }
         val cc_syncContext = SyncModelTestUtil.createSyncContext(project, modelId, KylinConfig.getInstanceFromEnv());
         cc_syncContext.setModelElement(SyncContext.ModelElement.ALL_COLS);
+
+        Set<String> newAuthColumns = convertColumns(cc_syncContext.getDataflow().getModel(), allAuthColumns);
         List<String> dimensions = Lists.newArrayList();
         //"ORDER_ID", "PRICE", "CAL_DT", "PRICE", "ITEM_COUNT", "LEAF_CATEG_ID"
-        dimensions.add("DEFAULT.TEST_KYLIN_FACT.ORDER_ID");
-        dimensions.add("DEFAULT.TEST_KYLIN_FACT.PRICE");
-        dimensions.add("DEFAULT.TEST_KYLIN_FACT.CAL_DT");
-        dimensions.add("DEFAULT.TEST_KYLIN_FACT.PRICE");
-        dimensions.add("DEFAULT.TEST_KYLIN_FACT.ITEM_COUNT");
-        dimensions.add("DEFAULT.TEST_KYLIN_FACT.LEAF_CATEG_ID");
+        dimensions.add("TEST_KYLIN_FACT.ORDER_ID");
+        dimensions.add("TEST_KYLIN_FACT.PRICE");
+        dimensions.add("TEST_KYLIN_FACT.CAL_DT");
+        dimensions.add("TEST_KYLIN_FACT.PRICE");
+        dimensions.add("TEST_KYLIN_FACT.ITEM_COUNT");
+        dimensions.add("TEST_KYLIN_FACT.LEAF_CATEG_ID");
         //"ORDER_ID", "TEST_TIME_ENC", "TEST_DATE_ENC"
-        dimensions.add("DEFAULT.TEST_ORDER.ORDER_ID");
-        dimensions.add("DEFAULT.TEST_ORDER.TEST_TIME_ENC");
-        dimensions.add("DEFAULT.TEST_ORDER.TEST_DATE_ENC");
+        dimensions.add("TEST_ORDER.ORDER_ID");
+        dimensions.add("TEST_ORDER.TEST_TIME_ENC");
+        dimensions.add("TEST_ORDER.TEST_DATE_ENC");
         //"ORDER_ID", "PRICE", "CAL_DT", "TRANS_ID"
-        dimensions.add("DEFAULT.TEST_MEASURE.ORDER_ID");
-        dimensions.add("DEFAULT.TEST_MEASURE.PRICE");
-        dimensions.add("DEFAULT.TEST_MEASURE.CAL_DT");
-        dimensions.add("DEFAULT.TEST_MEASURE.TRANS_ID");
+        dimensions.add("TEST_MEASURE.ORDER_ID");
+        dimensions.add("TEST_MEASURE.PRICE");
+        dimensions.add("TEST_MEASURE.CAL_DT");
+        dimensions.add("TEST_MEASURE.TRANS_ID");
 
         List<String> measures = Lists.newArrayList();
         measures.add("TRANS_CNT");
@@ -362,7 +379,7 @@ public class SyncModelBuilderTest extends NLocalFileMetadataTestCase {
 
         cc_syncContext.setModelElement(SyncContext.ModelElement.CUSTOM_COLS);
         TableauDatasourceModel datasource3 = (TableauDatasourceModel) BISyncTool
-                .dumpHasPermissionToBISyncModel(cc_syncContext, allAuthTables, allAuthColumns, dimensions, measures);
+                .dumpHasPermissionToBISyncModel(cc_syncContext, allAuthTables, newAuthColumns, dimensions, measures);
         ByteArrayOutputStream outStream3 = new ByteArrayOutputStream();
         datasource3.dump(outStream3);
         Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector_hierarchies.tds"),
@@ -370,7 +387,7 @@ public class SyncModelBuilderTest extends NLocalFileMetadataTestCase {
 
         cc_syncContext.setModelElement(SyncContext.ModelElement.AGG_INDEX_COL);
         TableauDatasourceModel datasource4 = (TableauDatasourceModel) BISyncTool.dumpHasPermissionToBISyncModel(
-                cc_syncContext, allAuthTables, allAuthColumns, new ArrayList<>(), new ArrayList<>());
+                cc_syncContext, allAuthTables, newAuthColumns, new ArrayList<>(), new ArrayList<>());
         ByteArrayOutputStream outStream4 = new ByteArrayOutputStream();
         datasource4.dump(outStream4);
         Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector_hierarchies.tds"),
@@ -378,7 +395,7 @@ public class SyncModelBuilderTest extends NLocalFileMetadataTestCase {
 
         cc_syncContext.setModelElement(SyncContext.ModelElement.AGG_INDEX_AND_TABLE_INDEX_COL);
         TableauDatasourceModel datasource5 = (TableauDatasourceModel) BISyncTool.dumpHasPermissionToBISyncModel(
-                cc_syncContext, allAuthTables, allAuthColumns, new ArrayList<>(), new ArrayList<>());
+                cc_syncContext, allAuthTables, newAuthColumns, new ArrayList<>(), new ArrayList<>());
         ByteArrayOutputStream outStream5 = new ByteArrayOutputStream();
         datasource5.dump(outStream5);
         Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector_hierarchies.tds"),
@@ -386,7 +403,7 @@ public class SyncModelBuilderTest extends NLocalFileMetadataTestCase {
 
         cc_syncContext.setModelElement(SyncContext.ModelElement.ALL_COLS);
         TableauDatasourceModel datasource6 = (TableauDatasourceModel) BISyncTool.dumpHasPermissionToBISyncModel(
-                cc_syncContext, allAuthTables, allAuthColumns, new ArrayList<>(), new ArrayList<>());
+                cc_syncContext, allAuthTables, newAuthColumns, new ArrayList<>(), new ArrayList<>());
         ByteArrayOutputStream outStream6 = new ByteArrayOutputStream();
         datasource6.dump(outStream6);
         Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector_hierarchies.tds"),
@@ -413,23 +430,24 @@ public class SyncModelBuilderTest extends NLocalFileMetadataTestCase {
         }
         val cc_syncContext = SyncModelTestUtil.createSyncContext(project, modelId, KylinConfig.getInstanceFromEnv());
         cc_syncContext.setModelElement(SyncContext.ModelElement.ALL_COLS);
+        Set<String> newAuthColumns = convertColumns(cc_syncContext.getDataflow().getModel(), allAuthColumns);
         List<String> dimensions = Lists.newArrayList();
         //"ORDER_ID", "PRICE", "CAL_DT", "PRICE", "ITEM_COUNT"
-        dimensions.add("DEFAULT.TEST_KYLIN_FACT.ORDER_ID");
-        dimensions.add("DEFAULT.TEST_KYLIN_FACT.PRICE");
-        dimensions.add("DEFAULT.TEST_KYLIN_FACT.CAL_DT");
-        dimensions.add("DEFAULT.TEST_KYLIN_FACT.PRICE");
-        dimensions.add("DEFAULT.TEST_KYLIN_FACT.ITEM_COUNT");
+        dimensions.add("TEST_KYLIN_FACT.ORDER_ID");
+        dimensions.add("TEST_KYLIN_FACT.PRICE");
+        dimensions.add("TEST_KYLIN_FACT.CAL_DT");
+        dimensions.add("TEST_KYLIN_FACT.PRICE");
+        dimensions.add("TEST_KYLIN_FACT.ITEM_COUNT");
 
         //"ORDER_ID", "TEST_TIME_ENC", "TEST_DATE_ENC"
-        dimensions.add("DEFAULT.TEST_ORDER.ORDER_ID");
-        dimensions.add("DEFAULT.TEST_ORDER.TEST_TIME_ENC");
-        dimensions.add("DEFAULT.TEST_ORDER.TEST_DATE_ENC");
+        dimensions.add("TEST_ORDER.ORDER_ID");
+        dimensions.add("TEST_ORDER.TEST_TIME_ENC");
+        dimensions.add("TEST_ORDER.TEST_DATE_ENC");
         //"ORDER_ID", "PRICE", "CAL_DT", "TRANS_ID"
-        dimensions.add("DEFAULT.TEST_MEASURE.ORDER_ID");
-        dimensions.add("DEFAULT.TEST_MEASURE.PRICE");
-        dimensions.add("DEFAULT.TEST_MEASURE.CAL_DT");
-        dimensions.add("DEFAULT.TEST_MEASURE.TRANS_ID");
+        dimensions.add("TEST_MEASURE.ORDER_ID");
+        dimensions.add("TEST_MEASURE.PRICE");
+        dimensions.add("TEST_MEASURE.CAL_DT");
+        dimensions.add("TEST_MEASURE.TRANS_ID");
 
         List<String> measures = Lists.newArrayList();
         measures.add("TRANS_CNT");
@@ -446,7 +464,7 @@ public class SyncModelBuilderTest extends NLocalFileMetadataTestCase {
         measures.add("GVM_PERCENTILE");
         cc_syncContext.setModelElement(SyncContext.ModelElement.CUSTOM_COLS);
         TableauDatasourceModel datasource3 = (TableauDatasourceModel) BISyncTool
-                .dumpHasPermissionToBISyncModel(cc_syncContext, allAuthTables, allAuthColumns, dimensions, measures);
+                .dumpHasPermissionToBISyncModel(cc_syncContext, allAuthTables, newAuthColumns, dimensions, measures);
         ByteArrayOutputStream outStream3 = new ByteArrayOutputStream();
         datasource3.dump(outStream3);
         Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector_no_hierarchies.tds"),

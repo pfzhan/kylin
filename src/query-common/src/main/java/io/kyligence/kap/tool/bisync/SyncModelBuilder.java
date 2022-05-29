@@ -140,7 +140,7 @@ public class SyncModelBuilder {
     private boolean checkMeasurePermission(Set<String> columns, NDataModel.Measure measure) {
         Set<String> measureColumns = measure.getFunction().getParameters().stream()
                 .filter(parameterDesc -> parameterDesc.getColRef() != null)
-                .map(parameterDesc -> parameterDesc.getColRef().getCanonicalName()).collect(Collectors.toSet());
+                .map(parameterDesc -> parameterDesc.getColRef().getAliasDotName()).collect(Collectors.toSet());
         return columns.containsAll(measureColumns);
     }
 
@@ -176,7 +176,7 @@ public class SyncModelBuilder {
             Set<TblColRef> tblColRefs = indexPlan.getEffectiveDimCols().entrySet().stream()
                     .filter(entry -> aggDimBitSet.get(entry.getKey())).map(Map.Entry::getValue)
                     .collect(Collectors.toSet());
-            colsToShow = tblColRefs.stream().filter(column -> columns.contains(column.getCanonicalName()))
+            colsToShow = tblColRefs.stream().filter(column -> columns.contains(column.getAliasDotName()))
                     .map(TblColRef::getAliasDotName).collect(Collectors.toSet());
             measuresToShow = indexPlan.getEffectiveMeasures().values().stream()
                     .filter(measureDef -> checkMeasurePermission(columns, measureDef)).map(MeasureDesc::getName)
@@ -184,7 +184,7 @@ public class SyncModelBuilder {
             break;
         case AGG_INDEX_AND_TABLE_INDEX_COL:
             colsToShow = indexPlan.getEffectiveDimCols().values().stream()
-                    .filter(column -> columns.contains(column.getCanonicalName())).map(TblColRef::getAliasDotName)
+                    .filter(column -> columns.contains(column.getAliasDotName())).map(TblColRef::getAliasDotName)
                     .collect(Collectors.toSet());
             measuresToShow = indexPlan.getEffectiveMeasures().values().stream()
                     .filter(measureDef -> checkMeasurePermission(columns, measureDef)).map(MeasureDesc::getName)
@@ -334,7 +334,7 @@ public class SyncModelBuilder {
         Map<String, ColumnDef> modelColsMap = Maps.newHashMap();
         modelDesc.getAllTables().stream().filter(table -> tables.contains(table.getTableIdentity()))
                 .forEach(tableRef -> tableRef.getColumns().stream()
-                        .filter(column -> columns.contains(column.getCanonicalName())).forEach(column -> {
+                        .filter(column -> columns.contains(column.getAliasDotName())).forEach(column -> {
                             ColumnDef columnDef = new ColumnDef("dimension", tableRef.getAlias(), null,
                                     column.getName(), column.getDatatype(), true,
                                     column.getColumnDesc().isComputedColumn());
@@ -355,11 +355,38 @@ public class SyncModelBuilder {
         allAuthColumns.addAll(columns);
         List<ComputedColumnDesc> computedColumnDescs = modelDesc.getComputedColumnDescs();
         Set<ComputedColumnDesc> computedColumnDescSet = computedColumnDescs.stream().filter(computedColumnDesc -> {
-            Set<String> ccUsedColsWithModel = ComputedColumnUtil.getCCUsedColsWithModel(modelDesc, computedColumnDesc);
-            return columns.containsAll(ccUsedColsWithModel);
+            Set<String> normalColumns = convertColNames(modelDesc, computedColumnDesc, Sets.newHashSet());
+            return columns.containsAll(normalColumns);
         }).collect(Collectors.toSet());
-        computedColumnDescSet.forEach(cc -> allAuthColumns.add(cc.getIdentName()));
+        computedColumnDescSet.forEach(cc -> allAuthColumns.add(cc.getFullName()));
         return allAuthColumns;
+    }
+
+    private Set<String> convertColNames(NDataModel model, ComputedColumnDesc computedColumnDesc,
+                                              Set<String> normalColumns) {
+        Set<String> normalCols = convertCCToNormalCols(model, computedColumnDesc, normalColumns);
+        Set<String> newAuthColumns = Sets.newHashSet();
+        model.getAllTables().forEach(tableRef -> {
+            List<TblColRef> collect = tableRef.getColumns().stream()
+                    .filter(column -> normalCols.contains(column.getCanonicalName())).collect(Collectors.toList());
+            collect.forEach(x -> newAuthColumns.add(x.getAliasDotName()));
+        });
+        return newAuthColumns;
+
+    }
+    private Set<String> convertCCToNormalCols(NDataModel model, ComputedColumnDesc computedColumnDesc,
+            Set<String> normalColumns) {
+        Set<String> ccUsedColsWithModel = ComputedColumnUtil.getCCUsedColsWithModel(model, computedColumnDesc);
+        Set<String> allCCols = model.getComputedColumnDescs().stream().map(ComputedColumnDesc::getIdentName)
+                .collect(Collectors.toSet());
+        ccUsedColsWithModel.forEach(x -> {
+            if (!allCCols.contains(x)) {
+                normalColumns.add(x);
+            }
+        });
+        model.getComputedColumnDescs().stream().filter(desc -> ccUsedColsWithModel.contains(desc.getIdentName()))
+                .forEach(x -> convertCCToNormalCols(model, x, normalColumns));
+        return normalColumns;
     }
 
     private Set<String[]> getHierarchies(IndexPlan indexPlan) {
