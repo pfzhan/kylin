@@ -169,6 +169,7 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
     private final LinkedHashSet<ColumnDesc> allColumnDescs = Sets.newLinkedHashSet();
 
     private List<LayoutEntity> ruleBasedLayouts = Lists.newArrayList();
+    @Setter
     @Getter
     private LayoutEntity baseAggLayout;
     @Getter
