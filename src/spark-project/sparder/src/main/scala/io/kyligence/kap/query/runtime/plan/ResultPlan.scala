@@ -21,6 +21,8 @@
  */
 package io.kyligence.kap.query.runtime.plan
 
+import java.io.{File, FileOutputStream}
+
 import com.google.common.cache.{Cache, CacheBuilder}
 import io.kyligence.kap.engine.spark.utils.LogEx
 import io.kyligence.kap.metadata.query.StructField
@@ -41,6 +43,11 @@ import org.apache.spark.sql.util.SparderTypeUtil
 import org.apache.spark.sql.{DataFrame, SaveMode, SparderEnv}
 
 import java.util
+
+import org.apache.hadoop.fs.Path
+import org.apache.poi.xssf.usermodel.XSSFWorkbook
+import org.apache.spark.sql.types.StructType
+
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 
@@ -218,8 +225,16 @@ object ResultPlan extends LogEx {
 
     QueryContext.currentTrace().endLastSpan()
     val jobTrace = new SparkJobTrace(jobGroup, QueryContext.currentTrace(), QueryContext.current().getQueryId, sparkContext)
+    val dateTimeFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
     format match {
-      case "json" => df.write.option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZ").option("encoding", encode)
+      case "json" =>
+        val oldColumnNames = df.columns
+        val columnNames = QueryContext.current().getColumnNames
+        var newDf = df
+        for (i <- 0 until columnNames.size()) {
+          newDf = newDf.withColumnRenamed(oldColumnNames.apply(i), columnNames.get(i))
+        }
+        newDf.write.option("timestampFormat", dateTimeFormat).option("encoding", encode)
         .option("charset", "utf-8").mode(SaveMode.Append).json(path)
       case "parquet" =>
         val sqlContext = SparderEnv.getSparkSession.sqlContext
@@ -231,8 +246,33 @@ object ResultPlan extends LogEx {
           normalizeSchema(df).write.mode(SaveMode.Overwrite).option("encoding", encode).option("charset", "utf-8").parquet(path)
         }
         sqlContext.setConf("spark.sql.parquet.writeLegacyFormat", "false")
+      case "csv" =>
+        df.write
+        .option("timestampFormat", dateTimeFormat)
+        .option("encoding", encode)
+        .option("dateFormat", "yyyy-mm-dd hh:mm:ss")
+        .option("charset", "utf-8").mode(SaveMode.Append).csv(path)
+      case "xlsx" => {
+        val queryId = QueryContext.current().getQueryId
+        val file = new File(queryId + ".xlsx")
+        file.createNewFile();
+        val outputStream = new FileOutputStream(file)
+        val workbook = new XSSFWorkbook
+        val sheet = workbook.createSheet("query_result");
+        var num = 0
+        df.collect().foreach(row => {
+          val row1 = sheet.createRow(num)
+          for (i <- 0 until row.length) {
+            row1.createCell(i).setCellValue(row.apply(i).toString)
+          }
+          num = num + 1
+        })
+        workbook.write(outputStream)
+        HadoopUtil.getWorkingFileSystem
+          .copyFromLocalFile(true, true, new Path(file.getPath), new Path(path + "/" + queryId + ".xlsx"))
+      }
       case _ =>
-        normalizeSchema(df).write.option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZ").option("encoding", encode)
+        normalizeSchema(df).write.option("timestampFormat", dateTimeFormat).option("encoding", encode)
           .option("charset", "utf-8").mode(SaveMode.Append).parquet(path)
     }
     AsyncQueryUtil.createSuccessFlag(QueryContext.current().getProject, QueryContext.current().getQueryId)
@@ -250,7 +290,7 @@ object ResultPlan extends LogEx {
       QueryContext.current().getMetrics.setQueryStageCount(stageCount)
       QueryContext.current().getMetrics.setQueryTaskCount(taskCount)
       QueryContext.current().getMetrics.setResultRowCount(newExecution.executedPlan.metrics.get("numOutputRows")
-        .map(_.value).get)
+        .map(_.value).getOrElse(0))
     }
   }
 

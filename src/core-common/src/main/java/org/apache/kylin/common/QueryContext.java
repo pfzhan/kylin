@@ -214,6 +214,10 @@ public class QueryContext implements Closeable {
 
     @Getter
     @Setter
+    private List<String> columnNames;
+
+    @Getter
+    @Setter
     @NoArgsConstructor
     public static class AclInfo {
 

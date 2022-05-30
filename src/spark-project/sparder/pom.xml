@@ -187,6 +187,11 @@
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-query-common</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>${poi.version}</version>
+        </dependency>
     </dependencies>
 
     <build>
