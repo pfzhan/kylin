@@ -15,13 +15,13 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 20,
-  "iteration": 1644982103110,
+  "id": 16,
+  "iteration": 1653464577466,
   "links": [],
   "panels": [
     {
       "collapsed": false,
-      "datasource": null,
+      "datasource": "Prometheus",
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -34,7 +34,7 @@
       "type": "row"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "Total Executors",
       "fieldConfig": {
         "defaults": {
@@ -80,11 +80,11 @@
         "text": {},
         "textMode": "auto"
       },
-      "pluginVersion": "8.0.4",
+      "pluginVersion": "7.5.8",
       "targets": [
         {
           "exemplar": true,
-          "expr": "count(count(metrics_executor_memoryUsed_bytes{application_id=\"$applicationId\", executor_id!=\"driver\"}) by (executor_id))",
+          "expr": "count(count(metrics_executor_memoryUsed_bytes{job=\"$job\", application_id=\"$applicationId\", executor_id!=\"driver\"}) by (executor_id))",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -94,7 +94,7 @@
       "type": "stat"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "Total Number of cores available in this executor",
       "fieldConfig": {
         "defaults": {
@@ -136,11 +136,11 @@
         "text": {},
         "textMode": "auto"
       },
-      "pluginVersion": "8.0.4",
+      "pluginVersion": "7.5.8",
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(metrics_executor_totalCores{application_id=\"$applicationId\", executor_id=~\"$executorId\"})",
+          "expr": "sum(metrics_executor_totalCores{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -150,7 +150,7 @@
       "type": "stat"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "TotalT Number of tasks that have completed in this executor",
       "fieldConfig": {
         "defaults": {
@@ -194,11 +194,11 @@
         "text": {},
         "textMode": "auto"
       },
-      "pluginVersion": "8.0.4",
+      "pluginVersion": "7.5.8",
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(metrics_executor_completedTasks_total{application_id=\"$applicationId\", executor_id=~\"$executorId\"})",
+          "expr": "sum(metrics_executor_completedTasks_total{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"})",
           "instant": true,
           "interval": "",
           "legendFormat": "",
@@ -209,7 +209,7 @@
       "type": "stat"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "Failed Tasks",
       "fieldConfig": {
         "defaults": {
@@ -252,11 +252,11 @@
         "text": {},
         "textMode": "auto"
       },
-      "pluginVersion": "8.0.4",
+      "pluginVersion": "7.5.8",
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(metrics_executor_failedTasks_total{application_id=\"$applicationId\", executor_id=~\"$executorId\"})",
+          "expr": "sum(metrics_executor_failedTasks_total{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -266,7 +266,7 @@
       "type": "stat"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "Total Number of tasks currently executing",
       "fieldConfig": {
         "defaults": {
@@ -308,11 +308,11 @@
         "text": {},
         "textMode": "auto"
       },
-      "pluginVersion": "8.0.4",
+      "pluginVersion": "7.5.8",
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(metrics_executor_activeTasks{application_id=\"$applicationId\", executor_id=~\"$executorId\"})",
+          "expr": "sum(metrics_executor_activeTasks{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -322,7 +322,7 @@
       "type": "stat"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "Total GC Time",
       "fieldConfig": {
         "defaults": {
@@ -370,11 +370,11 @@
         "text": {},
         "textMode": "auto"
       },
-      "pluginVersion": "8.0.4",
+      "pluginVersion": "7.5.8",
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(metrics_executor_totalGCTime_seconds_total{application_id=\"$applicationId\", executor_id=~\"$executorId\"})",
+          "expr": "sum(metrics_executor_totalGCTime_seconds_total{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -384,7 +384,7 @@
       "type": "stat"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "Tasks Total Duration",
       "fieldConfig": {
         "defaults": {
@@ -432,11 +432,11 @@
         "text": {},
         "textMode": "auto"
       },
-      "pluginVersion": "8.0.4",
+      "pluginVersion": "7.5.8",
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(metrics_executor_totalDuration_seconds_total{application_id=\"$applicationId\", executor_id=~\"$executorId\"})",
+          "expr": "sum(metrics_executor_totalDuration_seconds_total{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -446,7 +446,7 @@
       "type": "stat"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "Executor Memory Used",
       "fieldConfig": {
         "defaults": {
@@ -492,11 +492,11 @@
         "showThresholdMarkers": true,
         "text": {}
       },
-      "pluginVersion": "8.0.4",
+      "pluginVersion": "7.5.8",
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(metrics_executor_memoryUsed_bytes{application_id=\"$applicationId\", executor_id!=\"driver\"}) / sum(metrics_executor_maxMemory_bytes{application_id=\"$applicationId\", executor_id!=\"driver\"})",
+          "expr": "sum(metrics_executor_memoryUsed_bytes{job=\"$job\", application_id=\"$applicationId\", executor_id!=\"driver\"}) / sum(metrics_executor_maxMemory_bytes{job=\"$job\", application_id=\"$applicationId\", executor_id!=\"driver\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -506,7 +506,7 @@
       "type": "gauge"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "Total Executor Memory",
       "fieldConfig": {
         "defaults": {
@@ -550,11 +550,11 @@
         "text": {},
         "textMode": "auto"
       },
-      "pluginVersion": "8.0.4",
+      "pluginVersion": "7.5.8",
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(metrics_executor_maxMemory_bytes{application_id=\"$applicationId\", executor_id=~\"$executorId\"})",
+          "expr": "sum(metrics_executor_maxMemory_bytes{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -564,7 +564,7 @@
       "type": "stat"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "Total Rdd Blocks",
       "fieldConfig": {
         "defaults": {
@@ -607,11 +607,11 @@
         "text": {},
         "textMode": "auto"
       },
-      "pluginVersion": "8.0.4",
+      "pluginVersion": "7.5.8",
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(metrics_executor_rddBlocks{application_id=\"$applicationId\", executor_id=~\"$executorId\"})",
+          "expr": "sum(metrics_executor_rddBlocks{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -622,7 +622,7 @@
     },
     {
       "collapsed": false,
-      "datasource": null,
+      "datasource": "Prometheus",
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -635,7 +635,7 @@
       "type": "row"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "Total Duration Of Per Executor",
       "fieldConfig": {
         "defaults": {
@@ -680,11 +680,11 @@
         "showUnfilled": true,
         "text": {}
       },
-      "pluginVersion": "8.0.4",
+      "pluginVersion": "7.5.8",
       "targets": [
         {
           "exemplar": true,
-          "expr": "max(metrics_executor_totalDuration_seconds_total{application_id=\"$applicationId\", executor_id=~\"$executorId\"}) by (executor_id)",
+          "expr": "max(metrics_executor_totalDuration_seconds_total{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"}) by (executor_id)",
           "interval": "",
           "legendFormat": "executor={{executor_id}}",
           "refId": "A"
@@ -698,7 +698,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "Duration In Last 1 Minutes",
       "fieldConfig": {
         "defaults": {
@@ -734,7 +734,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.0.4",
+      "pluginVersion": "7.5.8",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -745,7 +745,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(increase(metrics_executor_totalDuration_seconds_total{application_id=\"$applicationId\", executor_id=~\"$executorId\"}[1m])) \nby (executor_id)",
+          "expr": "sum(increase(metrics_executor_totalDuration_seconds_total{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"}[1m])) \nby (executor_id)",
           "instant": false,
           "interval": "",
           "intervalFactor": 1,
@@ -773,7 +773,6 @@
       },
       "yaxes": [
         {
-          "$$hashKey": "object:307",
           "decimals": 2,
           "format": "s",
           "label": null,
@@ -783,7 +782,6 @@
           "show": true
         },
         {
-          "$$hashKey": "object:308",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -798,7 +796,7 @@
       }
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "Total  GC Time Of Per Executor",
       "fieldConfig": {
         "defaults": {
@@ -844,11 +842,11 @@
         "showUnfilled": true,
         "text": {}
       },
-      "pluginVersion": "8.0.4",
+      "pluginVersion": "7.5.8",
       "targets": [
         {
           "exemplar": true,
-          "expr": "max(metrics_executor_totalGCTime_seconds_total{application_id=\"$applicationId\", executor_id=~\"$executorId\"}) by (executor_id)",
+          "expr": "max(metrics_executor_totalGCTime_seconds_total{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"}) by (executor_id)",
           "interval": "",
           "legendFormat": "executor={{executor_id}}",
           "refId": "A"
@@ -858,7 +856,7 @@
       "type": "bargauge"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "GC Time In 1 Minutes",
       "fieldConfig": {
         "defaults": {
@@ -873,6 +871,7 @@
             "fillOpacity": 10,
             "gradientMode": "none",
             "hideFrom": {
+              "graph": false,
               "legend": false,
               "tooltip": false,
               "viz": false
@@ -884,14 +883,7 @@
               "type": "linear"
             },
             "showPoints": "never",
-            "spanNulls": true,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
+            "spanNulls": true
           },
           "links": [],
           "mappings": [],
@@ -928,13 +920,16 @@
         },
         "tooltip": {
           "mode": "single"
+        },
+        "tooltipOptions": {
+          "mode": "single"
         }
       },
       "pluginVersion": "8.0.4",
       "targets": [
         {
           "exemplar": true,
-          "expr": "increase(metrics_executor_totalGCTime_seconds_total{application_id=\"$applicationId\", executor_id=~\"$executorId\"}[1m])",
+          "expr": "increase(metrics_executor_totalGCTime_seconds_total{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"}[1m])",
           "interval": "",
           "legendFormat": "executor={{executor_id}}",
           "refId": "A"
@@ -946,7 +941,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "Total input bytes of per executor",
       "fieldConfig": {
         "defaults": {
@@ -992,11 +987,11 @@
         "showUnfilled": true,
         "text": {}
       },
-      "pluginVersion": "8.0.4",
+      "pluginVersion": "7.5.8",
       "targets": [
         {
           "exemplar": true,
-          "expr": "max(metrics_executor_totalInputBytes_bytes_total{application_id=\"$applicationId\", executor_id=~\"$executorId\"}) by (executor_id)",
+          "expr": "max(metrics_executor_totalInputBytes_bytes_total{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"}) by (executor_id)",
           "interval": "",
           "legendFormat": "executor={{executor_id}}",
           "refId": "A"
@@ -1006,7 +1001,7 @@
       "type": "bargauge"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "Total input bytes of this executor in last 1 minutes",
       "fieldConfig": {
         "defaults": {
@@ -1021,6 +1016,7 @@
             "fillOpacity": 0,
             "gradientMode": "none",
             "hideFrom": {
+              "graph": false,
               "legend": false,
               "tooltip": false,
               "viz": false
@@ -1032,14 +1028,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
+            "spanNulls": false
           },
           "mappings": [],
           "thresholds": {
@@ -1074,12 +1063,15 @@
         },
         "tooltip": {
           "mode": "single"
+        },
+        "tooltipOptions": {
+          "mode": "single"
         }
       },
       "targets": [
         {
           "exemplar": true,
-          "expr": "increase(metrics_executor_totalInputBytes_bytes_total{application_id=\"$applicationId\",executor_id=~\"$executorId\"}[1m])",
+          "expr": "increase(metrics_executor_totalInputBytes_bytes_total{job=\"$job\", application_id=\"$applicationId\",executor_id=~\"$executorId\"}[1m])",
           "interval": "",
           "legendFormat": "executor={{executor_id}}",
           "refId": "A"
@@ -1089,7 +1081,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "Total shuffle read bytes summed in this executor",
       "fieldConfig": {
         "defaults": {
@@ -1135,11 +1127,11 @@
         "showUnfilled": true,
         "text": {}
       },
-      "pluginVersion": "8.0.4",
+      "pluginVersion": "7.5.8",
       "targets": [
         {
           "exemplar": true,
-          "expr": "max(metrics_executor_totalShuffleRead_bytes_total{application_id=\"$applicationId\", executor_id=~\"$executorId\"}) by (executor_id)",
+          "expr": "max(metrics_executor_totalShuffleRead_bytes_total{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"}) by (executor_id)",
           "interval": "",
           "legendFormat": "executor={{executor_id}}",
           "refId": "A"
@@ -1149,7 +1141,7 @@
       "type": "bargauge"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "Total shuffle read bytes summed in this executor in last 1 minutes",
       "fieldConfig": {
         "defaults": {
@@ -1164,6 +1156,7 @@
             "fillOpacity": 0,
             "gradientMode": "none",
             "hideFrom": {
+              "graph": false,
               "legend": false,
               "tooltip": false,
               "viz": false
@@ -1175,14 +1168,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
+            "spanNulls": false
           },
           "mappings": [],
           "thresholds": {
@@ -1217,12 +1203,15 @@
         },
         "tooltip": {
           "mode": "single"
+        },
+        "tooltipOptions": {
+          "mode": "single"
         }
       },
       "targets": [
         {
           "exemplar": true,
-          "expr": "increase(metrics_executor_totalShuffleRead_bytes_total{application_id=\"$applicationId\",executor_id=~\"$executorId\"}[1m])",
+          "expr": "increase(metrics_executor_totalShuffleRead_bytes_total{job=\"$job\", application_id=\"$applicationId\",executor_id=~\"$executorId\"}[1m])",
           "interval": "",
           "legendFormat": "executor={{executor_id}}",
           "refId": "A"
@@ -1232,7 +1221,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "Total shuffle write bytes summed in this executor",
       "fieldConfig": {
         "defaults": {
@@ -1278,11 +1267,11 @@
         "showUnfilled": true,
         "text": {}
       },
-      "pluginVersion": "8.0.4",
+      "pluginVersion": "7.5.8",
       "targets": [
         {
           "exemplar": true,
-          "expr": "max(metrics_executor_totalShuffleWrite_bytes_total{application_id=\"$applicationId\", executor_id=~\"$executorId\"}) by (executor_id)",
+          "expr": "max(metrics_executor_totalShuffleWrite_bytes_total{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"}) by (executor_id)",
           "interval": "",
           "legendFormat": "executor={{executor_id}}",
           "refId": "A"
@@ -1292,7 +1281,7 @@
       "type": "bargauge"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "Total shuffle write bytes summed in this executor in last 1 minutes",
       "fieldConfig": {
         "defaults": {
@@ -1307,6 +1296,7 @@
             "fillOpacity": 0,
             "gradientMode": "none",
             "hideFrom": {
+              "graph": false,
               "legend": false,
               "tooltip": false,
               "viz": false
@@ -1318,14 +1308,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
+            "spanNulls": false
           },
           "mappings": [],
           "thresholds": {
@@ -1360,12 +1343,15 @@
         },
         "tooltip": {
           "mode": "single"
+        },
+        "tooltipOptions": {
+          "mode": "single"
         }
       },
       "targets": [
         {
           "exemplar": true,
-          "expr": "increase(metrics_executor_totalShuffleWrite_bytes_total{application_id=\"$applicationId\",executor_id=~\"$executorId\"}[1m])",
+          "expr": "increase(metrics_executor_totalShuffleWrite_bytes_total{job=\"$job\",application_id=\"$applicationId\",executor_id=~\"$executorId\"}[1m])",
           "interval": "",
           "legendFormat": "executor={{executor_id}}",
           "refId": "A"
@@ -1379,7 +1365,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "Memory Used",
       "fieldConfig": {
         "defaults": {
@@ -1415,7 +1401,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.0.4",
+      "pluginVersion": "7.5.8",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -1426,7 +1412,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "metrics_executor_memoryUsed_bytes{application_id=\"$applicationId\", executor_id=~\"$executorId\"}",
+          "expr": "metrics_executor_memoryUsed_bytes{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"}",
           "interval": "",
           "intervalFactor": 1,
           "legendFormat": "executor={{executor_id}}",
@@ -1434,7 +1420,7 @@
         },
         {
           "exemplar": true,
-          "expr": "sum(metrics_executor_memoryUsed_bytes{application_id=\"$applicationId\", executor_id=~\"$executorId\"})",
+          "expr": "sum(metrics_executor_memoryUsed_bytes{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"})",
           "hide": false,
           "interval": "",
           "legendFormat": "total",
@@ -1461,7 +1447,6 @@
       },
       "yaxes": [
         {
-          "$$hashKey": "object:462",
           "format": "bytes",
           "label": null,
           "logBase": 1,
@@ -1470,7 +1455,6 @@
           "show": true
         },
         {
-          "$$hashKey": "object:463",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -1489,7 +1473,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "Total amount of memory available for storage",
       "fieldConfig": {
         "defaults": {
@@ -1525,7 +1509,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.0.4",
+      "pluginVersion": "7.5.8",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -1536,14 +1520,14 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "metrics_executor_maxMemory_bytes{application_id=\"$applicationId\", executor_id=~\"$executorId\"}",
+          "expr": "metrics_executor_maxMemory_bytes{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"}",
           "interval": "",
           "legendFormat": "executor={{executor_id}}",
           "refId": "A"
         },
         {
           "exemplar": true,
-          "expr": "sum(metrics_executor_maxMemory_bytes{application_id=\"$applicationId\", executor_id=~\"$executorId\"})",
+          "expr": "sum(metrics_executor_maxMemory_bytes{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"})",
           "hide": false,
           "interval": "",
           "legendFormat": "total",
@@ -1570,7 +1554,6 @@
       },
       "yaxes": [
         {
-          "$$hashKey": "object:834",
           "format": "bytes",
           "label": null,
           "logBase": 1,
@@ -1579,7 +1562,6 @@
           "show": true
         },
         {
-          "$$hashKey": "object:835",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -1598,8 +1580,12 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "Number of cores available in this executor.",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -1628,7 +1614,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.0.4",
+      "pluginVersion": "7.5.8",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -1639,14 +1625,14 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "metrics_executor_totalCores{application_id=\"$applicationId\", executor_id=~\"$executorId\"}",
+          "expr": "metrics_executor_totalCores{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"}",
           "interval": "",
           "legendFormat": "executor={{executor_id}}",
           "refId": "A"
         },
         {
           "exemplar": true,
-          "expr": "sum(metrics_executor_totalCores{application_id=\"$applicationId\", executor_id=~\"$executorId\"})",
+          "expr": "sum(metrics_executor_totalCores{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"})",
           "hide": false,
           "interval": "",
           "legendFormat": "total",
@@ -1673,7 +1659,6 @@
       },
       "yaxes": [
         {
-          "$$hashKey": "object:752",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -1682,7 +1667,6 @@
           "show": true
         },
         {
-          "$$hashKey": "object:753",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -1701,7 +1685,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "Disk space used for RDD storage by this executor",
       "fieldConfig": {
         "defaults": {
@@ -1737,7 +1721,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.0.4",
+      "pluginVersion": "7.5.8",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -1748,14 +1732,14 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "metrics_executor_diskUsed_bytes{application_id=\"$applicationId\", executor_id=~\"$executorId\"}",
+          "expr": "metrics_executor_diskUsed_bytes{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"}",
           "interval": "",
           "legendFormat": "executor={{executor_id}}",
           "refId": "A"
         },
         {
           "exemplar": true,
-          "expr": "sum(metrics_executor_diskUsed_bytes{application_id=\"$applicationId\", executor_id=~\"$executorId\"})",
+          "expr": "sum(metrics_executor_diskUsed_bytes{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"})",
           "hide": false,
           "interval": "",
           "legendFormat": "total",
@@ -1782,7 +1766,6 @@
       },
       "yaxes": [
         {
-          "$$hashKey": "object:154",
           "format": "bytes",
           "label": null,
           "logBase": 1,
@@ -1791,7 +1774,6 @@
           "show": true
         },
         {
-          "$$hashKey": "object:155",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -1806,7 +1788,7 @@
       }
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "RDD blocks in the block manager of this executor",
       "fieldConfig": {
         "defaults": {
@@ -1821,6 +1803,7 @@
             "fillOpacity": 0,
             "gradientMode": "none",
             "hideFrom": {
+              "graph": false,
               "legend": false,
               "tooltip": false,
               "viz": false
@@ -1832,14 +1815,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
+            "spanNulls": false
           },
           "mappings": [],
           "thresholds": {
@@ -1873,12 +1849,15 @@
         },
         "tooltip": {
           "mode": "single"
+        },
+        "tooltipOptions": {
+          "mode": "single"
         }
       },
       "targets": [
         {
           "exemplar": true,
-          "expr": "metrics_executor_rddBlocks{application_id=\"$applicationId\", executor_id=~\"$executorId\"}",
+          "expr": "metrics_executor_rddBlocks{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"}",
           "interval": "",
           "legendFormat": "executor={{executor_id}}",
           "refId": "A"
@@ -1889,7 +1868,7 @@
     },
     {
       "collapsed": false,
-      "datasource": null,
+      "datasource": "Prometheus",
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -1906,8 +1885,12 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "Number of tasks that have completed in this executor",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -1934,7 +1917,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.0.4",
+      "pluginVersion": "7.5.8",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -1945,14 +1928,14 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "increase(metrics_executor_completedTasks_total{application_id=\"$applicationId\", executor_id=~\"$executorId\"}[1m])",
+          "expr": "increase(metrics_executor_completedTasks_total{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"}[1m])",
           "interval": "",
           "legendFormat": "executor={{executor_id}}",
           "refId": "A"
         },
         {
           "exemplar": true,
-          "expr": "sum(increase(metrics_executor_completedTasks_total{application_id=\"$applicationId\", executor_id=~\"$executorId\"}[1m])) / count(count(metrics_executor_memoryUsed_bytes{application_id=\"$applicationId\", executor_id=~\"$executorId\"}) by (executor_id))",
+          "expr": "sum(increase(metrics_executor_completedTasks_total{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"}[1m])) / count(count(metrics_executor_memoryUsed_bytes{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"}) by (executor_id))",
           "hide": false,
           "interval": "",
           "legendFormat": "avg",
@@ -1979,7 +1962,6 @@
       },
       "yaxes": [
         {
-          "$$hashKey": "object:169",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -1988,7 +1970,6 @@
           "show": true
         },
         {
-          "$$hashKey": "object:170",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -2007,8 +1988,12 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "Number of tasks that have failed in this executor",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -2035,7 +2020,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.0.4",
+      "pluginVersion": "7.5.8",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -2046,14 +2031,14 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "increase(metrics_executor_failedTasks_total{application_id=\"$applicationId\", executor_id=~\"$executorId\"}[1m])",
+          "expr": "increase(metrics_executor_failedTasks_total{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"}[1m])",
           "interval": "",
           "legendFormat": "executor={{executor_id}}",
           "refId": "A"
         },
         {
           "exemplar": true,
-          "expr": "sum(increase(metrics_executor_failedTasks_total{application_id=\"$applicationId\", executor_id=~\"$executorId\"}[1m])) /\ncount(count(metrics_executor_memoryUsed_bytes{application_id=\"$applicationId\", executor_id=~\"$executorId\"}) by (executor_id))",
+          "expr": "sum(increase(metrics_executor_failedTasks_total{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"}[1m])) /\ncount(count(metrics_executor_memoryUsed_bytes{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"}) by (executor_id))",
           "hide": false,
           "interval": "",
           "legendFormat": "avg",
@@ -2080,7 +2065,6 @@
       },
       "yaxes": [
         {
-          "$$hashKey": "object:381",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -2089,7 +2073,6 @@
           "show": true
         },
         {
-          "$$hashKey": "object:382",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -2108,8 +2091,12 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "Number of tasks currently executing",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -2136,7 +2123,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.0.4",
+      "pluginVersion": "7.5.8",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -2147,14 +2134,14 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "metrics_executor_activeTasks{application_id=\"$applicationId\", executor_id=~\"$executorId\"}",
+          "expr": "metrics_executor_activeTasks{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"}",
           "interval": "",
           "legendFormat": "executor={{executor_id}}",
           "refId": "A"
         },
         {
           "exemplar": true,
-          "expr": "sum(metrics_executor_activeTasks{application_id=\"$applicationId\", executor_id=~\"$executorId\"}) /\ncount(count(metrics_executor_memoryUsed_bytes{application_id=\"$applicationId\", executor_id=~\"$executorId\"}) by (executor_id))",
+          "expr": "sum(metrics_executor_activeTasks{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"}) /\ncount(count(metrics_executor_memoryUsed_bytes{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"}) by (executor_id))",
           "hide": false,
           "interval": "",
           "legendFormat": "avg",
@@ -2181,7 +2168,6 @@
       },
       "yaxes": [
         {
-          "$$hashKey": "object:434",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -2190,7 +2176,6 @@
           "show": true
         },
         {
-          "$$hashKey": "object:435",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -2209,8 +2194,12 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "Maximum number of tasks that can run concurrently in this executor",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -2237,7 +2226,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.0.4",
+      "pluginVersion": "7.5.8",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -2248,14 +2237,14 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "metrics_executor_maxTasks{application_id=\"$applicationId\", executor_id=~\"$executorId\"}",
+          "expr": "metrics_executor_maxTasks{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"}",
           "interval": "",
           "legendFormat": "executor={{executor_id}}",
           "refId": "A"
         },
         {
           "exemplar": true,
-          "expr": "sum(metrics_executor_maxTasks{application_id=\"$applicationId\", executor_id=~\"$executorId\"}) /\ncount(count(metrics_executor_memoryUsed_bytes{application_id=\"$applicationId\", executor_id=~\"$executorId\"}) by (executor_id))",
+          "expr": "sum(metrics_executor_maxTasks{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"}) /\ncount(count(metrics_executor_memoryUsed_bytes{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"}) by (executor_id))",
           "hide": false,
           "interval": "",
           "legendFormat": "avg",
@@ -2282,7 +2271,6 @@
       },
       "yaxes": [
         {
-          "$$hashKey": "object:328",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -2291,7 +2279,6 @@
           "show": true
         },
         {
-          "$$hashKey": "object:329",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -2307,7 +2294,7 @@
     },
     {
       "collapsed": false,
-      "datasource": null,
+      "datasource": "Prometheus",
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -2324,8 +2311,12 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "minor GC rate",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -2352,7 +2343,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.0.4",
+      "pluginVersion": "7.5.8",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -2363,7 +2354,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "rate(metrics_executor_MinorGCCount_total{application_id=\"$applicationId\", executor_id=~\"$executorId\"}[1m])",
+          "expr": "rate(metrics_executor_MinorGCCount_total{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"}[1m])",
           "interval": "",
           "legendFormat": "executor={{executor_id}}",
           "refId": "A"
@@ -2389,7 +2380,6 @@
       },
       "yaxes": [
         {
-          "$$hashKey": "object:57",
           "format": "ops",
           "label": null,
           "logBase": 1,
@@ -2398,7 +2388,6 @@
           "show": true
         },
         {
-          "$$hashKey": "object:58",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -2413,7 +2402,7 @@
       }
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "Elapsed total minor GC time. The value is expressed in milliseconds",
       "fieldConfig": {
         "defaults": {
@@ -2428,6 +2417,7 @@
             "fillOpacity": 0,
             "gradientMode": "none",
             "hideFrom": {
+              "graph": false,
               "legend": false,
               "tooltip": false,
               "viz": false
@@ -2439,14 +2429,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
+            "spanNulls": false
           },
           "mappings": [],
           "thresholds": {
@@ -2481,12 +2464,15 @@
         },
         "tooltip": {
           "mode": "single"
+        },
+        "tooltipOptions": {
+          "mode": "single"
         }
       },
       "targets": [
         {
           "exemplar": true,
-          "expr": "increase(metrics_executor_MinorGCTime_seconds_total{application_id=\"$applicationId\", executor_id=~\"$executorId\"}[1m])",
+          "expr": "increase(metrics_executor_MinorGCTime_seconds_total{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"}[1m])",
           "interval": "",
           "legendFormat": "executor={{executor_id}}",
           "refId": "A"
@@ -2500,8 +2486,12 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "major GC rate",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -2528,7 +2518,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.0.4",
+      "pluginVersion": "7.5.8",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -2539,7 +2529,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "rate(metrics_executor_MajorGCCount_total{application_id=\"$applicationId\", executor_id=~\"$executorId\"}[1m])",
+          "expr": "rate(metrics_executor_MajorGCCount_total{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"}[1m])",
           "interval": "",
           "legendFormat": "executor={{executor_id}}",
           "refId": "A"
@@ -2565,7 +2555,6 @@
       },
       "yaxes": [
         {
-          "$$hashKey": "object:114",
           "format": "ops",
           "label": null,
           "logBase": 1,
@@ -2574,7 +2563,6 @@
           "show": true
         },
         {
-          "$$hashKey": "object:115",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -2589,7 +2577,7 @@
       }
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "Elapsed total major GC time. The value is expressed in milliseconds",
       "fieldConfig": {
         "defaults": {
@@ -2604,6 +2592,7 @@
             "fillOpacity": 0,
             "gradientMode": "none",
             "hideFrom": {
+              "graph": false,
               "legend": false,
               "tooltip": false,
               "viz": false
@@ -2615,14 +2604,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
+            "spanNulls": false
           },
           "mappings": [],
           "thresholds": {
@@ -2657,12 +2639,15 @@
         },
         "tooltip": {
           "mode": "single"
+        },
+        "tooltipOptions": {
+          "mode": "single"
         }
       },
       "targets": [
         {
           "exemplar": true,
-          "expr": "increase(metrics_executor_MajorGCTime_seconds_total{application_id=\"$applicationId\", executor_id=~\"$executorId\"}[1m])",
+          "expr": "increase(metrics_executor_MajorGCTime_seconds_total{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"}[1m])",
           "interval": "",
           "legendFormat": "executor={{executor_id}}",
           "refId": "A"
@@ -2673,7 +2658,7 @@
     },
     {
       "collapsed": false,
-      "datasource": null,
+      "datasource": "Prometheus",
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -2686,7 +2671,7 @@
       "type": "row"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "Used on heap memory currently for storage",
       "fieldConfig": {
         "defaults": {
@@ -2701,6 +2686,7 @@
             "fillOpacity": 0,
             "gradientMode": "none",
             "hideFrom": {
+              "graph": false,
               "legend": false,
               "tooltip": false,
               "viz": false
@@ -2712,14 +2698,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
+            "spanNulls": false
           },
           "mappings": [],
           "thresholds": {
@@ -2754,12 +2733,15 @@
         },
         "tooltip": {
           "mode": "single"
+        },
+        "tooltipOptions": {
+          "mode": "single"
         }
       },
       "targets": [
         {
           "exemplar": true,
-          "expr": "metrics_executor_usedOnHeapStorageMemory_bytes{application_id=\"$applicationId\", executor_id=~\"$executorId\"}",
+          "expr": "metrics_executor_usedOnHeapStorageMemory_bytes{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"}",
           "interval": "",
           "legendFormat": "executor={{executor_id}}",
           "refId": "A"
@@ -2769,7 +2751,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "Used off heap memory currently for storage",
       "fieldConfig": {
         "defaults": {
@@ -2784,6 +2766,7 @@
             "fillOpacity": 0,
             "gradientMode": "none",
             "hideFrom": {
+              "graph": false,
               "legend": false,
               "tooltip": false,
               "viz": false
@@ -2795,14 +2778,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
+            "spanNulls": false
           },
           "mappings": [],
           "thresholds": {
@@ -2837,12 +2813,15 @@
         },
         "tooltip": {
           "mode": "single"
+        },
+        "tooltipOptions": {
+          "mode": "single"
         }
       },
       "targets": [
         {
           "exemplar": true,
-          "expr": "metrics_executor_usedOffHeapStorageMemory_bytes{application_id=\"$applicationId\", executor_id=~\"$executorId\"}",
+          "expr": "metrics_executor_usedOffHeapStorageMemory_bytes{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"}",
           "interval": "",
           "legendFormat": "executor={{executor_id}}",
           "refId": "A"
@@ -2852,7 +2831,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "Total available on heap memory for storage, in bytes. This amount can vary over time, on the MemoryManager implementation",
       "fieldConfig": {
         "defaults": {
@@ -2867,6 +2846,7 @@
             "fillOpacity": 0,
             "gradientMode": "none",
             "hideFrom": {
+              "graph": false,
               "legend": false,
               "tooltip": false,
               "viz": false
@@ -2878,14 +2858,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
+            "spanNulls": false
           },
           "mappings": [],
           "thresholds": {
@@ -2920,12 +2893,15 @@
         },
         "tooltip": {
           "mode": "single"
+        },
+        "tooltipOptions": {
+          "mode": "single"
         }
       },
       "targets": [
         {
           "exemplar": true,
-          "expr": "metrics_executor_totalOnHeapStorageMemory_bytes{application_id=\"$applicationId\", executor_id=~\"$executorId\"}",
+          "expr": "metrics_executor_totalOnHeapStorageMemory_bytes{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"}",
           "interval": "",
           "legendFormat": "executor={{executor_id}}",
           "refId": "A"
@@ -2935,7 +2911,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "Total available off heap memory for storage, in bytes. This amount can vary over time, depending on the MemoryManager implementation",
       "fieldConfig": {
         "defaults": {
@@ -2950,6 +2926,7 @@
             "fillOpacity": 0,
             "gradientMode": "none",
             "hideFrom": {
+              "graph": false,
               "legend": false,
               "tooltip": false,
               "viz": false
@@ -2961,14 +2938,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
+            "spanNulls": false
           },
           "mappings": [],
           "thresholds": {
@@ -3003,12 +2973,15 @@
         },
         "tooltip": {
           "mode": "single"
+        },
+        "tooltipOptions": {
+          "mode": "single"
         }
       },
       "targets": [
         {
           "exemplar": true,
-          "expr": "metrics_executor_totalOffHeapStorageMemory_bytes{application_id=\"$applicationId\", executor_id=~\"$executorId\"}",
+          "expr": "metrics_executor_totalOffHeapStorageMemory_bytes{job=\"$job\", application_id=\"$applicationId\", executor_id=~\"$executorId\"}",
           "interval": "",
           "legendFormat": "executor={{executor_id}}",
           "refId": "A"
@@ -3019,7 +2992,7 @@
     }
   ],
   "refresh": "",
-  "schemaVersion": 30,
+  "schemaVersion": 27,
   "style": "dark",
   "tags": [],
   "templating": {
@@ -3027,12 +3000,43 @@
       {
         "allValue": null,
         "current": {
-          "selected": false,
-          "text": "52.131.34.35:7015",
-          "value": "52.131.34.35:7015"
+          "selected": true,
+          "text": "Spark",
+          "value": "Spark"
         },
-        "datasource": null,
-        "definition": "label_values(metrics_executor_memoryUsed_bytes{}, instance)",
+        "datasource": "Prometheus",
+        "definition": "label_values(metrics_executor_memoryUsed_bytes{}, job)",
+        "description": null,
+        "error": null,
+        "hide": 0,
+        "includeAll": false,
+        "label": "Cluster",
+        "multi": false,
+        "name": "job",
+        "options": [],
+        "query": {
+          "query": "label_values(metrics_executor_memoryUsed_bytes{}, job)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": null,
+        "current": {
+          "selected": false,
+          "text": "solution-3:9099",
+          "value": "solution-3:9099"
+        },
+        "datasource": "Prometheus",
+        "definition": "label_values(metrics_executor_memoryUsed_bytes{job=\"$job\"}, instance)",
         "description": null,
         "error": null,
         "hide": 0,
@@ -3042,24 +3046,28 @@
         "name": "instance",
         "options": [],
         "query": {
-          "query": "label_values(metrics_executor_memoryUsed_bytes{}, instance)",
+          "query": "label_values(metrics_executor_memoryUsed_bytes{job=\"$job\"}, instance)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
         "sort": 4,
-        "type": "query"
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
       },
       {
         "allValue": null,
         "current": {
           "selected": false,
-          "text": "application_1643004139606_11648",
-          "value": "application_1643004139606_11648"
+          "text": "application_1653038946211_0090",
+          "value": "application_1653038946211_0090"
         },
-        "datasource": null,
-        "definition": "label_values(metrics_executor_memoryUsed_bytes{instance=\"$instance\"},application_id)",
+        "datasource": "Prometheus",
+        "definition": "label_values(metrics_executor_memoryUsed_bytes{job=\"$job\", instance=\"$instance\"},application_id)",
         "description": null,
         "error": null,
         "hide": 0,
@@ -3069,14 +3077,18 @@
         "name": "applicationId",
         "options": [],
         "query": {
-          "query": "label_values(metrics_executor_memoryUsed_bytes{instance=\"$instance\"},application_id)",
+          "query": "label_values(metrics_executor_memoryUsed_bytes{job=\"$job\", instance=\"$instance\"},application_id)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
         "sort": 4,
-        "type": "query"
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
       },
       {
         "allValue": "",
@@ -3089,8 +3101,8 @@
             "$__all"
           ]
         },
-        "datasource": null,
-        "definition": "label_values(metrics_executor_memoryUsed_bytes{application_id=\"$applicationId\", executor_id!=\"driver\"},executor_id)",
+        "datasource": "Prometheus",
+        "definition": "label_values(metrics_executor_memoryUsed_bytes{job=\"$job\", instance=\"$instance\", application_id=\"$applicationId\", executor_id!=\"driver\"},executor_id)",
         "description": null,
         "error": null,
         "hide": 0,
@@ -3100,24 +3112,18 @@
         "name": "executorId",
         "options": [],
         "query": {
-          "query": "label_values(metrics_executor_memoryUsed_bytes{application_id=\"$applicationId\", executor_id!=\"driver\"},executor_id)",
+          "query": "label_values(metrics_executor_memoryUsed_bytes{job=\"$job\", instance=\"$instance\", application_id=\"$applicationId\", executor_id!=\"driver\"},executor_id)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
         "sort": 3,
-        "type": "query"
-      },
-      {
-        "description": null,
-        "error": null,
-        "hide": 2,
-        "label": "SelectExecutorNums",
-        "name": "selectExecutorNums",
-        "query": "count(count(metrics_executor_memoryUsed_bytes{application_id=\"$applicationId\", executor_id=~\"$executorId\"}) by (executor_id))",
-        "skipUrlSync": false,
-        "type": "constant"
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
       }
     ]
   },
@@ -3129,5 +3135,5 @@
   "timezone": "",
   "title": "Spark Executor Monitoring",
   "uid": "wkr7K1anz",
-  "version": 23
+  "version": 7
 }

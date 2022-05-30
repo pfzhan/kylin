@@ -47,7 +47,6 @@ import java.util.regex.Pattern;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -115,6 +114,7 @@ import io.kyligence.kap.tool.bisync.BISyncModel;
 import io.kyligence.kap.tool.bisync.SyncContext;
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Controller
@@ -727,16 +727,20 @@ public class NModelController extends NBasicController {
             @RequestParam(value = "export_as") SyncContext.BI exportAs,
             @RequestParam(value = "element", required = false, defaultValue = "AGG_INDEX_COL") SyncContext.ModelElement element,
             @RequestParam(value = "server_host", required = false) String serverHost,
-            @RequestParam(value = "server_port", required = false) Integer serverPort, HttpServletRequest request,
+            @RequestParam(value = "server_port", required = false) Integer serverPort,
+            @RequestParam(value = "dimensions", required = false) List<String> dimensions,
+            @RequestParam(value = "measures", required = false) List<String> measures, HttpServletRequest request,
             HttpServletResponse response) throws IOException {
         String projectName = checkProjectName(project);
 
         String host = getHost(serverHost, request.getServerName());
         Integer port = getPort(serverPort, request.getServerPort());
 
+        SyncContext syncContext = modelService.getSyncContext(projectName, modelId, exportAs, element, host, port);
+
         BISyncModel syncModel = AclPermissionUtil.isAdmin()
-                ? modelService.exportModel(projectName, modelId, exportAs, element, host, port)
-                : modelService.biExportCustomModel(projectName, modelId, exportAs, element, host, port);
+                ? modelService.exportTDSDimensionsAndMeasuresByAdmin(syncContext, dimensions, measures)
+                : modelService.exportTDSDimensionsAndMeasuresByNormalUser(syncContext, dimensions, measures);
 
         dumpSyncModel(modelId, exportAs, projectName, syncModel, response);
     }

@@ -21,7 +21,6 @@
       <map key="[ID2]" value="[TEST_MEASURE].[ID2]"/>
       <map key="[ID1 (TEST_MEASURE1)]" value="[TEST_MEASURE1].[ID1]"/>
       <map key="[ID1 (TEST_MEASURE)]" value="[TEST_MEASURE].[ID1]"/>
-      <map key="[ID4]" value="[TEST_MEASURE].[ID4]"/>
       <map key="[NAME3]" value="[TEST_MEASURE1].[NAME3]"/>
       <map key="[NAME1]" value="[TEST_MEASURE1].[NAME1]"/>
       <map key="[NAME2]" value="[TEST_MEASURE1].[NAME2]"/>
@@ -32,7 +31,6 @@
   <column caption="ID2" datatype="integer" name="[ID2]" role="dimension" type="ordinal" hidden="true"/>
   <column caption="ID1-2" datatype="integer" name="[ID1 (TEST_MEASURE1)]" role="dimension" type="ordinal" hidden="true"/>
   <column caption="ID1" datatype="integer" name="[ID1 (TEST_MEASURE)]" role="dimension" type="ordinal"/>
-  <column caption="ID4" datatype="integer" name="[ID4]" role="dimension" type="ordinal" hidden="true"/>
   <column caption="NAME3" datatype="string" name="[NAME3]" role="dimension" type="nominal" hidden="true"/>
   <column caption="NAME1" datatype="string" name="[NAME1]" role="dimension" type="nominal" hidden="true"/>
   <column caption="NAME2" datatype="string" name="[NAME2]" role="dimension" type="nominal" hidden="true"/>
@@ -42,10 +40,10 @@
   <column caption="SUM_1" datatype="integer" name="[SUM_1]" role="measure" type="quantitative">
     <calculation class="tableau" formula="SUM(1)"/>
   </column>
-  <column caption="SUM_2" datatype="real" name="[SUM_2]" role="measure" type="quantitative">
+  <column caption="SUM_2" datatype="real" name="[SUM_2]" role="measure" type="quantitative" hidden="true">
     <calculation class="tableau" formula="SUM(1.0)"/>
   </column>
-  <column caption="SUM_3" datatype="real" name="[SUM_3]" role="measure" type="quantitative">
+  <column caption="SUM_3" datatype="real" name="[SUM_3]" role="measure" type="quantitative" hidden="true">
     <calculation class="tableau" formula="SUM(1.0)"/>
   </column>
   <drill-paths/>

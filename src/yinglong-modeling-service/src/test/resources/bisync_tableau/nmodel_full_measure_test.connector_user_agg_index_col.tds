@@ -21,7 +21,6 @@
       <map key="[ID2]" value="[TEST_MEASURE].[ID2]"/>
       <map key="[ID1 (TEST_MEASURE1)]" value="[TEST_MEASURE1].[ID1]"/>
       <map key="[ID1 (TEST_MEASURE)]" value="[TEST_MEASURE].[ID1]"/>
-      <map key="[ID4]" value="[TEST_MEASURE].[ID4]"/>
       <map key="[NAME3]" value="[TEST_MEASURE1].[NAME3]"/>
       <map key="[NAME1]" value="[TEST_MEASURE1].[NAME1]"/>
       <map key="[NAME2]" value="[TEST_MEASURE1].[NAME2]"/>
@@ -32,7 +31,6 @@
   <column caption="ID2" datatype="integer" name="[ID2]" role="dimension" type="ordinal" hidden="true"/>
   <column caption="ID1-2" datatype="integer" name="[ID1 (TEST_MEASURE1)]" role="dimension" type="ordinal" hidden="true"/>
   <column caption="ID1" datatype="integer" name="[ID1 (TEST_MEASURE)]" role="dimension" type="ordinal"/>
-  <column caption="ID4" datatype="integer" name="[ID4]" role="dimension" type="ordinal" hidden="true"/>
   <column caption="NAME3" datatype="string" name="[NAME3]" role="dimension" type="nominal" hidden="true"/>
   <column caption="NAME1" datatype="string" name="[NAME1]" role="dimension" type="nominal" hidden="true"/>
   <column caption="NAME2" datatype="string" name="[NAME2]" role="dimension" type="nominal" hidden="true"/>

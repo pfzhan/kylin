@@ -91,8 +91,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.guava20.shaded.common.base.Supplier;
-import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
@@ -186,7 +184,9 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkContext;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.util.AddTableNameSqlVisitor;
+import io.kyligence.kap.engine.spark.smarter.IndexDependencyParser;
 import io.kyligence.kap.engine.spark.utils.ComputedColumnEvalUtil;
+import io.kyligence.kap.guava20.shaded.common.base.Supplier;
 import io.kyligence.kap.metadata.acl.AclTCRDigest;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.acl.NDataModelAclParams;
@@ -270,6 +270,7 @@ import io.kyligence.kap.rest.service.params.ModelQueryParams;
 import io.kyligence.kap.rest.util.ModelTriple;
 import io.kyligence.kap.rest.util.ModelUtils;
 import io.kyligence.kap.secondstorage.SecondStorage;
+import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
 import io.kyligence.kap.secondstorage.SecondStorageUpdater;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import io.kyligence.kap.secondstorage.enums.LockTypeEnum;
@@ -283,6 +284,7 @@ import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import io.kyligence.kap.tool.bisync.BISyncModel;
 import io.kyligence.kap.tool.bisync.BISyncTool;
 import io.kyligence.kap.tool.bisync.SyncContext;
+import io.kyligence.kap.tool.bisync.model.MeasureDef;
 import lombok.Setter;
 import lombok.val;
 import lombok.var;
@@ -3815,14 +3817,56 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                 : dataModelDesc.getPartitionDesc().getPartitionDateFormat();
     }
 
-    public BISyncModel biExportCustomModel(String projectName, String modelId, SyncContext.BI targetBI,
-            SyncContext.ModelElement modelElement, String host, int port) {
-        Set<String> groups = getCurrentUserGroups();
-        return exportCustomModel(projectName, modelId, targetBI, modelElement, host, port, groups);
-    }
-
     public BISyncModel exportModel(String projectName, String modelId, SyncContext.BI targetBI,
             SyncContext.ModelElement modelElement, String host, int port) {
+        SyncContext syncContext = getADMINSyncContext(projectName, modelId, targetBI, modelElement, host, port);
+
+        return BISyncTool.dumpToBISyncModel(syncContext);
+    }
+
+    public BISyncModel exportTDSDimensionsAndMeasuresByNormalUser(SyncContext syncContext, List<String> dimensions,
+            List<String> measures) {
+        Set<String> groups = getCurrentUserGroups();
+        String currentUserName = aclEvaluate.getCurrentUserName();
+        String projectName = syncContext.getProjectName();
+        String modelId = syncContext.getModelId();
+        NDataflow dataflow = getManager(NDataflowManager.class, projectName).getDataflow(modelId);
+        if (dataflow.getStatus() == RealizationStatusEnum.BROKEN) {
+            throw new KylinException(ServerErrorCode.MODEL_BROKEN,
+                    "The model is broken and cannot be exported TDS file");
+        }
+
+        Set<String> authTables = getAllAuthTables(projectName, groups, currentUserName);
+        Set<String> authColumns = getAllAuthColumns(projectName, groups, currentUserName);
+
+        Set<String> newAuthColumns = Sets.newHashSet();
+        dataflow.getModel().getAllTables().forEach(tableRef -> {
+            List<TblColRef> collect = tableRef.getColumns().stream()
+                    .filter(column -> authColumns.contains(column.getCanonicalName())).collect(Collectors.toList());
+            collect.forEach(x -> newAuthColumns.add(x.getAliasDotName()));
+        });
+
+        checkTableHasColumnPermission(syncContext.getModelElement(), projectName, modelId, newAuthColumns, dimensions,
+                measures);
+
+        return BISyncTool.dumpHasPermissionToBISyncModel(syncContext, authTables, newAuthColumns, dimensions, measures);
+    }
+
+    public BISyncModel exportTDSDimensionsAndMeasuresByAdmin(SyncContext syncContext, List<String> dimensions,
+            List<String> measures) {
+        String projectName = syncContext.getProjectName();
+        String modelId = syncContext.getModelId();
+        NDataflow dataflow = getManager(NDataflowManager.class, projectName).getDataflow(modelId);
+        if (dataflow.getStatus() == RealizationStatusEnum.BROKEN) {
+            throw new KylinException(MODEL_BROKEN, "The model is broken and cannot be exported TDS file");
+        }
+        checkModelExportPermission(projectName, modelId);
+        checkModelPermission(projectName, modelId);
+        return BISyncTool.dumpBISyncModel(syncContext, dimensions, measures);
+    }
+
+    public SyncContext getADMINSyncContext(String projectName, String modelId, SyncContext.BI targetBI,
+            SyncContext.ModelElement element, String host, int port) {
         NDataflow dataflow = getManager(NDataflowManager.class, projectName).getDataflow(modelId);
         if (dataflow.getStatus() == RealizationStatusEnum.BROKEN) {
             throw new KylinException(MODEL_BROKEN, "The model is broken and cannot be exported TDS file");
@@ -3830,29 +3874,10 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         checkModelExportPermission(projectName, modelId);
         checkModelPermission(projectName, modelId);
 
-        SyncContext syncContext = getSyncContext(projectName, modelId, targetBI, modelElement, host, port);
-
-        return BISyncTool.dumpToBISyncModel(syncContext);
+        return getSyncContext(projectName, modelId, targetBI, element, host, port);
     }
 
-    public BISyncModel exportCustomModel(String projectName, String modelId, SyncContext.BI targetBI,
-            SyncContext.ModelElement modelElement, String host, int port, Set<String> groups) {
-        String currentUserName = aclEvaluate.getCurrentUserName();
-        NDataflow dataflow = getManager(NDataflowManager.class, projectName).getDataflow(modelId);
-        if (dataflow.getStatus() == RealizationStatusEnum.BROKEN) {
-            throw new KylinException(ServerErrorCode.MODEL_BROKEN,
-                    "The model is broken and cannot be exported TDS file");
-        }
-        Set<String> authTables = getAllAuthTables(projectName, groups, currentUserName);
-        Set<String> authColumns = getAllAuthColumns(projectName, groups, currentUserName);
-        checkTableHasColumnPermission(projectName, modelId, authColumns);
-
-        SyncContext syncContext = getSyncContext(projectName, modelId, targetBI, modelElement, host, port);
-
-        return BISyncTool.dumpHasPermissionToBISyncModel(syncContext, authTables, authColumns);
-    }
-
-    private SyncContext getSyncContext(String projectName, String modelId, SyncContext.BI targetBI,
+    public SyncContext getSyncContext(String projectName, String modelId, SyncContext.BI targetBI,
             SyncContext.ModelElement modelElement, String host, int port) {
         SyncContext syncContext = new SyncContext();
         syncContext.setProjectName(projectName);
@@ -3866,7 +3891,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         return syncContext;
     }
 
-    public void checkTableHasColumnPermission(String project, String modeId, Set<String> authColumns) {
+    public void checkTableHasColumnPermission(SyncContext.ModelElement modelElement, String project, String modeId,
+            Set<String> authColumns, List<String> dimensions, List<String> measures) {
         if (AclPermissionUtil.isAdmin()) {
             return;
         }
@@ -3876,19 +3902,94 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         long jointCount = model.getJoinTables().stream()
                 .filter(table -> authColumns
                         .containsAll(Arrays.stream(table.getJoin().getPrimaryKeyColumns())
-                                .map(TblColRef::getCanonicalName).collect(Collectors.toSet()))
+                                .map(TblColRef::getAliasDotName).collect(Collectors.toSet()))
                         && authColumns.containsAll(Arrays.stream(table.getJoin().getForeignKeyColumns())
-                                .map(TblColRef::getCanonicalName).collect(Collectors.toSet())))
+                                .map(TblColRef::getAliasDotName).collect(Collectors.toSet())))
                 .count();
         long singleTableCount = model.getAllTables().stream().filter(ref -> ref.getColumns().stream()
-                .map(TblColRef::getCanonicalName).collect(Collectors.toSet()).stream().anyMatch(authColumns::contains))
+                .map(TblColRef::getAliasDotName).collect(Collectors.toSet()).stream().anyMatch(authColumns::contains))
                 .count();
 
-        if (jointCount != model.getJoinTables().size() || singleTableCount == 0) {
+        if (jointCount != model.getJoinTables().size() || singleTableCount == 0
+                || (modelElement.equals(SyncContext.ModelElement.CUSTOM_COLS)
+                        && !checkColumnPermission(model, authColumns, dimensions, measures))) {
             throw new KylinException(ServerErrorCode.INVALID_TABLE_AUTH,
                     MsgPicker.getMsg().getTableNoColumnsPermission());
         }
+    }
 
+    public boolean checkColumnPermission(NDataModel model, Set<String> authColumns, List<String> dimensions,
+            List<String> measures) {
+
+        if (!checkDimensionPermission(model, authColumns, dimensions)) {
+            return false;
+        }
+        if (CollectionUtils.isEmpty(measures)) {
+            return true;
+        }
+        List<MeasureDef> authMeasures = model.getEffectiveMeasures().values().stream()
+                .filter(measure -> measures.contains(measure.getName()))
+                .filter(measure -> checkMeasurePermission(authColumns, measure, model)).map(MeasureDef::new)
+                .collect(Collectors.toList());
+        return authMeasures.size() == measures.size();
+
+    }
+
+    private boolean checkDimensionPermission(NDataModel model, Set<String> authColumns, List<String> dimensions) {
+        if (CollectionUtils.isEmpty(dimensions)) {
+            return true;
+        }
+        List<ComputedColumnDesc> computedColumnDescs = model.getComputedColumnDescs().stream()
+                .filter(cc -> dimensions.contains(cc.getFullName())).collect(Collectors.toList());
+
+        long authComputedCount = computedColumnDescs.stream()
+                .filter(cc -> authColumns.containsAll(convertCCToNormalCols(model, cc))).count();
+
+        if (computedColumnDescs.size() != authComputedCount) {
+            return false;
+        }
+
+        List<String> normalColumns = dimensions.stream().filter(column -> !computedColumnDescs.stream()
+                .map(ComputedColumnDesc::getFullName).collect(Collectors.toList()).contains(column))
+                .collect(Collectors.toList());
+        return authColumns.containsAll(normalColumns);
+    }
+
+    public Set<String> convertCCToNormalCols(NDataModel model, ComputedColumnDesc computedColumnDesc) {
+        IndexDependencyParser parser = new IndexDependencyParser(model);
+        try {
+            Set<TblColRef> tblColRefList = parser.unwrapComputeColumn(computedColumnDesc.getInnerExpression());
+            return tblColRefList.stream().map(TblColRef::getAliasDotName).collect(Collectors.toSet());
+        } catch (Exception e) {
+            log.warn("UnWrap computed column {} in project {} model {} exception",
+                    computedColumnDesc.getInnerExpression(), model.getProject(), model.getAlias(), e);
+        }
+        return Collections.emptySet();
+    }
+
+    private boolean checkMeasurePermission(Set<String> authColumns, NDataModel.Measure measure, NDataModel model) {
+        Set<String> measureColumns = measure.getFunction().getParameters().stream()
+                .filter(parameterDesc -> parameterDesc.getColRef() != null)
+                .map(parameterDesc -> parameterDesc.getColRef().getAliasDotName()).collect(Collectors.toSet());
+
+        List<ComputedColumnDesc> computedColumnDescs = model.getComputedColumnDescs().stream()
+                .filter(cc -> measureColumns.contains(cc.getFullName()))
+                .collect(Collectors.toList());
+
+        long authComputedCount = computedColumnDescs.stream()
+                .filter(cc -> authColumns.containsAll(convertCCToNormalCols(model, cc))).count();
+
+        if (computedColumnDescs.size() != authComputedCount) {
+            return false;
+        }
+
+        List<String> normalColumns = measureColumns.stream()
+                .filter(column -> !computedColumnDescs.stream()
+                        .map(ComputedColumnDesc::getFullName).collect(Collectors.toList())
+                        .contains(column))
+                .collect(Collectors.toList());
+
+        return authColumns.containsAll(normalColumns);
     }
 
     private Set<String> getAllAuthTables(String project, Set<String> groups, String user) {
