@@ -58,7 +58,7 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.query.exception.NAsyncQueryIllegalParamException;
 import org.apache.kylin.query.util.AsyncQueryUtil;
-import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.rest.exception.NotFoundException;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -132,7 +132,7 @@ public class AsyncQueryService extends BasicService {
         Path dataPath = getAsyncQueryResultDir(project, queryId);
 
         if (!fileSystem.exists(dataPath)) {
-            throw new BadRequestException(MsgPicker.getMsg().getQueryResultFileNotFound());
+            throw new NotFoundException(MsgPicker.getMsg().getQueryResultFileNotFound());
         }
 
         try (ServletOutputStream outputStream = response.getOutputStream()) {
@@ -150,15 +150,26 @@ public class AsyncQueryService extends BasicService {
             }
             switch (fileFormat) {
             case "csv":
-                CSVWriter csvWriter = new CSVWriter();
-                processCSV(outputStream, dataPath, includeHeader, columnNames, csvWriter, separator);
+                if (!includeHeader) {
+                    processFile(outputStream, dataPath);
+                } else {
+                    CSVWriter csvWriter = new CSVWriter();
+                    processCSV(outputStream, dataPath, includeHeader, columnNames, csvWriter, separator);
+                }
                 break;
             case "json":
                 processJSON(outputStream, dataPath, encode);
                 break;
             case "xlsx":
-                XLSXExcelWriter xlsxExcelWriter = new XLSXExcelWriter();
-                processXLSX(outputStream, dataPath, includeHeader, columnNames, xlsxExcelWriter);
+                if (!includeHeader) {
+                    processFile(outputStream, dataPath);
+                } else {
+                    XLSXExcelWriter xlsxExcelWriter = new XLSXExcelWriter();
+                    processXLSX(outputStream, dataPath, includeHeader, columnNames, xlsxExcelWriter);
+                }
+                break;
+            case "parquet":
+                processFile(outputStream, dataPath);
                 break;
             default:
                 logger.info("Query:{}, processed", queryId);
@@ -173,7 +184,7 @@ public class AsyncQueryService extends BasicService {
         Path dataPath = new Path(getAsyncQueryResultDir(project, queryId), AsyncQueryUtil.getFailureFlagFileName());
 
         if (!fileSystem.exists(dataPath)) {
-            throw new BadRequestException(msg.getQueryExceptionFileNotFound());
+            throw new NotFoundException(msg.getQueryExceptionFileNotFound());
         }
         try (FSDataInputStream inputStream = fileSystem.open(dataPath);
                 InputStreamReader reader = new InputStreamReader(inputStream, Charset.defaultCharset())) {
@@ -245,7 +256,7 @@ public class AsyncQueryService extends BasicService {
             }
             return totalFileSize;
         } else {
-            throw new BadRequestException(MsgPicker.getMsg().getQueryResultNotFound());
+            throw new NotFoundException(MsgPicker.getMsg().getQueryResultNotFound());
         }
     }
 
@@ -384,6 +395,18 @@ public class AsyncQueryService extends BasicService {
         }
         String json = new ObjectMapper().writeValueAsString(rowResults);
         IOUtils.copy(IOUtils.toInputStream(json), outputStream);
+    }
+
+    private void processFile(OutputStream outputStream, Path dataPath) throws IOException {
+        FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
+        FileStatus[] fileStatuses = fileSystem.listStatus(dataPath);
+        for (FileStatus f : fileStatuses) {
+            if (!f.getPath().getName().startsWith("_")) {
+                try (FSDataInputStream inputStream = fileSystem.open(f.getPath())) {
+                    IOUtils.copy(inputStream, outputStream);
+                }
+            }
+        }
     }
 
     private void processXLSX(OutputStream outputStream, Path dataPath, boolean includeHeader, String columnNames, XLSXExcelWriter excelWriter)
