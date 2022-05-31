@@ -315,6 +315,21 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 Mockito.any(ModelUpdateRequest.class));
     }
 
+    @Test
+    public void testUpdateModelStatusInsensitiveProject() throws Exception {
+        ModelUpdateRequest modelUpdateRequest = mockModelUpdateRequest();
+        modelUpdateRequest.setProject("DEFAULT");
+        modelUpdateRequest.setStatus("ONLINE");
+        Mockito.doNothing().when(modelService).updateDataModelStatus("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa",
+                "OFFLINE");
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/{model}/status", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(modelUpdateRequest))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nModelController).updateModelStatus(eq("89af4ee2-2cdb-4b07-b39e-4c29856309aa"),
+                Mockito.any(ModelUpdateRequest.class));
+    }
+
     private ModelUpdateRequest mockModelUpdateRequest() {
         ModelUpdateRequest updateRequest = new ModelUpdateRequest();
         updateRequest.setProject("default");

@@ -549,7 +549,8 @@ public class NModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> updateModelStatus(@PathVariable("model") String modelId,
             @RequestBody ModelUpdateRequest modelRenameRequest) {
-        checkProjectName(modelRenameRequest.getProject());
+        String actualProject = checkProjectName(modelRenameRequest.getProject());
+        modelRenameRequest.setProject(actualProject);
         checkRequiredArg(MODEL_ID, modelId);
         modelService.updateDataModelStatus(modelId, modelRenameRequest.getProject(), modelRenameRequest.getStatus());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
