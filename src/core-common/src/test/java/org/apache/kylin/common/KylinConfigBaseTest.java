@@ -918,6 +918,7 @@ class KylinConfigBaseTest {
                 new PropertiesEntity("kylin.security.remove-ldap-custom-security-limit-enabled", "false", false));
         map.put("getLightningClusterId", new PropertiesEntity("kylin.lightning.cluster-id", "0", 0L));
         map.put("getLightningWorkspaceId", new PropertiesEntity("kylin.lightning.workspace-id", "0", 0L));
+        map.put("getJobCallbackLanguage", new PropertiesEntity("kylin.job.callback-language", "en", "en"));
     }
 
     @Test

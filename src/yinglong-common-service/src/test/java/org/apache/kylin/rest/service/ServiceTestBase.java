@@ -42,10 +42,8 @@
 
 package org.apache.kylin.rest.service;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.engine.spark.ExecutableUtils;
-import io.kyligence.kap.metadata.user.ManagedUser;
-import io.kyligence.kap.secondstorage.SecondStorageUpdater;
+import java.util.Arrays;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
@@ -55,6 +53,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
@@ -71,12 +70,16 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 
-import java.util.Arrays;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.engine.spark.ExecutableUtils;
+import io.kyligence.kap.metadata.user.ManagedUser;
+import io.kyligence.kap.secondstorage.SecondStorageUpdater;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = ServiceTestBase.SpringConfig.class)
 @WebAppConfiguration(value = "../yinglong-common-service/src/main/resources")
 @ActiveProfiles({ "testing", "test" })
+@PowerMockIgnore({ "org.w3c.*", "javax.xml.*", "org.xml.*", "org.apache.*", "org.w3c.dom.*", "org.apache.cxf.*" })
 public class ServiceTestBase extends NLocalFileMetadataTestCase {
 
     @Autowired
@@ -136,7 +139,7 @@ public class ServiceTestBase extends NLocalFileMetadataTestCase {
 
     @Configuration
     @ComponentScan("io.kyligence.kap.rest")
-    @ImportResource(locations = {"classpath:applicationContext.xml", "classpath:kylinSecurity.xml"})
+    @ImportResource(locations = { "classpath:applicationContext.xml", "classpath:kylinSecurity.xml" })
     @EnableAsync
     public static class SpringConfig {
         @Bean

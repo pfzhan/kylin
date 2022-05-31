@@ -24,11 +24,11 @@
 
 package io.kyligence.kap.rest.config.initialize;
 
+import static org.apache.kylin.common.exception.code.ErrorCodeCommon.NON_KE_EXCEPTION;
+
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 import java.time.Duration;
 import java.util.Base64;
 import java.util.List;
@@ -40,10 +40,7 @@ import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLContext;
 
-import com.google.common.collect.Lists;
 import org.apache.commons.collections.CollectionUtils;
-import io.micrometer.core.instrument.DistributionSummary;
-import io.micrometer.core.instrument.MeterRegistry;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
@@ -58,16 +55,24 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.ssl.SSLContextBuilder;
-import org.apache.http.ssl.TrustStrategy;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.ErrorCode;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.code.ErrorMsg;
+import org.apache.kylin.common.exception.code.ErrorSuggestion;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.manager.SegmentAutoMergeUtil;
 import org.apache.kylin.metadata.model.TimeRange;
+import org.apache.kylin.rest.util.SpringContext;
+import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.base.Throwables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.metrics.MetricsCategory;
@@ -83,14 +88,16 @@ import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.response.SegmentPartitionResponse;
+import io.micrometer.core.instrument.DistributionSummary;
+import io.micrometer.core.instrument.MeterRegistry;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
-import org.apache.kylin.rest.util.SpringContext;
 
 @Slf4j
 @Component
@@ -157,9 +164,22 @@ public class JobSyncListener {
                 SegmentAutoMergeUtil.autoMergeSegments(notifier.getProject(), notifier.getSubject(),
                         notifier.getOwner());
             }
-        } catch (Throwable e) {
+        } catch (Exception e) {
             log.error("Auto merge failed on project {} model {}", notifier.getProject(), notifier.getSubject(), e);
         }
+    }
+
+    private static void setLanguage(String lang) {
+        MsgPicker.setMsg(lang);
+        ErrorCode.setMsg(lang);
+        ErrorMsg.setMsg(lang);
+        ErrorSuggestion.setMsg(lang);
+    }
+
+    private static KylinConfig getOverrideConfig(String project) {
+        val originalConfig = KylinConfig.getInstanceFromEnv();
+        val projectInstance = NProjectManager.getInstance(originalConfig).getProject(project);
+        return projectInstance.getConfig();
     }
 
     static JobInfo extractJobInfo(JobFinishedNotifier notifier) {
@@ -173,16 +193,16 @@ public class JobSyncListener {
         if (dataflow != null && CollectionUtils.isNotEmpty(segmentIds)) {
             val model = dataflow.getModel();
             val partitionDesc = model.getMultiPartitionDesc();
-            for (String id : segmentIds) {
+            segmentIds.forEach(id -> {
                 NDataSegment segment = dataflow.getSegment(id);
                 if (segment == null) {
-                    continue;
+                    return;
                 }
                 TimeRange segRange = segment.getTSRange();
                 segRangeList.add(new SegRange(id, segRange.getStart(), segRange.getEnd()));
                 if (partitionDesc != null && notifier.getSegmentPartitionsMap().get(id) != null
                         && !notifier.getSegmentPartitionsMap().get(id).isEmpty()) {
-                    List<SegmentPartitionResponse> SegmentPartitionResponses = segment.getMultiPartitions().stream()
+                    List<SegmentPartitionResponse> segmentPartitionResponseList = segment.getMultiPartitions().stream()
                             .filter(segmentPartition -> notifier.getSegmentPartitionsMap().get(id)
                                     .contains(segmentPartition.getPartitionId()))
                             .map(partition -> {
@@ -191,18 +211,50 @@ public class JobSyncListener {
                                         partition.getStatus(), partition.getLastBuildTime(), partition.getSourceCount(),
                                         partition.getStorageSize());
                             }).collect(Collectors.toList());
-                    segmentPartitionsInfoList.add(new SegmentPartitionsInfo(id, SegmentPartitionResponses));
+                    segmentPartitionsInfoList.add(new SegmentPartitionsInfo(id, segmentPartitionResponseList));
                 }
+            });
+        }
+
+        String errorCode = null;
+        String suggestion = null;
+        String msg = null;
+        String code = null;
+        String stacktrace = null;
+        Throwable throwable = notifier.getThrowable();
+        if (throwable != null) {
+            Throwable rootCause = Throwables.getRootCause(throwable);
+            KylinConfig kylinConfig = getOverrideConfig(project);
+            setLanguage(kylinConfig.getJobCallbackLanguage());
+            if (rootCause instanceof KylinException) {
+                msg = rootCause.getLocalizedMessage();
+                KylinException kylinException = (KylinException) rootCause;
+                code = kylinException.getCode();
+                suggestion = kylinException.getSuggestionString();
+                errorCode = kylinException.getErrorCodeString();
+                stacktrace = Throwables.getStackTraceAsString(rootCause);
+            } else {
+                errorCode = NON_KE_EXCEPTION.getErrorCode().getCode();
+                msg = NON_KE_EXCEPTION.getCodeMsg();
+                suggestion = NON_KE_EXCEPTION.getErrorSuggest().getLocalizedString();
+                code = KylinException.CODE_UNDEFINED;
+                stacktrace = Throwables.getStackTraceAsString(throwable);
             }
         }
-        return new JobInfo(notifier.getJobId(), notifier.getProject(), notifier.getSubject(), notifier.getSegmentIds(),
-                notifier.getLayoutIds(), notifier.getDuration(), notifier.getJobState(), notifier.getJobType(),
-                segRangeList, segmentPartitionsInfoList, notifier.getStartTime(), notifier.getEndTime(),
-                notifier.getTag());
+        return JobInfo.builder().jobId(notifier.getJobId()).project(notifier.getProject())
+                .modelId(notifier.getSubject()).segmentIds(notifier.getSegmentIds()).indexIds(notifier.getLayoutIds())
+                .duration(notifier.getDuration())
+                .state("SUICIDAL".equalsIgnoreCase(notifier.getJobState()) ? "DISCARDED" : notifier.getJobState())
+                .jobType(notifier.getJobType()).segRanges(segRangeList)
+                .segmentPartitionInfoList(segmentPartitionsInfoList).startTime(notifier.getStartTime())
+                .endTime(notifier.getEndTime()).tag(notifier.getTag()).errorCode(errorCode).suggestion(suggestion)
+                .msg(msg).code(code).stacktrace(stacktrace).build();
+
     }
 
     @Getter
     @Setter
+    @Builder
     public static class JobInfo {
 
         @JsonProperty("job_id")
@@ -244,28 +296,20 @@ public class JobSyncListener {
         @JsonProperty("tag")
         private Object tag;
 
-        public JobInfo(String jobId, String project, String subject, Set<String> segmentIds, Set<Long> layoutIds,
-                long duration, String jobState, String jobType, List<SegRange> segRanges,
-                List<SegmentPartitionsInfo> segmentPartitionInfoList, long startTime, long endTime, Object tag) {
-            this.jobId = jobId;
-            this.project = project;
-            this.modelId = subject;
-            this.segmentIds = segmentIds;
-            this.indexIds = layoutIds;
-            this.duration = duration;
-            if ("SUICIDAL".equalsIgnoreCase(jobState)) {
-                this.state = "DISCARDED";
-            } else {
-                this.state = jobState;
-            }
-            this.jobType = jobType;
-            this.segRanges = segRanges;
-            this.segmentPartitionInfoList = segmentPartitionInfoList;
-            this.startTime = startTime;
-            this.endTime = endTime;
-            this.tag = tag;
-        }
+        @JsonProperty("error_code")
+        private String errorCode;
 
+        @JsonProperty("suggestion")
+        private String suggestion;
+
+        @JsonProperty("msg")
+        private String msg;
+
+        @JsonProperty("code")
+        private String code;
+
+        @JsonProperty("stacktrace")
+        private String stacktrace;
     }
 
     @Setter
@@ -305,7 +349,7 @@ public class JobSyncListener {
         String url = KylinConfig.getInstanceFromEnv().getJobFinishedNotifierUrl();
         log.info("post job info parameter, url : {}, state : {}, segmentId : {}", url, info.getState(),
                 info.getSegmentIds());
-        if (url == null || info.getSegmentIds() == null || "READY".equalsIgnoreCase(info.getState())) {
+        if (url == null || "READY".equalsIgnoreCase(info.getState())) {
             return;
         }
 
@@ -338,12 +382,7 @@ public class JobSyncListener {
 
     @SneakyThrows
     public static SSLContext getTrustAllSSLContext() {
-        return new SSLContextBuilder().loadTrustMaterial(null, new TrustStrategy() {
-            @Override
-            public boolean isTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-                return true;
-            }
-        }).build();
+        return new SSLContextBuilder().loadTrustMaterial(null, (chain, authType) -> true).build();
     }
 
     private static String makeToken(String username, String password) {
@@ -360,7 +399,8 @@ public class JobSyncListener {
             String project = notifier.getProject();
             NDataflowManager manager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             NDataflow dataflow = manager.getDataflow(notifier.getSubject());
-            recordPrometheusMetric(notifier, SpringContext.getBean(MeterRegistry.class), dataflow==null?"":dataflow.getModelAlias(), state);
+            recordPrometheusMetric(notifier, SpringContext.getBean(MeterRegistry.class),
+                    dataflow == null ? "" : dataflow.getModelAlias(), state);
             if (state.isFinalState()) {
                 long duration = notifier.getDuration();
                 MetricsGroup.hostTagCounterInc(MetricsName.JOB_FINISHED, MetricsCategory.PROJECT, project);
@@ -435,8 +475,8 @@ public class JobSyncListener {
                         .tags(MetricsTag.MODEL.getVal(), modelAlias, MetricsTag.PROJECT.getVal(), notifier.getProject(),
                                 MetricsTag.JOB_TYPE.getVal(), notifier.getJobType(), MetricsTag.SUCCEED.getVal(),
                                 (ExecutableState.SUCCEED == state) + "")
-                        .distributionStatisticExpiry(Duration.ofDays(1)).sla(KylinConfig.getInstanceFromEnv().getMetricsJobSlaMinutes())
-                        .register(meterRegistry)
+                        .distributionStatisticExpiry(Duration.ofDays(1))
+                        .sla(KylinConfig.getInstanceFromEnv().getMetricsJobSlaMinutes()).register(meterRegistry)
                         .record((notifier.getDuration() + notifier.getWaitTime()) / (60.0 * 1000.0));
             }
         }
