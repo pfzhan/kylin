@@ -808,8 +808,8 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
         List<AbstractExecutable> runningJobList = NExecutableManager
                 .getInstance(KylinConfig.getInstanceFromEnv(), project) //
                 .getPartialExecutablesByStatusList(
-                        Sets.newHashSet(ExecutableState.READY, ExecutableState.RUNNING, ExecutableState.PAUSED,
-                                ExecutableState.ERROR), //
+                        Sets.newHashSet(ExecutableState.READY, ExecutableState.PENDING, ExecutableState.RUNNING,
+                                ExecutableState.PAUSED, ExecutableState.ERROR), //
                         path -> StringUtils.endsWith(path, modelId));
 
         return runningJobList.stream()

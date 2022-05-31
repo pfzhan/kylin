@@ -35,6 +35,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.constant.JobStatusEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,6 +48,7 @@ import io.kyligence.kap.job.core.lock.JdbcJobLock;
 import io.kyligence.kap.job.core.lock.LockAcquireListener;
 import io.kyligence.kap.job.core.lock.LockException;
 import io.kyligence.kap.job.domain.JobInfo;
+import io.kyligence.kap.job.execution.AbstractExecutable;
 import io.kyligence.kap.job.manager.ExecutableManager;
 
 public class JdbcJobScheduler implements JobScheduler {
@@ -185,8 +187,9 @@ public class JdbcJobScheduler implements JobScheduler {
                 }
                 int r = jobContext.getJobLockMapper().upsertLock(jobId, null, 0L);
                 if (r > 0) {
-                    // TODO enum job status
-                    jobContext.getJobInfoMapper().updateJobStatusByJobId(jobId, "PENDING");
+                    JobInfo jobInfo = jobContext.getJobInfoMapper().selectByJobId(jobId);
+                    ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), jobInfo.getProject())
+                            .publishJob(jobId, (AbstractExecutable) getJobExecutable(jobInfo));
                 }
             }
 
@@ -221,6 +224,10 @@ public class JdbcJobScheduler implements JobScheduler {
                 JobInfo jobInfo = jobContext.getJobInfoMapper().selectByJobId(jobId);
                 if (Objects.isNull(jobInfo)) {
                     logger.warn("Job not found: {}", jobId);
+                    return;
+                }
+                if (jobInfo.getJobStatus().equals(JobStatusEnum.READY.name())) {
+                    logger.warn("Job status is READY, wait for master to change it to pending");
                     return;
                 }
                 final AbstractJobExecutable jobExecutable = getJobExecutable(jobInfo);
@@ -263,7 +270,6 @@ public class JdbcJobScheduler implements JobScheduler {
     }
 
     private AbstractJobExecutable getJobExecutable(JobInfo jobInfo) {
-        // TODO
         return ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), jobInfo.getProject())
                 .getJob(jobInfo.getJobId());
     }

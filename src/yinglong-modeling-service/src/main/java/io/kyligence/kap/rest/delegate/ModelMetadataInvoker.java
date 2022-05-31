@@ -102,8 +102,9 @@ public class ModelMetadataInvoker extends ModelMetadataBaseInvoker {
 
     public NDataSegment appendSegment(AddSegmentRequest request) {
         NDataSegment segment = getDelegate().appendSegment(request);
-        waitForSync(() -> NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject())
-                .getDataflow(request.getModelId()).getSegment(segment.getId()) != null);
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        waitForSync(() -> NDataflowManager.getInstance(config, request.getProject()).getDataflow(request.getModelId())
+                .getSegment(segment.getId()) != null);
         return segment;
     }
 

@@ -124,7 +124,13 @@ public enum JobStatusEnum {
         public boolean checkAction(JobActionEnum actionEnum) {
             return false;
         }
-    };
+    },
+    READY(2048) {
+        @Override
+        public boolean checkAction(JobActionEnum actionEnum) {
+            return true;
+        }
+    },;
 
     public abstract boolean checkAction(JobActionEnum actionEnum);
 

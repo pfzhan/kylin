@@ -56,7 +56,7 @@ import org.apache.kylin.job.constant.JobStatusEnum;
  */
 public enum ExecutableState {
 
-    READY, RUNNING, ERROR, PAUSED, DISCARDED, SUCCEED, SUICIDAL, SKIP;
+    READY, PENDING, RUNNING, ERROR, PAUSED, DISCARDED, SUCCEED, SUICIDAL, SKIP;
 
     private static Multimap<ExecutableState, ExecutableState> VALID_STATE_TRANSFER;
 
@@ -70,11 +70,15 @@ public enum ExecutableState {
                     }
                 });
 
-        VALID_STATE_TRANSFER.put(ExecutableState.READY, ExecutableState.RUNNING);
-        VALID_STATE_TRANSFER.put(ExecutableState.READY, ExecutableState.ERROR);
+        VALID_STATE_TRANSFER.put(ExecutableState.READY, ExecutableState.PENDING);
         VALID_STATE_TRANSFER.put(ExecutableState.READY, ExecutableState.DISCARDED);
-        VALID_STATE_TRANSFER.put(ExecutableState.READY, ExecutableState.SUICIDAL);
-        VALID_STATE_TRANSFER.put(ExecutableState.READY, ExecutableState.PAUSED);
+
+        VALID_STATE_TRANSFER.put(ExecutableState.PENDING, ExecutableState.READY);
+        VALID_STATE_TRANSFER.put(ExecutableState.PENDING, ExecutableState.RUNNING);
+        VALID_STATE_TRANSFER.put(ExecutableState.PENDING, ExecutableState.ERROR);
+        VALID_STATE_TRANSFER.put(ExecutableState.PENDING, ExecutableState.DISCARDED);
+        VALID_STATE_TRANSFER.put(ExecutableState.PENDING, ExecutableState.SUICIDAL);
+        VALID_STATE_TRANSFER.put(ExecutableState.PENDING, ExecutableState.PAUSED);
 
         VALID_STATE_TRANSFER.put(ExecutableState.RUNNING, ExecutableState.READY);
         VALID_STATE_TRANSFER.put(ExecutableState.RUNNING, ExecutableState.SUCCEED);
@@ -126,6 +130,8 @@ public enum ExecutableState {
             case SKIP:
                 return JobStatusEnum.SKIP;
             case READY:
+                return JobStatusEnum.READY;
+            case PENDING:
                 return JobStatusEnum.PENDING;
             case RUNNING:
                 return JobStatusEnum.RUNNING;

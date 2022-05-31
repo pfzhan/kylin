@@ -234,12 +234,15 @@ public class MetricsRegistry {
             List<ExecutablePO> list = executableManager.getAllJobs();
             return list == null ? 0 : list.stream().filter(e -> {
                 String status = e.getOutput().getStatus();
-                return ExecutableState.RUNNING.name().equals(status) || ExecutableState.READY.name().equals(status);
+                return ExecutableState.RUNNING.name().equals(status) || ExecutableState.READY.name().equals(status)
+                        || ExecutableState.PENDING.name().equals(status);
             }).count();
         });
         MetricsGroup.newGauge(MetricsName.JOB_PENDING_GAUGE, MetricsCategory.PROJECT, project, () -> {
             List<ExecutablePO> list = executableManager.getAllJobs();
-            return list == null ? 0 : list.stream().filter(e -> ExecutableState.READY.name().equals(e.getOutput().getStatus())).count();
+            return list == null ? 0
+                    : list.stream().filter(e -> ExecutableState.READY.name().equals(e.getOutput().getStatus())
+                            || ExecutableState.PENDING.name().equals(e.getOutput().getStatus())).count();
         });
     }
 

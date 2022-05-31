@@ -484,7 +484,7 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
 
     @Override
     public boolean isRunnable() {
-        return this.getStatus() == ExecutableState.READY;
+        return this.getStatus() == ExecutableState.PENDING;
     }
 
     public String getDisplayName() {

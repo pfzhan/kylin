@@ -157,7 +157,8 @@ public class MonitorService extends BasicService {
                 } else if (ExecutableState.RUNNING == executable.getStatus()) {
                     runningJobs.add(executable);
                 } else if (ExecutableState.READY == executable.getStatus()
-                        || ExecutableState.PAUSED == executable.getStatus()) {
+                        || ExecutableState.PAUSED == executable.getStatus()
+                        || ExecutableState.PENDING == executable.getStatus()) {
                     pendingJobs.add(executable);
                 } else if (ExecutableState.ERROR == executable.getStatus()) {
                     errorJobs.add(executable);

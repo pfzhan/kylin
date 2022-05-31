@@ -343,6 +343,7 @@ public class ExecutableManager {
         EventBusFactory.getInstance().postSync(new CliCommandExecutor.JobKilled(jobId));
     }
 
+    @Deprecated
     private boolean resumeRunningJob(ExecutablePO po) {
         boolean result = false;
         if (po.getOutput().getStatus().equalsIgnoreCase(ExecutableState.RUNNING.toString())) {
@@ -638,6 +639,37 @@ public class ExecutableManager {
         }
 
         updateJobOutput(jobId, ExecutableState.READY);
+    }
+
+    // READY -> PENDING
+    public void publishJob(String jobId, AbstractExecutable job) {
+        if (Objects.isNull(job) || job.getStatus() != ExecutableState.READY) {
+            return;
+        }
+
+        if (job instanceof DefaultChainedExecutable) {
+            List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
+            tasks.stream()
+                    .filter(task -> task.getStatus() == ExecutableState.READY)
+                    .forEach(task -> updateJobOutput(task.getId(), ExecutableState.PENDING));
+            tasks.forEach(task -> {
+                if (task instanceof ChainedStageExecutable) {
+                    final Map<String, List<StageBase>> tasksMap = ((ChainedStageExecutable) task).getStagesMap();
+                    if (MapUtils.isNotEmpty(tasksMap)) {
+                        for (Map.Entry<String, List<StageBase>> entry : tasksMap.entrySet()) {
+                            // update running stage to ready
+                            Optional.ofNullable(entry.getValue()).orElse(Lists.newArrayList())//
+                                    .stream() //
+                                    .filter(stage -> stage.getStatus(entry.getKey()) == ExecutableState.READY)//
+                                    .forEach(stage -> //
+                                            updateStageStatus(stage.getId(), entry.getKey(), ExecutableState.PENDING, null, null));
+                        }
+                    }
+                }
+            });
+        }
+
+        updateJobOutput(jobId, ExecutableState.PENDING);
     }
 
     /** just used to update stage */

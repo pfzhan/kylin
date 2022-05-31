@@ -360,9 +360,10 @@ public class JobService extends BasicService implements JobSupporter {
         case FINISHED:
             return ExecutableState.SUCCEED;
         case NEW:
+        case READY:
             return ExecutableState.READY;
         case PENDING:
-            return ExecutableState.READY;
+            return ExecutableState.PENDING;
         case RUNNING:
             return ExecutableState.RUNNING;
         case STOPPED:

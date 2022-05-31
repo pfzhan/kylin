@@ -105,7 +105,7 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
 
     @Override
     protected void onExecuteStart() throws JobStoppedException {
-        if (isStoppedNonVoluntarily() && ExecutableState.READY != getOutput().getState()) //onExecuteStart will turn READY to RUNNING
+        if (isStoppedNonVoluntarily() && ExecutableState.PENDING != getOutput().getState()) //onExecuteStart will turn READY to RUNNING
             return;
         updateJobOutput(project, getId(), ExecutableState.RUNNING, null, null, null);
     }
@@ -159,7 +159,7 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
         } else if (hasPaused) {
             state = ExecutableState.PAUSED;
         } else {
-            state = ExecutableState.READY;
+            state = ExecutableState.PENDING;
         }
 
         logger.info("Job finished {}, state:{}", this.getDisplayName(), state);
@@ -176,7 +176,7 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
             break;
         case ERROR:
         case PAUSED:
-        case READY:
+        case PENDING:
             if (isStoppedNonVoluntarily()) {
                 logger.info("Execute finished  {} which is stopped nonvoluntarily, state: {}",
                         this.getDisplayName(), getOutput().getState());
