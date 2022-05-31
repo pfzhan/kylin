@@ -2892,6 +2892,13 @@ public abstract class KylinConfigBase implements Serializable {
     @ThirdPartyDependencies({
             @ThirdPartyDependencies.ThirdPartyDependent(repository = "static-user-manager", classes = {
                     "AuthenticationClient" }) })
+    public Long getLightningWorkspaceId() {
+        return Long.parseLong(getOptional("kylin.lightning.workspace-id", "0"));
+    }
+
+    @ThirdPartyDependencies({
+            @ThirdPartyDependencies.ThirdPartyDependent(repository = "static-user-manager", classes = {
+                    "AuthenticationClient" }) })
     public String getLightningServerZkNode() {
         return getOptional("kylin.lightning.server.zookeeper-node", "/kylin/management");
     }
