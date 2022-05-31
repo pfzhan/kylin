@@ -230,7 +230,11 @@ object ExpressionConverter {
               k_lit(children.head),
               scale.asInstanceOf[Int])
           case "truncate" =>
-            k_truncate(k_lit(children.head), children.apply(1).asInstanceOf[Int])
+            if (children.size == 1) {
+              k_truncate(k_lit(children.head), 0)
+            } else {
+              k_truncate(k_lit(children.head), children.apply(1).asInstanceOf[Int])
+            }
           case "cot" =>
             k_lit(1).divide(tan(k_lit(children.head)))
           // null handling funcs
@@ -247,8 +251,8 @@ object ExpressionConverter {
           case "character_length" => length(k_lit(children.head))
           case "replace" =>
             regexp_replace(k_lit(children.head),
-              children.apply(1).asInstanceOf[String],
-              children.apply(2).asInstanceOf[String])
+              k_lit(children.apply(1)),
+              k_lit(children.apply(2)))
           case "substring" | "substr" =>
             if (children.length == 3) { //substr(str1,startPos,length)
               k_lit(children.head)

@@ -40,7 +40,8 @@ public class SyncContext {
     public enum ModelElement {
         AGG_INDEX_COL,
         AGG_INDEX_AND_TABLE_INDEX_COL,
-        ALL_COLS
+        ALL_COLS,
+        CUSTOM_COLS
     }
 
     private String projectName;

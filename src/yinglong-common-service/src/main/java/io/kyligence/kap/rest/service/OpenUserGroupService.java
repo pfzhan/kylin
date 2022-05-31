@@ -26,8 +26,10 @@ package io.kyligence.kap.rest.service;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.Collectors;
 
 import io.kyligence.kap.common.annotation.ThirdPartyDependencies;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.msg.MsgPicker;
 
 import io.kyligence.kap.metadata.user.ManagedUser;
@@ -75,4 +77,14 @@ public abstract class OpenUserGroupService extends NUserGroupService {
     public String getUuidByGroupName(String groupName) {
         return groupName;
     }
+
+    @Override
+    public List<UserGroup> getUserGroupsFilterByGroupName(String userGroupName) {
+        aclEvaluate.checkIsGlobalAdmin();
+        return StringUtils.isEmpty(userGroupName) ? getUserGroupSpecialUuid()
+                : getUserGroupSpecialUuid().stream().filter(userGroup -> userGroup.getGroupName()
+                .toUpperCase(Locale.ROOT).contains(userGroupName.toUpperCase(Locale.ROOT)))
+                .collect(Collectors.toList());
+    }
+
 }

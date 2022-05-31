@@ -365,13 +365,16 @@ public class OpenModelController extends NBasicController {
     @ResponseBody
     public void biExport(@RequestParam("model_name") String modelAlias, @RequestParam(value = "project") String project,
             @RequestParam(value = "export_as") SyncContext.BI exportAs,
-                         @RequestParam(value = "element", required = false, defaultValue = "AGG_INDEX_COL") SyncContext.ModelElement element,
-                         @RequestParam(value = "server_host", required = false) String host,
-                         @RequestParam(value = "server_port", required = false) Integer port, HttpServletRequest request,
-                         HttpServletResponse response) throws IOException {
+            @RequestParam(value = "element", required = false, defaultValue = "AGG_INDEX_COL") SyncContext.ModelElement element,
+            @RequestParam(value = "server_host", required = false) String host,
+            @RequestParam(value = "server_port", required = false) Integer port,
+            @RequestParam(value = "dimensions", required = false) List<String> dimensions,
+            @RequestParam(value = "measures", required = false) List<String> measures, HttpServletRequest request,
+            HttpServletResponse response) throws IOException {
         String projectName = checkProjectName(project);
         String modelId = getModel(modelAlias, projectName).getId();
-        modelController.biExport(modelId, projectName, exportAs, element, host, port, request, response);
+        modelController.biExport(modelId, projectName, exportAs, element, host, port, dimensions, measures, request,
+                response);
     }
 
     @ApiOperation(value = "updateModelName", tags = { "AI" })

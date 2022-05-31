@@ -63,4 +63,6 @@ public interface QueryHistoryDAO {
     List<QueryStatistics> getQueryHistoriesModelIds(QueryHistoryRequest request, int size);
 
     String getRealizationMetricMeasurement();
+
+    List<QueryDailyStatistic> getQueryDailyStatistic(long startTime, long endTime);
 }

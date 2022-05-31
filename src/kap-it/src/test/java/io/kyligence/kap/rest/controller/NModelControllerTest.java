@@ -148,19 +148,15 @@ public class NModelControllerTest extends AbstractMVCIntegrationTestCase {
     public void testOpenAPIBIExport() throws Exception {
         String modelName = "multi_level_partition";
         String project = "multi_level_partition";
-        mockMvc.perform(MockMvcRequestBuilders
-                .get("/api/models/bi_export")
-                .param("model_name", modelName).param("project", project)
-                .param("export_as", "TABLEAU_ODBC_TDS").param("element", "AGG_INDEX_COL")
-                .contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/bi_export").param("model_name", modelName)
+                .param("project", project).param("export_as", "TABLEAU_ODBC_TDS").param("element", "AGG_INDEX_COL")
+                .param("dimensions", "").param("measures", "").contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        mockMvc.perform(MockMvcRequestBuilders
-                .get("/api/models/bi_export")
-                .param("model_name", modelName).param("project", project)
-                .param("export_as", "OTHER").param("element", "AGG_INDEX_COL")
-                .contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/bi_export").param("model_name", modelName)
+                .param("project", project).param("export_as", "OTHER").param("element", "AGG_INDEX_COL")
+                .param("dimensions", "").param("measures", "").contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().is4xxClientError());
     }
@@ -173,7 +169,7 @@ public class NModelControllerTest extends AbstractMVCIntegrationTestCase {
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models/bi_export").param("model_name", modelName)
                 .param("project", project).param("export_as", "TABLEAU_ODBC_TDS").param("element", "AGG_INDEX_COL")
-                .contentType(MediaType.APPLICATION_JSON)
+                .param("dimensions", "").param("measures", "").contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
     }

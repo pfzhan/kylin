@@ -15,13 +15,13 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 19,
-  "iteration": 1644982136974,
+  "id": 15,
+  "iteration": 1653464514993,
   "links": [],
   "panels": [
     {
       "collapsed": false,
-      "datasource": null,
+      "datasource": "Prometheus",
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -34,7 +34,7 @@
       "type": "row"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "Driver Memory Used",
       "fieldConfig": {
         "defaults": {
@@ -80,11 +80,11 @@
         "showThresholdMarkers": true,
         "text": {}
       },
-      "pluginVersion": "8.0.4",
+      "pluginVersion": "7.5.8",
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(metrics_driver_BlockManager_memory_memUsed_MB_Value{application_id=\"$applicationId\"}) / sum(metrics_driver_BlockManager_memory_maxMem_MB_Value{application_id=\"$applicationId\"})",
+          "expr": "sum(metrics_driver_BlockManager_memory_memUsed_MB_Value{job=\"$job\", application_id=\"$applicationId\"}) / sum(metrics_driver_BlockManager_memory_maxMem_MB_Value{job=\"$job\", application_id=\"$applicationId\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -94,7 +94,7 @@
       "type": "gauge"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "Total Driver Memory",
       "fieldConfig": {
         "defaults": {
@@ -142,11 +142,11 @@
         "text": {},
         "textMode": "auto"
       },
-      "pluginVersion": "8.0.4",
+      "pluginVersion": "7.5.8",
       "targets": [
         {
           "exemplar": true,
-          "expr": "metrics_driver_BlockManager_memory_maxMem_MB_Value{application_id=\"$applicationId\"}",
+          "expr": "metrics_driver_BlockManager_memory_maxMem_MB_Value{job=\"$job\", application_id=\"$applicationId\"}",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -156,7 +156,7 @@
       "type": "stat"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "Waiting Stages",
       "fieldConfig": {
         "defaults": {
@@ -199,11 +199,11 @@
         "text": {},
         "textMode": "auto"
       },
-      "pluginVersion": "8.0.4",
+      "pluginVersion": "7.5.8",
       "targets": [
         {
           "exemplar": true,
-          "expr": "metrics_driver_DAGScheduler_stage_waitingStages_Value{application_id=\"$applicationId\"}",
+          "expr": "metrics_driver_DAGScheduler_stage_waitingStages_Value{job=\"$job\", application_id=\"$applicationId\"}",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -213,7 +213,7 @@
       "type": "stat"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "Failed Stages",
       "fieldConfig": {
         "defaults": {
@@ -256,11 +256,11 @@
         "text": {},
         "textMode": "auto"
       },
-      "pluginVersion": "8.0.4",
+      "pluginVersion": "7.5.8",
       "targets": [
         {
           "exemplar": true,
-          "expr": "metrics_driver_DAGScheduler_stage_failedStages_Value{application_id=\"$applicationId\"}",
+          "expr": "metrics_driver_DAGScheduler_stage_failedStages_Value{job=\"$job\", application_id=\"$applicationId\"}",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -270,7 +270,7 @@
       "type": "stat"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "Running Stages",
       "fieldConfig": {
         "defaults": {
@@ -313,11 +313,11 @@
         "text": {},
         "textMode": "auto"
       },
-      "pluginVersion": "8.0.4",
+      "pluginVersion": "7.5.8",
       "targets": [
         {
           "exemplar": true,
-          "expr": "metrics_driver_DAGScheduler_stage_runningStages_Value{application_id=\"$applicationId\"}",
+          "expr": "metrics_driver_DAGScheduler_stage_runningStages_Value{job=\"$job\", application_id=\"$applicationId\"}",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -328,7 +328,7 @@
     },
     {
       "collapsed": false,
-      "datasource": null,
+      "datasource": "Prometheus",
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -345,8 +345,12 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "jobs_1m = jobs in last 1 minutes ",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -375,7 +379,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.0.4",
+      "pluginVersion": "7.5.8",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -386,14 +390,14 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "increase(metrics_driver_DAGScheduler_job_allJobs_Value{application_id=\"$applicationId\"}[1m])",
+          "expr": "increase(metrics_driver_DAGScheduler_job_allJobs_Value{job=\"$job\", application_id=\"$applicationId\"}[1m])",
           "interval": "",
           "legendFormat": "DAGScheduler_jobs_1m",
           "refId": "A"
         },
         {
           "exemplar": true,
-          "expr": "metrics_driver_DAGScheduler_job_activeJobs_Value{application_id=\"$applicationId\"}",
+          "expr": "metrics_driver_DAGScheduler_job_activeJobs_Value{job=\"$job\", application_id=\"$applicationId\"}",
           "hide": false,
           "interval": "",
           "legendFormat": "DAGScheduler_activeJobs",
@@ -420,7 +424,6 @@
       },
       "yaxes": [
         {
-          "$$hashKey": "object:94",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -429,7 +432,6 @@
           "show": true
         },
         {
-          "$$hashKey": "object:95",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -448,8 +450,12 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "Stages of DAGScheduler ",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -478,7 +484,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.0.4",
+      "pluginVersion": "7.5.8",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -489,14 +495,14 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "metrics_driver_DAGScheduler_stage_runningStages_Value{application_id=\"$applicationId\"}",
+          "expr": "metrics_driver_DAGScheduler_stage_runningStages_Value{job=\"$job\", application_id=\"$applicationId\"}",
           "interval": "",
           "legendFormat": "DAGScheduler_runningStages",
           "refId": "A"
         },
         {
           "exemplar": true,
-          "expr": "metrics_driver_DAGScheduler_stage_failedStages_Value{application_id=\"$applicationId\"}",
+          "expr": "metrics_driver_DAGScheduler_stage_failedStages_Value{job=\"$job\", application_id=\"$applicationId\"}",
           "hide": false,
           "interval": "",
           "legendFormat": "DAGScheduler_failedStages",
@@ -504,7 +510,7 @@
         },
         {
           "exemplar": true,
-          "expr": "metrics_driver_DAGScheduler_stage_waitingStages_Value{application_id=\"$applicationId\"}",
+          "expr": "metrics_driver_DAGScheduler_stage_waitingStages_Value{job=\"$job\", application_id=\"$applicationId\"}",
           "hide": false,
           "interval": "",
           "legendFormat": "DAGScheduler_waitingStages",
@@ -531,7 +537,6 @@
       },
       "yaxes": [
         {
-          "$$hashKey": "object:94",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -540,7 +545,6 @@
           "show": true
         },
         {
-          "$$hashKey": "object:95",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -555,7 +559,7 @@
       }
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "Memory space usage for driver",
       "fieldConfig": {
         "defaults": {
@@ -570,6 +574,7 @@
             "fillOpacity": 0,
             "gradientMode": "none",
             "hideFrom": {
+              "graph": false,
               "legend": false,
               "tooltip": false,
               "viz": false
@@ -581,14 +586,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
+            "spanNulls": false
           },
           "mappings": [],
           "thresholds": {
@@ -623,19 +621,22 @@
         },
         "tooltip": {
           "mode": "single"
+        },
+        "tooltipOptions": {
+          "mode": "single"
         }
       },
       "targets": [
         {
           "exemplar": true,
-          "expr": "metrics_driver_BlockManager_memory_maxMem_MB_Value{application_id=\"$applicationId\"}",
+          "expr": "metrics_driver_BlockManager_memory_maxMem_MB_Value{job=\"$job\", application_id=\"$applicationId\"}",
           "interval": "",
           "legendFormat": "maxMem",
           "refId": "A"
         },
         {
           "exemplar": true,
-          "expr": "metrics_driver_BlockManager_memory_maxOffHeapMem_MB_Value{application_id=\"$applicationId\"}",
+          "expr": "metrics_driver_BlockManager_memory_maxOffHeapMem_MB_Value{job=\"$job\", application_id=\"$applicationId\"}",
           "hide": false,
           "interval": "",
           "legendFormat": "maxOffHeapMem",
@@ -643,7 +644,7 @@
         },
         {
           "exemplar": true,
-          "expr": "metrics_driver_BlockManager_memory_maxOnHeapMem_MB_Value{application_id=\"$applicationId\"}",
+          "expr": "metrics_driver_BlockManager_memory_maxOnHeapMem_MB_Value{job=\"$job\", application_id=\"$applicationId\"}",
           "hide": false,
           "interval": "",
           "legendFormat": "maxOnHeapMem",
@@ -651,7 +652,7 @@
         },
         {
           "exemplar": true,
-          "expr": "metrics_driver_BlockManager_memory_memUsed_MB_Value{application_id=\"$applicationId\"}",
+          "expr": "metrics_driver_BlockManager_memory_memUsed_MB_Value{job=\"$job\", application_id=\"$applicationId\"}",
           "hide": false,
           "interval": "",
           "legendFormat": "memUsed",
@@ -659,7 +660,7 @@
         },
         {
           "exemplar": true,
-          "expr": "metrics_driver_BlockManager_memory_offHeapMemUsed_MB_Value{application_id=\"$applicationId\"}",
+          "expr": "metrics_driver_BlockManager_memory_offHeapMemUsed_MB_Value{job=\"$job\", application_id=\"$applicationId\"}",
           "hide": false,
           "interval": "",
           "legendFormat": "offHeapMemUsed",
@@ -667,7 +668,7 @@
         },
         {
           "exemplar": true,
-          "expr": "metrics_driver_BlockManager_memory_onHeapMemUsed_MB_Value{application_id=\"$applicationId\"}",
+          "expr": "metrics_driver_BlockManager_memory_onHeapMemUsed_MB_Value{job=\"$job\", application_id=\"$applicationId\"}",
           "hide": false,
           "interval": "",
           "legendFormat": "onHeapMemUsed",
@@ -682,7 +683,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "Disk space used for driver",
       "fieldConfig": {
         "defaults": {
@@ -718,7 +719,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.0.4",
+      "pluginVersion": "7.5.8",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -729,7 +730,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "metrics_driver_BlockManager_disk_diskSpaceUsed_MB_Value{application_id=\"$applicationId\"}",
+          "expr": "metrics_driver_BlockManager_disk_diskSpaceUsed_MB_Value{job=\"$job\", application_id=\"$applicationId\"}",
           "instant": false,
           "interval": "",
           "legendFormat": "driver",
@@ -756,7 +757,6 @@
       },
       "yaxes": [
         {
-          "$$hashKey": "object:650",
           "format": "mbytes",
           "label": null,
           "logBase": 1,
@@ -765,7 +765,6 @@
           "show": true
         },
         {
-          "$$hashKey": "object:651",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -781,7 +780,7 @@
     },
     {
       "collapsed": false,
-      "datasource": null,
+      "datasource": "Prometheus",
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -794,7 +793,7 @@
       "type": "row"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "minor GC count in last 1 minutes",
       "fieldConfig": {
         "defaults": {
@@ -809,6 +808,7 @@
             "fillOpacity": 0,
             "gradientMode": "none",
             "hideFrom": {
+              "graph": false,
               "legend": false,
               "tooltip": false,
               "viz": false
@@ -820,14 +820,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
+            "spanNulls": false
           },
           "mappings": [],
           "thresholds": {
@@ -862,12 +855,15 @@
         },
         "tooltip": {
           "mode": "single"
+        },
+        "tooltipOptions": {
+          "mode": "single"
         }
       },
       "targets": [
         {
           "exemplar": true,
-          "expr": "increase(metrics_executor_MinorGCCount_total{application_id=\"$applicationId\", executor_id=\"driver\"}[1m])",
+          "expr": "increase(metrics_executor_MinorGCCount_total{job=\"$job\", application_id=\"$applicationId\", executor_id=\"driver\"}[1m])",
           "interval": "",
           "legendFormat": "MinorGCCount",
           "refId": "A"
@@ -877,7 +873,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "minot GC duration in last 1 minutes",
       "fieldConfig": {
         "defaults": {
@@ -892,6 +888,7 @@
             "fillOpacity": 0,
             "gradientMode": "none",
             "hideFrom": {
+              "graph": false,
               "legend": false,
               "tooltip": false,
               "viz": false
@@ -903,14 +900,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
+            "spanNulls": false
           },
           "mappings": [],
           "thresholds": {
@@ -945,12 +935,15 @@
         },
         "tooltip": {
           "mode": "single"
+        },
+        "tooltipOptions": {
+          "mode": "single"
         }
       },
       "targets": [
         {
           "exemplar": true,
-          "expr": "increase(metrics_executor_MinorGCTime_seconds_total{application_id=\"$applicationId\", executor_id=\"driver\"}[1m])",
+          "expr": "increase(metrics_executor_MinorGCTime_seconds_total{job=\"$job\", application_id=\"$applicationId\", executor_id=\"driver\"}[1m])",
           "interval": "",
           "legendFormat": "MinorGCTime",
           "refId": "A"
@@ -960,7 +953,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "major GC count in last 1 minutes",
       "fieldConfig": {
         "defaults": {
@@ -975,6 +968,7 @@
             "fillOpacity": 0,
             "gradientMode": "none",
             "hideFrom": {
+              "graph": false,
               "legend": false,
               "tooltip": false,
               "viz": false
@@ -986,14 +980,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
+            "spanNulls": false
           },
           "mappings": [],
           "thresholds": {
@@ -1028,12 +1015,15 @@
         },
         "tooltip": {
           "mode": "single"
+        },
+        "tooltipOptions": {
+          "mode": "single"
         }
       },
       "targets": [
         {
           "exemplar": true,
-          "expr": "increase(metrics_executor_MajorGCCount_total{application_id=\"$applicationId\", executor_id=\"driver\"}[1m])",
+          "expr": "increase(metrics_executor_MajorGCCount_total{job=\"$job\", application_id=\"$applicationId\", executor_id=\"driver\"}[1m])",
           "interval": "",
           "legendFormat": "MajorGCCount",
           "refId": "A"
@@ -1043,7 +1033,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": null,
+      "datasource": "Prometheus",
       "description": "major GC duration in last 1 minutes",
       "fieldConfig": {
         "defaults": {
@@ -1058,6 +1048,7 @@
             "fillOpacity": 0,
             "gradientMode": "none",
             "hideFrom": {
+              "graph": false,
               "legend": false,
               "tooltip": false,
               "viz": false
@@ -1069,14 +1060,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
+            "spanNulls": false
           },
           "mappings": [],
           "thresholds": {
@@ -1111,12 +1095,15 @@
         },
         "tooltip": {
           "mode": "single"
+        },
+        "tooltipOptions": {
+          "mode": "single"
         }
       },
       "targets": [
         {
           "exemplar": true,
-          "expr": "increase(metrics_executor_MajorGCTime_seconds_total{application_id=\"$applicationId\", executor_id=\"driver\"}[1m])",
+          "expr": "increase(metrics_executor_MajorGCTime_seconds_total{job=\"$job\", application_id=\"$applicationId\", executor_id=\"driver\"}[1m])",
           "interval": "",
           "legendFormat": "MajorGCTime",
           "refId": "A"
@@ -1127,7 +1114,7 @@
     }
   ],
   "refresh": "",
-  "schemaVersion": 30,
+  "schemaVersion": 27,
   "style": "dark",
   "tags": [],
   "templating": {
@@ -1135,12 +1122,43 @@
       {
         "allValue": null,
         "current": {
-          "selected": false,
-          "text": "10.1.2.28:9092",
-          "value": "10.1.2.28:9092"
+          "selected": true,
+          "text": "Spark",
+          "value": "Spark"
         },
-        "datasource": null,
-        "definition": "label_values(metrics_executor_memoryUsed_bytes{},instance)",
+        "datasource": "Prometheus",
+        "definition": "label_values(metrics_executor_memoryUsed_bytes{},job)",
+        "description": null,
+        "error": null,
+        "hide": 0,
+        "includeAll": false,
+        "label": "Cluster",
+        "multi": false,
+        "name": "job",
+        "options": [],
+        "query": {
+          "query": "label_values(metrics_executor_memoryUsed_bytes{},job)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": null,
+        "current": {
+          "selected": false,
+          "text": "solution-3:9099",
+          "value": "solution-3:9099"
+        },
+        "datasource": "Prometheus",
+        "definition": "label_values(metrics_executor_memoryUsed_bytes{job=\"$job\"},instance)",
         "description": null,
         "error": null,
         "hide": 0,
@@ -1150,24 +1168,28 @@
         "name": "instance",
         "options": [],
         "query": {
-          "query": "label_values(metrics_executor_memoryUsed_bytes{},instance)",
+          "query": "label_values(metrics_executor_memoryUsed_bytes{job=\"$job\"},instance)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
         "sort": 0,
-        "type": "query"
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
       },
       {
         "allValue": null,
         "current": {
           "selected": false,
-          "text": "application_1641269111452_1295",
-          "value": "application_1641269111452_1295"
+          "text": "application_1653038946211_0090",
+          "value": "application_1653038946211_0090"
         },
-        "datasource": null,
-        "definition": "label_values(metrics_executor_memoryUsed_bytes{instance=\"$instance\"},application_id)",
+        "datasource": "Prometheus",
+        "definition": "label_values(metrics_executor_memoryUsed_bytes{job=\"$job\", instance=\"$instance\"},application_id)",
         "description": null,
         "error": null,
         "hide": 0,
@@ -1177,14 +1199,18 @@
         "name": "applicationId",
         "options": [],
         "query": {
-          "query": "label_values(metrics_executor_memoryUsed_bytes{instance=\"$instance\"},application_id)",
+          "query": "label_values(metrics_executor_memoryUsed_bytes{job=\"$job\", instance=\"$instance\"},application_id)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
         "sort": 4,
-        "type": "query"
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
       }
     ]
   },
@@ -1196,5 +1222,5 @@
   "timezone": "",
   "title": "Spark Driver Monitoring",
   "uid": "rHTnF1-7z",
-  "version": 10
+  "version": 7
 }
