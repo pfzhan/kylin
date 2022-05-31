@@ -3341,4 +3341,8 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.env.use-dynamic-S3-role-credential-in-table", "false"));
 
     }
+
+    public String getJobCallbackLanguage() {
+        return getOptional("kylin.job.callback-language", "en");
+    }
 }
