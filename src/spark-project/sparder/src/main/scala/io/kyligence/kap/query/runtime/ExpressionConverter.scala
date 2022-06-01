@@ -33,7 +33,7 @@ import org.apache.kylin.common.KylinConfig
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.KapFunctions._
 import org.apache.spark.sql.catalyst.expressions
-import org.apache.spark.sql.catalyst.expressions.{Cast, If, IfNull, IntersectCountByCol, Literal, StringLocate, StringRepeat, SubtractBitmapUUID, SubtractBitmapValue}
+import org.apache.spark.sql.catalyst.expressions.{Cast, If, IfNull, IntersectCountByCol, Literal, StringLocate, StringRepeat, StringReplace, SubtractBitmapUUID, SubtractBitmapValue}
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.util.SparderTypeUtil
 
@@ -250,9 +250,9 @@ object ExpressionConverter {
           case "char_length" => length(k_lit(children.head))
           case "character_length" => length(k_lit(children.head))
           case "replace" =>
-            regexp_replace(k_lit(children.head),
-              k_lit(children.apply(1)),
-              k_lit(children.apply(2)))
+            new Column(StringReplace(k_lit(children.head).expr,
+              k_lit(children.apply(1)).expr,
+              k_lit(children.apply(2)).expr))
           case "substring" | "substr" =>
             if (children.length == 3) { //substr(str1,startPos,length)
               k_lit(children.head)
