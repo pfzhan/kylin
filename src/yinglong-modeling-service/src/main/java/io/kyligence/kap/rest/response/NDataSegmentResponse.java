@@ -138,8 +138,8 @@ public class NDataSegmentResponse extends NDataSegment {
         } else {
             hasBaseTableIndexData = false;
         }
-        lockedIndexCount = segment.getLayoutsMap().values().stream()
-                .filter(nDataLayout -> nDataLayout.getLayout().isToBeDeleted()).count();
+        lockedIndexCount = segment.getIndexPlan().getAllToBeDeleteLayoutId().stream().filter(layoutId ->
+                segment.getLayoutsMap().containsKey(layoutId)).count();
         if (dataflow.getModel().getMultiPartitionDesc() != null) {
             multiPartitionCountTotal = dataflow.getModel().getMultiPartitionDesc().getPartitions().size();
         }

@@ -21,8 +21,8 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 1680,
-  "iteration": 1652342267446,
+  "id": 21,
+  "iteration": 1653461432028,
   "links": [],
   "panels": [
     {
@@ -554,7 +554,7 @@
     },
     {
       "datasource": "Prometheus",
-      "description": "query rate in last 1 minutes",
+      "description": "query count in last 2 minutes\n\nquery_totals: total number of query in last 2 minutes //\nquery_fails: fail number of query in last 2 minutes //\npush_downs: push down number of query in last 2 minutes //\nhit_indexs: hit index number of query in last 2 minutes //\nhit_caches: hit cache number of query in last 2 minutes //\nhit_snapshots: hit snapshot number of query in last 2 minutes",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -595,7 +595,7 @@
               }
             ]
           },
-          "unit": "ops"
+          "unit": "short"
         },
         "overrides": []
       },
@@ -621,27 +621,59 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(rate(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",succeed=\"true\"}[1m]))",
+          "expr": "sum(increase(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\"}[2m]))",
           "interval": "",
-          "legendFormat": "succeed",
+          "legendFormat": "query_totals",
           "queryType": "randomWalk",
           "refId": "A"
         },
         {
           "exemplar": true,
-          "expr": "sum(rate(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",succeed=\"false\"}[1m]))",
+          "expr": "sum(increase(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",succeed=\"false\"}[2m]))",
           "hide": false,
           "interval": "",
-          "legendFormat": "failed",
+          "legendFormat": "query_fails",
           "refId": "B"
+        },
+        {
+          "exemplar": true,
+          "expr": "sum(increase(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",push_down=\"true\"}[2m]))",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "push_downs",
+          "refId": "C"
+        },
+        {
+          "exemplar": true,
+          "expr": "sum(increase(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",hit_index=\"true\"}[2m]))",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "hit_indexs",
+          "refId": "D"
+        },
+        {
+          "exemplar": true,
+          "expr": "sum(increase(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",cache=\"true\"}[2m]))",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "hit_caches",
+          "refId": "E"
+        },
+        {
+          "exemplar": true,
+          "expr": "sum(increase(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",hit_snapshot=\"true\"}[2m]))",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "hit_snapshots",
+          "refId": "F"
         }
       ],
-      "title": "Query Rate",
+      "title": "Query Count[2m]",
       "type": "timeseries"
     },
     {
       "datasource": "Prometheus",
-      "description": "query avg duration in last 1 minutes",
+      "description": "query avg duration in last 2 minutes",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -669,6 +701,7 @@
             "spanNulls": true
           },
           "mappings": [],
+          "noValue": "0",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -685,30 +718,6 @@
           "unit": "s"
         },
         "overrides": [
-          {
-            "__systemRef": "hideSeriesFrom",
-            "matcher": {
-              "id": "byNames",
-              "options": {
-                "mode": "exclude",
-                "names": [
-                  "avg_duration"
-                ],
-                "prefix": "All except:",
-                "readOnly": true
-              }
-            },
-            "properties": [
-              {
-                "id": "custom.hideFrom",
-                "value": {
-                  "graph": true,
-                  "legend": false,
-                  "tooltip": false
-                }
-              }
-            ]
-          },
           {
             "matcher": {
               "id": "byName",
@@ -748,14 +757,30 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(increase(ke_queries_seconds_sum{job=\"$job\",instance=\"$instance\",project=~\"$project\"}[1m])) / sum(increase(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\"}[1m]))",
+          "expr": "sum(increase(ke_queries_seconds_sum{job=\"$job\",instance=\"$instance\",project=~\"$project\"}[2m])) / sum(increase(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\"}[2m]))",
           "interval": "",
-          "legendFormat": "avg_duration",
+          "legendFormat": "overall",
           "queryType": "randomWalk",
           "refId": "A"
+        },
+        {
+          "exemplar": true,
+          "expr": "sum(increase(ke_queries_seconds_sum{job=\"$job\",instance=\"$instance\",project=~\"$project\",succeed=\"true\"}[2m])) / sum(increase(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",succeed=\"true\"}[2m]))",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "query_succeed",
+          "refId": "B"
+        },
+        {
+          "exemplar": true,
+          "expr": "sum(increase(ke_queries_seconds_sum{job=\"$job\",instance=\"$instance\",project=~\"$project\",hit_index=\"true\"}[2m])) / sum(increase(ke_queries_seconds_count{job=\"$job\",instance=\"$instance\",project=~\"$project\",hit_index=\"true\"}[2m]))",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "hit_index",
+          "refId": "C"
         }
       ],
-      "title": "Query Avg Duration",
+      "title": "Query Avg Duration[2m]",
       "type": "timeseries"
     },
     {
@@ -2868,7 +2893,6 @@
             "showPoints": "never",
             "spanNulls": true
           },
-          "decimals": 0,
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -3009,7 +3033,6 @@
       },
       "yaxes": [
         {
-          "$$hashKey": "object:167",
           "format": "ops",
           "label": null,
           "logBase": 1,
@@ -3018,7 +3041,6 @@
           "show": true
         },
         {
-          "$$hashKey": "object:168",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -3365,8 +3387,8 @@
         "allValue": null,
         "current": {
           "selected": false,
-          "text": "10.1.2.35:12312",
-          "value": "10.1.2.35:12312"
+          "text": "159.27.120.141:7072",
+          "value": "159.27.120.141:7072"
         },
         "datasource": "Prometheus",
         "definition": "label_values(ke_db_connections{job=\"$job\"}, instance)",
@@ -3396,6 +3418,7 @@
         "allValue": null,
         "current": {
           "selected": true,
+          "tags": [],
           "text": [
             "All"
           ],
@@ -3437,5 +3460,5 @@
   "timezone": "",
   "title": "KE Application Monitoring",
   "uid": "HS2147DHSJ12",
-  "version": 5
+  "version": 3
 }

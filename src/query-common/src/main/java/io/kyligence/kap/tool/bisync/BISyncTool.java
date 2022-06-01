@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.tool.bisync;
 
+import java.util.List;
 import java.util.Set;
 
 import io.kyligence.kap.tool.bisync.model.SyncModel;
@@ -50,9 +51,15 @@ public class BISyncTool {
     }
 
     public static BISyncModel dumpHasPermissionToBISyncModel(SyncContext syncContext, Set<String> authTables,
-            Set<String> authColumns) {
+            Set<String> authColumns, List<String> dimensions, List<String> measures) {
         SyncModel syncModel = new SyncModelBuilder(syncContext).buildHasPermissionSourceSyncModel(authTables,
-                authColumns);
+                authColumns, dimensions, measures);
+        return getBISyncModel(syncContext, syncModel);
+    }
+
+    public static BISyncModel dumpBISyncModel(SyncContext syncContext,
+            List<String> dimensions, List<String> measures) {
+        SyncModel syncModel = new SyncModelBuilder(syncContext).buildSourceSyncModel(dimensions, measures);
         return getBISyncModel(syncContext, syncModel);
     }
 }
