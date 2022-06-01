@@ -106,6 +106,7 @@ public class NAutoBuildAndQueryTest extends AutoTestBase {
         executeTestScenario(22,
                 /* CompareLevel = SAME */
                 new TestScenario(CompareLevel.SAME, "query/h2"), //
+                new TestScenario(CompareLevel.SAME, "query/sql_replace_special_symbol"), //
                 new TestScenario(CompareLevel.SAME, "query/sql"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_boolean"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_cache"), //
