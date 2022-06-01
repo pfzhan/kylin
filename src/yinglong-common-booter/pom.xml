@@ -47,6 +47,16 @@
             <groupId>io.kyligence.yinglong</groupId>
             <artifactId>yinglong-metadata-server</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.kyligence.yinglong</groupId>
+            <artifactId>yinglong-smart-service</artifactId>
+            <exclusions>
+                <exclusion>
+                    <artifactId>yinglong-build-service</artifactId>
+                    <groupId>io.kyligence.yinglong</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
 
         <!-- spark -->
         <dependency>

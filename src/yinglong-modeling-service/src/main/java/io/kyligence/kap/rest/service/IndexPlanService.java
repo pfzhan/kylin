@@ -58,7 +58,6 @@ import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
@@ -103,6 +102,8 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.util.ExpandableMeasureUtil;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import io.kyligence.kap.rest.aspect.Transaction;
+import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
+import io.kyligence.kap.rest.delegate.JobMetadataRequest;
 import io.kyligence.kap.rest.request.AggShardByColumnsRequest;
 import io.kyligence.kap.rest.request.CreateBaseIndexRequest;
 import io.kyligence.kap.rest.request.CreateBaseIndexRequest.LayoutProperty;
@@ -138,6 +139,9 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
 
     @Autowired(required = false)
     private final List<ModelChangeSupporter> modelChangeSupporters = Lists.newArrayList();
+
+    @Autowired
+    private JobMetadataInvoker jobMetadataInvoker;
 
     /**
      * expand expand EXPANDABLE measures in index plan request's indexes
@@ -264,7 +268,6 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
     public BuildIndexResponse createTableIndex(String project, String modelId, LayoutEntity newLayout,
             boolean loadData) {
         NIndexPlanManager indexPlanManager = getManager(NIndexPlanManager.class, project);
-        val jobManager = getManager(JobManager.class, project);
         IndexPlan indexPlan = indexPlanManager.getIndexPlan(modelId);
         for (LayoutEntity cuboidLayout : indexPlan.getAllLayouts()) {
             if (cuboidLayout.equals(newLayout) && cuboidLayout.isManual()) {
@@ -306,8 +309,10 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
                 if (readySegs.isEmpty()) {
                     return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NO_SEGMENT);
                 }
+                final JobParam jobParam = new JobParam(indexPlan.getUuid(), BasicService.getUsername());
+                jobParam.setProject(project);
                 getManager(SourceUsageManager.class).licenseCheckWrap(project,
-                        () -> jobManager.addIndexJob(new JobParam(indexPlan.getUuid(), BasicService.getUsername())));
+                        () -> jobMetadataInvoker.addIndexJob(new JobMetadataRequest(jobParam)));
                 return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NORM_BUILD);
             }
         }
@@ -559,9 +564,10 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
                     .collect(Collectors.toList()));
         });
         if (request.isLoadData()) {
-            val jobManager = getManager(JobManager.class, project);
+            final JobParam jobParam = new JobParam(modelId, BasicService.getUsername());
+            jobParam.setProject(project);
             getManager(SourceUsageManager.class).licenseCheckWrap(project,
-                    () -> jobManager.addIndexJob(new JobParam(modelId, BasicService.getUsername())));
+                    () -> jobMetadataInvoker.addIndexJob(new JobMetadataRequest(jobParam)));
         }
     }
 

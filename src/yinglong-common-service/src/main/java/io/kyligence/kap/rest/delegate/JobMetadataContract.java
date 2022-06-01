@@ -21,8 +21,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 package io.kyligence.kap.rest.delegate;
 
 public interface JobMetadataContract {
-    void updateStatistics(String project, long date, String model, long duration, long byteSize, int deltaCount);
+
+    String addIndexJob(JobMetadataRequest jobMetadataRequest);
+
+    String addSecondStorageJob(JobMetadataRequest jobMetadataRequest);
+
+    String addSegmentJob(JobMetadataRequest jobMetadataRequest);
 }

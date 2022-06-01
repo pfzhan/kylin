@@ -22,39 +22,24 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.job.execution;
+package io.kyligence.kap.job.handler;
 
-import org.apache.kylin.common.util.TimeUtil;
+import java.util.Collections;
 
-import io.kyligence.kap.metadata.cube.model.NBatchConstants;
-import io.kyligence.kap.rest.delegate.JobStatisticsInvoker;
-import lombok.val;
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.factory.JobFactory;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.factory.JobFactoryConstant;
+import org.apache.kylin.job.model.JobParam;
 
-public class DefaultChainedExecutableOnTable extends DefaultChainedExecutable {
-
-    public DefaultChainedExecutableOnTable() {
-        super();
-    }
-
-    public DefaultChainedExecutableOnTable(Object notSetId) {
-        super(notSetId);
-    }
-
-    public String getTableIdentity() {
-        return getParam(NBatchConstants.P_TABLE_NAME);
-    }
-
+public class SecondStorageProjectCleanJobHandler extends AbstractSecondStorageJobHanlder {
     @Override
-    public String getTargetSubjectAlias() {
-        return getTableIdentity();
-    }
-
-    @Override
-    protected void afterUpdateOutput(String jobId) {
-        val job = getExecutableManager(getProject()).getJob(jobId);
-        long duration = job.getDuration();
-        long endTime = job.getEndTime();
-        long startOfDay = TimeUtil.getDayStart(endTime);
-        JobStatisticsInvoker.getInstance().updateStatistics(project, startOfDay, null, duration, 0, 0);
+    protected AbstractExecutable createJob(JobParam jobParam) {
+        SecondStorageCleanJobBuildParams params = new SecondStorageCleanJobBuildParams(
+                Collections.emptySet(),
+                jobParam,
+                JobTypeEnum.SECOND_STORAGE_NODE_CLEAN);
+        params.setProject(jobParam.getProject());
+        return JobFactory.createJob(JobFactoryConstant.STORAGE_NODE_CLEAN_FACTORY, params);
     }
 }

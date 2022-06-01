@@ -31,35 +31,35 @@ import org.springframework.stereotype.Component;
 
 import io.kyligence.kap.common.persistence.metadata.HDFSMetadataStore;
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
-import io.kyligence.kap.rest.service.JobMetadataService;
+import io.kyligence.kap.rest.service.JobStatisticsService;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
-public class JobMetadataInvoker {
+public class JobStatisticsInvoker {
 
-    private static JobMetadataContract delegate = null;
+    private static JobStatisticsContract delegate = null;
 
-    public static void setDelegate(JobMetadataContract delegate) {
-        if (JobMetadataInvoker.delegate != null) {
-            log.warn("Delegate is replaced as {}, origin value is {}", delegate, JobMetadataInvoker.delegate);
+    public static void setDelegate(JobStatisticsContract delegate) {
+        if (JobStatisticsInvoker.delegate != null) {
+            log.warn("Delegate is replaced as {}, origin value is {}", delegate, JobStatisticsInvoker.delegate);
         }
-        JobMetadataInvoker.delegate = delegate;
+        JobStatisticsInvoker.delegate = delegate;
     }
 
-    private JobMetadataContract getDelegate() {
-        if (JobMetadataInvoker.delegate == null) {
+    private JobStatisticsContract getDelegate() {
+        if (JobStatisticsInvoker.delegate == null) {
             // Generally delegate will be set in ContractConfig, here is used for test
             if (SpringContext.getApplicationContext() != null) {
-                return SpringContext.getBean(JobMetadataContract.class);
+                return SpringContext.getBean(JobStatisticsContract.class);
             } else {
-                return new JobMetadataService();
+                return new JobStatisticsService();
             }
         }
-        return JobMetadataInvoker.delegate;
+        return JobStatisticsInvoker.delegate;
     }
 
-    public static JobMetadataInvoker getInstance() {
+    public static JobStatisticsInvoker getInstance() {
         MetadataStore metadataStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv())
                 .getMetadataStore();
         if (metadataStore instanceof HDFSMetadataStore) {
@@ -67,9 +67,9 @@ public class JobMetadataInvoker {
         }
         if (SpringContext.getApplicationContext() == null) {
             // for UT
-            return new JobMetadataInvoker();
+            return new JobStatisticsInvoker();
         } else {
-            return SpringContext.getBean(JobMetadataInvoker.class);
+            return SpringContext.getBean(JobStatisticsInvoker.class);
         }
     }
 

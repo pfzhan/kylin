@@ -26,6 +26,8 @@ package io.kyligence.kap.rest;
 
 import io.kyligence.kap.rest.delegate.JobMetadataContract;
 import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
+import io.kyligence.kap.rest.delegate.JobStatisticsContract;
+import io.kyligence.kap.rest.delegate.JobStatisticsInvoker;
 import io.kyligence.kap.rest.delegate.ModelMetadataContract;
 import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
 import io.kyligence.kap.rest.delegate.TableMetadataContract;
@@ -46,9 +48,10 @@ public class ContractConfig implements InitializingBean, ApplicationContextAware
     @Override
     public void afterPropertiesSet() throws Exception {
         ModelMetadataInvoker.setDelegate(applicationContext.getBean(ModelMetadataContract.class));
-        JobMetadataInvoker.setDelegate(applicationContext.getBean(JobMetadataContract.class));
+        JobStatisticsInvoker.setDelegate(applicationContext.getBean(JobStatisticsContract.class));
         TableMetadataInvoker.setDelegate(applicationContext.getBean(TableMetadataContract.class));
         TableSamplingInvoker.setDelegate(applicationContext.getBean(TableSamplingContract.class));
+        JobMetadataInvoker.setDelegate(applicationContext.getBean(JobMetadataContract.class));
     }
 
     @Override

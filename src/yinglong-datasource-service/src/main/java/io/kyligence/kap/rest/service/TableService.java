@@ -65,8 +65,6 @@ import java.util.stream.Stream;
 
 import javax.servlet.http.HttpServletRequest;
 
-import io.kyligence.kap.rest.request.S3TableExtInfo;
-import io.kyligence.kap.rest.delegate.TableSamplingInvoker;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -92,7 +90,6 @@ import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.filter.function.LikeMatchers;
@@ -171,8 +168,12 @@ import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
 import io.kyligence.kap.rest.aspect.Transaction;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.constant.JobInfoEnum;
+import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
+import io.kyligence.kap.rest.delegate.JobMetadataRequest;
+import io.kyligence.kap.rest.delegate.TableSamplingInvoker;
 import io.kyligence.kap.rest.request.AutoMergeRequest;
 import io.kyligence.kap.rest.request.DateRangeRequest;
+import io.kyligence.kap.rest.request.S3TableExtInfo;
 import io.kyligence.kap.rest.response.AutoMergeConfigResponse;
 import io.kyligence.kap.rest.response.BatchLoadTableResponse;
 import io.kyligence.kap.rest.response.NHiveTableNameResponse;
@@ -221,6 +222,9 @@ public class TableService extends BasicService {
     @Autowired(required = false)
     @Qualifier("aclTCRService")
     private AclTCRServiceSupporter aclTCRService;
+
+    @Autowired
+    private JobMetadataInvoker jobMetadataInvoker;
 
     @Autowired
     private ClusterManager clusterManager;
@@ -701,16 +705,17 @@ public class TableService extends BasicService {
     }
 
     private void buildFullSegment(String model, String project) {
-        val jobManager = getManager(JobManager.class, project);
         val dataflowManager = getManager(NDataflowManager.class, project);
         val indexPlanManager = getManager(NIndexPlanManager.class, project);
         val indexPlan = indexPlanManager.getIndexPlan(model);
         val dataflow = dataflowManager.getDataflow(indexPlan.getUuid());
         val newSegment = dataflowManager.appendSegment(dataflow,
                 new SegmentRange.TimePartitionedSegmentRange(0L, Long.MAX_VALUE));
-
+        
+        final JobParam jobParam = new JobParam(newSegment, model, getUsername());
+        jobParam.setProject(project);
         getManager(SourceUsageManager.class).licenseCheckWrap(project,
-                () -> jobManager.addSegmentJob(new JobParam(newSegment, model, getUsername())));
+                () -> jobMetadataInvoker.addSegmentJob(new JobMetadataRequest(jobParam)));
     }
 
     public String getPartitionColumnFormat(String project, String table, String partitionColumn) throws Exception {
@@ -1292,11 +1297,12 @@ public class TableService extends BasicService {
         OptRecManagerV2.getInstance(projectName).discardAll(model.getId());
         modelService.onUpdateBrokenModel(model, removeAffectedModel, changeTypeAffectedModel, projectName);
 
-        val jobManager = getManager(JobManager.class, projectName);
         val updatedModel = getManager(NDataModelManager.class, projectName).getDataModelDesc(model.getId());
         if (needBuild && !updatedModel.isBroken()) {
+            final JobParam jobParam = new JobParam(model.getId(), getUsername());
+            jobParam.setProject(projectName);
             return getManager(SourceUsageManager.class).licenseCheckWrap(projectName,
-                    () -> jobManager.addIndexJob(new JobParam(model.getId(), getUsername())));
+                    () -> jobMetadataInvoker.addIndexJob(new JobMetadataRequest(jobParam)));
         }
         return null;
     }
@@ -1341,10 +1347,11 @@ public class TableService extends BasicService {
         indexPlanService.onUpdateBaseIndex(baseIndexUpdater);
         if (CollectionUtils.isNotEmpty(removeAffected.getUpdatedLayouts())
                 || CollectionUtils.isNotEmpty(changeTypeAffected.getUpdatedLayouts())) {
-            val jobManager = getManager(JobManager.class, projectName);
             if (needBuild) {
+                final JobParam jobParam = new JobParam(model.getId(), getUsername());
+                jobParam.setProject(projectName);
                 return getManager(SourceUsageManager.class).licenseCheckWrap(projectName,
-                        () -> jobManager.addIndexJob(new JobParam(model.getId(), getUsername())));
+                        () -> jobMetadataInvoker.addIndexJob(new JobMetadataRequest(jobParam)));
             }
         }
         return null;

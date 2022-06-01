@@ -51,7 +51,7 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
-import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
+import io.kyligence.kap.rest.delegate.JobStatisticsInvoker;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -102,7 +102,7 @@ public abstract class AbstractJobHandler {
             info.put(DEPENDENT_FILES, StringUtils.join(deps, ","));
             executableManager.updateJobOutput(po.getId(), null, info, null, null);
             long startOfDay = TimeUtil.getDayStart(System.currentTimeMillis());
-            JobMetadataInvoker.getInstance().updateStatistics(project, startOfDay, jobParam.getModel(), 0, 0, 1);
+            JobStatisticsInvoker.getInstance().updateStatistics(project, startOfDay, jobParam.getModel(), 0, 0, 1);
         }
     }
 

@@ -28,10 +28,10 @@ import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.springframework.stereotype.Component;
 
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
-import io.kyligence.kap.rest.delegate.JobMetadataContract;
+import io.kyligence.kap.rest.delegate.JobStatisticsContract;
 
 @Component
-public class JobMetadataService implements JobMetadataContract {
+public class JobStatisticsService implements JobStatisticsContract {
 
     @Override
     public void updateStatistics(String project, long date, String model, long duration, long byteSize,

@@ -31,11 +31,13 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
 
 import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
+import io.kyligence.kap.rest.delegate.JobMetadataRpc;
+import io.kyligence.kap.rest.delegate.JobStatisticsInvoker;
 import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
-import io.kyligence.kap.rest.delegate.TableMetadataInvoker;
 import io.kyligence.kap.rest.delegate.TableSamplingInvoker;
 import io.kyligence.kap.rest.delegate.TableSamplingRPC;
-import io.kyligence.kap.rest.service.JobMetadataService;
+import io.kyligence.kap.rest.delegate.TableMetadataInvoker;
+import io.kyligence.kap.rest.service.JobStatisticsService;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.TableExtService;
 
@@ -47,9 +49,10 @@ public class CommonContractConfig implements InitializingBean, ApplicationContex
     @Override
     public void afterPropertiesSet() throws Exception {
         ModelMetadataInvoker.setDelegate(applicationContext.getBean(ModelService.class));
-        JobMetadataInvoker.setDelegate(applicationContext.getBean(JobMetadataService.class));
+        JobStatisticsInvoker.setDelegate(applicationContext.getBean(JobStatisticsService.class));
         TableMetadataInvoker.setDelegate(applicationContext.getBean(TableExtService.class));
         TableSamplingInvoker.setDelegate(applicationContext.getBean(TableSamplingRPC.class));
+        JobMetadataInvoker.setDelegate(applicationContext.getBean(JobMetadataRpc.class));
     }
 
     @Override

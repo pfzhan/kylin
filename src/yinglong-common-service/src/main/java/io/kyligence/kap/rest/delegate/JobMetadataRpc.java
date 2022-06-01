@@ -22,39 +22,22 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.job.execution;
+package io.kyligence.kap.rest.delegate;
 
-import org.apache.kylin.common.util.TimeUtil;
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 
-import io.kyligence.kap.metadata.cube.model.NBatchConstants;
-import io.kyligence.kap.rest.delegate.JobStatisticsInvoker;
-import lombok.val;
+@FeignClient(name = "yinglong-data-loading-booter", path = "/kylin/api/job_delegate/feign")
+public interface JobMetadataRpc extends JobMetadataContract {
 
-public class DefaultChainedExecutableOnTable extends DefaultChainedExecutable {
+    @PostMapping(value = "/add_index_job")
+    String addIndexJob(@RequestBody JobMetadataRequest jobMetadataRequest);
 
-    public DefaultChainedExecutableOnTable() {
-        super();
-    }
+    @PostMapping(value = "/add_second_storage_job")
+    String addSecondStorageJob(JobMetadataRequest jobMetadataRequest);
 
-    public DefaultChainedExecutableOnTable(Object notSetId) {
-        super(notSetId);
-    }
-
-    public String getTableIdentity() {
-        return getParam(NBatchConstants.P_TABLE_NAME);
-    }
-
-    @Override
-    public String getTargetSubjectAlias() {
-        return getTableIdentity();
-    }
-
-    @Override
-    protected void afterUpdateOutput(String jobId) {
-        val job = getExecutableManager(getProject()).getJob(jobId);
-        long duration = job.getDuration();
-        long endTime = job.getEndTime();
-        long startOfDay = TimeUtil.getDayStart(endTime);
-        JobStatisticsInvoker.getInstance().updateStatistics(project, startOfDay, null, duration, 0, 0);
-    }
+    @PostMapping(value = "/add_segment_job")
+    String addSegmentJob(JobMetadataRequest jobMetadataRequest);
 }

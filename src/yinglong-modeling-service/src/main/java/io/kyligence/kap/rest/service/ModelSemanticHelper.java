@@ -39,6 +39,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
+import io.kyligence.kap.rest.delegate.JobMetadataRequest;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.dialect.HiveSqlDialect;
 import org.apache.calcite.sql.util.SqlVisitor;
@@ -52,7 +54,6 @@ import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.RandomUtil;
-import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
@@ -978,11 +979,12 @@ public class ModelSemanticHelper extends BasicService {
         if (readySegs.isEmpty()) {
             return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NO_SEGMENT);
         }
-        val jobManager = JobManager.getInstance(kylinConfig, project);
 
         // new cuboid
         if (hasRulebaseLayoutChange(oldRule, newRule) || forceFireEvent) {
-            String jobId = jobManager.addIndexJob(new JobParam(model, BasicService.getUsername()));
+            final JobParam jobParam = new JobParam(model, BasicService.getUsername());
+            jobParam.setProject(project);
+            String jobId = JobMetadataInvoker.getInstance().addIndexJob(new JobMetadataRequest(jobParam));
 
             val buildIndexResponse = new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NORM_BUILD, jobId);
 
@@ -1015,8 +1017,9 @@ public class ModelSemanticHelper extends BasicService {
         IndexPlan indexPlan = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                 .getIndexPlan(modelId);
         if (CollectionUtils.isNotEmpty(indexPlan.getAllLayoutIds(false))) {
-            JobManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                    .addIndexJob(new JobParam(modelId, BasicService.getUsername()));
+            final JobParam jobParam = new JobParam(modelId, BasicService.getUsername());
+            jobParam.setProject(project);
+            JobMetadataInvoker.getInstance().addIndexJob(new JobMetadataRequest(jobParam));
         }
     }
 

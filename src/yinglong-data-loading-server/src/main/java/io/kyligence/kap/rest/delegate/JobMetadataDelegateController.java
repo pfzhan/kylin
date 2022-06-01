@@ -22,34 +22,41 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.controller;
+package io.kyligence.kap.rest.delegate;
 
-import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-
+import io.kyligence.kap.job.delegate.JobMetadataDelegate;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import io.kyligence.kap.rest.service.JobStatisticsService;
-import lombok.extern.log4j.Log4j;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
-@Log4j
 @Controller
-@EnableDiscoveryClient
-@RequestMapping(value = "/api/jobs", produces = { HTTP_VND_APACHE_KYLIN_JSON })
-public class JobMetadataController extends NBasicController {
-    @Autowired
-    private JobStatisticsService jobMetadataService;
+@RequestMapping(value = "/api/job_delegate", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
+public class JobMetadataDelegateController {
 
-    @PostMapping(value = "/feign/update_statistics")
+    @Autowired
+    private JobMetadataDelegate jobMetadataDelegate;
+
+    @PostMapping(value = "/feign/add_index_job")
     @ResponseBody
-    public void updateStatistics(@RequestParam("project") String project, @RequestParam("date") long date,
-            @RequestParam(value = "model", required = false) String model, @RequestParam("duration") long duration,
-            @RequestParam("byteSize") long byteSize, @RequestParam("dataCount") int deltaCount) {
-        jobMetadataService.updateStatistics(project, date, model, duration, byteSize, deltaCount);
+    public String addIndexJob(@RequestBody JobMetadataRequest jobMetadataRequest) {
+        return jobMetadataDelegate.addIndexJob(jobMetadataRequest);
+    }
+
+    @PostMapping(value = "/feign/add_second_storage_job")
+    @ResponseBody
+    public String addSecondStorageJob(@RequestBody JobMetadataRequest jobMetadataRequest) {
+        return jobMetadataDelegate.addSecondStorageJob(jobMetadataRequest);
+    }
+
+    @PostMapping(value = "/feign/add_segment_job")
+    @ResponseBody
+    public String addSegmentJob(@RequestBody JobMetadataRequest jobMetadataRequest) {
+        return jobMetadataDelegate.addSegmentJob(jobMetadataRequest);
     }
 }

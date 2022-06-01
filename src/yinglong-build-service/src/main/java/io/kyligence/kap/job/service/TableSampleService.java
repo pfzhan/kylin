@@ -40,11 +40,12 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.job.JobContext;
 import io.kyligence.kap.job.domain.JobInfo;
 import io.kyligence.kap.job.execution.NTableSamplingJob;
-import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.job.manager.JobManager;
+import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.job.mapper.JobInfoMapper;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
-import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
+import io.kyligence.kap.rest.delegate.JobStatisticsInvoker;
 import io.kyligence.kap.rest.service.TableSamplingSupporter;
 import lombok.val;
 
@@ -56,6 +57,9 @@ public class TableSampleService extends BasicService implements TableSamplingSup
 
     @Autowired
     private JobContext jobContext;
+
+    @Autowired(required = false)
+    private JobInfoMapper jobInfoMapper;
 
     public boolean hasSamplingJob(String project, String table) {
         aclEvaluate.checkProjectWritePermission(project);
@@ -92,7 +96,7 @@ public class TableSampleService extends BasicService implements TableSamplingSup
 
                 // job statistics
                 long startOfDay = TimeUtil.getDayStart(System.currentTimeMillis());
-                JobMetadataInvoker.getInstance().updateStatistics(project, startOfDay, null, 0, 0, 1);
+                JobStatisticsInvoker.getInstance().updateStatistics(project, startOfDay, null, 0, 0, 1);
                 return null;
             }, project, 1);
         }

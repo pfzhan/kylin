@@ -26,10 +26,11 @@ package io.kyligence.kap.rest.config.initialize;
 
 import java.io.IOException;
 
+import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
+import io.kyligence.kap.rest.delegate.JobMetadataRequest;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
@@ -155,10 +156,11 @@ public class ModelBrokenListener {
                 } else if (model.getManagementType() == ManagementType.TABLE_ORIENTED) {
                     dataflowManager.fillDf(dataflow);
                 }
-                val jobManager = JobManager.getInstance(config, project);
+                final JobParam jobParam = new JobParam(model.getId(), "ADMIN");
+                jobParam.setProject(project);
                 val sourceUsageManager = SourceUsageManager.getInstance(config);
                 sourceUsageManager.licenseCheckWrap(project,
-                        () -> jobManager.addIndexJob(new JobParam(model.getId(), "ADMIN")));
+                        () -> JobMetadataInvoker.getInstance().addIndexJob(new JobMetadataRequest(jobParam)));
             }
             model.setHandledAfterBroken(false);
             modelManager.updateDataBrokenModelDesc(model);

@@ -21,40 +21,18 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package io.kyligence.kap.rest.delegate;
 
-package io.kyligence.kap.job.execution;
+import org.springframework.cloud.openfeign.EnableFeignClients;
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
-import org.apache.kylin.common.util.TimeUtil;
-
-import io.kyligence.kap.metadata.cube.model.NBatchConstants;
-import io.kyligence.kap.rest.delegate.JobStatisticsInvoker;
-import lombok.val;
-
-public class DefaultChainedExecutableOnTable extends DefaultChainedExecutable {
-
-    public DefaultChainedExecutableOnTable() {
-        super();
-    }
-
-    public DefaultChainedExecutableOnTable(Object notSetId) {
-        super(notSetId);
-    }
-
-    public String getTableIdentity() {
-        return getParam(NBatchConstants.P_TABLE_NAME);
-    }
-
-    @Override
-    public String getTargetSubjectAlias() {
-        return getTableIdentity();
-    }
-
-    @Override
-    protected void afterUpdateOutput(String jobId) {
-        val job = getExecutableManager(getProject()).getJob(jobId);
-        long duration = job.getDuration();
-        long endTime = job.getEndTime();
-        long startOfDay = TimeUtil.getDayStart(endTime);
-        JobStatisticsInvoker.getInstance().updateStatistics(project, startOfDay, null, duration, 0, 0);
-    }
+@EnableFeignClients
+@FeignClient(name = "yinglong-common-booter", path = "/kylin/api/jobs/feign")
+public interface JobStatisticsRPC extends JobStatisticsContract {
+    @PostMapping(value = "/update_statistics")
+    void updateStatistics(@RequestParam("project") String project, @RequestParam("date") long date,
+            @RequestParam(value = "model", required = false) String model, @RequestParam("duration") long duration,
+            @RequestParam("byteSize") long byteSize, @RequestParam("dataCount") int deltaCount);
 }

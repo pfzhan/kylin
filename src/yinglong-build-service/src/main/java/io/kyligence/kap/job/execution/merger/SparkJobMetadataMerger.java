@@ -55,7 +55,7 @@ import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.model.PartitionStatusEnum;
 import io.kyligence.kap.metadata.cube.model.SegmentPartition;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
+import io.kyligence.kap.rest.delegate.JobStatisticsInvoker;
 import io.kyligence.kap.rest.delegate.ModelMetadataBaseInvoker;
 import io.kyligence.kap.rest.delegate.TableMetadataBaseInvoker;
 import lombok.Getter;
@@ -102,7 +102,7 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
         // update
         ExecutableManager executableManager = ExecutableManager.getInstance(kylinConfig, project);
         executableManager.updateJobOutput(buildTask.getParentId(), null, null, null, null, byteSize);
-        JobMetadataInvoker.getInstance().updateStatistics(project, startOfDay, model, duration, byteSize, 0);
+        JobStatisticsInvoker.getInstance().updateStatistics(project, startOfDay, model, duration, byteSize, 0);
     }
 
     protected void mergeSnapshotMeta(NDataflow dataflow, ResourceStore remoteResourceStore) {

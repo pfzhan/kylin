@@ -95,6 +95,9 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
+import io.kyligence.kap.rest.delegate.JobMetadataRequest;
+import io.kyligence.kap.rest.delegate.JobMetadataRequest.SecondStorageJobHandlerEnum;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
@@ -126,10 +129,6 @@ import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.handler.SecondStorageIndexCleanJobHandler;
-import org.apache.kylin.job.handler.SecondStorageSegmentCleanJobHandler;
-import org.apache.kylin.job.handler.SecondStorageSegmentLoadJobHandler;
-import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
@@ -344,6 +343,9 @@ public class ModelService extends BasicService implements TableModelSupporter, P
     @Autowired(required = false)
     @Qualifier("modelBuildService")
     private ModelBuildSupporter modelBuildService;
+
+    @Autowired
+    private JobMetadataInvoker jobMetadataInvoker;
 
     @Setter
     @Autowired(required = false)
@@ -2340,10 +2342,11 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                             .cleanTableData(tableData -> needDeleteLayoutIds.contains(tableData.getLayoutID())));
                     tablePlan.update(t -> t.cleanTable(needDeleteLayoutIds));
 
-                    val jobHandler = new SecondStorageIndexCleanJobHandler();
                     final JobParam param = SecondStorageJobParamUtil.layoutCleanParam(project, modelId,
                             BasicService.getUsername(), new HashSet<>(indexIds), new HashSet<>(segmentIds));
-                    getManager(JobManager.class, project).addJob(param, jobHandler);
+                    JobMetadataRequest jobMetadataRequest = new JobMetadataRequest(param);
+                    jobMetadataRequest.setSecondStorageJobHandler(SecondStorageJobHandlerEnum.INDEX_CLEAN.name());
+                    jobMetadataInvoker.addSecondStorageJob(jobMetadataRequest);
                 });
             }
             return null;
@@ -2745,10 +2748,11 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         }
         if (SecondStorageUtil.isModelEnable(project, model)) {
             SecondStorageUtil.cleanSegments(project, model, idsToDelete);
-            val jobHandler = new SecondStorageSegmentCleanJobHandler();
             final JobParam param = SecondStorageJobParamUtil.segmentCleanParam(project, model,
                     BasicService.getUsername(), idsToDelete);
-            getManager(JobManager.class, project).addJob(param, jobHandler);
+            JobMetadataRequest jobMetadataRequest = new JobMetadataRequest(param);
+            jobMetadataRequest.setSecondStorageJobHandler(SecondStorageJobHandlerEnum.SEGMENT_CLEAN.name());
+            jobMetadataInvoker.addSecondStorageJob(jobMetadataRequest);
         }
         segmentHelper.removeSegment(project, dataflow.getUuid(), idsToDelete);
         offlineModelIfNecessary(dataflowManager, model);
@@ -2906,12 +2910,13 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         if (!SecondStorage.enabled()) {
             throw new KylinException(JobErrorCode.JOB_CONFIGURATION_ERROR, "!!!No Tiered Storage is installed!!!");
         }
-        val jobHandler = new SecondStorageSegmentLoadJobHandler();
 
         final JobParam param = SecondStorageJobParamUtil.of(project, model, BasicService.getUsername(),
                 Stream.of(segmentIds));
+        JobMetadataRequest jobMetadataRequest = new JobMetadataRequest(param);
+        jobMetadataRequest.setSecondStorageJobHandler(SecondStorageJobHandlerEnum.SEGMENT_LOAD.name());
         return Collections.singletonList(new JobInfoResponse.JobInfo(JobTypeEnum.EXPORT_TO_SECOND_STORAGE.toString(),
-                getManager(JobManager.class, project).addJob(param, jobHandler)));
+                jobMetadataInvoker.addSecondStorageJob(jobMetadataRequest)));
     }
 
     public BuildBaseIndexResponse updateDataModelSemantic(String project, ModelRequest request) {

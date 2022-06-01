@@ -21,18 +21,23 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.rest.delegate;
 
-import org.springframework.cloud.openfeign.EnableFeignClients;
-import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+package io.kyligence.kap.job.handler;
 
-@EnableFeignClients
-@FeignClient(name = "yinglong-common-booter", path = "/kylin/api/jobs/feign")
-public interface JobMetadataRPC extends JobMetadataContract {
-    @PostMapping(value = "/update_statistics")
-    void updateStatistics(@RequestParam("project") String project, @RequestParam("date") long date,
-            @RequestParam(value = "model", required = false) String model, @RequestParam("duration") long duration,
-            @RequestParam("byteSize") long byteSize, @RequestParam("dataCount") int deltaCount);
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import org.apache.kylin.job.model.JobParam;
+
+public abstract class AbstractSecondStorageJobHanlder extends AbstractJobHandler {
+
+    @Override
+    protected void checkBeforeHandle(JobParam jobParam) {
+        String project = jobParam.getProject();
+        checkNotNull(project);
+    }
+
+    @Override
+    protected boolean needComputeJobBucket() {
+        return false;
+    }
 }
