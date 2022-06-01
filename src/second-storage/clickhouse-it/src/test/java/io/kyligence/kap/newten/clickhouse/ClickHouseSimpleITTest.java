@@ -1274,7 +1274,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
         String[] expectedPlanFragment = new String[] {
                 "PushedAggregates: [SUM(" + columnMapping.get("PRICE") + ")], ",
                 "PushedFilters: [], ",
-                "PushedGroupByColumns: [" + columnMapping.get("PRICE") + "], "
+                "PushedGroupByExpressions: [" + columnMapping.get("PRICE") + "], "
         };
         ClickHouseUtils.checkPushedInfo(groupPlan, expectedPlanFragment);
 

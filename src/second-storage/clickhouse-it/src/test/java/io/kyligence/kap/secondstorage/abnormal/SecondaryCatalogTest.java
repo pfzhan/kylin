@@ -117,7 +117,7 @@ public class SecondaryCatalogTest implements JobWaiter {
             String[] expectedPlanFragment = new String[] {
                     "PushedAggregates: [SUM(" + columnMapping.get("PRICE") + ")], ",
                     "PushedFilters: [], ",
-                    "PushedGroupByColumns: [" + columnMapping.get("PRICE") + "], "
+                    "PushedGroupByExpressions: [" + columnMapping.get("PRICE") + "], "
             };
             ClickHouseUtils.checkPushedInfo(groupPlan, expectedPlanFragment);
         } finally {
