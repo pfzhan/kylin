@@ -250,7 +250,7 @@ object ResultPlan extends LogEx {
         df.write
         .option("timestampFormat", dateTimeFormat)
         .option("encoding", encode)
-        .option("dateFormat", "yyyy-mm-dd hh:mm:ss")
+        .option("dateFormat", "yyyy-MM-dd")
         .option("charset", "utf-8").mode(SaveMode.Append).csv(path)
       case "xlsx" => {
         val queryId = QueryContext.current().getQueryId

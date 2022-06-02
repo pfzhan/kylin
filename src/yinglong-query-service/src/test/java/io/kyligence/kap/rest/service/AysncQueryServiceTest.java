@@ -326,6 +326,43 @@ public class AysncQueryServiceTest extends ServiceTestBase {
     }
 
     @Test
+    public void testSuccessQueryAndDownloadCSVForDateFormat() throws IOException {
+        QueryContext queryContext = QueryContext.current();
+        String queryId = queryContext.getQueryId();
+        mockMetadata(queryId, true);
+        queryContext.getQueryTagInfo().setAsyncQuery(true);
+        queryContext.getQueryTagInfo().setFileFormat("csv");
+        queryContext.getQueryTagInfo().setFileEncode("utf-8");
+        String sql = "select '123\"' as col1,'123' as col2, date'2021-02-01' as col3";
+        queryContext.setProject(PROJECT);
+        SparkSqlClient.executeSql(ss, sql, UUID.fromString(queryId), PROJECT);
+        assertSame(AsyncQueryService.QueryStatus.SUCCESS, asyncQueryService.queryStatus(PROJECT, queryId));
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ServletOutputStream servletOutputStream = mock(ServletOutputStream.class);
+        when(response.getOutputStream()).thenReturn(servletOutputStream);
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
+                Object[] arguments = invocationOnMock.getArguments();
+                baos.write((byte[]) arguments[0], (int) arguments[1], (int) arguments[2]);
+                return null;
+            }
+        }).when(servletOutputStream).write(any(byte[].class), anyInt(), anyInt());
+        asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, true, response, "xlsx", encodeDefault, ",");
+        FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
+        FileStatus[] fileStatuses = fileSystem.listStatus(new Path(asyncQueryService.getAsyncQueryResultDir(PROJECT, queryId).toString()));
+        XLSXExcelWriter xlsxExcelWriter = new XLSXExcelWriter();
+        XSSFWorkbook workbook = new XSSFWorkbook();
+        XSSFSheet sheet = workbook.createSheet();
+        xlsxExcelWriter.writeData(fileStatuses, sheet);
+        XSSFRow row = sheet.getRow(0);
+        assertEquals("\"123\\\"\",123,2021-02-01", row.getCell(0)
+                + "," + row.getCell(1) + "," + row.getCell(2));
+        assertEquals("[col1, col2, col3]", QueryContext.current().getColumnNames().toString());
+    }
+
+    @Test
     public void testSuccessQueryAndDownloadCSVNotIncludeHeader() throws IOException {
         QueryContext queryContext = QueryContext.current();
         String queryId = queryContext.getQueryId();
