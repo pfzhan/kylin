@@ -150,12 +150,8 @@ public class AsyncQueryService extends BasicService {
             }
             switch (fileFormat) {
             case "csv":
-                if (!includeHeader) {
-                    processFile(outputStream, dataPath);
-                } else {
-                    CSVWriter csvWriter = new CSVWriter();
-                    processCSV(outputStream, dataPath, includeHeader, columnNames, csvWriter, separator);
-                }
+                CSVWriter csvWriter = new CSVWriter();
+                processCSV(outputStream, dataPath, includeHeader, columnNames, csvWriter, separator);
                 break;
             case "json":
                 processJSON(outputStream, dataPath, encode);
