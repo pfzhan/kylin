@@ -38,7 +38,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -73,7 +72,8 @@ public class OptRecServiceCcConflictTest extends OptRecV2TestBase {
         Assert.assertEquals("SSB.P_LINEORDER", computedColumnDesc.getTableIdentity());
         Assert.assertEquals("`P_LINEORDER`.`LO_EXTENDEDPRICE` * `P_LINEORDER`.`LO_DISCOUNT` + 1",
                 computedColumnDesc.getInnerExpression());
-        Assert.assertEquals(ImmutableSet.of(100000, 100001), dataModel.getEffectiveMeasures().keySet());
+        Assert.assertEquals(2, dataModel.getEffectiveDimensions().size());
+        Assert.assertEquals(2, dataModel.getEffectiveMeasures().size());
 
         List<List<Integer>> layoutColOrder = ImmutableList.<List<Integer>> builder()
                 .add(ImmutableList.of(100000, 100001)).build();
