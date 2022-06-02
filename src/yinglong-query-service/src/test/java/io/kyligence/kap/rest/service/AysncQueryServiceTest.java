@@ -326,6 +326,45 @@ public class AysncQueryServiceTest extends ServiceTestBase {
     }
 
     @Test
+    public void testSuccessQueryAndDownloadCSVNotIncludeHeader() throws IOException {
+        QueryContext queryContext = QueryContext.current();
+        String queryId = queryContext.getQueryId();
+        mockMetadata(queryId, true);
+        queryContext.getQueryTagInfo().setAsyncQuery(true);
+        queryContext.getQueryTagInfo().setFileFormat("csv");
+        queryContext.getQueryTagInfo().setFileEncode("utf-8");
+        String sql = "select '123\"','123'";
+        queryContext.setProject(PROJECT);
+        SparkSqlClient.executeSql(ss, sql, UUID.fromString(queryId), PROJECT);
+        assertSame(AsyncQueryService.QueryStatus.SUCCESS, asyncQueryService.queryStatus(PROJECT, queryId));
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        ServletOutputStream servletOutputStream = mock(ServletOutputStream.class);
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        when(response.getOutputStream()).thenReturn(servletOutputStream);
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
+                Object[] arguments = invocationOnMock.getArguments();
+                baos.write((byte[]) arguments[0], (int) arguments[1], (int) arguments[2]);
+                return null;
+            }
+        }).when(servletOutputStream).write(any(byte[].class), anyInt(), anyInt());
+        asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, false, response, "csv", encodeDefault, "#");
+        List<org.apache.spark.sql.Row> rowList = ss.read().csv(asyncQueryService.getAsyncQueryResultDir(PROJECT, queryId).toString()).collectAsList();
+        Assert.assertEquals("\"123\"\"\"#123\n", baos.toString(StandardCharsets.UTF_8.name()));
+        List<String> result = Lists.newArrayList();
+        rowList.stream().forEach(row -> {
+            val list = row.toSeq().toList();
+            for (int i = 0; i < list.size(); i++) {
+                Object cell = list.apply(i);
+                String column = cell == null ? "" : cell.toString();
+                result.add(column);
+            }
+        });
+        assertEquals("123\"" + "123", result.get(0) + result.get(1));
+    }
+
+    @Test
     public void testSuccessQueryAndDownloadJSON() throws IOException {
         QueryContext queryContext = QueryContext.current();
         String queryId = queryContext.getQueryId();
@@ -453,7 +492,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
 
         asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, false, response, formatDefault, encodeDefault, ",");
 
-        assertEquals("a1,b1,c1\r\n" + "a2,b2,c2\r\n", baos.toString(StandardCharsets.UTF_8.name()));
+        assertEquals("a1,b1,c1\n" + "a2,b2,c2\n", baos.toString(StandardCharsets.UTF_8.name()));
     }
 
     @Test
@@ -476,7 +515,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
 
         asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, true, response, formatDefault, encodeDefault, ",");
 
-        assertEquals("name,age,city\na1,b1,c1\r\n" + "a2,b2,c2\r\n", baos.toString(StandardCharsets.UTF_8.name()));
+        assertEquals("name,age,city\na1,b1,c1\n" + "a2,b2,c2\n", baos.toString(StandardCharsets.UTF_8.name()));
     }
 
     @Test
@@ -499,7 +538,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
 
         asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, false, response, formatDefault, encodeDefault, ",");
 
-        assertEquals("a1,b1,c1\r\n" + "a2,b2,c2\r\n", baos.toString(StandardCharsets.UTF_8.name()));
+        assertEquals("a1,b1,c1\n" + "a2,b2,c2\n", baos.toString(StandardCharsets.UTF_8.name()));
     }
 
     @Test
