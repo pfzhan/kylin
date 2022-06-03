@@ -49,7 +49,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
 import io.kyligence.kap.metadata.epoch.EpochManager;
@@ -86,8 +85,8 @@ public class QueryHistoryTaskScheduler {
     private long epochId;
     private IUserGroupService userGroupService;
 
-    private QueryHistoryAccelerateRunner queryHistoryAccelerateRunner;
-    private QueryHistoryMetaUpdateRunner queryHistoryMetaUpdateRunner;
+    private final QueryHistoryAccelerateRunner queryHistoryAccelerateRunner;
+    private final QueryHistoryMetaUpdateRunner queryHistoryMetaUpdateRunner;
 
     private static final Map<String, QueryHistoryTaskScheduler> INSTANCE_MAP = Maps.newConcurrentMap();
 
@@ -308,11 +307,12 @@ public class QueryHistoryTaskScheduler {
         }
 
         private void updateLastQueryTime(Map<String, Long> modelsLastQueryTime, String project) {
-            val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-            List<NDataflow> dataflows = dfManager.listAllDataflows();
-            dataflows.stream().filter(dataflow -> modelsLastQueryTime.containsKey(dataflow.getId()))
-                    .forEach(dataflow -> dfManager.updateDataflow(dataflow.getId(),
-                            copyForWrite -> copyForWrite.setLastQueryTime(modelsLastQueryTime.get(dataflow.getId()))));
+            NDataflowManager dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            for (Map.Entry<String, Long> entry : modelsLastQueryTime.entrySet()) {
+                String dataflowId = entry.getKey();
+                Long lastQueryTime = entry.getValue();
+                dfManager.updateDataflow(dataflowId, copyForWrite -> copyForWrite.setLastQueryTime(lastQueryTime));
+            }
         }
 
     }
@@ -332,18 +332,15 @@ public class QueryHistoryTaskScheduler {
 
         @Override
         protected boolean isInterrupted() {
-            if (!isManual() && QueryHistoryTaskScheduler.getInstance(project).isInterruptByUser()) {
-                return true;
-            }
-            return false;
+            return !isManual() && QueryHistoryTaskScheduler.getInstance(project).isInterruptByUser();
         }
 
         @Override
         protected List<QueryHistory> getQueryHistories(int batchSize) {
             QueryHistoryIdOffsetManager qhIdOffsetManager = QueryHistoryIdOffsetManager
                     .getInstance(KylinConfig.getInstanceFromEnv(), project);
-            List<QueryHistory> queryHistoryList = queryHistoryDAO.queryQueryHistoriesByIdOffset(
-                    qhIdOffsetManager.get().getOffset(), batchSize, project);
+            List<QueryHistory> queryHistoryList = queryHistoryDAO
+                    .queryQueryHistoriesByIdOffset(qhIdOffsetManager.get().getOffset(), batchSize, project);
             resetIdOffset(queryHistoryList);
             return queryHistoryList;
         }

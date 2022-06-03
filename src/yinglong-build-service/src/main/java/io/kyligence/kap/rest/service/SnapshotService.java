@@ -33,6 +33,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.SNAPSHOT_MANAGEM
 import static org.apache.kylin.common.exception.ServerErrorCode.SNAPSHOT_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.TABLE_NOT_EXIST;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_CHECK_FAIL;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY;
 import static org.apache.kylin.job.execution.JobTypeEnum.SNAPSHOT_BUILD;
 import static org.apache.kylin.job.execution.JobTypeEnum.SNAPSHOT_REFRESH;
 
@@ -757,7 +758,7 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
 
     private void checkTableAndCol(String project, Map<String, String> table2PartCol) {
         if (table2PartCol.isEmpty()) {
-            return;
+            throw new KylinException(REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY, "table_partition_col");
         }
         Set<TableDesc> tables = checkAndGetTable(project, table2PartCol.keySet());
         checkTablePermission(tables);

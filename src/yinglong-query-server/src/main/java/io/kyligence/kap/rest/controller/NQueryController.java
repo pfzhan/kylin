@@ -54,6 +54,7 @@ import io.kyligence.kap.query.asyncprofiler.AsyncProfiling;
 import io.kyligence.kap.rest.service.QueryCacheManager;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.ForceToTieredStorage;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.debug.BackdoorToggles;
@@ -180,10 +181,7 @@ public class NQueryController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<SQLResponse> query(@Valid @RequestBody PrepareSqlRequest sqlRequest,
             @RequestHeader(value = "User-Agent") String userAgent) {
-        if (sqlRequest.isForcedToIndex() && sqlRequest.isForcedToPushDown()) {
-            throw new KylinException(
-                    QueryErrorCode.INVALID_QUERY_PARAMS, MsgPicker.getMsg().getCannotForceToBothPushdodwnAndIndex());
-        }
+        checkForcedToParams(sqlRequest);
         checkProjectName(sqlRequest.getProject());
         sqlRequest.setUserAgent(userAgent != null ? userAgent : "");
         QueryContext.current().record("end_http_proc");
@@ -429,6 +427,19 @@ public class NQueryController extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, modelNames, "");
     }
 
+    @ApiOperation(value = "queryHistoryTiredStorageMetrics", tags = {"QE"}, notes = "Update Param: project, query_id")
+    @GetMapping(value = "/query_history/tired_storage_metrics")
+    @ResponseBody
+    public EnvelopeResponse<Map<String, Long>> queryHistoryTiredStorageMetrics(@RequestParam(value = "project") String project,
+                                                                               @RequestParam(value = "query_id") String queryId) {
+        checkProjectName(project);
+        checkRequiredArg("query_id", queryId);
+        QueryHistoryRequest request = new QueryHistoryRequest();
+        request.setProject(project);
+        request.setSql(queryId);
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, queryHistoryService.queryTiredStorageMetric(request), "");
+    }
+
     @ApiOperation(value = "getServers", tags = { "QE" })
     @GetMapping(value = "/servers")
     @ResponseBody
@@ -570,6 +581,23 @@ public class NQueryController extends NBasicController {
         }
         if (!queryNamePattern.matcher(queryName).matches()) {
             throw new KylinException(INVALID_NAME, msg.getInvalidQueryName());
+        }
+    }
+
+    private void checkForcedToParams(PrepareSqlRequest sqlRequest) {
+        if (sqlRequest.isForcedToIndex() && sqlRequest.isForcedToPushDown()) {
+            throw new KylinException(
+                    QueryErrorCode.INVALID_QUERY_PARAMS, MsgPicker.getMsg().getCannotForceToBothPushdodwnAndIndex());
+        }
+        try{
+            int forcedToTieredStorage = sqlRequest.getForcedToTieredStorage();
+            if (forcedToTieredStorage > ForceToTieredStorage.CH_FAIL_TO_RETURN.ordinal()
+                    || forcedToTieredStorage < ForceToTieredStorage.CH_FAIL_TO_DFS.ordinal()) {
+                throw new KylinException(
+                        QueryErrorCode.FORCED_TO_TIEREDSTORAGE_INVALID_PARAMETER, MsgPicker.getMsg().getForcedToTieredstorageInvalidParameter());
+            }
+        } catch (NullPointerException e) {
+            //do nothing
         }
     }
 }

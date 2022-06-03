@@ -232,7 +232,8 @@ public class JobService extends BasicService implements JobSupporter {
         val beanList = filterAndSortExecutablePO(jobFilter, jobs);
         List<ExecutableResponse> result = PagingUtil.cutPage(beanList, offset, limit).stream()
                 .map(in -> in.getExecutablePO())
-                .map(executablePO -> getManager(NExecutableManager.class, executablePO.getProject()).fromPO(executablePO))
+                .map(executablePO -> getManager(NExecutableManager.class, executablePO.getProject())
+                        .fromPO(executablePO))
                 .map(this::convert).collect(Collectors.toList());
         return new DataResult<>(sortTotalDurationList(result, jobFilter), beanList.size(), offset, limit);
     }
@@ -248,7 +249,8 @@ public class JobService extends BasicService implements JobSupporter {
     private List<ExecutableResponse> filterAndSort(final JobFilter jobFilter, List<ExecutablePO> jobs) {
         val beanList = filterAndSortExecutablePO(jobFilter, jobs).stream()//
                 .map(in -> in.getExecutablePO())
-                .map(executablePO -> getManager(NExecutableManager.class, executablePO.getProject()).fromPO(executablePO))
+                .map(executablePO -> getManager(NExecutableManager.class, executablePO.getProject())
+                        .fromPO(executablePO))
                 .map(this::convert).collect(Collectors.toList());
         return sortTotalDurationList(beanList, jobFilter);
     }
@@ -521,7 +523,8 @@ public class JobService extends BasicService implements JobSupporter {
         List<? extends AbstractExecutable> tasks = ((ChainedExecutable) executable).getTasks();
         for (AbstractExecutable task : tasks) {
             final ExecutableStepResponse executableStepResponse = parseToExecutableStep(task,
-                    getManager(NExecutableManager.class, project).getOutput(task.getId()), waiteTimeMap, output.getState());
+                    getManager(NExecutableManager.class, project).getOutput(task.getId()), waiteTimeMap,
+                    output.getState());
             if (task.getStatus() == ExecutableState.ERROR) {
                 executableStepResponse.setFailedStepId(output.getFailedStepId());
                 executableStepResponse.setFailedSegmentId(output.getFailedSegmentId());
@@ -1006,23 +1009,23 @@ public class JobService extends BasicService implements JobSupporter {
      * @param yarnAppId
      * @param yarnAppUrl
      */
-    @Transaction(project = 0)
     public void updateSparkJobInfo(String project, String jobId, String taskId, String yarnAppId, String yarnAppUrl) {
-        val executableManager = getManager(NExecutableManager.class, project);
-        Map<String, String> extraInfo = Maps.newHashMap();
-        extraInfo.put(ExecutableConstants.YARN_APP_ID, yarnAppId);
-        extraInfo.put(ExecutableConstants.YARN_APP_URL, yarnAppUrl);
-
         if (jobId.contains(ASYNC_QUERY_JOB_ID_PRE)) {
             return;
         }
 
-        executableManager.updateJobOutput(taskId, null, extraInfo, null, null);
+        Map<String, String> extraInfo = Maps.newHashMap();
+        extraInfo.put(ExecutableConstants.YARN_APP_ID, yarnAppId);
+        extraInfo.put(ExecutableConstants.YARN_APP_URL, yarnAppUrl);
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            val executableManager = getManager(NExecutableManager.class, project);
+            executableManager.updateJobOutput(taskId, null, extraInfo, null, null);
+            return null;
+        }, project, UnitOfWork.DEFAULT_MAX_RETRY, UnitOfWork.DEFAULT_EPOCH_ID, jobId);
     }
 
-    @Transaction(project = 0)
     public void updateSparkTimeInfo(String project, String jobId, String taskId, String waitTime, String buildTime) {
-        val executableManager = getManager(NExecutableManager.class, project);
+
         Map<String, String> extraInfo = Maps.newHashMap();
         extraInfo.put(ExecutableConstants.YARN_JOB_WAIT_TIME, waitTime);
         extraInfo.put(ExecutableConstants.YARN_JOB_RUN_TIME, buildTime);
@@ -1031,7 +1034,11 @@ public class JobService extends BasicService implements JobSupporter {
             return;
         }
 
-        executableManager.updateJobOutput(taskId, null, extraInfo, null, null);
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            val executableManager = getManager(NExecutableManager.class, project);
+            executableManager.updateJobOutput(taskId, null, extraInfo, null, null);
+            return null;
+        }, project, UnitOfWork.DEFAULT_MAX_RETRY, UnitOfWork.DEFAULT_EPOCH_ID, jobId);
     }
 
     public void checkJobStatus(List<String> jobStatuses) {
@@ -1091,7 +1098,8 @@ public class JobService extends BasicService implements JobSupporter {
 
     @Override
     public void stopBatchJob(String project, TableDesc tableDesc) {
-        for (NDataModel tableRelatedModel : getManager(NDataflowManager.class, project).getModelsUsingTable(tableDesc)) {
+        for (NDataModel tableRelatedModel : getManager(NDataflowManager.class, project)
+                .getModelsUsingTable(tableDesc)) {
             stopBatchJobByModel(project, tableRelatedModel.getId());
         }
     }

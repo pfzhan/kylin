@@ -25,6 +25,7 @@ package io.kyligence.kap.rest.controller.open;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.INDEX_PARAMETER_INVALID;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -35,8 +36,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.exception.KylinException;
-import com.google.common.collect.ImmutableSet;
-import io.kyligence.kap.rest.request.ModelRequest;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.RandomUtil;
@@ -65,6 +64,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
@@ -74,6 +74,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.rest.controller.NModelController;
 import io.kyligence.kap.rest.request.ModelParatitionDescRequest;
+import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.ModelUpdateRequest;
 import io.kyligence.kap.rest.request.MultiPartitionMappingRequest;
 import io.kyligence.kap.rest.request.PartitionColumnRequest;
@@ -291,7 +292,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         mockGetModelName(modelAlias, project, "modelId");
         ModelParatitionDescRequest modelParatitionDescRequest = new ModelParatitionDescRequest();
         modelParatitionDescRequest.setPartitionDesc(null);
-        Mockito.doNothing().when(modelService).updateDataModelParatitionDesc(project, modelAlias,
+        Mockito.doNothing().when(modelService).updateModelPartitionColumn(project, modelAlias,
                 modelParatitionDescRequest);
         mockMvc.perform(MockMvcRequestBuilders.put("/api/models/{project}/{model}/partition_desc", project, modelAlias)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -431,8 +432,8 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
             OpenModelController.checkSources(Lists.newArrayList("ab"));
         } catch (KylinException e) {
             Assert.assertEquals("999", e.getCode());
-            Assert.assertEquals(INDEX_PARAMETER_INVALID.getCodeMsg("sources",
-                    String.join(", ", INDEX_SOURCE_SET)), e.getLocalizedMessage());
+            Assert.assertEquals(INDEX_PARAMETER_INVALID.getCodeMsg("sources", String.join(", ", INDEX_SOURCE_SET)),
+                    e.getLocalizedMessage());
         }
     }
 
@@ -449,8 +450,8 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
             OpenModelController.checkIndexStatus(Lists.newArrayList("ab"));
         } catch (KylinException e) {
             Assert.assertEquals("999", e.getCode());
-            Assert.assertEquals(INDEX_PARAMETER_INVALID.getCodeMsg("status",
-                    String.join(", ", INDEX_STATUS_SET)), e.getLocalizedMessage());
+            Assert.assertEquals(INDEX_PARAMETER_INVALID.getCodeMsg("status", String.join(", ", INDEX_STATUS_SET)),
+                    e.getLocalizedMessage());
         }
     }
 
@@ -466,8 +467,8 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
             OpenModelController.checkIndexSortBy("ab");
         } catch (KylinException e) {
             Assert.assertEquals("999", e.getCode());
-            Assert.assertEquals(INDEX_PARAMETER_INVALID.getCodeMsg("sort_by",
-                    String.join(", ", INDEX_SORT_BY_SET)), e.getLocalizedMessage());
+            Assert.assertEquals(INDEX_PARAMETER_INVALID.getCodeMsg("sort_by", String.join(", ", INDEX_SORT_BY_SET)),
+                    e.getLocalizedMessage());
         }
     }
 
@@ -509,8 +510,8 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         modelUpdateRequest.setProject(project);
         modelUpdateRequest.setStatus("OFFLINE");
         mockMvc.perform(MockMvcRequestBuilders.put("/api/models/{model_name}/status", modelName)
-                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(modelUpdateRequest))
-                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(modelUpdateRequest))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(openModelController).updateModelStatus(modelName, modelUpdateRequest);
     }
@@ -523,9 +524,9 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         modelRequest.setProject(project);
         modelRequest.setAlias(modelName);
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/models")
-                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(modelRequest))
-                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(modelRequest))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(openModelController).createModel(modelRequest);
     }
@@ -535,18 +536,20 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         ModelRequest modelRequest = new ModelRequest();
 
         // Test throwing EMPTY_PROJECT_NAME
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/models")
-                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(modelRequest))
-                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(modelRequest))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().is5xxServerError())
-                .andExpect(MockMvcResultMatchers.content().string(Matchers.containsString(ServerErrorCode.EMPTY_PROJECT_NAME.toErrorCode().getCodeString())));
+                .andExpect(MockMvcResultMatchers.content().string(
+                        Matchers.containsString(ServerErrorCode.EMPTY_PROJECT_NAME.toErrorCode().getCodeString())));
 
         // Test throwing INVALID_PARAMETER
         modelRequest.setProject("default");
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/models")
-                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(modelRequest))
-                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(modelRequest))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().is5xxServerError())
-                .andExpect(MockMvcResultMatchers.content().string(Matchers.containsString(ServerErrorCode.INVALID_PARAMETER.toErrorCode().getCodeString())));
+                .andExpect(MockMvcResultMatchers.content().string(
+                        Matchers.containsString(REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY.getErrorCode().getCode())));
     }
 }

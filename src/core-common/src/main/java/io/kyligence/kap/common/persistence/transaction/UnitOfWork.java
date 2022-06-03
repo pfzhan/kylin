@@ -65,6 +65,7 @@ public class UnitOfWork {
     public static final String GLOBAL_UNIT = "_global";
 
     public static final long DEFAULT_EPOCH_ID = -1L;
+    public static final int DEFAULT_MAX_RETRY = 3;
 
     private static EventBusFactory factory;
 
@@ -141,18 +142,16 @@ public class UnitOfWork {
             long startTime = System.currentTimeMillis();
             params.getProcessor().preProcess();
             context = UnitOfWork.startTransaction(params);
-            val waitForLockTime = System.currentTimeMillis() - startTime;
+            long startTransactionTime = System.currentTimeMillis();
+            val waitForLockTime = startTransactionTime - startTime;
             if (waitForLockTime > 3000) {
                 log.warn("UnitOfWork {} takes too long time {}ms to start", traceId, waitForLockTime);
             }
+
             ret = params.getProcessor().process();
             UnitOfWork.endTransaction(traceId, params);
-            long duration = System.currentTimeMillis() - startTime;
-            if (duration > 3000) {
-                log.warn("UnitOfWork {} takes too long time {}ms to complete", traceId, duration);
-            } else {
-                log.debug("UnitOfWork {} takes {}ms to complete", traceId, duration);
-            }
+            long duration = System.currentTimeMillis() - startTransactionTime;
+            logIfLongTransaction(duration, traceId);
 
             MetricsGroup.hostTagHistogramUpdate(MetricsName.TRANSACTION_LATENCY, MetricsCategory.PROJECT,
                     !GLOBAL_UNIT.equals(params.getUnitName()) ? params.getUnitName() : "global", duration);
@@ -166,6 +165,9 @@ public class UnitOfWork {
                     val unitOfWork = UnitOfWork.get();
                     unitOfWork.getCurrentLock().unlock();
                     unitOfWork.cleanResource();
+                    if (params.getTempLockName() != null && !params.getTempLockName().equals(params.getUnitName())) {
+                        TransactionLock.removeLock(params.getTempLockName());
+                    }
                 } catch (IllegalStateException e) {
                     //has not hold the lock yet, it's ok
                     log.warn(e.getMessage());
@@ -182,11 +184,23 @@ public class UnitOfWork {
         return result;
     }
 
+    private static void logIfLongTransaction(long duration, String traceId) {
+        if (duration > 3000) {
+            log.warn("UnitOfWork {} takes too long time {}ms to complete", traceId, duration);
+            if (duration > 10000) {
+                log.warn("current stack: ", new Throwable());
+            }
+        } else {
+            log.debug("UnitOfWork {} takes {}ms to complete", traceId, duration);
+        }
+    }
+
     static <T> UnitOfWorkContext startTransaction(UnitOfWorkParams<T> params) throws Exception {
         val project = params.getUnitName();
         val readonly = params.isReadonly();
         checkEpoch(params);
-        val lock = TransactionLock.getLock(project, readonly);
+        val lock = params.getTempLockName() == null ? TransactionLock.getLock(project, readonly)
+                : TransactionLock.getLock(params.getTempLockName(), readonly);
 
         log.trace("get lock for project {}, lock is held by current thread: {}", project, lock.isHeldByCurrentThread());
         //re-entry is not encouraged (because it indicates complex handling logic, bad smell), let's abandon it first

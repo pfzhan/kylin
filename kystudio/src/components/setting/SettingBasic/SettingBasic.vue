@@ -13,10 +13,6 @@
         <!-- <el-input class="setting-input" size="small" style="width: 250px;" v-model="form.alias"></el-input> -->
       </div>
       <div class="setting-item">
-        <div class="setting-label font-medium">{{$t('projectType')}}</div>
-        <div class="setting-value fixed"><i :class="projectIcon"></i>{{$t(project.maintain_model_type)}}</div>
-      </div>
-      <div class="setting-item" v-if="project.maintain_model_type==='MANUAL_MAINTAIN'">
         <span class="setting-label font-medium">
           {{$t('enableSemiAutomatic')}}
           <!-- <span class="beta-label">BETA</span> -->
@@ -447,7 +443,7 @@ import { Component, Watch } from 'vue-property-decorator'
 
 import locales from './locales'
 import { handleError, handleSuccess, handleSuccessAsync, objectClone, ArrayFlat } from '../../../util'
-import { projectTypeIcons, lowUsageStorageTypes, autoMergeTypes, volatileTypes, validate, initialFormValue, _getProjectGeneralInfo, _getSegmentSettings, _getPushdownConfig, _getStorageQuota, _getIndexOptimization, _getRetentionRangeScale } from './handler'
+import { lowUsageStorageTypes, autoMergeTypes, volatileTypes, validate, initialFormValue, _getProjectGeneralInfo, _getSegmentSettings, _getPushdownConfig, _getStorageQuota, _getIndexOptimization, _getRetentionRangeScale } from './handler'
 import { retentionTypes } from '../handler'
 import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
 import SourceAuthorityForm from '../../common/DataSourceModal/SourceJDBC/SourceAuthorityForm/SourceAuthorityForm.vue'
@@ -554,9 +550,6 @@ export default class SettingBasic extends Vue {
 
   created () {
     this.rulesAccerationDefault = {...this.rulesObj}
-  }
-  get projectIcon () {
-    return projectTypeIcons[this.project.maintain_model_type]
   }
   get retentionRangeScale () {
     return _getRetentionRangeScale(this.form).toLowerCase()

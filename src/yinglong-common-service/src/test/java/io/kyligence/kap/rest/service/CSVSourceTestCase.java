@@ -42,7 +42,6 @@ import org.junit.Before;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.epoch.EpochManager;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
@@ -62,8 +61,7 @@ public class CSVSourceTestCase extends ServiceTestBase {
         overrideKylinProps.put("kylin.query.force-limit", "-1");
         overrideKylinProps.put("kylin.source.default", "9");
         ProjectInstance projectInstanceUpdate = ProjectInstance.create(projectInstance.getName(),
-                projectInstance.getOwner(), projectInstance.getDescription(), overrideKylinProps,
-                MaintainModelType.AUTO_MAINTAIN);
+                projectInstance.getOwner(), projectInstance.getDescription(), overrideKylinProps);
         projectManager.updateProject(projectInstance, projectInstanceUpdate.getName(),
                 projectInstanceUpdate.getDescription(), projectInstanceUpdate.getOverrideKylinProps());
         projectManager.forceDropProject("broken_test");

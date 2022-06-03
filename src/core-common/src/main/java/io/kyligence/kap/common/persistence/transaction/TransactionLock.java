@@ -25,35 +25,54 @@ package io.kyligence.kap.common.persistence.transaction;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.apache.kylin.common.util.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.Maps;
 
-import lombok.val;
 import lombok.experimental.Delegate;
 
 public class TransactionLock {
 
-    static Map<String, ReentrantReadWriteLock> projectLocks = Maps.newConcurrentMap();
+    static Map<String, Pair<ReentrantReadWriteLock, AtomicLong>> projectLocks = Maps.newConcurrentMap();
+    private static final Logger logger = LoggerFactory.getLogger(TransactionLock.class);
 
     public static TransactionLock getLock(String project, boolean readonly) {
-        ReentrantReadWriteLock lock = projectLocks.get(project);
-        if (lock == null) {
+        Pair<ReentrantReadWriteLock, AtomicLong> lockPair = projectLocks.get(project);
+        if (lockPair == null) {
             synchronized (UnitOfWork.class) {
-                val cacheLock = projectLocks.get(project);
-                if (cacheLock == null) {
-                    projectLocks.put(project, new ReentrantReadWriteLock(true));
-                }
+                lockPair = projectLocks.computeIfAbsent(project,
+                        k -> Pair.newPair(new ReentrantReadWriteLock(true), new AtomicLong()));
             }
         }
-
-        lock = projectLocks.get(project);
+        lockPair.getSecond().incrementAndGet();
+        ReentrantReadWriteLock lock = lockPair.getFirst();
         return new TransactionLock(lock, readonly ? lock.readLock() : lock.writeLock());
     }
 
+    public static void removeLock(String project) {
+        Pair<ReentrantReadWriteLock, AtomicLong> lockPair = projectLocks.get(project);
+        if (lockPair != null) {
+            synchronized (UnitOfWork.class) {
+                AtomicLong atomicLong = lockPair.getSecond();
+                if (atomicLong.decrementAndGet() == 0) {
+                    projectLocks.remove(project);
+                }
+
+            }
+        }
+        if (projectLocks.size() > 5000L) {
+            projectLocks.forEach((k, v) -> logger.warn("lock leaks lock: {}，num: {}", k, v.getSecond()));
+        }
+    }
+
     public static boolean isWriteLocked(String project) {
-        ReentrantReadWriteLock lock = projectLocks.get(project);
+        ReentrantReadWriteLock lock = projectLocks.get(project).getFirst();
         return lock != null && lock.isWriteLocked();
     }
 
@@ -76,6 +95,8 @@ public class TransactionLock {
     }
 
     public static Map<String, ReentrantReadWriteLock> getProjectLocksForRead() {
-        return Collections.unmodifiableMap(projectLocks);
+        Map<String, ReentrantReadWriteLock> map = Maps.newConcurrentMap();
+        projectLocks.forEach((k, v) -> map.put(k, v.getFirst()));
+        return Collections.unmodifiableMap(map);
     }
 }

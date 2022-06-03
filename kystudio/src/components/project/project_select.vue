@@ -15,8 +15,7 @@
       class="project_option"
       :label="item.name"
       :value="item.name">
-      <i class="el-icon-ksd-smart_mode_small" v-if="item.maintain_model_type === 'AUTO_MAINTAIN'"></i>
-      <i class="el-ksd-icon-project_16" v-if="item.maintain_model_type === 'MANUAL_MAINTAIN'"></i>
+      <i class="el-icon-ksd-expert_mode_small"></i>
       <span>{{item.name}}</span>
     </el-option>
     </el-select>

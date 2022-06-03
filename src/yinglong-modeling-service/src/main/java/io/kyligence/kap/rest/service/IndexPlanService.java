@@ -23,14 +23,16 @@
  */
 package io.kyligence.kap.rest.service;
 
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.INDEX_DUPLICATE;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.LAYOUT_LIST_EMPTY;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.LAYOUT_NOT_EXISTS;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
@@ -42,8 +44,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.secondstorage.SecondStorageUpdater;
-import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -115,6 +115,8 @@ import io.kyligence.kap.rest.response.IndexGraphResponse;
 import io.kyligence.kap.rest.response.IndexResponse;
 import io.kyligence.kap.rest.response.IndexStatResponse;
 import io.kyligence.kap.rest.response.TableIndexResponse;
+import io.kyligence.kap.secondstorage.SecondStorageUpdater;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import lombok.Setter;
 import lombok.val;
 import lombok.var;
@@ -364,7 +366,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
             Set<Integer> invalidMeasures) {
         aclEvaluate.checkProjectWritePermission(project);
         if (CollectionUtils.isEmpty(ids)) {
-            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getLayoutListIsEmpty());
+            throw new KylinException(LAYOUT_LIST_EMPTY);
         }
 
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
@@ -377,8 +379,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
                 .map(String::valueOf).collect(Collectors.joining(","));
 
         if (StringUtils.isNotEmpty(notExistsLayoutIds)) {
-            throw new KylinException(INVALID_PARAMETER,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getLayoutNotExists(), notExistsLayoutIds));
+            throw new KylinException(LAYOUT_NOT_EXISTS, notExistsLayoutIds);
         }
 
         indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
@@ -576,7 +577,8 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
                 .collect(Collectors.toList()));
 
         val df = getManager(NDataflowManager.class, project).getDataflow(modelId);
-        Segments<NDataSegment> segments = df.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING, SegmentStatusEnum.NEW);
+        Segments<NDataSegment> segments = df.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING,
+                SegmentStatusEnum.NEW);
 
         val executableManager = getManager(NExecutableManager.class, project);
         List<AbstractExecutable> executables = executableManager.listExecByModelAndStatus(modelId,
@@ -804,8 +806,11 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
     @VisibleForTesting
     public Set<Long> getLayoutsByRunningJobs(String project, String modelId) {
         List<AbstractExecutable> runningJobList = NExecutableManager
-                .getInstance(KylinConfig.getInstanceFromEnv(), project).getExecutablesByStatusList(Sets.newHashSet(
-                        ExecutableState.READY, ExecutableState.RUNNING, ExecutableState.PAUSED, ExecutableState.ERROR));
+                .getInstance(KylinConfig.getInstanceFromEnv(), project) //
+                .getPartialExecutablesByStatusList(
+                        Sets.newHashSet(ExecutableState.READY, ExecutableState.RUNNING, ExecutableState.PAUSED,
+                                ExecutableState.ERROR), //
+                        path -> StringUtils.endsWith(path, modelId));
 
         return runningJobList.stream()
                 .filter(abstractExecutable -> Objects.equals(modelId, abstractExecutable.getTargetSubject()))
@@ -1058,13 +1063,15 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
         aclEvaluate.checkProjectWritePermission(project);
         // update = delete + create
         Set<Long> needDelete = checkNeedUpdateBaseIndex(project, request, isAuo);
+        List<LayoutEntity> needRetainAggLayout = getNeedRetainAggLayout(project, request, needDelete);
         deleteOrMarkTobeDelete(project, request.getModelId(), needDelete);
+        removeFromBlackList(project, request, needDelete, needRetainAggLayout);
 
         if (createIfNotExistAggLayout) {
-            request.getSourceTypes().add(Source.BASE_TABLE_INDEX);
+            request.getSourceTypes().add(Source.BASE_AGG_INDEX);
         }
         if (createIfNotExistTableLayout) {
-            request.getSourceTypes().add(Source.BASE_AGG_INDEX);
+            request.getSourceTypes().add(Source.BASE_TABLE_INDEX);
         }
         if (request.getSourceTypes().isEmpty()) {
             return BuildBaseIndexResponse.EMPTY;
@@ -1073,6 +1080,49 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
         BuildBaseIndexResponse response = createBaseIndex(project, request);
         response.setIndexUpdateType(needDelete);
         return response;
+    }
+
+    private List<LayoutEntity> getNeedRetainAggLayout(String project, CreateBaseIndexRequest request,
+            Set<Long> needDelete) {
+        if (CollectionUtils.isEmpty(needDelete)) {
+            return Collections.emptyList();
+        }
+        String modelId = request.getModelId();
+        IndexPlan indexPlan = getIndexPlan(project, modelId);
+        LayoutEntity baseAggLayout = indexPlan.getBaseAggLayout();
+        if (baseAggLayout != null) {
+            long baseLaoutId = baseAggLayout.getId();
+            if (indexPlan.getRuleBaseLayouts().contains(indexPlan.getBaseAggLayout())
+                    && needDelete.contains(baseLaoutId)) {
+                return indexPlan.getRuleBaseLayouts().stream().filter(r -> r.getId() == baseLaoutId)
+                        .collect(Collectors.toList());
+            }
+        }
+        return Collections.emptyList();
+    }
+
+    @Transaction(project = 0)
+    private void removeFromBlackList(String project, CreateBaseIndexRequest request, Set<Long> needDelete,
+            List<LayoutEntity> needRetainAggLayout) {
+        if (CollectionUtils.isEmpty(needRetainAggLayout)) {
+            return;
+        }
+
+        String modelId = request.getModelId();
+        IndexPlan indexPlan = getIndexPlan(project, modelId);
+        Set<Long> layoutIdMapping = new HashSet<>(indexPlan.getRuleBasedIndex().getLayoutIdMapping());
+
+        List<LayoutEntity> retainLayout = needRetainAggLayout.stream()
+                .filter(l -> layoutIdMapping.contains(l.getId()) && needDelete.contains(l.getId()))
+                .collect(Collectors.toList());
+        Set<Long> retainLayoutIds = retainLayout.stream().map(LayoutEntity::getId).collect(Collectors.toSet());
+        if (CollectionUtils.isNotEmpty(retainLayout)) {
+            NIndexPlanManager indexPlanManager = getManager(NIndexPlanManager.class, project);
+            indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
+                copyForWrite.getRuleBasedIndex().getLayoutBlackList().removeAll(retainLayoutIds);
+                copyForWrite.getRuleBaseLayouts().addAll(retainLayout);
+            });
+        }
     }
 
     private Set<Long> checkNeedUpdateBaseIndex(String project, CreateBaseIndexRequest request, boolean isAuto) {
@@ -1231,7 +1281,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
 
     @Override
     public void onUpdateBaseIndex(Object indexUpdateHelper) {
-        val baseIndexUpdater = (BaseIndexUpdateHelper)indexUpdateHelper;
+        val baseIndexUpdater = (BaseIndexUpdateHelper) indexUpdateHelper;
         baseIndexUpdater.update(this);
     }
 

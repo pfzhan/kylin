@@ -158,6 +158,7 @@ public class TDVTTest implements JobWaiter {
         // check
         test.checkHttpServer();
         test.overwriteSystemProp("kylin.query.use-tableindex-answer-non-raw-query", "true");
+        test.overwriteSystemProp("kylin.second-storage.query-pushdown-limit", "0");
 
         JdbcDatabaseContainer<?> clickhouse = clickHouse.getClickhouse(0);
         final SparkSession sparkSession = sharedSpark.getSpark();
@@ -167,15 +168,6 @@ public class TDVTTest implements JobWaiter {
         sparkSession.sessionState().conf().setConfString(
                 "spark.sql.catalog." + queryCatalog + ".driver",
                 clickhouse.getDriverClassName());
-        sparkSession.sessionState().conf().setConfString(
-                "spark.sql.catalog." + queryCatalog + ".pushDownAggregate",
-                "true");
-        sparkSession.sessionState().conf().setConfString(
-                "spark.sql.catalog." + queryCatalog + ".pushDownLimit",
-                "true");
-        sparkSession.sessionState().conf().setConfString(
-                "spark.sql.catalog." + queryCatalog + ".numPartitions",
-                String.valueOf(clickhouseNumber));
     }
 
     @AfterClass

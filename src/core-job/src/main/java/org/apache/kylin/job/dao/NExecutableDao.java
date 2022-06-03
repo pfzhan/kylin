@@ -85,6 +85,10 @@ public class NExecutableDao {
         return crud.listAll();
     }
 
+    public List<ExecutablePO> getPartialJobs(Predicate<String> predicate) {
+        return crud.listPartial(predicate);
+    }
+
     public List<ExecutablePO> getJobs(long timeStart, long timeEndExclusive) {
         return crud.listAll().stream()
                 .filter(x -> x.getLastModified() >= timeStart && x.getLastModified() < timeEndExclusive)

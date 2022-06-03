@@ -31,6 +31,7 @@ import java.util.Map;
 import org.apache.hadoop.fs.Path;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,7 +74,7 @@ public class ResourceDetectBeforeMergingJob extends SparkApplication implements 
             List<Path> paths = JavaConversions
                     .seqAsJavaList(ResourceDetectUtils.getPaths(afterMerge.queryExecution().sparkPlan()));
             resourceSize.put(String.valueOf(entry.getKey()),
-                    ResourceDetectUtils.getResourceSize(config.isConcurrencyFetchDataSourceSize(),
+                    ResourceDetectUtils.getResourceSize(SparderEnv.getHadoopConfiguration(),config.isConcurrencyFetchDataSourceSize(),
                             JavaConverters.asScalaIteratorConverter(paths.iterator()).asScala().toSeq()));
         }
         ResourceDetectUtils.write(new Path(config.getJobTmpShareDir(project, jobId),

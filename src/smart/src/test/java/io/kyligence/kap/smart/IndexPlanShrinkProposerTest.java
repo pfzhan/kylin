@@ -28,8 +28,6 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.metadata.model.MaintainModelType;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.smart.util.AccelerationContextUtil;
 import lombok.val;
 
@@ -116,8 +114,6 @@ public class IndexPlanShrinkProposerTest extends NLocalWithSparkSessionTest {
 
         Assert.assertFalse(initialContext.getAccelerateInfoMap().get(prepareSql).isNotSucceed());
 
-        val prjInstance = NProjectManager.getInstance(getTestConfig()).getProject(getProject());
-        prjInstance.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
         getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "true");
         Assert.assertEquals(1, initialContext.getModelContexts().size());
         val firstModel = initialContext.getModelContexts().get(0).getTargetModel();
@@ -159,7 +155,6 @@ public class IndexPlanShrinkProposerTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(3, indexplan.getAllLayouts().size());
     }
 
-
     /**
      * first sql -> index1 A B m1 m2
      * second sqls -> index2 A B m1 index3 A B m2, index1 A B m1 m2(first sql generate), B A m1 m2,
@@ -167,7 +162,7 @@ public class IndexPlanShrinkProposerTest extends NLocalWithSparkSessionTest {
      */
 
     @Test
-    public void testMergeIndexOfSameDimensionWithSameExistIndex(){
+    public void testMergeIndexOfSameDimensionWithSameExistIndex() {
         String prepareSql = "select max(C_CUSTKEY), sum(C_CUSTKEY) from TPCH.CUSTOMER where C_PHONE = '1' GROUP BY C_NAME";
         val initialContext = ProposerJob.proposeForAutoMode(getTestConfig(), getProject(), new String[] { prepareSql });
         initialContext.saveMetadata();
@@ -175,8 +170,6 @@ public class IndexPlanShrinkProposerTest extends NLocalWithSparkSessionTest {
 
         Assert.assertFalse(initialContext.getAccelerateInfoMap().get(prepareSql).isNotSucceed());
 
-        val prjInstance = NProjectManager.getInstance(getTestConfig()).getProject(getProject());
-        prjInstance.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
         getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "true");
         Assert.assertEquals(1, initialContext.getModelContexts().size());
         val firstModel = initialContext.getModelContexts().get(0).getTargetModel();
@@ -200,7 +193,6 @@ public class IndexPlanShrinkProposerTest extends NLocalWithSparkSessionTest {
         val secondModel = context.getModelContexts().get(0).getTargetModel();
         Assert.assertEquals(firstModel.getId(), secondModel.getId());
         val indexplan = context.getModelContexts().get(0).getTargetIndexPlan();
-
 
         Assert.assertEquals(1, indexplan.getIndexes().size());
         Assert.assertEquals(2, indexplan.getAllLayouts().size());

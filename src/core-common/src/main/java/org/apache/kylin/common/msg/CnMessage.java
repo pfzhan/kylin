@@ -1489,6 +1489,11 @@ public class CnMessage extends Message {
     }
 
     @Override
+    public String getQueryNodeInvalid() {
+        return "该请求无法在查询节点执行。请检查后重试。";
+    }
+
+    @Override
     public String getWriteInMaintenanceMode() {
         return "系统已进入维护模式，元数据相关操作暂不可用。请稍后再试。";
     }
@@ -1921,6 +1926,21 @@ public class CnMessage extends Message {
     @Override
     public String getStreamingIndexesConvert() {
         return "流数据模型暂无法转换为优化建议。";
+    }
+
+    @Override
+    public String getForcedToTieredstorageAndForceToIndex() {
+        return "“force_to_index=ture“ 时，查询使用分层存储失败时不能下压，“forcedToTieredStorage“=1 或者 conf=1 无效，请修改后重试";
+    }
+
+    @Override
+    public String getForcedToTieredstorageReturnError() {
+        return "查询失败。分层存储不可用，请修复后重试查询";
+    }
+
+    @Override
+    public String getForcedToTieredstorageInvalidParameter() {
+        return "无效的参数值，请修改后重试";
     }
 
     @Override

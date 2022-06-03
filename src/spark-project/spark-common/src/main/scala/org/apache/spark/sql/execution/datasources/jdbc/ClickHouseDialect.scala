@@ -47,6 +47,13 @@ object ClickHouseDialect extends JdbcDialect with Logging {
   private[jdbc] val fixedStringTypePattern: Regex = "^FixedString\\((\\d+)\\)$".r
   private[jdbc] val nullableTypePattern: Regex = "^Nullable\\((.*)\\)".r
 
+  private val supportedFunctions =
+    Set("ABS", "COALESCE", "LN", "EXP", "POWER", "SQRT", "FLOOR", "CEIL",
+      "SUBSTRING", "UPPER", "LOWER", "TRANSLATE", "TRIM")
+
+  override def isSupportedFunction(funcName: String): Boolean =
+    supportedFunctions.contains(funcName)
+
   override def canHandle(url: String): Boolean =
     url.toLowerCase(Locale.ROOT).startsWith("jdbc:clickhouse")
 

@@ -31,5 +31,5 @@ import lombok.Data;
 @Data
 public class SnapshotConfigRequest {
     @JsonProperty("snapshot_manual_management_enabled")
-    private Boolean snapshotManualManagementEnabled;
+    private Boolean snapshotManualManagementEnabled = false;
 }

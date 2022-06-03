@@ -97,7 +97,7 @@ public class SecondStorageServiceTest extends NLocalFileMetadataTestCase {
         clusterNodes.put("pair1", Collections.singletonList(new Node().setName("node01").setIp("127.0.0.1").setPort(9000)));
         clusterNodes.put("pair2", Collections.singletonList(new Node().setName("node02").setIp("127.0.0.2").setPort(9000)));
         clusterNodes.put("pair3", Collections.singletonList(new Node().setName("node03").setIp("127.0.0.3").setPort(9000)));
-        SecondStorageNodeHelper.initFromCluster(cluster, null);
+        SecondStorageNodeHelper.initFromCluster(cluster, null, null);
         val result = secondStorageService.listAvailableNodes();
         Assert.assertEquals(3, result.size());
         Assert.assertEquals(3, result.values().stream().mapToLong(List::size).sum());

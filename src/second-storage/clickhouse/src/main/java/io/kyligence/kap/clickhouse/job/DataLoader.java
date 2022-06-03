@@ -241,6 +241,10 @@ public class DataLoader {
                 // if paused skip clean insert temp table
                 shardLoader.cleanUpQuietly(paused);
             }
+
+            if (!executorService.isShutdown()) {
+                executorService.shutdown();
+            }
         }
     }
 

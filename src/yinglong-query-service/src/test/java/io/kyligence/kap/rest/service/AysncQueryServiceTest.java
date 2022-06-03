@@ -25,6 +25,7 @@ package io.kyligence.kap.rest.service;
 
 import static io.kyligence.kap.rest.service.AsyncQueryService.QueryStatus.RUNNING;
 import static io.kyligence.kap.rest.service.AsyncQueryService.QueryStatus.SUCCESS;
+import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -38,11 +39,15 @@ import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.io.StringWriter;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Exchanger;
@@ -53,6 +58,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
@@ -65,15 +71,22 @@ import org.apache.kylin.query.util.AsyncQueryUtil;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.apache.kylin.rest.service.ServiceTestBase;
 import org.apache.parquet.Strings;
+import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.xssf.usermodel.XSSFCell;
+import org.apache.poi.xssf.usermodel.XSSFRow;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
-import org.awaitility.Awaitility;
+import org.awaitility.Duration;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.supercsv.io.CsvListWriter;
@@ -86,6 +99,8 @@ import io.kyligence.kap.query.pushdown.SparkSqlClient;
 import lombok.val;
 
 public class AysncQueryServiceTest extends ServiceTestBase {
+
+    private Logger logger = LoggerFactory.getLogger(AysncQueryServiceTest.class);
 
     private static String TEST_BASE_DIR;
     private static File BASE;
@@ -169,7 +184,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
         ss.sqlContext().setConf("spark.sql.parquet.columnNameCheck.enabled", "false");
         SparkSqlClient.executeSql(ss, sql, UUID.fromString(queryId), PROJECT);
 
-        Awaitility.await().atMost(60000, TimeUnit.MILLISECONDS).until(
+        await().atMost(60000, TimeUnit.MILLISECONDS).until(
                 () -> AsyncQueryService.QueryStatus.SUCCESS.equals(asyncQueryService.queryStatus(PROJECT, queryId)));
         HttpServletResponse response = mock(HttpServletResponse.class);
         ServletOutputStream servletOutputStream = mock(ServletOutputStream.class);
@@ -225,7 +240,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
             }
         }).when(servletOutputStream).write(any(byte[].class), anyInt(), anyInt());
         asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, false, response, "csv", encodeDefault, ",");
-        List<org.apache.spark.sql.Row> rowList = ss.read().parquet(asyncQueryService.getAsyncQueryResultDir(PROJECT, queryId).toString()).collectAsList();
+        List<org.apache.spark.sql.Row> rowList = ss.read().csv(asyncQueryService.getAsyncQueryResultDir(PROJECT, queryId).toString()).collectAsList();
         List<String> result = Lists.newArrayList();
         rowList.stream().forEach(row -> {
             val list = row.toSeq().toList();
@@ -239,14 +254,14 @@ public class AysncQueryServiceTest extends ServiceTestBase {
     }
 
     @Test
-    public void testSuccessQueryAndDownloadXlsxResultByParquet() throws IOException {
+    public void testSuccessQueryAndDownloadXlsxWriter() throws IOException {
         QueryContext queryContext = QueryContext.current();
         String queryId = queryContext.getQueryId();
         mockMetadata(queryId, true);
         queryContext.getQueryTagInfo().setAsyncQuery(true);
         queryContext.getQueryTagInfo().setFileFormat("xlsx");
         queryContext.getQueryTagInfo().setFileEncode("utf-8");
-        String sql = "select '123\"','123'";
+        String sql = "select '123\"' as col1,'123' as col2";
         queryContext.setProject(PROJECT);
         SparkSqlClient.executeSql(ss, sql, UUID.fromString(queryId), PROJECT);
         assertSame(AsyncQueryService.QueryStatus.SUCCESS, asyncQueryService.queryStatus(PROJECT, queryId));
@@ -263,7 +278,117 @@ public class AysncQueryServiceTest extends ServiceTestBase {
             }
         }).when(servletOutputStream).write(any(byte[].class), anyInt(), anyInt());
         asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, false, response, "xlsx", encodeDefault, ",");
-        List<org.apache.spark.sql.Row> rowList = ss.read().parquet(asyncQueryService.getAsyncQueryResultDir(PROJECT, queryId).toString()).collectAsList();
+        FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
+        FileStatus[] fileStatuses = fileSystem.listStatus(new Path(asyncQueryService.getAsyncQueryResultDir(PROJECT, queryId).toString()));
+        XLSXExcelWriter xlsxExcelWriter = new XLSXExcelWriter();
+        XSSFWorkbook workbook = new XSSFWorkbook();
+        XSSFSheet sheet = workbook.createSheet();
+        xlsxExcelWriter.writeData(fileStatuses, sheet);
+        XSSFRow row = sheet.getRow(0);
+        assertEquals("123\",123", row.getCell(0) + "," + row.getCell(1));
+        assertEquals("[col1, col2]", QueryContext.current().getColumnNames().toString());
+    }
+
+    @Test
+    public void testSuccessQueryAndDownloadCSV() throws IOException {
+        QueryContext queryContext = QueryContext.current();
+        String queryId = queryContext.getQueryId();
+        mockMetadata(queryId, true);
+        queryContext.getQueryTagInfo().setAsyncQuery(true);
+        queryContext.getQueryTagInfo().setFileFormat("csv");
+        queryContext.getQueryTagInfo().setFileEncode("utf-8");
+        String sql = "select '123\"' as col1,'123' as col2";
+        queryContext.setProject(PROJECT);
+        SparkSqlClient.executeSql(ss, sql, UUID.fromString(queryId), PROJECT);
+        assertSame(AsyncQueryService.QueryStatus.SUCCESS, asyncQueryService.queryStatus(PROJECT, queryId));
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ServletOutputStream servletOutputStream = mock(ServletOutputStream.class);
+        when(response.getOutputStream()).thenReturn(servletOutputStream);
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
+                Object[] arguments = invocationOnMock.getArguments();
+                baos.write((byte[]) arguments[0], (int) arguments[1], (int) arguments[2]);
+                return null;
+            }
+        }).when(servletOutputStream).write(any(byte[].class), anyInt(), anyInt());
+        asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, true, response, "xlsx", encodeDefault, ",");
+        FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
+        FileStatus[] fileStatuses = fileSystem.listStatus(new Path(asyncQueryService.getAsyncQueryResultDir(PROJECT, queryId).toString()));
+        XLSXExcelWriter xlsxExcelWriter = new XLSXExcelWriter();
+        XSSFWorkbook workbook = new XSSFWorkbook();
+        XSSFSheet sheet = workbook.createSheet();
+        xlsxExcelWriter.writeData(fileStatuses, sheet);
+        XSSFRow row = sheet.getRow(0);
+        assertEquals("\"123\\\"\",123", row.getCell(0) + "," + row.getCell(1));
+        assertEquals("[col1, col2]", QueryContext.current().getColumnNames().toString());
+    }
+
+    @Test
+    public void testSuccessQueryAndDownloadCSVForDateFormat() throws IOException {
+        QueryContext queryContext = QueryContext.current();
+        String queryId = queryContext.getQueryId();
+        mockMetadata(queryId, true);
+        queryContext.getQueryTagInfo().setAsyncQuery(true);
+        queryContext.getQueryTagInfo().setFileFormat("csv");
+        queryContext.getQueryTagInfo().setFileEncode("utf-8");
+        String sql = "select '123\"' as col1,'123' as col2, date'2021-02-01' as col3";
+        queryContext.setProject(PROJECT);
+        SparkSqlClient.executeSql(ss, sql, UUID.fromString(queryId), PROJECT);
+        assertSame(AsyncQueryService.QueryStatus.SUCCESS, asyncQueryService.queryStatus(PROJECT, queryId));
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ServletOutputStream servletOutputStream = mock(ServletOutputStream.class);
+        when(response.getOutputStream()).thenReturn(servletOutputStream);
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
+                Object[] arguments = invocationOnMock.getArguments();
+                baos.write((byte[]) arguments[0], (int) arguments[1], (int) arguments[2]);
+                return null;
+            }
+        }).when(servletOutputStream).write(any(byte[].class), anyInt(), anyInt());
+        asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, true, response, "xlsx", encodeDefault, ",");
+        FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
+        FileStatus[] fileStatuses = fileSystem.listStatus(new Path(asyncQueryService.getAsyncQueryResultDir(PROJECT, queryId).toString()));
+        XLSXExcelWriter xlsxExcelWriter = new XLSXExcelWriter();
+        XSSFWorkbook workbook = new XSSFWorkbook();
+        XSSFSheet sheet = workbook.createSheet();
+        xlsxExcelWriter.writeData(fileStatuses, sheet);
+        XSSFRow row = sheet.getRow(0);
+        assertEquals("\"123\\\"\",123,2021-02-01", row.getCell(0)
+                + "," + row.getCell(1) + "," + row.getCell(2));
+        assertEquals("[col1, col2, col3]", QueryContext.current().getColumnNames().toString());
+    }
+
+    @Test
+    public void testSuccessQueryAndDownloadCSVNotIncludeHeader() throws IOException {
+        QueryContext queryContext = QueryContext.current();
+        String queryId = queryContext.getQueryId();
+        mockMetadata(queryId, true);
+        queryContext.getQueryTagInfo().setAsyncQuery(true);
+        queryContext.getQueryTagInfo().setFileFormat("csv");
+        queryContext.getQueryTagInfo().setFileEncode("utf-8");
+        String sql = "select '123\"','123'";
+        queryContext.setProject(PROJECT);
+        SparkSqlClient.executeSql(ss, sql, UUID.fromString(queryId), PROJECT);
+        assertSame(AsyncQueryService.QueryStatus.SUCCESS, asyncQueryService.queryStatus(PROJECT, queryId));
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        ServletOutputStream servletOutputStream = mock(ServletOutputStream.class);
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        when(response.getOutputStream()).thenReturn(servletOutputStream);
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
+                Object[] arguments = invocationOnMock.getArguments();
+                baos.write((byte[]) arguments[0], (int) arguments[1], (int) arguments[2]);
+                return null;
+            }
+        }).when(servletOutputStream).write(any(byte[].class), anyInt(), anyInt());
+        asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, false, response, "csv", encodeDefault, "#");
+        List<org.apache.spark.sql.Row> rowList = ss.read().csv(asyncQueryService.getAsyncQueryResultDir(PROJECT, queryId).toString()).collectAsList();
+        Assert.assertEquals("\"123\"\"\"#123\n", baos.toString(StandardCharsets.UTF_8.name()));
         List<String> result = Lists.newArrayList();
         rowList.stream().forEach(row -> {
             val list = row.toSeq().toList();
@@ -274,6 +399,112 @@ public class AysncQueryServiceTest extends ServiceTestBase {
             }
         });
         assertEquals("123\"" + "123", result.get(0) + result.get(1));
+    }
+
+    @Test
+    public void testSuccessQueryAndDownloadJSON() throws IOException {
+        QueryContext queryContext = QueryContext.current();
+        String queryId = queryContext.getQueryId();
+        mockMetadata(queryId, true);
+        queryContext.getQueryTagInfo().setAsyncQuery(true);
+        queryContext.getQueryTagInfo().setFileFormat("json");
+        queryContext.getQueryTagInfo().setFileEncode("utf-8");
+        String sql = "select '123\"' as col1,'123' as col2";
+        queryContext.setProject(PROJECT);
+        SparkSqlClient.executeSql(ss, sql, UUID.fromString(queryId), PROJECT);
+        assertSame(AsyncQueryService.QueryStatus.SUCCESS, asyncQueryService.queryStatus(PROJECT, queryId));
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ServletOutputStream servletOutputStream = mock(ServletOutputStream.class);
+        when(response.getOutputStream()).thenReturn(servletOutputStream);
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
+                Object[] arguments = invocationOnMock.getArguments();
+                baos.write((byte[]) arguments[0], (int) arguments[1], (int) arguments[2]);
+                return null;
+            }
+        }).when(servletOutputStream).write(any(byte[].class), anyInt(), anyInt());
+        asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, false, response, "json", encodeDefault, ",");
+        FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
+        FileStatus[] fileStatuses = fileSystem.listStatus(new Path(asyncQueryService.getAsyncQueryResultDir(PROJECT, queryId).toString()));
+        XLSXExcelWriter xlsxExcelWriter = new XLSXExcelWriter();
+        XSSFWorkbook workbook = new XSSFWorkbook();
+        XSSFSheet sheet = workbook.createSheet();
+        xlsxExcelWriter.writeData(fileStatuses, sheet);
+        XSSFRow row = sheet.getRow(0);
+        assertEquals("{\"col1\":\"123\\\"\",\"col2\":\"123\"}", row.getCell(0) + "," + row.getCell(1));
+        assertEquals("[col1, col2]", QueryContext.current().getColumnNames().toString());
+    }
+
+    @Test
+    public void testSuccessQueryAndDownloadXlsxResultByParquet() throws IOException {
+        QueryContext queryContext = QueryContext.current();
+        String queryId = queryContext.getQueryId();
+        mockMetadata(queryId, true);
+        queryContext.getQueryTagInfo().setAsyncQuery(true);
+        queryContext.getQueryTagInfo().setFileFormat("xlsx");
+        queryContext.getQueryTagInfo().setFileEncode("utf-8");
+        String sql = "select '123\"' as col1,'123' as col2";
+        queryContext.setProject(PROJECT);
+        SparkSqlClient.executeSql(ss, sql, UUID.fromString(queryId), PROJECT);
+        assertSame(AsyncQueryService.QueryStatus.SUCCESS, asyncQueryService.queryStatus(PROJECT, queryId));
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ServletOutputStream servletOutputStream = mock(ServletOutputStream.class);
+        when(response.getOutputStream()).thenReturn(servletOutputStream);
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
+                Object[] arguments = invocationOnMock.getArguments();
+                baos.write((byte[]) arguments[0], (int) arguments[1], (int) arguments[2]);
+                return null;
+            }
+        }).when(servletOutputStream).write(any(byte[].class), anyInt(), anyInt());
+        asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, false, response, "xlsx", encodeDefault, ",");
+        FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
+        File file = new File("result.xlsx");
+        boolean createTempFileStatus = file.createNewFile();
+        ArrayList<String> list = new ArrayList<>();
+        FileStatus[] fileStatuses = fileSystem.listStatus(new Path(asyncQueryService.getAsyncQueryResultDir(PROJECT, queryId).toString()));
+        for (FileStatus f : fileStatuses) {
+            if (!f.getPath().getName().startsWith("_")) {
+                fileSystem.copyToLocalFile(f.getPath(), new Path(file.getPath()));
+                try(InputStream is = new FileInputStream(file.getAbsolutePath());
+                    XSSFWorkbook sheets = new XSSFWorkbook(is)) {
+                    XSSFSheet sheetAt = sheets.getSheetAt(0);
+                    for (int i = 0; i < sheetAt.getPhysicalNumberOfRows(); i++) {
+                        XSSFRow row = sheetAt.getRow(i);
+                        StringBuilder builder = new StringBuilder();
+                        for (int index = 0; index < row.getPhysicalNumberOfCells(); index++) {
+                            XSSFCell cell = row.getCell(index);
+                            if (index > 0) {
+                                builder.append(",");
+                            }
+                            builder.append(getString(cell));
+                        }
+                        list.add(builder.toString());
+                    }
+                }
+            }
+        }
+        Files.delete(file.toPath());
+        logger.info("Temp File status createTempFileStatus:{}",
+                createTempFileStatus);
+        assertEquals("123\",123", list.get(0));
+    }
+
+    private static String getString(XSSFCell xssfCell) {
+        if (xssfCell == null) {
+            return "";
+        }
+        if (xssfCell.getCellType()== CellType.NUMERIC) {
+            return String.valueOf(xssfCell.getNumericCellValue());
+        } else if (xssfCell.getCellType() == CellType.BOOLEAN) {
+            return String.valueOf(xssfCell.getBooleanCellValue());
+        } else {
+            return xssfCell.getStringCellValue();
+        }
     }
 
     @Test
@@ -298,7 +529,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
 
         asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, false, response, formatDefault, encodeDefault, ",");
 
-        assertEquals("a1,b1,c1\r\n" + "a2,b2,c2\r\n", baos.toString(StandardCharsets.UTF_8.name()));
+        assertEquals("a1,b1,c1\n" + "a2,b2,c2\n", baos.toString(StandardCharsets.UTF_8.name()));
     }
 
     @Test
@@ -321,7 +552,30 @@ public class AysncQueryServiceTest extends ServiceTestBase {
 
         asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, true, response, formatDefault, encodeDefault, ",");
 
-        assertEquals("name,age,city\n" + "a1,b1,c1\r\n" + "a2,b2,c2\r\n", baos.toString(StandardCharsets.UTF_8.name()));
+        assertEquals("name,age,city\na1,b1,c1\n" + "a2,b2,c2\n", baos.toString(StandardCharsets.UTF_8.name()));
+    }
+
+    @Test
+    public void testSuccessQueryAndDownloadResultNotIncludeHeader() throws IOException, InterruptedException {
+        SQLResponse sqlResponse = mock(SQLResponse.class);
+        when(sqlResponse.isException()).thenReturn(false);
+        String queryId = RandomUtil.randomUUIDStr();
+        mockMetadata(queryId, false);
+        mockResultFile(queryId, false, true);
+        assertSame(AsyncQueryService.QueryStatus.SUCCESS, asyncQueryService.queryStatus(PROJECT, queryId));
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        ServletOutputStream servletOutputStream = mock(ServletOutputStream.class);
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        when(response.getOutputStream()).thenReturn(servletOutputStream);
+        doAnswer(invocationOnMock -> {
+            Object[] arguments = invocationOnMock.getArguments();
+            baos.write((byte[]) arguments[0], (int) arguments[1], (int) arguments[2]);
+            return null;
+        }).when(servletOutputStream).write(any(byte[].class), anyInt(), anyInt());
+
+        asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, false, response, formatDefault, encodeDefault, ",");
+
+        assertEquals("a1,b1,c1\n" + "a2,b2,c2\n", baos.toString(StandardCharsets.UTF_8.name()));
     }
 
     @Test
@@ -472,7 +726,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
                 try {
                     boolean hasRunning = false;
                     for (int i = 0; i < 10; i++) {
-                        TimeUnit.SECONDS.sleep(1);
+                        await().atMost(Duration.ONE_SECOND);
                         AsyncQueryService.QueryStatus queryStatus = asyncQueryService.queryStatus(PROJECT, queryId);
                         if (queryStatus == RUNNING) {
                             hasRunning = true;
@@ -487,7 +741,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
         client.start();
         Boolean hasRunning = exchanger.exchange(false);
         assertTrue(hasRunning);
-        TimeUnit.SECONDS.sleep(1);
+        await().atMost(Duration.ONE_SECOND);
         AsyncQueryService.QueryStatus queryStatus = asyncQueryService.queryStatus(PROJECT, queryId);
         assertEquals(AsyncQueryService.QueryStatus.SUCCESS, queryStatus);
         long l = asyncQueryService.fileStatus(PROJECT, queryId);
@@ -689,8 +943,9 @@ public class AysncQueryServiceTest extends ServiceTestBase {
             fileSystem.mkdirs(asyncQueryResultDir);
         }
         if (block) {
-            TimeUnit.SECONDS.sleep(5);
+            await().atMost(Duration.FIVE_SECONDS);
         }
+
         try (FSDataOutputStream os = fileSystem.create(new Path(asyncQueryResultDir, "m00")); //
              OutputStreamWriter osw = new OutputStreamWriter(os, StandardCharsets.UTF_8); //
              ICsvListWriter csvWriter = new CsvListWriter(osw, CsvPreference.STANDARD_PREFERENCE)) {

@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.PARAMETER_INVALID_SUPPORT_LIST;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
@@ -308,6 +309,21 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 "OFFLINE");
         mockMvc.perform(MockMvcRequestBuilders.put("/api/models/{model}/status", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(mockModelUpdateRequest()))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nModelController).updateModelStatus(eq("89af4ee2-2cdb-4b07-b39e-4c29856309aa"),
+                Mockito.any(ModelUpdateRequest.class));
+    }
+
+    @Test
+    public void testUpdateModelStatusInsensitiveProject() throws Exception {
+        ModelUpdateRequest modelUpdateRequest = mockModelUpdateRequest();
+        modelUpdateRequest.setProject("DEFAULT");
+        modelUpdateRequest.setStatus("ONLINE");
+        Mockito.doNothing().when(modelService).updateDataModelStatus("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa",
+                "OFFLINE");
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/{model}/status", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(modelUpdateRequest))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nModelController).updateModelStatus(eq("89af4ee2-2cdb-4b07-b39e-4c29856309aa"),
@@ -769,7 +785,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 Lists.newArrayList("OFFLINE", "BROKEN"));
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage("is not a valid value");
+        thrown.expectMessage(PARAMETER_INVALID_SUPPORT_LIST.getMsg("status", "ONLINE, OFFLINE, WARNING, BROKEN"));
         status = Lists.newArrayList("OFF", null, "broken");
         nBasicController.formatStatus(status, ModelStatusToDisplayEnum.class);
     }

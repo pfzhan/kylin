@@ -160,6 +160,7 @@ public class NLocalFileMetadataTestCase extends AbstractTestCase {
     }
 
     public void cleanupTestMetadata() {
+        QueryContext.reset();
         staticCleanupTestMetadata();
     }
 

@@ -46,6 +46,7 @@ import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletResponse;
 
+import io.kyligence.kap.guava20.shaded.common.collect.ImmutableMap;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.time.DateUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -156,6 +157,23 @@ public class QueryHistoryService extends BasicService implements AsyncTaskQueryH
         data.put("query_histories", queryHistories);
         data.put("size", queryHistoryDAO.getQueryHistoriesSize(request, request.getProject()));
         return data;
+    }
+
+    public Map<String, Long> queryTiredStorageMetric(QueryHistoryRequest request) {
+        processRequestParams(request);
+
+        if (haveSpaces(request.getSql())) {
+            return ImmutableMap.of("total_scan_count", 0L);
+        }
+
+        QueryHistoryDAO queryHistoryDAO = getQueryHistoryDao();
+        List<QueryHistory> queryHistories = queryHistoryDAO.getQueryHistoriesByConditions(request, 1, 0);
+
+        if (queryHistories.isEmpty()) {
+            return ImmutableMap.of("total_scan_count", 0L);
+        }
+
+        return ImmutableMap.of("total_scan_count", queryHistories.get(0).getTotalScanCount());
     }
 
     private void processRequestParams(QueryHistoryRequest request) {

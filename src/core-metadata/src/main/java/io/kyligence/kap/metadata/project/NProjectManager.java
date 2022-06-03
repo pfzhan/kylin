@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.metadata.project;
 
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -48,7 +47,6 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.hystrix.NCircuitBreaker;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.val;
 
@@ -66,10 +64,10 @@ public class NProjectManager {
 
     // ============================================================================
 
-    private KylinConfig config;
-    private NProjectLoader projectLoader;
+    private final KylinConfig config;
+    private final NProjectLoader projectLoader;
 
-    private CachedCrudAssist<ProjectInstance> crud;
+    private final CachedCrudAssist<ProjectInstance> crud;
 
     public NProjectManager(KylinConfig config) {
         if (!UnitOfWork.isAlreadyInTransaction())
@@ -102,8 +100,8 @@ public class NProjectManager {
         ProjectInstance project = crud.get(projectName);
         return project != null ? project
                 : crud.listAll().stream()
-                .filter(projectInstance -> projectInstance.getName().equalsIgnoreCase(projectName)).findAny()
-                .orElse(null);
+                        .filter(projectInstance -> projectInstance.getName().equalsIgnoreCase(projectName)).findAny()
+                        .orElse(null);
     }
 
     public ProjectInstance getProjectById(String projectId) {
@@ -112,7 +110,7 @@ public class NProjectManager {
     }
 
     public ProjectInstance createProject(String projectName, String owner, String description,
-            LinkedHashMap<String, String> overrideProps, MaintainModelType maintainModelType) {
+            LinkedHashMap<String, String> overrideProps) {
         logger.info("Creating project " + projectName);
 
         ProjectInstance currentProject = getProject(projectName);
@@ -120,7 +118,7 @@ public class NProjectManager {
             //circuit breaker
             NCircuitBreaker.verifyProjectCreation(listAllProjects().size());
 
-            currentProject = ProjectInstance.create(projectName, owner, description, overrideProps, maintainModelType);
+            currentProject = ProjectInstance.create(projectName, owner, description, overrideProps);
             currentProject.initConfig(config);
         } else {
             throw new IllegalStateException("The project named " + projectName + "already exists");
@@ -132,15 +130,12 @@ public class NProjectManager {
     private void checkOverrideProps(ProjectInstance prj) {
         LinkedHashMap<String, String> overrideProps = prj.getOverrideKylinProps();
 
-        if (overrideProps != null) {
-            Iterator<Map.Entry<String, String>> iterator = overrideProps.entrySet().iterator();
-
-            while (iterator.hasNext()) {
-                Map.Entry<String, String> entry = iterator.next();
-
-                if (StringUtils.isAnyBlank(entry.getKey(), entry.getValue())) {
-                    throw new IllegalStateException("Property key/value must not be blank");
-                }
+        if (overrideProps == null) {
+            return;
+        }
+        for (Map.Entry<String, String> entry : overrideProps.entrySet()) {
+            if (StringUtils.isAnyBlank(entry.getKey(), entry.getValue())) {
+                throw new IllegalStateException("Property key/value must not be blank");
             }
         }
     }

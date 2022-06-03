@@ -32,6 +32,7 @@ import com.google.common.collect.Maps
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import io.kyligence.kap.metadata.cube.model.{DimensionRangeInfo, LayoutEntity}
+import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs._
 import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.common.util.HadoopUtil
@@ -139,7 +140,7 @@ object ResourceDetectUtils extends Logging {
     false
   }
 
-  def getResourceSizeConcurrency(paths: Path*): Long = {
+  def getResourceSizeConcurrency(configuration: Configuration, paths: Path*): Long = {
     val threadNumber = KylinConfig.getInstanceFromEnv.getConcurrencyFetchDataSourceSizeThreadNumber
     logInfo(s"Get resource size concurrency, thread number is $threadNumber")
     val forkJoinPool = new ForkJoinPool(threadNumber)
@@ -149,7 +150,7 @@ object ResourceDetectUtils extends Logging {
       parallel.tasksupport = new ForkJoinTaskSupport(forkJoinPool)
       parallel.foreach {
         path => {
-          val fs = path.getFileSystem(HadoopUtil.getCurrentConfiguration)
+          val fs = path.getFileSystem(configuration)
           if (fs.exists(path)) {
             sum.addAndGet(HadoopUtil.getContentSummary(fs, path).getLength)
           }
@@ -162,13 +163,14 @@ object ResourceDetectUtils extends Logging {
     sum.get()
   }
 
-  def getResourceSize(isConcurrencyFetchDataSourceSize: Boolean, paths: Path*): Long = {
+
+  def getResourceSize(configuration: Configuration, isConcurrencyFetchDataSourceSize: Boolean, paths: Path*): Long = {
     val resourceSize = {
       if (isConcurrencyFetchDataSourceSize) {
-        getResourceSizeConcurrency(paths: _*)
+        getResourceSizeConcurrency(configuration, paths: _*)
       } else {
         paths.map(path => {
-          val fs = path.getFileSystem(HadoopUtil.getCurrentConfiguration)
+          val fs = path.getFileSystem(configuration)
           if (fs.exists(path)) {
             HadoopUtil.getContentSummary(fs, path).getLength
           } else {
@@ -178,6 +180,10 @@ object ResourceDetectUtils extends Logging {
       }
     }
     resourceSize
+  }
+
+  def getResourceSize(isConcurrencyFetchDataSourceSize: Boolean, paths: Path*): Long = {
+    getResourceSize(HadoopUtil.getCurrentConfiguration, isConcurrencyFetchDataSourceSize, paths: _*)
   }
 
   def getMaxResourceSize(shareDir: Path): Long = {

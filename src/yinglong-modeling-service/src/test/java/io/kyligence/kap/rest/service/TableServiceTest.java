@@ -64,6 +64,7 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.S3AUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -103,7 +104,6 @@ import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -182,8 +182,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         overrideKylinProps.put("kylin.query.force-limit", "-1");
         overrideKylinProps.put("kylin.source.default", "9");
         ProjectInstance projectInstanceUpdate = ProjectInstance.create(projectInstance.getName(),
-                projectInstance.getOwner(), projectInstance.getDescription(), overrideKylinProps,
-                MaintainModelType.AUTO_MAINTAIN);
+                projectInstance.getOwner(), projectInstance.getDescription(), overrideKylinProps);
         projectManager.updateProject(projectInstance, projectInstanceUpdate.getName(),
                 projectInstanceUpdate.getDescription(), projectInstanceUpdate.getOverrideKylinProps());
         try {
@@ -447,6 +446,26 @@ public class TableServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testLoadTableToProjectWithS3Role() throws IOException {
+        getTestConfig().setProperty("kylin.env.use-dynamic-S3-role-credential-in-table", "true");
+        assert !SparderEnv.getSparkSession().conf().contains(String.format(S3AUtil.ROLE_ARN_KEY_FORMAT, "testbucket"));
+        List<TableDesc> tables = tableService.getTableDesc("default", true, "TEST_COUNTRY", "DEFAULT", true);
+        TableDesc nTableDesc = new TableDesc(tables.get(0));
+        TableExtDesc tableExt = new TableExtDesc();
+        tableExt.setIdentity("DEFAULT.TEST_COUNTRY");
+        TableExtDesc tableExtDesc = new TableExtDesc(tableExt);
+        tableExtDesc.addDataSourceProp(TableExtDesc.S3_ROLE_PROPERTY_KEY, "testRole");
+        tableExtDesc.addDataSourceProp(TableExtDesc.LOCATION_PROPERTY_KEY, "s3://testbucket/path");
+        tableExtDesc.addDataSourceProp(TableExtDesc.S3_ENDPOINT_KEY, "us-west-2.amazonaws.com");
+        String[] result = tableService.loadTableToProject(nTableDesc, tableExtDesc, "default");
+        assert SparderEnv.getSparkSession().conf().get(String.format(S3AUtil.ROLE_ARN_KEY_FORMAT, "testbucket"))
+                .equals("testRole");
+        assert SparderEnv.getSparkSession().conf().get(String.format(S3AUtil.S3_ENDPOINT_KEY_FORMAT, "testbucket"))
+                .equals("us-west-2.amazonaws.com");
+        Assert.assertEquals(1, result.length);
+    }
+
+    @Test
     public void testLoadCaseSensitiveTableToProject() throws IOException {
         NTableMetadataManager tableManager = tableService.getManager(NTableMetadataManager.class, "case_sensitive");
         Serializer<TableDesc> serializer = tableManager.getTableMetadataSerializer();
@@ -600,8 +619,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         Assert.assertNotNull(buildJobMeta);
         Assert.assertNotNull(mergeJobMeta);
         for (TableDesc table : tableManager.listAllTables()) {
-            if (table.isKafkaTable()
-                    && "P_LINEORDER_STR".equalsIgnoreCase(table.getKafkaConfig().getName())) {
+            if (table.isKafkaTable() && "P_LINEORDER_STR".equalsIgnoreCase(table.getKafkaConfig().getName())) {
                 tableService.unloadTable(project, table.getIdentity(), true);
             }
         }
@@ -835,7 +853,7 @@ public class TableServiceTest extends CSVSourceTestCase {
             Assert.assertEquals(TransactionException.class, ex.getClass());
             Assert.assertEquals(IllegalArgumentException.class, ex.getCause().getClass());
             Assert.assertEquals("NDataLoadingRange appendSegmentRange TimePartitionedSegmentRange[" + t5 + "," + t6
-                            + ") has overlaps/gap with existing segmentRanges TimePartitionedSegmentRange[0," + t2 + ")",
+                    + ") has overlaps/gap with existing segmentRanges TimePartitionedSegmentRange[0," + t2 + ")",
                     ex.getCause().getMessage());
         }
     }
@@ -1072,8 +1090,8 @@ public class TableServiceTest extends CSVSourceTestCase {
 
         tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT", "yyyy-MM-dd");
         Assert.assertTrue(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").isIncrementLoading());
-        Assert.assertEquals("TEST_KYLIN_FACT.CAL_DT", modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getPartitionDesc()
-                .getPartitionDateColumn());
+        Assert.assertEquals("TEST_KYLIN_FACT.CAL_DT", modelManager
+                .getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getPartitionDesc().getPartitionDateColumn());
 
         Assert.assertTrue(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").isIncrementLoading());
         Assert.assertNotNull(dataloadingManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT"));
@@ -1146,8 +1164,9 @@ public class TableServiceTest extends CSVSourceTestCase {
             return tableService.getTableNameResponses("default", databaseName, tableName);
         });
         Assert.assertEquals(3, response.getDatabases().size());
-        Assert.assertEquals(20, response.getDatabases().get(0).getTables().size()
-                        + response.getDatabases().get(1).getTables().size() + response.getDatabases().get(2).getTables().size());
+        Assert.assertEquals(20,
+                response.getDatabases().get(0).getTables().size() + response.getDatabases().get(1).getTables().size()
+                        + response.getDatabases().get(2).getTables().size());
 
         response = tableService.getProjectTables("default", "TEST", 0, 14, true, (databaseName, tableName) -> {
             return tableService.getTableNameResponses("default", databaseName, tableName);
@@ -1254,8 +1273,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         overrideKylinProps.put("kylin.query.force-limit", "-1");
         overrideKylinProps.put("kylin.source.default", "8");
         ProjectInstance projectInstanceUpdate = ProjectInstance.create(projectInstance.getName(),
-                projectInstance.getOwner(), projectInstance.getDescription(), overrideKylinProps,
-                MaintainModelType.AUTO_MAINTAIN);
+                projectInstance.getOwner(), projectInstance.getDescription(), overrideKylinProps);
         projectManager.updateProject(projectInstance, projectInstanceUpdate.getName(),
                 projectInstanceUpdate.getDescription(), projectInstanceUpdate.getOverrideKylinProps());
         Map<String, List<String>> testData = new HashMap<>();

@@ -84,6 +84,7 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.metrics.MetricsCategory;
 import io.kyligence.kap.common.metrics.MetricsGroup;
 import io.kyligence.kap.common.metrics.MetricsName;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.ThrowableUtils;
 import io.kyligence.kap.guava20.shaded.common.base.MoreObjects;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
@@ -253,7 +254,7 @@ public abstract class AbstractExecutable implements Executable {
                     checkNeedQuit(false);
                     f.process();
                     return null;
-                }, getEpochId(), project);
+                }, project, UnitOfWork.DEFAULT_MAX_RETRY, getEpochId(), getTempLockName());
             } catch (Exception e) {
                 if (Throwables.getCausalChain(e).stream().anyMatch(x -> x instanceof JobStoppedException)) {
                     // "in this short period user might changed job state" happens
@@ -339,7 +340,7 @@ public abstract class AbstractExecutable implements Executable {
                 hook.accept(jobId);
             }
             return null;
-        }, getEpochId(), project);
+        }, project, UnitOfWork.DEFAULT_MAX_RETRY, getEpochId(), getTempLockName());
 
         //write output to HDFS
         updateJobOutputToHDFS(project, jobId, output, logPath);
@@ -446,7 +447,7 @@ public abstract class AbstractExecutable implements Executable {
                 break;
             }
             return abort;
-        }, getEpochId(), project);
+        }, project, UnitOfWork.DEFAULT_MAX_RETRY, getEpochId(), getTempLockName());
         if (aborted) {
             throw new JobStoppedNonVoluntarilyException();
         }
@@ -831,5 +832,12 @@ public abstract class AbstractExecutable implements Executable {
                     ExceptionUtils.getStackTrace(exception), exception.getMessage());
             return null;
         }, getEpochId(), project);
+    }
+
+    public final String getTempLockName() {
+        if (getParentId() == null) {
+            return getId();
+        }
+        return getParentId();
     }
 }

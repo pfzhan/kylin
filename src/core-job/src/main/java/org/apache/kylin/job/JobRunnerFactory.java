@@ -123,16 +123,17 @@ public class JobRunnerFactory {
                     ResourceStore.dumpKylinProps(tmpDir, props);
                 } else {
                     // The way of Updating metadata is CopyOnWrite. So it is safe to use Reference in the value.
-                    Map<String, RawResource> dumpMap = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(
-                            UnitOfWorkParams.<Map> builder().readonly(true).unitName(project).processor(() -> {
-                                Map<String, RawResource> retMap = Maps.newHashMap();
-                                for (String resPath : originResources) {
-                                    ResourceStore resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
-                                    RawResource rawResource = resourceStore.getResource(resPath);
-                                    retMap.put(resPath, rawResource);
-                                }
-                                return retMap;
-                            }).build());
+                    Map<String, RawResource> dumpMap = EnhancedUnitOfWork
+                            .doInTransactionWithCheckAndRetry(UnitOfWorkParams.<Map> builder().readonly(true)
+                                    .unitName(project).maxRetry(1).processor(() -> {
+                                        Map<String, RawResource> retMap = Maps.newHashMap();
+                                        for (String resPath : originResources) {
+                                            ResourceStore resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
+                                            RawResource rawResource = resourceStore.getResource(resPath);
+                                            retMap.put(resPath, rawResource);
+                                        }
+                                        return retMap;
+                                    }).build());
 
                     if (Objects.isNull(dumpMap) || dumpMap.isEmpty()) {
                         return;

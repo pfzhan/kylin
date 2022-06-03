@@ -122,7 +122,7 @@ public class SecondStorageUtilTest extends NLocalFileMetadataTestCase {
         clusterNodes.put("pair1",
                 ImmutableList.of(new Node().setName("node01").setIp("127.0.0.1").setPort(9000),
                 new Node().setName("node02").setIp("127.0.0.1").setPort(9000)));
-        SecondStorageNodeHelper.initFromCluster(cluster, null);
+        SecondStorageNodeHelper.initFromCluster(cluster, null, null);
         return tableFlow;
     }
 
@@ -137,7 +137,7 @@ public class SecondStorageUtilTest extends NLocalFileMetadataTestCase {
                 ImmutableList.of(new Node().setName("node03").setIp("127.0.0.1").setPort(9000),
                         new Node().setName("node04").setIp("127.0.0.1").setPort(9000)));
         cluster.setCluster(clusterNodes);
-        SecondStorageNodeHelper.initFromCluster(cluster, null);
+        SecondStorageNodeHelper.initFromCluster(cluster, null, null);
         List<String> nodes1 = Arrays.asList("node01", "node02");
         Map<String, List<SecondStorageNode>> pairs1 = SecondStorageUtil.convertNodesToPairs(nodes1);
         Assert.assertEquals(1, pairs1.size());

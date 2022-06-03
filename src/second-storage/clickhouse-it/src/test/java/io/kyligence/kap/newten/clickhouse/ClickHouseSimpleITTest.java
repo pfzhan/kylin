@@ -58,8 +58,11 @@ import io.kyligence.kap.secondstorage.management.request.ProjectTableSyncRespons
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.time.DateUtils;
+import org.apache.kylin.common.ForceToTieredStorage;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
@@ -247,6 +250,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
             _httpServer = EmbeddedHttpServer.startServer(getLocalWorkingDirectory());
         }
 
+        overwriteSystemProp("kylin.second-storage.query-pushdown-limit", "0");
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         overwriteSystemProp("kylin.second-storage.class", ClickHouseStorage.class.getCanonicalName());
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
@@ -496,6 +500,8 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
             Unsafe.setProperty(CONFIG_SECOND_STORAGE_CLUSTER, file.getAbsolutePath());
             Unsafe.setProperty(SecondStorageConstants.NODE_REPLICA, String.valueOf(2));
             SecondStorage.init(true);
+            Assert.assertTrue(SecondStorage.enabled());
+            Assert.assertNotNull(SecondStorage.configLoader());
 
             secondStorageService.changeProjectSecondStorageState(getProject(), SecondStorageNodeHelper.getAllPairs(),
                     true);
@@ -1268,7 +1274,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
         String[] expectedPlanFragment = new String[] {
                 "PushedAggregates: [SUM(" + columnMapping.get("PRICE") + ")], ",
                 "PushedFilters: [], ",
-                "PushedGroupByColumns: [" + columnMapping.get("PRICE") + "], "
+                "PushedGroupByExpressions: [" + columnMapping.get("PRICE") + "], "
         };
         ClickHouseUtils.checkPushedInfo(groupPlan, expectedPlanFragment);
 
@@ -1370,5 +1376,283 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
                 return ExceptionUtils.rethrow(e);
             }
         }).collect(Collectors.toList());
+    }
+
+    @Test
+    public void testGroupNodeDownForceToTierStorageOK() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse()) {
+            build_load_query("test2shard2ReplicaAndDifferentGroupNodeDown",
+                    false,
+                    false,
+                    1,
+                    () ->{
+                        clickhouse1.stop();
+                        clickhouse2.stop();
+                        return null;
+                    },
+                    () -> {
+                        String sql = "select order_id from TEST_KYLIN_FACT ";
+                        OLAPContext.clearThreadLocalContexts();
+                        QueryContext queryContext = QueryContext.current();
+//                        queryContext.setForcedToTieredStorage(ForceToTieredStorage.CH_FAIL_TO_DFS);
+                        Dataset<Row> rows = ExecAndComp.queryModel(getProject(), sql, null);
+                        Assert.assertFalse(OLAPContext.getNativeRealizations().stream().allMatch(NativeQueryRealization::isSecondStorage));
+
+                        return null;
+                    },
+                    clickhouse1, clickhouse2);
+        }
+    }
+
+    @Test
+    public void testForceToTierStoragePushDown() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse()) {
+            build_load_query("test2shard2ReplicaAndDifferentGroupNodeDown",
+                    false,
+                    false,
+                    1,
+                    () ->{
+                        clickhouse1.stop();
+                        clickhouse2.stop();
+                        return null;
+                    },
+                    () -> {
+                        String sql = "select order_id from TEST_KYLIN_FACT ";
+                        OLAPContext.clearThreadLocalContexts();
+                        QueryContext queryContext = QueryContext.current();
+                        queryContext.setForcedToTieredStorage(ForceToTieredStorage.CH_FAIL_TO_PUSH_DOWN);
+                        queryContext.setForceTableIndex(false);
+                        try{
+                            Dataset<Row> rows = ExecAndComp.queryModel(getProject(), sql, null);
+                            Assert.assertFalse(OLAPContext.getNativeRealizations().stream().allMatch(NativeQueryRealization::isSecondStorage));
+                        }catch (Exception e){
+                            Assert.assertTrue(e instanceof SQLException);
+                        }
+
+                        return null;
+                    },
+                    clickhouse1, clickhouse2);
+        }
+    }
+
+    @Test
+    public void testForceToTierStorageInvalidParameters() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse()) {
+            build_load_query("test2shard2ReplicaAndDifferentGroupNodeDown",
+                    false,
+                    false,
+                    1,
+                    () ->{
+                        clickhouse1.stop();
+                        clickhouse2.stop();
+                        return null;
+                    },
+                    () -> {
+                        String sql = "select order_id from TEST_KYLIN_FACT ";
+                        OLAPContext.clearThreadLocalContexts();
+                        QueryContext queryContext = QueryContext.current();
+                        queryContext.setForcedToTieredStorage(ForceToTieredStorage.CH_FAIL_TO_PUSH_DOWN);
+                        queryContext.setForceTableIndex(true);
+                        try{
+                            Dataset<Row> rows = ExecAndComp.queryModel(getProject(), sql, null);
+                            Assert.assertFalse(OLAPContext.getNativeRealizations().stream().allMatch(NativeQueryRealization::isSecondStorage));
+                        }catch (Exception e){
+                            Assert.assertTrue(e instanceof SQLException && e.getCause() instanceof KylinException);
+                            Assert.assertTrue(e.getMessage().contains(MsgPicker.getMsg().getForcedToTieredstorageAndForceToIndex()));
+                        }
+                        return null;
+                    },
+                    clickhouse1, clickhouse2);
+        }
+    }
+
+    @Test
+    public void testeDownForceToTierStorageReturnError() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse()) {
+            build_load_query("test2shard2ReplicaAndDifferentGroupNodeDown",
+                    false,
+                    false,
+                    1,
+                    () ->{
+                        clickhouse1.stop();
+                        clickhouse2.stop();
+                        return null;
+                    },
+                    () -> {
+                        String sql = "select order_id from TEST_KYLIN_FACT ";
+                        OLAPContext.clearThreadLocalContexts();
+                        QueryContext queryContext = QueryContext.current();
+                        queryContext.setForcedToTieredStorage(ForceToTieredStorage.CH_FAIL_TO_RETURN);
+                        try{
+                            Dataset<Row> rows = ExecAndComp.queryModel(getProject(), sql, null);
+                            Assert.assertFalse(OLAPContext.getNativeRealizations().stream().allMatch(NativeQueryRealization::isSecondStorage));
+                        }catch (Exception e){
+                            Assert.assertTrue(e instanceof SQLException && e.getCause() instanceof KylinException);
+                            Assert.assertTrue(e.getMessage().contains(MsgPicker.getMsg().getForcedToTieredstorageReturnError()));
+                        }
+                        return null;
+                    },
+                    clickhouse1, clickhouse2);
+        }
+    }
+
+    @Test
+    public void testForceToTierStorageOtherValue() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse()) {
+            build_load_query("test2shard2ReplicaAndDifferentGroupNodeDown",
+                    false,
+                    false,
+                    1,
+                    () ->{
+                        clickhouse1.stop();
+                        clickhouse2.stop();
+                        return null;
+                    },
+                    () -> {
+                        String sql = "select order_id from TEST_KYLIN_FACT ";
+                        OLAPContext.clearThreadLocalContexts();
+                        QueryContext queryContext = QueryContext.current();
+                        queryContext.setForcedToTieredStorage(ForceToTieredStorage.CH_FAIL_TAIL);
+                        try{
+                            Dataset<Row> rows = ExecAndComp.queryModel(getProject(), sql, null);
+                            Assert.assertFalse(OLAPContext.getNativeRealizations().stream().allMatch(NativeQueryRealization::isSecondStorage));
+                        }catch (Exception e){
+                            Assert.assertTrue(e instanceof SQLException && e.getCause() instanceof KylinException);
+                            Assert.assertTrue(e.getMessage().contains(MsgPicker.getMsg().getForcedToTieredstorageInvalidParameter()));
+                        }
+                        return null;
+                    },
+                    clickhouse1, clickhouse2);
+        }
+    }
+
+    @Test
+    public void testForceToTierStorageShutTierStorage() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse()) {
+            build_load_query("test2shard2ReplicaAndDifferentGroupNodeDown",
+                    false,
+                    false,
+                    1,
+                    () ->{
+                        secondStorageService.changeProjectSecondStorageState(getProject(), SecondStorageNodeHelper.getAllPairs(),
+                                false);
+                        return null;
+                    },
+                    () -> {
+                        String sql = "select order_id from TEST_KYLIN_FACT ";
+                        OLAPContext.clearThreadLocalContexts();
+                        QueryContext queryContext = QueryContext.current();
+                        queryContext.setForcedToTieredStorage(ForceToTieredStorage.CH_FAIL_TO_PUSH_DOWN);
+                        Dataset<Row> rows = ExecAndComp.queryModel(getProject(), sql, null);
+                        Assert.assertFalse(OLAPContext.getNativeRealizations().stream().allMatch(NativeQueryRealization::isSecondStorage));
+                        return null;
+                    },
+                    clickhouse1, clickhouse2);
+        }
+    }
+
+    @Test
+    public void testReverseForceToTierStorageWhenCHDataNotComplete() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse = ClickHouseUtils.startClickHouse()) {
+            build_load_query("testIncrementalCleanSegment", false, false, 1,
+                () ->{
+                    val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
+                    val df = dfManager.getDataflow(cubeName);
+                    val segments = df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList());
+                    triggerSegmentClean(segments, cubeName, true);
+                    return null;
+                },
+                () -> {
+                    String sql = "select order_id from TEST_KYLIN_FACT limit 100000";
+                    OLAPContext.clearThreadLocalContexts();
+                    ExecAndComp.queryModel(getProject(), sql, null);
+
+                    for (ForceToTieredStorage f : ForceToTieredStorage.values()){
+                        System.out.println(f);
+                        sql = "select order_id from TEST_KYLIN_FACT limit 100000";
+                        OLAPContext.clearThreadLocalContexts();
+                        QueryContext.current().setForcedToTieredStorage(f);
+                        try{
+                            Dataset<Row> rows = ExecAndComp.queryModel(getProject(), sql, null);
+                            Assert.assertFalse(OLAPContext.getNativeRealizations().stream().allMatch(NativeQueryRealization::isSecondStorage));
+                        } catch (Exception e) {
+                            //do nothing
+                        }
+                    }
+                    return null;
+                }, clickhouse);
+        }
+    }
+
+    @Test
+    public void testReverseForceToTierStorageWhenCHUnavailable() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse = ClickHouseUtils.startClickHouse()) {
+            build_load_query("testIncrementalCleanSegment", false, false, 1,
+                    () ->{
+                        clickhouse.stop();
+                        return null;
+                    },
+                    () -> {
+                        String sql = "select order_id from TEST_KYLIN_FACT limit 100000";
+                        OLAPContext.clearThreadLocalContexts();
+                        ExecAndComp.queryModel(getProject(), sql, null);
+
+                        List<Boolean> reverseForceTableIndex = Arrays.asList(true, false);
+                        for (ForceToTieredStorage f : ForceToTieredStorage.values()){
+                            reverseForceTableIndex.forEach(forceTableIndex ->{
+                                OLAPContext.clearThreadLocalContexts();
+                                QueryContext.current().setForceTableIndex(forceTableIndex);
+                                QueryContext.current().setForcedToTieredStorage(f);
+                                try{
+                                    Dataset<Row> rows = ExecAndComp.queryModel(getProject(), sql, null);
+                                    Assert.assertFalse(OLAPContext.getNativeRealizations().stream().allMatch(NativeQueryRealization::isSecondStorage));
+                                } catch (Exception e) {
+                                    //do nothing
+                                }
+                            });
+                        }
+                        return null;
+                    }, clickhouse);
+        }
+    }
+
+    @Test
+    public void testReverseForceToTierStorageWhenCHOK() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse = ClickHouseUtils.startClickHouse()) {
+            build_load_query("testIncrementalCleanSegment", false, false, 1,
+                    null,
+                    () -> {
+                        String sql = "select order_id from TEST_KYLIN_FACT limit 100000";
+                        OLAPContext.clearThreadLocalContexts();
+                        ExecAndComp.queryModel(getProject(), sql, null);
+
+                        for (ForceToTieredStorage f : ForceToTieredStorage.values()){
+                            sql = "select order_id from TEST_KYLIN_FACT limit 100000";
+                            OLAPContext.clearThreadLocalContexts();
+                            QueryContext.current().setForcedToTieredStorage(f);
+                            try{
+                                Dataset<Row> rows = ExecAndComp.queryModel(getProject(), sql, null);
+                            } catch (Exception e) {
+                                //do nothing
+                            }
+                        }
+                        return null;
+                    }, clickhouse);
+        }
+    }
+
+    @Test
+    public void testSecondStorage() throws Exception {
+        try {
+            SecondStorage.init(false);
+        } catch (Exception e) {
+            Assert.assertFalse(SecondStorage.enabled());
+        }
     }
 }

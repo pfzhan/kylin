@@ -54,6 +54,7 @@ public enum SystemErrorCode implements ErrorCodeSupplier {
 
     // 40023XXX job
     JOBNODE_API_INVALID("KE-040023002"), //
+    QUERYNODE_API_INVALID("KE-040023003"), //
 
     // 40024XXX read mode
     WRITE_IN_MAINTENANCE_MODE("KE-040024001"), //

@@ -33,11 +33,20 @@ import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CONNECT_C
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_DOWNLOAD_FILE;
 import static org.apache.kylin.common.exception.ServerErrorCode.INCORRECT_PROJECT_MODE;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_RANGE;
 import static org.apache.kylin.common.exception.ServerErrorCode.UNSUPPORTED_STREAMING_OPERATION;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.BOOLEAN_TYPE_CHECK;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.DATETIME_FORMAT_EMPTY;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.DATETIME_FORMAT_PARSE_ERROR;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.INTEGER_NON_NEGATIVE_CHECK;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.PARAMETER_INVALID_SUPPORT_LIST;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_CONFLICT_PARAMETER;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_EMPTY_PARAMETER;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.TIME_INVALID_RANGE_END_LESS_THAN_EQUALS_START;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.TIME_INVALID_RANGE_LESS_THAN_ZERO;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.TIME_INVALID_RANGE_NOT_CONSISTENT;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.TIME_INVALID_RANGE_NOT_FORMAT_MS;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.USER_UNAUTHORIZED;
 import static org.apache.kylin.metadata.model.PartitionDesc.transformTimestamp2Format;
 
@@ -261,8 +270,7 @@ public class NBasicController {
 
     protected void checkRequiredArg(String fieldName, Object fieldValue) {
         if (fieldValue == null || StringUtils.isEmpty(String.valueOf(fieldValue))) {
-            throw new KylinException(INVALID_PARAMETER,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getPARAMETER_IS_REQUIRED(), fieldName));
+            throw new KylinException(REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY, fieldName);
         }
     }
 
@@ -293,8 +301,7 @@ public class NBasicController {
                 throw new NumberFormatException();
             }
         } catch (NumberFormatException e) {
-            throw new KylinException(INVALID_PARAMETER,
-                    String.format(Locale.ROOT, "'%s' must be a non-negative integer.", fieldName));
+            throw new KylinException(INTEGER_NON_NEGATIVE_CHECK, fieldName);
         }
     }
 
@@ -302,8 +309,7 @@ public class NBasicController {
         checkRequiredArg(fieldName, fieldValue);
         String booleanString = String.valueOf(fieldValue);
         if (!"true".equalsIgnoreCase(booleanString) && !"false".equalsIgnoreCase(booleanString)) {
-            throw new KylinException(INVALID_PARAMETER,
-                    String.format(Locale.ROOT, "'%s' must be boolean type.", fieldName));
+            throw new KylinException(BOOLEAN_TYPE_CHECK, booleanString, "Boolean");
         }
     }
 
@@ -437,8 +443,8 @@ public class NBasicController {
                 .collect(Collectors.toList());
 
         if (!illegalStatus.isEmpty()) {
-            throw new KylinException(INVALID_PARAMETER, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getNotInEffectiveCollection(), illegalStatus, enumStrSet));
+            throw new KylinException(PARAMETER_INVALID_SUPPORT_LIST, "status",
+                    "ONLINE, OFFLINE, WARNING, BROKEN");
         }
         return formattedStatus;
     }
@@ -451,7 +457,7 @@ public class NBasicController {
 
     public static void validatePriority(int priority) {
         if (!ExecutablePO.isPriorityValid(priority)) {
-            throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getInvalidPriority());
+            throw new KylinException(PARAMETER_INVALID_SUPPORT_LIST, "priority", "0, 1, 2, 3, 4");
         }
     }
 
@@ -461,10 +467,10 @@ public class NBasicController {
 
     private void validateRange(long start, long end) {
         if (start < 0 || end < 0) {
-            throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getInvalidRangeLessThanZero());
+            throw new KylinException(TIME_INVALID_RANGE_LESS_THAN_ZERO);
         }
         if (start >= end) {
-            throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getInvalidRangeEndLessthanStart());
+            throw new KylinException(TIME_INVALID_RANGE_END_LESS_THAN_EQUALS_START);
         }
     }
 
@@ -485,37 +491,36 @@ public class NBasicController {
                 startLong = Long.parseLong(start);
                 endLong = Long.parseLong(end);
             } catch (Exception e) {
-                throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getInvalidRangeNotFormat());
+                throw new KylinException(TIME_INVALID_RANGE_NOT_FORMAT_MS);
             }
 
             if (startLong < 0 || endLong < 0) {
-                throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getInvalidRangeLessThanZero());
+                throw new KylinException(TIME_INVALID_RANGE_LESS_THAN_ZERO);
             }
 
             try {
                 startLong = DateFormat.getFormatTimeStamp(start, transformTimestamp2Format(partitionColumnFormat));
                 endLong = DateFormat.getFormatTimeStamp(end, transformTimestamp2Format(partitionColumnFormat));
             } catch (Exception e) {
-                throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getInvalidRangeNotFormat());
+                throw new KylinException(TIME_INVALID_RANGE_NOT_FORMAT_MS);
             }
 
             if (startLong >= endLong)
-                throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getInvalidRangeEndLessthanStart());
+                throw new KylinException(TIME_INVALID_RANGE_END_LESS_THAN_EQUALS_START);
 
         } else {
-            throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getInvalidRangeNotConsistent());
+            throw new KylinException(TIME_INVALID_RANGE_NOT_CONSISTENT);
         }
     }
 
     public void validateDateTimeFormatPattern(String pattern) {
         if (pattern.isEmpty()) {
-            throw new KylinException(INVALID_PARAMETER, "Invalid empty datetime format ");
+            throw new KylinException(DATETIME_FORMAT_EMPTY);
         }
         try {
             new SimpleDateFormat(pattern, Locale.getDefault(Locale.Category.FORMAT));
         } catch (IllegalArgumentException e) {
-            throw new KylinException(INVALID_PARAMETER,
-                    "Invalid datetime format " + pattern + ". " + e.getLocalizedMessage());
+            throw new KylinException(DATETIME_FORMAT_PARSE_ERROR, e, pattern);
         }
     }
 

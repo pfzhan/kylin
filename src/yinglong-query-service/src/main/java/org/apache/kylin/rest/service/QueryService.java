@@ -81,6 +81,7 @@ import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.kylin.common.ForceToTieredStorage;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.QueryTrace;
@@ -238,6 +239,50 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
         return "/" + project + QUERY_STORE_PATH_PREFIX + creator + MetadataConstants.FILE_SURFIX;
     }
 
+    public ForceToTieredStorage getForcedToTieredStorage(String project, ForceToTieredStorage api) {
+        switch (api){
+            case CH_FAIL_TO_DFS:
+            case CH_FAIL_TO_PUSH_DOWN:
+            case CH_FAIL_TO_RETURN:
+                return api;
+            case CH_FAIL_TAIL:
+                break;
+            default:
+                // Do nothing
+        }
+
+        try{
+            //project level config
+            ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project);
+            api = projectInstance.getConfig().getProjectForcedToTieredStorage();
+            switch (api){
+                case CH_FAIL_TO_DFS:
+                case CH_FAIL_TO_PUSH_DOWN:
+                case CH_FAIL_TO_RETURN:
+                    return api;
+                default:
+                    // Do nothing
+            }
+        } catch (Exception e) {
+            // no define or invalid do nothing
+        }
+
+        try{
+            //system
+            api = KylinConfig.getInstanceFromEnv().getSystemForcedToTieredStorage();
+            switch (api){
+                case CH_FAIL_TO_DFS:
+                case CH_FAIL_TO_PUSH_DOWN:
+                case CH_FAIL_TO_RETURN:
+                    return api;
+                default:
+                    return ForceToTieredStorage.CH_FAIL_TO_DFS;
+            }
+        } catch (Exception e) {
+            return ForceToTieredStorage.CH_FAIL_TO_DFS;
+        }
+    }
+
     public SQLResponse query(SQLRequest sqlRequest) throws Exception {
         try {
             slowQueryDetector.queryStart(sqlRequest.getStopId());
@@ -245,9 +290,14 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
 
             QueryParams queryParams = new QueryParams(KapQueryUtil.getKylinConfig(sqlRequest.getProject()),
                     sqlRequest.getSql(), sqlRequest.getProject(), sqlRequest.getLimit(), sqlRequest.getOffset(), true,
-                    sqlRequest.getExecuteAs(), sqlRequest.isForcedToPushDown(), sqlRequest.isForcedToIndex(),
-                    QueryUtils.isPrepareStatementWithParams(sqlRequest), sqlRequest.isPartialMatchIndex(),
-                    sqlRequest.isAcceptPartial(), true);
+                    sqlRequest.getExecuteAs());
+            queryParams.setForcedToPushDown(sqlRequest.isForcedToPushDown());
+            queryParams.setForcedToIndex(sqlRequest.isForcedToIndex());
+            queryParams.setPrepareStatementWithParams(QueryUtils.isPrepareStatementWithParams(sqlRequest));
+            queryParams.setPartialMatchIndex(sqlRequest.isPartialMatchIndex());
+            queryParams.setAcceptPartial(sqlRequest.isAcceptPartial());
+            queryParams.setSelect(true);
+
             if (queryParams.isPrepareStatementWithParams()) {
                 queryParams.setPrepareSql(PrepareSQLUtils.fillInParams(queryParams.getSql(),
                         ((PrepareSqlRequest) sqlRequest).getParams()));
@@ -255,6 +305,18 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
             }
             queryParams.setAclInfo(getExecuteAclInfo(queryParams.getProject(), queryParams.getExecuteAs()));
             queryParams.setACLDisabledOrAdmin(isACLDisabledOrAdmin(queryParams.getProject(), queryParams.getAclInfo()));
+            int forcedToTieredStorage;
+            ForceToTieredStorage enumForcedToTieredStorage;
+            try{
+                forcedToTieredStorage = sqlRequest.getForcedToTieredStorage();
+                enumForcedToTieredStorage = getForcedToTieredStorage(sqlRequest.getProject(), ForceToTieredStorage.values()[forcedToTieredStorage]);
+            } catch (NullPointerException e) {
+                enumForcedToTieredStorage = getForcedToTieredStorage(sqlRequest.getProject(), ForceToTieredStorage.CH_FAIL_TAIL);
+            }
+            logger.debug("forcedToTieredStorage={}", enumForcedToTieredStorage);
+            queryParams.setForcedToTieredStorage(enumForcedToTieredStorage);
+            QueryContext.current().setForcedToTieredStorage(enumForcedToTieredStorage);
+            QueryContext.current().setForceTableIndex(queryParams.isForcedToIndex());
 
             KylinConfig projectConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                     .getProject(queryParams.getProject()).getConfig();
@@ -601,6 +663,9 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
             } else {
                 return new SQLResponse(null, null, 0, true, e.getMessage());
             }
+        } catch (Throwable t) {
+            QueryContext.current().getMetrics().setException(true);
+            return new SQLResponse(null, null, 0, true, t.getMessage());
         } finally {
             BackdoorToggles.cleanToggles();
             if (QueryMetricsContext.isStarted()) {
@@ -656,8 +721,9 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
                     val queryMetricsContext = QueryMetricsContext.collect(QueryContext.current());
                     // KE-35556 Set stored sql a structured format json string
                     queryMetricsContext.setSql(constructQueryHistorySqlText(sqlRequest, sqlResponse, originalSql));
-                    // Set unused sql pattern null
-                    queryMetricsContext.setSqlPattern(null);
+                    // KE-36662 Using sql_pattern as normalized_sql storage
+                    String normalizedSql = QueryContext.currentMetrics().getCorrectedSql();
+                    queryMetricsContext.setSqlPattern(normalizedSql);
                     QueryHistoryScheduler queryHistoryScheduler = QueryHistoryScheduler.getInstance();
                     queryHistoryScheduler.offerQueryHistoryQueue(queryMetricsContext);
                     EventBusFactory.getInstance().postAsync(queryMetricsContext);
@@ -672,7 +738,6 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
         // Fill in params if available
         QueryUtils.fillInPrepareStatParams(sqlRequest, sqlResponse.isQueryPushDown());
 
-        String normalizedSql = QueryContext.currentMetrics().getCorrectedSql();
         List<QueryHistorySqlParam> params = null;
         if (QueryUtils.isPrepareStatementWithParams(sqlRequest)) {
             params = new ArrayList<>();
@@ -685,7 +750,8 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
             }
         }
 
-        return QueryHistoryUtil.toQueryHistorySqlText(new QueryHistorySql(originalSql, normalizedSql, params));
+        // KE-36662 Do not store normalized_sql in sql_text, as it may exceed storage limitation
+        return QueryHistoryUtil.toQueryHistorySqlText(new QueryHistorySql(originalSql, null, params));
     }
 
     private void collectToQueryContext(SQLResponse sqlResponse) {

@@ -203,8 +203,7 @@ public class OpenModelController extends NBasicController {
                 if (INDEX_STATUS_SET.contains(s)) {
                     statuses.add(IndexEntity.Status.valueOf(s));
                 } else {
-                    throw new KylinException(INDEX_PARAMETER_INVALID, "status",
-                            String.join(", ", INDEX_STATUS_SET));
+                    throw new KylinException(INDEX_PARAMETER_INVALID, "status", String.join(", ", INDEX_STATUS_SET));
                 }
             }
         });
@@ -222,8 +221,7 @@ public class OpenModelController extends NBasicController {
                 if (INDEX_SOURCE_SET.contains(s)) {
                     sourceList.add(IndexEntity.Source.valueOf(s));
                 } else {
-                    throw new KylinException(INDEX_PARAMETER_INVALID, "sources",
-                            String.join(", ", INDEX_SOURCE_SET));
+                    throw new KylinException(INDEX_PARAMETER_INVALID, "sources", String.join(", ", INDEX_SOURCE_SET));
                 }
             }
         });
@@ -241,8 +239,7 @@ public class OpenModelController extends NBasicController {
         if (INDEX_SORT_BY_SET.contains(sortBy)) {
             return sortBy;
         }
-        throw new KylinException(INDEX_PARAMETER_INVALID, "sort_by",
-                String.join(", ", INDEX_SORT_BY_SET));
+        throw new KylinException(INDEX_PARAMETER_INVALID, "sort_by", String.join(", ", INDEX_SORT_BY_SET));
     }
 
     @VisibleForTesting
@@ -295,7 +292,7 @@ public class OpenModelController extends NBasicController {
         validateDataRange(modelParatitionDescRequest.getStart(), modelParatitionDescRequest.getEnd(),
                 partitionDateFormat);
         val dataModel = getModel(modelAlias, projectName);
-        modelService.updateDataModelParatitionDesc(projectName, dataModel.getAlias(), modelParatitionDescRequest);
+        modelService.updateModelPartitionColumn(projectName, dataModel.getAlias(), modelParatitionDescRequest);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 

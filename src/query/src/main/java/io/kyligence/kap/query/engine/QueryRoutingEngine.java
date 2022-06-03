@@ -131,12 +131,18 @@ public class QueryRoutingEngine {
             }, queryParams.getProject());
         } catch (TransactionException e) {
             Throwable cause = e.getCause();
+            if (cause instanceof SQLException && cause.getCause() instanceof KylinException){
+                throw (SQLException)cause;
+            }
             if (shouldPushdown(cause, queryParams)) {
                 return pushDownQuery((SQLException) cause, queryParams);
             } else {
                 throw e;
             }
         } catch (SQLException e) {
+            if (e.getCause() instanceof KylinException){
+                throw e;
+            }
             if (shouldPushdown(e, queryParams)) {
                 return pushDownQuery(e, queryParams);
             } else {

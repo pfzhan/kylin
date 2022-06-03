@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -33,12 +34,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.secondstorage.SecondStorageUpdater;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryTrace;
 import org.apache.kylin.common.Singletons;
 import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.apache.kylin.common.util.NamedThreadFactory;
+import org.apache.kylin.rest.util.SpringContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,6 +64,7 @@ public class QueryHistoryScheduler {
 
     private long sparkJobTraceTimeoutMs;
     private boolean isQuerySparkJobTraceEnabled;
+    private boolean isSecondStorageQueryMetricCollect;
 
     public void init() throws Exception {
         KapConfig kapConfig = KapConfig.getInstanceFromEnv();
@@ -70,6 +75,7 @@ public class QueryHistoryScheduler {
         KylinConfig kyinConfig = KylinConfig.getInstanceFromEnv();
         writeQueryHistoryScheduler.scheduleWithFixedDelay(new WriteQueryHistoryRunner(), 1,
                 kyinConfig.getQueryHistorySchedulerInterval(), TimeUnit.SECONDS);
+        isSecondStorageQueryMetricCollect = KylinConfig.getInstanceFromEnv().getSecondStorageQueryMetricCollect();
     }
 
     public static QueryHistoryScheduler getInstance() {
@@ -119,8 +125,9 @@ public class QueryHistoryScheduler {
                 } else {
                     insertMetrics = metrics;
                 }
+                collectSecondStorageMetric(insertMetrics);
                 queryHistoryDAO.insert(insertMetrics);
-            } catch (Throwable th) {
+            } catch (Exception th) {
                 logger.error("Error when write query history", th);
             }
         }
@@ -159,6 +166,36 @@ public class QueryHistoryScheduler {
         } else {
             offerQueryHistoryQueue(queryMetrics);
             return false;
+        }
+    }
+
+    public void collectSecondStorageMetric(List<QueryMetrics> metrics) {
+        if (!isSecondStorageQueryMetricCollect) {
+            return;
+        }
+
+        if (!SecondStorageUtil.isGlobalEnable()) {
+            return;
+        }
+
+        SecondStorageUpdater updater = SpringContext.getBean(SecondStorageUpdater.class);
+
+        for (QueryMetrics metric : metrics) {
+            try {
+                if (metric.isSecondStorage() && SecondStorageUtil.isProjectEnable(metric.getProjectName())) {
+                    Map<String, Object> secondStorageMetrics = updater.getQueryMetric(metric.getProjectName(), metric.getQueryId());
+
+                    if (secondStorageMetrics.containsKey(QueryMetrics.TOTAL_SCAN_BYTES)) {
+                        metric.setTotalScanBytes((long) secondStorageMetrics.get(QueryMetrics.TOTAL_SCAN_BYTES));
+                    }
+
+                    if (secondStorageMetrics.containsKey(QueryMetrics.TOTAL_SCAN_COUNT)) {
+                        metric.setTotalScanCount((long) secondStorageMetrics.get(QueryMetrics.TOTAL_SCAN_COUNT));
+                    }
+                }
+            } catch (Exception e) {
+                logger.error("Get tired storage metric fail. query_id: {}, message: {}", metric.getQueryId(), e.getMessage());
+            }
         }
     }
 }

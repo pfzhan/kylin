@@ -90,6 +90,7 @@ public class NProjectSmartControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testUpdateFrequencyRule() throws Exception {
         String project = "default";
+        getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "true");
         FavoriteRuleUpdateRequest request = new FavoriteRuleUpdateRequest();
         request.setProject(project);
         request.setFreqEnable(false);

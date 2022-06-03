@@ -217,9 +217,10 @@ public class TableData implements Serializable, WithLayout {
             return null;
         }
         List<Set<String>> aliveShardReplica = SecondStorageQueryRouteUtil.getUsedShard(partitions, project, allSegIds);
-        List<String> jdbcUrls = SecondStorageNodeHelper.resolveShardToJDBC(aliveShardReplica);
+        QueryContext queryContext = QueryContext.current();
+        List<String> jdbcUrls = SecondStorageNodeHelper.resolveShardToJDBC(aliveShardReplica, queryContext);
 
-        if (QueryContext.current().getSecondStorageUrls() != null && !QueryContext.current().getSecondStorageUrls().isEmpty()) {
+        if (!CollectionUtils.isEmpty(queryContext.getSecondStorageUrls())) {
             QueryContext.current().setRetrySecondStorage(false);
         }
         QueryContext.current().setSecondStorageUrls(jdbcUrls);
@@ -232,6 +233,14 @@ public class TableData implements Serializable, WithLayout {
         }
 
         return QueryContext.current().getSecondStorageUrls().get(0);
+    }
+
+    public int getSchemaURLSize() {
+        if (partitions.isEmpty()) {
+            return 0;
+        }
+
+        return QueryContext.current().getSecondStorageUrls().size();
     }
 
     public boolean containSegments(Set<String> segmentIds) {

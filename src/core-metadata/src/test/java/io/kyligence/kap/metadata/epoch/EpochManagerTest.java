@@ -25,6 +25,7 @@
 package io.kyligence.kap.metadata.epoch;
 
 import static io.kyligence.kap.common.util.TestUtils.getTestConfig;
+import static org.awaitility.Awaitility.await;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -35,7 +36,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.junit.Assert;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -45,7 +45,6 @@ import io.kyligence.kap.common.persistence.metadata.EpochStore;
 import io.kyligence.kap.guava20.shaded.common.collect.Lists;
 import io.kyligence.kap.junit.annotation.MetadataInfo;
 import io.kyligence.kap.junit.annotation.OverwriteProp;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.resourcegroup.ResourceGroupManager;
 import lombok.val;
@@ -53,96 +52,91 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @MetadataInfo(onlyProps = true)
-public class EpochManagerTest {
+class EpochManagerTest {
 
     @Test
-    public void testUpdateGlobalEpoch() throws Exception {
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
+    void testUpdateGlobalEpoch() {
         EpochManager epochManager = EpochManager.getInstance();
-        Assert.assertNull(epochManager.getGlobalEpoch());
+        Assertions.assertNull(epochManager.getGlobalEpoch());
         epochManager.tryUpdateEpoch(EpochManager.GLOBAL, false);
         val globalEpoch = epochManager.getGlobalEpoch();
-        val time1 = globalEpoch.getLastEpochRenewTime();
-        Assert.assertNotNull(globalEpoch);
-        Thread.sleep(10);
-        epochManager.tryUpdateEpoch(EpochManager.GLOBAL, false);
-        Assert.assertNotEquals(time1, epochManager.getGlobalEpoch().getLastEpochRenewTime());
+        long time1 = globalEpoch.getLastEpochRenewTime();
+        Assertions.assertNotNull(globalEpoch);
+        await().atLeast(10, TimeUnit.MILLISECONDS).until(() -> epochManager.tryUpdateEpoch(EpochManager.GLOBAL, false));
+        Assertions.assertNotEquals(time1, epochManager.getGlobalEpoch().getLastEpochRenewTime());
     }
 
     @Test
     @OverwriteProp(key = "kylin.server.leader-race.enabled", value = "false")
-    public void testKeepGlobalEpoch() {
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
+    void testKeepGlobalEpoch() {
         EpochManager epochManager = EpochManager.getInstance();
-        Assert.assertNull(epochManager.getGlobalEpoch());
+        Assertions.assertNull(epochManager.getGlobalEpoch());
         epochManager.tryUpdateEpoch(EpochManager.GLOBAL, false);
         val globalEpoch = epochManager.getGlobalEpoch();
-        val time1 = globalEpoch.getLastEpochRenewTime();
-        Assert.assertNotNull(globalEpoch);
+        long time1 = globalEpoch.getLastEpochRenewTime();
+        Assertions.assertNotNull(globalEpoch);
         epochManager.tryUpdateEpoch(EpochManager.GLOBAL, false);
-        Assert.assertEquals(time1, epochManager.getGlobalEpoch().getLastEpochRenewTime());
+        Assertions.assertEquals(time1, epochManager.getGlobalEpoch().getLastEpochRenewTime());
     }
 
     @Test
     @OverwriteProp(key = "kylin.server.leader-race.enabled", value = "false")
-    public void testKeepProjectEpochWhenOwnerChanged() {
+    void testKeepProjectEpochWhenOwnerChanged() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         EpochManager epochManager = EpochManager.getInstance();
         val prjMgr = NProjectManager.getInstance(config);
         for (ProjectInstance prj : prjMgr.listAllProjects()) {
-            Assert.assertNull(epochManager.getEpoch(prj.getName()));
+            Assertions.assertNull(epochManager.getEpoch(prj.getName()));
         }
         epochManager.updateAllEpochs();
         for (ProjectInstance prj : prjMgr.listAllProjects()) {
-            Assert.assertEquals(epochManager.getEpoch(prj.getName()).getCurrentEpochOwner(),
+            Assertions.assertEquals(epochManager.getEpoch(prj.getName()).getCurrentEpochOwner(),
                     EpochOrchestrator.getOwnerIdentity());
-            Assert.assertEquals(epochManager.getEpoch(prj.getName()).getLastEpochRenewTime(), Long.MAX_VALUE);
+            Assertions.assertEquals(Long.MAX_VALUE, epochManager.getEpoch(prj.getName()).getLastEpochRenewTime());
 
         }
         epochManager.setIdentity("newOwner");
         epochManager.updateAllEpochs();
         for (ProjectInstance prj : prjMgr.listAllProjects()) {
-            Assert.assertEquals(epochManager.getEpoch(prj.getName()).getCurrentEpochOwner(), "newOwner");
-            Assert.assertEquals(epochManager.getEpoch(prj.getName()).getLastEpochRenewTime(), Long.MAX_VALUE);
-            Assert.assertEquals(epochManager.getEpoch(prj.getName()).getMvcc(), 2);
+            Assertions.assertEquals("newOwner", epochManager.getEpoch(prj.getName()).getCurrentEpochOwner());
+            Assertions.assertEquals(Long.MAX_VALUE, epochManager.getEpoch(prj.getName()).getLastEpochRenewTime());
+            Assertions.assertEquals(2, epochManager.getEpoch(prj.getName()).getMvcc());
         }
     }
 
     @Test
-    public void testUpdateProjectEpoch() {
+    void testUpdateProjectEpoch() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         EpochManager epochManager = EpochManager.getInstance();
         val prjMgr = NProjectManager.getInstance(config);
         for (ProjectInstance prj : prjMgr.listAllProjects()) {
-            Assert.assertNull(epochManager.getEpoch(prj.getName()));
+            Assertions.assertNull(epochManager.getEpoch(prj.getName()));
         }
         epochManager.updateAllEpochs();
         for (ProjectInstance prj : prjMgr.listAllProjects()) {
-            Assert.assertNotNull(epochManager.getEpoch(prj.getName()));
+            Assertions.assertNotNull(epochManager.getEpoch(prj.getName()));
         }
     }
 
     @Test
     @OverwriteProp(key = "kylin.server.leader-race.heart-beat-timeout", value = "1")
-    public void testEpochExpired() throws InterruptedException {
+    void testEpochExpired() {
         long timeout = 1;
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         EpochManager epochManager = EpochManager.getInstance();
         val prjMgr = NProjectManager.getInstance(config);
         for (ProjectInstance prj : prjMgr.listAllProjects()) {
-            Assert.assertNull(epochManager.getEpoch(prj.getName()));
+            Assertions.assertNull(epochManager.getEpoch(prj.getName()));
         }
         epochManager.updateAllEpochs();
-
-        TimeUnit.SECONDS.sleep(timeout * 2);
-
+        await().atLeast(timeout * 2, TimeUnit.SECONDS);
         for (ProjectInstance prj : prjMgr.listAllProjects()) {
-            Assert.assertFalse(epochManager.checkEpochOwner(prj.getName()));
+            Assertions.assertFalse(epochManager.checkEpochOwner(prj.getName()));
         }
     }
 
     @Test
-    public void testUpdateEpochAtOneTime() throws Exception {
+    void testUpdateEpochAtOneTime() throws Exception {
         val config = KylinConfig.getInstanceFromEnv();
         val prjMgr = NProjectManager.getInstance(config);
         val epochMgr = EpochManager.getInstance();
@@ -168,25 +162,24 @@ public class EpochManagerTest {
         }).start();
         cdl.await(10, TimeUnit.SECONDS);
         for (ProjectInstance prj : prjMgr.listAllProjects()) {
-            Assert.assertTrue(epochMgr.checkEpochOwner(prj.getName()));
+            Assertions.assertTrue(epochMgr.checkEpochOwner(prj.getName()));
         }
     }
 
     @Test
-    public void testSetAndUnSetMaintenanceMode_Single() {
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
+    void testSetAndUnSetMaintenanceMode_Single() {
         EpochManager epochManager = EpochManager.getInstance();
-        Assert.assertNull(epochManager.getGlobalEpoch());
+        Assertions.assertNull(epochManager.getGlobalEpoch());
         epochManager.tryUpdateEpoch(EpochManager.GLOBAL, false);
-        Assert.assertFalse(epochManager.isMaintenanceMode());
+        Assertions.assertFalse(epochManager.isMaintenanceMode());
         epochManager.setMaintenanceMode("MODE1");
-        Assert.assertTrue(epochManager.isMaintenanceMode());
+        Assertions.assertTrue(epochManager.isMaintenanceMode());
         epochManager.unsetMaintenanceMode("MODE1");
-        Assert.assertFalse(epochManager.isMaintenanceMode());
+        Assertions.assertFalse(epochManager.isMaintenanceMode());
     }
 
     @Test
-    public void testSetAndUnSetMaintenanceMode_Batch() {
+    void testSetAndUnSetMaintenanceMode_Batch() {
 
         Epoch e1 = new Epoch();
         e1.setEpochTarget("test1");
@@ -206,11 +199,11 @@ public class EpochManagerTest {
         epochManager.tryUpdateEpoch(EpochManager.GLOBAL, false);
 
         epochManager.setMaintenanceMode("mode1");
-        Assert.assertTrue(epochManager.isMaintenanceMode());
+        Assertions.assertTrue(epochManager.isMaintenanceMode());
     }
 
     @Test
-    public void testReleaseOwnedEpochs() {
+    void testReleaseOwnedEpochs() {
 
         String testIdentity = "testIdentity";
 
@@ -221,23 +214,23 @@ public class EpochManagerTest {
         epochManager.tryUpdateEpoch("test2", false);
 
         //check owner
-        Assert.assertTrue(getEpochStore().list().stream().allMatch(epochManager::checkEpochOwnerOnly));
+        Assertions.assertTrue(getEpochStore().list().stream().allMatch(epochManager::checkEpochOwnerOnly));
 
         epochManager.releaseOwnedEpochs();
 
     }
 
     @Test
-    public void testForceUpdateEpoch() {
+    void testForceUpdateEpoch() {
         EpochManager epochManager = EpochManager.getInstance();
-        Assert.assertNull(epochManager.getGlobalEpoch());
+        Assertions.assertNull(epochManager.getGlobalEpoch());
         epochManager.updateEpochWithNotifier(EpochManager.GLOBAL, true);
-        Assert.assertNotNull(epochManager.getGlobalEpoch());
+        Assertions.assertNotNull(epochManager.getGlobalEpoch());
     }
 
     @Test
     @MetadataInfo(onlyProps = false)
-    public void testUpdateProjectEpochWithResourceGroupEnabled() {
+    void testUpdateProjectEpochWithResourceGroupEnabled() {
         val manager = ResourceGroupManager.getInstance(getTestConfig());
         manager.getResourceGroup();
         manager.updateResourceGroup(copyForWrite -> {
@@ -246,16 +239,16 @@ public class EpochManagerTest {
         EpochManager epochManager = EpochManager.getInstance();
         val prjMgr = NProjectManager.getInstance(getTestConfig());
         for (ProjectInstance prj : prjMgr.listAllProjects()) {
-            Assert.assertNull(epochManager.getEpoch(prj.getName()));
+            Assertions.assertNull(epochManager.getEpoch(prj.getName()));
         }
         epochManager.updateAllEpochs();
         for (ProjectInstance prj : prjMgr.listAllProjects()) {
-            Assert.assertNull(epochManager.getEpoch(prj.getName()));
+            Assertions.assertNull(epochManager.getEpoch(prj.getName()));
         }
     }
 
     @Test
-    public void testGetEpochOwnerWithException() {
+    void testGetEpochOwnerWithException() {
         EpochManager epochManager = EpochManager.getInstance();
         Assertions.assertThrows(IllegalStateException.class, () -> {
             epochManager.getEpochOwner(null);
@@ -263,29 +256,29 @@ public class EpochManagerTest {
     }
 
     @Test
-    public void testGetEpochOwnerWithEpochIsNull() {
+    void testGetEpochOwnerWithEpochIsNull() {
         EpochManager epochManager = EpochManager.getInstance();
         String epoch = epochManager.getEpochOwner("notexist");
-        Assert.assertNull(epoch);
+        Assertions.assertNull(epoch);
     }
 
     @Test
-    public void testUpdateEpoch() {
+    void testUpdateEpoch() {
         EpochManager epochManager = EpochManager.getInstance();
-        Assert.assertNull(epochManager.getGlobalEpoch());
+        Assertions.assertNull(epochManager.getGlobalEpoch());
         epochManager.updateEpochWithNotifier("_global", false);
-        Assert.assertNotNull(epochManager.getGlobalEpoch());
+        Assertions.assertNotNull(epochManager.getGlobalEpoch());
     }
 
     @Test
-    public void testTryForceInsertOrUpdateEpochBatchTransaction() {
+    void testTryForceInsertOrUpdateEpochBatchTransaction() {
         List<String> projects = Lists.newArrayList("test_add");
         EpochManager epochManager = EpochManager.getInstance();
 
-        Assert.assertTrue(getEpochStore().list().isEmpty());
+        Assertions.assertTrue(getEpochStore().list().isEmpty());
         boolean result = epochManager.tryForceInsertOrUpdateEpochBatchTransaction(projects, false, "test", false);
-        Assert.assertTrue(result);
-        Assert.assertFalse(getEpochStore().list().isEmpty());
+        Assertions.assertTrue(result);
+        Assertions.assertFalse(getEpochStore().list().isEmpty());
 
         Epoch e1 = new Epoch();
         e1.setEpochTarget("test1");
@@ -295,14 +288,14 @@ public class EpochManagerTest {
         getEpochStore().insertBatch(Lists.newArrayList(e1));
 
         result = epochManager.tryForceInsertOrUpdateEpochBatchTransaction(projects, false, "test", false);
-        Assert.assertTrue(result);
+        Assertions.assertTrue(result);
 
         result = epochManager.tryForceInsertOrUpdateEpochBatchTransaction(Lists.newArrayList(), false, "test", false);
-        Assert.assertFalse(result);
+        Assertions.assertFalse(result);
     }
 
     @Test
-    public void testCheckEpochOwnerInsensitive() {
+    void testCheckEpochOwnerInsensitive() {
         String testIdentity = "testIdentity";
 
         EpochManager epochManager = EpochManager.getInstance();
@@ -314,19 +307,19 @@ public class EpochManagerTest {
         NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
 
         projectLists.forEach(projectTemp -> {
-            projectManager.createProject(projectTemp, "abcd", "", null, MaintainModelType.MANUAL_MAINTAIN);
+            projectManager.createProject(projectTemp, "abcd", "", null);
             epochManager.tryUpdateEpoch(projectTemp, false);
         });
 
-        Assert.assertEquals("testIdentity", epochManager.getEpochOwner("TesT1"));
-        Assert.assertEquals("testIdentity", epochManager.getEpochOwner("TEST2"));
+        Assertions.assertEquals("testIdentity", epochManager.getEpochOwner("TesT1"));
+        Assertions.assertEquals("testIdentity", epochManager.getEpochOwner("TEST2"));
 
-        Assert.assertTrue(epochManager.checkEpochOwner("TesT1"));
-        Assert.assertTrue(epochManager.checkEpochOwner("TEST2"));
+        Assertions.assertTrue(epochManager.checkEpochOwner("TesT1"));
+        Assertions.assertTrue(epochManager.checkEpochOwner("TEST2"));
     }
 
     @Test
-    public void testListProjectWithPermission() {
+    void testListProjectWithPermission() {
         String testIdentity = "testIdentity";
 
         EpochManager epochManager = EpochManager.getInstance();
@@ -337,10 +330,7 @@ public class EpochManagerTest {
 
         NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
 
-        projectLists.forEach(projectTemp -> {
-            projectManager.createProject(projectTemp, "abcd", "", null, MaintainModelType.MANUAL_MAINTAIN);
-
-        });
+        projectLists.forEach(projectTemp -> projectManager.createProject(projectTemp, "abcd", "", null));
         //only update one target
         epochManager.tryUpdateEpoch(projectLists.get(0), false);
 
@@ -348,12 +338,13 @@ public class EpochManagerTest {
                 "listProjectWithPermission");
 
         //project + global = epoch with permission
-        Assert.assertEquals(projectManager.listAllProjects().size(), projectListWithPermission.size() - 1);
+        assert projectListWithPermission != null;
+        Assertions.assertEquals(projectManager.listAllProjects().size(), projectListWithPermission.size() - 1);
 
     }
 
     @Test
-    public void testBatchRenewWithRetry() {
+    void testBatchRenewWithRetry() {
         String testIdentity = "testIdentity";
         EpochManager epochManager = EpochManager.getInstance();
         epochManager.setIdentity(testIdentity);
@@ -362,23 +353,25 @@ public class EpochManagerTest {
         NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
 
         projectLists.forEach(projectTemp -> {
-            projectManager.createProject(projectTemp, "abcd", "", null, MaintainModelType.MANUAL_MAINTAIN);
+            projectManager.createProject(projectTemp, "abcd", "", null);
             epochManager.tryUpdateEpoch(projectTemp, false);
         });
 
-        Assert.assertEquals("testIdentity", epochManager.getEpochOwner("TesT1"));
-        Assert.assertEquals("testIdentity", epochManager.getEpochOwner("TEST2"));
+        Assertions.assertEquals("testIdentity", epochManager.getEpochOwner("TesT1"));
+        Assertions.assertEquals("testIdentity", epochManager.getEpochOwner("TEST2"));
 
-        val curTime = System.currentTimeMillis();
-        val epoches = getEpochStore().list();
+        long curTime = System.currentTimeMillis();
+        List<Epoch> epochList = getEpochStore().list();
         Set<String> successRenew = ReflectionTestUtils.invokeMethod(epochManager.getEpochUpdateManager(),
-                "innerRenewEpochWithRetry", new HashSet<>(epoches));
-        Assert.assertEquals(epoches.size(), successRenew.size());
-        Assert.assertTrue(getEpochStore().list().stream().allMatch(epoch -> epoch.getLastEpochRenewTime() >= curTime));
+                "innerRenewEpochWithRetry", new HashSet<>(epochList));
+        assert successRenew != null;
+        Assertions.assertEquals(epochList.size(), successRenew.size());
+        Assertions.assertTrue(
+                getEpochStore().list().stream().allMatch(epoch -> epoch.getLastEpochRenewTime() >= curTime));
     }
 
     @Test
-    public void testInnerRenewEpoch() {
+    void testInnerRenewEpoch() {
         String testIdentity = "testIdentity";
         EpochManager epochManager = EpochManager.getInstance();
         epochManager.setIdentity(testIdentity);
@@ -387,19 +380,21 @@ public class EpochManagerTest {
         NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
 
         projectLists.forEach(projectTemp -> {
-            projectManager.createProject(projectTemp, "abcd", "", null, MaintainModelType.MANUAL_MAINTAIN);
+            projectManager.createProject(projectTemp, "abcd", "", null);
             epochManager.tryUpdateEpoch(projectTemp, false);
         });
 
-        Assert.assertEquals("testIdentity", epochManager.getEpochOwner("TesT1"));
-        Assert.assertEquals("testIdentity", epochManager.getEpochOwner("TEST2"));
+        Assertions.assertEquals("testIdentity", epochManager.getEpochOwner("TesT1"));
+        Assertions.assertEquals("testIdentity", epochManager.getEpochOwner("TEST2"));
 
         val curTime = System.currentTimeMillis();
         val epoches = getEpochStore().list();
         Set<String> successRenew = ReflectionTestUtils.invokeMethod(epochManager.getEpochUpdateManager(),
                 "innerRenewEpoch", epoches);
-        Assert.assertEquals(epoches.size(), successRenew.size());
-        Assert.assertTrue(getEpochStore().list().stream().allMatch(epoch -> epoch.getLastEpochRenewTime() >= curTime));
+        assert successRenew != null;
+        Assertions.assertEquals(epoches.size(), successRenew.size());
+        Assertions.assertTrue(
+                getEpochStore().list().stream().allMatch(epoch -> epoch.getLastEpochRenewTime() >= curTime));
 
     }
 
