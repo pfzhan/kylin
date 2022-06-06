@@ -87,7 +87,7 @@ spring:
       table-name: ${kylin.metadata.url.identifier}_session
   config:
     import: optional:file://${KYLIN_HOME}/conf/config.yaml
-  datasource:
+  job-datasource:
     url: jdbc:mysql://localhost:3306/kylin
     username: root
     password: 12345678!

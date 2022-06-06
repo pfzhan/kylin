@@ -41,6 +41,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
 import io.kyligence.kap.engine.spark.utils.ThreadUtils;
 import io.kyligence.kap.job.JobContext;
 import io.kyligence.kap.job.core.AbstractJobExecutable;
@@ -185,12 +186,15 @@ public class JdbcJobScheduler implements JobScheduler {
                 if (!jobContext.getParallelLimiter().tryAcquire()) {
                     return;
                 }
-                int r = jobContext.getJobLockMapper().upsertLock(jobId, null, 0L);
-                if (r > 0) {
-                    JobInfo jobInfo = jobContext.getJobInfoMapper().selectByJobId(jobId);
-                    ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), jobInfo.getProject())
-                            .publishJob(jobId, (AbstractExecutable) getJobExecutable(jobInfo));
-                }
+                JdbcUtil.withTransaction(jobContext.getTransactionManager(), () -> {
+                    int r = jobContext.getJobLockMapper().upsertLock(jobId, null, 0L);
+                    if (r > 0) {
+                        JobInfo jobInfo = jobContext.getJobInfoMapper().selectByJobId(jobId);
+                        ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), jobInfo.getProject())
+                                .publishJob(jobId, (AbstractExecutable) getJobExecutable(jobInfo));
+                    }
+                    return null;
+                });
             }
 
             // maybe more jobs exist, publish job immediately

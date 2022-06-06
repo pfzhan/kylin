@@ -75,12 +75,14 @@ import org.apache.kylin.job.execution.Output;
 import org.apache.kylin.rest.util.SpringContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.scheduler.JobAddedNotifier;
@@ -96,6 +98,7 @@ import io.kyligence.kap.job.execution.handler.ExecutableHandler;
 import io.kyligence.kap.job.execution.stage.StageBase;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -607,6 +610,7 @@ public class ExecutableManager {
         });
     }
 
+    @Transactional
     public void resumeJob(String jobId, AbstractExecutable job) {
         if (Objects.isNull(job)) {
             return;
@@ -642,6 +646,7 @@ public class ExecutableManager {
     }
 
     // READY -> PENDING
+    @Transactional
     public void publishJob(String jobId, AbstractExecutable job) {
         if (Objects.isNull(job) || job.getStatus() != ExecutableState.READY) {
             return;
@@ -757,6 +762,7 @@ public class ExecutableManager {
         return true;
     }
 
+    @Transactional
     public void restartJob(String jobId, AbstractExecutable jobToRestart) {
         if (Objects.isNull(jobToRestart)) {
             return;
@@ -789,6 +795,7 @@ public class ExecutableManager {
         });
     }
 
+    @Transactional
     private void updateJobReady(String jobId, AbstractExecutable job) {
         if (job == null) {
             return;
@@ -819,11 +826,15 @@ public class ExecutableManager {
         updateJobOutput(jobId, ExecutableState.READY, info);
     }
 
+    @Transactional
     public void discardJob(String jobId, AbstractExecutable job) {
         if (job == null) {
             return;
         }
-        job.cancelJob();
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            job.cancelJob();
+            return null;
+        }, project);
         if (job instanceof DefaultChainedExecutable) {
             List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
             tasks.forEach(task -> {
@@ -849,9 +860,12 @@ public class ExecutableManager {
         if (!job.getStatus().isProgressing()) {
             throw new KylinException(JOB_UPDATE_STATUS_FAILED, "PAUSE", jobId, job.getStatus());
         }
-        updateStagePaused(job);
-        Map<String, String> info = getWaiteTime(executablePO, job);
-        updateJobOutput(jobId, ExecutableState.PAUSED, info);
+        JdbcUtil.withTransaction(() -> {
+            updateStagePaused(job);
+            Map<String, String> info = getWaiteTime(executablePO, job);
+            updateJobOutput(jobId, ExecutableState.PAUSED, info);
+            return null;
+        });
         // pauseJob may happen when the job has not been scheduled
         // then call this hook after updateJobOutput
         job.onExecuteStopHook();

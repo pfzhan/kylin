@@ -35,6 +35,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.kylin.common.KylinConfig;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.session.SessionProperties;
 import org.springframework.boot.autoconfigure.session.StoreType;
 import org.springframework.cloud.client.loadbalancer.LoadBalanced;
@@ -59,6 +60,7 @@ import lombok.extern.slf4j.Slf4j;
 public class HAConfiguration extends AbstractHttpSessionApplicationInitializer {
 
     @Autowired
+    @Qualifier("defaultDataSource")
     DataSource dataSource;
 
     @Autowired

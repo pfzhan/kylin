@@ -23,16 +23,14 @@
  */
 package io.kyligence.kap.job.dao;
 
-import com.google.common.base.Preconditions;
-import io.kyligence.kap.job.domain.JobInfo;
-import io.kyligence.kap.job.mapper.JobInfoMapper;
-import io.kyligence.kap.job.rest.JobFilter;
-import io.kyligence.kap.job.rest.JobMapperFilter;
-import io.kyligence.kap.job.util.JobInfoUtil;
-import io.kyligence.kap.metadata.cube.model.NBatchConstants;
-import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
-import io.kyligence.kap.rest.delegate.TableMetadataInvoker;
-import lombok.val;
+import static io.kyligence.kap.job.util.JobInfoUtil.JOB_SERIALIZER;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.dao.ExecutablePO;
@@ -43,13 +41,17 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
+import com.google.common.base.Preconditions;
 
-import static io.kyligence.kap.job.util.JobInfoUtil.JOB_SERIALIZER;
+import io.kyligence.kap.job.domain.JobInfo;
+import io.kyligence.kap.job.mapper.JobInfoMapper;
+import io.kyligence.kap.job.rest.JobFilter;
+import io.kyligence.kap.job.rest.JobMapperFilter;
+import io.kyligence.kap.job.util.JobInfoUtil;
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
+import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
+import io.kyligence.kap.rest.delegate.TableMetadataInvoker;
+import lombok.val;
 
 @Component
 public class JobInfoDao {
@@ -132,7 +134,7 @@ public class JobInfoDao {
         jobInfo.setJobId(executablePO.getId());
         jobInfo.setJobType(executablePO.getJobType().name());
         ExecutableState oldStatus = ExecutableState.valueOf(executablePO.getOutput().getStatus());
-        jobInfo.setJobStatus(ExecutableState.READY.name());
+        jobInfo.setJobStatus(oldStatus.toJobStatus().name());
         jobInfo.setProject(executablePO.getProject());
 
         String subject = null;

@@ -41,7 +41,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import lombok.SneakyThrows;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.io.IOUtils;
@@ -62,7 +61,6 @@ import org.apache.kylin.job.constant.JobActionEnum;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.Output;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -85,10 +83,9 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.metrics.MetricsCategory;
 import io.kyligence.kap.common.metrics.MetricsGroup;
 import io.kyligence.kap.common.metrics.MetricsName;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkContext;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
-import io.kyligence.kap.common.scheduler.JobDiscardNotifier;
 import io.kyligence.kap.common.scheduler.JobReadyNotifier;
 import io.kyligence.kap.job.dao.JobInfoDao;
 import io.kyligence.kap.job.domain.JobInfo;
@@ -110,6 +107,7 @@ import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
 import io.kyligence.kap.rest.request.JobUpdateRequest;
 import io.kyligence.kap.rest.service.ProjectService;
 import io.kyligence.kap.rest.util.SparkHistoryUIUtil;
+import lombok.SneakyThrows;
 import lombok.val;
 import lombok.var;
 
@@ -340,7 +338,6 @@ public class JobInfoService extends BasicService {
         jobs.forEach(job -> jobInfoDao.dropJob(job.getId()));
     }
 
-    @Transaction(project = 1)
     public void batchUpdateJobStatus(List<String> jobIds, String project, String action, List<String> filterStatuses)
             throws IOException {
         aclEvaluate.checkProjectOperationPermission(project);
@@ -374,24 +371,24 @@ public class JobInfoService extends BasicService {
             case RESUME:
                 // TODO SecondStorage
 //                SecondStorageUtil.checkJobResume(project, jobId, executable, executablePO);
-                executableManager.updateJobError(jobId, null, null, null, null);
-                executableManager.resumeJob(jobId, executable);
-                UnitOfWork.get().doAfterUnit(afterUnitTask);
+                JdbcUtil.withTransaction(()-> {
+                    executableManager.updateJobError(jobId, null, null, null, null);
+                    executableManager.resumeJob(jobId, executable);
+                    return null;
+                });
                 MetricsGroup.hostTagCounterInc(MetricsName.JOB_RESUMED, MetricsCategory.PROJECT, project);
                 break;
             case RESTART:
 //                SecondStorageUtil.checkJobRestart(project, jobId, executable);
                 killExistApplication(executable);
-                executableManager.updateJobError(jobId, null, null, null, null);
-                executableManager.restartJob(jobId, executable);
-                UnitOfWork.get().doAfterUnit(afterUnitTask);
+                JdbcUtil.withTransaction(() -> {
+                    executableManager.updateJobError(jobId, null, null, null, null);
+                    executableManager.restartJob(jobId, executable);
+                    return null;
+                });
                 break;
             case DISCARD:
                 discardJob(project, jobId, executable);
-                JobTypeEnum jobTypeEnum = executable.getJobType();
-                String jobType = jobTypeEnum == null ? "" : jobTypeEnum.name();
-                UnitOfWork.get().doAfterUnit(
-                        () -> EventBusFactory.getInstance().postAsync(new JobDiscardNotifier(project, jobType)));
                 break;
             case PAUSE:
                 killExistApplication(executable);

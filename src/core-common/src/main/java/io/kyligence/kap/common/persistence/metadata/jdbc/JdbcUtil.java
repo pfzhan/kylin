@@ -40,6 +40,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.rest.util.SpringContext;
 import org.msgpack.core.annotations.VisibleForTesting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,6 +58,11 @@ public class JdbcUtil {
 
     private static final Logger logger = LoggerFactory.getLogger(JdbcUtil.class);
 
+    public static <T> T withTransaction(Callback<T> consumer) {
+        DataSourceTransactionManager transactionManager = SpringContext.getBean(DataSourceTransactionManager.class);
+        return withTransaction(transactionManager, consumer);
+    }
+    
     public static <T> T withTransaction(DataSourceTransactionManager transactionManager, Callback<T> consumer) {
         return withTransaction(transactionManager, consumer, TransactionDefinition.ISOLATION_REPEATABLE_READ);
     }

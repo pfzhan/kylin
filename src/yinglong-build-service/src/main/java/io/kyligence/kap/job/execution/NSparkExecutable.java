@@ -81,14 +81,15 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.cluster.ClusterManagerFactory;
 import io.kyligence.kap.cluster.IClusterManager;
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
+import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import io.kyligence.kap.guava20.shaded.common.util.concurrent.UncheckedTimeoutException;
+import io.kyligence.kap.job.JobContext;
 import io.kyligence.kap.job.core.AbstractJobConfig;
 import io.kyligence.kap.job.execution.merger.MetadataMerger;
 import io.kyligence.kap.job.execution.stage.StageBase;
 import io.kyligence.kap.job.manager.ExecutableManager;
-import io.kyligence.kap.job.JobContext;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -400,11 +401,11 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
                 try {
                     Map<String, String> updateInfo = Maps.newHashMap();
                     updateInfo.put("process_id", r.getProcessId());
-                    EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+                    JdbcUtil.withTransaction(() -> {
                         ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                                 .updateJobOutput(getParentId(), this.getStatus(), updateInfo, null, null);
                         return null;
-                    }, project);
+                    });
                 } catch (Exception e) {
                     logger.warn("failed to record process id.");
                 }

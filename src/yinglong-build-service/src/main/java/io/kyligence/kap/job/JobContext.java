@@ -33,6 +33,8 @@ import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.stereotype.Component;
 
 import com.google.common.collect.Lists;
@@ -66,6 +68,9 @@ public class JobContext implements InitializingBean, DisposableBean {
 
     @Resource
     private JobLockMapper jobLockMapper;
+
+    @Autowired
+    private DataSourceTransactionManager transactionManager;
 
     private ParallelLimiter parallelLimiter;
     private ResourceAcquirer resourceAcquirer;
@@ -135,6 +140,10 @@ public class JobContext implements InitializingBean, DisposableBean {
 
     public AbstractJobConfig getJobConfig() {
         return jobConfig;
+    }
+
+    public DataSourceTransactionManager getTransactionManager() {
+        return transactionManager;
     }
 
     public JobInfoMapper getJobInfoMapper() {

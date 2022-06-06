@@ -21,31 +21,32 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.rest;
 
-import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasourceParameters;
+package io.kyligence.kap.job;
 
 import javax.sql.DataSource;
 
-import org.apache.kylin.common.KylinConfig;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
-
-import io.kyligence.kap.common.persistence.metadata.JdbcDataSource;
-import lombok.val;
+import org.springframework.context.annotation.Primary;
 
 @Configuration
-@Profile("!dev")
-public class InitConfiguration {
+public class DataSourceConfig {
 
-    @Bean("defaultDataSource")
-    public DataSource dataSource() throws Exception {
-        val url = KylinConfig.getInstanceFromEnv().getMetadataUrl();
-        val props = datasourceParameters(url);
-        if (!url.getScheme().equals("jdbc")) {
-            throw new RuntimeException("Failed to init jdbc data source!");
-        }
-        return JdbcDataSource.getDataSource(props);
+    @Bean
+    @ConfigurationProperties("spring.job-datasource")
+    public DataSourceProperties getDatasourceProperties() {
+        return new DataSourceProperties();
     }
+
+    // TODO Hikari parameters in spring.job-datasource.hikari don't work here and need to be fixed.
+    @Bean("jobDataSource")
+    @Primary
+    public DataSource dataSource() {
+        DataSourceProperties props = getDatasourceProperties();
+        return props.initializeDataSourceBuilder().build();
+    }
+
 }

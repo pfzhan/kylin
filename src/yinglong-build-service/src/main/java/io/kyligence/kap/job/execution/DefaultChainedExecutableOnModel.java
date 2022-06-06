@@ -47,6 +47,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.model.SegmentPartition;
 import io.kyligence.kap.metadata.model.ManagementType;
+import io.kyligence.kap.rest.delegate.ModelMetadataBaseInvoker;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
@@ -87,8 +88,7 @@ public class DefaultChainedExecutableOnModel extends DefaultChainedExecutable {
             return;
         }
 
-        val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
-        dfManager.updateDataflowStatus(dataflow.getId(), RealizationStatusEnum.LAG_BEHIND);
+        ModelMetadataBaseInvoker.getInstance().updateDataflowStatus(project, dataflow.getId(), RealizationStatusEnum.LAG_BEHIND);
     }
 
     private NDataflow getDataflow(String jobId) {
