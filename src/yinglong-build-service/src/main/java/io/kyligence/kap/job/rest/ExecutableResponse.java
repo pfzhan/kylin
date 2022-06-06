@@ -32,7 +32,9 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
+import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.Output;
 import org.apache.kylin.metadata.model.TableDesc;
 
 import com.clearspring.analytics.util.Lists;
@@ -110,30 +112,31 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
     private static final String SNAPSHOT_FULL_RANGE = "FULL";
     private static final String SNAPSHOT_INC_RANGE = "INC";
 
-    private static ExecutableResponse newInstance(AbstractExecutable abstractExecutable) {
+    private static ExecutableResponse newInstance(AbstractExecutable abstractExecutable, ExecutablePO executablePO) {
+        Output output = abstractExecutable.getOutput(executablePO);
         ExecutableResponse executableResponse = new ExecutableResponse();
         executableResponse.setDataRangeEnd(abstractExecutable.getDataRangeEnd());
         executableResponse.setDataRangeStart(abstractExecutable.getDataRangeStart());
         executableResponse.setJobName(abstractExecutable.getName());
         executableResponse.setId(abstractExecutable.getId());
-        executableResponse.setExecStartTime(abstractExecutable.getStartTime());
-        executableResponse.setCreateTime(abstractExecutable.getCreateTime());
-        executableResponse.setDuration(abstractExecutable.getDurationFromStepOrStageDurationSum());
-        executableResponse.setLastModified(abstractExecutable.getLastModified());
+        executableResponse.setExecStartTime(AbstractExecutable.getStartTime(output));
+        executableResponse.setCreateTime(output.getCreateTime());
+        executableResponse.setDuration(abstractExecutable.getDurationFromStepOrStageDurationSum(executablePO));
+        executableResponse.setLastModified(AbstractExecutable.getLastModified(output));
         executableResponse.setTargetModel(abstractExecutable.getTargetSubject());
         executableResponse.setTargetSegments(abstractExecutable.getTargetSegments());
         executableResponse.setTargetSubject(abstractExecutable.getTargetSubjectAlias());
-        executableResponse.setWaitTime(abstractExecutable.getWaitTime());
+        executableResponse.setWaitTime(abstractExecutable.getWaitTime(output));
         executableResponse.setSubmitter(abstractExecutable.getSubmitter());
-        executableResponse.setExecEndTime(abstractExecutable.getEndTime());
+        executableResponse.setExecEndTime(AbstractExecutable.getEndTime(output));
         executableResponse.setDiscardSafety(abstractExecutable.safetyIfDiscard());
         executableResponse.setTotalDuration(executableResponse.getWaitTime() + executableResponse.getDuration());
         executableResponse.setTag(abstractExecutable.getTag());
         return executableResponse;
     }
 
-    public static ExecutableResponse create(AbstractExecutable abstractExecutable) {
-        ExecutableResponse executableResponse = newInstance(abstractExecutable);
+    public static ExecutableResponse create(AbstractExecutable abstractExecutable, ExecutablePO executablePO) {
+        ExecutableResponse executableResponse = newInstance(abstractExecutable, executablePO);
         if (abstractExecutable instanceof NTableSamplingJob) {
             NTableSamplingJob samplingJob = (NTableSamplingJob) abstractExecutable;
             executableResponse.setDataRangeEnd(Long.MAX_VALUE);
@@ -173,7 +176,7 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
             }
         }
 
-        val stepRatio = calculateStepRatio(abstractExecutable);
+        val stepRatio = calculateStepRatio(abstractExecutable, executablePO);
         executableResponse.setStepRatio(stepRatio);
         executableResponse.setProject(abstractExecutable.getProject());
         return executableResponse;
@@ -195,7 +198,7 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
      *
      * Another: "BUILD_LAYER" are not refined
      */
-    public static float calculateStepRatio(AbstractExecutable abstractExecutable) {
+    public static float calculateStepRatio(AbstractExecutable abstractExecutable, ExecutablePO executablePO) {
         List<? extends AbstractExecutable> tasks = ((ChainedExecutable) abstractExecutable).getTasks();
         var successSteps = 0D;
         var stageCount = 0;
@@ -210,47 +213,48 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
                 if (0 != taskMapStageCount) {
                     // calculate sum step count, second step and stage is duplicate
                     stageCount = taskMapStageCount - 1;
-                    successSteps += calculateSuccessStageInTaskMap(task, stageMap);
+                    successSteps += calculateSuccessStageInTaskMap(task, stageMap, executablePO);
                     continue;
                 }
             }
-            if (ExecutableState.SUCCEED == task.getStatus() || ExecutableState.SKIP == task.getStatus()) {
+            if (ExecutableState.SUCCEED == task.getStatus(executablePO) || ExecutableState.SKIP == task.getStatus(executablePO)) {
                 successSteps++;
             }
         }
         val stepCount = tasks.size() + stageCount;
         var stepRatio = (float) successSteps / stepCount;
         // in case all steps are succeeded, but the job is not succeeded, the stepRatio should be 99%
-        if (stepRatio == 1 && ExecutableState.SUCCEED != abstractExecutable.getStatus()) {
+        if (stepRatio == 1 && ExecutableState.SUCCEED != abstractExecutable.getStatus(executablePO)) {
             stepRatio = 0.99F;
         }
         return stepRatio;
     }
 
     /** calculate stage count from segment */
-    public static double calculateSuccessStageInTaskMap(AbstractExecutable task,
-                                                        Map<String, List<StageBase>> stageMap) {
+    public static double calculateSuccessStageInTaskMap(AbstractExecutable task, Map<String, List<StageBase>> stageMap,
+            ExecutablePO executablePO) {
         var successStages = 0D;
         boolean calculateIndexExecRadio = stageMap.size() == 1;
         for (Map.Entry<String, List<StageBase>> entry : stageMap.entrySet()) {
-            double count = calculateSuccessStage(task, entry.getKey(), entry.getValue(), calculateIndexExecRadio);
+            double count = calculateSuccessStage(task, entry.getKey(), entry.getValue(), calculateIndexExecRadio,
+                    executablePO);
             successStages += count;
         }
         return successStages / stageMap.size();
     }
 
     public static double calculateSuccessStage(AbstractExecutable task, String segmentId, List<StageBase> stageBases,
-                                               boolean calculateIndexExecRadio) {
+            boolean calculateIndexExecRadio, ExecutablePO executablePO) {
         var successStages = 0D;
         for (StageBase stage : stageBases) {
-            if (ExecutableState.SUCCEED == stage.getStatus(segmentId)
-                    || stage.getStatus(segmentId) == ExecutableState.SKIP) {
+            if (ExecutableState.SUCCEED == stage.getStatus(segmentId, executablePO)
+                    || stage.getStatus(segmentId, executablePO) == ExecutableState.SKIP) {
                 successStages += 1;
                 continue;
             }
 
             final String indexCountString = task.getParam(NBatchConstants.P_INDEX_COUNT);
-            final String indexSuccess = stage.getOutput(segmentId).getExtra()
+            final String indexSuccess = stage.getOutput(segmentId, executablePO).getExtra()
                     .getOrDefault(NBatchConstants.P_INDEX_SUCCESS_COUNT, "");
             if (calculateIndexExecRadio && StringUtils.isNotBlank(indexCountString)
                     && StringUtils.isNotBlank(indexSuccess)) {

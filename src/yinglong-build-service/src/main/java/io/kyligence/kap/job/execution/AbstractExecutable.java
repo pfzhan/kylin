@@ -90,10 +90,10 @@ import io.kyligence.kap.common.metrics.MetricsGroup;
 import io.kyligence.kap.common.metrics.MetricsName;
 import io.kyligence.kap.common.util.ThrowableUtils;
 import io.kyligence.kap.guava20.shaded.common.base.MoreObjects;
+import io.kyligence.kap.job.JobContext;
 import io.kyligence.kap.job.core.AbstractJobExecutable;
 import io.kyligence.kap.job.execution.stage.StageBase;
 import io.kyligence.kap.job.manager.ExecutableManager;
-import io.kyligence.kap.job.JobContext;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -496,6 +496,11 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
         ExecutableManager manager = getManager();
         return manager.getOutput(this.getId()).getState();
     }
+    
+    public final ExecutableState getStatus(ExecutablePO executablePO) {
+        ExecutableManager manager = getManager();
+        return manager.getOutput(this.getId(), executablePO).getState();
+    }
 
     public final long getLastModified() {
         return getLastModified(getOutput());
@@ -590,6 +595,10 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
         return getManager().getOutput(getId());
     }
 
+    public final Output getOutput(ExecutablePO executablePO) {
+        return getManager().getOutput(getId(), executablePO);
+    }
+
     //will modify input info
     public Map<String, String> makeExtraInfo(Map<String, String> info) {
         if (info == null) {
@@ -647,19 +656,19 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
     }
 
     // just using to get job duration in get job list
-    public long getDurationFromStepOrStageDurationSum() {
-        var duration = getDuration();
+    public long getDurationFromStepOrStageDurationSum(ExecutablePO executablePO) {
+        var duration = getDuration(executablePO);
         if (this instanceof ChainedExecutable) {
             val tasks = ((ChainedExecutable) this).getTasks();
             val jobAtomicDuration = new AtomicLong(0);
             tasks.forEach(task -> {
-                var taskDuration = task.getDuration();
+                var taskDuration = task.getDuration(executablePO);
                 if (task instanceof ChainedStageExecutable) {
                     val stagesMap = ((ChainedStageExecutable) task).getStagesMap();
                     if (stagesMap.size() == 1) {
                         for (Map.Entry<String, List<StageBase>> entry : stagesMap.entrySet()) {
                             taskDuration = entry.getValue().stream()
-                                    .map(stage -> getDuration(stage.getOutput(entry.getKey()))) //
+                                    .map(stage -> getDuration(stage.getOutput(entry.getKey(), executablePO))) //
                                     .mapToLong(Long::valueOf) //
                                     .sum();
                         }
@@ -674,6 +683,10 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
 
     public long getDuration() {
         return getDuration(getOutput());
+    }
+
+    public long getDuration(ExecutablePO executablePO) {
+        return getDuration(getOutput(executablePO));
     }
 
     public static long getDuration(Output output) {
@@ -692,11 +705,14 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
     }
 
     public long getWaitTime() {
-        Output output = getOutput();
+        return getWaitTime(getOutput());
+    }
+
+    public long getWaitTime(Output output) {
         long startTime = output.getStartTime();
 
         long lastTaskEndTime = output.getCreateTime();
-        var lastTaskStatus = getStatus();
+        var lastTaskStatus = output.getState();
 
         int stepId = getStepId();
 

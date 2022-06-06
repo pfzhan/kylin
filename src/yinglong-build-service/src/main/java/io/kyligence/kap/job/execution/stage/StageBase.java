@@ -26,14 +26,15 @@ package io.kyligence.kap.job.execution.stage;
 
 import static org.apache.kylin.job.execution.JobTypeEnum.STAGE;
 
+import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.ExecuteResult;
 import org.apache.kylin.job.execution.Output;
 
 import io.kyligence.kap.guava20.shaded.common.base.MoreObjects;
-import io.kyligence.kap.job.execution.AbstractExecutable;
 import io.kyligence.kap.job.JobContext;
+import io.kyligence.kap.job.execution.AbstractExecutable;
 
 public class StageBase extends AbstractExecutable {
 
@@ -64,7 +65,15 @@ public class StageBase extends AbstractExecutable {
         return getOutput(segmentId).getState();
     }
 
+    public ExecutableState getStatus(String segmentId, ExecutablePO executablePO) {
+        return getOutput(segmentId, executablePO).getState();
+    }
+
     public Output getOutput(String segmentId) {
         return getManager().getOutput(getId(), segmentId);
+    }
+
+    public Output getOutput(String segmentId, ExecutablePO executablePO) {
+        return getManager().getOutput(getId(), executablePO, segmentId);
     }
 }

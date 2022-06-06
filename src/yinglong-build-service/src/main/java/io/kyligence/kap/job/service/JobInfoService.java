@@ -192,7 +192,7 @@ public class JobInfoService extends BasicService {
         Preconditions.checkNotNull(executablePO, "Can not find the job: {}", jobId);
         ExecutableManager executableManager = getManager(ExecutableManager.class, executablePO.getProject());
         AbstractExecutable executable = executableManager.fromPO(executablePO);
-        return convert(executable);
+        return convert(executable, executablePO);
     }
 
     @VisibleForTesting
@@ -208,9 +208,12 @@ public class JobInfoService extends BasicService {
             aclEvaluate.checkProjectOperationPermission(jobFilter.getProject());
         }
         List<JobInfo> jobInfoList = jobInfoDao.getJobInfoListByFilter(jobFilter, offset, limit);
-        List<ExecutableResponse> result = jobInfoList.stream().map(jobInfo -> JobInfoUtil.deserializeExecutablePO(jobInfo)).map(
-                executablePO -> getManager(ExecutableManager.class, executablePO.getProject()).fromPO(executablePO))
-                .map(this::convert).collect(Collectors.toList());
+        List<ExecutableResponse> result = jobInfoList.stream()
+                .map(JobInfoUtil::deserializeExecutablePO).map(executablePO -> {
+                    AbstractExecutable executable = getManager(ExecutableManager.class, executablePO.getProject())
+                            .fromPO(executablePO);
+                    return this.convert(executable, executablePO);
+                }).collect(Collectors.toList());
         return new DataResult<>(result, result.size());
     }
 
@@ -280,7 +283,7 @@ public class JobInfoService extends BasicService {
                     // table sampling and snapshot table don't have some segment
                     if (!StringUtils.equals(task.getId(), segmentId)) {
                         setSegmentSubStageParams(project, targetSubject, task, segmentId, segmentSubStages, stageBases,
-                                stageResponses, waiteTimeMap, output.getState());
+                                stageResponses, waiteTimeMap, output.getState(), executablePO);
                         stringSubStageMap.put(segmentId, segmentSubStages);
                     }
                 }
@@ -495,9 +498,9 @@ public class JobInfoService extends BasicService {
                 .collect(Collectors.toList());
     }
 
-    private ExecutableResponse convert(AbstractExecutable executable) {
-        ExecutableResponse executableResponse = ExecutableResponse.create(executable);
-        executableResponse.setStatus(executable.getStatus().toJobStatus());
+    private ExecutableResponse convert(AbstractExecutable executable, ExecutablePO executablePO) {
+        ExecutableResponse executableResponse = ExecutableResponse.create(executable, executablePO);
+        executableResponse.setStatus(executable.getStatus(executablePO).toJobStatus());
         return executableResponse;
     }
 
@@ -688,7 +691,8 @@ public class JobInfoService extends BasicService {
 
     private void setSegmentSubStageParams(String project, String targetSubject, AbstractExecutable task,
             String segmentId, ExecutableStepResponse.SubStages segmentSubStages, List<StageBase> stageBases,
-            List<ExecutableStepResponse> stageResponses, Map<String, String> waiteTimeMap, ExecutableState jobState) {
+            List<ExecutableStepResponse> stageResponses, Map<String, String> waiteTimeMap, ExecutableState jobState,
+            ExecutablePO executablePO) {
         segmentSubStages.setStage(stageResponses);
 
         // when job restart, taskStartTime is zero
@@ -752,7 +756,7 @@ public class JobInfoService extends BasicService {
          */
         val stepCount = stageResponses.size() == 0 ? 1 : stageResponses.size();
         val stepRatio = (float) ExecutableResponse.calculateSuccessStage(task, segmentId,
-                stageBases, true) / stepCount;
+                stageBases, true, executablePO) / stepCount;
         segmentSubStages.setStepRatio(stepRatio);
     }
 
