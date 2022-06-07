@@ -326,12 +326,15 @@ public class OptRecService extends BasicService {
             if (ccRecItems.isEmpty()) {
                 return abnormalRecIds;
             }
+            List<RawRecItem> sortedCCRecItems = ccRecItems.stream()
+                    .sorted(Comparator.comparing(o -> ((CCRecItemV2) o.getRecEntity()).getCc().getInnerExpression()))
+                    .collect(Collectors.toList());
 
             HashMap<Integer, Integer> dupCCRecItemMap = Maps.newHashMap();
-            int resId = ccRecItems.get(0).getId();
-            for (int i = 1; i < ccRecItems.size(); i++) {
-                RawRecItem curRecItem = ccRecItems.get(i);
-                RawRecItem prevRecItem = ccRecItems.get(i - 1);
+            int resId = sortedCCRecItems.get(0).getId();
+            for (int i = 1; i < sortedCCRecItems.size(); i++) {
+                RawRecItem curRecItem = sortedCCRecItems.get(i);
+                RawRecItem prevRecItem = sortedCCRecItems.get(i - 1);
                 String expr1 = ((CCRecItemV2) curRecItem.getRecEntity()).getCc().getInnerExpression();
                 String expr2 = ((CCRecItemV2) prevRecItem.getRecEntity()).getCc().getInnerExpression();
                 if (expr1.equalsIgnoreCase(expr2)) {
