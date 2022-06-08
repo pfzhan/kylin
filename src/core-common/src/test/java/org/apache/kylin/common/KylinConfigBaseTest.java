@@ -294,7 +294,7 @@ class KylinConfigBaseTest {
 
         map.put("isJobLogPrintEnabled", new PropertiesEntity("kylin.job.log-print-enabled", "true", true));
 
-        map.put("getDefaultSource", new PropertiesEntity("kylin.source.default", "0", 0));
+        map.put("getDefaultSource", new PropertiesEntity("kylin.source.default", "9", 9));
 
         map.put("getHiveUrl", new PropertiesEntity("kylin.source.hive.connection-url", "", ""));
 

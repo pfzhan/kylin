@@ -99,6 +99,10 @@ public class SourceFactory {
     }
 
     public static ISource getSource(int sourceType) {
+        return getSource(sourceType, KylinConfig.getInstanceFromEnv());
+    }
+
+    public static ISource getSource(int sourceType, KylinConfig kylinConfig) {
         return getSource(new ISourceAware() {
             @Override
             public int getSourceType() {
@@ -107,7 +111,7 @@ public class SourceFactory {
 
             @Override
             public KylinConfig getConfig() {
-                return KylinConfig.getInstanceFromEnv();
+                return kylinConfig;
             }
         });
     }
