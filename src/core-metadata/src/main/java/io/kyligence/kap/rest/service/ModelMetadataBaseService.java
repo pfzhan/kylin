@@ -71,6 +71,14 @@ public class ModelMetadataBaseService {
         }, project);
     }
 
+    public void updateDataflow(String project, String dfId, String segmentId, long maxBucketId) {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project).updateDataflow(dfId,
+                    copyForWrite -> copyForWrite.getSegment(segmentId).setMaxBucketId(maxBucketId));
+            return null;
+        }, project);
+    }
+
     public void updateIndexPlan(String project, String uuid, IndexPlan indexplan, String action) {
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             if ("setLayoutBucketNumMapping".equals(action)) {

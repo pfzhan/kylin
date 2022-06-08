@@ -36,6 +36,7 @@ import org.springframework.context.annotation.Primary;
 public class DataSourceConfig {
 
     @Bean
+    @Primary
     @ConfigurationProperties("spring.job-datasource")
     public DataSourceProperties getDatasourceProperties() {
         return new DataSourceProperties();

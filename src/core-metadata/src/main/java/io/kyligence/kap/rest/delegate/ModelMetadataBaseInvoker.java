@@ -64,6 +64,10 @@ public class ModelMetadataBaseInvoker {
         modelMetadataBaseService.updateDataflow(dataFlowUpdateRequest);
     }
 
+    public void updateDataflow(String project, String dfId, String segmentId, long maxBucketId) {
+        modelMetadataBaseService.updateDataflow(project, dfId, segmentId, maxBucketId);
+    }
+
     public void updateIndexPlan(String project, String uuid, IndexPlan indexplan, String action) {
         modelMetadataBaseService.updateIndexPlan(project, uuid, indexplan, action);
     }

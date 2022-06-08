@@ -181,7 +181,7 @@ public class SegmentHelper extends BasicService implements SegmentHelperSupporte
         logger.info("Drop segment {} and rebuild it immediately.", seg.getId());
     }
 
-    @Override
+    @Deprecated
     public void removeSegment(String project, String dataflowId, Set<String> tobeRemoveSegmentIds) {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
 

@@ -67,6 +67,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.job.JobBucket;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.rest.delegate.ModelMetadataBaseInvoker;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -127,8 +128,8 @@ public abstract class ExecutableUtil {
             }
             jobParam.getProcessLayouts().forEach(layout -> partitions.forEach(partition -> buckets
                     .add(new JobBucket(segment.getId(), layout.getId(), bucketStart.incrementAndGet(), partition))));
-            dfm.updateDataflow(df.getId(),
-                    copyForWrite -> copyForWrite.getSegment(targetSegment).setMaxBucketId(bucketStart.get()));
+            ModelMetadataBaseInvoker.getInstance().updateDataflow(df.getProject(), df.getId(), targetSegment,
+                    bucketStart.get());
         }
         jobParam.setTargetBuckets(buckets);
     }

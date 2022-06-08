@@ -69,6 +69,8 @@ public interface ModelMetadataContract {
 
     void updateDataflow(DataFlowUpdateRequest dataFlowUpdateRequest);
 
+    void updateDataflow(String project, String dfId, String segmentId, long maxBucketIt);
+
     void updateIndexPlan(String project, String uuid, IndexPlan indexplan, String action);
 
     void updateDataflowStatus(String project, String uuid, RealizationStatusEnum status);

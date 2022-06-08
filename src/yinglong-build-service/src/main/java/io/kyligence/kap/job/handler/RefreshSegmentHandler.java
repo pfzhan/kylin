@@ -26,6 +26,9 @@ package io.kyligence.kap.job.handler;
 
 import static org.apache.kylin.job.factory.JobFactoryConstant.CUBE_JOB_FACTORY;
 
+import java.util.Collections;
+import java.util.List;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.model.JobParam;
 
@@ -33,10 +36,13 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.job.execution.AbstractExecutable;
 import io.kyligence.kap.job.factory.JobFactory;
+import io.kyligence.kap.metadata.cube.model.NDataSegDetails;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.PartitionStatusEnum;
+import io.kyligence.kap.rest.delegate.ModelMetadataBaseInvoker;
+import io.kyligence.kap.rest.request.DataFlowUpdateRequest;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -62,7 +68,9 @@ public class RefreshSegmentHandler extends AbstractJobHandler {
             });
             val dfUpdate = new NDataflowUpdate(dataflow.getId());
             dfUpdate.setToUpdateSegs(segment);
-            dfm.updateDataflow(dfUpdate);
+            List<NDataSegDetails> segDetails = Collections.singletonList(segment.getSegDetails());
+            ModelMetadataBaseInvoker.getInstance().updateDataflow(new DataFlowUpdateRequest(segment.getProject(),
+                    dfUpdate, segDetails.toArray(new NDataSegDetails[0]), new Integer[] { 0 }));
         }
 
         return JobFactory.createJob(CUBE_JOB_FACTORY,

@@ -79,6 +79,11 @@ public class ModelMetadataInvoker extends ModelMetadataBaseInvoker {
     }
 
     @Override
+    public void updateDataflow(String project, String dfId, String segmentId, long maxBucketIt) {
+        getDelegate().updateDataflow(project, dfId, segmentId, maxBucketIt);
+    }
+
+    @Override
     public void updateIndexPlan(String project, String uuid, IndexPlan indexplan, String action) {
         getDelegate().updateIndexPlan(project, uuid, indexplan, action);
     }
@@ -109,15 +114,27 @@ public class ModelMetadataInvoker extends ModelMetadataBaseInvoker {
     }
 
     public NDataSegment refreshSegment(String project, String indexPlanUuid, String segmentId) {
-        return getDelegate().refreshSegment(project, indexPlanUuid, segmentId);
+        NDataSegment segment = getDelegate().refreshSegment(project, indexPlanUuid, segmentId);
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        waitForSync(() -> NDataflowManager.getInstance(config, project).getDataflow(indexPlanUuid)
+                .getSegment(segment.getId()) != null);
+        return segment;
     }
 
     public NDataSegment appendPartitions(String project, String dfId, String segId, List<String[]> partitionValues) {
-        return getDelegate().appendPartitions(project, dfId, segId, partitionValues);
+        NDataSegment segment = getDelegate().appendPartitions(project, dfId, segId, partitionValues);
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        waitForSync(() -> NDataflowManager.getInstance(config, project).getDataflow(dfId)
+                .getSegment(segment.getId()) != null);
+        return segment;
     }
 
     public NDataSegment mergeSegments(String project, MergeSegmentRequest mergeSegmentRequest) {
-        return getDelegate().mergeSegments(project, mergeSegmentRequest);
+        NDataSegment segment = getDelegate().mergeSegments(project, mergeSegmentRequest);
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        waitForSync(() -> NDataflowManager.getInstance(config, project)
+                .getDataflow(mergeSegmentRequest.getIndexPlanUuid()).getSegment(segment.getId()) != null);
+        return segment;
     }
 
     public void deleteSegmentById(String model, String project, String[] ids, boolean force) {

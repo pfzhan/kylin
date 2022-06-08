@@ -228,7 +228,6 @@ public class ModelServiceBuildTest extends SourceTestCase {
         ReflectionTestUtils.setField(indexPlanService, "aclEvaluate", aclEvaluate);
 
         modelService.setSemanticUpdater(semanticService);
-        modelService.setSegmentHelper(segmentHelper);
         modelService.setIndexPlanService(indexPlanService);
         val result1 = new QueryTimesResponse();
         result1.setModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");

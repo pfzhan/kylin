@@ -24,8 +24,5 @@
 
 package io.kyligence.kap.rest.service;
 
-import java.util.Set;
-
 public interface SegmentHelperSupporter {
-    void removeSegment(String project, String dataflowId, Set<String> tobeRemoveSegmentIds);
 }

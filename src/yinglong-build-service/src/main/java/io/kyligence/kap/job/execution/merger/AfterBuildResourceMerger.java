@@ -225,6 +225,9 @@ public class AfterBuildResourceMerger extends SparkJobMetadataMerger {
                 upsertCuboids.add(upsertLayout);
             }
             segsToUpdate.add(updateSegment);
+
+            segDetails.add(remoteSeg.getSegDetails());
+            layoutCounts.add(availableLayoutIds.size());
         }
         dfUpdate.setToUpdateSegs(segsToUpdate.toArray(new NDataSegment[0]));
         dfUpdate.setToAddOrUpdateLayouts(upsertCuboids.toArray(new NDataLayout[0]));

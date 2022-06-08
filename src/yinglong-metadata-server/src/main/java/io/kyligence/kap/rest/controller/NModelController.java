@@ -913,6 +913,13 @@ public class NModelController extends NBasicController {
         modelService.updateDataflow(dataFlowUpdateRequest);
     }
 
+    @PostMapping(value = "/feign/update_dataflow_maxBucketId")
+    @ResponseBody
+    public void updateDataflow(@RequestParam("project") String project, @RequestParam("dfId") String dfId,
+            @RequestParam("segmentId") String segmentId, @RequestParam("maxBucketId") long maxBucketIt) {
+        modelService.updateDataflow(project, dfId, segmentId, maxBucketIt);
+    }
+
     @PostMapping(value = "/feign/update_index_plan")
     @ResponseBody
     public void updateIndexPlan(@RequestParam("project") String project, @RequestParam("uuid") String uuid,

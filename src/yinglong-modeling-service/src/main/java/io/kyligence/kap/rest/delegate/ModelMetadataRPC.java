@@ -52,6 +52,10 @@ public interface ModelMetadataRPC extends ModelMetadataContract {
     @PostMapping(value = "/update_dataflow")
     void updateDataflow(@RequestBody DataFlowUpdateRequest dataFlowUpdateRequest);
 
+    @PostMapping(value = "/update_dataflow_maxBucketId")
+    void updateDataflow(@RequestParam("project") String project, @RequestParam("dfId") String dfId,
+            @RequestParam("segmentId") String segmentId, @RequestParam("maxBucketId") long maxBucketIt);
+
     @PostMapping(value = "/update_index_plan")
     void updateIndexPlan(@RequestParam("project") String project, @RequestParam("uuid") String uuid,
                          @RequestBody IndexPlan indexplan, @RequestParam("action") String action);

@@ -318,11 +318,6 @@ public class ModelService extends BasicService implements TableModelSupporter, P
     @Autowired
     private ModelSemanticHelper semanticUpdater;
 
-    @Setter
-    @Autowired(required = false)
-    @Qualifier("segmentHelper")
-    private SegmentHelperSupporter segmentHelper;
-
     @Autowired
     public AclEvaluate aclEvaluate;
 
@@ -2754,8 +2749,33 @@ public class ModelService extends BasicService implements TableModelSupporter, P
             jobMetadataRequest.setSecondStorageJobHandler(SecondStorageJobHandlerEnum.SEGMENT_CLEAN.name());
             jobMetadataInvoker.addSecondStorageJob(jobMetadataRequest);
         }
-        segmentHelper.removeSegment(project, dataflow.getUuid(), idsToDelete);
+        removeSegment(project, dataflow.getUuid(), idsToDelete);
         offlineModelIfNecessary(dataflowManager, model);
+    }
+    
+    public void removeSegment(String project, String dataflowId, Set<String> tobeRemoveSegmentIds) {
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+
+        NDataflowManager dfMgr = NDataflowManager.getInstance(kylinConfig, project);
+        NDataflow df = dfMgr.getDataflow(dataflowId);
+        if (CollectionUtils.isEmpty(tobeRemoveSegmentIds)) {
+            return;
+        }
+
+        List<NDataSegment> dataSegments = Lists.newArrayList();
+        for (String tobeRemoveSegmentId : tobeRemoveSegmentIds) {
+            NDataSegment dataSegment = df.getSegment(tobeRemoveSegmentId);
+            if (dataSegment == null) {
+                continue;
+            }
+            dataSegments.add(dataSegment);
+        }
+
+        if (CollectionUtils.isNotEmpty(dataSegments)) {
+            NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
+            update.setToRemoveSegs(dataSegments.toArray(new NDataSegment[0]));
+            dfMgr.updateDataflow(update);
+        }
     }
 
     @Override
