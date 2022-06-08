@@ -867,6 +867,8 @@ public class SecondStorageLockTest implements JobWaiter {
                 secondStorageService.changeProjectSecondStorageState(getProject(), ImmutableList.of("pair1"), true);
                 assertEquals(clickhouseNew.length, SecondStorageUtil.listProjectNodes(getProject()).size());
 
+                checkSegmentDisplay(replica, clickhouse.length / replica);
+
                 EnvelopeResponse<ProjectTableSyncResponse> response = secondStorageEndpoint.tableSync(getProject());
                 assertEquals("000", response.getCode());
 
