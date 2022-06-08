@@ -1096,7 +1096,7 @@ public abstract class KylinConfigBase implements Serializable {
     // ============================================================================
 
     public int getDefaultSource() {
-        return Integer.parseInt(getOptional("kylin.source.default", "0"));
+        return Integer.parseInt(getOptional("kylin.source.default", "9"));
     }
 
     public Map<Integer, String> getSourceEngines() {

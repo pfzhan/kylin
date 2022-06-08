@@ -49,6 +49,11 @@
         </dependency>
         <dependency>
             <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-engine-spark</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-core-common</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
