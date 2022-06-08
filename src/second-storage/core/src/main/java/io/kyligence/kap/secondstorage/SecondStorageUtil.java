@@ -271,9 +271,7 @@ public class SecondStorageUtil {
                         Long::sum
                 ));
 
-        return shards.stream()
-                .mapToLong(shard -> shard.stream().mapToLong(nodesSize::get).max().orElse(0))
-                .sum();
+        return shards.stream().mapToLong(shard -> shard.stream().mapToLong(replica -> nodesSize.getOrDefault(replica, 0L)).max().orElse(0)).sum();
     }
 
     public static SecondStorageNode transformNode(String name) {
