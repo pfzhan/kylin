@@ -3265,12 +3265,12 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public ForceToTieredStorage getSystemForcedToTieredStorage() {
-        int i = Integer.parseInt(getOptional("kylin.system.forced-to-tiered-storage", "0"));
+        int i = Integer.parseInt(getOptional("kylin.second-storage.route-when-ch-fail", "0"));
         return ForceToTieredStorage.values()[i];
     }
 
     public ForceToTieredStorage getProjectForcedToTieredStorage() {
-        int i = Integer.parseInt(getOptional("kylin.project.forced-to-tiered-storage"));
+        int i = Integer.parseInt(getOptional("kylin.second-storage.route-when-ch-fail"));
         return ForceToTieredStorage.values()[i];
     }
 

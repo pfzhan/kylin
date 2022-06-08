@@ -2113,50 +2113,6 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testGetForcedToTieredStorage() {
-        for (ForceToTieredStorage i : ForceToTieredStorage.values()){
-            String system = Integer.toString(i.ordinal());
-            System.clearProperty("kylin.project.forced-to-tiered-storage");
-            overwriteSystemProp("kylin.system.forced-to-tiered-storage", system);
-            ForceToTieredStorage ret = queryService.getForcedToTieredStorage("default", i);
-            if (i != ForceToTieredStorage.CH_FAIL_TAIL){
-                assert i == ret;
-            }else{
-                assert ForceToTieredStorage.CH_FAIL_TO_DFS == ret;
-            }
-
-            for (ForceToTieredStorage j : ForceToTieredStorage.values()){
-                String project = Integer.toString(j.ordinal());
-                overwriteSystemProp("kylin.project.forced-to-tiered-storage", project);
-                ret = queryService.getForcedToTieredStorage("default", j);
-                if (j != ForceToTieredStorage.CH_FAIL_TAIL){
-                    assert j == ret;
-                }else{
-                    if (i != ForceToTieredStorage.CH_FAIL_TAIL){
-                        assert i == ret;
-                    } else{
-                        assert ForceToTieredStorage.CH_FAIL_TO_DFS == ret;
-                    }
-                }
-                for (ForceToTieredStorage k : ForceToTieredStorage.values()){
-                    ret = queryService.getForcedToTieredStorage("default", k);
-                    if (k != ForceToTieredStorage.CH_FAIL_TAIL){
-                        assert k == ret;
-                    }else{
-                        if (j != ForceToTieredStorage.CH_FAIL_TAIL){
-                            assert j == ret;
-                        } else if (i != ForceToTieredStorage.CH_FAIL_TAIL){
-                            assert i == ret;
-                        } else{
-                            assert ForceToTieredStorage.CH_FAIL_TO_DFS == ret;
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    @Test
     public void testGetForcedToTieredStorageValueInvalid() {
         try{
             ForceToTieredStorage f = ForceToTieredStorage.values()[-1];
@@ -2177,7 +2133,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     public void testGetForcedToTieredStorageForProject() {
         for (ForceToTieredStorage j : ForceToTieredStorage.values()){
             String project = Integer.toString(j.ordinal());
-            overwriteSystemProp("kylin.project.forced-to-tiered-storage", project);
+            overwriteSystemProp("kylin.second-storage.route-when-ch-fail", project);
             ForceToTieredStorage ret = queryService.getForcedToTieredStorage("default", j);
             if (j != ForceToTieredStorage.CH_FAIL_TAIL){
                 assert j == ret;
@@ -2191,7 +2147,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     public void testGetForcedToTieredStorageForSystem() {
         for (ForceToTieredStorage j : ForceToTieredStorage.values()){
             String project = Integer.toString(j.ordinal());
-            overwriteSystemProp("kylin.system.forced-to-tiered-storage", project);
+            overwriteSystemProp("kylin.second-storage.route-when-ch-fail", project);
             ForceToTieredStorage ret = queryService.getForcedToTieredStorage("default", j);
             if (j != ForceToTieredStorage.CH_FAIL_TAIL){
                 assert j == ret;
@@ -2203,8 +2159,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetForcedToTieredStorageForMismatch() {
-        overwriteSystemProp("kylin.project.forced-to-tiered-storage", "1");
-        overwriteSystemProp("kylin.system.forced-to-tiered-storage", "2");
+        overwriteSystemProp("kylin.second-storage.route-when-ch-fail", "1");
         ForceToTieredStorage ret = queryService.getForcedToTieredStorage("default", ForceToTieredStorage.CH_FAIL_TAIL);
         assert ForceToTieredStorage.CH_FAIL_TO_PUSH_DOWN == ret;
         ret = queryService.getForcedToTieredStorage("default", ForceToTieredStorage.CH_FAIL_TO_DFS);
