@@ -61,15 +61,34 @@
             <scope>provided</scope>
         </dependency>
 
-        <!--server-->
         <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-server-base</artifactId>
+            <groupId>io.kyligence.yinglong</groupId>
+            <artifactId>yinglong-common-service</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.yinglong</groupId>
+            <artifactId>yinglong-modeling-service</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.yinglong</groupId>
+            <artifactId>yinglong-build-service</artifactId>
             <scope>provided</scope>
         </dependency>
 
-
         <!--test-->
+        <dependency>
+            <groupId>io.kyligence.yinglong</groupId>
+            <artifactId>yinglong-common-service</artifactId>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.yinglong</groupId>
+            <artifactId>yinglong-query-service</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-second-storage-clickhouse</artifactId>

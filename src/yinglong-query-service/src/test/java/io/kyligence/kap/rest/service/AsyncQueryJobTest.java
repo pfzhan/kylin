@@ -21,7 +21,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.query.engine;
+package io.kyligence.kap.rest.service;
 
 import static io.kyligence.kap.metadata.cube.model.NBatchConstants.P_DIST_META_URL;
 import static io.kyligence.kap.metadata.cube.model.NBatchConstants.P_JOB_ID;
@@ -33,6 +33,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Map;
@@ -45,6 +46,7 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.persistence.RawResource;
@@ -55,11 +57,19 @@ import org.apache.kylin.common.util.ShellException;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.ExecuteResult;
 import org.apache.kylin.query.util.QueryParams;
+import org.apache.kylin.rest.service.AsyncQueryJob;
+import org.apache.kylin.rest.util.SpringContext;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PowerMockIgnore;
+import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.powermock.modules.junit4.PowerMockRunner;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.Maps;
@@ -67,8 +77,14 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
+import io.kyligence.kap.job.dao.JobInfoDao;
+import io.kyligence.kap.job.mapper.JobInfoMapper;
+import io.kyligence.kap.job.rest.JobMapperFilter;
 import lombok.val;
 
+@RunWith(PowerMockRunner.class)
+@PrepareForTest({ SpringContext.class, UserGroupInformation.class })
+@PowerMockIgnore({ "javax.management.*", "javax.script.*" })
 public class AsyncQueryJobTest extends NLocalFileMetadataTestCase {
 
     final static String BUILD_HADOOP_CONF = "kylin.engine.submit-hadoop-conf-dir";
@@ -82,7 +98,19 @@ public class AsyncQueryJobTest extends NLocalFileMetadataTestCase {
     final static String ASYNC_QUERY_SPARK_QUEUE = "root.quard";
 
     @Before
-    public void setup() {
+    public void setup() throws IOException {
+        PowerMockito.mockStatic(UserGroupInformation.class);
+        UserGroupInformation userGroupInformation = Mockito.mock(UserGroupInformation.class);
+        // Use thenAnswer instead of thenReturn, a workaround for https://github.com/powermock/powermock/issues/992
+        PowerMockito.when(UserGroupInformation.getCurrentUser()).thenAnswer((invocation -> userGroupInformation));
+        PowerMockito.when(UserGroupInformation.getLoginUser()).thenAnswer((invocation -> userGroupInformation));
+        PowerMockito.mockStatic(SpringContext.class);
+        JobInfoMapper jobInfoMapper = Mockito.spy(JobInfoMapper.class);
+        Mockito.when(jobInfoMapper.selectByJobFilter(Mockito.any(JobMapperFilter.class))).thenReturn(new ArrayList<>());
+        JobInfoDao jobInfoDao = Mockito.spy(JobInfoDao.class);
+        ReflectionTestUtils.setField(jobInfoDao, "jobInfoMapper", jobInfoMapper);
+        PowerMockito.when(SpringContext.getBean(JobInfoDao.class)).thenAnswer(invocation -> jobInfoDao);
+
         createTestMetadata();
     }
 

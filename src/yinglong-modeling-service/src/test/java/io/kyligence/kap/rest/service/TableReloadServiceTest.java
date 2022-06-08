@@ -31,7 +31,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -78,7 +77,6 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.clickhouse.MockSecondStorage;
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
@@ -1534,32 +1532,6 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
 
         val indexPlan2 = indexManager.getIndexPlan(indexPlan.getId());
         Assert.assertEquals(0, indexPlan2.getDictionaries().size());
-    }
-
-    @Test
-    public void testReloadTableWithSecondStorage() throws Exception {
-        val model = "741ca86a-1f13-46da-a59f-95fb68615e3a";
-        val project = "default";
-        MockSecondStorage.mock("default", new ArrayList<>(), this);
-        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            indexPlanManager.updateIndexPlan(model, indexPlan -> {
-                indexPlan.createAndAddBaseIndex(indexPlan.getModel());
-            });
-            return null;
-        }, project);
-        SecondStorageUtil.initModelMetaData("default", model);
-        Assert.assertTrue(indexPlanManager.getIndexPlan(model).containBaseTableLayout());
-        ModelRequest request = new ModelRequest();
-        request.setWithSecondStorage(true);
-        request.setUuid(model);
-        Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
-
-        val tableIdentity = "DEFAULT.TEST_KYLIN_FACT";
-        removeColumn(tableIdentity, "IS_EFFECTUAL");
-        tableService.innerReloadTable(PROJECT, tableIdentity, true, null);
-
-        Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
     }
 
     @Test

@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.query.engine;
+package org.apache.kylin.rest.service;
 
 import static org.apache.kylin.query.util.AsyncQueryUtil.ASYNC_QUERY_JOB_ID_PRE;
 
@@ -57,7 +57,7 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.engine.spark.job.DefaultSparkBuildJobHandler;
-import io.kyligence.kap.engine.spark.job.NSparkExecutable;
+import io.kyligence.kap.job.execution.NSparkExecutable;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import lombok.val;
 

@@ -176,7 +176,6 @@ import io.kyligence.kap.metadata.query.QueryHistorySqlParam;
 import io.kyligence.kap.metadata.query.QueryMetricsContext;
 import io.kyligence.kap.metadata.query.StructField;
 import io.kyligence.kap.metadata.query.util.QueryHistoryUtil;
-import io.kyligence.kap.query.engine.AsyncQueryJob;
 import io.kyligence.kap.query.engine.PrepareSqlStateParam;
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.query.engine.QueryRoutingEngine;

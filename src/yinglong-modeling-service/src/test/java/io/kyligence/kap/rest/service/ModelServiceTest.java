@@ -138,7 +138,6 @@ import com.google.common.collect.Sets;
 import com.google.common.io.CharStreams;
 import com.google.common.primitives.Longs;
 
-import io.kyligence.kap.clickhouse.MockSecondStorage;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.util.Unsafe;
@@ -4104,34 +4103,6 @@ public class ModelServiceTest extends SourceTestCase {
     }
 
     @Test
-    public void testConvertToRequestWithSecondStorage() throws IOException {
-        val model = "741ca86a-1f13-46da-a59f-95fb68615e3a";
-        val project = "default";
-        MockSecondStorage.mock("default", new ArrayList<>(), this);
-        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            indexPlanManager.updateIndexPlan(model, indexPlan -> {
-                indexPlan.createAndAddBaseIndex(indexPlan.getModel());
-            });
-            return null;
-        }, project);
-        SecondStorageUtil.initModelMetaData("default", model);
-        Assert.assertTrue(indexPlanManager.getIndexPlan(model).containBaseTableLayout());
-        ModelRequest request = new ModelRequest();
-        request.setWithSecondStorage(true);
-        request.setUuid(model);
-        BuildBaseIndexResponse changedResponse = mock(BuildBaseIndexResponse.class);
-        Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded("default", request, () -> true);
-
-        when(changedResponse.hasTableIndexChange()).thenReturn(true);
-        modelService.changeSecondStorageIfNeeded(project, request, () -> true);
-        Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
-
-        val modelRequest = modelService.convertToRequest(modelService.getModelById(model, project));
-        Assert.assertTrue(modelRequest.isWithSecondStorage());
-    }
-
-    @Test
     public void testCheckModelDimensionNameAndMeasureName() {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         NDataModel model = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -4658,46 +4629,6 @@ public class ModelServiceTest extends SourceTestCase {
         okModelRequest.setProject(project);
         semanticService.updateModelColumns(okModel, okModelRequest);
         Assert.assertEquals("SUM_L", okModel.getAllMeasures().get(1).getName());
-    }
-
-    @Test
-    @SuppressWarnings("unchecked")
-    public void testListNodesByProject() throws IOException {
-        val project = "default";
-        MockSecondStorage.mock(project, new ArrayList<>(), this);
-        val nodeGroupManagerOption = SecondStorageUtil.nodeGroupManager(KylinConfig.getInstanceFromEnv(), project);
-
-        Assert.assertTrue(nodeGroupManagerOption.isPresent());
-        val nodeGroupManager = nodeGroupManagerOption.get();
-
-        NodeGroup nodeGroup1 = new NodeGroup();
-        nodeGroup1.setNodeNames(Lists.newArrayList("node01", "node02"));
-        NodeGroup nodeGroup2 = new NodeGroup();
-        nodeGroup2.setNodeNames(Lists.newArrayList("node01"));
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            nodeGroupManager.createAS(nodeGroup1);
-            return null;
-        }, project);
-
-        val mockNodeMap = (Map<String, Node>) (ReflectionTestUtils.getField(SecondStorageNodeHelper.class, "NODE_MAP"));
-        mockNodeMap.put("node01", new Node().setName("node01").setIp("127.0.0.1").setPort(9000));
-        mockNodeMap.put("node02", new Node().setName("node02").setIp("127.0.0.2").setPort(9000));
-        mockNodeMap.put("node03", new Node().setName("node03").setIp("127.0.0.3").setPort(9000));
-
-        Assert.assertEquals(2, SecondStorageNodeHelper.getALlNodesInProject(project).size());
-        Assert.assertEquals(3, SecondStorageNodeHelper.getALlNodes().size());
-    }
-
-    @Test
-    @SuppressWarnings("unchecked")
-    public void testAllListNodes() throws IOException {
-        MockSecondStorage.mock("default", new ArrayList<>(), this);
-
-        val mockNodeMap = (Map<String, Node>) (ReflectionTestUtils.getField(SecondStorageNodeHelper.class, "NODE_MAP"));
-        mockNodeMap.put("node01", new Node().setName("node01").setIp("127.0.0.1").setPort(9000));
-        mockNodeMap.put("node02", new Node().setName("node02").setIp("127.0.0.2").setPort(9000));
-        mockNodeMap.put("node03", new Node().setName("node03").setIp("127.0.0.3").setPort(9000));
-        Assert.assertEquals(3, SecondStorageNodeHelper.getALlNodes().size());
     }
 
     @Test

@@ -66,17 +66,6 @@
         <!-- test -->
         <dependency>
             <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-second-storage-clickhouse</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-second-storage-clickhouse</artifactId>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-core-job</artifactId>
             <type>test-jar</type>
             <scope>test</scope>

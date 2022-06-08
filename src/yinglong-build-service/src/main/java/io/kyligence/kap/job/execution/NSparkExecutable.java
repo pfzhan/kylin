@@ -44,6 +44,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.engine.spark.job.ISparkJobHandler;
+import io.kyligence.kap.engine.spark.job.SparkAppDescription;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
@@ -128,6 +130,7 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
     protected static final String SPARK_MASTER = "spark.master";
     protected static final String DEPLOY_MODE = "spark.submit.deployMode";
     protected static final String CLUSTER_MODE = "cluster";
+    protected ISparkJobHandler sparkJobHandler;
 
     private transient final List<StageBase> stages = Lists.newCopyOnWriteArrayList();
     private final Map<String, List<StageBase>> stagesMap = Maps.newConcurrentMap();
@@ -142,6 +145,12 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
 
     public String getDataflowId() {
         return this.getParam(NBatchConstants.P_DATAFLOW_ID);
+    }
+
+    protected void initHandler() {
+        logger.debug("Handler class name {}", KylinConfig.getInstanceFromEnv().getSparkBuildJobHandlerClassName());
+        sparkJobHandler = (ISparkJobHandler) ClassUtil
+                .newInstance(KylinConfig.getInstanceFromEnv().getSparkBuildJobHandlerClassName());
     }
 
     @Override
@@ -335,6 +344,16 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
                 System.currentTimeMillis());
     }
 
+    /**
+     *  for async query, generate the spark driver log hdfs path format, json path + timestamp + .log
+     * @param config
+     * @return
+     */
+    public String getSparkDriverLogHdfsPath(KylinConfig config) {
+        return String.format(Locale.ROOT, "%s.%s.log", config.getJobTmpOutputStorePath(getProject(), getId()),
+                System.currentTimeMillis());
+    }
+
     private Boolean checkHadoopWorkingDir() {
         // read hdfs.working.dir in kylin config
         final KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
@@ -386,6 +405,24 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
             }
         }
         return KylinConfigExt.createInstance(kylinConfigExt, jobOverrides);
+    }
+
+    public SparkAppDescription getSparkAppDesc() {
+        val desc = new SparkAppDescription();
+
+        val conf = getConfig();
+        desc.setJobNamePrefix(getJobNamePrefix());
+        desc.setProject(getProject());
+        desc.setJobId(getId());
+        desc.setStepId(getStepId());
+        desc.setSparkSubmitClassName(getSparkSubmitClassName());
+
+        val sparkConf = getSparkConf(conf);
+        desc.setSparkConf(sparkConf);
+        desc.setComma(COMMA);
+        desc.setSparkJars(getSparkJars(conf, sparkConf));
+        desc.setSparkFiles(getSparkFiles(conf, sparkConf));
+        return desc;
     }
 
     protected ExecuteResult runSparkSubmit(String hadoopConfDir, String kylinJobJar, String appArgs) {

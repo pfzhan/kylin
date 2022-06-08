@@ -81,7 +81,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.clickhouse.MockSecondStorage;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.EncryptUtil;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
@@ -981,13 +980,6 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
         project = NProjectManager.getInstance(getTestConfig()).getProject(PROJECT_JDBC);
         Assert.assertEquals(EncryptUtil.encryptWithPrefix("test"),
                 project.getOverrideKylinProps().get(KYLIN_SOURCE_JDBC_PASS_KEY));
-    }
-
-    @Test(expected = KylinException.class)
-    public void testDropProjectFailed() throws IOException {
-        val project = "default";
-        MockSecondStorage.mock(project, new ArrayList<>(), this);
-        projectService.dropProject(project);
     }
 
     @Test
