@@ -50,6 +50,7 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.catalyst.optimizer.ConvertInnerJoinToSemiJoin;
 import org.apache.spark.sql.internal.StaticSQLConf;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.DataTypes;
@@ -121,7 +122,11 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         sparkConf.set("spark.sql.parquet.mergeSchema", "true");
         sparkConf.set("spark.sql.legacy.allowNegativeScaleOfDecimal", "true");
         sparkConf.set("spark.sql.broadcastTimeout", "900");
-        ss = SparkSession.builder().config(sparkConf).getOrCreate();
+        ss = SparkSession.builder().withExtensions(ext -> {
+            ext.injectOptimizerRule(ss -> new ConvertInnerJoinToSemiJoin());
+            return null;
+        })
+        .config(sparkConf).getOrCreate();
         SparderEnv.setSparkSession(ss);
     }
 

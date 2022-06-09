@@ -38,6 +38,7 @@ import org.apache.kylin.metadata.model.TableExtDesc
 import org.apache.spark.internal.Logging
 import org.apache.spark.scheduler.{SparkListener, SparkListenerEvent, SparkListenerLogRollUp}
 import org.apache.spark.sql.KylinSession._
+import org.apache.spark.sql.catalyst.optimizer.ConvertInnerJoinToSemiJoin
 import org.apache.spark.sql.catalyst.parser.ParseException
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.execution.datasource.{KylinSourceStrategy, LayoutFileSourceStrategy}
@@ -227,6 +228,7 @@ object SparderEnv extends Logging {
               ext.injectPlannerStrategy(_ => KylinSourceStrategy)
               ext.injectPlannerStrategy(_ => LayoutFileSourceStrategy)
               ext.injectPostHocResolutionRule(ReplaceLocationRule)
+              ext.injectOptimizerRule(_ => new ConvertInnerJoinToSemiJoin())
             }
             .enableHiveSupport()
             .getOrCreateKylinSession()
@@ -240,7 +242,8 @@ object SparderEnv extends Logging {
             ext.injectPlannerStrategy(_ => KylinSourceStrategy)
             ext.injectPlannerStrategy(_ => LayoutFileSourceStrategy)
             ext.injectPostHocResolutionRule(ReplaceLocationRule)
-          }
+            ext.injectOptimizerRule(_ => new ConvertInnerJoinToSemiJoin())
+            }
             .enableHiveSupport()
             .getOrCreateKylinSession()
       }
