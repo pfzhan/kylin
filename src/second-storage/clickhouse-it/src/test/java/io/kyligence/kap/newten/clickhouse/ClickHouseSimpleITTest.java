@@ -1655,4 +1655,21 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
             Assert.assertFalse(SecondStorage.enabled());
         }
     }
+
+    @Test
+    public void testCheckBaseTableIndex() {
+        LayoutEntity layout1 = null;
+        Assert.assertFalse(SecondStorageUtil.isBaseTableIndex(layout1));
+
+        LayoutEntity layout2 = new LayoutEntity();
+        layout2.setId(20_000_001L);
+        Assert.assertFalse(SecondStorageUtil.isBaseTableIndex(layout2));
+
+        LayoutEntity layout3 = new LayoutEntity();
+        layout3.setId(20_000_000_001L);
+        Assert.assertFalse(SecondStorageUtil.isBaseTableIndex(layout3));
+
+        layout3.setBase(true);
+        Assert.assertTrue(SecondStorageUtil.isBaseTableIndex(layout3));
+    }
 }
