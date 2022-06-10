@@ -31,6 +31,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import io.kyligence.kap.job.execution.ChainedStageExecutable;
+import io.kyligence.kap.job.execution.NSparkExecutable;
+import io.kyligence.kap.job.execution.SucceedChainedTestExecutable;
+import io.kyligence.kap.job.execution.SucceedTestExecutable;
+import io.kyligence.kap.job.execution.stage.NStageForBuild;
+import io.kyligence.kap.job.execution.stage.NStageForMerge;
+import io.kyligence.kap.job.execution.stage.NStageForSnapshot;
+import io.kyligence.kap.job.execution.stage.StageBase;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.exception.ErrorCode;
 import org.apache.kylin.common.exception.ExceptionReason;
@@ -44,13 +53,8 @@ import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
-import org.apache.kylin.job.execution.ChainedStageExecutable;
 import org.apache.kylin.job.execution.DefaultOutput;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.execution.StageBase;
-import org.apache.kylin.job.execution.SucceedChainedTestExecutable;
-import org.apache.kylin.job.execution.SucceedTestExecutable;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
@@ -73,10 +77,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.engine.spark.job.NSparkExecutable;
-import io.kyligence.kap.engine.spark.job.step.NStageForBuild;
-import io.kyligence.kap.engine.spark.job.step.NStageForMerge;
-import io.kyligence.kap.engine.spark.job.step.NStageForSnapshot;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import lombok.val;
@@ -124,7 +124,7 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testWrapWithExecuteException() throws ExecuteException {
-        val manager = NExecutableManager.getInstance(jobService.getConfig(), getProject());
+        val manager = ExecutableManager.getInstance(jobService.getConfig(), getProject());
         val executable = new SucceedChainedTestExecutable();
         executable.setProject(getProject());
         executable.setId(RandomUtil.randomUUIDStr());
@@ -157,7 +157,7 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetExceptionCode() throws IOException {
-        val manager = NExecutableManager.getInstance(jobService.getConfig(), getProject());
+        val manager = ExecutableManager.getInstance(jobService.getConfig(), getProject());
         val executable = new SucceedChainedTestExecutable();
         executable.setProject(getProject());
         executable.setId(RandomUtil.randomUUIDStr());
@@ -195,7 +195,7 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testSetExceptionResolveAndCode() {
-        val manager = NExecutableManager.getInstance(jobService.getConfig(), getProject());
+        val manager = ExecutableManager.getInstance(jobService.getConfig(), getProject());
         val executable = new SucceedChainedTestExecutable();
         executable.setProject(getProject());
         executable.setId(RandomUtil.randomUUIDStr());
@@ -253,7 +253,7 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testUpdateJobError() {
-        val manager = NExecutableManager.getInstance(jobService.getConfig(), getProject());
+        val manager = ExecutableManager.getInstance(jobService.getConfig(), getProject());
         val executable = new SucceedChainedTestExecutable();
         executable.setProject(getProject());
         executable.setId(RandomUtil.randomUUIDStr());
@@ -284,7 +284,7 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testUpdateJobErrorManager() throws InterruptedException {
-        val manager = NExecutableManager.getInstance(jobService.getConfig(), getProject());
+        val manager = ExecutableManager.getInstance(jobService.getConfig(), getProject());
         val executable = new SucceedChainedTestExecutable();
         executable.setProject(getProject());
         executable.setId(RandomUtil.randomUUIDStr());
@@ -335,7 +335,7 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
         val segmentId2 = RandomUtil.randomUUIDStr();
         val errMsg = "test output";
 
-        val manager = NExecutableManager.getInstance(jobService.getConfig(), getProject());
+        val manager = ExecutableManager.getInstance(jobService.getConfig(), getProject());
         val executable = new SucceedChainedTestExecutable();
         executable.setProject(getProject());
         executable.setId(RandomUtil.randomUUIDStr());
@@ -387,7 +387,7 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetDuration() throws InterruptedException {
-        val manager = NExecutableManager.getInstance(jobService.getConfig(), getProject());
+        val manager = ExecutableManager.getInstance(jobService.getConfig(), getProject());
         val executable = new SucceedTestExecutable();
         executable.setProject(getProject());
         executable.setId(RandomUtil.randomUUIDStr());
@@ -419,7 +419,7 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
         val segmentId = RandomUtil.randomUUIDStr();
         val segmentId2 = RandomUtil.randomUUIDStr();
 
-        val manager = NExecutableManager.getInstance(jobService.getConfig(), getProject());
+        val manager = ExecutableManager.getInstance(jobService.getConfig(), getProject());
         val executable = new SucceedChainedTestExecutable();
         executable.setProject(getProject());
         executable.setId(RandomUtil.randomUUIDStr());
@@ -451,7 +451,8 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
         manager.updateStageStatus(logicStep2.getId(), null, ExecutableState.RUNNING, null, null);
         manager.updateStageStatus(logicStep3.getId(), null, ExecutableState.RUNNING, null, null);
 
-        val durationWithoutWaiteTime = executable.getDurationFromStepOrStageDurationSum();
+        val durationWithoutWaiteTime = executable
+                .getDurationFromStepOrStageDurationSum(ExecutableManager.toPO(executable, getProject()));
 
         val sumDuration = ((ChainedExecutable) executable).getTasks().stream().map(exe -> exe.getDuration())
                 .mapToLong(Long::valueOf).sum();
@@ -462,7 +463,7 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
     public void testGetDurationWithoutWaiteTimeFromSingleSegment() throws JsonProcessingException {
         val segmentId = RandomUtil.randomUUIDStr();
 
-        val manager = NExecutableManager.getInstance(jobService.getConfig(), getProject());
+        val manager = ExecutableManager.getInstance(jobService.getConfig(), getProject());
         val executable = new SucceedChainedTestExecutable();
         executable.setProject(getProject());
         executable.setId(RandomUtil.randomUUIDStr());
@@ -496,7 +497,8 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
         manager.updateStageStatus(logicStep2.getId(), null, ExecutableState.RUNNING, null, null);
         manager.updateStageStatus(logicStep3.getId(), null, ExecutableState.RUNNING, null, null);
 
-        val durationWithoutWaiteTime = executable.getDurationFromStepOrStageDurationSum();
+        val durationWithoutWaiteTime = executable
+                .getDurationFromStepOrStageDurationSum(ExecutableManager.toPO(executable, getProject()));
 
         val stagesMap = ((ChainedStageExecutable) ((ChainedExecutable) executable).getTasks().get(0)).getStagesMap();
 

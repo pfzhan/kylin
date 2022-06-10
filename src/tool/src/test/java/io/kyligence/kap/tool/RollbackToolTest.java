@@ -34,6 +34,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 
+import io.kyligence.kap.job.execution.NSparkCubingJob;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -60,7 +62,6 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.favorite.FavoriteRule.AbstractCondition;
@@ -284,7 +285,7 @@ public class RollbackToolTest extends NLocalFileMetadataTestCase {
         val layouts = dataflow.getIndexPlan().getAllLayouts();
         NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(segment), Sets.newLinkedHashSet(layouts), "ADMIN",
                 JobTypeEnum.INDEX_BUILD, jobId, null, null, null);
-        NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).addJob(job);
+        ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).addJob(job);
     }
 
     private void prepare() throws IOException {

@@ -24,8 +24,8 @@
 
 package io.kyligence.kap.engine.spark.application;
 
-import static io.kyligence.kap.engine.spark.job.StageType.WAITE_FOR_RESOURCE;
 import static io.kyligence.kap.engine.spark.utils.SparkConfHelper.COUNT_DISTICT;
+import static io.kyligence.kap.job.execution.stage.StageType.WAITE_FOR_RESOURCE;
 
 import java.io.BufferedReader;
 import java.io.IOException;

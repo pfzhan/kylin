@@ -28,10 +28,13 @@ import java.util.{Objects, UUID}
 import com.google.common.collect.{Lists, Maps, Sets}
 import io.kyligence.kap.common.persistence.metadata.MetadataStore
 import io.kyligence.kap.common.util.Unsafe
-import io.kyligence.kap.engine.spark.ExecutableUtils
-import io.kyligence.kap.engine.spark.job.{NSparkCubingJob, NSparkCubingStep, NSparkMergingJob, NSparkMergingStep}
-import io.kyligence.kap.engine.spark.merger.{AfterBuildResourceMerger, AfterMergeOrRefreshResourceMerger}
+import io.kyligence.kap.job.util.ExecutableUtils
+import io.kyligence.kap.job.execution.step.NSparkMergingStep
+import io.kyligence.kap.job.execution.merger.{AfterBuildResourceMerger, AfterMergeOrRefreshResourceMerger}
+import io.kyligence.kap.job.execution.{AbstractExecutable, NSparkCubingJob, NSparkMergingJob}
+import io.kyligence.kap.job.execution.step.NSparkCubingStep
 import io.kyligence.kap.engine.spark.utils.{FileNames, HDFSUtils}
+import io.kyligence.kap.job.manager.ExecutableManager
 import io.kyligence.kap.metadata.cube.model._
 import io.kyligence.kap.metadata.model.NTableMetadataManager
 import io.kyligence.kap.query.runtime.plan.TableScanPlan
@@ -42,7 +45,7 @@ import org.apache.kylin.common.persistence.ResourceStore
 import org.apache.kylin.common.util.RandomUtil
 import org.apache.kylin.common.{KapConfig, KylinConfig, StorageURL}
 import org.apache.kylin.job.engine.JobEngineConfig
-import org.apache.kylin.job.execution.{AbstractExecutable, ExecutableState, NExecutableManager}
+import org.apache.kylin.job.execution.{ExecutableState, NExecutableManager}
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler
 import org.apache.kylin.metadata.model.{SegmentRange, TableDesc}
 import org.apache.kylin.metadata.realization.RealizationStatusEnum
@@ -160,13 +163,11 @@ trait JobSupport
                            prj: String): NDataSegment = {
     val config: KylinConfig = KylinConfig.getInstanceFromEnv
     val dsMgr: NDataflowManager = NDataflowManager.getInstance(config, prj)
-    val execMgr: NExecutableManager =
-      NExecutableManager.getInstance(config, prj)
+    val execMgr: ExecutableManager = ExecutableManager.getInstance(config, prj)
     val df: NDataflow = dsMgr.getDataflow(cubeName)
     // ready dataflow, segment, cuboid layout
     val oneSeg: NDataSegment = dsMgr.appendSegment(df, segmentRange)
-    val job: NSparkCubingJob =
-      NSparkCubingJob.create(Sets.newHashSet(oneSeg), toBuildLayouts, "ADMIN", null)
+    val job: NSparkCubingJob = NSparkCubingJob.create(Sets.newHashSet(oneSeg), toBuildLayouts, "ADMIN", null)
     val sparkStep: NSparkCubingStep = job.getSparkCubingStep
     val distMetaUrl: StorageURL = StorageURL.valueOf(sparkStep.getDistMetaUrl)
     Assert.assertEquals("hdfs", distMetaUrl.getScheme)
@@ -209,7 +210,7 @@ trait JobSupport
                                 prj: String = DEFAULT_PROJECT): Unit = {
     val config = KylinConfig.getInstanceFromEnv
     val dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT)
-    val execMgr = NExecutableManager.getInstance(config, DEFAULT_PROJECT)
+    val execMgr = ExecutableManager.getInstance(config, DEFAULT_PROJECT)
     var df = dsMgr.getDataflow(dfName)
     Assert.assertTrue(config.getHdfsWorkingDirectory.startsWith("file:"))
     // cleanup all segments first
@@ -313,7 +314,7 @@ trait JobSupport
                                prj: String = DEFAULT_PROJECT): Unit = {
     val config = KylinConfig.getInstanceFromEnv
     val dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT)
-    val execMgr = NExecutableManager.getInstance(config, DEFAULT_PROJECT)
+    val execMgr = ExecutableManager.getInstance(config, DEFAULT_PROJECT)
     var df = dsMgr.getDataflow(dfName)
     Assert.assertTrue(config.getHdfsWorkingDirectory.startsWith("file:"))
     // cleanup all segments first

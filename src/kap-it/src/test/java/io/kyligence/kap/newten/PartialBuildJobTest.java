@@ -29,13 +29,16 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import io.kyligence.kap.engine.spark.IndexDataConstructor;
+import io.kyligence.kap.job.execution.NSparkCubingJob;
+import io.kyligence.kap.job.execution.merger.AfterBuildResourceMerger;
+import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.job.util.ExecutableUtils;
 import io.kyligence.kap.util.ExecAndComp;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -58,9 +61,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.engine.spark.ExecutableUtils;
-import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
-import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
 import io.kyligence.kap.engine.spark.smarter.IndexDependencyParser;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
@@ -428,7 +428,7 @@ public class PartialBuildJobTest extends SemiAutoTestBase {
             e.printStackTrace();
         }
         Assert.assertEquals(jobInfo.getJobs().size(), 1);
-        val execMgr = NExecutableManager.getInstance(getTestConfig(), getProject());
+        val execMgr = ExecutableManager.getInstance(getTestConfig(), getProject());
         NSparkCubingJob job = (NSparkCubingJob) execMgr.getJob(jobInfo.getJobs().get(0).getJobId());
         ExecutableState status = null;
         try {
@@ -457,7 +457,7 @@ public class PartialBuildJobTest extends SemiAutoTestBase {
         val rs = modelBuildService.addIndexesToSegments(req.getProject(), modelId, req.getSegmentIds(),
                 req.getIndexIds(), req.isParallelBuildBySegment(), req.getPriority(), req.isPartialBuild(), null, null);
         Assert.assertEquals(rs.getJobs().size(), 1);
-        val execMgr = NExecutableManager.getInstance(getTestConfig(), getProject());
+        val execMgr = ExecutableManager.getInstance(getTestConfig(), getProject());
         NSparkCubingJob job = (NSparkCubingJob) execMgr.getJob(rs.getJobs().get(0).getJobId());
         ExecutableState status = null;
         try {
@@ -479,7 +479,7 @@ public class PartialBuildJobTest extends SemiAutoTestBase {
                         .withPartialBuild(true) //
                         .withBatchIndexIds(layoutIds));
         Assert.assertEquals(rs.size(), 1);
-        val execMgr = NExecutableManager.getInstance(getTestConfig(), getProject());
+        val execMgr = ExecutableManager.getInstance(getTestConfig(), getProject());
         NSparkCubingJob job = (NSparkCubingJob) execMgr.getJob(rs.get(0).getJobId());
         ExecutableState status = null;
         try {

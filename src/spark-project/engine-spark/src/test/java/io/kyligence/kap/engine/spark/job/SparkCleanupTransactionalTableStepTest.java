@@ -23,16 +23,16 @@
  */
 package io.kyligence.kap.engine.spark.job;
 
-import com.google.common.collect.Maps;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import java.io.IOException;
+
+import io.kyligence.kap.job.execution.step.SparkCleanupTransactionalTableStep;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.job.exception.ExecuteException;
-import org.apache.kylin.job.execution.ExecutableContext;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -60,13 +60,11 @@ public class SparkCleanupTransactionalTableStepTest extends NLocalWithSparkSessi
     @Test
     public void testDoWork() {
         SparkCleanupTransactionalTableStep step = new SparkCleanupTransactionalTableStep(0);
-        ExecutableContext context = new ExecutableContext(Maps.newConcurrentMap(), Maps.newConcurrentMap(), getTestConfig(),
-            0);
         step.setProject("SSB");
 
         try {
             createHDFSFile();
-            step.doWork(context);
+            step.doWork(null);
         } catch (ExecuteException e) {
             Assert.assertEquals("Can not delete intermediate table", e.getMessage());
         } catch (IOException ex) {

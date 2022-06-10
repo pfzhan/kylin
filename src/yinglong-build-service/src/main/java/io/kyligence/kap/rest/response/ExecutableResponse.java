@@ -28,16 +28,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.execution.ChainedExecutable;
+import io.kyligence.kap.job.execution.ChainedStageExecutable;
+import io.kyligence.kap.job.execution.NSparkSnapshotJob;
+import io.kyligence.kap.job.execution.NTableSamplingJob;
+import io.kyligence.kap.job.execution.stage.StageBase;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.job.SecondStorageCleanJobUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.ChainedExecutable;
-import org.apache.kylin.job.execution.ChainedStageExecutable;
+import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.StageBase;
 import org.apache.kylin.metadata.model.TableDesc;
 
 import com.clearspring.analytics.util.Lists;
@@ -46,8 +48,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.engine.spark.job.NSparkSnapshotJob;
-import io.kyligence.kap.engine.spark.job.NTableSamplingJob;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
@@ -111,7 +111,7 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
     private static final String SNAPSHOT_FULL_RANGE = "FULL";
     private static final String SNAPSHOT_INC_RANGE = "INC";
 
-    private static ExecutableResponse newInstance(AbstractExecutable abstractExecutable) {
+    private static ExecutableResponse newInstance(AbstractExecutable abstractExecutable, ExecutablePO executablePO) {
         ExecutableResponse executableResponse = new ExecutableResponse();
         executableResponse.setDataRangeEnd(abstractExecutable.getDataRangeEnd());
         executableResponse.setDataRangeStart(abstractExecutable.getDataRangeStart());
@@ -119,7 +119,7 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
         executableResponse.setId(abstractExecutable.getId());
         executableResponse.setExecStartTime(abstractExecutable.getStartTime());
         executableResponse.setCreateTime(abstractExecutable.getCreateTime());
-        executableResponse.setDuration(abstractExecutable.getDurationFromStepOrStageDurationSum());
+        executableResponse.setDuration(abstractExecutable.getDurationFromStepOrStageDurationSum(executablePO));
         executableResponse.setLastModified(abstractExecutable.getLastModified());
         executableResponse.setTargetModel(abstractExecutable.getTargetSubject());
         executableResponse.setTargetSegments(abstractExecutable.getTargetSegments());
@@ -133,8 +133,8 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
         return executableResponse;
     }
 
-    public static ExecutableResponse create(AbstractExecutable abstractExecutable) {
-        ExecutableResponse executableResponse = newInstance(abstractExecutable);
+    public static ExecutableResponse create(AbstractExecutable abstractExecutable, ExecutablePO executablePO) {
+        ExecutableResponse executableResponse = newInstance(abstractExecutable, executablePO);
         if (abstractExecutable instanceof NTableSamplingJob) {
             NTableSamplingJob samplingJob = (NTableSamplingJob) abstractExecutable;
             executableResponse.setDataRangeEnd(Long.MAX_VALUE);
@@ -158,8 +158,9 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
                 executableResponse.setTargetSubject("The snapshot is deleted");
                 executableResponse.setTargetSubjectError(true);
             }
-        } else if (SecondStorageCleanJobUtil.isProjectCleanJob(abstractExecutable)) {
-            executableResponse.setTargetSubject(abstractExecutable.getProject());
+            // TODO SecondStorage
+//        } else if (SecondStorageCleanJobUtil.isProjectCleanJob(abstractExecutable)) {
+//            executableResponse.setTargetSubject(abstractExecutable.getProject());
         } else {
             val dataflow = NDataflowManager
                     .getInstance(KylinConfig.getInstanceFromEnv(), abstractExecutable.getProject())

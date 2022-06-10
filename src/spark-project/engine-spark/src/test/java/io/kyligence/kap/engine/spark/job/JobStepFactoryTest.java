@@ -27,13 +27,21 @@ package io.kyligence.kap.engine.spark.job;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.job.execution.NSparkCubingJob;
+import io.kyligence.kap.job.execution.NSparkExecutable;
+import io.kyligence.kap.job.execution.NSparkMergingJob;
+import io.kyligence.kap.job.execution.NTableSamplingJob;
+import io.kyligence.kap.job.execution.step.NResourceDetectStep;
+import io.kyligence.kap.job.execution.step.NSparkCleanupAfterMergeStep;
+import io.kyligence.kap.job.execution.step.SparkCleanupTransactionalTableStep;
+import io.kyligence.kap.job.factory.JobFactory;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.factory.JobFactory;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -214,7 +222,7 @@ public class JobStepFactoryTest extends NLocalWithSparkSessionTest {
         val oneSeg = dataflowManager.appendSegment(dataflow, new SegmentRange.TimePartitionedSegmentRange(start, end));
         NSparkCubingJob job = NSparkCubingJob.create(new JobFactory.JobBuildParams(Sets.newHashSet(oneSeg),
                 Sets.newLinkedHashSet(layouts), "ADMIN", JobTypeEnum.INDEX_BUILD, jobId, null, null, null, null, null));
-        NExecutableManager.getInstance(getTestConfig(), "default").addJob(job);
+        ExecutableManager.getInstance(getTestConfig(), "default").addJob(job);
         return NExecutableManager.getInstance(getTestConfig(), "default").getJob(jobId);
     }
 }

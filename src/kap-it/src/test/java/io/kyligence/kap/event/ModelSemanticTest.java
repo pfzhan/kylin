@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.job.util.ExecutableUtils;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
@@ -57,7 +58,6 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.TempMetadataBuilder;
-import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;

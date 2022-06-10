@@ -58,6 +58,19 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.execution.BaseTestExecutable;
+import io.kyligence.kap.job.execution.ChainedStageExecutable;
+import io.kyligence.kap.job.execution.FiveSecondSucceedTestExecutable;
+import io.kyligence.kap.job.execution.NSparkCubingJob;
+import io.kyligence.kap.job.execution.NSparkExecutable;
+import io.kyligence.kap.job.execution.NSparkSnapshotJob;
+import io.kyligence.kap.job.execution.NTableSamplingJob;
+import io.kyligence.kap.job.execution.SucceedChainedTestExecutable;
+import io.kyligence.kap.job.execution.SucceedTestExecutable;
+import io.kyligence.kap.job.execution.stage.NStageForBuild;
+import io.kyligence.kap.job.execution.stage.StageBase;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -68,18 +81,11 @@ import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.dao.NExecutableDao;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.BaseTestExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
-import org.apache.kylin.job.execution.ChainedStageExecutable;
 import org.apache.kylin.job.execution.DefaultOutput;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.FiveSecondSucceedTestExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.execution.StageBase;
-import org.apache.kylin.job.execution.SucceedChainedTestExecutable;
-import org.apache.kylin.job.execution.SucceedTestExecutable;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
@@ -110,11 +116,6 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
-import io.kyligence.kap.engine.spark.job.NSparkExecutable;
-import io.kyligence.kap.engine.spark.job.NSparkSnapshotJob;
-import io.kyligence.kap.engine.spark.job.NTableSamplingJob;
-import io.kyligence.kap.engine.spark.job.step.NStageForBuild;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.FusionModel;
@@ -212,8 +213,8 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         NDataModel nDataModel = Mockito.mock(NDataModel.class);
         Mockito.when(modelManager.getDataModelDesc(Mockito.anyString())).thenReturn(nDataModel);
 
-        NExecutableManager executableManager = Mockito.spy(NExecutableManager.getInstance(getTestConfig(), "default"));
-        Mockito.when(jobService.getManager(NExecutableManager.class, "default")).thenReturn(executableManager);
+        ExecutableManager executableManager = Mockito.spy(ExecutableManager.getInstance(getTestConfig(), "default"));
+        Mockito.when(jobService.getManager(ExecutableManager.class, "default")).thenReturn(executableManager);
         val mockJobs = mockDetailJobs(false);
         Mockito.when(executableManager.getAllJobs(Mockito.anyLong(), Mockito.anyLong())).thenReturn(mockJobs);
         for (ExecutablePO po : mockJobs) {
@@ -357,7 +358,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         return Lists.newArrayList(defaultProject, defaultProject1);
     }
 
-    private List<AbstractExecutable> mockJobs1(NExecutableManager executableManager) throws Exception {
+    private List<AbstractExecutable> mockJobs1(ExecutableManager executableManager) throws Exception {
         NExecutableManager manager = Mockito.spy(NExecutableManager.getInstance(getTestConfig(), "default1"));
         ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = getInstanceByProject();
         managersByPrjCache.get(NExecutableManager.class).put(getProject(), manager);
@@ -377,13 +378,13 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
     public void testListAllJobs() throws Exception {
         Mockito.doReturn(mockProjects()).when(jobService).getReadableProjects();
 
-        NExecutableManager executableManager = Mockito.mock(NExecutableManager.class);
-        Mockito.when(jobService.getManager(NExecutableManager.class, "default")).thenReturn(executableManager);
+        ExecutableManager executableManager = Mockito.mock(ExecutableManager.class);
+        Mockito.when(jobService.getManager(ExecutableManager.class, "default")).thenReturn(executableManager);
         val mockJobs = mockJobs(executableManager);
         Mockito.when(executableManager.getAllExecutables(Mockito.anyLong(), Mockito.anyLong())).thenReturn(mockJobs);
 
-        NExecutableManager executableManager1 = Mockito.mock(NExecutableManager.class);
-        Mockito.when(jobService.getManager(NExecutableManager.class, "default1")).thenReturn(executableManager1);
+        ExecutableManager executableManager1 = Mockito.mock(ExecutableManager.class);
+        Mockito.when(jobService.getManager(ExecutableManager.class, "default1")).thenReturn(executableManager1);
         val mockJobs1 = mockJobs1(executableManager1);
         Mockito.when(executableManager1.getAllExecutables(Mockito.anyLong(), Mockito.anyLong())).thenReturn(mockJobs1);
 
@@ -403,7 +404,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testJobStepRatio() {
         val project = "default";
-        NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), project);
+        ExecutableManager manager = ExecutableManager.getInstance(jobService.getConfig(), project);
         SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
         executable.setProject(project);
         addSegment(executable);
@@ -416,61 +417,62 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         manager.updateJobOutput(task.getId(), ExecutableState.RUNNING, null, null, null);
         manager.updateJobOutput(task.getId(), ExecutableState.SUCCEED, null, null, null);
 
-        ExecutableResponse response = ExecutableResponse.create(executable);
+        ExecutableResponse response = ExecutableResponse.create(executable, ExecutableManager.toPO(executable, project));
         Assert.assertEquals(0.99F, response.getStepRatio(), 0.001);
     }
 
     @Test
     public void testSnapshotDataRange() {
+        val project = "default";
         NSparkSnapshotJob snapshotJob = new NSparkSnapshotJob();
-        snapshotJob.setProject("default");
+        snapshotJob.setProject(project);
         Map params = new HashMap<String, String>();
         params.put(NBatchConstants.P_INCREMENTAL_BUILD, "true");
         params.put(NBatchConstants.P_SELECTED_PARTITION_VALUE, "[\"1\",\"2\",\"3\"]");
         params.put(NBatchConstants.P_SELECTED_PARTITION_COL, "testCol");
         snapshotJob.setParams(params);
-        ExecutableResponse response = ExecutableResponse.create(snapshotJob);
+        ExecutableResponse response = ExecutableResponse.create(snapshotJob, ExecutableManager.toPO(snapshotJob, project));
 
         params.put(NBatchConstants.P_INCREMENTAL_BUILD, "false");
         params.put(NBatchConstants.P_SELECTED_PARTITION_COL, "testCol");
         params.put(NBatchConstants.P_SELECTED_PARTITION_VALUE, "[\"1\",\"2\",\"3\"]");
         snapshotJob.setParams(params);
-        response = ExecutableResponse.create(snapshotJob);
+        response = ExecutableResponse.create(snapshotJob, ExecutableManager.toPO(snapshotJob, project));
         assertEquals("[\"1\",\"2\",\"3\"]", response.getSnapshotDataRange());
 
         params.put(NBatchConstants.P_INCREMENTAL_BUILD, "false");
         params.put(NBatchConstants.P_SELECTED_PARTITION_COL, "testCol");
         params.put(NBatchConstants.P_SELECTED_PARTITION_VALUE, "[\"3\",\"2\",\"1\"]");
         snapshotJob.setParams(params);
-        response = ExecutableResponse.create(snapshotJob);
+        response = ExecutableResponse.create(snapshotJob, ExecutableManager.toPO(snapshotJob, project));
         assertEquals("[\"1\",\"2\",\"3\"]", response.getSnapshotDataRange());
 
         params.put(NBatchConstants.P_INCREMENTAL_BUILD, "false");
         params.put(NBatchConstants.P_SELECTED_PARTITION_COL, "testCol");
         params.put(NBatchConstants.P_SELECTED_PARTITION_VALUE, null);
         snapshotJob.setParams(params);
-        response = ExecutableResponse.create(snapshotJob);
+        response = ExecutableResponse.create(snapshotJob, ExecutableManager.toPO(snapshotJob, project));
         assertEquals("FULL", response.getSnapshotDataRange());
 
         params.put(NBatchConstants.P_INCREMENTAL_BUILD, "true");
         params.put(NBatchConstants.P_SELECTED_PARTITION_COL, "testCol");
         params.put(NBatchConstants.P_SELECTED_PARTITION_VALUE, null);
         snapshotJob.setParams(params);
-        response = ExecutableResponse.create(snapshotJob);
+        response = ExecutableResponse.create(snapshotJob, ExecutableManager.toPO(snapshotJob, project));
         assertEquals("INC", response.getSnapshotDataRange());
 
         params.put(NBatchConstants.P_INCREMENTAL_BUILD, "true");
         params.put(NBatchConstants.P_SELECTED_PARTITION_COL, null);
         params.put(NBatchConstants.P_SELECTED_PARTITION_VALUE, "[\"1\",\"2\",\"3\"]");
         snapshotJob.setParams(params);
-        response = ExecutableResponse.create(snapshotJob);
+        response = ExecutableResponse.create(snapshotJob, ExecutableManager.toPO(snapshotJob, project));
         assertEquals("FULL", response.getSnapshotDataRange());
     }
 
     @Test
     public void testCalculateStepRatio() {
         val project = "default";
-        NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), project);
+        ExecutableManager manager = ExecutableManager.getInstance(jobService.getConfig(), project);
         SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
         executable.setProject(project);
         addSegment(executable);
@@ -492,7 +494,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         String segmentId = RandomUtil.randomUUIDStr();
 
         val project = "default";
-        NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), project);
+        ExecutableManager manager = ExecutableManager.getInstance(jobService.getConfig(), project);
         SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
         executable.setId(RandomUtil.randomUUIDStr());
         executable.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -579,7 +581,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         String segmentIds = segmentId + "," + UUID.randomUUID();
 
         val project = "default";
-        NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), project);
+        ExecutableManager manager = ExecutableManager.getInstance(jobService.getConfig(), project);
         SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
         executable.setId(RandomUtil.randomUUIDStr());
         executable.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -665,7 +667,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         String segmentId = RandomUtil.randomUUIDStr();
 
         val project = "default";
-        NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), project);
+        ExecutableManager manager = ExecutableManager.getInstance(jobService.getConfig(), project);
         SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
         executable.setId(RandomUtil.randomUUIDStr());
         executable.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -765,7 +767,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         String segmentIds = segmentId + "," + segmentId2;
 
         val project = "default";
-        NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), project);
+        ExecutableManager manager = ExecutableManager.getInstance(jobService.getConfig(), project);
         SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
         executable.setId(RandomUtil.randomUUIDStr());
         executable.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -857,7 +859,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         String segmentIds = segmentId + "," + segmentId2;
 
         val project = "default";
-        NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), project);
+        ExecutableManager manager = ExecutableManager.getInstance(jobService.getConfig(), project);
         SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
         executable.setId(RandomUtil.randomUUIDStr());
         executable.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -880,7 +882,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testBasic() throws IOException {
-        NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), "default");
+        ExecutableManager manager = ExecutableManager.getInstance(jobService.getConfig(), "default");
         NDataflowManager dsMgr = NDataflowManager.getInstance(jobService.getConfig(), "default");
         SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
         manager.addJob(executable);
@@ -921,7 +923,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         defaultProject.setMvcc(0);
         Mockito.doReturn(Lists.newArrayList(defaultProject)).when(jobService).getReadableProjects();
 
-        NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), "default");
+        ExecutableManager manager = ExecutableManager.getInstance(jobService.getConfig(), "default");
         NDataflowManager dsMgr = NDataflowManager.getInstance(jobService.getConfig(), "default");
         SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
         manager.addJob(executable);
@@ -949,7 +951,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testDiscardJobException() throws IOException {
-        NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), "default");
+        ExecutableManager manager = ExecutableManager.getInstance(jobService.getConfig(), "default");
         SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
         executable.setProject("default");
         manager.addJob(executable);
@@ -964,7 +966,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testUpdateException() throws IOException {
-        NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), "default");
+        ExecutableManager manager = ExecutableManager.getInstance(jobService.getConfig(), "default");
         SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
         executable.setParam("test1", "test1");
         executable.setParam("test2", "test2");
@@ -979,7 +981,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetJobDetail() {
-        NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), "default");
+        ExecutableManager manager = ExecutableManager.getInstance(jobService.getConfig(), "default");
         SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
         executable.setParam("test1", "test1");
         executable.setParam("test2", "test2");
@@ -994,7 +996,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetJobCreateTime() {
-        NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), "default");
+        ExecutableManager manager = ExecutableManager.getInstance(jobService.getConfig(), "default");
         SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
         addSegment(executable);
         executable.setParam("test1", "test1");
@@ -1011,7 +1013,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetTargetSubjectAndJobType() {
-        NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), "default");
+        ExecutableManager manager = ExecutableManager.getInstance(jobService.getConfig(), "default");
         SucceedChainedTestExecutable job1 = new SucceedChainedTestExecutable();
         job1.setProject(getProject());
         job1.setName("mocked job");
@@ -1033,7 +1035,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
     }
 
-    private List<AbstractExecutable> mockJobs(NExecutableManager executableManager) throws Exception {
+    private List<AbstractExecutable> mockJobs(ExecutableManager executableManager) throws Exception {
         NExecutableManager manager = Mockito.spy(NExecutableManager.getInstance(getTestConfig(), getProject()));
         ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = NLocalFileMetadataTestCase
                 .getInstanceByProject();
@@ -1075,8 +1077,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         return jobs;
     }
 
-    private void mockExecutablePOJobs(List<AbstractExecutable> mockJobs, NExecutableManager executableManager) {
-        NExecutableManager manager = Mockito.spy(NExecutableManager.getInstance(getTestConfig(), getProject()));
+    private void mockExecutablePOJobs(List<AbstractExecutable> mockJobs, ExecutableManager executableManager) {
         List<ExecutablePO> jobs = new ArrayList<>();
         for (int i = 0; i < mockJobs.size(); i++) {
             AbstractExecutable executable = mockJobs.get(i);
@@ -1297,7 +1298,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         AbstractExecutable job = new NSparkCubingJob();
 
         Mockito.doReturn(mockProjects()).when(jobService).getReadableProjects();
-        NExecutableManager manager = Mockito.mock(NExecutableManager.class);
+        ExecutableManager manager = Mockito.mock(ExecutableManager.class);
         Mockito.when(manager.getJob(jobId)).thenReturn(job);
         Mockito.doReturn(manager).when(jobService).getManager(NExecutableManager.class, "default");
         Assert.assertEquals("default", jobService.getProjectByJobId(jobId));
@@ -1335,7 +1336,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
         String project = "streaming_test";
         FusionModelManager mgr = FusionModelManager.getInstance(getTestConfig(), project);
-        NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), project);
+        ExecutableManager manager = ExecutableManager.getInstance(jobService.getConfig(), project);
 
         FusionModel fusionModel = mgr.getFusionModel("b05034a8-c037-416b-aa26-9e6b4a41ee40");
 
@@ -1367,7 +1368,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testKillExistApplication() {
-        NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), getProject());
+        ExecutableManager manager = ExecutableManager.getInstance(jobService.getConfig(), getProject());
         SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
         executable.setProject(getProject());
         addSegment(executable);

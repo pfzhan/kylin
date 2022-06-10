@@ -27,6 +27,7 @@ package io.kyligence.kap.engine.spark.job;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.job.execution.NSparkExecutable;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.metadata.MetadataConstants;

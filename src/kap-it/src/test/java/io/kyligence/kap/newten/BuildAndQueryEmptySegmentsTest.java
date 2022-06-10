@@ -28,11 +28,13 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import io.kyligence.kap.engine.spark.IndexDataConstructor;
+import io.kyligence.kap.job.execution.NSparkMergingJob;
+import io.kyligence.kap.job.execution.merger.AfterMergeOrRefreshResourceMerger;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.util.ExecAndComp;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
@@ -46,8 +48,6 @@ import org.junit.Test;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.engine.spark.job.NSparkMergingJob;
-import io.kyligence.kap.engine.spark.merger.AfterMergeOrRefreshResourceMerger;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -72,14 +72,14 @@ public class BuildAndQueryEmptySegmentsTest extends NLocalWithSparkSessionTest {
 
     private KylinConfig config;
     private NDataflowManager dsMgr;
-    private NExecutableManager execMgr;
+    private ExecutableManager execMgr;
 
     @Before
     public void init() throws Exception {
         super.init();
         config = KylinConfig.getInstanceFromEnv();
         dsMgr = NDataflowManager.getInstance(config, getProject());
-        execMgr = NExecutableManager.getInstance(config, getProject());
+        execMgr = ExecutableManager.getInstance(config, getProject());
         NIndexPlanManager ipMgr = NIndexPlanManager.getInstance(config, getProject());
         String cubeId = dsMgr.getDataflow(DF_NAME1).getIndexPlan().getUuid();
         IndexPlan cube = ipMgr.getIndexPlan(cubeId);

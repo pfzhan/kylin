@@ -55,6 +55,10 @@ public class ModelMetadataBaseInvoker {
 
     private final ModelMetadataBaseService modelMetadataBaseService = new ModelMetadataBaseService();
 
+    public String getModelNameById(String modelId, String project) {
+        return modelMetadataBaseService.getModelNameById(modelId, project);
+    }
+
     public void updateIndex(String project, long epochId, String modelId, Set<Long> toBeDeletedLayoutIds,
                             boolean deleteAuto, boolean deleteManual) {
         modelMetadataBaseService.updateIndex(project, epochId, modelId, toBeDeletedLayoutIds, deleteAuto, deleteManual);

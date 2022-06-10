@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import io.kyligence.kap.job.util.ExecutableUtils;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.IUserGroupService;
@@ -51,7 +52,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.scheduler.EventBusFactory;
-import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.utils.ComputedColumnEvalUtil;
 import io.kyligence.kap.junit.rule.TransactionExceptedException;
 import io.kyligence.kap.metadata.cube.model.NDataflow;

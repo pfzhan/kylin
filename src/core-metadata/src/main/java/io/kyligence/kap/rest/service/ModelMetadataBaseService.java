@@ -26,7 +26,10 @@ package io.kyligence.kap.rest.service;
 
 import java.util.Set;
 
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -37,7 +40,27 @@ import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.rest.request.DataFlowUpdateRequest;
 
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_ID_NOT_EXIST;
+
 public class ModelMetadataBaseService {
+
+    public String getModelNameById(String modelId, String project) {
+        NDataModel nDataModel = getModelById(modelId, project);
+        if (null != nDataModel) {
+            return nDataModel.getAlias();
+        }
+        return null;
+    }
+
+    private NDataModel getModelById(String modelId, String project) {
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        NDataModel nDataModel = modelManager.getDataModelDesc(modelId);
+        if (null == nDataModel) {
+            throw new KylinException(MODEL_ID_NOT_EXIST, modelId);
+        }
+        return nDataModel;
+    }
+
     public void updateIndex(String project, long epochId, String modelId, Set<Long> toBeDeletedLayoutIds,
                             boolean deleteAuto, boolean deleteManual) {
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {

@@ -26,6 +26,8 @@ package io.kyligence.kap.clickhouse.job;
 
 import com.google.common.base.Preconditions;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.job.handler.SecondStorageIndexCleanJobHandler;
+import io.kyligence.kap.job.manager.JobManager;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.secondstorage.SecondStorage;
@@ -36,8 +38,7 @@ import io.kyligence.kap.secondstorage.metadata.TableFlow;
 import io.kyligence.kap.secondstorage.metadata.TablePlan;
 import lombok.val;
 import org.apache.kylin.job.SecondStorageJobParamUtil;
-import org.apache.kylin.job.handler.SecondStorageIndexCleanJobHandler;
-import org.apache.kylin.job.manager.JobManager;
+
 import org.apache.kylin.job.model.JobParam;
 
 import javax.annotation.concurrent.NotThreadSafe;

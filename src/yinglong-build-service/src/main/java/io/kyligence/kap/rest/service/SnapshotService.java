@@ -50,6 +50,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.job.execution.NSparkSnapshotJob;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
@@ -84,7 +86,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.engine.spark.job.NSparkSnapshotJob;
 import io.kyligence.kap.metadata.acl.AclTCRDigest;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
@@ -202,7 +203,7 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
                     NSparkSnapshotJob job = NSparkSnapshotJob.create(tableDesc, BasicService.getUsername(),
                             option.getPartitionCol(), option.isIncrementalBuild(), option.getPartitionsToBuild(),
                             isRefresh, yarnQueue, tag);
-                    ExecutablePO po = NExecutableManager.toPO(job, project);
+                    ExecutablePO po = ExecutableManager.toPO(job, project);
                     po.setPriority(priority);
                     execMgr.addJob(po);
 

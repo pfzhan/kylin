@@ -55,7 +55,7 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import lombok.val;
 import lombok.var;
 
-import static io.kyligence.kap.engine.spark.job.StageType.TABLE_SAMPLING;
+import static io.kyligence.kap.job.execution.stage.StageType.TABLE_SAMPLING;
 
 public class TableAnalyzerJob extends SparkApplication implements Serializable {
     private static final Logger logger = LoggerFactory.getLogger(TableAnalyzerJob.class);

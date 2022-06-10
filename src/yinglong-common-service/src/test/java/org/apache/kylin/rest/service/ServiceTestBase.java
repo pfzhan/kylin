@@ -72,7 +72,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.engine.spark.ExecutableUtils;
+import io.kyligence.kap.job.util.ExecutableUtils;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.secondstorage.SecondStorageUpdater;
 

@@ -27,6 +27,7 @@ package io.kyligence.kap.engine.spark.job;
 import java.util.Objects;
 import java.util.Random;
 
+import io.kyligence.kap.job.execution.NSparkExecutable;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.RandomUtil;

@@ -39,7 +39,6 @@ import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.dao.JobStatisticsManager;
-import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.manager.JobManager;
@@ -51,7 +50,9 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.engine.spark.job.NTableSamplingJob;
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.execution.NTableSamplingJob;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.rest.aspect.Transaction;
 import lombok.val;
@@ -87,7 +88,7 @@ public class TableSamplingService extends BasicService implements TableSamplingS
             val samplingJob = NTableSamplingJob.create(tableDesc, project, getUsername(), rows, priority, yarnQueue,
                     tag);
             jobIds.add(samplingJob.getId());
-            execMgr.addJob(NExecutableManager.toPO(samplingJob, project));
+            execMgr.addJob(ExecutableManager.toPO(samplingJob, project));
             long startOfDay = TimeUtil.getDayStart(System.currentTimeMillis());
             jobStatisticsManager.updateStatistics(startOfDay, 0, 0, 1);
         });
@@ -100,10 +101,10 @@ public class TableSamplingService extends BasicService implements TableSamplingS
     }
 
     private Map<String, AbstractExecutable> collectRunningSamplingJobs(Set<String> tables, String project) {
-        final List<AbstractExecutable> jobs = NExecutableManager
+        final List<AbstractExecutable> jobs = ExecutableManager
                 .getInstance(KylinConfig.readSystemKylinConfig(), project).getAllJobs(0, Long.MAX_VALUE).stream()
                 .filter(job -> !ExecutableState.valueOf(job.getOutput().getStatus()).isFinalState())
-                .map(job -> getManager(NExecutableManager.class, job.getProject()).fromPO(job)) //
+                .map(job -> getManager(ExecutableManager.class, job.getProject()).fromPO(job)) //
                 .filter(NTableSamplingJob.class::isInstance) //
                 .filter(job -> tables.contains(job.getTargetSubject())) //
                 .collect(Collectors.toList());

@@ -39,7 +39,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -65,8 +64,10 @@ import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.common.util.TempMetadataBuilder;
-import io.kyligence.kap.engine.spark.job.NSparkMergingJob;
-import io.kyligence.kap.engine.spark.merger.AfterMergeOrRefreshResourceMerger;
+import io.kyligence.kap.job.execution.NSparkMergingJob;
+import io.kyligence.kap.job.execution.merger.AfterMergeOrRefreshResourceMerger;
+import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.job.util.ExecutableUtils;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -296,7 +297,8 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
                 SegmentRange.dateToLong("2011-01-01 00:00:00"), SegmentRange.dateToLong("2015-01-01 00:00:00")), false);
         NSparkMergingJob job = NSparkMergingJob.merge(firstMergeSeg, Sets.newLinkedHashSet(toBuildLayouts), "ADMIN",
                 RandomUtil.randomUUIDStr());
-        NExecutableManager execMgr = NExecutableManager.getInstance(getTestConfig(), getProject());
+
+        ExecutableManager execMgr = ExecutableManager.getInstance(getTestConfig(), getProject());
         // launch the job
         execMgr.addJob(job);
 

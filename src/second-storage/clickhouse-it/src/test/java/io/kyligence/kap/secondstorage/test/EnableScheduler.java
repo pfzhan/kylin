@@ -23,7 +23,7 @@
  */
 package io.kyligence.kap.secondstorage.test;
 
-import io.kyligence.kap.engine.spark.ExecutableUtils;
+import io.kyligence.kap.job.util.ExecutableUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;

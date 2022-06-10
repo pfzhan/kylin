@@ -27,12 +27,14 @@ package io.kyligence.kap.engine.spark.job;
 import java.io.IOException;
 import java.util.List;
 
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.execution.NSparkCubingJob;
+import io.kyligence.kap.job.execution.NSparkMergingJob;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.engine.JobEngineConfig;
-import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.junit.After;
@@ -79,7 +81,7 @@ public class NSparkCubingJobOnYarnTest extends NLocalFileMetadataTestCase {
         config.setProperty("kylin.engine.spark.job-jar", "../assembly/target/ke-assembly-4.0.0-SNAPSHOT-job.jar");
 
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, "default");
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, "default");
+        ExecutableManager execMgr = ExecutableManager.getInstance(config, "default");
 
         NDataflow df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         NDataflowUpdate update = new NDataflowUpdate(df.getUuid());

@@ -24,7 +24,7 @@
 package io.kyligence.kap.rest.service;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.engine.spark.ExecutableUtils;
+import io.kyligence.kap.job.util.ExecutableUtils;
 import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;

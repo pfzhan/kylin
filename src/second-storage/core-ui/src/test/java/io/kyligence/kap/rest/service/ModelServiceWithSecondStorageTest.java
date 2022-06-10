@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.Lists;
 import io.kyligence.kap.job.delegate.JobMetadataDelegate;
+import io.kyligence.kap.job.util.ExecutableUtils;
 import io.kyligence.kap.rest.delegate.JobMetadataContract;
 import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
 import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
@@ -71,7 +72,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 import io.kyligence.kap.clickhouse.MockSecondStorage;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.utils.ComputedColumnEvalUtil;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.ManagementType;

@@ -27,11 +27,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.job.execution.NSparkSnapshotJob;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.parquet.Strings;
@@ -46,7 +47,6 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.engine.spark.job.NSparkSnapshotJob;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -128,7 +128,7 @@ public class NBuildAndQuerySnapshotTest extends NLocalWithSparkSessionTest {
         table.setPartitionColumn(partitionCol);
         tableManager.updateTableDesc(table);
 
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+        ExecutableManager execMgr = ExecutableManager.getInstance(config, getProject());
         NSparkSnapshotJob job = NSparkSnapshotJob.create(tableManager.getTableDesc(tableName), "ADMIN",
                 JobTypeEnum.SNAPSHOT_BUILD, RandomUtil.randomUUIDStr(), partitionCol, false, null, null, null);
         setPartitions(job, partitions);

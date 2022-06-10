@@ -42,16 +42,13 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.rest.request.S3TableExtInfo;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.cube.model.SelectRule;
-import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -80,8 +77,10 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
-import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
-import io.kyligence.kap.engine.spark.job.NTableSamplingJob;
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.execution.NSparkCubingJob;
+import io.kyligence.kap.job.execution.NTableSamplingJob;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -98,12 +97,11 @@ import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
 import io.kyligence.kap.rest.request.ModelRequest;
+import io.kyligence.kap.rest.request.S3TableExtInfo;
 import io.kyligence.kap.rest.response.OpenPreReloadTableResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
-import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
@@ -319,7 +317,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         }, false);
 
         val jobs = tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true, null);
-        val execManager = NExecutableManager.getInstance(getTestConfig(), PROJECT);
+        val execManager = ExecutableManager.getInstance(getTestConfig(), PROJECT);
         val executables = execManager.getRunningExecutables(PROJECT, MODEL_ID);
         val indexPlan = indexManager.getIndexPlan(MODEL_ID);
         Assert.assertEquals(
@@ -1052,7 +1050,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testCheckEffectedJobs() throws Exception {
-        NExecutableManager executableManager = NExecutableManager.getInstance(getTestConfig(), PROJECT);
+        ExecutableManager executableManager = ExecutableManager.getInstance(getTestConfig(), PROJECT);
         AbstractExecutable job1 = new NTableSamplingJob();
         job1.setTargetSubject("DEFAULT.TEST_ORDER");
         job1.setJobType(JobTypeEnum.TABLE_SAMPLING);

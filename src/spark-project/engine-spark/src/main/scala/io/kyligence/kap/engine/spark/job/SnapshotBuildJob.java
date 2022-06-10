@@ -24,7 +24,7 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import static io.kyligence.kap.engine.spark.job.StageType.SNAPSHOT_BUILD;
+import static io.kyligence.kap.job.execution.stage.StageType.SNAPSHOT_BUILD;
 
 import java.io.IOException;
 import java.util.Arrays;

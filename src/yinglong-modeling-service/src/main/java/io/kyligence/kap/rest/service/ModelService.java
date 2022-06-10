@@ -358,15 +358,6 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         return nDataModel;
     }
 
-    @Override
-    public String getModelNameById(String modelId, String project) {
-        NDataModel nDataModel = getModelById(modelId, project);
-        if (null != nDataModel) {
-            return nDataModel.getAlias();
-        }
-        return null;
-    }
-
     public NDataModel getModelByAlias(String modelAlias, String project) {
         NDataModelManager modelManager = getManager(NDataModelManager.class, project);
         NDataModel nDataModel = modelManager.getDataModelDescByAlias(modelAlias);

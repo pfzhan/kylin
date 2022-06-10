@@ -252,11 +252,11 @@ public class Message {
         return "The selected time filter is invalid. Please select again.";
     }
 
-    public String getJOB_SORT_BY_ERROR() {
+    public String getJobSortByError() {
         return "The parameter \"sort_by\" only supports 'id', 'project', 'create_time', 'last_modified', 'job_name', 'target_subject', 'total_duration'.";
     }
 
-    public String getILLEGAL_EXECUTABLE_STATE() {
+    public String getIllegalExecutableState() {
         return "The job status is invalid. Please select again.";
     }
 

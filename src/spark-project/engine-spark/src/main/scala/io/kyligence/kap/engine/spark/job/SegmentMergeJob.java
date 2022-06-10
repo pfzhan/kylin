@@ -24,9 +24,9 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import static io.kyligence.kap.engine.spark.job.StageType.MERGE_COLUMN_BYTES;
-import static io.kyligence.kap.engine.spark.job.StageType.MERGE_FLAT_TABLE;
-import static io.kyligence.kap.engine.spark.job.StageType.MERGE_INDICES;
+import static io.kyligence.kap.job.execution.stage.StageType.MERGE_COLUMN_BYTES;
+import static io.kyligence.kap.job.execution.stage.StageType.MERGE_FLAT_TABLE;
+import static io.kyligence.kap.job.execution.stage.StageType.MERGE_INDICES;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicLong;

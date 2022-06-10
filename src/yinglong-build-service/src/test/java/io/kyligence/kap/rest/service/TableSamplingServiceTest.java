@@ -29,11 +29,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.execution.NTableSamplingJob;
+import io.kyligence.kap.job.execution.step.NResourceDetectStep;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.dao.ExecutablePO;
-import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -53,8 +55,6 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.engine.spark.job.NResourceDetectStep;
-import io.kyligence.kap.engine.spark.job.NTableSamplingJob;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
@@ -95,7 +95,7 @@ public class TableSamplingServiceTest extends NLocalFileMetadataTestCase {
         final String table1 = "DEFAULT.TEST_KYLIN_FACT";
         Set<String> tables = Sets.newHashSet(table1);
         tableSamplingService.sampling(tables, PROJECT, SAMPLING_ROWS, 0, null, null);
-        NExecutableManager executableManager = NExecutableManager.getInstance(getTestConfig(), PROJECT);
+        ExecutableManager executableManager = ExecutableManager.getInstance(getTestConfig(), PROJECT);
         final List<AbstractExecutable> allExecutables = executableManager.getAllExecutables();
         Assert.assertEquals(1, allExecutables.size());
         final NTableSamplingJob samplingJob = (NTableSamplingJob) allExecutables.get(0);
@@ -118,7 +118,7 @@ public class TableSamplingServiceTest extends NLocalFileMetadataTestCase {
         final String table1 = "DEFAULT.TEST_KYLIN_FACT";
         Set<String> tables = Sets.newHashSet(table1);
         tableSamplingService.sampling(tables, PROJECT, SAMPLING_ROWS, 0, null, null);
-        NExecutableManager executableManager = NExecutableManager.getInstance(getTestConfig(), PROJECT);
+        ExecutableManager executableManager = ExecutableManager.getInstance(getTestConfig(), PROJECT);
         final List<AbstractExecutable> allExecutables = executableManager.getAllExecutables();
         Assert.assertEquals(1, allExecutables.size());
         final NTableSamplingJob samplingJob = (NTableSamplingJob) allExecutables.get(0);
@@ -133,7 +133,7 @@ public class TableSamplingServiceTest extends NLocalFileMetadataTestCase {
         final String table2 = "DEFAULT.TEST_ACCOUNT";
         Set<String> tables = Sets.newHashSet(table1, table2);
         tableSamplingService.sampling(tables, PROJECT, SAMPLING_ROWS, 0, null, null);
-        NExecutableManager executableManager = NExecutableManager.getInstance(getTestConfig(), PROJECT);
+        ExecutableManager executableManager = ExecutableManager.getInstance(getTestConfig(), PROJECT);
 
         final List<AbstractExecutable> allExecutables = executableManager.getAllExecutables();
         Assert.assertEquals(2, allExecutables.size());
@@ -170,7 +170,7 @@ public class TableSamplingServiceTest extends NLocalFileMetadataTestCase {
         String table = "DEFAULT.TEST_KYLIN_FACT";
         tableSamplingService.sampling(Sets.newHashSet(table), PROJECT, SAMPLING_ROWS, ExecutablePO.DEFAULT_PRIORITY,
                 null, null);
-        NExecutableManager executableManager = NExecutableManager.getInstance(getTestConfig(), PROJECT);
+        ExecutableManager executableManager = ExecutableManager.getInstance(getTestConfig(), PROJECT);
         List<AbstractExecutable> allExecutables = executableManager.getAllExecutables();
         Assert.assertEquals(1, allExecutables.size());
         val initialJob = allExecutables.get(0);

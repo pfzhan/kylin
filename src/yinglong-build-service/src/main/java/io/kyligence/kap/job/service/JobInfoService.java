@@ -41,6 +41,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.job.rest.JobMapperFilter;
+import io.kyligence.kap.job.util.JobFilterUtil;
+import io.kyligence.kap.rest.delegate.TableMetadataInvoker;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.io.IOUtils;
@@ -133,6 +137,9 @@ public class JobInfoService extends BasicService {
     @Autowired(required = false)
     private ModelMetadataInvoker modelMetadataInvoker;
 
+    @Autowired(required = false)
+    private TableMetadataInvoker tableMetadataInvoker;
+
     @Autowired
     public JobInfoService setAclEvaluate(AclEvaluate aclEvaluate) {
         this.aclEvaluate = aclEvaluate;
@@ -207,9 +214,11 @@ public class JobInfoService extends BasicService {
         if (StringUtils.isNotEmpty(jobFilter.getProject())) {
             aclEvaluate.checkProjectOperationPermission(jobFilter.getProject());
         }
-        List<JobInfo> jobInfoList = jobInfoDao.getJobInfoListByFilter(jobFilter, offset, limit);
-        List<ExecutableResponse> result = jobInfoList.stream()
-                .map(JobInfoUtil::deserializeExecutablePO).map(executablePO -> {
+        JobMapperFilter jobMapperFilter = JobFilterUtil.getJobMapperFilter(jobFilter, offset, limit,
+                modelMetadataInvoker, tableMetadataInvoker);
+        List<JobInfo> jobInfoList = jobInfoDao.getJobInfoListByFilter(jobMapperFilter);
+        List<ExecutableResponse> result = jobInfoList.stream().map(JobInfoUtil::deserializeExecutablePO)
+                .map(executablePO -> {
                     AbstractExecutable executable = getManager(ExecutableManager.class, executablePO.getProject())
                             .fromPO(executablePO);
                     return this.convert(executable, executablePO);
@@ -372,8 +381,7 @@ public class JobInfoService extends BasicService {
         JobActionEnum.validateValue(action.toUpperCase(Locale.ROOT));
         switch (JobActionEnum.valueOf(action.toUpperCase(Locale.ROOT))) {
             case RESUME:
-                // TODO SecondStorage
-//                SecondStorageUtil.checkJobResume(project, jobId, executable, executablePO);
+                SecondStorageUtil.checkJobResume(project, jobId, executable, executablePO);
                 JdbcUtil.withTransaction(()-> {
                     executableManager.updateJobError(jobId, null, null, null, null);
                     executableManager.resumeJob(jobId, executable);
@@ -382,7 +390,7 @@ public class JobInfoService extends BasicService {
                 MetricsGroup.hostTagCounterInc(MetricsName.JOB_RESUMED, MetricsCategory.PROJECT, project);
                 break;
             case RESTART:
-//                SecondStorageUtil.checkJobRestart(project, jobId, executable);
+                SecondStorageUtil.checkJobRestart(project, jobId, executable);
                 killExistApplication(executable);
                 JdbcUtil.withTransaction(() -> {
                     executableManager.updateJobError(jobId, null, null, null, null);

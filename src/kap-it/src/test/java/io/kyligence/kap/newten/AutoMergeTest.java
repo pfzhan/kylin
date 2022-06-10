@@ -32,10 +32,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.execution.NSparkMergingJob;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.DateFormat;
-import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.manager.SegmentAutoMergeUtil;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -51,7 +53,6 @@ import org.junit.runner.RunWith;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.common.util.Unsafe;
-import io.kyligence.kap.engine.spark.job.NSparkMergingJob;
 import io.kyligence.kap.junit.TimeZoneTestRunner;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
@@ -954,7 +955,7 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
     }
 
     private List<AbstractExecutable> getRunningExecutables(String project, String model) {
-        return NExecutableManager.getInstance(getTestConfig(), project).getRunningExecutables(project, model);
+        return ExecutableManager.getInstance(getTestConfig(), project).getRunningExecutables(project, model);
     }
 
     private void deleteAllJobs(String project) {

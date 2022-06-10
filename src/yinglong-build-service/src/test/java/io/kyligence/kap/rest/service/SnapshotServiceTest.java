@@ -34,13 +34,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.execution.NSparkSnapshotJob;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.exception.JobSubmissionException;
-import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
@@ -67,7 +68,6 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.engine.spark.job.NSparkSnapshotJob;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -162,7 +162,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         Set<String> databases = Sets.newHashSet();
         snapshotService.buildSnapshots(PROJECT, databases, tables, Maps.newHashMap(), false, 0, null, null);
 
-        NExecutableManager executableManager = NExecutableManager.getInstance(getTestConfig(), PROJECT);
+        ExecutableManager executableManager = ExecutableManager.getInstance(getTestConfig(), PROJECT);
 
         final List<AbstractExecutable> allExecutables = executableManager.getAllExecutables();
         Assert.assertEquals(2, allExecutables.size());
@@ -229,7 +229,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         Set<String> databases = Sets.newHashSet(database);
         Set<String> tables = Sets.newHashSet();
         snapshotService.buildSnapshots(PROJECT, databases, tables, Maps.newHashMap(), false, 3, null, null);
-        val executableManager = NExecutableManager.getInstance(getTestConfig(), PROJECT);
+        val executableManager = ExecutableManager.getInstance(getTestConfig(), PROJECT);
         final List<AbstractExecutable> allExecutables = executableManager.getAllExecutables();
         val tableManager = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
         long expectedTableSize = tableManager.listAllTables().stream()
@@ -269,7 +269,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         snapshotService.buildSnapshots(PROJECT, databases, tables, ImmutableMap.of(table1, option), false, 3, null,
                 null);
 
-        NExecutableManager executableManager = NExecutableManager.getInstance(getTestConfig(), PROJECT);
+        ExecutableManager executableManager = ExecutableManager.getInstance(getTestConfig(), PROJECT);
 
         final List<AbstractExecutable> allExecutables = executableManager.getAllExecutables();
         Assert.assertEquals(2, allExecutables.size());
@@ -324,7 +324,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         // initialize a sampling job and assert the status of it
         String table = "DEFAULT.TEST_KYLIN_FACT";
         snapshotService.buildSnapshots(PROJECT, Sets.newHashSet(table), Maps.newHashMap(), false, 3, null, null);
-        NExecutableManager executableManager = NExecutableManager.getInstance(getTestConfig(), PROJECT);
+        ExecutableManager executableManager = ExecutableManager.getInstance(getTestConfig(), PROJECT);
         List<AbstractExecutable> allExecutables = executableManager.getAllExecutables();
         Assert.assertEquals(1, allExecutables.size());
 

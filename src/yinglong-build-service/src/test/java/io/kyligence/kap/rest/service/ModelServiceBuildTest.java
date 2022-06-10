@@ -50,6 +50,14 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.execution.NSparkCubingJob;
+import io.kyligence.kap.job.execution.SucceedChainedTestExecutable;
+import io.kyligence.kap.job.execution.handler.ExecutableAddCuboidHandler;
+import io.kyligence.kap.job.execution.handler.ExecutableAddSegmentHandler;
+import io.kyligence.kap.job.execution.handler.ExecutableHandler;
+import io.kyligence.kap.job.execution.handler.ExecutableMergeOrRefreshHandler;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -57,12 +65,10 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.dao.ExecutablePO;
-import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableParams;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.execution.SucceedChainedTestExecutable;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -94,10 +100,6 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
-import io.kyligence.kap.engine.spark.job.ExecutableAddCuboidHandler;
-import io.kyligence.kap.engine.spark.job.ExecutableAddSegmentHandler;
-import io.kyligence.kap.engine.spark.job.ExecutableMergeOrRefreshHandler;
-import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.engine.spark.utils.ComputedColumnEvalUtil;
 import io.kyligence.kap.junit.rule.TransactionExceptedException;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
@@ -823,8 +825,8 @@ public class ModelServiceBuildTest extends SourceTestCase {
 
     @Test
     public void testGetRelatedModels_HasErrorJobs() {
-        NExecutableManager executableManager = mock(NExecutableManager.class);
-        when(modelService.getManager(NExecutableManager.class, "default")).thenReturn(executableManager);
+        ExecutableManager executableManager = mock(ExecutableManager.class);
+        when(modelService.getManager(ExecutableManager.class, "default")).thenReturn(executableManager);
         when(executableManager.getExecutablesByStatus(ExecutableState.ERROR)).thenReturn(mockJobs());
         List<RelatedModelResponse> responses = modelService.getRelateModels("default", "DEFAULT.TEST_KYLIN_FACT",
                 "nmodel_basic_inner");

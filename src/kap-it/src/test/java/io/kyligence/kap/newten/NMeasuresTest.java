@@ -50,7 +50,6 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.measure.percentile.PercentileCounter;
 import org.apache.kylin.measure.percentile.PercentileSerializer;
@@ -71,17 +70,18 @@ import org.sparkproject.guava.collect.Sets;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
-import io.kyligence.kap.engine.spark.job.NSparkCubingStep;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
-import io.kyligence.kap.engine.spark.job.NSparkMergingJob;
 import io.kyligence.kap.engine.spark.job.UdfManager;
-import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
-import io.kyligence.kap.engine.spark.merger.AfterMergeOrRefreshResourceMerger;
 import io.kyligence.kap.engine.spark.storage.ParquetStorage;
+import io.kyligence.kap.job.execution.NSparkCubingJob;
+import io.kyligence.kap.job.execution.NSparkMergingJob;
+import io.kyligence.kap.job.execution.merger.AfterBuildResourceMerger;
+import io.kyligence.kap.job.execution.merger.AfterMergeOrRefreshResourceMerger;
+import io.kyligence.kap.job.execution.step.NSparkCubingStep;
+import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.job.util.ExecutableUtils;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
@@ -491,7 +491,7 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
         String dfName = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+        ExecutableManager execMgr = ExecutableManager.getInstance(config, getProject());
         NDataflow df = dsMgr.getDataflow(dfName);
         NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
@@ -783,7 +783,7 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
 
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+        ExecutableManager execMgr = ExecutableManager.getInstance(config, getProject());
         NDataflow df = dsMgr.getDataflow(DF_NAME);
 
         // cleanup all segments first

@@ -42,6 +42,12 @@
         <dependency>
             <groupId>io.kyligence.yinglong</groupId>
             <artifactId>yinglong-common-server</artifactId>
+            <exclusions>
+                <exclusion>
+                    <artifactId>yinglong-job</artifactId>
+                    <groupId>io.kyligence.yinglong</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>io.kyligence.yinglong</groupId>

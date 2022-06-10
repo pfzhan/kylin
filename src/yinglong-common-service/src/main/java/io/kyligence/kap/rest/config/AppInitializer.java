@@ -48,7 +48,7 @@ import io.kyligence.kap.common.persistence.transaction.EventListenerRegistry;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.common.util.HostInfoFetcher;
-import io.kyligence.kap.engine.spark.ExecutableUtils;
+import io.kyligence.kap.job.util.ExecutableUtils;
 import io.kyligence.kap.metadata.epoch.EpochOrchestrator;
 import io.kyligence.kap.metadata.project.NProjectLoader;
 import io.kyligence.kap.metadata.project.NProjectManager;

@@ -29,6 +29,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.job.execution.NSparkExecutable;
+import io.kyligence.kap.job.execution.SucceedChainedTestExecutable;
+import io.kyligence.kap.job.execution.stage.NStageForBuild;
+import io.kyligence.kap.job.execution.stage.NStageForMerge;
+import io.kyligence.kap.job.execution.stage.NStageForSnapshot;
+import io.kyligence.kap.job.execution.stage.StageBase;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.kylin.common.util.JsonUtil;
@@ -41,8 +48,6 @@ import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.ChainedStageExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.execution.StageBase;
-import org.apache.kylin.job.execution.SucceedChainedTestExecutable;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
@@ -63,10 +68,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.engine.spark.job.NSparkExecutable;
-import io.kyligence.kap.engine.spark.job.step.NStageForBuild;
-import io.kyligence.kap.engine.spark.job.step.NStageForMerge;
-import io.kyligence.kap.engine.spark.job.step.NStageForSnapshot;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import lombok.val;
@@ -118,7 +119,7 @@ public class StageTest extends NLocalFileMetadataTestCase {
         val segmentId2 = RandomUtil.randomUUIDStr();
         val errMsg = "test output";
 
-        val manager = NExecutableManager.getInstance(jobService.getConfig(), getProject());
+        val manager = ExecutableManager.getInstance(jobService.getConfig(), getProject());
         val executable = new SucceedChainedTestExecutable();
         executable.setProject(getProject());
         executable.setId(RandomUtil.randomUUIDStr());
@@ -182,7 +183,7 @@ public class StageTest extends NLocalFileMetadataTestCase {
         val segmentId2 = RandomUtil.randomUUIDStr();
         val errMsg = "test output";
 
-        val manager = NExecutableManager.getInstance(jobService.getConfig(), getProject());
+        val manager = ExecutableManager.getInstance(jobService.getConfig(), getProject());
         val executable = new SucceedChainedTestExecutable();
         executable.setProject(getProject());
         executable.setId(RandomUtil.randomUUIDStr());
@@ -236,7 +237,7 @@ public class StageTest extends NLocalFileMetadataTestCase {
         val segmentId2 = RandomUtil.randomUUIDStr();
         val errMsg = "test output";
 
-        val manager = NExecutableManager.getInstance(jobService.getConfig(), getProject());
+        val manager = ExecutableManager.getInstance(jobService.getConfig(), getProject());
         val executable = new SucceedChainedTestExecutable();
         executable.setProject(getProject());
         executable.setId(RandomUtil.randomUUIDStr());
@@ -267,7 +268,7 @@ public class StageTest extends NLocalFileMetadataTestCase {
         manager.updateJobOutput(executable.getId(), ExecutableState.SUCCEED, null, null, null);
         manager.makeStageSuccess(sparkExecutable.getId());
 
-        var info = manager.getWaiteTime(executable);
+        var info = manager.getWaiteTime(ExecutableManager.toPO(executable, getProject()), executable);
         Map<String, String> waiteTime = JsonUtil.readValueAsMap(info.getOrDefault(NBatchConstants.P_WAITE_TIME, "{}"));
         Assert.assertEquals(3, waiteTime.size());
         Assert.assertTrue(Long.parseLong(waiteTime.get(sparkExecutable.getId())) > 0);
@@ -281,7 +282,7 @@ public class StageTest extends NLocalFileMetadataTestCase {
         val segmentId2 = RandomUtil.randomUUIDStr();
         val errMsg = "test output";
 
-        val manager = NExecutableManager.getInstance(jobService.getConfig(), getProject());
+        val manager = ExecutableManager.getInstance(jobService.getConfig(), getProject());
         val executable = new SucceedChainedTestExecutable();
         executable.setId(RandomUtil.randomUUIDStr());
         executable.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -372,7 +373,7 @@ public class StageTest extends NLocalFileMetadataTestCase {
     public void testMakeStageSuccess() {
         String segmentId = RandomUtil.randomUUIDStr();
 
-        NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), getProject());
+        ExecutableManager manager = ExecutableManager.getInstance(jobService.getConfig(), getProject());
         SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
         executable.setId(RandomUtil.randomUUIDStr());
         executable.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -428,7 +429,7 @@ public class StageTest extends NLocalFileMetadataTestCase {
     public void testMakeStageError() {
         String segmentId = RandomUtil.randomUUIDStr();
 
-        NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), getProject());
+        ExecutableManager manager = ExecutableManager.getInstance(jobService.getConfig(), getProject());
         SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
         executable.setId(RandomUtil.randomUUIDStr());
         executable.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -510,7 +511,6 @@ public class StageTest extends NLocalFileMetadataTestCase {
     public void testToPO() {
         String segmentId = RandomUtil.randomUUIDStr();
 
-        NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), getProject());
         SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
         executable.setId(RandomUtil.randomUUIDStr());
         executable.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -530,7 +530,7 @@ public class StageTest extends NLocalFileMetadataTestCase {
         val stageIds = Sets.newHashSet(stage1.getId(), stage2.getId(), stage3.getId());
         sparkExecutable.setStageMap();
 
-        val executablePO = NExecutableManager.toPO(executable, getProject());
+        val executablePO = ExecutableManager.toPO(executable, getProject());
         Assert.assertEquals(executablePO.getId(), executable.getId());
         Assert.assertEquals(1, executablePO.getTasks().size());
         executablePO.getTasks().forEach(po -> {

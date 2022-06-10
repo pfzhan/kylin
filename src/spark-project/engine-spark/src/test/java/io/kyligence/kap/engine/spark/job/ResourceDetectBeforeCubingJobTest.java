@@ -27,10 +27,12 @@ package io.kyligence.kap.engine.spark.job;
 import java.util.Set;
 
 import io.kyligence.kap.engine.spark.IndexDataConstructor;
+import io.kyligence.kap.job.execution.NSparkCubingJob;
+import io.kyligence.kap.job.execution.NSparkExecutable;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.junit.After;
@@ -73,7 +75,7 @@ public class ResourceDetectBeforeCubingJobTest extends NLocalWithSparkSessionTes
 
     @Test
     public void testDoExecute() throws InterruptedException {
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+        ExecutableManager execMgr = ExecutableManager.getInstance(config, getProject());
 
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
         NDataflow df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");

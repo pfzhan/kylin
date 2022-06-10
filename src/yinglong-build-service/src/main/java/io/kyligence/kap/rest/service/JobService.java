@@ -48,6 +48,12 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.execution.ChainedExecutable;
+import io.kyligence.kap.job.execution.NSparkExecutable;
+import io.kyligence.kap.job.execution.ShellExecutable;
+import io.kyligence.kap.job.execution.stage.StageBase;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.io.IOUtils;
@@ -65,7 +71,6 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.common.JobUtil;
-import org.apache.kylin.job.common.ShellExecutable;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.constant.JobActionEnum;
 import org.apache.kylin.job.constant.JobStatusEnum;
@@ -73,14 +78,11 @@ import org.apache.kylin.job.constant.JobTimeFilterEnum;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.dao.JobStatistics;
 import org.apache.kylin.job.dao.JobStatisticsManager;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.ChainedStageExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.execution.Output;
-import org.apache.kylin.job.execution.StageBase;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -110,7 +112,6 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWorkContext;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.scheduler.JobDiscardNotifier;
 import io.kyligence.kap.common.scheduler.JobReadyNotifier;
-import io.kyligence.kap.engine.spark.job.NSparkExecutable;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -173,7 +174,8 @@ public class JobService extends BasicService implements JobSupporter {
 
     @VisibleForTesting
     public ExecutableResponse convert(AbstractExecutable executable) {
-        ExecutableResponse executableResponse = ExecutableResponse.create(executable);
+        ExecutablePO executablePO = ExecutableManager.toPO(executable, executable.getProject());
+        ExecutableResponse executableResponse = ExecutableResponse.create(executable, executablePO);
         executableResponse.setStatus(executable.getStatus().toJobStatus());
         return executableResponse;
     }
@@ -232,7 +234,7 @@ public class JobService extends BasicService implements JobSupporter {
         val beanList = filterAndSortExecutablePO(jobFilter, jobs);
         List<ExecutableResponse> result = PagingUtil.cutPage(beanList, offset, limit).stream()
                 .map(in -> in.getExecutablePO())
-                .map(executablePO -> getManager(NExecutableManager.class, executablePO.getProject())
+                .map(executablePO -> getManager(ExecutableManager.class, executablePO.getProject())
                         .fromPO(executablePO))
                 .map(this::convert).collect(Collectors.toList());
         return new DataResult<>(sortTotalDurationList(result, jobFilter), beanList.size(), offset, limit);
@@ -249,7 +251,7 @@ public class JobService extends BasicService implements JobSupporter {
     private List<ExecutableResponse> filterAndSort(final JobFilter jobFilter, List<ExecutablePO> jobs) {
         val beanList = filterAndSortExecutablePO(jobFilter, jobs).stream()//
                 .map(in -> in.getExecutablePO())
-                .map(executablePO -> getManager(NExecutableManager.class, executablePO.getProject())
+                .map(executablePO -> getManager(ExecutableManager.class, executablePO.getProject())
                         .fromPO(executablePO))
                 .map(this::convert).collect(Collectors.toList());
         return sortTotalDurationList(beanList, jobFilter);
@@ -417,7 +419,7 @@ public class JobService extends BasicService implements JobSupporter {
     }
 
     private void discardJob(String project, String jobId) {
-        AbstractExecutable job = getManager(NExecutableManager.class, project).getJob(jobId);
+        AbstractExecutable job = getManager(ExecutableManager.class, project).getJob(jobId);
         if (ExecutableState.SUCCEED == job.getStatus()) {
             throw new KylinException(JOB_UPDATE_STATUS_FAILED, "DISCARD", jobId, job.getStatus());
         }
@@ -429,7 +431,7 @@ public class JobService extends BasicService implements JobSupporter {
     }
 
     public void killExistApplication(String project, String jobId) {
-        AbstractExecutable job = getManager(NExecutableManager.class, project).getJob(jobId);
+        AbstractExecutable job = getManager(ExecutableManager.class, project).getJob(jobId);
         killExistApplication(job);
     }
 
@@ -472,7 +474,7 @@ public class JobService extends BasicService implements JobSupporter {
         String project = getProjectByJobId(jobId);
         Preconditions.checkNotNull(project, "Can not find the job: {}", jobId);
 
-        NExecutableManager executableManager = getManager(NExecutableManager.class, project);
+        ExecutableManager executableManager = getManager(ExecutableManager.class, project);
         AbstractExecutable executable = executableManager.getJob(jobId);
 
         return convert(executable);
@@ -503,7 +505,7 @@ public class JobService extends BasicService implements JobSupporter {
 
     public List<ExecutableStepResponse> getJobDetail(String project, String jobId) {
         aclEvaluate.checkProjectOperationPermission(project);
-        NExecutableManager executableManager = getManager(NExecutableManager.class, project);
+        ExecutableManager executableManager = getManager(ExecutableManager.class, project);
         //executableManager.getJob only reply ChainedExecutable
         AbstractExecutable executable = executableManager.getJob(jobId);
         if (executable == null) {
@@ -914,7 +916,7 @@ public class JobService extends BasicService implements JobSupporter {
     private List<AbstractExecutable> getJobsByStatus(String project, List<String> jobIds, List<String> filterStatuses) {
         Preconditions.checkNotNull(project);
 
-        val executableManager = getManager(NExecutableManager.class, project);
+        val executableManager = getManager(ExecutableManager.class, project);
         List<ExecutableState> executableStates = new ArrayList<>();
         if (CollectionUtils.isNotEmpty(filterStatuses)) {
             for (String status : filterStatuses) {

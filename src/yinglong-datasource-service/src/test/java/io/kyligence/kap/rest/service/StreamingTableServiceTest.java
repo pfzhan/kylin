@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.service;
 import java.util.Arrays;
 import java.util.Locale;
 
+import io.kyligence.kap.job.util.ExecutableUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -53,7 +54,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.junit.rule.TransactionExceptedException;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;

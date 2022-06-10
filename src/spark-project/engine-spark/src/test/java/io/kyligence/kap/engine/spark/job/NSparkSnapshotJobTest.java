@@ -28,6 +28,9 @@ import java.io.IOException;
 import java.util.Set;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.job.execution.NSparkSnapshotJob;
+import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.job.util.ExecutableUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -40,7 +43,6 @@ import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.parquet.Strings;
@@ -51,7 +53,6 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
 
-import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
@@ -94,7 +95,7 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
         table.setPartitionColumn(partitionCol);
         tableManager.updateTableDesc(table);
 
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+        ExecutableManager execMgr = ExecutableManager.getInstance(config, getProject());
 
         Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));
         Assert.assertNull(tableManager.getTableDesc(tableName).getLastSnapshotPath());
@@ -144,7 +145,7 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
         table.setPartitionColumn(partitionCol);
         tableManager.updateTableDesc(table);
 
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+        ExecutableManager execMgr = ExecutableManager.getInstance(config, getProject());
 
         NSparkSnapshotJob job = NSparkSnapshotJob.create(tableManager.getTableDesc(tableName), "ADMIN",
                 JobTypeEnum.SNAPSHOT_BUILD, RandomUtil.randomUUIDStr(), partitionCol, true, null, null, null);
@@ -184,7 +185,7 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
         table.setPartitionColumn(partitionCol);
         tableManager.updateTableDesc(table);
 
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+        ExecutableManager execMgr = ExecutableManager.getInstance(config, getProject());
 
         Set<String> partitionToBuild = ImmutableSet.of("2012-01-03");
         TableDesc tableDesc = tableManager.getTableDesc(tableName);
@@ -228,7 +229,7 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
     @Test
     public void testBuildSnapshotJob() throws Exception {
         String tableName = "SSB.PART";
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+        ExecutableManager execMgr = ExecutableManager.getInstance(config, getProject());
         NTableMetadataManager tableManager = NTableMetadataManager.getInstance(config, getProject());
 
         Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));

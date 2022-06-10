@@ -79,13 +79,18 @@ import org.sparkproject.guava.collect.Sets;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.engine.spark.builder.SnapshotBuilder;
-import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
 import io.kyligence.kap.engine.spark.storage.ParquetStorage;
 import io.kyligence.kap.guava20.shaded.common.collect.Lists;
+import io.kyligence.kap.job.execution.NSparkCubingJob;
+import io.kyligence.kap.job.execution.NSparkExecutable;
+import io.kyligence.kap.job.execution.NSparkMergingJob;
+import io.kyligence.kap.job.execution.merger.AfterBuildResourceMerger;
+import io.kyligence.kap.job.execution.step.NSparkCubingStep;
+import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.job.util.ExecutableUtils;
 import io.kyligence.kap.metadata.cube.cuboid.NCuboidLayoutChooser;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
@@ -218,7 +223,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         String dfName = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         long startLong = System.currentTimeMillis();
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+        ExecutableManager execMgr = ExecutableManager.getInstance(config, getProject());
 
         Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));
 
@@ -319,7 +324,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         String dfName = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         long startLong = System.currentTimeMillis();
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+        ExecutableManager execMgr = ExecutableManager.getInstance(config, getProject());
 
         Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));
 
@@ -413,7 +418,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
                 "io.kyligence.kap.engine.spark.job.MockedDFBuildJob");
         String dataflowId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+        ExecutableManager execMgr = ExecutableManager.getInstance(config, getProject());
 
         cleanupSegments(dsMgr, dataflowId);
         NDataflow df = dsMgr.getDataflow(dataflowId);
@@ -451,7 +456,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         overwriteSystemProp("kylin.engine.persist-flattable-enabled", "true");
         String dataflowId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+        ExecutableManager execMgr = ExecutableManager.getInstance(config, getProject());
 
         cleanupSegments(dsMgr, dataflowId);
         NDataflow df = dsMgr.getDataflow(dataflowId);
@@ -484,7 +489,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     @Test
     public void testCancelCubingJob() {
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+        ExecutableManager execMgr = ExecutableManager.getInstance(config, getProject());
         cleanupSegments(dsMgr, "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         NDataflow df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(0, df.getSegments().size());
@@ -517,7 +522,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     public void testCancelMergingJob() throws Exception {
 
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+        ExecutableManager execMgr = ExecutableManager.getInstance(config, getProject());
         cleanupSegments(dsMgr, "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         NDataflow df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(0, df.getSegments().size());
@@ -551,7 +556,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     @Test
     public void testGetJobNodeInfo() throws Exception {
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+        ExecutableManager execMgr = ExecutableManager.getInstance(config, getProject());
 
         Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));
 
@@ -708,7 +713,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     @Test
     public void testSafetyIfDiscard() {
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+        ExecutableManager execMgr = ExecutableManager.getInstance(config, getProject());
         cleanupSegments(dsMgr, "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         NDataflow df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(0, df.getSegments().size());
@@ -780,7 +785,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
                 "io.kyligence.kap.engine.spark.job.MockResumeBuildJob");
         // prepare segment
         final NDataflowManager dfMgr = NDataflowManager.getInstance(config, project);
-        final NExecutableManager execMgr = NExecutableManager.getInstance(config, project);
+        final ExecutableManager execMgr = ExecutableManager.getInstance(config, project);
 
         // clean segments and jobs
         cleanupSegments(dfMgr, dfId);
