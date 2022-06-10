@@ -3,7 +3,7 @@ groups:
   rules:
 
   - alert: Instance Down
-    expr: up{job="Kyligence Enterprise"} == 0
+    expr: up{job=~"Kyligence Enterprise.*"} == 0
     for: 10m
     labels:
       severity: critical
