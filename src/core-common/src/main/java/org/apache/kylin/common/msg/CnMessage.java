@@ -2088,4 +2088,19 @@ public class CnMessage extends Message {
     public String getPARAMETER_IS_REQUIRED() {
         return "找不到 '%s'。";
     }
+
+    @Override
+    public String getNonExistenModel() {
+        return "模型 %s 不存在，请检查后再重试.";
+    }
+
+    @Override
+    public String getLackProject() {
+        return "请填写项目参数.";
+    }
+
+    @Override
+    public String getNonExistProject() {
+        return "项目 %s 不存在，请检查后再重试.";
+    }
 }

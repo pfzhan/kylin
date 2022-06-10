@@ -1834,4 +1834,16 @@ public class Message {
     public String getPARAMETER_IS_REQUIRED() {
         return "'%s' is required.";
     }
+
+    public String getNonExistenModel() {
+        return "Model %s doesn't exist. Please confirm and try again later.";
+    }
+
+    public String getLackProject() {
+        return "Please fill in the project parameters.";
+    }
+
+    public String getNonExistProject() {
+        return "Project %s doesn't exist. Please confirm and try again later.";
+    }
 }

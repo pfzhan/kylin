@@ -42,6 +42,7 @@
 
 package org.apache.kylin.common;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
@@ -96,6 +97,16 @@ public class KylinConfigExt extends KylinConfig {
         result.putAll(super.getAllProperties());
         result.putAll(overrides);
         return result;
+    }
+
+    @Override
+    public HashMap<String, String> getReadonlyProperties() {
+        final StrSubstitutor substitutor = getSubstitutor();
+        HashMap<String, String> config = Maps.newHashMap();
+        for (Map.Entry<String, String> entry : this.overrides.entrySet()) {
+            config.put(entry.getKey(), substitutor.replace(entry.getValue()));
+        }
+        return config;
     }
 
     @Override

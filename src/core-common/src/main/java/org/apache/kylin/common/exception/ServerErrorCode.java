@@ -310,6 +310,8 @@ public enum ServerErrorCode implements ErrorCodeSupplier {
     //10038XXX system profile
     SYSTEM_PROFILE_ABNORMAL_DATA("KE-010038001"), //
     SPARK_FAILURE("KE-010038002"), //
+    CONFIG_NONEXIST_PROJECT("KE-010038003"), //
+    CONFIG_NONEXIST_MODEL("KE-010038004"), //
 
     // 10039XXX jdbc source
 

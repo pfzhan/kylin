@@ -173,6 +173,15 @@ public abstract class KylinConfigBase implements Serializable {
         return getKylinHome() + File.separator + "spark";
     }
 
+    public HashMap<String, String> getReadonlyProperties(){
+        final StrSubstitutor substitutor = getSubstitutor();
+        HashMap<String, String> config = Maps.newHashMap();
+        for (Entry<Object, Object> entry : this.properties.entrySet()) {
+            config.put((String) entry.getKey(), substitutor.replace((String) entry.getValue()));
+        }
+        return config;
+    }
+
     // backward compatibility check happens when properties is loaded or updated
     static BackwardCompatibilityConfig BCC = new BackwardCompatibilityConfig();
 
