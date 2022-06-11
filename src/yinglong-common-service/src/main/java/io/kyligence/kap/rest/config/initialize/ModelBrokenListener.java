@@ -142,12 +142,10 @@ public class ModelBrokenListener {
             val dataflow = dataflowManager.getDataflow(modelId);
             val dfUpdate = new NDataflowUpdate(dataflow.getId());
 
+            dfUpdate.setStatus(RealizationStatusEnum.OFFLINE);
             //if scd2 turn off , model should be offline
-            if (checkSCD2Disabled(project, modelId)) {
-                log.info("model {} on {} should be offline when scd2 is turn off", modelId, project);
-                dfUpdate.setStatus(RealizationStatusEnum.OFFLINE);
-            } else {
-                dfUpdate.setStatus(RealizationStatusEnum.ONLINE);
+            if (dataflow.getLastStatus() != null && !checkSCD2Disabled(project, modelId)) {
+                dfUpdate.setStatus(dataflow.getLastStatus());
             }
             dataflowManager.updateDataflow(dfUpdate);
             if (CollectionUtils.isEmpty(dataflow.getSegments())) {
