@@ -40,6 +40,7 @@ import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.SPARK_LOGS;
 import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.SPARK_STREAMING_LOGS;
 import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.SYSTEM_METRICS;
 import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.TIERED_STORAGE_LOGS;
+import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.SYSTEM_USAGE;
 
 import java.io.File;
 import java.io.IOException;
@@ -694,6 +695,16 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
 
         scheduleTimeoutTask(jstackTask, JSTACK);
 
+    }
+
+    protected void exportSystemUsageInfo(File recordTime, long startTime, long endTime) {
+        Future<?> confTask = executorService.submit(() -> {
+            recordTaskStartTime(SYSTEM_USAGE);
+            SystemUsageTool.extractUseInfo(exportDir, startTime, endTime);
+            recordTaskExecutorTimeToFile(SYSTEM_USAGE, recordTime);
+        });
+
+        scheduleTimeoutTask(confTask, SYSTEM_USAGE);
     }
 
     protected void exportConf(File exportDir, final File recordTime, final boolean includeConf, final boolean includeBin) {

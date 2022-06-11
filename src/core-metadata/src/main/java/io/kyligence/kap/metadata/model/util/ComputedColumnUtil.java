@@ -192,7 +192,7 @@ public class ComputedColumnUtil {
                 }).toArray(ColumnDesc[]::new);
     }
 
-    private static Map<String, Set<String>> getCCUsedColsMap(NDataModel model, String colName) {
+    public static Map<String, Set<String>> getCCUsedColsMap(NDataModel model, String colName) {
         Map<String, Set<String>> usedCols = Maps.newHashMap();
         Map<String, String> aliasTableMap = getAliasTableMap(model);
         Preconditions.checkState(aliasTableMap.size() > 0, "can not find cc:" + colName + "'s table alias");

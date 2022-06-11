@@ -269,9 +269,7 @@ public class SecondStorageUtil {
                 .flatMap(partition -> partition.getSizeInNode().entrySet().stream())
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, Long::sum));
 
-        return shards.stream().mapToLong(
-                shard -> shard.stream().mapToLong(replica -> nodesSize.getOrDefault(replica, 0L)).max().orElse(0))
-                .sum();
+        return shards.stream().mapToLong(shard -> shard.stream().mapToLong(replica -> nodesSize.getOrDefault(replica, 0L)).max().orElse(0)).sum();
     }
 
     public static SecondStorageNode transformNode(String name) {
