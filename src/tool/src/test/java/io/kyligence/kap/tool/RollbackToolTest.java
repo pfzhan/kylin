@@ -65,7 +65,6 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.favorite.FavoriteRule.AbstractCondition;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.tool.general.RollbackStatusEnum;
 import lombok.val;
@@ -107,7 +106,7 @@ public class RollbackToolTest extends NLocalFileMetadataTestCase {
         UnitOfWork.doInTransactionWithRetry(() -> {
             val projectMgr = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
             ProjectInstance projectInstance = new ProjectInstance();
-            projectMgr.createProject("project12", "", "", Maps.newLinkedHashMap(), MaintainModelType.AUTO_MAINTAIN);
+            projectMgr.createProject("project12", "", "", Maps.newLinkedHashMap());
             return 0;
         }, "project12", 1);
 
@@ -134,7 +133,7 @@ public class RollbackToolTest extends NLocalFileMetadataTestCase {
         UnitOfWork.doInTransactionWithRetry(() -> {
             val projectMgr = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
             ProjectInstance projectInstance = new ProjectInstance();
-            projectMgr.createProject("project13", "", "", Maps.newLinkedHashMap(), MaintainModelType.AUTO_MAINTAIN);
+            projectMgr.createProject("project13", "", "", Maps.newLinkedHashMap());
             return 0;
         }, "project13", 1);
         UnitOfWork.doInTransactionWithRetry(() -> {
@@ -154,7 +153,7 @@ public class RollbackToolTest extends NLocalFileMetadataTestCase {
         UnitOfWork.doInTransactionWithRetry(() -> {
             val projectMgr = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
             ProjectInstance projectInstance = new ProjectInstance();
-            projectMgr.createProject("project14", "", "", Maps.newLinkedHashMap(), MaintainModelType.AUTO_MAINTAIN);
+            projectMgr.createProject("project14", "", "", Maps.newLinkedHashMap());
             return 0;
         }, "project14", 1);
         UnitOfWork.doInTransactionWithRetry(() -> {
@@ -189,7 +188,7 @@ public class RollbackToolTest extends NLocalFileMetadataTestCase {
         UnitOfWork.doInTransactionWithRetry(() -> {
             val projectMgr = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
             ProjectInstance projectInstance = new ProjectInstance();
-            projectMgr.createProject("project15", "", "", Maps.newLinkedHashMap(), MaintainModelType.AUTO_MAINTAIN);
+            projectMgr.createProject("project15", "", "", Maps.newLinkedHashMap());
             return 0;
         }, "project15", 1);
         UnitOfWork.doInTransactionWithRetry(() -> {

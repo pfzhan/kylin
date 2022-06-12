@@ -30,6 +30,7 @@ import java.util.Locale;
 import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.IStorageAware;
@@ -396,5 +397,30 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
         RealizationChooser.attemptSelectCandidate(context);
         Assert.assertEquals(30001L, context.storageContext.getStreamingLayoutId().longValue());
         Assert.assertEquals(30001L, context.storageContext.getLayoutId().longValue());
+    }
+
+    @Test
+    public void testBuildSecondStorageEnabled() {
+        String sql = "select CAL_DT as GMV from test_kylin_fact limit 100";
+        val proposeContext = new SmartContext(KylinConfig.getInstanceFromEnv(), "default", new String[] { sql });
+        SmartMaster smartMaster = new SmartMaster(proposeContext);
+        smartMaster.runUtWithContext(null);
+        proposeContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(proposeContext);
+        OLAPContext context = Lists
+                .newArrayList(smartMaster.getContext().getModelContexts().get(0).getModelTree().getOlapContexts())
+                .get(0);
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.second-storage.query-pushdown-limit", "0");
+        context.olapSchema.setConfigOnlyInTest(KylinConfig.getInstanceFromEnv().base());
+        RealizationChooser.attemptSelectCandidate(context);
+        Assert.assertTrue(QueryContext.current().isRetrySecondStorage());
+
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.second-storage.query-pushdown-limit", "1000");
+        RealizationChooser.attemptSelectCandidate(context);
+        Assert.assertTrue(QueryContext.current().isRetrySecondStorage());
+
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.second-storage.query-pushdown-limit", "10");
+        RealizationChooser.attemptSelectCandidate(context);
+        Assert.assertFalse(QueryContext.current().isRetrySecondStorage());
     }
 }

@@ -84,6 +84,7 @@ public class NAdminController extends NBasicController {
         // add second storage
         if (StringUtils.isNotEmpty(KylinConfig.getInstanceFromEnv().getSecondStorage())) {
             propertyKeys.add("kylin.second-storage.class");
+            propertyKeys.add("kylin.second-storage.query-metric-collect");
         }
 
         if (!KylinConfig.getInstanceFromEnv().isAllowedNonAdminGenerateQueryDiagPackage()) {

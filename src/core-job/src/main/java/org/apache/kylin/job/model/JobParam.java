@@ -121,6 +121,7 @@ public class JobParam {
     public JobParam(String model, String owner) {
         this.model = model;
         this.owner = owner;
+        this.setJobId(this.getJobId() + "-" + model);
     }
 
     public JobParam(Set<String> targetSegments, Set<Long> targetLayouts, String model, String owner,

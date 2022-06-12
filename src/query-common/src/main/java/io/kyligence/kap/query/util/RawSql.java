@@ -39,6 +39,9 @@ public class RawSql {
 
     private static final String LINE_SEPARATOR = System.getProperty("line.separator");
     private static final Pattern WHITE_SPACE_PATTERN = Pattern.compile("\\s");
+    public static final String SELECT = "select";
+    public static final String WITH = "with";
+    public static final String EXPLAIN = "explain";
 
     // User original sql
     @Getter
@@ -97,7 +100,7 @@ public class RawSql {
     }
 
     public void autoAppendLimit(int limit, int offset) {
-        if (CollectionUtils.isEmpty(allBlockList)) {
+        if (CollectionUtils.isEmpty(allBlockList) || !isSelectStatement()) {
             return;
         }
 
@@ -122,6 +125,18 @@ public class RawSql {
                 && getStatementString().toLowerCase(Locale.ROOT).matches("^select\\s+\\*\\p{all}*")) {
             appendStmtBlock("\nLIMIT " + forceLimit);
         }
+    }
+
+    private boolean isSelectStatement() {
+        String stmt = getStatementString();
+        int startIndex = 0;
+        char c;
+        while ((c = stmt.charAt(startIndex)) == '(' || WHITE_SPACE_PATTERN.matcher(String.valueOf(c)).matches()) {
+            ++startIndex;
+        }
+        stmt = stmt.substring(startIndex).toLowerCase(Locale.ROOT);
+        return stmt.startsWith(SELECT) || (stmt.startsWith(WITH) && stmt.contains(SELECT))
+                || (stmt.startsWith(EXPLAIN) && stmt.contains(SELECT));
     }
 
     private void removeStatementEndedSemicolon() {
@@ -151,7 +166,8 @@ public class RawSql {
 
     private void appendStmtBlock(String stmt, int lines) {
         int lineNo = allBlockList.get(allBlockList.size() - 1).getEndLine() + 1;
-        RawSqlBlock block = new RawSqlBlock(stmt, RawSqlBlock.Type.STATEMENT, lineNo, 0, lineNo + lines - 1, stmt.length());
+        RawSqlBlock block = new RawSqlBlock(stmt, RawSqlBlock.Type.STATEMENT, lineNo, 0, lineNo + lines - 1,
+                stmt.length());
         stmtBlockList.add(block);
         allBlockList.add(block);
         clearCache();

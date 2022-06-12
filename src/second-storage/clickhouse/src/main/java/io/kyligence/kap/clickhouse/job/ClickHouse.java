@@ -58,6 +58,7 @@ public class ClickHouse implements Closeable {
     public static final String USER = "user";
     public static final String SOCKET_TIMEOUT = "socket_timeout";
     public static final String KEEP_ALIVE_TIMEOUT = "keepAliveTimeout";
+    public static final String CLIENT_NAME = "client_name";
 
     private final String shardName;
     private Connection connection;

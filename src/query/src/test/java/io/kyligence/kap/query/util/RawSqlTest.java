@@ -152,4 +152,18 @@ public class RawSqlTest {
         assertNull(ReflectionTestUtils.getField(rawSql, "statementStringCache"));
         assertNull(ReflectionTestUtils.getField(rawSql, "fullTextStringCache"));
     }
+
+    @Test
+    public void testIsSelectStatement() throws Exception {
+        assertEquals(Boolean.TRUE, ReflectionTestUtils.invokeMethod(rawSql, "isSelectStatement"));
+
+        RawSql withRawSql = new RawSqlParser("( with table_tmp as (select col1 from table1))").parse();
+        assertEquals(Boolean.TRUE, ReflectionTestUtils.invokeMethod(withRawSql, "isSelectStatement"));
+
+        RawSql explainRawSql = new RawSqlParser("explain select col1 from table1").parse();
+        assertEquals(Boolean.TRUE, ReflectionTestUtils.invokeMethod(explainRawSql, "isSelectStatement"));
+
+        RawSql createRawSql = new RawSqlParser("create table xxx as (select col1, col2 from table1)").parse();
+        assertEquals(Boolean.FALSE, ReflectionTestUtils.invokeMethod(createRawSql, "isSelectStatement"));
+    }
 }

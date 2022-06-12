@@ -39,10 +39,12 @@ function killTree() {
     for child in $(ps ax -o ppid= -o pid= | awk "\$1==$parent {print \$2}"); do
         killTree ${child}
     done
+    echo "begin to kill pid: ${parent}"
     kill ${parent}
     if isRunning ${parent}; then
         sleep 5
         if isRunning ${parent}; then
+            echo "begin to kill -9 pid: ${parent}"
             kill -9 ${parent}
         fi
     fi

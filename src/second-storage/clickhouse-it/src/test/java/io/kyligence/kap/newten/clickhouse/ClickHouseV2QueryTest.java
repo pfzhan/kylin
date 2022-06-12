@@ -286,7 +286,7 @@ public class ClickHouseV2QueryTest extends NLocalWithSparkSessionTest {
         String[] expectedPlanFragment = new String[] {
                 "PushedAggregates: [SUM(i1), SUM(i2), COUNT(i1), COUNT(*)], ",
                 "PushedFilters: [], ",
-                "PushedGroupByColumns: [s2], "
+                "PushedGroupByExpressions: [s2], "
         };
         ClickHouseUtils.checkPushedInfo(dataset, expectedPlanFragment);
         List<Row> expectedRow = ImmutableList.of(
@@ -311,7 +311,7 @@ public class ClickHouseV2QueryTest extends NLocalWithSparkSessionTest {
         String[] expectedPlanFragment2 = new String[] {
                 "PushedAggregates: [COUNT(CASE WHEN (i1 > 1) AND (i1 < 3) THEN i1 ELSE 0 END), COUNT(CASE WHEN (i1 >= 1) OR (i1 <= 3..., ",
                 "PushedFilters: [], ",
-                "PushedGroupByColumns: [s2], "
+                "PushedGroupByExpressions: [s2], "
         };
         ClickHouseUtils.checkPushedInfo(dataset2, expectedPlanFragment2);
         List<Row> expectedRow2 = ImmutableList.of(
@@ -330,7 +330,7 @@ public class ClickHouseV2QueryTest extends NLocalWithSparkSessionTest {
             expectedPlanFragment3 = new String[] {
                     "PushedAggregates: [SUM(DISTINCT i1), COUNT(DISTINCT i1), AVG(DISTINCT i1)], ",
                     "PushedFilters: [], ",
-                    "PushedGroupByColumns: [s2], "
+                    "PushedGroupByExpressions: [s2], "
             };
         } else {
             expectedPlanFragment3 = new String[] {

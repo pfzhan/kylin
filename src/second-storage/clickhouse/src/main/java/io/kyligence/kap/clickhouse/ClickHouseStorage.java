@@ -24,6 +24,7 @@
 package io.kyligence.kap.clickhouse;
 
 import io.kyligence.kap.clickhouse.factory.ClickHouseOperatorFactory;
+import io.kyligence.kap.clickhouse.factory.ClickHouseQueryFactory;
 import io.kyligence.kap.clickhouse.job.ClickHouseIndexCleanJob;
 import io.kyligence.kap.guava20.shaded.common.base.Strings;
 import io.kyligence.kap.secondstorage.config.Node;
@@ -40,6 +41,8 @@ import java.util.Map;
 
 import io.kyligence.kap.clickhouse.factory.ClickHouseMetadataFactory;
 import io.kyligence.kap.secondstorage.factory.SecondStorageFactoryUtils;
+import io.kyligence.kap.secondstorage.factory.SecondStorageQueryOperatorFactory;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.ClickHouseConfig;
 import org.apache.kylin.common.KylinConfig;
@@ -85,7 +88,7 @@ public class ClickHouseStorage implements SecondStoragePlugin {
         SecondStorageNodeHelper.initFromCluster(
                 cluster,
                 node -> ClickHouse.buildUrl(node.getIp(), node.getPort(), getJdbcUrlProperties(cluster, node)),
-                nodes -> {
+                (nodes, queryContext) -> {
                     if (nodes.isEmpty()) {
                         return "";
                     }
@@ -98,7 +101,18 @@ public class ClickHouseStorage implements SecondStoragePlugin {
                             sb.append(",").append(node.getIp()).append(":").append(node.getPort());
                         }
                     }
-                    return ClickHouse.buildUrl(sb.toString(), getJdbcUrlProperties(cluster, nodes.get(0)));
+
+                    String clientName;
+                    if (CollectionUtils.isEmpty(queryContext.getSecondStorageUrls())) {
+                        clientName = queryContext.getQueryId() + "_1";
+                    } else {
+                        clientName = queryContext.getQueryId() + "_2";
+                    }
+
+                    Map<String, String> params = getJdbcUrlProperties(cluster, nodes.get(0));
+                    params.put(ClickHouse.CLIENT_NAME, clientName);
+
+                    return ClickHouse.buildUrl(sb.toString(), params);
                 });
     }
 
@@ -148,6 +162,7 @@ public class ClickHouseStorage implements SecondStoragePlugin {
 
         SecondStorageFactoryUtils.register(SecondStorageMetadataFactory.class, new ClickHouseMetadataFactory());
         SecondStorageFactoryUtils.register(SecondStorageDatabaseOperatorFactory.class, new ClickHouseOperatorFactory());
+        SecondStorageFactoryUtils.register(SecondStorageQueryOperatorFactory.class, new ClickHouseQueryFactory());
     }
 
     public static Map<String, String> getJdbcUrlProperties(ClusterInfo cluster, Node node) {

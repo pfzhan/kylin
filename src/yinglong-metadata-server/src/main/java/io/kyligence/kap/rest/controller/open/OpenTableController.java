@@ -25,7 +25,6 @@ package io.kyligence.kap.rest.controller.open;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_NAME;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_SAMPLE_RANGE;
 import static org.apache.kylin.common.exception.ServerErrorCode.UNSUPPORTED_DATA_SOURCE_TYPE;
 import static org.apache.kylin.common.exception.ServerErrorCode.UNSUPPORTED_STREAMING_OPERATION;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_SAMPLING_RANGE_INVALID;
@@ -66,6 +65,7 @@ import io.kyligence.kap.rest.response.OpenPreReloadTableResponse;
 import io.kyligence.kap.rest.response.OpenReloadTableResponse;
 import io.kyligence.kap.rest.response.PreUnloadTableResponse;
 import io.kyligence.kap.rest.service.ProjectService;
+import io.kyligence.kap.rest.service.TableSamplingService;
 import io.kyligence.kap.rest.service.TableService;
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
@@ -98,7 +98,10 @@ public class OpenTableController extends NBasicController {
 
     @VisibleForTesting
     public void updateDataSourceType(String project, int dataSourceType) {
-        projectService.setDataSourceType(project, String.valueOf(dataSourceType));
+        String sourceType = String.valueOf(dataSourceType);
+        if (!sourceType.equals(projectService.getDataSourceType(project))) {
+            projectService.setDataSourceType(project, sourceType);
+        }
     }
 
     @ApiOperation(value = "getTableDesc", tags = { "AI" })
@@ -190,9 +193,9 @@ public class OpenTableController extends NBasicController {
         if (StringUtils.isEmpty(request.getTable())) {
             throw new KylinException(INVALID_TABLE_NAME, MsgPicker.getMsg().getTableNameCannotEmpty());
         }
-        if (request.getNeedSampling()
-                && (request.getSamplingRows() < MIN_SAMPLING_ROWS || request.getSamplingRows() > MAX_SAMPLING_ROWS)) {
-            throw new KylinException(INVALID_TABLE_SAMPLE_RANGE, MsgPicker.getMsg().getTableSampleMaxRows());
+
+        if (request.getNeedSampling()) {
+            TableSamplingService.checkSamplingRows(request.getSamplingRows());
         }
 
         Pair<String, List<String>> pair = tableService.reloadTable(request.getProject(),

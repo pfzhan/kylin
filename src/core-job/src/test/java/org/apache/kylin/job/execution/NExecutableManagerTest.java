@@ -572,8 +572,14 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
                 com.google.common.collect.Lists.newArrayList(ExecutableState.READY));
         Assert.assertEquals(1, executables.size());
         val executables2 = executableManager.getExecutablesByStatusList(Sets.newHashSet(ExecutableState.READY));
+        val executables21 = executableManager.getPartialExecutablesByStatusList(Sets.newHashSet(ExecutableState.READY),
+                path -> StringUtils.endsWith(path, "89af4ee2-2cdb-4b07-b39e-4c29856309gg"));
+        val executables22 = executableManager.getPartialExecutablesByStatusList(Sets.newHashSet(ExecutableState.READY),
+                path -> StringUtils.endsWith(path, "89af4ee2-2cdb-4b07-b39e-4c29856309gg12"));
         val executables3 = executableManager.getExecutablesByStatus(ExecutableState.READY);
         Assert.assertEquals(executables2.size(), executables3.size());
+        Assert.assertEquals(executables2.size(), executables21.size());
+        Assert.assertEquals(executables2.size(), executables22.size());
         val executables4 = executableManager.getAllExecutables(0L, Long.MAX_VALUE);
         Assert.assertEquals(1, executables4.size());
         val executables5 = executableManager.getRunningJobs(10);
@@ -691,6 +697,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
 
         modelId = "2";
         executable = new SucceedTestExecutable();
+        executable.setId(executable.getId() + "-" + modelId);
         executable.setTargetSubject(modelId);
         executable.setProject(DEFAULT_PROJECT);
         executable.setJobType(JobTypeEnum.INDEX_BUILD);
@@ -723,6 +730,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
 
         modelId = "2";
         executable = new SucceedTestExecutable();
+        executable.setId(executable.getId() + "-" + modelId);
         executable.setTargetSubject(modelId);
         executable.setProject(DEFAULT_PROJECT);
         executable.setJobType(JobTypeEnum.INDEX_BUILD);

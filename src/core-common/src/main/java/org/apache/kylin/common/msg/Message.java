@@ -696,7 +696,6 @@ public class Message {
         return "The current used system capacity exceeds the license’s limit. Please upload a new license, or contact Kyligence.";
     }
 
-
     public String getLicenseNoLicense() {
         return "No license file. Please contact Kyligence.";
     }
@@ -1155,7 +1154,6 @@ public class Message {
         return getBadSqlColumnNotFoundReason();
     }
 
-
     public String getProjectNumOverThreshold() {
         return "Failed to create a new project. The number of projects exceeds the maximum: {%s}. Please delete other abandoned projects before trying to create new ones or contact the administrator to adjust the maximum number of projects.";
     }
@@ -1192,6 +1190,10 @@ public class Message {
 
     public String getJobNodeInvalid() {
         return "Can’t execute this request on job node. Please check and try again.";
+    }
+
+    public String getQueryNodeInvalid() {
+        return "Can’t execute this request on Query node. Please check and try again.";
     }
 
     public String getInvalidTimeFormat() {
@@ -1703,6 +1705,18 @@ public class Message {
 
     public String getCannotForceToBothPushdodwnAndIndex() {
         return "Cannot force the query to pushdown and index at the same time. Only one of the parameter “forcedToPushDown“ and “forced_to_index” could be used. Please check and try again.";
+    }
+
+    public String getForcedToTieredstorageAndForceToIndex() {
+        return "When force_to_index=ture, the query cannot pushdown when using tiered storage fails, forcedToTieredStorage=1 or conf=1 is invalid, please modify and try again";
+    }
+
+    public String getForcedToTieredstorageReturnError() {
+        return "Query failed. Tiered storage is unavailable, please fix and try again.";
+    }
+
+    public String getForcedToTieredstorageInvalidParameter() {
+        return "invalid parameters, please fix and try again.";
     }
 
     public String getSecondStorageNodeNotAvailable() {

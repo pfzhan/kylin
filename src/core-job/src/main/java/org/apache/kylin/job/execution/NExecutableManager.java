@@ -501,6 +501,19 @@ public class NExecutableManager {
         return ret;
     }
 
+    public List<AbstractExecutable> getPartialExecutables(Predicate<String> predicate) {
+        List<AbstractExecutable> ret = Lists.newArrayList();
+        for (ExecutablePO po : executableDao.getPartialJobs(predicate)) {
+            try {
+                AbstractExecutable ae = fromPO(po);
+                ret.add(ae);
+            } catch (Exception e) {
+                logger.error(PARSE_ERROR_MSG, e);
+            }
+        }
+        return ret;
+    }
+
     public long countByModelAndStatus(String model, Predicate<ExecutableState> predicate) {
         return listExecByModelAndStatus(model, predicate, null).size();
     }
@@ -524,7 +537,8 @@ public class NExecutableManager {
 
     public List<ExecutablePO> listExecutablePOByModelAndStatus(String model, Predicate<ExecutableState> predicate,
             JobTypeEnum... jobTypes) {
-        return listExecutablePOByModelAndStatus(model, predicate, executableDao.getJobs(), jobTypes);
+        return listExecutablePOByModelAndStatus(model, predicate,
+                executableDao.getPartialJobs(path -> StringUtils.endsWith(path, model)), jobTypes);
     }
 
     public List<ExecutablePO> getAllJobs() {
@@ -552,6 +566,20 @@ public class NExecutableManager {
                 .max(Long::compareTo).orElse(0L);
     }
 
+    public List<AbstractExecutable> listPartialExec(Predicate<String> metaDataPathPredicate,
+            Predicate<ExecutableState> predicate, JobTypeEnum... jobTypes) {
+        if (jobTypes == null) {
+            return Lists.newArrayList();
+        }
+        List<JobTypeEnum> jobTypeList = Lists.newArrayList(jobTypes);
+        return executableDao.getPartialJobs(metaDataPathPredicate).stream() //
+                .filter(job -> job.getJobType() != null) //
+                .filter(job -> jobTypeList.contains(job.getJobType())) //
+                .filter(job -> predicate.test(ExecutableState.valueOf(job.getOutput().getStatus()))) //
+                .map(this::fromPO) //
+                .collect(Collectors.toList());
+    }
+
     public List<AbstractExecutable> listExecByJobTypeAndStatus(Predicate<ExecutableState> predicate,
             JobTypeEnum... jobTypes) {
         if (jobTypes == null) {
@@ -568,9 +596,10 @@ public class NExecutableManager {
 
     public List<AbstractExecutable> listMultiPartitionModelExec(String model, Predicate<ExecutableState> predicate,
             JobTypeEnum jobType, Set<Long> targetPartitions, Set<String> segmentIds) {
-        return getAllExecutables().stream().filter(e -> e.getTargetSubject() != null)
-                .filter(e -> e.getTargetSubject().equals(model)).filter(e -> predicate.test(e.getStatus()))
-                .filter(e -> {
+        return getPartialExecutables(path -> StringUtils.endsWith(path, model)).stream()
+                .filter(e -> e.getTargetSubject() != null) //
+                .filter(e -> e.getTargetSubject().equals(model)) //
+                .filter(e -> predicate.test(e.getStatus())).filter(e -> {
                     /**
                      *  Select jobs which partition is overlap.
                      *  Attention: Refresh/Index build job will include all partitions.
@@ -606,6 +635,16 @@ public class NExecutableManager {
     public List<AbstractExecutable> getExecutablesByStatusList(Set<ExecutableState> statusSet) {
         Preconditions.checkNotNull(statusSet);
         List<ExecutablePO> filterJobs = Lists.newArrayList(executableDao.getJobs());
+        if (CollectionUtils.isNotEmpty(statusSet)) {
+            filterJobs.removeIf(job -> !statusSet.contains(ExecutableState.valueOf(job.getOutput().getStatus())));
+        }
+        return filterJobs.stream().map(this::fromPO).collect(Collectors.toList());
+    }
+
+    public List<AbstractExecutable> getPartialExecutablesByStatusList(Set<ExecutableState> statusSet,
+            Predicate<String> predicate) {
+        Preconditions.checkNotNull(statusSet);
+        List<ExecutablePO> filterJobs = Lists.newArrayList(executableDao.getPartialJobs(predicate));
         if (CollectionUtils.isNotEmpty(statusSet)) {
             filterJobs.removeIf(job -> !statusSet.contains(ExecutableState.valueOf(job.getOutput().getStatus())));
         }
@@ -678,6 +717,7 @@ public class NExecutableManager {
                         config.getRemoteSSHPassword());
             }
             try {
+                logger.info("will kill job pid is {}", pid);
                 exe.execute("kill -9 " + pid, null);
             } catch (ShellException e) {
                 logger.warn("failed to kill remote driver {} on {}", nodeInfo, pid, e);
@@ -832,7 +872,7 @@ public class NExecutableManager {
     }
 
     public long countCuttingInJobByModel(String model, AbstractExecutable job) {
-        return getAllExecutables().stream() //
+        return getPartialExecutables(path -> StringUtils.endsWith(path, model)).stream() //
                 .filter(e -> e.getTargetSubject() != null) //
                 .filter(e -> e.getTargetSubject().equals(model))
                 .filter(executable -> executable.getCreateTime() > job.getCreateTime()).count();

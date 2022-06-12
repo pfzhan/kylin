@@ -28,7 +28,7 @@ import org.apache.spark.sql.catalyst.TableIdentifier
 import org.apache.spark.sql.catalyst.catalog.{CatalogTable, CatalogTableType, SessionCatalog}
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.catalyst.util.{escapeSingleQuotedString, quoteIdentifier}
-import org.apache.spark.sql.execution.{CommandResultExec, QueryExecution, SparkPlan}
+import org.apache.spark.sql.execution.{CommandExecutionMode, CommandResultExec, QueryExecution, SparkPlan}
 import org.apache.spark.sql.execution.command.{AlterTableAddPartitionCommand, CreateDatabaseCommand, CreateTableCommand, CreateViewCommand, DropDatabaseCommand, DropTableCommand, ExecutedCommandExec, ShowCreateTableAsSerdeCommand, ShowPartitionsCommand}
 import org.apache.spark.sql.types.StructField
 import java.lang.{String => JString}
@@ -43,7 +43,8 @@ object DdlOperation extends Logging {
 
   def executeSQL(sqlText: String): DDLDesc = {
     val logicalPlan: LogicalPlan = SparderEnv.getSparkSession.sessionState.sqlParser.parsePlan(sqlText)
-    val queryExecution: QueryExecution = SparderEnv.getSparkSession.sessionState.executePlan(logicalPlan)
+    val queryExecution: QueryExecution = SparderEnv.getSparkSession.sessionState.executePlan(logicalPlan,
+      CommandExecutionMode.SKIP)
     val currentDatabase: String = SparderEnv.getSparkSession.catalog.currentDatabase
     stripRootCommandResult(queryExecution.executedPlan) match {
       case ExecutedCommandExec(create: CreateTableCommand) =>
@@ -51,23 +52,29 @@ object DdlOperation extends Logging {
         if (create.table.tableType == CatalogTableType.MANAGED) {
           throw new RuntimeException(s"Table ${tableIdentifier} is managed table.Please modify to external table")
         }
+        SparderEnv.getSparkSession.sql(sqlText)
         new DDLDesc(sqlText, tableIdentifier.database.getOrElse(currentDatabase), tableIdentifier.table, DDLType.CREATE_TABLE)
       case ExecutedCommandExec(view: CreateViewCommand) =>
         val viewIdentifier: TableIdentifier = view.name
+        SparderEnv.getSparkSession.sql(sqlText)
         new DDLDesc(sqlText, viewIdentifier.database.getOrElse(currentDatabase), viewIdentifier.table, DDLType.CREATE_VIEW)
       case ExecutedCommandExec(drop: DropTableCommand) =>
+        SparderEnv.getSparkSession.sql(sqlText)
         new DDLDesc(sqlText, drop.tableName.database.getOrElse(currentDatabase),
           drop.tableName.table,
           DDLType.DROP_TABLE)
       case ExecutedCommandExec(db: CreateDatabaseCommand) =>
+        SparderEnv.getSparkSession.sql(sqlText)
         new DDLDesc(sqlText, db.databaseName,
           null,
           DDLType.CREATE_DATABASE)
       case ExecutedCommandExec(db: DropDatabaseCommand) =>
+        SparderEnv.getSparkSession.sql(sqlText)
         new DDLDesc(sqlText, db.databaseName,
           null,
           DDLType.DROP_DATABASE)
       case ExecutedCommandExec(addPartition: AlterTableAddPartitionCommand) =>
+        SparderEnv.getSparkSession.sql(sqlText)
         new DDLDesc(sqlText, addPartition.tableName.database.getOrElse(currentDatabase),
           addPartition.tableName.table, DDLType.ADD_PARTITION)
       case _ =>
@@ -110,7 +117,8 @@ object DdlOperation extends Logging {
     val sql = s"show create table ${database}.${table} as serde"
     var ddl = ""
     val logicalPlan: LogicalPlan = SparderEnv.getSparkSession.sessionState.sqlParser.parsePlan(sql)
-    val queryExecution: QueryExecution = SparderEnv.getSparkSession.sessionState.executePlan(logicalPlan)
+    val queryExecution: QueryExecution = SparderEnv.getSparkSession.sessionState.executePlan(logicalPlan,
+      CommandExecutionMode.SKIP)
     stripRootCommandResult(queryExecution.executedPlan) match {
       case ExecutedCommandExec(show: ShowCreateTableAsSerdeCommand) =>
         val catalog: SessionCatalog = SparderEnv.getSparkSession.sessionState.catalog
@@ -133,7 +141,8 @@ object DdlOperation extends Logging {
 
   def calculatePartition(database: String, table: String): Seq[Row] = {
     val logicalPlan: LogicalPlan = SparderEnv.getSparkSession.sessionState.sqlParser.parsePlan(s"show partitions ${database}.${table}")
-    val queryExecution: QueryExecution = SparderEnv.getSparkSession.sessionState.executePlan(logicalPlan)
+    val queryExecution: QueryExecution = SparderEnv.getSparkSession.sessionState.executePlan(logicalPlan,
+      CommandExecutionMode.SKIP)
     stripRootCommandResult(queryExecution.executedPlan) match {
       case ExecutedCommandExec(showPartitions: ShowPartitionsCommand) =>
         val rows: Seq[Row] = showPartitions.run(SparderEnv.getSparkSession)

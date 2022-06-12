@@ -37,7 +37,6 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -120,7 +119,6 @@ public class AccelerationContextUtil {
     public static void transferProjectToSemiAutoMode(KylinConfig kylinConfig, String project) {
         NProjectManager projectManager = NProjectManager.getInstance(kylinConfig);
         projectManager.updateProject(project, copyForWrite -> {
-            copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
             var properties = copyForWrite.getOverrideKylinProps();
             if (properties == null) {
                 properties = Maps.newLinkedHashMap();
@@ -133,7 +131,6 @@ public class AccelerationContextUtil {
     public static void transferProjectToPureExpertMode(KylinConfig kylinConfig, String project) {
         NProjectManager projectManager = NProjectManager.getInstance(kylinConfig);
         projectManager.updateProject(project, copyForWrite -> {
-            copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
             var properties = copyForWrite.getOverrideKylinProps();
             if (properties == null) {
                 properties = Maps.newLinkedHashMap();

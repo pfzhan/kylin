@@ -269,6 +269,7 @@ public class RealizationChooser {
                         && !context.realization.isStreaming();
                 buildDimensionsAndMetrics(context.getSQLDigest(), dimensions, metrics, context.realization);
                 buildStorageContext(context.storageContext, dimensions, metrics, selectedCandidate, isBatchQuery);
+                buildSecondStorageEnabled(context.getSQLDigest());
                 fixContextForTableIndexAnswerNonRawQuery(context);
             }
             return;
@@ -419,6 +420,17 @@ public class RealizationChooser {
                 TblColRef col = func.getColRefs().get(1);
                 context.getGroupByColumns().add(col);
             }
+        }
+    }
+
+    private static void buildSecondStorageEnabled(SQLDigest sqlDigest) {
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        if (kylinConfig.getSecondStorageQueryPushdownLimit() <= 0)
+            return;
+
+        if (sqlDigest.isRawQuery
+                && sqlDigest.limit > kylinConfig.getSecondStorageQueryPushdownLimit()) {
+            QueryContext.current().setRetrySecondStorage(false);
         }
     }
 

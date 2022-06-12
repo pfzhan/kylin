@@ -39,7 +39,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import lombok.Data;
 import lombok.val;
 
@@ -51,8 +50,6 @@ public class ProjectRequest implements Validation, ProjectInsensitiveRequest {
     private String description;
     @JsonProperty("override_kylin_properties")
     private LinkedHashMap<String, String> overrideKylinProps;
-    @JsonProperty("maintain_model_type")
-    private MaintainModelType maintainModelType;
 
     @AssertTrue
     @JsonIgnore

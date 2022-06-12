@@ -28,6 +28,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.NO_ACTIVE_ALL_NO
 import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_WITHOUT_RESOURCE_GROUP;
 import static org.apache.kylin.common.exception.ServerErrorCode.SYSTEM_IS_RECOVER;
 import static org.apache.kylin.common.exception.ServerErrorCode.TRANSFER_FAILED;
+import static org.apache.kylin.common.exception.SystemErrorCode.QUERYNODE_API_INVALID;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_NOT_EXIST;
 import static org.apache.kylin.common.exception.code.ErrorCodeSystem.MAINTENANCE_MODE_WRITE_FAILED;
 
@@ -209,6 +210,14 @@ public class QueryNodeFilter implements Filter {
                 if (EpochManager.getInstance().isMaintenanceMode()) {
                     servletRequest.setAttribute(ERROR, new KylinException(MAINTENANCE_MODE_WRITE_FAILED));
                     servletRequest.getRequestDispatcher(API_ERROR).forward(servletRequest, response);
+                    return;
+                }
+
+                if (Boolean.FALSE.equals(kylinConfig.isQueryNodeRequestForwardEnabled())
+                        && kylinConfig.isQueryNodeOnly()) {
+                    request.setAttribute(ERROR,
+                            new KylinException(QUERYNODE_API_INVALID, MsgPicker.getMsg().getQueryNodeInvalid()));
+                    request.getRequestDispatcher(API_ERROR).forward(request, response);
                     return;
                 }
             } catch (CannotCreateTransactionException e) {

@@ -182,7 +182,11 @@ public class QueryHistory {
     public QueryHistorySql getQueryHistorySql() {
         if (JsonUtil.isJson(sql)) {
             try {
-                return JsonUtil.readValue(sql, QueryHistorySql.class);
+                QueryHistorySql ret = JsonUtil.readValue(sql, QueryHistorySql.class);
+                if (StringUtils.isBlank(ret.getNormalizedSql())) {
+                    ret.setNormalizedSql(sqlPattern);
+                }
+                return ret;
             } catch (IOException e) {
                 log.error("Convert sql json string failed", e);
             }

@@ -87,7 +87,12 @@ public enum QueryErrorCode implements ErrorCodeSupplier {
     PROFILER_ALREADY_DUMPED("KE-020070003"),
 
     // 20080XXX query limit
-    REFUSE_NEW_QUERY("KE-020080001");
+    REFUSE_NEW_QUERY("KE-020080001"),
+
+    // 20090XXX forcedToTieredStorage route query
+    FORCED_TO_TIEREDSTORAGE_AND_FORCE_TO_INDEX("KE-020090001"),
+    FORCED_TO_TIEREDSTORAGE_RETURN_ERROR("KE-020090002"),
+    FORCED_TO_TIEREDSTORAGE_INVALID_PARAMETER("KE-020090003");
 
     private final ErrorCode errorCode;
 

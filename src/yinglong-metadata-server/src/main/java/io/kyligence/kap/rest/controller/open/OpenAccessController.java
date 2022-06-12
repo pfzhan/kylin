@@ -27,8 +27,8 @@ package io.kyligence.kap.rest.controller.open;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static io.kyligence.kap.rest.aspect.InsensitiveNameAspect.getCaseInsentiveType;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PARAMETER;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.UNAUTHORIZED_ENTITY;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.PARAMETER_INVALID_SUPPORT_LIST;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -253,7 +253,7 @@ public class OpenAccessController extends NBasicController {
         if (MetadataConstants.TYPE_USER.equalsIgnoreCase(type) || MetadataConstants.TYPE_GROUP.equalsIgnoreCase(type)) {
             return;
         }
-        throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getInvalidParameterType());
+        throw new KylinException(PARAMETER_INVALID_SUPPORT_LIST, "type", "user, group");
     }
 
     private void checkNames(List<String> names) {

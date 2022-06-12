@@ -30,7 +30,7 @@ import org.apache.kylin.common.exception.KylinException;
 import java.util.Locale;
 import java.util.Set;
 
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.PARAMETER_INVALID_SUPPORT_LIST;
 
 public enum StreamingJobActionEnum {
 
@@ -41,8 +41,7 @@ public enum StreamingJobActionEnum {
 
     public static void validate(String action) {
         if (!actionEnums.contains(action.toUpperCase(Locale.ROOT))) {
-            throw new KylinException(INVALID_PARAMETER,
-                    "Invalid value in parameter “action“. The value should be “START“, “STOP“, “FORCE_STOP“, “RESTART“.");
+            throw new KylinException(PARAMETER_INVALID_SUPPORT_LIST, "action", "START, STOP, FORCE_STOP, RESTART");
         }
     }
 }

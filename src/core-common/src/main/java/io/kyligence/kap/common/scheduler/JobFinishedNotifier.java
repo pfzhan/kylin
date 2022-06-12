@@ -48,12 +48,12 @@ public class JobFinishedNotifier extends SchedulerEventNotifier {
     private long startTime;
     private long endTime;
     private Object tag;
-
+    private Throwable throwable;
 
     public JobFinishedNotifier(String jobId, String project, String subject, long duration, String jobState,
-                               String jobType, Set<String> segmentIds, Set<Long> layoutIds, Set<Long> partitionIds,
-                               long waitTime, String jobClass, String owner, boolean result, long startTime,
-            long endTime, Object tag) {
+            String jobType, Set<String> segmentIds, Set<Long> layoutIds, Set<Long> partitionIds, long waitTime,
+            String jobClass, String owner, boolean result, long startTime, long endTime, Object tag,
+            Throwable throwable) {
         setProject(project);
         setSubject(subject);
         this.jobId = jobId;
@@ -77,6 +77,7 @@ public class JobFinishedNotifier extends SchedulerEventNotifier {
         this.startTime = startTime;
         this.endTime = endTime;
         this.tag = tag;
+        this.throwable = throwable;
     }
 
 }

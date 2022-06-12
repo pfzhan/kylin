@@ -33,8 +33,6 @@ import static org.mockito.Mockito.when;
 import java.util.Collections;
 import java.util.List;
 
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.rest.service.ModelService;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
@@ -63,10 +61,11 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.response.OpenValidationResponse;
 import io.kyligence.kap.rest.response.SuggestionResponse;
+import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.ModelSmartService;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.ModelCreateContext;
@@ -216,7 +215,6 @@ public class OpenSmartModelControllerTest extends NLocalFileMetadataTestCase {
     private void changeProjectToSemiAutoMode(String project) {
         NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
         projectManager.updateProject(project, copyForWrite -> {
-            copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
             var properties = copyForWrite.getOverrideKylinProps();
             if (properties == null) {
                 properties = Maps.newLinkedHashMap();

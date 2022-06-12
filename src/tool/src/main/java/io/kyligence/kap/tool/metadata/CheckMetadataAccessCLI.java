@@ -36,7 +36,6 @@ import org.slf4j.LoggerFactory;
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.Unsafe;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.NProjectManager;
 
 public class CheckMetadataAccessCLI {
@@ -63,7 +62,7 @@ public class CheckMetadataAccessCLI {
         try {
             UnitOfWork.doInTransactionWithRetry(() -> {
                 NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).createProject(projectName, "test",
-                        "This is a test project", null, MaintainModelType.AUTO_MAINTAIN);
+                        "This is a test project", null);
                 return null;
             }, UnitOfWork.GLOBAL_UNIT);
         } catch (TransactionException e) {
@@ -82,7 +81,6 @@ public class CheckMetadataAccessCLI {
             UnitOfWork.doInTransactionWithRetry(() -> {
                 ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                         .getProject(projectName);
-                projectInstance.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
                 NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).updateProject(projectInstance,
                         projectName, "Still a test project", null);
                 return null;
@@ -90,13 +88,6 @@ public class CheckMetadataAccessCLI {
         } catch (TransactionException e) {
             logger.error("Update test failed." + e.getMessage());
             clean(store, ProjectInstance.concatResourcePath(projectName));
-            return false;
-        }
-
-        ProjectInstance projectInstance = projectManager.getProject(projectName);
-        if (projectInstance.getMaintainModelType() != MaintainModelType.MANUAL_MAINTAIN) {
-            clean(store, ProjectInstance.concatResourcePath(projectName));
-            logger.error("Update test failed, maintain type should be manual in project: " + projectName);
             return false;
         }
 

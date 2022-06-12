@@ -121,6 +121,24 @@ public class TableExtDescTest extends NLocalFileMetadataTestCase {
 
     }
 
+    @Test
+    public void testGetS3RoleAndLocation() {
+        final String tableName = "DEFAULT.TEST_KYLIN_FACT";
+        TableExtDesc tableExtDesc = tableMetadataManager.getOrCreateTableExt(tableName);
+        tableExtDesc.addDataSourceProp(TableExtDesc.LOCATION_PROPERTY_KEY, "");
+        tableExtDesc.addDataSourceProp(TableExtDesc.S3_ENDPOINT_KEY, "testEndpoint");
+        assert tableExtDesc.getS3RoleCredentialInfo() == null;
+        tableExtDesc.addDataSourceProp(TableExtDesc.LOCATION_PROPERTY_KEY, "::aaa/bbb");
+        assert tableExtDesc.getS3RoleCredentialInfo() == null;
+        tableExtDesc.addDataSourceProp(TableExtDesc.LOCATION_PROPERTY_KEY, "s3://aaa/bbb");
+        assert tableExtDesc.getS3RoleCredentialInfo().getEndpoint().equals("testEndpoint");
+        tableExtDesc.addDataSourceProp(TableExtDesc.S3_ROLE_PROPERTY_KEY, "test");
+        assert tableExtDesc.getS3RoleCredentialInfo().getBucket().equals("aaa");
+        assert tableExtDesc.getS3RoleCredentialInfo().getRole().equals("test");
+        assert tableExtDesc.getS3RoleCredentialInfo().getEndpoint().equals("testEndpoint");
+
+    }
+
     private TableExtDesc.ColumnStats updateColStats(TableExtDesc.ColumnStats colStats, long nullCount,
             SegmentRange segRange, HLLCounter hllc, double maxValue, double minValue, int maxLength, int minLength,
             String maxLengthValue, String minLengthValue) {

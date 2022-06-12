@@ -72,12 +72,15 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @SuppressWarnings("serial")
+@Slf4j
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class NDataflow extends RootPersistentEntity implements Serializable, IRealization {
     public static final String REALIZATION_TYPE = "NCUBE";
     public static final String DATAFLOW_RESOURCE_ROOT = "/dataflow";
+    private static final long EXPENSIVE_DATAFLOW_INITIALIZATION = 2_000L;
 
     public static NDataflow create(IndexPlan plan, RealizationStatusEnum realizationStatusEnum) {
         NDataflow df = new NDataflow();
@@ -126,6 +129,7 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
     // ================================================================
 
     public void initAfterReload(KylinConfigExt config, String project) {
+        long start = System.currentTimeMillis();
         this.project = project;
         this.config = config;
         for (NDataSegment seg : segments) {
@@ -133,7 +137,10 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
         }
 
         this.setDependencies(calcDependencies());
-
+        long time = System.currentTimeMillis() - start;
+        if (time > EXPENSIVE_DATAFLOW_INITIALIZATION) {
+            log.debug("initialization finished for dataflow({}/{}) takes {}ms", project, uuid, time);
+        }
     }
 
     @Override
@@ -186,7 +193,7 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
         for (TableRef t : getModel().getAllTables()) {
             r.add(t.getTableDesc().getResourcePath());
 
-            if(t.getTableDesc().isKafkaTable()){
+            if (t.getTableDesc().isKafkaTable()) {
                 r.add(t.getTableDesc().getKafkaConfig().getResourcePath());
             }
             val tableExtDesc = tableMetadataManager.getTableExtIfExists(t.getTableDesc());
@@ -497,9 +504,7 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
         if (getClass() != obj.getClass())
             return false;
         NDataflow other = (NDataflow) obj;
-        if (!uuid.equals(other.uuid))
-            return false;
-        return true;
+        return uuid.equals(other.uuid);
     }
 
     @Override

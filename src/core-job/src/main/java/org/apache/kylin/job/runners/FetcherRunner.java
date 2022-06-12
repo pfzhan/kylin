@@ -39,6 +39,7 @@ import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import lombok.val;
 
@@ -74,7 +75,7 @@ public class FetcherRunner extends AbstractDefaultSchedulerRunner {
                         return true;
                     }
                     return false;
-                }, context.getEpochId(), project);
+                }, project, UnitOfWork.DEFAULT_MAX_RETRY, context.getEpochId(), jobId);
             }
         } catch (Exception e) {
             logger.warn("[UNEXPECTED_THINGS_HAPPENED] project {} job {} should be suicidal but discard failed", project,
@@ -89,7 +90,7 @@ public class FetcherRunner extends AbstractDefaultSchedulerRunner {
                 val manager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
                 manager.errorJob(jobId);
                 return true;
-            }, context.getEpochId(), project);
+            }, project, UnitOfWork.DEFAULT_MAX_RETRY, context.getEpochId(), jobId);
         } catch (Exception e) {
             logger.warn("[UNEXPECTED_THINGS_HAPPENED] project {} job {} should be error but mark failed", project,
                     jobId, e);

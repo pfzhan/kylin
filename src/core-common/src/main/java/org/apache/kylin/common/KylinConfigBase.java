@@ -528,6 +528,14 @@ public abstract class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kylin.second-storage.load-retry-interval", "30000"));
     }
 
+    public boolean getSecondStorageQueryMetricCollect() {
+        return Boolean.parseBoolean(getOptional("kylin.second-storage.query-metric-collect", TRUE));
+    }
+
+    public int getSecondStorageQueryPushdownLimit() {
+        return Integer.parseInt(getOptional("kylin.second-storage.query-pushdown-limit", "0"));
+    }
+
     public int getMetadataCacheMaxNum() {
         return Integer.parseInt(getOptional("kylin.metadata.cache.max-num", String.valueOf(Integer.MAX_VALUE)));
     }
@@ -661,6 +669,10 @@ public abstract class KylinConfigBase implements Serializable {
 
     public boolean isServerHttpsEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.server.https.enable", FALSE));
+    }
+
+    public Boolean isQueryNodeRequestForwardEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.query.request-forward-enabled", TRUE));
     }
 
     public int getServerHttpsPort() {
@@ -973,8 +985,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public String getQueryExtensionFactory() {
-        return getOptional("kylin.extension.query.factory",
-                "io.kyligence.kap.query.QueryExtensionFactoryEnterprise");
+        return getOptional("kylin.extension.query.factory", "io.kyligence.kap.query.QueryExtensionFactoryEnterprise");
     }
 
     public String getMetadataExtensionFactory() {
@@ -2885,6 +2896,13 @@ public abstract class KylinConfigBase implements Serializable {
     @ThirdPartyDependencies({
             @ThirdPartyDependencies.ThirdPartyDependent(repository = "static-user-manager", classes = {
                     "AuthenticationClient" }) })
+    public Long getLightningWorkspaceId() {
+        return Long.parseLong(getOptional("kylin.lightning.workspace-id", "0"));
+    }
+
+    @ThirdPartyDependencies({
+            @ThirdPartyDependencies.ThirdPartyDependent(repository = "static-user-manager", classes = {
+                    "AuthenticationClient" }) })
     public String getLightningServerZkNode() {
         return getOptional("kylin.lightning.server.zookeeper-node", "/kylin/management");
     }
@@ -3250,6 +3268,28 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.model.check-model-dependency-health", "false"));
     }
 
+    public boolean isTableFastReload() {
+        return Boolean.parseBoolean(getOptional("kylin.table.fast-reload-enabled", TRUE));
+    }
+
+    public boolean isSkipCheckFlatTable() {
+        return Boolean.parseBoolean(getOptional("kylin.model.skip-check-flattable", FALSE));
+    }
+
+    public boolean isUnitOfWorkSimulationEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.env.unitofwork-simulation-enabled", FALSE));
+    }
+
+    public ForceToTieredStorage getSystemForcedToTieredStorage() {
+        int i = Integer.parseInt(getOptional("kylin.system.forced-to-tiered-storage", "0"));
+        return ForceToTieredStorage.values()[i];
+    }
+
+    public ForceToTieredStorage getProjectForcedToTieredStorage() {
+        int i = Integer.parseInt(getOptional("kylin.project.forced-to-tiered-storage"));
+        return ForceToTieredStorage.values()[i];
+    }
+
     public long getClusterManagerHealthCheckMaxTimes() {
         return Long.parseLong(getOptional("kylin.engine.cluster-manager-health-check-max-times", "10"));
     }
@@ -3260,5 +3300,14 @@ public abstract class KylinConfigBase implements Serializable {
 
     public boolean isRemoveLdapCustomSecurityLimitEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.security.remove-ldap-custom-security-limit-enabled", "false"));
+    }
+
+    public boolean useDynamicS3RoleCredentialInTable() {
+        return Boolean.parseBoolean(getOptional("kylin.env.use-dynamic-S3-role-credential-in-table", "false"));
+
+    }
+
+    public String getJobCallbackLanguage() {
+        return getOptional("kylin.job.callback-language", "en");
     }
 }

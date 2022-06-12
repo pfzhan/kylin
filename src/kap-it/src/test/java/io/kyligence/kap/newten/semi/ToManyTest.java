@@ -63,7 +63,6 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
-import io.kyligence.kap.util.ExecAndComp;
 import io.kyligence.kap.rest.service.ModelSemanticHelper;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.NUserGroupService;
@@ -75,6 +74,7 @@ import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.ProposerJob;
 import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.util.AccelerationContextUtil;
+import io.kyligence.kap.util.ExecAndComp;
 
 public class ToManyTest extends SemiAutoTestBase {
 
@@ -201,7 +201,7 @@ public class ToManyTest extends SemiAutoTestBase {
         // approve recommendations & validate layouts
         List<String> modelIds = Lists.newArrayList();
         modelIds.add(modelId);
-        optRecService.batchApprove(getProject(), modelIds, "all");
+        optRecService.batchApprove(getProject(), modelIds, "all", true);
         List<LayoutEntity> allLayouts = indexPlanManager.getIndexPlan(modelId).getAllLayouts();
         Assert.assertEquals(2, allLayouts.size());
 

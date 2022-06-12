@@ -73,6 +73,7 @@ public class QueryContext implements Closeable {
     public static final String PUSHDOWN_OBJECT_STORAGE = "OBJECT STORAGE";
 
     public static final long DEFAULT_NULL_SCANNED_DATA = -1L;
+    public static final String ROUTE_USE_FORCEDTOTIEREDSTORAGE = "should route use forcedToTieredStorage";
 
     private static final TransmittableThreadLocal<QueryContext> contexts = new TransmittableThreadLocal<QueryContext>() {
         @Override
@@ -124,6 +125,9 @@ public class QueryContext implements Closeable {
     @Setter
     private boolean partialMatchIndex = false;
 
+    @Getter
+    @Setter
+    private ForceToTieredStorage forcedToTieredStorage;
     /**
      * mark table index use second storage, key is layout id
      */
@@ -207,6 +211,10 @@ public class QueryContext implements Closeable {
     @Getter
     @Setter
     private AclInfo aclInfo;
+
+    @Getter
+    @Setter
+    private List<String> columnNames;
 
     @Getter
     @Setter

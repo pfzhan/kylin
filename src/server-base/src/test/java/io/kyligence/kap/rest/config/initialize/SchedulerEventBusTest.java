@@ -67,7 +67,6 @@ import io.kyligence.kap.common.scheduler.ProjectEscapedNotifier;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.service.JobService;
 import io.kyligence.kap.rest.service.task.RecommendationTopNUpdateScheduler;
@@ -81,15 +80,14 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
     private static final String PROJECT = "default";
     private static final String PROJECT_NEWTEN = "newten";
 
-
     @InjectMocks
     private final JobService jobService = Mockito.spy(new JobService());
 
     @Mock
     private final AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
 
-    private AtomicInteger readyCalledCount = new AtomicInteger(0);
-    private AtomicInteger jobFinishedCalledCount = new AtomicInteger(0);
+    private final AtomicInteger readyCalledCount = new AtomicInteger(0);
+    private final AtomicInteger jobFinishedCalledCount = new AtomicInteger(0);
 
     @Before
     public void setup() {
@@ -209,9 +207,7 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
             return null;
         }, PROJECT);
 
-        await().atMost(60000, TimeUnit.MILLISECONDS).until(() -> {
-            return 1 == readyCalledCount.get();
-        });
+        await().atMost(60000, TimeUnit.MILLISECONDS).until(() -> 1 == readyCalledCount.get());
     }
 
     @Ignore
@@ -253,10 +249,9 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
         val prj = "test_epoch";
         val listener = new EpochChangedListener();
         RecommendationTopNUpdateScheduler scheduler = new RecommendationTopNUpdateScheduler();
-        ReflectionTestUtils.setField(listener, "recommendationUpdateScheduler",
-                scheduler);
+        ReflectionTestUtils.setField(listener, "recommendationUpdateScheduler", scheduler);
         val prjMgr = NProjectManager.getInstance(getTestConfig());
-        prjMgr.createProject("test_epoch", "ADMIN", "", null, MaintainModelType.MANUAL_MAINTAIN);
+        prjMgr.createProject("test_epoch", "ADMIN", "", null);
         int oriCount = NDefaultScheduler.listAllSchedulers().size();
         listener.onProjectControlled(new ProjectControlledNotifier(prj));
         Assert.assertEquals(NDefaultScheduler.listAllSchedulers().size(), oriCount + 1);
@@ -273,7 +268,7 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(listener, "env", Mockito.spy(Environment.class));
 
         val prjMgr = NProjectManager.getInstance(getTestConfig());
-        prjMgr.createProject("test_epoch", "ADMIN", "", null, MaintainModelType.MANUAL_MAINTAIN);
+        prjMgr.createProject("test_epoch", "ADMIN", "", null);
         int oriCount = NDefaultScheduler.listAllSchedulers().size();
         listener.onEpochStarted(new EpochStartedNotifier());
         listener.onProjectControlled(new ProjectControlledNotifier(prj));

@@ -42,6 +42,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.secondstorage.database.QueryOperator;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.SecondStorageConfig;
@@ -252,6 +253,12 @@ public class SecondStorageService extends BasicService implements SecondStorageU
             SecondStorageUtil.disableModel(project, modelId);
             return jobId;
         }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID);
+    }
+
+    @Override
+    public Map<String, Object> getQueryMetric(String project, String queryId) {
+        QueryOperator queryOperator = SecondStorageFactoryUtils.createQueryMetricOperator(project);
+        return queryOperator.getQueryMetric(queryId);
     }
 
     public SecondStorageService setModelService(final ModelService modelService) {

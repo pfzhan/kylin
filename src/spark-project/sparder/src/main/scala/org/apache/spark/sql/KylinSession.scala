@@ -35,7 +35,7 @@ import org.apache.kylin.common.{KapConfig, KylinConfig}
 import org.apache.spark.internal.Logging
 import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
 import org.apache.spark.sql.SparkSession.Builder
-import org.apache.spark.sql.internal.{SessionState, SharedState, StaticSQLConf}
+import org.apache.spark.sql.internal.{SQLConf, SessionState, SharedState, StaticSQLConf}
 import org.apache.spark.sql.kylin.external.{KylinSessionStateBuilder, KylinSharedState}
 import org.apache.spark.sql.udf.UdfManager
 import org.apache.spark.util.{KylinReflectUtils, Utils}
@@ -82,7 +82,9 @@ class KylinSession(
   }
 
   override def newSession(): KylinSession = {
-    new KylinSession(sparkContext, Some(sharedState), parentSessionState = None, extensions)
+    val session = new KylinSession(sparkContext, Some(sharedState), parentSessionState = None, extensions)
+    SQLConf.setSQLConfGetter(() => session.sessionState.conf)
+    session
   }
 
   override def cloneSession(): SparkSession = {
@@ -91,6 +93,7 @@ class KylinSession(
       Some(sharedState),
       Some(sessionState),
       extensions)
+    SQLConf.setSQLConfGetter(() => result.sessionState.conf)
     result.sessionState // force copy of SessionState
     result
   }
@@ -175,6 +178,7 @@ object KylinSession extends Logging {
           sparkContext.getConf.get(StaticSQLConf.SPARK_SESSION_EXTENSIONS).getOrElse(Seq.empty),
           extensions)
         session = new KylinSession(sparkContext, existingSharedState, parentSessionState, extensions)
+        SQLConf.setSQLConfGetter(() => session.sessionState.conf)
         SparkSession.setDefaultSession(session)
         SparkSession.setActiveSession(session)
         sparkContext.addSparkListener(new SparkListener {

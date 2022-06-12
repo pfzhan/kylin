@@ -73,7 +73,7 @@ public class RawRecManager {
         }
 
         Map<String, NDataModel> allModelMap = Maps.newHashMap();
-        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.readSystemKylinConfig(), project);
         List<NDataModel> models = modelManager.listAllModels();
         models.removeIf(NDataModel::isBroken);
         models.forEach(model -> allModelMap.put(model.getUuid(), model));

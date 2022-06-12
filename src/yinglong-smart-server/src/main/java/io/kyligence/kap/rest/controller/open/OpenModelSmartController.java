@@ -26,7 +26,6 @@ package io.kyligence.kap.rest.controller.open;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_SQL_EXPRESSION;
-import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_EMPTY;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_NOT_EXIST;
 
 import java.util.List;
@@ -36,11 +35,11 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.model.NDataModelManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
+import org.apache.kylin.common.exception.code.ErrorCodeServer;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.request.OpenSqlAccelerateRequest;
@@ -63,6 +62,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.rest.controller.NBasicController;
 import io.kyligence.kap.rest.request.OpenBatchApproveRecItemsRequest;
 import io.kyligence.kap.rest.response.OpenAccSqlResponse;
@@ -191,18 +191,17 @@ public class OpenModelSmartController extends NBasicController {
             request.setRecActionType("all");
         }
         List<OpenRecApproveResponse.RecToIndexResponse> approvedModelIndexes;
+        List<String> modelIds = Lists.newArrayList();
         if (filterByModels) {
             if (CollectionUtils.isEmpty(request.getModelNames())) {
-                throw new KylinException(MODEL_NAME_EMPTY);
+                throw new KylinException(ErrorCodeServer.MODEL_NAME_EMPTY);
             }
-            List<String> modelIds = Lists.newArrayList();
             for (String modelName : request.getModelNames()) {
                 modelIds.add(getModel(modelName, projectName).getUuid());
             }
-            approvedModelIndexes = optRecService.batchApprove(projectName, modelIds, request.getRecActionType());
-        } else {
-            approvedModelIndexes = optRecService.batchApprove(projectName, request.getRecActionType());
         }
+        approvedModelIndexes = optRecService.batchApprove(projectName, modelIds, request.getRecActionType(),
+                filterByModels);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                 new OpenRecApproveResponse(projectName, approvedModelIndexes), "");
     }

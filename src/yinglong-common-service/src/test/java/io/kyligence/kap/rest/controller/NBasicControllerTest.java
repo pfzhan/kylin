@@ -25,7 +25,14 @@
 package io.kyligence.kap.rest.controller;
 
 import static org.apache.kylin.common.exception.CommonErrorCode.UNKNOWN_ERROR_CODE;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.DATETIME_FORMAT_EMPTY;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.DATETIME_FORMAT_PARSE_ERROR;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.INTEGER_NON_NEGATIVE_CHECK;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.TIME_INVALID_RANGE_LESS_THAN_ZERO;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.TIME_INVALID_RANGE_NOT_CONSISTENT;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.TIME_INVALID_RANGE_NOT_FORMAT_MS;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.USER_AUTH_INFO_NOTFOUND;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -166,14 +173,14 @@ public class NBasicControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testCheckRequiredArgException() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("'model' is required");
+        thrown.expectMessage(REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY.getMsg("model"));
         nBasicController.checkRequiredArg("model", "");
     }
 
     @Test
     public void testCheckStartAndEndException() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getInvalidRangeNotConsistent());
+        thrown.expectMessage(TIME_INVALID_RANGE_NOT_CONSISTENT.getMsg());
         nBasicController.validateDataRange("10", "");
     }
 
@@ -194,21 +201,21 @@ public class NBasicControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testTimeRangeInvalidStart() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getInvalidRangeLessThanZero());
+        thrown.expectMessage(TIME_INVALID_RANGE_LESS_THAN_ZERO.getMsg());
         nBasicController.validateDataRange("-1", "1");
     }
 
     @Test
     public void testTimeRangeInvalidEnd() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getInvalidRangeLessThanZero());
+        thrown.expectMessage(TIME_INVALID_RANGE_LESS_THAN_ZERO.getMsg());
         nBasicController.validateDataRange("2", "-1");
     }
 
     @Test
     public void testTimeRangeInvalidFormat() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getInvalidRangeNotFormat());
+        thrown.expectMessage(TIME_INVALID_RANGE_NOT_FORMAT_MS.getMsg());
         nBasicController.validateDataRange("start", "end");
     }
 
@@ -277,4 +284,19 @@ public class NBasicControllerTest extends NLocalFileMetadataTestCase {
             assertEquals("KE-010022215: Please enter segment ID or name.", e.toString());
         }
     }
+
+    @Test
+    public void testValidateDateTimeFormatPattern() {
+        Assert.assertThrows(DATETIME_FORMAT_EMPTY.getMsg(), KylinException.class,
+                () -> nBasicController.validateDateTimeFormatPattern(""));
+        Assert.assertThrows(DATETIME_FORMAT_PARSE_ERROR.getMsg("AABBSS"), KylinException.class,
+                () -> nBasicController.validateDateTimeFormatPattern("AABBSS"));
+    }
+
+    @Test
+    public void testCheckNonNegativeIntegerArg() {
+        Assert.assertThrows(INTEGER_NON_NEGATIVE_CHECK.getMsg(), KylinException.class,
+                () -> nBasicController.checkNonNegativeIntegerArg("id", -1));
+    }
+
 }

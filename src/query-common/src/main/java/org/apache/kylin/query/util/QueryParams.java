@@ -44,6 +44,7 @@ package org.apache.kylin.query.util;
 
 import java.sql.SQLException;
 
+import org.apache.kylin.common.ForceToTieredStorage;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 
@@ -76,6 +77,7 @@ public class QueryParams {
     boolean isACLDisabledOrAdmin;
     int limit;
     int offset;
+    ForceToTieredStorage forcedToTieredStorage;
     SQLException sqlException;
     QueryContext.AclInfo aclInfo;
     @JsonIgnore
@@ -100,16 +102,13 @@ public class QueryParams {
     }
 
     public QueryParams(String project, String sql, String defaultSchema, boolean isPrepare, SQLException sqlException,
-                       boolean isForcedToPushDown, boolean isSelect, int limit, int offset) {
+                       boolean isForcedToPushDown) {
         this.project = project;
         this.sql = sql;
         this.defaultSchema = defaultSchema;
         this.isPrepare = isPrepare;
         this.sqlException = sqlException;
         this.isForcedToPushDown = isForcedToPushDown;
-        this.isSelect = isSelect;
-        this.limit = limit;
-        this.offset = offset;
     }
 
     public QueryParams(KylinConfig kylinConfig, String sql, String project, int limit, int offset, String defaultSchema,
@@ -124,9 +123,7 @@ public class QueryParams {
     }
 
     public QueryParams(KylinConfig kylinConfig, String sql, String project, int limit, int offset, boolean isCCNeeded,
-                       String executeAs, boolean forcedToPushDown, boolean forcedToIndex,
-                       boolean isPrepareStatementWithParams, boolean partialMatchIndex,
-                       boolean acceptPartial, boolean isSelect) {
+                       String executeAs) {
         this.kylinConfig = kylinConfig;
         this.sql = sql;
         this.project = project;
@@ -134,11 +131,5 @@ public class QueryParams {
         this.offset = offset;
         this.isCCNeeded = isCCNeeded;
         this.executeAs = executeAs;
-        this.isForcedToPushDown = forcedToPushDown;
-        this.forcedToIndex = forcedToIndex;
-        this.isPrepareStatementWithParams = isPrepareStatementWithParams;
-        this.partialMatchIndex = partialMatchIndex;
-        this.acceptPartial = acceptPartial;
-        this.isSelect = isSelect;
     }
 }

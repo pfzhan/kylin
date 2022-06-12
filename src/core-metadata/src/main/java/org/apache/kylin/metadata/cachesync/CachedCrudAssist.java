@@ -43,31 +43,34 @@
 package org.apache.kylin.metadata.cachesync;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
-import com.google.common.cache.CustomKeyEquivalenceCacheBuilder;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.ThreadUtil;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.util.BrokenEntityProxy;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
+import com.google.common.cache.CustomKeyEquivalenceCacheBuilder;
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
-
-    private static final Logger logger = LoggerFactory.getLogger(CachedCrudAssist.class);
 
     private final ResourceStore store;
     private final Class<T> entityType;
@@ -120,11 +123,8 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
     }
 
     String resourcePath(String resourceName) {
-        if (StringUtils.isEmpty(resourceName)) {
-            logger.error("the resourceName \"{}\" cannot contain white character", resourceName);
-            throw new IllegalArgumentException(
-                    "the resourceName \"" + resourceName + "\" cannot contain white character");
-        }
+        Preconditions.checkArgument(StringUtils.isNotEmpty(resourceName),
+                "The resource name \"{}\" cannot contain white character", resourceName);
         return resRootPath + "/" + resourceName + resPathSuffix;
     }
 
@@ -135,7 +135,7 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
     }
 
     public void reloadAll() {
-        logger.trace("Reloading " + entityType.getSimpleName() + " from " + store.getReadableResourcePath(resRootPath));
+        log.trace("Reloading {} from {}", entityType.getSimpleName(), store.getReadableResourcePath(resRootPath));
 
         cache.invalidateAll();
 
@@ -144,8 +144,8 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
             reloadQuietlyAt(path);
         }
 
-        logger.trace("Loaded " + cache.size() + " " + entityType.getSimpleName() + "(s) out of " + paths.size()
-                + " resource from " + store.getReadableResourcePath(resRootPath));
+        log.trace("Loaded {} {}(s) out of {} resource from {}", cache.size(), entityType.getSimpleName(), paths.size(),
+                store.getReadableResourcePath(resRootPath));
     }
 
     private T reload(String resourceName) {
@@ -156,7 +156,7 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
         try {
             return reloadAt(path);
         } catch (Exception ex) {
-            logger.error("Error loading " + entityType.getSimpleName() + " at " + path, ex);
+            log.error("Error loading {} at {}", entityType.getSimpleName(), path, ex);
             return null;
         }
     }
@@ -179,9 +179,7 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
                 throw new IllegalStateException("The entity " + entity + " read from " + path
                         + " will save to a different path " + resourcePath(entity.resourceName()));
         } catch (Exception e) {
-            logger.warn(
-                    "Error loading " + entityType.getSimpleName() + " at " + path + " entity, return a BrokenEntity",
-                    e);
+            log.warn("Error loading {} at {} entity, return a BrokenEntity", entityType.getSimpleName(), path, e);
             entity = initBrokenEntity(entity, resourceName(path));
         }
 
@@ -239,8 +237,7 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
         }
 
         String path = resourcePath(resName);
-        logger.trace("Saving {} at {}", entityType.getSimpleName(), path);
-        //        new RuntimeException().printStackTrace();
+        log.trace("Saving {} at {}", entityType.getSimpleName(), path);
 
         store.checkAndPutResource(path, entity, serializer);
 
@@ -257,22 +254,33 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
         Preconditions.checkArgument(resName != null);
 
         String path = resourcePath(resName);
-        logger.debug("Deleting {} at {}", entityType.getSimpleName(), path);
+        log.debug("Deleting {} at {}", entityType.getSimpleName(), path);
 
         store.deleteResource(path);
         cache.invalidate(resName);
     }
 
     public List<T> listAll() {
-        val all = Lists.<T> newArrayList();
-        for (String path : store.collectResourceRecursively(resRootPath, resPathSuffix)) {
-            val entity = get(resourceName(path));
-            if (entity == null) {
-                continue;
-            }
-            all.add(entity);
+        List<T> all = store.collectResourceRecursively(resRootPath, resPathSuffix).stream()
+                .map(path -> get(resourceName(path))).filter(Objects::nonNull)
+                .collect(Collectors.toCollection(Lists::<T> newArrayList));
+        if (UnitOfWork.isAlreadyInTransaction() && log.isTraceEnabled()) {
+            log.trace("list all,\n{}", ThreadUtil.getKylinStackTrace());
         }
         return all;
+    }
+
+    public List<T> listPartial(Predicate<String> predicate) {
+        return store.collectResourceRecursively(resRootPath, resPathSuffix).stream() //
+                .filter(path -> predicate.test(path) || checkPathSuffix(path)) //
+                .map(path -> get(resourceName(path))) //
+                .filter(Objects::nonNull) //
+                .collect(Collectors.toList());
+    }
+
+    private boolean checkPathSuffix(String path) {
+        val pathPair = StringUtils.split(path, "/");
+        return pathPair.length > 0 && pathPair[pathPair.length - 1].length() == 36;
     }
 
     protected List<T> listAllValidCache() {

@@ -23,16 +23,21 @@
  */
 package io.kyligence.kap.secondstorage
 
+import java.sql.SQLException
+import java.util.Optional
+
 import io.kyligence.kap.engine.spark.utils.JavaOptionals._
 import io.kyligence.kap.engine.spark.utils.LogEx
 import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataflow}
 import io.kyligence.kap.secondstorage.enums.LockTypeEnum
 import io.kyligence.kap.secondstorage.metadata._
-import org.apache.kylin.common.{KylinConfig, QueryContext}
+import org.apache.kylin.common.{ForceToTieredStorage, KylinConfig, QueryContext}
+import org.apache.spark.sql.datasource.storage.StorageStoreFactory
 import org.apache.spark.sql.execution.datasources.jdbc.ShardOptions
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
 import scala.collection.JavaConverters._
+import scala.collection.mutable.{HashMap => MutableHashMap}
 import scala.util.control.NonFatal
 
 object SecondStorage extends LogEx {
@@ -92,20 +97,32 @@ object SecondStorage extends LogEx {
 
   private def queryCatalog() = Option.apply(secondStoragePlugin.queryCatalog())
 
+  private def forcedToTieredStorageHandler() = {
+    var forcedToTieredStorage : ForceToTieredStorage = QueryContext.current.getForcedToTieredStorage
+    if (forcedToTieredStorage == null) {
+      forcedToTieredStorage = ForceToTieredStorage.CH_FAIL_TO_DFS
+    }
+    if (forcedToTieredStorage != ForceToTieredStorage.CH_FAIL_TO_DFS) {
+      throw new SQLException(QueryContext.ROUTE_USE_FORCEDTOTIEREDSTORAGE)
+    }
+  }
   def trySecondStorage(
                         sparkSession: SparkSession,
                         dataflow: NDataflow,
                         layout: LayoutEntity,
                         pruningInfo: String): Option[DataFrame] = {
+    if (!SecondStorageUtil.isModelEnable(dataflow.getProject, dataflow.getModel.getId)) {
+      return None
+    }
 
     if (LockTypeEnum.locked(LockTypeEnum.QUERY.name(), SecondStorageUtil.getProjectLocks(dataflow.getProject))) {
       log.info("project={} has 'QUERY' lock, can not hit clickhouse query.", dataflow.getProject)
       return Option.empty
     }
 
+    var result = Option.empty[DataFrame]
     // Only support table index
     val enableSSForThisQuery = enabled && layout.getIndex.isTableIndex && !QueryContext.current().isForceTableIndex
-    var result = Option.empty[DataFrame]
     val allSegIds = pruningInfo.split(",").map(s => s.split(":")(0)).toSet.asJava
     while (enableSSForThisQuery && result.isEmpty && QueryContext.current().isRetrySecondStorage) {
       val tableData = Option.apply(enableSSForThisQuery)
@@ -123,33 +140,42 @@ object SecondStorage extends LogEx {
         logInfo("No table data found.")
       }
       result = tableData.flatMap(tableData =>
-        tryCreateDataFrame(Some(tableData), sparkSession, dataflow.getProject, allSegIds)
+        tryCreateDataFrame(Some(tableData), sparkSession, dataflow, allSegIds)
       )
     }
     if (result.isDefined) {
       QueryContext.current().setLastFailed(false)
       QueryContext.current().getSecondStorageUsageMap.put(layout.getId, true)
     }
+    if (enableSSForThisQuery && result.isEmpty) {
+      forcedToTieredStorageHandler()
+    }
 
     result
   }
 
   private def tryCreateDataFrame(tableData: Option[TableData], sparkSession: SparkSession,
-                                 project: String, allSegIds: java.util.Set[String]) = {
+                                 dataflow: NDataflow, allSegIds: java.util.Set[String]) = {
     try {
+      var project = dataflow.getProject
       for {
         shardJDBCURLs <- tableData.map(_.getShardJDBCURLs(project, allSegIds))
         database <- tableData.map(_.getDatabase)
         table <- tableData.map(_.getTable)
         catalog <- queryCatalog()
+        numPartition <- tableData.map(_.getSchemaURLSize)
       } yield {
         sparkSession.read
           .option(ShardOptions.SHARD_URLS, shardJDBCURLs)
+          .option(ShardOptions.PUSHDOWN_AGGREGATE, true)
+          .option(ShardOptions.PUSHDOWN_LIMIT, true)
+          .option(ShardOptions.PUSHDOWN_NUM_PARTITIONS, numPartition)
           .table(s"$catalog.$database.$table")
       }
     } catch {
       case NonFatal(e) =>
         logDebug("Failed to use second storage table-index", e)
+        forcedToTieredStorageHandler()
         QueryContext.current().setLastFailed(true);
         None
     }

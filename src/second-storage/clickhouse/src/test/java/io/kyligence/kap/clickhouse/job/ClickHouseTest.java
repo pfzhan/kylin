@@ -25,7 +25,6 @@
 package io.kyligence.kap.clickhouse.job;
 
 import io.kyligence.kap.clickhouse.ClickHouseStorage;
-import io.kyligence.kap.guava20.shaded.common.base.Strings;
 import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
 import io.kyligence.kap.secondstorage.config.ClusterInfo;
 import io.kyligence.kap.secondstorage.config.Node;
@@ -57,21 +56,7 @@ public class ClickHouseTest {
         SecondStorageNodeHelper.initFromCluster(
                 cluster,
                 node -> ClickHouse.buildUrl(node.getIp(), node.getPort(), ClickHouseStorage.getJdbcUrlProperties(cluster, node)),
-                nodes -> {
-                    if (nodes.isEmpty()) {
-                        return "";
-                    }
-
-                    StringBuilder sb = new StringBuilder();
-                    for (Node node : nodes) {
-                        if (Strings.isNullOrEmpty(sb.toString())) {
-                            sb.append(node.getIp()).append(":").append(node.getPort());
-                        } else {
-                            sb.append(",").append(node.getIp()).append(":").append(node.getPort());
-                        }
-                    }
-                    return ClickHouse.buildUrl(sb.toString(), ClickHouseStorage.getJdbcUrlProperties(cluster, nodes.get(0)));
-                });
+                null);
     }
 
     @Test

@@ -215,12 +215,10 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
     }
 
     public void updateIndexPlan(String dfId, ResourceStore remoteStore) {
-        val localDataflowManager = NDataflowManager.getInstance(getConfig(), getProject());
         val remoteDataflowManager = NDataflowManager.getInstance(remoteStore.getConfig(), getProject());
         IndexPlan remoteIndexPlan = remoteDataflowManager.getDataflow(dfId).getIndexPlan();
-        IndexPlan indexPlan = localDataflowManager.getDataflow(dfId).getIndexPlan();
         NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(getConfig(), getProject());
-        indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
+        indexPlanManager.updateIndexPlan(dfId, copyForWrite -> {
             copyForWrite.setLayoutBucketNumMapping(remoteIndexPlan.getLayoutBucketNumMapping());
         });
     }
