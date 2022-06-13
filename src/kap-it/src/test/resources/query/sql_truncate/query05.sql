@@ -23,10 +23,10 @@
 --
 SELECT
 "TEST_KYLIN_FACT"."TRANS_ID" as "TEST_KYLIN_FACT_TRANS_ID",
-TRUNCATE(PRICE, 1),
+TRUNCATE(PRICE, 0),
 TRUNCATE(PRICE),
 TRUNCATE(sum(PRICE)),
-TRUNCATE(sum(PRICE),1),
+TRUNCATE(sum(PRICE),0),
 TRUNCATE(sum(PRICE),10),
 TRUNCATE(sum(PRICE),1+1),
 TRUNCATE(sum(PRICE)-1.00001,0),
@@ -35,6 +35,7 @@ TRUNCATE(CAST(sum(PRICE) AS double),10),
 TRUNCATE(cast(sum(PRICE) as float),0),
 TRUNCATE(cast(TRANS_ID as smallint),0),
 TRUNCATE(cast(TRANS_ID as tinyint),0),
+TRUNCATE(cast(sum(PRICE) as float),0),
 TRUNCATE(cast(sum(PRICE) as float),2),
 TRUNCATE(cast(sum(PRICE) as double),0),
 TRUNCATE(cast(sum(PRICE) as double),2)

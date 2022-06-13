@@ -356,7 +356,7 @@ case class Truncate(_left: Expression, _right: Expression) extends BinaryExpress
   override def right: Expression = _right
 
   override def inputTypes: Seq[AbstractDataType] =
-    Seq(TypeCollection(IntegerType, LongType, DoubleType, DecimalType, IntegerType, FloatType, ShortType, ByteType), IntegerType)
+    Seq(TypeCollection(IntegerType, LongType, DoubleType, DecimalType, IntegerType), IntegerType)
 
   def this(exp: Expression) = this(exp, Literal(0, IntegerType))
 
@@ -365,9 +365,6 @@ case class Truncate(_left: Expression, _right: Expression) extends BinaryExpress
     left.dataType match {
       case IntegerType => TruncateImpl.evaluate(input1.asInstanceOf[Int], value2)
       case DoubleType => TruncateImpl.evaluate(input1.asInstanceOf[Double], value2)
-      case FloatType => TruncateImpl.evaluate(input1.asInstanceOf[Float], value2)
-      case ShortType => TruncateImpl.evaluate(input1.asInstanceOf[Short], value2)
-      case ByteType => TruncateImpl.evaluate(input1.asInstanceOf[Byte], value2)
       case LongType => TruncateImpl.evaluate(input1.asInstanceOf[Long], value2)
       case DecimalType() => TruncateImpl.evaluate(input1.asInstanceOf[Decimal], value2)
     }

@@ -155,8 +155,6 @@ public class NAutoBuildAndQueryTest extends AutoTestBase {
                 new TestScenario(CompareLevel.SAME, "query/sql_spark_func/misc"),
                 new TestScenario(CompareLevel.SAME, "query/sql_spark_func/math"),
                 new TestScenario(CompareLevel.SAME, "query/sql_spark_func/constant_query"),
-                new TestScenario(CompareLevel.SAME, "query/sql_truncate"), //
-                new TestScenario(CompareLevel.SAME, "query/sql-replace"), //
 
                 /* CompareLevel = SAME, JoinType = LEFT */
                 new TestScenario(CompareLevel.SAME, JoinType.LEFT, "query/sql_distinct_precisely"), //
