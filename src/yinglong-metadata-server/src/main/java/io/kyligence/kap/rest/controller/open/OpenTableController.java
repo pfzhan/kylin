@@ -33,6 +33,9 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 
+import io.kyligence.kap.rest.request.AWSTableLoadRequest;
+import io.kyligence.kap.rest.request.UpdateAWSTableExtDescRequest;
+import io.kyligence.kap.rest.response.UpdateAWSTableExtDescResponse;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -47,6 +50,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -151,6 +155,31 @@ public class OpenTableController extends NBasicController {
         return tableController.loadTables(tableLoadRequest);
     }
 
+    @ApiOperation(value = "loadAWSTablesCompatibleCrossAccount", tags = {"KC"})
+    @PostMapping(value = "/compatibility/aws")
+    @ResponseBody
+    public EnvelopeResponse<LoadTableResponse> loadAWSTablesCompatibleCrossAccount(@RequestBody AWSTableLoadRequest tableLoadRequest)
+            throws Exception {
+        String projectName = checkProjectName(tableLoadRequest.getProject());
+        tableLoadRequest.setProject(projectName);
+        checkRequiredArg("need_sampling", tableLoadRequest.getNeedSampling());
+        validatePriority(tableLoadRequest.getPriority());
+        boolean sampleConditionError = (null == tableLoadRequest.getSamplingRows() || tableLoadRequest.getSamplingRows() > MAX_SAMPLING_ROWS
+                || tableLoadRequest.getSamplingRows() < MIN_SAMPLING_ROWS);
+        if (Boolean.TRUE.equals(tableLoadRequest.getNeedSampling()) && sampleConditionError) {
+            throw new KylinException(JOB_SAMPLING_RANGE_INVALID, MIN_SAMPLING_ROWS, MAX_SAMPLING_ROWS);
+        }
+
+        // default set data_source_type = 9 and 8
+        if (ISourceAware.ID_SPARK != tableLoadRequest.getDataSourceType()
+                && ISourceAware.ID_JDBC != tableLoadRequest.getDataSourceType()) {
+            throw new KylinException(UNSUPPORTED_DATA_SOURCE_TYPE,
+                    "Only support Hive as the data source. (data_source_type = 9 || 8)");
+        }
+        updateDataSourceType(tableLoadRequest.getProject(), tableLoadRequest.getDataSourceType());
+        return tableController.loadAWSTablesCompatibleCrossAccount(tableLoadRequest);
+    }
+
     @ApiOperation(value = "preReloadTable", tags = { "AI" })
     @GetMapping(value = "/pre_reload")
     @ResponseBody
@@ -190,6 +219,34 @@ public class OpenTableController extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
+    @ApiOperation(value = "reloadAWSTablesCompatibleCrossAccount", tags = {"KC"})
+    @PostMapping(value = "/reload/compatibility/aws")
+    @ResponseBody
+    public EnvelopeResponse<OpenReloadTableResponse> reloadAWSTablesCompatibleCrossAccount(@RequestBody OpenReloadTableRequest request) {
+        String projectName = checkProjectName(request.getProject());
+        checkStreamingOperation(request.getProject(), request.getS3TableExtInfo().getName());
+        request.setProject(projectName);
+        checkRequiredArg("need_sampling", request.getNeedSampling());
+        validatePriority(request.getPriority());
+        if (StringUtils.isEmpty(request.getS3TableExtInfo().getName())) {
+            throw new KylinException(INVALID_TABLE_NAME, MsgPicker.getMsg().getTableNameCannotEmpty());
+        }
+
+        if (request.getNeedSampling()) {
+            TableSamplingService.checkSamplingRows(request.getSamplingRows());
+        }
+
+        Pair<String, List<String>> pair = tableService.reloadAWSTableCompatibleCrossAccount(request.getProject(),
+                request.getS3TableExtInfo(), request.getNeedSampling(), request.getSamplingRows(),
+                request.getNeedBuilding(), request.getPriority(), request.getYarnQueue());
+
+        OpenReloadTableResponse response = new OpenReloadTableResponse();
+        response.setSamplingId(pair.getFirst());
+        response.setJobIds(pair.getSecond());
+
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
+    }
+
     @ApiOperation(value = "prepareUnloadTable", tags = { "AI" })
     @GetMapping(value = "/{database:.+}/{table:.+}/prepare_unload")
     @ResponseBody
@@ -214,5 +271,14 @@ public class OpenTableController extends NBasicController {
         String dbTblName = String.format(Locale.ROOT, "%s.%s", database, table);
         tableService.unloadTable(projectName, dbTblName, cascade);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, dbTblName, "");
+    }
+
+    @ApiOperation(value = "updateLoadedAWSTableExtProp", tags = {"KC" })
+    @PutMapping(value = "/ext/prop/aws")
+    @ResponseBody
+    public EnvelopeResponse<UpdateAWSTableExtDescResponse> updateLoadedAWSTableExtProp(@RequestBody UpdateAWSTableExtDescRequest request) {
+        String projectName = checkProjectName(request.getProject());
+        request.setProject(projectName);
+        return tableController.updateLoadedAWSTableExtProp(request);
     }
 }

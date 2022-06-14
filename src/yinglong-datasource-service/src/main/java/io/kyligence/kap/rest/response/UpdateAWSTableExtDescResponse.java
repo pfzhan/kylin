@@ -21,30 +21,18 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-package io.kyligence.kap.rest.request;
+package io.kyligence.kap.rest.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-
-import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.Data;
-import org.apache.kylin.job.dao.ExecutablePO;
+
+import java.util.HashSet;
+import java.util.Set;
 
 @Data
-public class OpenReloadTableRequest implements ProjectInsensitiveRequest {
-    @JsonProperty("project")
-    private String project;
-    @JsonProperty("table")
-    private String table;
-    @JsonProperty("s3_table_ext_info")
-    private S3TableExtInfo s3TableExtInfo;
-    @JsonProperty("need_sampling")
-    private Boolean needSampling;
-    @JsonProperty("sampling_rows")
-    private int samplingRows;
-    @JsonProperty("need_building")
-    private Boolean needBuilding = false;
-    private int priority = ExecutablePO.DEFAULT_PRIORITY;
-    @JsonProperty("yarn_queue")
-    private String yarnQueue;
+public class UpdateAWSTableExtDescResponse {
+    @JsonProperty("succeed")
+    private Set<String> succeed = new HashSet<>();
+    @JsonProperty("failed")
+    private Set<String> failed = new HashSet<>();
 }

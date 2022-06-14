@@ -65,6 +65,7 @@ import java.util.stream.Stream;
 
 import javax.servlet.http.HttpServletRequest;
 
+import io.kyligence.kap.rest.request.S3TableExtInfo;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -1175,7 +1176,7 @@ public class TableService extends BasicService {
         aclEvaluate.checkProjectWritePermission(projectName);
         return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             Pair<String, List<String>> pair = new Pair<>();
-            List<String> buildingJobs = innerReloadTable(projectName, tableIdentity, needBuild);
+            List<String> buildingJobs = innerReloadTable(projectName, tableIdentity, needBuild, null);
             pair.setSecond(buildingJobs);
             if (needSample && maxRows > 0) {
                 List<String> jobIds = tableSamplingService.sampling(Sets.newHashSet(tableIdentity), projectName,
@@ -1188,8 +1189,27 @@ public class TableService extends BasicService {
         }, projectName);
     }
 
+    public Pair<String, List<String>> reloadAWSTableCompatibleCrossAccount(String projectName, S3TableExtInfo tableExtInfo,
+            boolean needSample, int maxRows, boolean needBuild, int priority, String yarnQueue) {
+        aclEvaluate.checkProjectWritePermission(projectName);
+        return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            Pair<String, List<String>> pair = new Pair<>();
+            List<String> buildingJobs = innerReloadTable(projectName, tableExtInfo.getName(), needBuild, tableExtInfo);
+            pair.setSecond(buildingJobs);
+            if (needSample && maxRows > 0) {
+                List<String> jobIds = tableSamplingService.sampling(Sets.newHashSet(tableExtInfo.getName()), projectName,
+                        maxRows, priority, yarnQueue, null);
+                if (CollectionUtils.isNotEmpty(jobIds)) {
+                    pair.setFirst(jobIds.get(0));
+                }
+            }
+            return pair;
+        }, projectName);
+    }
+
     @Transaction(project = 0)
-    List<String> innerReloadTable(String projectName, String tableIdentity, boolean needBuild) throws Exception {
+    List<String> innerReloadTable(String projectName, String tableIdentity, boolean needBuild,
+                 S3TableExtInfo tableExtInfo) throws Exception {
         val tableManager = getManager(NTableMetadataManager.class, projectName);
         val originTable = tableManager.getTableDesc(tableIdentity);
         Preconditions.checkNotNull(originTable,
@@ -1197,9 +1217,25 @@ public class TableService extends BasicService {
 
         List<String> jobs = Lists.newArrayList();
         val context = calcReloadContext(projectName, tableIdentity, true);
+        if (null != tableExtInfo) {
+            context.getTableExtDesc().addDataSourceProp(TableExtDesc.S3_ROLE_PROPERTY_KEY, tableExtInfo.getRoleArn());
+            context.getTableExtDesc().addDataSourceProp(TableExtDesc.S3_ENDPOINT_KEY, tableExtInfo.getEndpoint());
+        }
         if (!context.isNeedProcess()) {
+            TableExtDesc tableExtDesc = tableManager.getTableExtIfExists(originTable);
+            TableExtDesc targetExtDesc = context.getTableExtDesc();
+            String roleArn = targetExtDesc.getDataSourceProps().get(TableExtDesc.S3_ROLE_PROPERTY_KEY);
+            String endpoint = targetExtDesc.getDataSourceProps().get(TableExtDesc.S3_ENDPOINT_KEY);
+            if (null != tableExtDesc) {
+                tableExtDesc.addDataSourceProp(TableExtDesc.S3_ROLE_PROPERTY_KEY, roleArn);
+                tableExtDesc.addDataSourceProp(TableExtDesc.S3_ENDPOINT_KEY, endpoint);
+                TableExtDesc copyExt = tableManager.copyForWrite(tableExtDesc);
+                tableManager.saveTableExt(copyExt);
+                refreshSparkSessionIfNecessary(copyExt);
+            }
             return jobs;
         }
+
         val project = getManager(NProjectManager.class).getProject(projectName);
         Set<NDataModel> affectedModels = getAffectedModels(projectName, context);
         for (val model : affectedModels) {
@@ -1226,6 +1262,12 @@ public class TableService extends BasicService {
 
         mergeTable(projectName, context, false);
         return jobs;
+    }
+
+    public void refreshSparkSessionIfNecessary(TableExtDesc extDesc) {
+        if (KylinConfig.getInstanceFromEnv().useDynamicS3RoleCredentialInTable()) {
+            SparderEnv.addS3CredentialFromTableToSpark(extDesc, SparderEnv.getSparkSession());
+        }
     }
 
     private Set<NDataModel> getAffectedModels(String project, ReloadTableContext context) {

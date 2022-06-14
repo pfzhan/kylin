@@ -26,8 +26,12 @@ package io.kyligence.kap.rest.controller.open;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 
+import io.kyligence.kap.rest.request.S3TableExtInfo;
+import io.kyligence.kap.rest.request.AWSTableLoadRequest;
+import io.kyligence.kap.rest.request.UpdateAWSTableExtDescRequest;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.dao.ExecutablePO;
@@ -177,6 +181,78 @@ public class OpenTableControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testLoadAWSTablesCompatibleCrossAccount() throws Exception {
+        AWSTableLoadRequest tableLoadRequest = new AWSTableLoadRequest();
+        List<S3TableExtInfo> tableExtInfoList = new ArrayList<>();
+        S3TableExtInfo s3TableExtInfo1 = new S3TableExtInfo();
+        s3TableExtInfo1.setName("DEFAULT.TABLE0");
+        s3TableExtInfo1.setLocation("s3://bucket1/test1/");
+        S3TableExtInfo s3TableExtInfo2 = new S3TableExtInfo();
+        s3TableExtInfo2.setName("DEFAULT.TABLE1");
+        s3TableExtInfo2.setLocation("s3://bucket2/test2/");
+        s3TableExtInfo2.setEndpoint("us-west-2.amazonaws.com");
+        s3TableExtInfo2.setRoleArn("test:role");
+        tableExtInfoList.add(s3TableExtInfo1);
+        tableExtInfoList.add(s3TableExtInfo2);
+        tableLoadRequest.setTables(tableExtInfoList);
+        tableLoadRequest.setNeedSampling(false);
+        tableLoadRequest.setProject("default");
+        Mockito.doNothing().when(openTableController).updateDataSourceType("default", 9);
+        Mockito.doAnswer(x -> null).when(nTableController).loadAWSTablesCompatibleCrossAccount(tableLoadRequest);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/compatibility/aws") //
+                        .contentType(MediaType.APPLICATION_JSON) //
+                        .content(JsonUtil.writeValueAsString(tableLoadRequest)) //
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))) //
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(openTableController).loadAWSTablesCompatibleCrossAccount(tableLoadRequest);
+
+        tableLoadRequest.setNeedSampling(true);
+        tableLoadRequest.setSamplingRows(10000);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/compatibility/aws") //
+                        .contentType(MediaType.APPLICATION_JSON) //
+                        .content(JsonUtil.writeValueAsString(tableLoadRequest)) //
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))) //
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(openTableController).loadAWSTablesCompatibleCrossAccount(tableLoadRequest);
+
+        tableLoadRequest.setNeedSampling(true);
+        tableLoadRequest.setSamplingRows(1000);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/compatibility/aws") //
+                        .contentType(MediaType.APPLICATION_JSON) //
+                        .content(JsonUtil.writeValueAsString(tableLoadRequest)) //
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))) //
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
+        Mockito.verify(openTableController).loadAWSTablesCompatibleCrossAccount(tableLoadRequest);
+
+    }
+
+    @Test
+    public void testUpdateLoadedAWSTableExtProp() throws Exception {
+        List<S3TableExtInfo> tableExtInfoList = new ArrayList<>();
+        S3TableExtInfo s3TableExtInfo1 = new S3TableExtInfo();
+        s3TableExtInfo1.setName("DEFAULT.TABLE0");
+        s3TableExtInfo1.setLocation("s3://bucket1/test1/");
+        S3TableExtInfo s3TableExtInfo2 = new S3TableExtInfo();
+        s3TableExtInfo2.setName("DEFAULT.TABLE1");
+        s3TableExtInfo2.setLocation("s3://bucket2/test1/");
+        s3TableExtInfo2.setEndpoint("us-west-2.amazonaws.com");
+        s3TableExtInfo2.setRoleArn("testrole");
+        tableExtInfoList.add(s3TableExtInfo1);
+        tableExtInfoList.add(s3TableExtInfo2);
+
+        UpdateAWSTableExtDescRequest request = new UpdateAWSTableExtDescRequest();
+        request.setProject("default");
+        request.setTables(tableExtInfoList);
+
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/tables/ext/prop/aws") //
+                        .contentType(MediaType.APPLICATION_JSON) //
+                        .content(JsonUtil.writeValueAsString(request)) //
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))) //
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(openTableController).updateLoadedAWSTableExtProp(Mockito.any(UpdateAWSTableExtDescRequest.class));
+    }
+
+    @Test
     public void testPreReloadTable() throws Exception {
         String project = "default";
         String tableName = "TEST_KYLIN_FACT";
@@ -241,6 +317,45 @@ public class OpenTableControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError());
         Mockito.verify(openTableController).reloadTable(request3);
+    }
+
+    @Test
+    public void testReloadAWSTablesCompatibleCrossAccount() throws Exception {
+        String project = "default";
+        S3TableExtInfo s3TableExtInfo = new S3TableExtInfo();
+        s3TableExtInfo.setName("DEFAULT.TABLE1");
+        s3TableExtInfo.setLocation("s3://bucket1/test1/");
+        s3TableExtInfo.setEndpoint("us-west-2.amazonaws.com");
+        s3TableExtInfo.setRoleArn("test:role");
+
+        OpenReloadTableRequest request = new OpenReloadTableRequest();
+        request.setProject(project);
+        request.setNeedSampling(false);
+        request.setS3TableExtInfo(s3TableExtInfo);
+
+        Mockito.doReturn(new Pair<String, List<String>>()).when(tableService).reloadAWSTableCompatibleCrossAccount(request.getProject(),
+                request.getS3TableExtInfo(), request.getNeedSampling(), 0, false, ExecutablePO.DEFAULT_PRIORITY, null);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/reload/compatibility/aws") //
+                        .contentType(MediaType.APPLICATION_JSON) //
+                        .content(JsonUtil.writeValueAsString(request)) //
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))) //
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(openTableController).reloadAWSTablesCompatibleCrossAccount(request);
+
+        // test request with need_sampling
+        OpenReloadTableRequest request2 = new OpenReloadTableRequest();
+        request2.setProject(project);
+        request2.setS3TableExtInfo(s3TableExtInfo);
+        request2.setNeedSampling(true);
+        request2.setSamplingRows(10000);
+        Mockito.doReturn(new Pair<String, List<String>>()).when(tableService).reloadAWSTableCompatibleCrossAccount(request2.getProject(),
+                request2.getS3TableExtInfo(), request2.getNeedSampling(), request2.getSamplingRows(), false, ExecutablePO.DEFAULT_PRIORITY, null);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/reload/compatibility/aws") //
+                        .contentType(MediaType.APPLICATION_JSON) //
+                        .content(JsonUtil.writeValueAsString(request2)) //
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))) //
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(openTableController).reloadAWSTablesCompatibleCrossAccount(request2);
     }
 
     @Test
