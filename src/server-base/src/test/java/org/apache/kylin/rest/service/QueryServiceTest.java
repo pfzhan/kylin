@@ -83,6 +83,7 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.KylinTimeoutException;
 import org.apache.kylin.common.exception.QueryErrorCode;
 import org.apache.kylin.common.exception.ResourceLimitExceededException;
+import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.JsonUtil;
@@ -288,6 +289,30 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         final SQLResponse response = queryService.queryWithCache(sqlRequest);
 
         Assert.assertTrue(response.isQueryPushDown());
+    }
+
+    @Test
+    public void testQueryPushDownWhenForceToTieredStorageEqualsOne() throws Throwable {
+        final String sql = "select * from abc";
+        final String project = "default";
+        final QueryExec queryExec = Mockito.mock(QueryExec.class);
+        SQLRequest sqlRequest = new SQLRequest();
+        sqlRequest.setSql(sql);
+        sqlRequest.setProject(project);
+        sqlRequest.setForcedToPushDown(false);
+        sqlRequest.setForcedToTieredStorage(1);
+
+        QueryParams queryParams = new QueryParams(KapQueryUtil.getKylinConfig(sqlRequest.getProject()),
+                sqlRequest.getSql(), sqlRequest.getProject(), sqlRequest.getLimit(), sqlRequest.getOffset(),
+                queryExec.getDefaultSchemaName(), true);
+        String correctedSql = KapQueryUtil.massageSql(queryParams);
+
+        overwriteSystemProp("kylin.query.pushdown-enabled", "false");
+        Mockito.when(queryExec.executeQuery(correctedSql))
+                .thenThrow(new SQLException(QueryContext.ROUTE_USE_FORCEDTOTIEREDSTORAGE));
+
+        final SQLResponse response = queryService.queryWithCache(sqlRequest);
+        Assert.assertEquals(MsgPicker.getMsg().getDisablePushDownPrompt(), response.getExceptionMessage());
     }
 
     @Test
@@ -2275,7 +2300,9 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testCheckSqlRequestProject() {
-        Assert.assertThrows(KylinException.class, () -> ReflectionTestUtils.invokeMethod(queryService,
-                "checkSqlRequestProject", new SQLRequest(), MsgPicker.getMsg()));
+        SQLRequest sqlRequest = new SQLRequest();
+        Message msg = MsgPicker.getMsg();
+        Assert.assertThrows(KylinException.class, ()->ReflectionTestUtils.invokeMethod(queryService, "checkSqlRequestProject",
+                sqlRequest, msg));
     }
 }

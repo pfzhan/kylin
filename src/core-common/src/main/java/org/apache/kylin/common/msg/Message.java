@@ -48,6 +48,15 @@ import java.util.Locale;
 import org.apache.kylin.common.Singletons;
 
 public class Message {
+    private final String secondStorageProjectEnabled = "The project %s does not have tiered storage enabled.";
+    private final String secondStorageModelEnabled = "The model %s does not have tiered storage enabled.";
+    private final String secondStorageSegmentWithoutBaseIndex= "The base table index is missing in the segments, please add and try again.";
+    private final String secondStorageDeleteNodeFailed = "Node %s has data, size is %d bytes";
+    private final String forcedToTieredstorageAndForceToIndex = "When force_to_index=ture, the query cannot pushdown when using tiered storage fails, forcedToTieredStorage=1 or conf=1 is invalid, please modify and try again";
+    private final String forcedToTieredstorageReturnError = "Query failed. Tiered storage is unavailable, please fix and try again.";
+    private final String forcedToTieredstorageInvalidParameter = "invalid parameters, please fix and try again.";
+    private final String parameterIsRequired = "'%s' is required.";
+    private final String disablePushDownPrompt = "You should turn on pushdown as you want to pushdown when tiered storage is abnormal.";
 
     protected Message() {
 
@@ -1624,19 +1633,19 @@ public class Message {
     }
 
     public String getSecondStorageProjectEnabled() {
-        return "The project %s does not have tiered storage enabled.";
+        return secondStorageProjectEnabled;
     }
 
     public String getSecondStorageModelEnabled() {
-        return "The model %s does not have tiered storage enabled.";
+        return secondStorageModelEnabled;
     }
 
     public String getSecondStorageSegmentWithoutBaseIndex() {
-        return "The base table index is missing in the segments, please add and try again.";
+        return secondStorageSegmentWithoutBaseIndex;
     }
 
     public String getSecondStorageDeleteNodeFailed() {
-        return "Node %s has data, size is %d bytes";
+        return secondStorageDeleteNodeFailed;
     }
 
     public String getJobRestartFailed() {
@@ -1708,15 +1717,15 @@ public class Message {
     }
 
     public String getForcedToTieredstorageAndForceToIndex() {
-        return "When force_to_index=ture, the query cannot pushdown when using tiered storage fails, forcedToTieredStorage=1 or conf=1 is invalid, please modify and try again";
+        return forcedToTieredstorageAndForceToIndex;
     }
 
     public String getForcedToTieredstorageReturnError() {
-        return "Query failed. Tiered storage is unavailable, please fix and try again.";
+        return forcedToTieredstorageReturnError;
     }
 
     public String getForcedToTieredstorageInvalidParameter() {
-        return "invalid parameters, please fix and try again.";
+        return forcedToTieredstorageInvalidParameter;
     }
 
     public String getSecondStorageNodeNotAvailable() {
@@ -1834,7 +1843,11 @@ public class Message {
     }
 
     public String getPARAMETER_IS_REQUIRED() {
-        return "'%s' is required.";
+        return parameterIsRequired;
+    }
+
+    public String getDisablePushDownPrompt() {
+        return disablePushDownPrompt;
     }
 
     public String getNonExistenModel() {

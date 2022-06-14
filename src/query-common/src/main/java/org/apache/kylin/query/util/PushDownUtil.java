@@ -58,6 +58,7 @@ import javax.ws.rs.BadRequestException;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.kylin.common.ForceToTieredStorage;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
@@ -110,6 +111,9 @@ public class PushDownUtil {
             if (queryParams.isForcedToPushDown()) {
                 throw new KylinException(QueryErrorCode.INVALID_PARAMETER_PUSH_DOWN,
                         "you should turn on pushdown when you want to force to pushdown");
+            } else if (ForceToTieredStorage.CH_FAIL_TO_PUSH_DOWN == queryParams.getForcedToTieredStorage()) {
+                throw new KylinException(QueryErrorCode.INVALID_PARAMETER_PUSH_DOWN,
+                        MsgPicker.getMsg().getDisablePushDownPrompt());
             }
             return null;
         }
@@ -298,9 +302,7 @@ public class PushDownUtil {
      * @param queryParams
      * @return
      * @throws Exception
-     * @deprecated
      */
-    @Deprecated
     public static Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownQuery(QueryParams queryParams) throws Exception {
         val results = tryPushDownQueryToIterator(queryParams);
         if (results == null) {

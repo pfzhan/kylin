@@ -2095,6 +2095,11 @@ public class CnMessage extends Message {
     }
 
     @Override
+    public String getDisablePushDownPrompt() {
+        return "当您需要分层存储查询异常时查询下压，需要开启下压开关。";
+    }
+
+    @Override
     public String getNonExistenModel() {
         return "模型 %s 不存在，请检查后再重试.";
     }

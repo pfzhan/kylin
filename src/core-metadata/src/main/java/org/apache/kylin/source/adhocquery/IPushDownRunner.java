@@ -61,7 +61,6 @@ public interface IPushDownRunner {
      * @param project               the project name
      * @throws Exception if running pushdown query fails
      */
-    @Deprecated
     void executeQuery(String query, List<List<String>> returnRows, List<SelectedColumnMeta> returnColumnMeta,
             String project) throws Exception;
 
