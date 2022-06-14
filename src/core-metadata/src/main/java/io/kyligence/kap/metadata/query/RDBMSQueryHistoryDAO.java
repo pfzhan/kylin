@@ -79,6 +79,10 @@ public class RDBMSQueryHistoryDAO implements QueryHistoryDAO {
         return realizationMetricMeasurement;
     }
 
+    public List<QueryDailyStatistic> getQueryDailyStatistic(long startTime, long endTime) {
+        return jdbcQueryHisStore.queryHistoryDailyStatistic(startTime, endTime);
+    }
+
     public int insert(QueryMetrics metrics) {
         return jdbcQueryHisStore.insert(metrics);
     }

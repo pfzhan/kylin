@@ -358,6 +358,7 @@ case class Truncate(_left: Expression, _right: Expression) extends BinaryExpress
   override def inputTypes: Seq[AbstractDataType] =
     Seq(TypeCollection(IntegerType, LongType, DoubleType, DecimalType, IntegerType), IntegerType)
 
+  def this(exp: Expression) = this(exp, Literal(0, IntegerType))
 
   override protected def nullSafeEval(input1: Any, input2: Any): Any = {
     val value2 = input2.asInstanceOf[Int]

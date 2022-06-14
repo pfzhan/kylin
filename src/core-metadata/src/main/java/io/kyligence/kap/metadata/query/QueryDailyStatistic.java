@@ -21,42 +21,37 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.tool.bisync;
 
+package io.kyligence.kap.metadata.query;
 
-import org.apache.kylin.common.KylinConfig;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import lombok.Data;
+import java.io.Serializable;
 
-@Data
-public class SyncContext {
+@Getter
+@Setter
+@NoArgsConstructor
+public class QueryDailyStatistic implements Serializable {
 
-    public enum BI {
-        TABLEAU_ODBC_TDS,
-        TABLEAU_CONNECTOR_TDS
-    }
+    private long queryDay;
 
-    public enum ModelElement {
-        AGG_INDEX_COL,
-        AGG_INDEX_AND_TABLE_INDEX_COL,
-        ALL_COLS,
-        CUSTOM_COLS
-    }
+    private long totalNum;
 
-    private String projectName;
+    private long activeUserNum;
 
-    private String modelId;
+    private long succeedNum;
 
-    private String host;
+    private long totalDuration;
 
-    private int port;
+    private long lt1sNum;
 
-    private BI targetBI;
+    private long lt3sNum;
 
-    private ModelElement modelElement = ModelElement.AGG_INDEX_COL;
+    private long lt5sNum;
 
-    private NDataflow dataflow;
+    private long lt10sNum;
 
-    private KylinConfig kylinConfig;
+    private long lt15sNum;
 }
