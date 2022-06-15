@@ -258,7 +258,7 @@ public class NIndexPlanManager {
                 for (Integer dimId : index.getDimensions()) {
                     if (!selectedColumnIds.contains(dimId)) {
                         throw new IllegalStateException(
-                                String.format(Locale.ROOT, MsgPicker.getMsg().getDIMENSION_NOTFOUND(),
+                                String.format(Locale.ROOT, MsgPicker.getMsg().getDimensionNotfound(),
                                         indexPlan.getModel().getNonDimensionNameById(dimId)));
                     }
                 }

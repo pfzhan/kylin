@@ -37,6 +37,9 @@ case class ShardOptions(sharding: String) {
 
 object ShardOptions {
   val SHARD_URLS = "shard_urls"
+  val PUSHDOWN_AGGREGATE = "pushDownAggregate"
+  val PUSHDOWN_LIMIT = "pushDownLimit"
+  val PUSHDOWN_NUM_PARTITIONS = "numPartitions"
   val SPLIT_CHAR = "<url_split>"
   val REPLICA_SPLIT_CHAR = "<replica_split>"
 

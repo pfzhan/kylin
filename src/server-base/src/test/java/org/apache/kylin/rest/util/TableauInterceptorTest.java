@@ -55,7 +55,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.query.util.CommentParser;
+import io.kyligence.kap.query.util.RawSqlParser;
 
 public class TableauInterceptorTest {
 
@@ -67,7 +67,7 @@ public class TableauInterceptorTest {
                 .filter(file -> Files.isRegularFile(file)).map(path -> {
                     try {
                         String sql = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
-                        return new CommentParser(sql).Input();
+                        return new RawSqlParser(sql).parse().getStatementString();
                     } catch (Exception e) {
                         logger.error("meeting error when reading sqls in dir tableau_probing", e);
                         return null;

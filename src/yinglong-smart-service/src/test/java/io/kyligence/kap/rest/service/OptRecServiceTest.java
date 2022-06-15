@@ -200,7 +200,7 @@ public class OptRecServiceTest extends OptRecV2TestBase {
         Assert.assertEquals(0, modelBeforeApprove.getComputedColumnDescs().size());
         Assert.assertEquals(9, getIndexPlan().getAllLayouts().size());
 
-        optRecService.batchApprove(getProject(), "all");
+        optRecService.batchApprove(getProject(), Lists.newArrayList(), "all", false);
 
         NDataModel modelAfterApprove = getModel();
         Assert.assertEquals(17, modelAfterApprove.getEffectiveDimensions().size());
@@ -220,7 +220,7 @@ public class OptRecServiceTest extends OptRecV2TestBase {
         Assert.assertEquals(0, modelBeforeApprove.getComputedColumnDescs().size());
         Assert.assertEquals(9, getIndexPlan().getAllLayouts().size());
 
-        optRecService.batchApprove(getProject(), "REMOVE_INDEX");
+        optRecService.batchApprove(getProject(), Lists.newArrayList(), "REMOVE_INDEX", false);
 
         NDataModel modelAfterApprove = getModel();
         Assert.assertEquals(7, modelAfterApprove.getEffectiveDimensions().size());
@@ -241,7 +241,7 @@ public class OptRecServiceTest extends OptRecV2TestBase {
         Assert.assertEquals(9, getIndexPlan().getAllLayouts().size());
 
         changeRecTopN(50);
-        optRecService.batchApprove(getProject(), "ADD_INDEX");
+        optRecService.batchApprove(getProject(), Lists.newArrayList(), "ADD_INDEX", false);
 
         NDataModel modelAfterApprove = getModel();
         Assert.assertEquals(17, modelAfterApprove.getEffectiveDimensions().size());
@@ -266,7 +266,7 @@ public class OptRecServiceTest extends OptRecV2TestBase {
         List<String> modelIds = modelResponses.stream().map(NDataModelResponse::getUuid).collect(Collectors.toList());
 
         changeRecTopN(50);
-        List<RecToIndexResponse> responses = optRecService.batchApprove(getProject(), modelIds, "all");
+        List<RecToIndexResponse> responses = optRecService.batchApprove(getProject(), modelIds, "all", true);
 
         NDataModel modelAfterApprove = getModel();
         Assert.assertEquals(17, modelAfterApprove.getEffectiveDimensions().size());
@@ -297,7 +297,7 @@ public class OptRecServiceTest extends OptRecV2TestBase {
         List<String> modelIds = modelResponses.stream().map(NDataModelResponse::getUuid).collect(Collectors.toList());
 
         changeRecTopN(50);
-        List<RecToIndexResponse> responses = optRecService.batchApprove(getProject(), modelIds, "all");
+        List<RecToIndexResponse> responses = optRecService.batchApprove(getProject(), modelIds, "all", true);
 
         NDataModel modelAfterApprove = getModel();
         Assert.assertEquals(17, modelAfterApprove.getEffectiveDimensions().size());
@@ -340,7 +340,7 @@ public class OptRecServiceTest extends OptRecV2TestBase {
         List<String> modelIds = modelResponses.stream().map(NDataModelResponse::getUuid).collect(Collectors.toList());
 
         changeRecTopN(50);
-        List<RecToIndexResponse> responses = optRecService.batchApprove(getProject(), modelIds, "all");
+        List<RecToIndexResponse> responses = optRecService.batchApprove(getProject(), modelIds, "all", true);
 
         NDataModel modelAfterApprove = getModel();
         Assert.assertEquals(17, modelAfterApprove.getEffectiveDimensions().size());

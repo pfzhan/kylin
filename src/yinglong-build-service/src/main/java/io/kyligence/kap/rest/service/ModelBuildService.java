@@ -42,9 +42,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -82,8 +79,11 @@ import io.kyligence.kap.metadata.cube.model.SegmentPartition;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.MultiPartitionDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.util.MultiPartitionUtil;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import io.kyligence.kap.rest.aspect.Transaction;
 import io.kyligence.kap.rest.request.PartitionsRefreshRequest;
 import io.kyligence.kap.rest.request.SegmentTimeRequest;
@@ -138,7 +138,7 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
         NDataModel modelDesc = getManager(NDataModelManager.class, project).getDataModelDesc(modelId);
         if (!modelDesc.isMultiPartitionModel() && !CollectionUtils.isEmpty(multiPartitionValues)) {
             throw new KylinException(PARTITION_VALUE_NOT_SUPPORT, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getPARTITION_VALUE_NOT_SUPPORT(), modelDesc.getAlias()));
+                    MsgPicker.getMsg().getPartitionValueNotSupport(), modelDesc.getAlias()));
         }
         if (PartitionDesc.isEmptyPartitionDesc(modelDesc.getPartitionDesc())) {
             return fullBuildSegmentsManually(new FullBuildSegmentParams(project, modelId, needBuild)
@@ -175,7 +175,7 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
         if (model.getPartitionDesc() != null
                 && !StringUtils.isEmpty(model.getPartitionDesc().getPartitionDateColumn())) {
             //increment build model
-            throw new IllegalArgumentException(MsgPicker.getMsg().getCAN_NOT_BUILD_SEGMENT());
+            throw new IllegalArgumentException(MsgPicker.getMsg().getCanNotBuildSegment());
 
         }
         val dataflowManager = getManager(NDataflowManager.class, project);
@@ -192,9 +192,9 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
                     .withIgnoredSnapshotTables(params.getIgnoredSnapshotTables()).withPriority(params.getPriority())
                     .withYarnQueue(params.getYarnQueue()).withTag(params.getTag());
             addJobParamExtParams(jobParam, params);
-            return Lists
-                    .newArrayList(new JobInfoResponse.JobInfo(JobTypeEnum.INC_BUILD.toString(), getManager(SourceUsageManager.class)
-                            .licenseCheckWrap(project, () -> getManager(JobManager.class, project).addSegmentJob(jobParam))));
+            return Lists.newArrayList(new JobInfoResponse.JobInfo(JobTypeEnum.INC_BUILD.toString(),
+                    getManager(SourceUsageManager.class).licenseCheckWrap(project,
+                            () -> getManager(JobManager.class, project).addSegmentJob(jobParam))));
         }
         if (!needBuild) {
             return new LinkedList<>();
@@ -202,7 +202,8 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
         List<JobInfoResponse.JobInfo> res = Lists.newArrayListWithCapacity(2);
 
         RefreshSegmentParams refreshSegmentParams = new RefreshSegmentParams(project, modelId,
-                Lists.newArrayList(getManager(NDataflowManager.class, project).getDataflow(modelId).getSegments().get(0).getId())
+                Lists.newArrayList(
+                        getManager(NDataflowManager.class, project).getDataflow(modelId).getSegments().get(0).getId())
                         .toArray(new String[0]),
                 true).withIgnoredSnapshotTables(params.getIgnoredSnapshotTables()) //
                         .withPriority(params.getPriority()) //
@@ -241,7 +242,7 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
             NDataSegment segment = df.getSegment(id);
             if (segment == null) {
                 throw new IllegalArgumentException(
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getSEG_NOT_FOUND(), id, df.getModelAlias()));
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getSegNotFound(), id, df.getModelAlias()));
             }
 
             NDataSegment newSeg = dfMgr.refreshSegment(df, segment.getSegRange());
@@ -293,7 +294,7 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
             }
         }
 
-        copyModel.init(modelManager.getConfig(), project, getManager(NDataflowManager.class, project).listUnderliningDataModels());
+        copyModel.init(modelManager.getConfig(), project, getCCRelatedModels(project));
         String format = modelService.probeDateFormatIfNotExist(project, copyModel);
 
         List<JobInfoResponse.JobInfo> jobIds = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
@@ -319,7 +320,8 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
         if (CollectionUtils.isEmpty(params.getSegmentHoles())) {
             params.setSegmentHoles(Lists.newArrayList());
         }
-        NDataModel modelDesc = getManager(NDataModelManager.class, params.getProject()).getDataModelDesc(params.getModelId());
+        NDataModel modelDesc = getManager(NDataModelManager.class, params.getProject())
+                .getDataModelDesc(params.getModelId());
         if (PartitionDesc.isEmptyPartitionDesc(modelDesc.getPartitionDesc())
                 || !modelDesc.getPartitionDesc().equals(params.getPartitionDesc()) || !ModelSemanticHelper
                         .isMultiPartitionDescSame(modelDesc.getMultiPartitionDesc(), params.getMultiPartitionDesc())) {
@@ -367,7 +369,8 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
 
         NDataModel modelDescInTransaction = getManager(NDataModelManager.class, project).getDataModelDesc(modelId);
         JobManager jobManager = getManager(JobManager.class, project);
-        TableDesc table = getManager(NTableMetadataManager.class, project).getTableDesc(modelDescInTransaction.getRootFactTableName());
+        TableDesc table = getManager(NTableMetadataManager.class, project)
+                .getTableDesc(modelDescInTransaction.getRootFactTableName());
         val df = getManager(NDataflowManager.class, project).getDataflow(modelId);
         if (modelDescInTransaction.getPartitionDesc() == null
                 || StringUtils.isEmpty(modelDescInTransaction.getPartitionDesc().getPartitionDateColumn())) {
@@ -395,8 +398,8 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
             jobParam.setTargetPartitions(
                     model.getMultiPartitionDesc().getPartitionIdsByValues(params.getMultiPartitionValues()));
         }
-        return new JobInfoResponse.JobInfo(JobTypeEnum.INC_BUILD.toString(),
-                getManager(SourceUsageManager.class).licenseCheckWrap(project, () -> jobManager.addSegmentJob(jobParam)));
+        return new JobInfoResponse.JobInfo(JobTypeEnum.INC_BUILD.toString(), getManager(SourceUsageManager.class)
+                .licenseCheckWrap(project, () -> jobManager.addSegmentJob(jobParam)));
     }
 
     public void checkMultiPartitionBuildParam(NDataModel model, IncrementBuildSegmentParams params) {
@@ -423,7 +426,7 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
         NDataModel modelDesc = getManager(NDataModelManager.class, project).getDataModelDesc(modelId);
         if (ManagementType.MODEL_BASED != modelDesc.getManagementType()) {
             throw new KylinException(PERMISSION_DENIED, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getCAN_NOT_BUILD_INDICES_MANUALLY(), modelDesc.getAlias()));
+                    MsgPicker.getMsg().getCanNotBuildIndicesManually(), modelDesc.getAlias()));
         }
 
         NDataflow df = getManager(NDataflowManager.class, project).getDataflow(modelId);
@@ -432,8 +435,9 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
             return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NO_SEGMENT);
         }
 
-        String jobId = getManager(SourceUsageManager.class).licenseCheckWrap(project, () -> getManager(JobManager.class, project).addIndexJob(
-                new JobParam(modelId, getUsername()).withPriority(priority).withYarnQueue(yarnQueue).withTag(tag)));
+        String jobId = getManager(SourceUsageManager.class).licenseCheckWrap(project,
+                () -> getManager(JobManager.class, project).addIndexJob(new JobParam(modelId, getUsername())
+                        .withPriority(priority).withYarnQueue(yarnQueue).withTag(tag)));
 
         return new BuildIndexResponse(StringUtils.isBlank(jobId) ? BuildIndexResponse.BuildIndexType.NO_LAYOUT
                 : BuildIndexResponse.BuildIndexType.NORM_BUILD, jobId);
@@ -468,8 +472,8 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
             partitionValues.addAll(diffPartitions);
         }
         dfm.appendPartitions(df.getId(), segment.getId(), partitionValues);
-        Set<Long> targetPartitions = getManager(NDataModelManager.class, project).getDataModelDesc(modelId).getMultiPartitionDesc()
-                .getPartitionIdsByValues(partitionValues);
+        Set<Long> targetPartitions = getManager(NDataModelManager.class, project).getDataModelDesc(modelId)
+                .getMultiPartitionDesc().getPartitionIdsByValues(partitionValues);
         return parallelBuildPartition(parallelBuild, project, modelId, segmentId, targetPartitions, priority, yarnQueue,
                 tag);
     }
@@ -514,7 +518,7 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
                 refreshStart, refreshEnd);
         if (!response.getAffectedStart().equals(affectedStart) || !response.getAffectedEnd().equals(affectedEnd)) {
             throw new KylinException(PERMISSION_DENIED,
-                    MsgPicker.getMsg().getSEGMENT_CAN_NOT_REFRESH_BY_SEGMENT_CHANGE());
+                    MsgPicker.getMsg().getSegmentCanNotRefreshBySegmentChange());
         }
         TableDesc tableDesc = getManager(NTableMetadataManager.class, project).getTableDesc(table);
         SegmentRange segmentRange = SourceFactory.getSource(tableDesc).getSegmentRange(refreshStart, refreshEnd);
@@ -551,7 +555,8 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
                 null).withIgnoredSnapshotTables(param.getIgnoredSnapshotTables()).withPriority(param.getPriority())
                         .withYarnQueue(param.getYarnQueue()).withTag(param.getTag());
 
-        val jobId = getManager(SourceUsageManager.class).licenseCheckWrap(project, () -> jobManager.refreshSegmentJob(jobParam));
+        val jobId = getManager(SourceUsageManager.class).licenseCheckWrap(project,
+                () -> jobManager.refreshSegmentJob(jobParam));
         return JobInfoResponse.of(Lists.newArrayList(jobId), JobTypeEnum.SUB_PARTITION_REFRESH.toString());
     }
 

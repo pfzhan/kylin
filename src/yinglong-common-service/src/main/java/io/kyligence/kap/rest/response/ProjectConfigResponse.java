@@ -30,7 +30,6 @@ import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.RetentionRange;
 import io.kyligence.kap.metadata.model.VolatileRange;
 import io.kyligence.kap.secondstorage.response.SecondStorageNode;
@@ -45,8 +44,6 @@ public class ProjectConfigResponse {
     private String project;
     @JsonProperty("description")
     private String description;
-    @JsonProperty("maintain_model_type")
-    private MaintainModelType maintainModelType = MaintainModelType.AUTO_MAINTAIN;
     @JsonProperty("default_database")
     private String defaultDatabase;
     @JsonProperty("semi_automatic_mode")

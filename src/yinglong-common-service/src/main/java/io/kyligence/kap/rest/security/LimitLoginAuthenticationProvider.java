@@ -115,12 +115,9 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
             authenticateFail(managedUser, userName);
             if (managedUser != null && managedUser.isLocked()) {
                 if (UserLockRuleUtil.isLockedPermanently(managedUser)) {
-                    String msg = String.format(Locale.ROOT, MsgPicker.getMsg().getUSER_IN_PERMANENTLY_LOCKED_STATUS(),
-                            userName);
-                    limitLoginLogger.error(msg, new KylinException(USER_LOCKED, e));
-                    throw new BadCredentialsException(msg, new KylinException(USER_LOCKED, e));
+                    buildBadCredentialsException(userName, e);
                 }
-                String msg = MsgPicker.getMsg().getUSER_BE_LOCKED(UserLockRuleUtil.getLockDurationSeconds(managedUser));
+                String msg = MsgPicker.getMsg().getUserBeLocked(UserLockRuleUtil.getLockDurationSeconds(managedUser));
                 limitLoginLogger.error(msg, new KylinException(USER_LOCKED, e));
                 throw new BadCredentialsException(msg, new KylinException(USER_LOCKED, e));
             } else {
@@ -133,6 +130,12 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
         } catch (IllegalArgumentException e) {
             throw new BadCredentialsException(USER_LOGIN_FAILED.getMsg());
         }
+    }
+
+    private void buildBadCredentialsException(String userName, BadCredentialsException e) {
+        String msg = String.format(Locale.ROOT, MsgPicker.getMsg().getUserInPermanentlyLockedStatus(), userName);
+        limitLoginLogger.error(msg, new KylinException(USER_LOCKED, e));
+        throw new BadCredentialsException(msg, new KylinException(USER_LOCKED, e));
     }
 
     private void authenticateFail(ManagedUser managedUser, String userName) {
@@ -171,8 +174,7 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
         if (managedUser != null && managedUser.isLocked()) {
 
             if (UserLockRuleUtil.isLockedPermanently(managedUser)) {
-                throw new LockedException(String.format(Locale.ROOT,
-                        MsgPicker.getMsg().getUSER_IN_PERMANENTLY_LOCKED_STATUS(), userName));
+                buildLockedException(userName);
             }
 
             long lockedTime = managedUser.getLockedTime();
@@ -185,10 +187,15 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
                 long leftSeconds = UserLockRuleUtil.getLockLeftSeconds(managedUser, timeDiff);
                 long nextLockSeconds = UserLockRuleUtil.getLockDurationSeconds(managedUser.getWrongTime() + 1);
                 String msg = String.format(Locale.ROOT,
-                        MsgPicker.getMsg().getUSER_IN_LOCKED_STATUS(leftSeconds, nextLockSeconds), userName);
+                        MsgPicker.getMsg().getUserInLockedStatus(leftSeconds, nextLockSeconds), userName);
                 throw new LockedException(msg);
             }
         }
+    }
+
+    private void buildLockedException(String userName) {
+        throw new LockedException(
+                String.format(Locale.ROOT, MsgPicker.getMsg().getUserInPermanentlyLockedStatus(), userName));
     }
 
     @Override

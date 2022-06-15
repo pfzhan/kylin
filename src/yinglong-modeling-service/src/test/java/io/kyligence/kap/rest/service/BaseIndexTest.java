@@ -58,18 +58,15 @@ import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.request.CreateBaseIndexRequest;
 import io.kyligence.kap.rest.request.CreateBaseIndexRequest.LayoutProperty;
 import io.kyligence.kap.rest.request.CreateTableIndexRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
 import io.kyligence.kap.rest.response.IndexStatResponse;
-import lombok.val;
 import lombok.var;
 
 public class BaseIndexTest extends SourceTestCase {
@@ -105,12 +102,6 @@ public class BaseIndexTest extends SourceTestCase {
         ReflectionTestUtils.setField(modelService, "userGroupService", userGroupService);
         modelService.setSemanticUpdater(semanticService);
         modelService.setIndexPlanService(indexPlanService);
-
-        val prjManager = NProjectManager.getInstance(getTestConfig());
-        val prj = prjManager.getProject("default");
-        val copy = prjManager.copyForWrite(prj);
-        copy.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-        prjManager.updateProject(copy);
     }
 
     @After
@@ -312,7 +303,6 @@ public class BaseIndexTest extends SourceTestCase {
         compareBaseIndex(getModelIdFrom(modelRequest.getAlias()), baseTableLayout, baseAggLayout);
     }
 
-
     @Test
     public void testUpdateAndBuildBaseIndex() {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
@@ -365,7 +355,6 @@ public class BaseIndexTest extends SourceTestCase {
 
         return false;
     }
-
 
     @Test
     public void testUpdateBuiltBaseIndex() {

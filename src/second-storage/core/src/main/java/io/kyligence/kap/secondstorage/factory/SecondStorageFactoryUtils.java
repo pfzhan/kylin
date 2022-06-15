@@ -26,6 +26,7 @@ package io.kyligence.kap.secondstorage.factory;
 import com.google.common.base.Preconditions;
 import io.kyligence.kap.secondstorage.config.SecondStorageProperties;
 import io.kyligence.kap.secondstorage.database.DatabaseOperator;
+import io.kyligence.kap.secondstorage.database.QueryOperator;
 import io.kyligence.kap.secondstorage.metadata.MetadataOperator;
 
 import java.util.Locale;
@@ -50,5 +51,10 @@ public class SecondStorageFactoryUtils {
     public static DatabaseOperator createDatabaseOperator(String jdbcUrl) {
         SecondStorageDatabaseOperatorFactory factory = (SecondStorageDatabaseOperatorFactory) FACTORY_MAP.get(SecondStorageDatabaseOperatorFactory.class);
         return factory.createDatabaseOperator(jdbcUrl);
+    }
+
+    public static QueryOperator createQueryMetricOperator(String project) {
+        SecondStorageQueryOperatorFactory factory = (SecondStorageQueryOperatorFactory) FACTORY_MAP.get(SecondStorageQueryOperatorFactory.class);
+        return factory.getQueryOperator(project);
     }
 }

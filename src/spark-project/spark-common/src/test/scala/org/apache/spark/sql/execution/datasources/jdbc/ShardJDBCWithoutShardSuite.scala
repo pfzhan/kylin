@@ -98,9 +98,8 @@ class ShardJDBCWithoutShardSuite extends QueryTest
 
       val quotedPrtColName = testH2Dialect.quoteIdentifier(expectedColumnName)
       df.logicalPlan match {
-        case LogicalRelation(re @ JDBCRelation(_, parts, _), _, _, _) =>
+        case LogicalRelation(JDBCRelation(_, parts, _), _, _, _) =>
           val whereClauses = parts.map(_.asInstanceOf[JDBCPartition].whereClause).toSet
-          assert(re.isInstanceOf[ShardJDBCRelation])
           assert(whereClauses === Set(
             s"$quotedPrtColName < 2 or $quotedPrtColName is null",
             s"$quotedPrtColName >= 2 AND $quotedPrtColName < 3",

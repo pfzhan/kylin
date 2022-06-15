@@ -192,7 +192,7 @@ public class ComputedColumnUtil {
                 }).toArray(ColumnDesc[]::new);
     }
 
-    private static Map<String, Set<String>> getCCUsedColsMap(NDataModel model, String colName) {
+    public static Map<String, Set<String>> getCCUsedColsMap(NDataModel model, String colName) {
         Map<String, Set<String>> usedCols = Maps.newHashMap();
         Map<String, String> aliasTableMap = getAliasTableMap(model);
         Preconditions.checkState(aliasTableMap.size() > 0, "can not find cc:" + colName + "'s table alias");
@@ -488,7 +488,7 @@ public class ComputedColumnUtil {
                     : CalciteParser.replaceAliasInExpr(existingCC.getExpression(), aliasMapping.getAliasMapping());
 
             String finalExpr = advisedExpr != null ? advisedExpr : existingCC.getExpression();
-            String msg = String.format(Locale.ROOT, MsgPicker.getMsg().getCOMPUTED_COLUMN_NAME_DUPLICATED(),
+            String msg = String.format(Locale.ROOT, MsgPicker.getMsg().getComputedColumnNameDuplicated(),
                     newCC.getFullName(), existingModel.getAlias(), finalExpr);
             throw new BadModelException(DUPLICATE_COMPUTED_COLUMN_NAME, msg,
                     BadModelException.CauseType.SAME_NAME_DIFF_EXPR, advisedExpr, existingModel.getAlias(),
@@ -543,7 +543,7 @@ public class ComputedColumnUtil {
         public void handleOnSameExprDiffName(NDataModel existingModel, ComputedColumnDesc existingCC,
                 ComputedColumnDesc newCC) {
             String adviseName = existingCC.getColumnName();
-            String msg = String.format(Locale.ROOT, MsgPicker.getMsg().getCOMPUTED_COLUMN_EXPRESSION_DUPLICATED(),
+            String msg = String.format(Locale.ROOT, MsgPicker.getMsg().getComputedColumnExpressionDuplicated(),
                     existingModel.getAlias(), existingCC.getColumnName());
             throw new BadModelException(DUPLICATE_COMPUTED_COLUMN_EXPRESSION, msg,
                     BadModelException.CauseType.SAME_EXPR_DIFF_NAME, adviseName, existingModel.getAlias(),
@@ -553,7 +553,7 @@ public class ComputedColumnUtil {
         @Override
         public void handleOnSingleModelSameName(NDataModel existingModel, ComputedColumnDesc existingCC,
                 ComputedColumnDesc newCC) {
-            String msg = MsgPicker.getMsg().getCOMPUTED_COLUMN_NAME_DUPLICATED_SINGLE_MODEL();
+            String msg = MsgPicker.getMsg().getComputedColumnNameDuplicatedSingleModel();
             throw new BadModelException(DUPLICATE_COMPUTED_COLUMN_NAME, msg, CauseType.SELF_CONFLICT_WITH_SAME_NAME,
                     null, null, newCC.getFullName());
         }
@@ -564,7 +564,7 @@ public class ComputedColumnUtil {
             logger.error(
                     String.format(Locale.ROOT, "In model %s, computed columns %s and %s have equivalent expressions.",
                             existingModel.getAlias(), existingCC.getFullName(), newCC.getFullName()));
-            String msg = MsgPicker.getMsg().getCOMPUTED_COLUMN_EXPRESSION_DUPLICATED_SINGLE_MODEL();
+            String msg = MsgPicker.getMsg().getComputedColumnExpressionDuplicatedSingleModel();
             throw new BadModelException(DUPLICATE_COMPUTED_COLUMN_EXPRESSION, msg,
                     BadModelException.CauseType.SELF_CONFLICT_WITH_SAME_EXPRESSION, null, null, newCC.getFullName());
         }

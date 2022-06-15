@@ -23,29 +23,32 @@
  */
 package io.kyligence.kap.secondstorage.abnormal;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import static io.kyligence.kap.clickhouse.ClickHouseConstants.CONFIG_CLICKHOUSE_QUERY_CATALOG;
+import static io.kyligence.kap.newten.clickhouse.ClickHouseUtils.columnMapping;
+
+import java.util.Collections;
+import java.util.stream.Collectors;
+
+import com.google.common.collect.ImmutableMap;
 import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.secondstorage.test.utils.JobWaiter;
-import io.kyligence.kap.util.ExecAndComp;
 import io.kyligence.kap.newten.clickhouse.ClickHouseUtils;
-import static io.kyligence.kap.newten.clickhouse.ClickHouseUtils.columnMapping;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import io.kyligence.kap.secondstorage.test.ClickHouseClassRule;
 import io.kyligence.kap.secondstorage.test.EnableClickHouseJob;
 import io.kyligence.kap.secondstorage.test.EnableTestUser;
 import io.kyligence.kap.secondstorage.test.SharedSparkSession;
-import lombok.val;
+
+import io.kyligence.kap.secondstorage.test.utils.JobWaiter;
+import io.kyligence.kap.util.ExecAndComp;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.execution.datasources.v2.jdbc.ShardJDBCScan;
+import org.apache.spark.sql.execution.datasources.v2.jdbc.JDBCScan;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -53,10 +56,6 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.testcontainers.containers.JdbcDatabaseContainer;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
 
 public class SecondaryCatalogTest implements JobWaiter {
     static private final String cubeName = "acfde546-2cc9-4eec-bc92-e3bd46d4e2ee";
@@ -103,12 +102,24 @@ public class SecondaryCatalogTest implements JobWaiter {
             sparkSession.sessionState().conf().setConfString(
                     "spark.sql.catalog." + queryCatalog + ".driver",
                     clickhouse2.getDriverClassName());
+            sparkSession.sessionState().conf().setConfString(
+                    "spark.sql.catalog." + queryCatalog + ".pushDownAggregate",
+                    "true");
+            sparkSession.sessionState().conf().setConfString(
+                    "spark.sql.catalog." + queryCatalog + ".numPartitions",
+                    "1");
 
             Dataset<Row> groupPlan =
                     ExecAndComp.queryModelWithoutCompute(project, "select sum(PRICE) from TEST_KYLIN_FACT group by PRICE");
-            ShardJDBCScan shardJDBCScan = ClickHouseUtils.findShardScan(groupPlan.queryExecution().optimizedPlan());
-            List<String> expected = ImmutableList.of(columnMapping.get("PRICE"));
-            ClickHouseUtils.checkGroupBy(shardJDBCScan, expected);
+            JDBCScan JdbcScan = ClickHouseUtils.findJDBCScan(groupPlan.queryExecution().optimizedPlan());
+            Assert.assertEquals(1, JdbcScan.relation().parts().length);
+            ClickHouseUtils.checkAggregateRemoved(groupPlan);
+            String[] expectedPlanFragment = new String[] {
+                    "PushedAggregates: [SUM(" + columnMapping.get("PRICE") + ")], ",
+                    "PushedFilters: [], ",
+                    "PushedGroupByExpressions: [" + columnMapping.get("PRICE") + "], "
+            };
+            ClickHouseUtils.checkPushedInfo(groupPlan, expectedPlanFragment);
         } finally {
             Unsafe.clearProperty(CONFIG_CLICKHOUSE_QUERY_CATALOG);
         }
@@ -116,7 +127,7 @@ public class SecondaryCatalogTest implements JobWaiter {
 
     public void buildModel() throws Exception {
         new IndexDataConstructor(project).buildDataflow(cubeName);
-        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         waitJobFinish(project,
                 triggerClickHouseLoadJob(project, cubeName, "ADMIN",
                         dataflowManager.getDataflow(cubeName).getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList())));

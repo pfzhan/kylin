@@ -24,7 +24,7 @@
 
 package org.apache.kylin.job.constant;
 
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.PARAMETER_INVALID_SUPPORT_LIST;
 
 import java.util.Arrays;
 import java.util.Locale;
@@ -42,8 +42,7 @@ public enum JobActionEnum {
 
     public static void validateValue(String value) {
         if (!validValues.contains(value.toUpperCase(Locale.ROOT))) {
-            throw new KylinException(INVALID_PARAMETER,
-                    "Invalid value in parameter “action“. The value should be “RESUME“, “DISCARD“, “PAUSE” or “RESTART“.");
+            throw new KylinException(PARAMETER_INVALID_SUPPORT_LIST, "action", "RESUME, DISCARD, PAUSE, RESTART");
         }
     }
 }

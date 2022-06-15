@@ -61,7 +61,7 @@ public class ResourceGroupMappingInfoValidator implements IResourceGroupRequestV
         List<ResourceGroupMappingInfo> mappingInfo = request.getResourceGroupMappingInfoList();
         for (ResourceGroupMappingInfo info : mappingInfo) {
             if (StringUtils.isBlank(info.getProject())) {
-                throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getEMPTY_PROJECT_IN_MAPPING_INFO());
+                throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getEmptyProjectInMappingInfo());
             }
             ProjectInstance prjInstance = projectManager.getProject(info.getProject());
             if (prjInstance == null) {
@@ -69,11 +69,11 @@ public class ResourceGroupMappingInfoValidator implements IResourceGroupRequestV
             }
             if (StringUtils.isBlank(info.getResourceGroupId())) {
                 throw new KylinException(INVALID_PARAMETER,
-                        MsgPicker.getMsg().getEMPTY_RESOURCE_GROUP_ID_IN_MAPPING_INFO());
+                        MsgPicker.getMsg().getEmptyResourceGroupIdInMappingInfo());
             }
             if (!resourceGroups.contains(info.getResourceGroupId())) {
                 throw new KylinException(INVALID_PARAMETER,
-                        MsgPicker.getMsg().getRESOURCE_GROUP_ID_NOT_EXIST_IN_MAPPING_INFO(info.getResourceGroupId()));
+                        MsgPicker.getMsg().getResourceGroupIdNotExistInMappingInfo(info.getResourceGroupId()));
             }
         }
 
@@ -92,7 +92,7 @@ public class ResourceGroupMappingInfoValidator implements IResourceGroupRequestV
 
             if (bindInvalidTotalNum || bindInvalidNumInOneType) {
                 throw new KylinException(INVALID_PARAMETER, String.format(Locale.ROOT,
-                        MsgPicker.getMsg().getPROJECT_BINDING_RESOURCE_GROUP_INVALID(), project));
+                        MsgPicker.getMsg().getProjectBindingResourceGroupInvalid(), project));
             }
         }
     }

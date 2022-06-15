@@ -86,6 +86,7 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.cluster.ClusterManagerFactory;
 import io.kyligence.kap.cluster.IClusterManager;
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
 import io.kyligence.kap.engine.spark.merger.MetadataMerger;
 import io.kyligence.kap.guava20.shaded.common.util.concurrent.UncheckedTimeoutException;
@@ -257,7 +258,7 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).setJobResumable(getId());
                 return 0;
-            }, context.getEpochId(), project);
+            }, project, UnitOfWork.DEFAULT_MAX_RETRY, context.getEpochId(), getTempLockName());
         }
 
         String argsPath = createArgsFileOnHDFS(config, jobId);
@@ -410,7 +411,7 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
                         NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                                 .updateJobOutput(getParentId(), this.getStatus(), updateInfo, null, null);
                         return null;
-                    }, project);
+                    }, project, UnitOfWork.DEFAULT_MAX_RETRY, getEpochId(), getTempLockName());
                 } catch (Exception e) {
                     logger.warn("failed to record process id.");
                 }
@@ -549,7 +550,7 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
         } else {
             // The way of Updating metadata is CopyOnWrite. So it is safe to use Reference in the value.
             Map<String, RawResource> dumpMap = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(
-                    UnitOfWorkParams.<Map> builder().readonly(true).unitName(getProject()).processor(() -> {
+                    UnitOfWorkParams.<Map> builder().readonly(true).unitName(getProject()).maxRetry(1).processor(() -> {
                         Map<String, RawResource> retMap = Maps.newHashMap();
                         for (String resPath : getMetadataDumpList(config)) {
                             ResourceStore resourceStore = ResourceStore.getKylinMetaStore(config);

@@ -92,7 +92,7 @@ class KylinDataFrameManager(sparkSession: SparkSession) {
       val id = layout.getOrderedDimensions.inverse().get(partition)
       SecondStorage.trySecondStorage(sparkSession, dataflow, layout, pruningInfo).getOrElse {
         var df = StorageStoreFactory.create(dataflow.getModel.getStorageType)
-                .read(dataflow, layout, sparkSession, extraOptions.toMap)
+          .read(dataflow, layout, sparkSession, extraOptions.toMap)
         if (end != Long.MinValue) {
           df = df.filter(col(id.toString).geq(new Timestamp(end)))
         }
@@ -101,7 +101,7 @@ class KylinDataFrameManager(sparkSession: SparkSession) {
     } else {
       SecondStorage.trySecondStorage(sparkSession, dataflow, layout, pruningInfo).getOrElse {
         StorageStoreFactory.create(dataflow.getModel.getStorageType)
-                .read(dataflow, layout, sparkSession, extraOptions.toMap)
+          .read(dataflow, layout, sparkSession, extraOptions.toMap)
       }
     }
   }

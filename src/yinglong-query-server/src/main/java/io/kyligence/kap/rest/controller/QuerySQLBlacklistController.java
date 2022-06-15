@@ -74,7 +74,7 @@ public class QuerySQLBlacklistController extends NBasicController {
     public EnvelopeResponse getSqlBlacklist(@PathVariable(value = "project") String project) {
         Message msg = Message.getInstance();
         if (null == project) {
-            throw new KylinException(BLACKLIST_PROJECT_EMPTY, msg.getSQL_BLACKLIST_ITEM_PROJECT_EMPTY());
+            throw new KylinException(BLACKLIST_PROJECT_EMPTY, msg.getSqlBlacklistItemProjectEmpty());
         }
         SQLBlacklist sqlBlacklist = querySQLBlacklistService.getSqlBlacklist(project);
         return new EnvelopeResponse(KylinException.CODE_SUCCESS, sqlBlacklist, "");
@@ -86,7 +86,7 @@ public class QuerySQLBlacklistController extends NBasicController {
     public EnvelopeResponse<SQLBlacklist> overwrite(@RequestBody SQLBlacklistRequest sqlBlacklistRequest) throws IOException {
          Message msg = Message.getInstance();
         if (null == sqlBlacklistRequest.getProject()) {
-            throw new KylinException(BLACKLIST_PROJECT_EMPTY, msg.getSQL_BLACKLIST_ITEM_PROJECT_EMPTY());
+            throw new KylinException(BLACKLIST_PROJECT_EMPTY, msg.getSqlBlacklistItemProjectEmpty());
         }
         validateSqlBlacklist(sqlBlacklistRequest.getBlacklistItems());
         SQLBlacklist sqlBlacklist = querySQLBlacklistService.saveSqlBlacklist(sqlBlacklistRequest);
@@ -100,15 +100,15 @@ public class QuerySQLBlacklistController extends NBasicController {
         Set<String> sqlSet = Sets.newHashSet();
         for (SQLBlacklistItemRequest item : sqlBlacklistItemRequests) {
             if (null == item.getRegex() && null == item.getSql()) {
-                throw new KylinException(BLACKLIST_REGEX_AND_SQL_EMPTY, msg.getSQL_BLACKLIST_ITEM_REGEX_AND_SQL_EMPTY());
+                throw new KylinException(BLACKLIST_REGEX_AND_SQL_EMPTY, msg.getSqlBlacklistItemRegexAndSqlEmpty());
             }
             String regex = item.getRegex();
             if (null != regex && regexSet.contains(regex)) {
-                throw new KylinException(BLACKLIST_REGEX_EXISTS, msg.getSQL_BLACKLIST_ITEM_REGEX_EXISTS());
+                throw new KylinException(BLACKLIST_REGEX_EXISTS, msg.getSqlBlacklistItemRegexExists());
             }
             String sql = item.getSql();
             if (null != sql && sqlSet.contains(sql)) {
-                throw new KylinException(BLACKLIST_SQL_EXISTS, msg.getSQL_BLACKLIST_ITEM_SQL_EXISTS());
+                throw new KylinException(BLACKLIST_SQL_EXISTS, msg.getSqlBlacklistItemSqlExists());
             }
             if (null != regex) {
                 regexSet.add(item.getRegex());
@@ -126,20 +126,20 @@ public class QuerySQLBlacklistController extends NBasicController {
             @RequestBody SQLBlacklistItemRequest sqlBlacklistItemRequest) throws IOException {
          Message msg = Message.getInstance();
         if (null == sqlBlacklistItemRequest.getRegex() && null == sqlBlacklistItemRequest.getSql()) {
-            throw new KylinException(BLACKLIST_REGEX_AND_SQL_EMPTY, msg.getSQL_BLACKLIST_ITEM_REGEX_AND_SQL_EMPTY());
+            throw new KylinException(BLACKLIST_REGEX_AND_SQL_EMPTY, msg.getSqlBlacklistItemRegexAndSqlEmpty());
         }
         if (null == project) {
-            throw new KylinException(BLACKLIST_PROJECT_EMPTY, msg.getSQL_BLACKLIST_ITEM_PROJECT_EMPTY());
+            throw new KylinException(BLACKLIST_PROJECT_EMPTY, msg.getSqlBlacklistItemProjectEmpty());
         }
         SQLBlacklistItem sqlBlacklistItemOfRegex = querySQLBlacklistService.getItemByRegex(project,
                 sqlBlacklistItemRequest);
         if (null != sqlBlacklistItemOfRegex) {
-            throw new KylinException(BLACKLIST_REGEX_EMPTY, String.format(Locale.ROOT, msg.getSQL_BLACKLIST_ITEM_REGEX_EXISTS(), sqlBlacklistItemOfRegex.getId()));
+            throw new KylinException(BLACKLIST_REGEX_EMPTY, String.format(Locale.ROOT, msg.getSqlBlacklistItemRegexExists(), sqlBlacklistItemOfRegex.getId()));
         }
         SQLBlacklistItem sqlBlacklistItemOfSql = querySQLBlacklistService.getItemBySql(project,
                 sqlBlacklistItemRequest);
         if (null != sqlBlacklistItemOfSql) {
-            throw new KylinException(BLACKLIST_SQL_EXISTS, String.format(Locale.ROOT, msg.getSQL_BLACKLIST_ITEM_SQL_EXISTS(), sqlBlacklistItemOfSql.getId()));
+            throw new KylinException(BLACKLIST_SQL_EXISTS, String.format(Locale.ROOT, msg.getSqlBlacklistItemSqlExists(), sqlBlacklistItemOfSql.getId()));
         }
 
         SQLBlacklist sqlBlacklist = querySQLBlacklistService.addSqlBlacklistItem(project, sqlBlacklistItemRequest);
@@ -154,26 +154,26 @@ public class QuerySQLBlacklistController extends NBasicController {
             @RequestBody SQLBlacklistItemRequest sqlBlacklistItemRequest) throws IOException {
          Message msg = Message.getInstance();
         if (null == sqlBlacklistItemRequest.getId()) {
-            throw new KylinException(BLACKLIST_ITEM_ID_EMPTY, msg.getSQL_BLACKLIST_ITEM_ID_EMPTY());
+            throw new KylinException(BLACKLIST_ITEM_ID_EMPTY, msg.getSqlBlacklistItemIdEmpty());
         }
         if (null == sqlBlacklistItemRequest.getRegex() && null == sqlBlacklistItemRequest.getSql()) {
-            throw new KylinException(BLACKLIST_REGEX_AND_SQL_EMPTY, msg.getSQL_BLACKLIST_ITEM_REGEX_AND_SQL_EMPTY());
+            throw new KylinException(BLACKLIST_REGEX_AND_SQL_EMPTY, msg.getSqlBlacklistItemRegexAndSqlEmpty());
         }
         if (null == project) {
-            throw new KylinException(BLACKLIST_PROJECT_EMPTY, msg.getSQL_BLACKLIST_ITEM_PROJECT_EMPTY());
+            throw new KylinException(BLACKLIST_PROJECT_EMPTY, msg.getSqlBlacklistItemProjectEmpty());
         }
         if (null == querySQLBlacklistService.getItemById(project, sqlBlacklistItemRequest)) {
-            throw new KylinException(BLACKLIST_ITEM_ID_EMPTY, msg.getSQL_BLACKLIST_ITEM_ID_NOT_EXISTS());
+            throw new KylinException(BLACKLIST_ITEM_ID_EMPTY, msg.getSqlBlacklistItemIdNotExists());
         }
         SQLBlacklistItem conflictRegexItem = querySQLBlacklistService.checkConflictRegex(project,
                 sqlBlacklistItemRequest);
         if (null != conflictRegexItem) {
-            throw new KylinException(BLACKLIST_REGEX_EMPTY, String.format(Locale.ROOT, msg.getSQL_BLACKLIST_ITEM_REGEX_EXISTS(), conflictRegexItem.getId()));
+            throw new KylinException(BLACKLIST_REGEX_EMPTY, String.format(Locale.ROOT, msg.getSqlBlacklistItemRegexExists(), conflictRegexItem.getId()));
         }
         SQLBlacklistItem conflictSqlItem = querySQLBlacklistService.checkConflictSql(project,
                 sqlBlacklistItemRequest);
         if (null != conflictSqlItem) {
-            throw new KylinException(BLACKLIST_SQL_EXISTS, String.format(Locale.ROOT, msg.getSQL_BLACKLIST_ITEM_SQL_EXISTS(), conflictSqlItem.getId()));
+            throw new KylinException(BLACKLIST_SQL_EXISTS, String.format(Locale.ROOT, msg.getSqlBlacklistItemSqlExists(), conflictSqlItem.getId()));
         }
         SQLBlacklist sqlBlacklist = querySQLBlacklistService.updateSqlBlacklistItem(project,
                 sqlBlacklistItemRequest);
@@ -187,10 +187,10 @@ public class QuerySQLBlacklistController extends NBasicController {
                                        @PathVariable(value = "id") String id) throws IOException {
         Message msg = Message.getInstance();
         if (null == project) {
-            throw new KylinException(BLACKLIST_PROJECT_EMPTY, msg.getSQL_BLACKLIST_ITEM_PROJECT_EMPTY());
+            throw new KylinException(BLACKLIST_PROJECT_EMPTY, msg.getSqlBlacklistItemProjectEmpty());
         }
         if (null == id) {
-            throw new KylinException(BLACKLIST_ITEM_ID_EMPTY, msg.getSQL_BLACKLIST_ITEM_ID_TO_DELETE_EMPTY());
+            throw new KylinException(BLACKLIST_ITEM_ID_EMPTY, msg.getSqlBlacklistItemIdToDeleteEmpty());
         }
         SQLBlacklist sqlBlacklist = querySQLBlacklistService.deleteSqlBlacklistItem(project, id);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, sqlBlacklist, "");

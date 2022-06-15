@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.controller;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_SAMPLING_RANGE_INVALID;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.TIME_INVALID_RANGE_LESS_THAN_ZERO;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -36,9 +37,7 @@ import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.response.TableRefresh;
@@ -300,7 +299,6 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void batchLoadTables_DateRange_LessThan0_Exception() throws Exception {
-        String errorMsg = Message.getInstance().getINVALID_RANGE_LESS_THAN_ZERO();
         DateRangeRequest request = new DateRangeRequest();
         request.setProject("default");
         request.setTable("DEFAULT.TEST_KYLIN_FACT");
@@ -315,7 +313,8 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
         Mockito.verify(nTableController).batchLoad(Mockito.anyList());
 
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
-        Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(), errorMsg));
+        Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(),
+                TIME_INVALID_RANGE_LESS_THAN_ZERO.getMsg()));
     }
 
     @Test
@@ -340,7 +339,6 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testSetDateRang_lessThan0_exception() throws Exception {
-        String errorMsg = Message.getInstance().getINVALID_RANGE_LESS_THAN_ZERO();
         final DateRangeRequest dateRangeRequest = mockDateRangeRequest();
         dateRangeRequest.setStart("-1");
         dateRangeRequest.setTable("TEST_KYLIN_FACT");
@@ -353,7 +351,8 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
         Mockito.verify(nTableController).setDateRanges(Mockito.any(DateRangeRequest.class));
 
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
-        Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(), errorMsg));
+        Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(),
+                TIME_INVALID_RANGE_LESS_THAN_ZERO.getMsg()));
     }
 
     @Test
@@ -407,14 +406,10 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
     }
 
     private void initMockito(LoadTableResponse loadTableResponse, TableLoadRequest tableLoadRequest) throws Exception {
-        String[] succTables = { "DEFAULT.TEST_ACCOUNT" };
-        String[] succDbs = { "DEFAULT" };
-        Mockito.when(tableService.classifyDbTables("default", tableLoadRequest.getTables()))
-                .thenReturn(new Pair<>(succTables, Sets.newHashSet("table1")));
-        Mockito.when(tableService.classifyDbTables("default", tableLoadRequest.getDatabases()))
-                .thenReturn(new Pair<>(succDbs, Sets.newHashSet("db1")));
-        Mockito.when(tableExtService.loadTables(succTables, "default")).thenReturn(loadTableResponse);
-        Mockito.when(tableExtService.loadTablesByDatabase("default", succDbs)).thenReturn(loadTableResponse);
+        Mockito.when(tableExtService.loadDbTables(tableLoadRequest.getTables(), "default", false))
+                .thenReturn(loadTableResponse);
+        Mockito.when(tableExtService.loadDbTables(tableLoadRequest.getDatabases(), "default", true))
+                .thenReturn(loadTableResponse);
     }
 
     @Test
@@ -446,8 +441,9 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
         final TableLoadRequest tableLoadRequest = mockLoadTableRequest();
         tableLoadRequest.setTables(null);
         tableLoadRequest.setDatabases(null);
-        Mockito.when(tableExtService.loadTables(tableLoadRequest.getTables(), "default")).thenReturn(loadTableResponse);
-        Mockito.when(tableExtService.loadTablesByDatabase("default", tableLoadRequest.getDatabases()))
+        Mockito.when(tableExtService.loadDbTables(tableLoadRequest.getTables(), "default", false))
+                .thenReturn(loadTableResponse);
+        Mockito.when(tableExtService.loadDbTables(tableLoadRequest.getDatabases(), "default", true))
                 .thenReturn(loadTableResponse);
         final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables") //
                 .contentType(MediaType.APPLICATION_JSON) //

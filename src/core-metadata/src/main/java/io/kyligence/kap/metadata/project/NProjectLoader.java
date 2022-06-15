@@ -44,9 +44,8 @@ import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.NRealizationRegistry;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.cube.model.NDataflow;
@@ -63,11 +62,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class NProjectLoader {
 
-    private static final Logger logger = LoggerFactory.getLogger(NProjectLoader.class);
+    private final NProjectManager mgr;
 
-    private NProjectManager mgr;
-
-    private static ThreadLocal<ProjectBundle> cache = new ThreadLocal<>();
+    private static final ThreadLocal<ProjectBundle> cache = new ThreadLocal<>();
 
     public static void updateCache(@Nullable String project) {
         if (StringUtils.isNotEmpty(project) && !project.startsWith("_")) {
@@ -143,9 +140,7 @@ public class NProjectLoader {
         ProjectBundle projectBundle = new ProjectBundle(project);
 
         ProjectInstance pi = mgr.getProject(project);
-
-        if (pi == null)
-            throw new IllegalArgumentException("Project '" + project + "' does not exist.");
+        Preconditions.checkNotNull(pi, "Project '{}' does not exist.");
 
         NTableMetadataManager metaMgr = NTableMetadataManager.getInstance(mgr.getConfig(), project);
         Map<String, TableDesc> projectAllTables = metaMgr.getAllTablesMap();
@@ -158,7 +153,7 @@ public class NProjectLoader {
         pi.getRealizationEntries().parallelStream().forEach(entry -> {
             IRealization realization = registry.getRealization(entry.getType(), entry.getRealization());
             if (realization == null) {
-                logger.warn("Realization '{}' defined under project '{}' is not found or it's broken.", entry, project);
+                log.warn("Realization '{}' defined under project '{}' is not found or it's broken.", entry, project);
                 return;
             }
             NDataflow dataflow = (NDataflow) realization;
@@ -168,7 +163,7 @@ public class NProjectLoader {
                 if (fusionModel != null) {
                     val batchModel = fusionModel.getBatchModel();
                     if (batchModel.isBroken()) {
-                        logger.warn("Realization '{}' defined under project '{}' is not found or it's broken.", entry,
+                        log.warn("Realization '{}' defined under project '{}' is not found or it's broken.", entry,
                                 project);
                         return;
                     }
@@ -199,16 +194,13 @@ public class NProjectLoader {
         Set<TblColRef> allColumns = realization.getAllColumns();
 
         if (allColumns.isEmpty() && realization.getMeasures().isEmpty()) {
-            // empty model is allowed in newten
-            logger.trace("Realization '{}' does not report any columns or measures.", realization.getCanonicalName());
             return false;
-            // cuboid which only contains measure on (*) should return true
         }
 
         return allColumns.parallelStream().allMatch(col -> {
             TableDesc table = projectAllTables.get(col.getTable());
             if (table == null) {
-                logger.error("Realization '{}' reports column '{}', but its table is not found by MetadataManager.",
+                log.error("Realization '{}' reports column '{}', but related table is not found by MetadataManager.",
                         realization.getCanonicalName(), col.getCanonicalName());
                 return false;
             }
@@ -216,8 +208,7 @@ public class NProjectLoader {
             if (!col.getColumnDesc().isComputedColumn()) {
                 ColumnDesc foundCol = table.findColumnByName(col.getOriginalName());
                 if (!col.getColumnDesc().equals(foundCol)) {
-                    logger.error(
-                            "Realization '{}' reports column '{}', but it is not equal to '{}' according to MetadataManager.",
+                    log.error("Realization '{}' reports column '{}', but found '{}' according to MetadataManager.",
                             realization.getCanonicalName(), col.getCanonicalName(), foundCol);
                     return false;
                 }
@@ -237,7 +228,7 @@ public class NProjectLoader {
 
     private static class ProjectBundle {
         private String project;
-        private Map<String, Set<IRealization>> realizationsByTable = new ConcurrentHashMap<>();
+        private final Map<String, Set<IRealization>> realizationsByTable = new ConcurrentHashMap<>();
 
         ProjectBundle(String project) {
             this.project = project;

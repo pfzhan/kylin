@@ -45,6 +45,7 @@ package org.apache.kylin.metadata.project;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -57,8 +58,6 @@ import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.SegmentConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
@@ -72,8 +71,6 @@ import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.RetentionRange;
 import io.kyligence.kap.metadata.model.VolatileRange;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
@@ -81,11 +78,8 @@ import lombok.val;
 /**
  * Project is a concept in Kylin similar to schema in DBMS
  */
-@SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
 public class ProjectInstance extends RootPersistentEntity implements ISourceAware {
-
-    private static final Logger logger = LoggerFactory.getLogger(NProjectManager.class);
 
     public static final String DEFAULT_PROJECT_NAME = "default";
 
@@ -125,9 +119,9 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
     @Setter
     private String keytab;
 
-    @EqualsAndHashCode.Include
     @JsonProperty("maintain_model_type")
-    private MaintainModelType maintainModelType = MaintainModelType.AUTO_MAINTAIN;
+    @Getter
+    private MaintainModelType maintainModelType = MaintainModelType.MANUAL_MAINTAIN;
 
     @JsonProperty("override_kylin_properties")
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -151,7 +145,7 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
     }
 
     public static ProjectInstance create(String name, String owner, String description,
-            LinkedHashMap<String, String> overrideProps, MaintainModelType maintainModelType) {
+            LinkedHashMap<String, String> overrideProps) {
         ProjectInstance projectInstance = new ProjectInstance();
 
         projectInstance.setName(name);
@@ -161,9 +155,6 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
         projectInstance.setCreateTimeUTC(System.currentTimeMillis());
         projectInstance.setDefaultDatabase(ProjectInstance.DEFAULT_DATABASE);
         projectInstance.setOverrideKylinProps(overrideProps);
-        if (maintainModelType != null) {
-            projectInstance.setMaintainModelType(maintainModelType);
-        }
         return projectInstance;
     }
 
@@ -172,10 +163,9 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
         // to compatible with existing model
         // if expose-computed-column is empty, set it with the maintainModelType
         if (!overrideKylinProps.containsKey(EXPOSE_COMPUTED_COLUMN_CONF)) {
-            overrideKylinProps.put(EXPOSE_COMPUTED_COLUMN_CONF,
-                    String.valueOf(maintainModelType == MaintainModelType.MANUAL_MAINTAIN));
+            overrideKylinProps.put(EXPOSE_COMPUTED_COLUMN_CONF, KylinConfig.TRUE);
         }
-        this.config = KylinConfigExt.createInstance(config, this.overrideKylinProps);
+        this.config = KylinConfigExt.createInstance(config, filterNonCustomConfigs(this.overrideKylinProps));
     }
 
     // ============================================================================
@@ -186,14 +176,6 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
     @Override
     public String resourceName() {
         return this.name;
-    }
-
-    public MaintainModelType getMaintainModelType() {
-        return maintainModelType;
-    }
-
-    public void setMaintainModelType(MaintainModelType maintainModelType) {
-        this.maintainModelType = maintainModelType;
     }
 
     public String getDescription() {
@@ -229,15 +211,11 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
     }
 
     public boolean isSemiAutoMode() {
-        return getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN && getConfig().isSemiAutoMode();
+        return getConfig().isSemiAutoMode();
     }
 
     public boolean isExpertMode() {
-        return getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN && !getConfig().isSemiAutoMode();
-    }
-
-    public boolean isSmartMode() {
-        return getMaintainModelType() == MaintainModelType.AUTO_MAINTAIN;
+        return !getConfig().isSemiAutoMode();
     }
 
     public boolean isProjectKerberosEnabled() {
@@ -282,6 +260,10 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
         return overrideKylinProps;
     }
 
+    public Map<String, String> getLegalOverrideKylinProps() {
+        return filterNonCustomConfigs(overrideKylinProps);
+    }
+
     public void putOverrideKylinProps(String key, String value) {
         overrideKylinProps.put(StringUtils.trim(key), StringUtils.trim(value));
     }
@@ -299,8 +281,16 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
         overrideKylinProps = KylinConfig.trimKVFromMap(overrideKylinProps);
         this.overrideKylinProps = overrideKylinProps;
         if (config != null) {
-            this.config = KylinConfigExt.createInstance(config.base(), overrideKylinProps);
+            this.config = KylinConfigExt.createInstance(config.base(), filterNonCustomConfigs(overrideKylinProps));
         }
+    }
+
+    private LinkedHashMap<String, String> filterNonCustomConfigs(LinkedHashMap<String, String> overrideKylinProps) {
+        val nonCustomConfigs = KylinConfig.getInstanceFromEnv().getUserDefinedNonCustomProjectConfigs();
+        val filteredOverrideKylinProps = new LinkedHashMap<String, String>();
+        overrideKylinProps.entrySet().stream().filter(entry -> !nonCustomConfigs.contains(entry.getKey()))
+                .forEach(entry -> filteredOverrideKylinProps.put(entry.getKey(), entry.getValue()));
+        return filteredOverrideKylinProps;
     }
 
     @Override
@@ -347,8 +337,7 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
     private List<String> getModelsFromResource(String projectName) {
         String modeldescRootPath = getProjectRootPath(projectName) + ResourceStore.DATA_MODEL_DESC_RESOURCE_ROOT;
         Set<String> modelResource = getStore().listResources(modeldescRootPath);
-        List<String> models = getNameListFromResource(modelResource);
-        return models;
+        return getNameListFromResource(modelResource);
     }
 
     private String getProjectRootPath(String prj) {
@@ -378,8 +367,7 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
         if (tableResource == null)
             return new TreeSet<>();
         List<String> tables = getNameListFromResource(tableResource);
-        Set<String> tableSet = new TreeSet<>(tables);
-        return tableSet;
+        return new TreeSet<>(tables);
     }
 
     //drop the path ahead name and drop suffix e.g [/default/model_desc/]nmodel_basic[.json]

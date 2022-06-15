@@ -35,6 +35,10 @@ import io.kyligence.kap.metadata.query.QueryHistoryInfo;
 import io.kyligence.kap.metadata.query.QueryHistoryRequest;
 import io.kyligence.kap.rest.service.QueryCacheManager;
 import io.kyligence.kap.rest.service.QueryHistoryService;
+import org.apache.kylin.common.ForceToTieredStorage;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.QueryErrorCode;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.constant.Constant;
@@ -62,6 +66,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import redis.clients.jedis.exceptions.JedisException;
 
 import javax.servlet.http.HttpServletResponse;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -132,6 +137,97 @@ public class NQueryControllerTest extends NLocalFileMetadataTestCase {
 
         Mockito.verify(nQueryController).query((PrepareSqlRequest) Mockito.any(), Mockito.anyString());
     }
+
+    @Test
+    public void testQueryForceToTieredStorage() throws Exception {
+        final PrepareSqlRequest sql = new PrepareSqlRequest();
+        sql.setSql("SELECT * FROM empty_table");
+        sql.setProject(PROJECT);
+        sql.setForcedToTieredStorage(1);
+        sql.setForcedToIndex(true);
+        sql.setForcedToPushDown(false);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/query").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(sql))
+                .header("User-Agent", "Chrome/89.0.4389.82 Safari/537.36")
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        Mockito.verify(nQueryController).query((PrepareSqlRequest) Mockito.any(), Mockito.anyString());
+    }
+
+    @Test
+    public void testCheckForcedToParams() throws Exception {
+        NQueryController qc = new NQueryController();
+        Method checkForcedToParams = qc.getClass().getDeclaredMethod("checkForcedToParams", PrepareSqlRequest.class);
+        checkForcedToParams.setAccessible(true);
+
+        boolean catched = false;
+        PrepareSqlRequest sql = new PrepareSqlRequest();
+        sql.setForcedToIndex(true);
+        sql.setForcedToPushDown(true);
+        try{
+            checkForcedToParams.invoke(qc, (Object)sql);
+        } catch (Exception e) {
+            Assert.assertSame(new KylinException(
+                    QueryErrorCode.INVALID_QUERY_PARAMS, MsgPicker.getMsg().getCannotForceToBothPushdodwnAndIndex()).getMessage(), e.getCause().getMessage());
+            catched = true;
+        }
+        Assert.assertTrue(catched);
+
+        sql = new PrepareSqlRequest();
+        sql.setForcedToIndex(true);
+        sql.setForcedToPushDown(false);
+        sql.setForcedToTieredStorage(ForceToTieredStorage.CH_FAIL_TO_PUSH_DOWN.ordinal());
+        checkForcedToParams.invoke(qc, (Object)sql);
+
+        catched = false;
+        sql = new PrepareSqlRequest();
+        sql.setForcedToTieredStorage(4);
+
+        try{
+            checkForcedToParams.invoke(qc, (Object)sql);
+        } catch (Exception e) {
+            Assert.assertSame(new KylinException(
+                    QueryErrorCode.FORCED_TO_TIEREDSTORAGE_INVALID_PARAMETER, MsgPicker.getMsg().getForcedToTieredstorageInvalidParameter()).getMessage(), e.getCause().getMessage());
+            catched = true;
+        }
+        Assert.assertTrue(catched);
+
+        catched = false;
+        sql = new PrepareSqlRequest();
+        sql.setForcedToTieredStorage(-1);
+
+        try{
+            checkForcedToParams.invoke(qc, (Object)sql);
+        } catch (Exception e) {
+            Assert.assertSame(new KylinException(
+                    QueryErrorCode.FORCED_TO_TIEREDSTORAGE_INVALID_PARAMETER, MsgPicker.getMsg().getForcedToTieredstorageInvalidParameter()).getMessage(), e.getCause().getMessage());
+            catched = true;
+        }
+        Assert.assertTrue(catched);
+
+        sql = Mockito.spy(PrepareSqlRequest.class);
+        Mockito.when(sql.getForcedToTieredStorage()).thenThrow(new NullPointerException());
+        sql.setForcedToIndex(false);
+        sql.setForcedToPushDown(false);
+        checkForcedToParams.invoke(qc, (Object)sql);
+    }
+
+    @Test
+    public void testQueryForceToTieredStorageInvalidParamter() throws Exception {
+        final PrepareSqlRequest sql = new PrepareSqlRequest();
+        sql.setSql("SELECT * FROM empty_table");
+        sql.setProject(PROJECT);
+        sql.setForcedToTieredStorage(-1);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/query").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(sql))
+                .header("User-Agent", "Chrome/89.0.4389.82 Safari/537.36")
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().is5xxServerError());
+
+        Mockito.verify(nQueryController).query((PrepareSqlRequest) Mockito.any(), Mockito.anyString());
+    }
+
 
     @Test
     public void testStopQuery() throws Exception {

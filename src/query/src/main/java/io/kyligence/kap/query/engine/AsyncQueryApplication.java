@@ -30,20 +30,27 @@ import static io.kyligence.kap.metadata.cube.model.NBatchConstants.P_QUERY_ID;
 import static io.kyligence.kap.metadata.cube.model.NBatchConstants.P_QUERY_PARAMS;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
-import org.apache.kylin.query.util.AsyncQueryUtil;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
-import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.query.util.AsyncQueryUtil;
+import org.apache.kylin.query.util.QueryParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+
 import io.kyligence.kap.engine.spark.application.SparkApplication;
+import io.kyligence.kap.metadata.query.QueryHistorySql;
+import io.kyligence.kap.metadata.query.QueryHistorySqlParam;
 import io.kyligence.kap.metadata.query.QueryMetricsContext;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
+import io.kyligence.kap.metadata.query.util.QueryHistoryUtil;
 
 public class AsyncQueryApplication extends SparkApplication {
 
@@ -62,23 +69,25 @@ public class AsyncQueryApplication extends SparkApplication {
 
     @Override
     protected void doExecute() throws IOException {
+        logger.info("start async query job");
+        QueryContext queryContext = null;
+        QueryParams queryParams = null;
         try {
-            try {
-                logger.info("start async query job");
-                QueryContext.set(JsonUtil.readValue(getParam(P_QUERY_CONTEXT), QueryContext.class));
-                QueryMetricsContext.start(QueryContext.current().getQueryId(), "");
-                QueryRoutingEngine queryRoutingEngine = new QueryRoutingEngine();
-                QueryParams queryParams = JsonUtil.readValue(getParam(P_QUERY_PARAMS), QueryParams.class);
-                queryParams.setKylinConfig(KylinConfig.getInstanceFromEnv());
-                queryRoutingEngine.queryWithSqlMassage(queryParams);
-            } catch (Exception e) {
-                logger.error("async query job failed.", e);
-                QueryContext.current().getMetrics().setException(true);
-                AsyncQueryUtil.createErrorFlag(getParam(P_PROJECT_NAME), getParam(P_QUERY_ID), e.getMessage());
-            }
-            saveQueryHistory();
+            queryContext = JsonUtil.readValue(getParam(P_QUERY_CONTEXT), QueryContext.class);
+            QueryContext.set(queryContext);
+            QueryMetricsContext.start(queryContext.getQueryId(), "");
+            QueryRoutingEngine queryRoutingEngine = new QueryRoutingEngine();
+            queryParams = JsonUtil.readValue(getParam(P_QUERY_PARAMS), QueryParams.class);
+            queryParams.setKylinConfig(KylinConfig.getInstanceFromEnv());
+            queryRoutingEngine.queryWithSqlMassage(queryParams);
+            saveQueryHistory(queryContext, queryParams);
         } catch (Exception e) {
             logger.error("async query job failed.", e);
+            if (queryContext != null && queryParams != null) {
+                queryContext.getMetrics().setException(true);
+                AsyncQueryUtil.createErrorFlag(getParam(P_PROJECT_NAME), getParam(P_QUERY_ID), e.getMessage());
+                saveQueryHistory(queryContext, queryParams);
+            }
         } finally {
             QueryMetricsContext.reset();
         }
@@ -89,14 +98,40 @@ public class AsyncQueryApplication extends SparkApplication {
         return config.getAsyncQuerySparkConfigOverride();
     }
 
-    private void saveQueryHistory() {
-        QueryContext queryContext = QueryContext.current();
+    private void saveQueryHistory(QueryContext queryContext, QueryParams queryParams) {
         if (StringUtils.isEmpty(queryContext.getMetrics().getCorrectedSql())) {
             queryContext.getMetrics().setCorrectedSql(queryContext.getUserSQL());
         }
-        queryContext.getMetrics()
-                .setSqlPattern(queryContext.getMetrics().getCorrectedSql());
-        RDBMSQueryHistoryDAO.getInstance().insert(QueryMetricsContext.collect(queryContext));
+        try {
+            QueryMetricsContext queryMetricsContext = QueryMetricsContext.collect(queryContext);
+            queryMetricsContext.setSql(constructQueryHistorySqlText(queryParams, queryContext.getUserSQL()));
+            // KE-36662 Using sql_pattern as normalized_sql storage
+            String normalizedSql = QueryContext.currentMetrics().getCorrectedSql();
+            queryMetricsContext.setSqlPattern(normalizedSql);
+
+            RDBMSQueryHistoryDAO.getInstance().insert(queryMetricsContext);
+        } catch (Exception e) {
+            logger.error("async query job, save query history failed", e);
+        }
+    }
+
+    private String constructQueryHistorySqlText(QueryParams queryParams, String originalSql)
+            throws JsonProcessingException, ClassNotFoundException {
+
+        List<QueryHistorySqlParam> params = null;
+        if (queryParams.isPrepareStatementWithParams()) {
+            params = new ArrayList<>();
+            PrepareSqlStateParam[] requestParams = queryParams.getParams();
+            for (int i = 0; i < requestParams.length; i++) {
+                PrepareSqlStateParam p = requestParams[i];
+                String dataType = QueryHistoryUtil.toDataType(p.getClassName());
+                QueryHistorySqlParam param = new QueryHistorySqlParam(i + 1, p.getClassName(), dataType, p.getValue());
+                params.add(param);
+            }
+        }
+
+        // KE-36662 Do not store normalized_sql in sql_text, as it may exceed storage limitation
+        return QueryHistoryUtil.toQueryHistorySqlText(new QueryHistorySql(originalSql, null, params));
     }
 
     public static void main(String[] args) {

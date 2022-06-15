@@ -20,7 +20,6 @@ export const states = {
       description: '',
       keytab: null,
       last_modified: 1598658034308,
-      maintain_model_type: 'MANUAL_MAINTAIN',
       mvcc: 85438,
       name: 'xm_test',
       override_kylin_properties: {
@@ -79,7 +78,6 @@ export const states = {
     description: '',
     keytab: null,
     last_modified: 1598658034308,
-    maintain_model_type: 'MANUAL_MAINTAIN',
     mvcc: 85438,
     name: 'xm_test',
     override_kylin_properties: {

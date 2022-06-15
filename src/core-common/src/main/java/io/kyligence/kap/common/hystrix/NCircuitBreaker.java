@@ -85,7 +85,7 @@ public class NCircuitBreaker {
         }
 
         throw new KylinException(FAILED_CREATE_PROJECT,
-                String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_NUM_OVER_THRESHOLD(), threshold));
+                String.format(Locale.ROOT, MsgPicker.getMsg().getProjectNumOverThreshold(), threshold));
     }
 
     public static void verifyModelCreation(int current) {
@@ -99,7 +99,7 @@ public class NCircuitBreaker {
         }
 
         throw new KylinException(FAILED_CREATE_MODEL,
-                String.format(Locale.ROOT, MsgPicker.getMsg().getMODEL_NUM_OVER_THRESHOLD(), threshold));
+                String.format(Locale.ROOT, MsgPicker.getMsg().getModelNumOverThreshold(), threshold));
     }
 
     public static void verifyQueryResultRowCount(long current) {

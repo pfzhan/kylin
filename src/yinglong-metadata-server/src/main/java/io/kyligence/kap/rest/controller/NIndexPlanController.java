@@ -26,17 +26,15 @@ package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.LAYOUT_LIST_EMPTY;
 
 import java.util.List;
 import java.util.Set;
 
 import javax.validation.Valid;
 
-import io.kyligence.kap.rest.response.FusionRuleDataResult;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.response.AggIndexResponse;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.DiffRuleBasedIndexResponse;
@@ -61,6 +59,7 @@ import io.kyligence.kap.rest.request.CreateTableIndexRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
 import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
+import io.kyligence.kap.rest.response.FusionRuleDataResult;
 import io.kyligence.kap.rest.response.IndexGraphResponse;
 import io.kyligence.kap.rest.response.IndexResponse;
 import io.kyligence.kap.rest.response.IndexStatResponse;
@@ -183,8 +182,8 @@ public class NIndexPlanController extends NBasicController {
 
     @ApiOperation(value = "getIndex", tags = { "AI" }, notes = "Update response: total_size")
     @GetMapping(value = "/index")
-    public EnvelopeResponse<FusionRuleDataResult<List<IndexResponse>>> getIndex(@RequestParam(value = "project") String project,
-            @RequestParam(value = "model") String modelId, //
+    public EnvelopeResponse<FusionRuleDataResult<List<IndexResponse>>> getIndex(
+            @RequestParam(value = "project") String project, @RequestParam(value = "model") String modelId, //
             @RequestParam(value = "sort_by", required = false, defaultValue = "") String order,
             @RequestParam(value = "reverse", required = false, defaultValue = "false") Boolean desc,
             @RequestParam(value = "sources", required = false, defaultValue = "") List<IndexEntity.Source> sources,
@@ -198,7 +197,8 @@ public class NIndexPlanController extends NBasicController {
         checkRequiredArg(MODEL_ID, modelId);
         val indexes = fusionIndexService.getIndexes(project, modelId, key, status, order, desc, sources, ids, range);
         val indexUpdateEnabled = FusionIndexService.checkUpdateIndexEnabled(project, modelId);
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, FusionRuleDataResult.get(indexes, offset, limit, indexUpdateEnabled), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
+                FusionRuleDataResult.get(indexes, offset, limit, indexUpdateEnabled), "");
     }
 
     @ApiOperation(value = "indexGraph", tags = { "AI" })
@@ -230,7 +230,7 @@ public class NIndexPlanController extends NBasicController {
         checkProjectName(project);
         checkRequiredArg(MODEL_ID, modelId);
         if (CollectionUtils.isEmpty(layoutIds)) {
-            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getLAYOUT_LIST_IS_EMPTY());
+            throw new KylinException(LAYOUT_LIST_EMPTY);
         }
         fusionIndexService.removeIndexes(project, modelId, layoutIds);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");

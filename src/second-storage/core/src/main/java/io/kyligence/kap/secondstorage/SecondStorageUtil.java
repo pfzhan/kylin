@@ -24,10 +24,39 @@
 
 package io.kyligence.kap.secondstorage;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.BASE_TABLE_INDEX_NOT_AVAILABLE;
+import static org.apache.kylin.common.exception.ServerErrorCode.PARTITION_COLUMN_NOT_AVAILABLE;
+import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_DATA_NOT_EXIST;
+import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_PROJECT_STATUS_ERROR;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.JobErrorCode;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.ServerErrorCode;
+import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.job.dao.ExecutablePO;
+import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
+import org.apache.kylin.metadata.model.SegmentRange;
+
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -48,44 +77,15 @@ import io.kyligence.kap.secondstorage.metadata.TablePartition;
 import io.kyligence.kap.secondstorage.metadata.TablePlan;
 import io.kyligence.kap.secondstorage.response.SecondStorageInfo;
 import io.kyligence.kap.secondstorage.response.SecondStorageNode;
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.SecondStorageConfig;
-import org.apache.kylin.common.exception.JobErrorCode;
-import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.exception.ServerErrorCode;
-import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.job.dao.ExecutablePO;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.metadata.model.SegmentRange;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import static org.apache.kylin.common.exception.ServerErrorCode.BASE_TABLE_INDEX_NOT_AVAILABLE;
-import static org.apache.kylin.common.exception.ServerErrorCode.PARTITION_COLUMN_NOT_AVAILABLE;
-import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_DATA_NOT_EXIST;
-import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_PROJECT_STATUS_ERROR;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 
 public class SecondStorageUtil {
-    public static final Set<ExecutableState> RUNNING_STATE = Sets.newHashSet(
-            Arrays.asList(ExecutableState.RUNNING, ExecutableState.READY, ExecutableState.PAUSED));
-    public static final Set<JobTypeEnum> RELATED_JOBS = Sets.newHashSet(
-            Arrays.asList(JobTypeEnum.INDEX_BUILD, JobTypeEnum.INDEX_REFRESH, JobTypeEnum.INC_BUILD,
+    public static final Set<ExecutableState> RUNNING_STATE = Sets
+            .newHashSet(Arrays.asList(ExecutableState.RUNNING, ExecutableState.READY, ExecutableState.PAUSED));
+    public static final Set<JobTypeEnum> RELATED_JOBS = Sets
+            .newHashSet(Arrays.asList(JobTypeEnum.INDEX_BUILD, JobTypeEnum.INDEX_REFRESH, JobTypeEnum.INC_BUILD,
                     JobTypeEnum.INDEX_MERGE, JobTypeEnum.EXPORT_TO_SECOND_STORAGE));
-    public static final Set<JobTypeEnum> BUILD_JOBS = Sets.newHashSet(JobTypeEnum.INDEX_BUILD, JobTypeEnum.INDEX_REFRESH, JobTypeEnum.INC_BUILD,
-            JobTypeEnum.INDEX_MERGE);
+    public static final Set<JobTypeEnum> BUILD_JOBS = Sets.newHashSet(JobTypeEnum.INDEX_BUILD,
+            JobTypeEnum.INDEX_REFRESH, JobTypeEnum.INC_BUILD, JobTypeEnum.INDEX_MERGE);
 
     private SecondStorageUtil() {
     }
@@ -100,13 +100,12 @@ public class SecondStorageUtil {
             NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(config, project);
             TablePlan tablePlan = tablePlanManager.get().makeSureRootEntity(model);
             tableFlowManager.get().makeSureRootEntity(model);
-            Map<Long, List<LayoutEntity>> layouts = indexPlanManager.getIndexPlan(model)
-                    .getAllLayoutsMap().values().stream()
-                    .filter(SecondStorageUtil::isBaseTableIndex)
+            Map<Long, List<LayoutEntity>> layouts = indexPlanManager.getIndexPlan(model).getAllLayoutsMap().values()
+                    .stream().filter(SecondStorageUtil::isBaseTableIndex)
                     .collect(Collectors.groupingBy(LayoutEntity::getIndexId));
             for (Map.Entry<Long, List<LayoutEntity>> entry : layouts.entrySet()) {
-                LayoutEntity layoutEntity =
-                        entry.getValue().stream().filter(SecondStorageUtil::isBaseTableIndex).findFirst().orElse(null);
+                LayoutEntity layoutEntity = entry.getValue().stream().filter(SecondStorageUtil::isBaseTableIndex)
+                        .findFirst().orElse(null);
                 Preconditions.checkNotNull(layoutEntity);
                 tablePlan = tablePlan.createTableEntityIfNotExists(layoutEntity, true);
             }
@@ -116,12 +115,14 @@ public class SecondStorageUtil {
 
     public static void checkSecondStorageData(String project) {
         if (!SecondStorageUtil.isProjectEnable(project)) {
-            throw new KylinException(SECOND_STORAGE_PROJECT_STATUS_ERROR, String.format(Locale.ROOT, "'%s' not enable second storage.", project));
+            throw new KylinException(SECOND_STORAGE_PROJECT_STATUS_ERROR,
+                    String.format(Locale.ROOT, "'%s' not enable second storage.", project));
         }
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         Optional<Manager<TableFlow>> optionalTableFlowManager = SecondStorageUtil.tableFlowManager(config, project);
         if (!optionalTableFlowManager.isPresent()) {
-            throw new KylinException(SECOND_STORAGE_DATA_NOT_EXIST, String.format(Locale.ROOT, "'%s' second storage data not exist.", project));
+            throw new KylinException(SECOND_STORAGE_DATA_NOT_EXIST,
+                    String.format(Locale.ROOT, "'%s' second storage data not exist.", project));
         }
     }
 
@@ -129,15 +130,17 @@ public class SecondStorageUtil {
         NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         final IndexPlan indexPlan = indexPlanManager.getIndexPlan(model);
         if (!indexPlan.containBaseTableLayout()) {
-            throw new KylinException(BASE_TABLE_INDEX_NOT_AVAILABLE, MsgPicker.getMsg().getBASE_TABLE_INDEX_NOT_AVAILABLE());
+            throw new KylinException(BASE_TABLE_INDEX_NOT_AVAILABLE,
+                    MsgPicker.getMsg().getBaseTableIndexNotAvailable());
         }
         if (indexPlan.getModel().isIncrementBuildOnExpertMode()) {
             boolean containPartitionCol = indexPlan.getBaseTableLayout().getColumns().stream().anyMatch(col -> {
                 return col.getTableDotName().equals(indexPlan.getModel().getPartitionDesc().getPartitionDateColumn());
             });
-           if (!containPartitionCol) {
-               throw new KylinException(PARTITION_COLUMN_NOT_AVAILABLE, MsgPicker.getMsg().getPARTITION_COLUMN_NOT_AVAILABLE());
-           }
+            if (!containPartitionCol) {
+                throw new KylinException(PARTITION_COLUMN_NOT_AVAILABLE,
+                        MsgPicker.getMsg().getPartitionColumnNotAvailable());
+            }
         }
     }
 
@@ -152,11 +155,11 @@ public class SecondStorageUtil {
     public static List<String> getProjectLocks(String project) {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         Optional<Manager<NodeGroup>> nodeGroupManager = SecondStorageUtil.nodeGroupManager(config, project);
-        if(!nodeGroupManager.isPresent()) {
+        if (!nodeGroupManager.isPresent()) {
             return new ArrayList<>();
         }
         List<NodeGroup> nodeGroups = nodeGroupManager.get().listAll();
-        if(CollectionUtils.isNotEmpty(nodeGroups)) {
+        if (CollectionUtils.isNotEmpty(nodeGroups)) {
             Preconditions.checkState(nodeGroups.stream().map(NodeGroup::getLockTypes).distinct().count() == 1,
                     "Logical Error, this is a bug! Cluster has different lock type.");
             return nodeGroups.get(0).getLockTypes();
@@ -168,11 +171,10 @@ public class SecondStorageUtil {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NExecutableManager executableManager = NExecutableManager.getInstance(config, project);
         return executableManager.getJobs().stream().map(executableManager::getJob)
-                .filter(job -> RELATED_JOBS.contains(job.getJobType()))
-                .collect(Collectors.toList());
+                .filter(job -> RELATED_JOBS.contains(job.getJobType())).collect(Collectors.toList());
     }
 
-    public static void validateProjectLock(String project, List<String> requestLocks){
+    public static void validateProjectLock(String project, List<String> requestLocks) {
         LockTypeEnum.checkLocks(requestLocks, SecondStorageUtil.getProjectLocks(project));
     }
 
@@ -184,7 +186,7 @@ public class SecondStorageUtil {
             String name = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                     .getDataModelDesc(modelId).getAlias();
             throw new KylinException(JobErrorCode.SECOND_STORAGE_JOB_EXISTS,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getSECOND_STORAGE_JOB_EXISTS(), name));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getSecondStorageJobExists(), name));
         }
     }
 
@@ -208,8 +210,7 @@ public class SecondStorageUtil {
         Optional<Manager<NodeGroup>> groupManager = nodeGroupManager(KylinConfig.getInstanceFromEnv(), project);
         Preconditions.checkNotNull(groupManager);
         return groupManager.map(nodeGroupNManager -> nodeGroupNManager.listAll().stream()
-                .flatMap(nodeGroup -> nodeGroup.getNodeNames().stream()).distinct()
-                .map(name -> {
+                .flatMap(nodeGroup -> nodeGroup.getNodeNames().stream()).distinct().map(name -> {
                     Node node = SecondStorageNodeHelper.getNode(name);
                     return new SecondStorageNode(node);
                 }).collect(Collectors.toList())).orElse(Collections.emptyList());
@@ -228,14 +229,17 @@ public class SecondStorageUtil {
         if (models == null || models.isEmpty()) {
             return Collections.emptyList();
         }
-        Optional<Manager<TableFlow>> tableFlowManager =
-                SecondStorageUtil.tableFlowManager(KylinConfig.getInstanceFromEnv(), models.get(0).getProject());
+        Optional<Manager<TableFlow>> tableFlowManager = SecondStorageUtil
+                .tableFlowManager(KylinConfig.getInstanceFromEnv(), models.get(0).getProject());
         Preconditions.checkState(tableFlowManager.isPresent());
         return setSecondStorageSizeInfo(models, tableFlowManager.get());
     }
 
-    protected static List<SecondStorageInfo>
-    setSecondStorageSizeInfo(List<NDataModel> models, Manager<TableFlow> tableFlowManager) {
+    protected static List<SecondStorageInfo> setSecondStorageSizeInfo(List<NDataModel> models,
+            Manager<TableFlow> tableFlowManager) {
+        List<Set<String>> shards = SecondStorageNodeHelper.groupsToShards(
+                SecondStorageUtil.listNodeGroup(KylinConfig.getInstanceFromEnv(), models.get(0).getProject()));
+
         return models.stream().map(model -> {
             SecondStorageInfo secondStorageInfo = new SecondStorageInfo();
             secondStorageInfo.setSecondStorageEnabled(isModelEnable(model.getProject(), model.getId()));
@@ -245,23 +249,27 @@ public class SecondStorageUtil {
                 secondStorageInfo.setSecondStorageSize(0);
             } else {
                 List<TablePartition> tablePartitions = tableFlow.getTableDataList().stream()
-                        .flatMap(tableData -> tableData.getPartitions().stream())
-                        .collect(Collectors.toList());
-                List<String> nodesStr = Lists.newArrayList();
-                Long sizes = 0L;
+                        .flatMap(tableData -> tableData.getPartitions().stream()).collect(Collectors.toList());
+                Set<String> nodesStr = Sets.newHashSet();
+
                 for (TablePartition partition : tablePartitions) {
                     nodesStr.addAll(partition.getShardNodes());
-                    sizes += partition.getSizeInNode().values().stream()
-                            .reduce(Long::sum).orElse(0L);
                 }
 
-                List<String> nodes = nodesStr.stream().distinct().collect(Collectors.toList());
-                Map<String, List<SecondStorageNode>> pairs = convertNodesToPairs(nodes);
-                secondStorageInfo.setSecondStorageNodes(pairs);
-                secondStorageInfo.setSecondStorageSize(sizes / SecondStorageConfig.getInstanceFromEnv().getReplicaNum());
+                secondStorageInfo.setSecondStorageNodes(convertNodesToPairs(new ArrayList<>(nodesStr)));
+                secondStorageInfo.setSecondStorageSize(calculateSecondStorageSize(shards, tablePartitions));
             }
             return secondStorageInfo;
         }).collect(Collectors.toList());
+    }
+
+    public static long calculateSecondStorageSize(List<Set<String>> shards, List<TablePartition> partitions) {
+        // key: node_name / value: node_size
+        Map<String, Long> nodesSize = partitions.stream()
+                .flatMap(partition -> partition.getSizeInNode().entrySet().stream())
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, Long::sum));
+
+        return shards.stream().mapToLong(shard -> shard.stream().mapToLong(replica -> nodesSize.getOrDefault(replica, 0L)).max().orElse(0)).sum();
     }
 
     public static SecondStorageNode transformNode(String name) {
@@ -271,16 +279,15 @@ public class SecondStorageUtil {
 
     public static Map<String, List<SecondStorageNode>> convertNodesToPairs(List<String> nodes) {
         Map<String, List<SecondStorageNode>> result = Maps.newHashMap();
-        nodes.stream().sorted().forEach(node ->
-                result.computeIfAbsent(SecondStorageNodeHelper.getPairByNode(node), k -> new ArrayList<>())
+        nodes.stream().sorted()
+                .forEach(node -> result
+                        .computeIfAbsent(SecondStorageNodeHelper.getPairByNode(node), k -> new ArrayList<>())
                         .add(new SecondStorageNode(SecondStorageNodeHelper.getNode(node))));
         return result;
     }
 
     public static boolean isTableFlowEmpty(TableFlow tableFlow) {
-        return tableFlow == null
-                || tableFlow.getTableDataList() == null
-                || tableFlow.getTableDataList().isEmpty()
+        return tableFlow == null || tableFlow.getTableDataList() == null || tableFlow.getTableDataList().isEmpty()
                 || tableFlow.getTableDataList().get(0).getPartitions() == null
                 || tableFlow.getTableDataList().get(0).getPartitions().isEmpty();
     }
@@ -303,10 +310,10 @@ public class SecondStorageUtil {
             KylinConfig config = KylinConfig.getInstanceFromEnv();
             Optional<Manager<TableFlow>> tableFlowManager = SecondStorageUtil.tableFlowManager(config, project);
             Optional<Manager<TablePlan>> tablePlanManager = SecondStorageUtil.tablePlanManager(config, project);
-            tablePlanManager.ifPresent(manager -> manager.listAll().stream().filter(tablePlan -> tablePlan.getId().equals(modelId))
-                    .forEach(manager::delete));
-            tableFlowManager.ifPresent(manager -> manager.listAll().stream().filter(tableFlow -> tableFlow.getId().equals(modelId))
-                    .forEach(manager::delete));
+            tablePlanManager.ifPresent(manager -> manager.listAll().stream()
+                    .filter(tablePlan -> tablePlan.getId().equals(modelId)).forEach(manager::delete));
+            tableFlowManager.ifPresent(manager -> manager.listAll().stream()
+                    .filter(tableFlow -> tableFlow.getId().equals(modelId)).forEach(manager::delete));
             return null;
         }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID);
     }
@@ -315,11 +322,11 @@ public class SecondStorageUtil {
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             KylinConfig config = KylinConfig.getInstanceFromEnv();
             Optional<Manager<TableFlow>> tableFlowManager = SecondStorageUtil.tableFlowManager(config, project);
-            tableFlowManager.ifPresent(manager -> manager.listAll().stream().filter(tableFlow -> tableFlow.getId().equals(model))
-                    .forEach(tableFlow -> {
+            tableFlowManager.ifPresent(manager -> manager.listAll().stream()
+                    .filter(tableFlow -> tableFlow.getId().equals(model)).forEach(tableFlow -> {
                         tableFlow.update(copy -> {
-                            copy.getTableDataList().stream().filter(tableData ->
-                                    tableData.getDatabase().equals(NameUtil.getDatabase(config, project))
+                            copy.getTableDataList().stream().filter(
+                                    tableData -> tableData.getDatabase().equals(NameUtil.getDatabase(config, project))
                                             && tableData.getTable().startsWith(NameUtil.tablePrefix(model)))
                                     .forEach(tableData -> tableData.removePartitions(
                                             tablePartition -> segments.contains(tablePartition.getSegmentId())));
@@ -334,15 +341,12 @@ public class SecondStorageUtil {
             KylinConfig config = KylinConfig.getInstanceFromEnv();
             Optional<Manager<TableFlow>> tableFlowManager = SecondStorageUtil.tableFlowManager(config, project);
 
-            tableFlowManager.ifPresent(manager ->
-                    manager.listAll().stream()
-                            .filter(tableFlow -> tableFlow.getId().equals(modelId))
-                            .forEach(tableFlow -> tableFlow.update(copy ->
-                                    copy.getTableDataList().stream()
-                                            .filter(tableData -> layoutIds.contains(tableData.getLayoutID()))
-                                            .forEach(tableData -> tableData.removePartitions(
-                                                    tablePartition -> segments.contains(tablePartition.getSegmentId())))
-                            )));
+            tableFlowManager.ifPresent(
+                    manager -> manager.listAll().stream().filter(tableFlow -> tableFlow.getId().equals(modelId))
+                            .forEach(tableFlow -> tableFlow.update(copy -> copy.getTableDataList().stream()
+                                    .filter(tableData -> layoutIds.contains(tableData.getLayoutID()))
+                                    .forEach(tableData -> tableData.removePartitions(
+                                            tablePartition -> segments.contains(tablePartition.getSegmentId()))))));
 
             return null;
         }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID);
@@ -354,7 +358,7 @@ public class SecondStorageUtil {
 
     public static List<TableFlow> listTableFlow(KylinConfig config, String project) {
         Optional<Manager<TableFlow>> optional = tableFlowManager(config, project);
-        if(optional.isPresent()) {
+        if (optional.isPresent()) {
             Manager<TableFlow> tableFlowManager = optional.get();
             return tableFlowManager.listAll();
         }
@@ -388,8 +392,10 @@ public class SecondStorageUtil {
     }
 
     public static void checkJobRestart(String project, String jobId) {
-        if (!isProjectEnable(project)) return;
-        NExecutableManager executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        if (!isProjectEnable(project))
+            return;
+        NExecutableManager executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                project);
         AbstractExecutable abstractExecutable = executableManager.getJob(jobId);
         JobTypeEnum type = abstractExecutable.getJobType();
         boolean canRestart = type != JobTypeEnum.EXPORT_TO_SECOND_STORAGE;
@@ -397,17 +403,19 @@ public class SecondStorageUtil {
         ExecutablePO jobDetail = executableManager.getAllJobs().stream().filter(job -> job.getId().equals(jobId))
                 .findFirst().orElseThrow(() -> new IllegalStateException("Job not found"));
         if (BUILD_JOBS.contains(jobDetail.getJobType())) {
-            long finishedCount = jobDetail.getTasks().stream().filter(task -> "SUCCEED".equals(task.getOutput().getStatus())).count();
+            long finishedCount = jobDetail.getTasks().stream()
+                    .filter(task -> "SUCCEED".equals(task.getOutput().getStatus())).count();
             // build job can't restart when second storage step is running
             canRestart = finishedCount < 3;
         }
         if (!canRestart) {
-            throw new KylinException(ServerErrorCode.JOB_RESTART_FAILED, MsgPicker.getMsg().getJOB_RESTART_FAILED());
+            throw new KylinException(ServerErrorCode.JOB_RESTART_FAILED, MsgPicker.getMsg().getJobRestartFailed());
         }
     }
 
     public static void checkSegmentRemove(String project, String modelId, String[] ids) {
-        if (!isModelEnable(project, modelId)) return;
+        if (!isModelEnable(project, modelId))
+            return;
         NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         NDataflow dataflow = dataflowManager.getDataflow(modelId);
         long startTime = Long.MAX_VALUE - 1;
@@ -417,14 +425,17 @@ public class SecondStorageUtil {
             endTime = endTime > Long.parseLong(segment.getSegRange().getStart().toString()) ? endTime
                     : Long.parseLong(segment.getSegRange().getEnd().toString());
         }
-        if (SecondStorageLockUtils.containsKey(modelId, new SegmentRange.TimePartitionedSegmentRange(startTime, endTime))) {
-            throw new KylinException(ServerErrorCode.SEGMENT_DROP_FAILED, MsgPicker.getMsg().getSEGMENT_DROP_FAILED());
+        if (SecondStorageLockUtils.containsKey(modelId,
+                new SegmentRange.TimePartitionedSegmentRange(startTime, endTime))) {
+            throw new KylinException(ServerErrorCode.SEGMENT_DROP_FAILED, MsgPicker.getMsg().getSegmentDropFailed());
         }
     }
 
     public static void checkJobResume(String project, String jobId) {
-        if (!isProjectEnable(project)) return;
-        NExecutableManager executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        if (!isProjectEnable(project))
+            return;
+        NExecutableManager executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                project);
         AbstractExecutable abstractExecutable = executableManager.getJob(jobId);
         JobTypeEnum type = abstractExecutable.getJobType();
         boolean secondStorageLoading = type == JobTypeEnum.EXPORT_TO_SECOND_STORAGE;
@@ -432,16 +443,18 @@ public class SecondStorageUtil {
                 .findFirst().orElseThrow(() -> new IllegalStateException("Job not found"));
         if (BUILD_JOBS.contains(jobDetail.getJobType())) {
             secondStorageLoading = true;
-            long finishedCount = jobDetail.getTasks().stream().filter(task -> "SUCCEED".equals(task.getOutput().getStatus())).count();
+            long finishedCount = jobDetail.getTasks().stream()
+                    .filter(task -> "SUCCEED".equals(task.getOutput().getStatus())).count();
             // build job can't restart when second storage step is running
             if (finishedCount < 3) {
                 secondStorageLoading = false;
             }
         }
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
-        long runningJobsCount = scheduler.getContext().getRunningJobs().keySet().stream().filter(id -> id.startsWith(jobId)).count();
+        long runningJobsCount = scheduler.getContext().getRunningJobs().keySet().stream()
+                .filter(id -> id.startsWith(jobId)).count();
         if (secondStorageLoading && runningJobsCount > 0) {
-            throw new KylinException(ServerErrorCode.JOB_RESUME_FAILED, MsgPicker.getMsg().getJOB_RESUME_FAILED());
+            throw new KylinException(ServerErrorCode.JOB_RESUME_FAILED, MsgPicker.getMsg().getJobResumeFailed());
         }
     }
 }

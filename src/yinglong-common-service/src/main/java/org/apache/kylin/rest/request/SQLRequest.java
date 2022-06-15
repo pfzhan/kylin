@@ -93,6 +93,7 @@ public class SQLRequest implements Serializable, ProjectInsensitiveRequest, Vali
 
     @JsonProperty("file_name")
     private String fileName = "result";
+    private Integer forcedToTieredStorage;  //0:CH->DFS; 1:CH->pushDown; 2:CH->return error
 
     private Map<String, String> backdoorToggles;
 
@@ -157,7 +158,7 @@ public class SQLRequest implements Serializable, ProjectInsensitiveRequest, Vali
         val message = MsgPicker.getMsg();
         if (!CollectionUtils.isEmpty(errors)) {
             if (errors.get(0).getField().equalsIgnoreCase("user_defined_tag")) {
-                return message.getINVALID_USER_TAG();
+                return message.getInvalidUserTag();
             }
         }
         return "";

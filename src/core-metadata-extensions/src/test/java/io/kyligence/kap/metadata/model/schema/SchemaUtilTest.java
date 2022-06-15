@@ -116,14 +116,14 @@ public class SchemaUtilTest extends NLocalFileMetadataTestCase {
 
         Assert.assertTrue(modelSchemaChange.getNewItems().stream()
                 .anyMatch(schemaChange -> schemaChange.getType() == SchemaNodeType.MODEL_FACT
-                        && schemaChange.isCreatable() && schemaChange.getDetail().equals("LINEORDER")));
+                        && schemaChange.isCreatable() && schemaChange.getDetail().equals("SSB.LINEORDER")));
         Assert.assertTrue(modelSchemaChange.getNewItems().stream()
                 .anyMatch(schemaChange -> schemaChange.getType() == SchemaNodeType.MODEL_JOIN
                         && schemaChange.getDetail().equals("LINEORDER-CUSTOMER")));
 
         Assert.assertTrue(modelSchemaChange.getReduceItems().stream()
                 .anyMatch(schemaChange -> schemaChange.getType() == SchemaNodeType.MODEL_FACT
-                        && schemaChange.isCreatable() && schemaChange.getDetail().equals("P_LINEORDER")));
+                        && schemaChange.isCreatable() && schemaChange.getDetail().equals("SSB.P_LINEORDER")));
 
         Assert.assertTrue(modelSchemaChange.getReduceItems().stream()
                 .anyMatch(schemaChange -> schemaChange.getType() == SchemaNodeType.MODEL_JOIN
@@ -554,7 +554,7 @@ public class SchemaUtilTest extends NLocalFileMetadataTestCase {
 
         val modelSchemaChange = schemaChangeResponse.getModels().get(getTargetModel());
 
-        Assert.assertEquals(9, modelSchemaChange.getDifferences());
+        Assert.assertEquals(11, modelSchemaChange.getDifferences());
         Assert.assertTrue(modelSchemaChange.getMissingItems().stream()
                 .anyMatch(schemaChange -> schemaChange.getType() == SchemaNodeType.MODEL_TABLE
                         && !schemaChange.isImportable() && schemaChange.getDetail().equals("SSB.CUSTOMER_NEW")
@@ -642,11 +642,11 @@ public class SchemaUtilTest extends NLocalFileMetadataTestCase {
 
         Assert.assertTrue(modelSchemaChange.getNewItems().stream()
                 .anyMatch(schemaChange -> schemaChange.getType() == SchemaNodeType.MODEL_FACT
-                        && schemaChange.isCreatable() && schemaChange.getDetail().equals("P_LINEORDER")));
+                        && schemaChange.isCreatable() && schemaChange.getDetail().equals("SSB.P_LINEORDER")));
 
         Assert.assertTrue(modelSchemaChange.getNewItems().stream()
                 .anyMatch(schemaChange -> schemaChange.getType() == SchemaNodeType.MODEL_DIM
-                        && schemaChange.isCreatable() && schemaChange.getDetail().equals("CUSTOMER")));
+                        && schemaChange.isCreatable() && schemaChange.getDetail().equals("SSB.CUSTOMER")));
 
         Assert.assertTrue(modelSchemaChange.getNewItems().stream()
                 .anyMatch(schemaChange -> schemaChange.getType() == SchemaNodeType.MODEL_JOIN
@@ -719,7 +719,7 @@ public class SchemaUtilTest extends NLocalFileMetadataTestCase {
                 resourcePath -> resourcePath.indexOf(File.separator) != resourcePath.lastIndexOf(File.separator))
                 .findAny().orElse(null);
         if (StringUtils.isBlank(anyPath)) {
-            throw new KylinException(MODEL_METADATA_FILE_ERROR, MsgPicker.getMsg().getMODEL_METADATA_PACKAGE_INVALID());
+            throw new KylinException(MODEL_METADATA_FILE_ERROR, MsgPicker.getMsg().getModelMetadataPackageInvalid());
         }
         return anyPath.split(File.separator)[1];
     }

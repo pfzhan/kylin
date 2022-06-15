@@ -31,6 +31,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteConnectionConfig;
@@ -176,6 +177,9 @@ public class QueryExec {
                     && !QueryContext.current().getQueryTagInfo().isAsyncQuery()) {
                 return new QueryResult(Lists.newArrayList(), 0, resultFields);
             }
+
+            List<String> columnNames = resultFields.stream().map(StructField::getName).collect(Collectors.toList());
+            QueryContext.current().setColumnNames(columnNames);
 
             QueryResultMasks.setRootRelNode(node);
             QueryResult queryResult = new QueryResult(executeQueryPlan(postOptimize(node)), resultFields);

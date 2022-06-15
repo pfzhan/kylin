@@ -30,6 +30,7 @@ import io.kyligence.kap.secondstorage.config.Node;
 import io.kyligence.kap.secondstorage.metadata.Manager;
 import io.kyligence.kap.secondstorage.metadata.NodeGroup;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.QueryContext;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -42,6 +43,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -51,9 +53,9 @@ public class SecondStorageNodeHelper {
     private static final ConcurrentMap<String, String> NODE2PAIR_INDEX = new ConcurrentHashMap<>();
     private static final Map<String, List<Node>> CLUSTER = new ConcurrentHashMap<>();
     private static Function<Node, String> node2url;
-    private static Function<List<Node>, String> shard2url;
+    private static BiFunction<List<Node>, QueryContext, String> shard2url;
 
-    public static void initFromCluster(ClusterInfo cluster, Function<Node, String> node2url, Function<List<Node>, String> shard2url) {
+    public static void initFromCluster(ClusterInfo cluster, Function<Node, String> node2url, BiFunction<List<Node>, QueryContext, String> shard2url) {
         synchronized (SecondStorageNodeHelper.class) {
             NODE2PAIR_INDEX.clear();
             cluster.getNodes().forEach(node -> NODE_MAP.put(node.getName(), node));
@@ -69,9 +71,6 @@ public class SecondStorageNodeHelper {
             });
             initialized.set(true);
         }
-    }
-    public static void initFromCluster(ClusterInfo cluster, Function<Node, String> node2url) {
-        initFromCluster(cluster, node2url, null);
     }
 
     public static List<String> resolve(List<String> names) {
@@ -91,7 +90,7 @@ public class SecondStorageNodeHelper {
         return resolve(names);
     }
 
-    public static List<String> resolveShardToJDBC(List<Set<String>> shardNames) {
+    public static List<String> resolveShardToJDBC(List<Set<String>> shardNames, QueryContext queryContext) {
         Preconditions.checkState(initialized.get());
         return shardNames.stream().map(replicaNames -> {
             List<Node> replicas = replicaNames.stream().map(replicaName -> {
@@ -99,7 +98,7 @@ public class SecondStorageNodeHelper {
                 return NODE_MAP.get(replicaName);
             }).collect(Collectors.toList());
 
-            return shard2url.apply(replicas);
+            return shard2url.apply(replicas, queryContext);
         }).collect(Collectors.toList());
     }
 

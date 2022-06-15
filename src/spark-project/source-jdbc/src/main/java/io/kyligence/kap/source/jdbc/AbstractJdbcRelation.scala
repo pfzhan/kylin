@@ -43,7 +43,8 @@ abstract class AbstractJdbcRelation(jdbcOptions: JDBCOptions)(@transient val spa
   val KEY2OUTPUTS = new mutable.HashMap[CacheKey, WriteOutput]
 
   override lazy val schema: StructType = {
-    val connection: Connection = JdbcUtils.createConnectionFactory(jdbcOptions)()
+    val dialect = JdbcDialects.get(jdbcOptions.url)
+    val connection: Connection = dialect.createConnectionFactory(jdbcOptions)(-1)
     val schemaOption: Option[StructType] = getSchemaOption(connection, jdbcOptions)
     schemaOption.get
   }

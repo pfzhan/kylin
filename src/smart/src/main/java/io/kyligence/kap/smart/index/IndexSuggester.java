@@ -37,12 +37,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TblColRef;
-import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.routing.RealizationChooser;
 
@@ -59,10 +59,8 @@ import io.kyligence.kap.metadata.cube.model.IndexEntity.IndexIdentifier;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.model.ExcludedLookupChecker;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.query.exception.NotSupportedSQLException;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.common.AccelerateInfo;
@@ -87,7 +85,6 @@ class IndexSuggester {
     private final AbstractContext.ModelContext modelContext;
     private final IndexPlan indexPlan;
     private final NDataModel model;
-    private final ProjectInstance projectInstance;
 
     private final Map<FunctionDesc, Integer> aggFuncIdMap;
     private final Map<IndexIdentifier, IndexEntity> collector;
@@ -101,8 +98,6 @@ class IndexSuggester {
         this.model = modelContext.getTargetModel();
         this.indexPlan = indexPlan;
         this.collector = collector;
-        this.projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
-                .getProject(this.proposeContext.getProject());
 
         aggFuncIdMap = Maps.newHashMap();
         model.getEffectiveMeasures().forEach((measureId, measure) -> {
@@ -132,7 +127,7 @@ class IndexSuggester {
                 }
 
                 Map<String, String> aliasMap = RealizationChooser.matchJoins(model, ctx);
-                if (aliasMap == null) {
+                if (MapUtils.isEmpty(aliasMap)) {
                     throw new PendingException(String.format(Locale.ROOT,
                             getMsgTemplateByModelMaintainType(JOIN_NOT_MATCHED, Type.TABLE), model.getAlias()));
                 }
@@ -142,8 +137,7 @@ class IndexSuggester {
             } catch (Exception e) {
                 log.error("Unable to suggest cuboid for IndexPlan", e);
                 // under expert mode
-                if (e instanceof PendingException
-                        && projectInstance.getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
+                if (e instanceof PendingException) {
                     accelerateInfo.setPendingMsg(e.getMessage());
                 } else {
                     accelerateInfo.setFailedCause(e);
@@ -393,9 +387,7 @@ class IndexSuggester {
             suggestion = "Please adjust model's join to match the query.";
         }
 
-        return projectInstance.getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN //
-                ? messagePattern + suggestion
-                : messagePattern;
+        return messagePattern + suggestion;
     }
 
     private IndexEntity createIndexEntity(long id, List<Integer> dimIds, SortedSet<Integer> measureIds) {

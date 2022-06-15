@@ -43,6 +43,7 @@ import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.QueryTrace;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.NewQueryRefuseException;
 import org.apache.kylin.common.util.DBUtils;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.metadata.realization.NoStreamingRealizationFoundException;
@@ -130,12 +131,18 @@ public class QueryRoutingEngine {
             }, queryParams.getProject());
         } catch (TransactionException e) {
             Throwable cause = e.getCause();
+            if (cause instanceof SQLException && cause.getCause() instanceof KylinException){
+                throw (SQLException)cause;
+            }
             if (shouldPushdown(cause, queryParams)) {
                 return pushDownQuery((SQLException) cause, queryParams);
             } else {
                 throw e;
             }
         } catch (SQLException e) {
+            if (e.getCause() instanceof KylinException){
+                throw e;
+            }
             if (shouldPushdown(e, queryParams)) {
                 return pushDownQuery(e, queryParams);
             } else {
@@ -156,6 +163,10 @@ public class QueryRoutingEngine {
         }
 
         if (e.getCause() instanceof SparkException && e.getCause().getMessage().contains(SPARK_JOB_FAILED)) {
+            return false;
+        }
+
+        if (e.getCause() instanceof NewQueryRefuseException) {
             return false;
         }
 

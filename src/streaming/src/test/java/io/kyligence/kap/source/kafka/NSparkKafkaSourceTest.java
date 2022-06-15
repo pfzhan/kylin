@@ -25,6 +25,7 @@ package io.kyligence.kap.source.kafka;
 
 import static io.kyligence.kap.metadata.model.NTableMetadataManager.getInstance;
 
+import java.util.Collections;
 import java.util.HashMap;
 
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -38,7 +39,6 @@ import org.junit.rules.ExpectedException;
 
 import io.kyligence.kap.common.StreamingTestConstant;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
-import io.kyligence.kap.engine.spark.source.NSparkMetadataExplorer;
 import io.kyligence.kap.streaming.util.StreamingTestCase;
 import lombok.val;
 import lombok.var;
@@ -62,10 +62,12 @@ public class NSparkKafkaSourceTest extends StreamingTestCase {
     }
 
     @Test
-    public void testDimensionTableRefresh() {
+    public void testGetSourceMetadataExplorer() {
         val config = getTestConfig();
         val source = createSparkKafkaSource(config);
-        Assert.assertTrue(source.getSourceMetadataExplorer() instanceof NSparkMetadataExplorer);
+        val kafkaExplorer = source.getSourceMetadataExplorer();
+        Assert.assertTrue(kafkaExplorer instanceof KafkaExplorer);
+        Assert.assertTrue(kafkaExplorer.checkTablesAccess(Collections.emptySet()));
     }
 
     @Test

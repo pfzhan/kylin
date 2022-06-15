@@ -35,6 +35,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,7 +57,6 @@ import scala.collection.JavaConversions;
 
 import static org.apache.spark.sql.hive.utils.ResourceDetectUtils.getResourceSize;
 import static scala.collection.JavaConverters.asScalaIteratorConverter;
-
 
 /**
  * @deprecated After KE 4.3, we use {@link io.kyligence.kap.engine.spark.job.RDSegmentBuildJob} to detect build resource
@@ -107,13 +107,14 @@ public class ResourceDetectBeforeCubingJob extends SparkApplication {
                 List<Path> paths = JavaConversions
                         .seqAsJavaList(ResourceDetectUtils.getPaths(dataset.queryExecution().sparkPlan()));
                 resourceSize.put(String.valueOf(source.getLayoutId()),
-                        getResourceSize(config.isConcurrencyFetchDataSourceSize(), asScalaIteratorConverter(paths.iterator()).asScala().toSeq()));
+                        getResourceSize(SparderEnv.getHadoopConfiguration(), config.isConcurrencyFetchDataSourceSize(),
+                                asScalaIteratorConverter(paths.iterator()).asScala().toSeq()));
 
                 layoutLeafTaskNums.put(String.valueOf(source.getLayoutId()), Integer.parseInt(leafNodeNum));
             }
             ResourceDetectUtils.write(
                     new Path(config.getJobTmpShareDir(project, jobId), segId + "_" + ResourceDetectUtils.fileName()),
-                resourceSize);
+                    resourceSize);
             ResourceDetectUtils.write(new Path(config.getJobTmpShareDir(project, jobId),
                     segId + "_" + ResourceDetectUtils.cubingDetectItemFileSuffix()), layoutLeafTaskNums);
         }

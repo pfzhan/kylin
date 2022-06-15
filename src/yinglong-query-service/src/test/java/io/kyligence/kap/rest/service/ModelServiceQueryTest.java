@@ -56,10 +56,8 @@ import io.kyligence.kap.engine.spark.utils.ComputedColumnEvalUtil;
 import io.kyligence.kap.junit.rule.TransactionExceptedException;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.util.ExpandableMeasureUtil;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.QueryTimesResponse;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.query.util.KapQueryUtil;
@@ -144,11 +142,6 @@ public class ModelServiceQueryTest extends SourceTestCase {
         val result1 = new QueryTimesResponse();
         result1.setModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         result1.setQueryTimes(10);
-        val prjManager = NProjectManager.getInstance(getTestConfig());
-        val prj = prjManager.getProject("default");
-        val copy = prjManager.copyForWrite(prj);
-        copy.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-        prjManager.updateProject(copy);
 
         try {
             new JdbcRawRecStore(getTestConfig());

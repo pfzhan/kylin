@@ -23,15 +23,12 @@
  */
 package io.kyligence.kap.secondstorage.enums;
 
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY;
+
 import org.apache.kylin.common.exception.KylinException;
-
-import java.util.Locale;
-
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 
 public enum LockOperateTypeEnum {
     LOCK, UNLOCK;
-
 
     public static LockOperateTypeEnum parse(String value) {
         if (value == null) {
@@ -44,10 +41,11 @@ public enum LockOperateTypeEnum {
         }
         return null;
     }
+
     public static void check(String lockOperateType) {
         LockOperateTypeEnum typeEnum = LockOperateTypeEnum.parse(lockOperateType);
         if (typeEnum == null) {
-            throw new KylinException(INVALID_PARAMETER, String.format(Locale.ROOT, "'%s' is required.", "lockOperateType"));
+            throw new KylinException(REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY, "lockOperateType");
         }
     }
 }

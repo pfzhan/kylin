@@ -205,7 +205,7 @@ public class NUserController extends NBasicController {
         ManagedUser mergeUser = userRequest.updateManager(existing);
 
         if (StringUtils.equals(getPrincipal(), mergeUser.getUsername()) && mergeUser.isDisabled()) {
-            throw new KylinException(FAILED_UPDATE_USER, msg.getSELF_DISABLE_FORBIDDEN());
+            throw new KylinException(FAILED_UPDATE_USER, msg.getSelfDisableForbidden());
         }
 
         if (StringUtils.equals(getPrincipal(), userRequest.getUsername())) {
@@ -215,11 +215,11 @@ public class NUserController extends NBasicController {
             boolean roleChange = !(userGroupSet.size() == currentUserGroupSet.size())
                     || !(userGroupSet.containsAll(currentUserGroupSet));
             if (roleChange) {
-                throw new KylinException(FAILED_UPDATE_USER, msg.getSELF_EDIT_FORBIDDEN());
+                throw new KylinException(FAILED_UPDATE_USER, msg.getSelfEditForbidden());
             }
         }
         if (existing == null) {
-            throw new KylinException(USER_NOT_EXIST, String.format(Locale.ROOT, msg.getUSER_NOT_FOUND(), username));
+            throw new KylinException(USER_NOT_EXIST, String.format(Locale.ROOT, msg.getUserNotFound(), username));
         }
         if (mergeUser.getAuthorities() == null || mergeUser.getAuthorities().isEmpty())
             mergeUser.setGrantedAuthorities(existing.getAuthorities());
@@ -259,11 +259,11 @@ public class NUserController extends NBasicController {
         }
 
         if (Objects.isNull(toBeDeleteUser)) {
-            throw new KylinException(USER_NOT_EXIST, String.format(Locale.ROOT, msg.getUSER_NOT_EXIST(), userUUID));
+            throw new KylinException(USER_NOT_EXIST, String.format(Locale.ROOT, msg.getUserNotExist(), userUUID));
         }
 
         if (StringUtils.equals(getPrincipal(), toBeDeleteUser.getUsername())) {
-            throw new KylinException(FAILED_UPDATE_USER, msg.getSELF_DELETE_FORBIDDEN());
+            throw new KylinException(FAILED_UPDATE_USER, msg.getSelfDeleteForbidden());
         }
         accessService.checkDefaultAdmin(toBeDeleteUser.getUsername(), false);
         //delete user's project ACL
@@ -287,7 +287,7 @@ public class NUserController extends NBasicController {
         String currentUser = getPrincipal();
         usernames.forEach(username -> {
             if (StringUtils.equals(currentUser, username)) {
-                throw new KylinException(FAILED_UPDATE_USER, msg.getSELF_DELETE_FORBIDDEN());
+                throw new KylinException(FAILED_UPDATE_USER, msg.getSelfDeleteForbidden());
             }
         });
         List<ManagedUser> existedUsers = userService.listUsers();
@@ -297,7 +297,7 @@ public class NUserController extends NBasicController {
                 .collect(Collectors.toList());
         if (notInList.size() > 0) {
             throw new KylinException(USER_NOT_EXIST,
-                    String.format(Locale.ROOT, msg.getUSER_NOT_FOUND(), String.join(",", notInList)));
+                    String.format(Locale.ROOT, msg.getUserNotFound(), String.join(",", notInList)));
         }
 
         usernames.forEach(username -> {
@@ -347,11 +347,11 @@ public class NUserController extends NBasicController {
             logger.warn("Delete user failed, user {} not found.", username);
         }
         if (Objects.isNull(managedUser)) {
-            throw new KylinException(USER_NOT_EXIST, String.format(Locale.ROOT, msg.getUSER_NOT_FOUND(), username));
+            throw new KylinException(USER_NOT_EXIST, String.format(Locale.ROOT, msg.getUserNotFound(), username));
         }
 
         if (StringUtils.equals(getPrincipal(), username)) {
-            throw new KylinException(FAILED_UPDATE_USER, msg.getSELF_DELETE_FORBIDDEN());
+            throw new KylinException(FAILED_UPDATE_USER, msg.getSelfDeleteForbidden());
         }
         accessService.checkDefaultAdmin(username, false);
         //delete user's project ACL
@@ -392,7 +392,7 @@ public class NUserController extends NBasicController {
         val username = user.getUsername();
 
         if (!isAdmin() && !StringUtils.equals(getPrincipal(), username)) {
-            throw new KylinException(PERMISSION_DENIED, msg.getPERMISSION_DENIED());
+            throw new KylinException(PERMISSION_DENIED, msg.getPermissionDenied());
         }
         accessService.checkDefaultAdmin(username, true);
         val oldPassword = pwdBase64Decode(user.getPassword());
@@ -406,19 +406,19 @@ public class NUserController extends NBasicController {
 
         ManagedUser existingUser = getManagedUser(username);
         if (existingUser == null) {
-            throw new KylinException(USER_NOT_EXIST, String.format(Locale.ROOT, msg.getUSER_NOT_FOUND(), username));
+            throw new KylinException(USER_NOT_EXIST, String.format(Locale.ROOT, msg.getUserNotFound(), username));
         }
         val actualOldPassword = existingUser.getPassword();
 
         // when reset oneself's password (includes ADMIN users), check old password
         if (StringUtils.equals(getPrincipal(), username)) {
             if (!pwdEncoder.matches(oldPassword, actualOldPassword)) {
-                throw new KylinException(FAILED_UPDATE_PASSWORD, msg.getOLD_PASSWORD_WRONG());
+                throw new KylinException(FAILED_UPDATE_PASSWORD, msg.getOldPasswordWrong());
             }
         }
 
         if (newPassword.equals(oldPassword)) {
-            throw new KylinException(FAILED_UPDATE_PASSWORD, msg.getNEW_PASSWORD_SAME_AS_OLD());
+            throw new KylinException(FAILED_UPDATE_PASSWORD, msg.getNewPasswordSameAsOld());
         }
 
         existingUser.setPassword(pwdEncode(newPassword));
@@ -487,21 +487,21 @@ public class NUserController extends NBasicController {
     private void checkPasswordCharacter(String password) {
         val msg = MsgPicker.getMsg();
         if (!passwordPattern.matcher(password).matches()) {
-            throw new KylinException(INVALID_PASSWORD, msg.getINVALID_PASSWORD());
+            throw new KylinException(INVALID_PASSWORD, msg.getInvalidPassword());
         }
     }
 
     private void checkProfile() {
         val msg = MsgPicker.getMsg();
         if (!env.acceptsProfiles(PROFILE_DEFAULT, PROFILE_CUSTOM)) {
-            throw new KylinException(FAILED_UPDATE_USER, msg.getUSER_EDIT_NOT_ALLOWED());
+            throw new KylinException(FAILED_UPDATE_USER, msg.getUserEditNotAllowed());
         }
     }
 
     private void checkPasswordLength(String password) {
         val msg = MsgPicker.getMsg();
         if (password == null || password.length() < 8)
-            throw new KylinException(SHORT_PASSWORD, msg.getSHORT_PASSWORD());
+            throw new KylinException(SHORT_PASSWORD, msg.getShortPassword());
     }
 
     private void checkUsername(String username) {
@@ -510,22 +510,22 @@ public class NUserController extends NBasicController {
 
         val msg = MsgPicker.getMsg();
         if (StringUtils.isEmpty(username)) {
-            throw new KylinException(EMPTY_USER_NAME, msg.getEMPTY_USER_NAME());
+            throw new KylinException(EMPTY_USER_NAME, msg.getEmptyUserName());
         }
         if (username.startsWith(".")) {
-            throw new KylinException(INVALID_USER_NAME, msg.getINVALID_NAME_START_WITH_DOT());
+            throw new KylinException(INVALID_USER_NAME, msg.getInvalidNameStartWithDot());
         }
         if (!username.equals(username.trim())) {
-            throw new KylinException(INVALID_USER_NAME, msg.getINVALID_NAME_START_OR_END_WITH_BLANK());
+            throw new KylinException(INVALID_USER_NAME, msg.getInvalidNameStartOrEndWithBlank());
         }
         if (username.length() > 180) {
-            throw new KylinException(INVALID_USER_NAME, msg.getINVALID_NAME_LEGTHN());
+            throw new KylinException(INVALID_USER_NAME, msg.getInvalidNameLength());
         }
         if (Pattern.compile("[^\\x00-\\xff]").matcher(username).find()) {
-            throw new KylinException(INVALID_USER_NAME, msg.getINVALID_NAME_CONTAINS_OTHER_CHARACTER());
+            throw new KylinException(INVALID_USER_NAME, msg.getInvalidNameContainsOtherCharacter());
         }
         if (Pattern.compile("[\\\\/:*?\"<>|]").matcher(username).find()) {
-            throw new KylinException(INVALID_USER_NAME, msg.getINVALID_NAME_CONTAINS_INLEGAL_CHARACTER());
+            throw new KylinException(INVALID_USER_NAME, msg.getInvalidNameContainsInlegalCharacter());
         }
     }
 
@@ -587,7 +587,7 @@ public class NUserController extends NBasicController {
         boolean hasEmptyGroup = CollectionUtils.isEmpty(groups)
                 || groups.stream().map(SimpleGrantedAuthority::getAuthority).anyMatch(StringUtils::isBlank);
         if (hasEmptyGroup) {
-            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getEMPTY_GROUP_NAME());
+            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getEmptyGroupName());
         }
     }
 
@@ -595,7 +595,7 @@ public class NUserController extends NBasicController {
         for (SimpleGrantedAuthority group : groups) {
             if (!userGroupService.exists(group.getAuthority())) {
                 throw new KylinException(INVALID_PARAMETER,
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getOPERATION_FAILED_BY_GROUP_NOT_EXIST(), group));
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getOperationFailedByGroupNotExist(), group));
             }
         }
     }

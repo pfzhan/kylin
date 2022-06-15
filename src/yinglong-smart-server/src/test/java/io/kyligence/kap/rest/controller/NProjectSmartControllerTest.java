@@ -90,6 +90,7 @@ public class NProjectSmartControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testUpdateFrequencyRule() throws Exception {
         String project = "default";
+        getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "true");
         FavoriteRuleUpdateRequest request = new FavoriteRuleUpdateRequest();
         request.setProject(project);
         request.setFreqEnable(false);
@@ -111,7 +112,7 @@ public class NProjectSmartControllerTest extends NLocalFileMetadataTestCase {
         request.setMinHitCount("1");
         request.setEffectiveDays("1");
         thrown.expect(KylinException.class);
-        thrown.expectMessage(MsgPicker.getMsg().getUPDATE_FREQUENCY_NOT_EMPTY());
+        thrown.expectMessage(MsgPicker.getMsg().getUpdateFrequencyNotEmpty());
         NProjectSmartController.checkUpdateFavoriteRuleArgs(request);
     }
 
@@ -119,7 +120,7 @@ public class NProjectSmartControllerTest extends NLocalFileMetadataTestCase {
     public void testCheckUpdateFavoriteRuleArgsWithEmptyHitCount() {
         FavoriteRuleUpdateRequest request = new FavoriteRuleUpdateRequest();
         thrown.expect(KylinException.class);
-        thrown.expectMessage(MsgPicker.getMsg().getMIN_HIT_COUNT_NOT_EMPTY());
+        thrown.expectMessage(MsgPicker.getMsg().getMinHitCountNotEmpty());
         NProjectSmartController.checkUpdateFavoriteRuleArgs(request);
     }
 
@@ -128,7 +129,7 @@ public class NProjectSmartControllerTest extends NLocalFileMetadataTestCase {
         FavoriteRuleUpdateRequest request = new FavoriteRuleUpdateRequest();
         request.setMinHitCount("1");
         thrown.expect(KylinException.class);
-        thrown.expectMessage(MsgPicker.getMsg().getEFFECTIVE_DAYS_NOT_EMPTY());
+        thrown.expectMessage(MsgPicker.getMsg().getEffectiveDaysNotEmpty());
         NProjectSmartController.checkUpdateFavoriteRuleArgs(request);
     }
 

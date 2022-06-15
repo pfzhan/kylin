@@ -91,6 +91,7 @@ public class NDataModelTest {
         Assert.assertEquals(model.findColumn("TRANS_ID"), dimMap.get(1));
         Assert.assertEquals(model.findColumn("TEST_KYLIN_FACT.CAL_DT"), dimMap.get(2));
         Assert.assertEquals(model.findColumn("LSTG_FORMAT_NAME"), dimMap.get(3));
+        Assert.assertThrows(RuntimeException.class, () -> model.findColumn("not_exits"));
         Assert.assertEquals(model.getAllNamedColumns().size() - 1, dimMap.size());
 
         Assert.assertNotNull(model.findFirstTable("DEFAULT.TEST_KYLIN_FACT"));

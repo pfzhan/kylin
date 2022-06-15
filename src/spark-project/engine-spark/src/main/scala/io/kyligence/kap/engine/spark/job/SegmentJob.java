@@ -114,7 +114,8 @@ public abstract class SegmentJob extends SparkApplication {
     }
 
     @Override
-    protected void extraDestroy() {
+    public void extraDestroy() {
+        super.extraDestroy();
         if (runtime != null) {
             runtime.shutdown();
         }

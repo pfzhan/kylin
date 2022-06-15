@@ -28,16 +28,11 @@ import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLI
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_DETECT_DATA_RANGE;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_RANGE;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_SAMPLING_RANGE;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_NAME;
 
 import java.io.IOException;
-import java.util.Locale;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.KylinTimeoutException;
-import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.request.SamplingRequest;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -68,8 +63,6 @@ import io.swagger.annotations.ApiOperation;
 public class SampleController extends BaseController {
 
     private static final String TABLE = "table";
-    private static final int MAX_SAMPLING_ROWS = 20_000_000;
-    private static final int MIN_SAMPLING_ROWS = 10_000;
     private static final Logger logger = LoggerFactory.getLogger(SampleController.class);
 
     @Autowired
@@ -114,11 +107,11 @@ public class SampleController extends BaseController {
         try {
             response = tableService.getLatestDataRange(project, table);
         } catch (KylinTimeoutException ke) {
-            logger.error(MsgPicker.getMsg().getPUSHDOWN_DATARANGE_TIMEOUT(), ke);
-            throw new KylinException(FAILED_DETECT_DATA_RANGE, MsgPicker.getMsg().getPUSHDOWN_DATARANGE_TIMEOUT());
+            logger.error(MsgPicker.getMsg().getpushdownDatarangeTimeout(), ke);
+            throw new KylinException(FAILED_DETECT_DATA_RANGE, MsgPicker.getMsg().getpushdownDatarangeTimeout());
         } catch (Exception e) {
-            logger.error(MsgPicker.getMsg().getPUSHDOWN_DATARANGE_ERROR(), e);
-            throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getPUSHDOWN_DATARANGE_ERROR());
+            logger.error(MsgPicker.getMsg().getPushdownDatarangeError(), e);
+            throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getPushdownDatarangeError());
         }
 
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
@@ -143,8 +136,8 @@ public class SampleController extends BaseController {
     public EnvelopeResponse<String> submitSampling(@RequestBody SamplingRequest request) {
         checkProjectName(request.getProject());
         checkParamLength("tag", request.getTag(), 1024);
-        checkSamplingRows(request.getRows());
-        checkSamplingTable(request.getQualifiedTableName());
+        TableSamplingService.checkSamplingRows(request.getRows());
+        TableSamplingService.checkSamplingTable(request.getQualifiedTableName());
         validatePriority(request.getPriority());
 
         tableSamplingService.sampling(Sets.newHashSet(request.getQualifiedTableName()), request.getProject(),
@@ -158,33 +151,9 @@ public class SampleController extends BaseController {
     public EnvelopeResponse<Boolean> hasSamplingJob(@RequestParam(value = "project") String project,
             @RequestParam(value = "qualified_table_name") String qualifiedTableName) {
         checkProjectName(project);
-        checkSamplingTable(qualifiedTableName);
+        TableSamplingService.checkSamplingTable(qualifiedTableName);
         boolean hasSamplingJob = tableSamplingService.hasSamplingJob(project, qualifiedTableName);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, hasSamplingJob, "");
-    }
-
-    private void checkSamplingRows(int rows) {
-        Message msg = MsgPicker.getMsg();
-        if (rows > MAX_SAMPLING_ROWS) {
-            throw new KylinException(INVALID_SAMPLING_RANGE,
-                    String.format(Locale.ROOT, msg.getBEYOND_MAX_SAMPLING_ROWS_HINT(), MAX_SAMPLING_ROWS));
-        }
-
-        if (rows < MIN_SAMPLING_ROWS) {
-            throw new KylinException(INVALID_SAMPLING_RANGE,
-                    String.format(Locale.ROOT, msg.getBEYOND_MIX_SAMPLING_ROWSHINT(), MIN_SAMPLING_ROWS));
-        }
-    }
-
-    private void checkSamplingTable(String tableName) {
-        Message msg = MsgPicker.getMsg();
-        if (tableName == null || StringUtils.isEmpty(tableName.trim())) {
-            throw new KylinException(INVALID_TABLE_NAME, msg.getFAILED_FOR_NO_SAMPLING_TABLE());
-        }
-
-        if (tableName.contains(" ") || !tableName.contains(".") || tableName.split("\\.").length != 2) {
-            throw new KylinException(INVALID_TABLE_NAME, msg.getSAMPLING_FAILED_FOR_ILLEGAL_TABLE_NAME());
-        }
     }
 
 }

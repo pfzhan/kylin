@@ -80,7 +80,7 @@ public class SecondStorageJobUtil extends ExecutableUtil {
                 .collect(Collectors.toList());
 
         if (segments.isEmpty()) {
-            throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_CHECK_SEGMENT_READY_FAIL());
+            throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getAddJobCheckSegmentReadyFail());
         }
 
         Manager<TablePlan> tablePlanManager = SecondStorage.tablePlanManager(config, project);

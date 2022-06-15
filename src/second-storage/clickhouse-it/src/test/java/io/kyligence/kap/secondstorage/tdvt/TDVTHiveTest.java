@@ -46,7 +46,7 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.execution.HiveResult$;
-import org.apache.spark.sql.execution.datasources.v2.jdbc.ShardJDBCScan;
+import org.apache.spark.sql.execution.datasources.v2.jdbc.JDBCScan;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -159,6 +159,15 @@ public class TDVTHiveTest {
         sparkSession.sessionState().conf().setConfString(
                 "spark.sql.catalog." + queryCatalog + ".driver",
                 ckInstance.getDriverClassName());
+        sparkSession.sessionState().conf().setConfString(
+                "spark.sql.catalog." + queryCatalog + ".pushDownAggregate",
+                "true");
+        sparkSession.sessionState().conf().setConfString(
+                "spark.sql.catalog." + queryCatalog + ".pushDownLimit",
+                "true");
+        sparkSession.sessionState().conf().setConfString(
+                "spark.sql.catalog." + queryCatalog + ".numPartitions",
+                "1");
 
         populateSSWithCSVData(test.getTestConfig(), project, SparderEnv.getSparkSession());
     }
@@ -197,8 +206,8 @@ public class TDVTHiveTest {
     private String runWithAggPushDown(String sqlStatement) throws Exception {
         QueryContext.current().setForceTableIndex(false);
         Dataset<Row> plan = ExecAndComp.queryModelWithoutCompute(project, sqlStatement);
-        ShardJDBCScan shardJDBCScan = ClickHouseUtils.findShardScan(plan.queryExecution().optimizedPlan());
-        Assert.assertNotNull(shardJDBCScan);
+        JDBCScan jdbcScan = ClickHouseUtils.findJDBCScan(plan.queryExecution().optimizedPlan());
+        Assert.assertNotNull(jdbcScan);
         return computeResult(plan);
     }
 

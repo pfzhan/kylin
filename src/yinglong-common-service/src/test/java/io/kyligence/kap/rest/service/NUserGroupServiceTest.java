@@ -85,7 +85,9 @@ public class NUserGroupServiceTest extends ServiceTestBase {
             Assert.assertNotNull(group.getUuid());
             Assert.assertTrue(group.getGroupName().contains("g"));
             Assert.assertEquals(group.getUuid(), userGroupService.getUuidByGroupName(group.getGroupName()));
+            Assert.assertThrows(KylinException.class, () -> userGroupService.getUuidByGroupName(""));
             Assert.assertEquals(group.getGroupName(), userGroupService.getGroupNameByUuid(group.getUuid()));
+            Assert.assertThrows(KylinException.class, () -> userGroupService.getGroupNameByUuid(""));
         }
 
         // test add a existing user group
@@ -103,15 +105,7 @@ public class NUserGroupServiceTest extends ServiceTestBase {
         userGroupService.modifyGroupUsers("g1", Lists.newArrayList("u1", "u3", "u5"));
         userGroupService.modifyGroupUsers("g2", Lists.newArrayList("u2", "u4", "u6"));
 
-        Assert.assertEquals(Lists.newArrayList("u1", "u3", "u5"), getUsers("g1"));
-        Assert.assertEquals(Lists.newArrayList("u2", "u4", "u6"), getUsers("g2"));
-        Assert.assertEquals(0, userGroupService.getGroupMembersByName("g3").size());
-        Assert.assertEquals(
-                Lists.newArrayList(new SimpleGrantedAuthority(GROUP_ALL_USERS), new SimpleGrantedAuthority("g1")),
-                userService.loadUserByUsername("u1").getAuthorities());
-        Assert.assertEquals(
-                Lists.newArrayList(new SimpleGrantedAuthority(GROUP_ALL_USERS), new SimpleGrantedAuthority("g2")),
-                userService.loadUserByUsername("u2").getAuthorities());
+        checkResult();
 
         userGroupService.modifyGroupUsers("g1", Lists.newArrayList("u3", "u5"));
         Assert.assertEquals(Lists.newArrayList(new SimpleGrantedAuthority(GROUP_ALL_USERS)),
@@ -136,6 +130,18 @@ public class NUserGroupServiceTest extends ServiceTestBase {
         Assert.assertEquals(2, result.get("group").size());
         Assert.assertEquals("g2", result.get("group").get(0));
         Assert.assertEquals("g3", result.get("group").get(1));
+    }
+
+    private void checkResult() throws IOException {
+        Assert.assertEquals(Lists.newArrayList("u1", "u3", "u5"), getUsers("g1"));
+        Assert.assertEquals(Lists.newArrayList("u2", "u4", "u6"), getUsers("g2"));
+        Assert.assertEquals(0, userGroupService.getGroupMembersByName("g3").size());
+        Assert.assertEquals(
+                Lists.newArrayList(new SimpleGrantedAuthority(GROUP_ALL_USERS), new SimpleGrantedAuthority("g1")),
+                userService.loadUserByUsername("u1").getAuthorities());
+        Assert.assertEquals(
+                Lists.newArrayList(new SimpleGrantedAuthority(GROUP_ALL_USERS), new SimpleGrantedAuthority("g2")),
+                userService.loadUserByUsername("u2").getAuthorities());
     }
 
     private List<String> getUsers(String groupName) throws IOException {

@@ -25,8 +25,14 @@
 package io.kyligence.kap.rest.service;
 
 import java.net.ConnectException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
+import io.kyligence.kap.common.state.StateSwitchConstant;
+import io.kyligence.kap.common.util.AddressUtil;
+import io.kyligence.kap.metadata.state.QueryShareStateManager;
+import io.kyligence.kap.rest.request.AlertMessageRequest;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -64,6 +70,10 @@ public class MonitorServiceTest extends SourceTestCase {
         super.setup();
         getTestConfig().setProperty("kylin.monitor.interval", "1");
         getTestConfig().setProperty("kylin.monitor.job-statistic-interval", "10");
+        getTestConfig().setMetadataUrl(
+                "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password="
+        );
+        getTestConfig().setProperty("kylin.query.share-state-switch-implement", "jdbc");
         overwriteSystemProp("HADOOP_USER_NAME", "root");
         ReflectionTestUtils.setField(monitorService, "clusterManager", clusterManager);
         ReflectionTestUtils.setField(monitorService, "projectService", projectService);
@@ -314,6 +324,37 @@ public class MonitorServiceTest extends SourceTestCase {
         Assert.assertEquals(26080L, queries.get(0).getDetails().get(6).getTime());
         Assert.assertEquals(2000L, queries.get(0).getUnavailableTime());
         Assert.assertEquals(3000L, queries.get(1).getUnavailableTime());
+    }
+
+    @Test
+    public void testHandleAlertMessage() {
+        QueryShareStateManager manager = QueryShareStateManager.getInstance();
+
+        AlertMessageRequest request = new AlertMessageRequest();
+        request.setAlerts(new ArrayList<>());
+        monitorService.handleAlertMessage(request);
+
+        String stateVal = manager.getState("QueryLimit");
+        Assert.assertEquals("false", stateVal);
+
+        AlertMessageRequest.Labels label = new AlertMessageRequest.Labels();
+        label.setAlertname("Spark Utilization Is Too High");
+        label.setInstance(AddressUtil.concatInstanceName());
+        AlertMessageRequest.Alerts alerts = new AlertMessageRequest.Alerts();
+        alerts.setLabels(label);
+        request.setAlerts(Collections.singletonList(alerts));
+
+        request.setStatus("firing");
+        alerts.setStatus("firing");
+        monitorService.handleAlertMessage(request);
+        stateVal = manager.getState(StateSwitchConstant.QUERY_LIMIT_STATE);
+        Assert.assertEquals("true", stateVal);
+
+        request.setStatus("resolved");
+        alerts.setStatus("resolved");
+        monitorService.handleAlertMessage(request);
+        stateVal = manager.getState(StateSwitchConstant.QUERY_LIMIT_STATE);
+        Assert.assertEquals("false", stateVal);
     }
 
 }

@@ -28,6 +28,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.NO_ACTIVE_ALL_NO
 import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_WITHOUT_RESOURCE_GROUP;
 import static org.apache.kylin.common.exception.ServerErrorCode.SYSTEM_IS_RECOVER;
 import static org.apache.kylin.common.exception.ServerErrorCode.TRANSFER_FAILED;
+import static org.apache.kylin.common.exception.SystemErrorCode.QUERYNODE_API_INVALID;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_NOT_EXIST;
 import static org.apache.kylin.common.exception.code.ErrorCodeSystem.MAINTENANCE_MODE_WRITE_FAILED;
 
@@ -184,7 +185,7 @@ public class QueryNodeFilter implements Filter {
                 if (CollectionUtils.isEmpty(clusterManager.getJobServers())) {
                     Message msg = MsgPicker.getMsg();
                     servletRequest.setAttribute(ERROR,
-                            new KylinException(NO_ACTIVE_ALL_NODE, msg.getNO_ACTIVE_LEADERS()));
+                            new KylinException(NO_ACTIVE_ALL_NODE, msg.getNoActiveLeaders()));
                     servletRequest.getRequestDispatcher(API_ERROR).forward(servletRequest, response);
                     return;
                 }
@@ -209,6 +210,14 @@ public class QueryNodeFilter implements Filter {
                 if (EpochManager.getInstance().isMaintenanceMode()) {
                     servletRequest.setAttribute(ERROR, new KylinException(MAINTENANCE_MODE_WRITE_FAILED));
                     servletRequest.getRequestDispatcher(API_ERROR).forward(servletRequest, response);
+                    return;
+                }
+
+                if (Boolean.FALSE.equals(kylinConfig.isQueryNodeRequestForwardEnabled())
+                        && kylinConfig.isQueryNodeOnly()) {
+                    request.setAttribute(ERROR,
+                            new KylinException(QUERYNODE_API_INVALID, MsgPicker.getMsg().getQueryNodeInvalid()));
+                    request.getRequestDispatcher(API_ERROR).forward(request, response);
                     return;
                 }
             } catch (CannotCreateTransactionException e) {
@@ -245,9 +254,9 @@ public class QueryNodeFilter implements Filter {
                 val manager = ResourceGroupManager.getInstance(KylinConfig.getInstanceFromEnv());
                 if (manager.isResourceGroupEnabled() && !manager.isProjectBindToResourceGroup(project)) {
                     exception = new KylinException(PROJECT_WITHOUT_RESOURCE_GROUP,
-                            msg.getPROJECT_WITHOUT_RESOURCE_GROUP());
+                            msg.getProjectWithoutResourceGroup());
                 } else {
-                    exception = new KylinException(SYSTEM_IS_RECOVER, msg.getLEADERS_HANDLE_OVER());
+                    exception = new KylinException(SYSTEM_IS_RECOVER, msg.getLeadersHandleOver());
                 }
                 ErrorResponse errorResponse = new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(servletRequest),
                         exception);
@@ -263,7 +272,7 @@ public class QueryNodeFilter implements Filter {
             } catch (Exception e) {
                 log.error("transfer failed", e);
                 servletRequest.setAttribute(ERROR,
-                        new KylinException(TRANSFER_FAILED, MsgPicker.getMsg().getTRANSFER_FAILED()));
+                        new KylinException(TRANSFER_FAILED, MsgPicker.getMsg().getTransferFailed()));
                 servletRequest.getRequestDispatcher(API_ERROR).forward(servletRequest, response);
                 return;
             }
@@ -338,7 +347,7 @@ public class QueryNodeFilter implements Filter {
     public void writeConnectionErrorResponse(HttpServletRequest servletRequest, HttpServletResponse servletResponse)
             throws IOException {
         ErrorResponse errorResponse = new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(servletRequest),
-                new KylinException(FAILED_CONNECT_CATALOG, MsgPicker.getMsg().getCONNECT_DATABASE_ERROR(), false));
+                new KylinException(FAILED_CONNECT_CATALOG, MsgPicker.getMsg().getConnectDatabaseError(), false));
         byte[] responseBody = JsonUtil.writeValueAsBytes(errorResponse);
         HttpHeaders responseHeaders = new HttpHeaders();
         responseHeaders.setContentType(MediaType.APPLICATION_JSON);

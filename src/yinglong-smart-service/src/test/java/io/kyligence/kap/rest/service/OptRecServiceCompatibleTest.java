@@ -138,7 +138,7 @@ public class OptRecServiceCompatibleTest extends OptRecV2TestBase {
 
         List<OpenRecApproveResponse.RecToIndexResponse> recToIndexResponses = Lists.newArrayList();
         UnitOfWork.doInTransactionWithRetry(() -> {
-            recToIndexResponses.addAll(optRecService.batchApprove(getProject(), "all"));
+            recToIndexResponses.addAll(optRecService.batchApprove(getProject(), Lists.newArrayList(), "all", false));
             return 0;
         }, getProject());
 

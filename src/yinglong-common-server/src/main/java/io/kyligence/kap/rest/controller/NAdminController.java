@@ -79,10 +79,12 @@ public class NAdminController extends NBasicController {
         propertyKeys.add("kylin.query.query-history-download-max-size");
         propertyKeys.add("kylin.streaming.enabled");
         propertyKeys.add("kylin.model.measure-name-check-enabled");
+        propertyKeys.add("kylin.security.remove-ldap-custom-security-limit-enabled");
 
         // add second storage
         if (StringUtils.isNotEmpty(KylinConfig.getInstanceFromEnv().getSecondStorage())) {
             propertyKeys.add("kylin.second-storage.class");
+            propertyKeys.add("kylin.second-storage.query-metric-collect");
         }
 
         if (!KylinConfig.getInstanceFromEnv().isAllowedNonAdminGenerateQueryDiagPackage()) {

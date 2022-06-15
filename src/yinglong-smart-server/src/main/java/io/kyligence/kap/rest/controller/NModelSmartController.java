@@ -72,6 +72,7 @@ public class NModelSmartController extends NBasicController {
                 modelSmartService.buildModelSuggestionResponse(proposeContext), "");
     }
 
+    @Deprecated
     @ApiOperation(value = "checkIfCanAnsweredByExistedModel", tags = { "AI" }, notes = "")
     @PostMapping(value = "/can_answered_by_existed_model")
     @ResponseBody

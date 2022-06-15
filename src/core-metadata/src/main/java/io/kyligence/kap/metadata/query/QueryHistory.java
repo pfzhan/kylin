@@ -24,9 +24,11 @@
 
 package io.kyligence.kap.metadata.query;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -35,10 +37,12 @@ import com.google.common.collect.Lists;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
+import org.apache.kylin.common.util.JsonUtil;
 
 @SuppressWarnings("serial")
 @Getter
 @Setter
+@Slf4j
 public class QueryHistory {
     public static final String ADJ_SLOW = "Slow";
     public static final String QUERY_HISTORY_SUCCEEDED = "SUCCEEDED";
@@ -173,6 +177,21 @@ public class QueryHistory {
 
     public QueryHistory(String sql) {
         this.sql = sql;
+    }
+
+    public QueryHistorySql getQueryHistorySql() {
+        if (JsonUtil.isJson(sql)) {
+            try {
+                QueryHistorySql ret = JsonUtil.readValue(sql, QueryHistorySql.class);
+                if (StringUtils.isBlank(ret.getNormalizedSql())) {
+                    ret.setNormalizedSql(sqlPattern);
+                }
+                return ret;
+            } catch (IOException e) {
+                log.error("Convert sql json string failed", e);
+            }
+        }
+        return new QueryHistorySql(sql, sql, null);
     }
 
     public boolean isException() {

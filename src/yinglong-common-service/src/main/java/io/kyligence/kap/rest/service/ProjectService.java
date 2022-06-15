@@ -31,6 +31,7 @@ import static io.kyligence.kap.common.constant.Constants.KYLIN_SOURCE_JDBC_PASS_
 import static io.kyligence.kap.common.constant.Constants.KYLIN_SOURCE_JDBC_SOURCE_ENABLE_KEY;
 import static io.kyligence.kap.common.constant.Constants.KYLIN_SOURCE_JDBC_SOURCE_NAME_KEY;
 import static io.kyligence.kap.common.constant.Constants.KYLIN_SOURCE_JDBC_USER_KEY;
+import static io.kyligence.kap.common.constant.NonCustomProjectLevelConfig.DATASOURCE_TYPE;
 import static org.apache.kylin.common.exception.ServerErrorCode.DATABASE_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_PROJECT_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_EMAIL;
@@ -113,7 +114,6 @@ import io.kyligence.kap.metadata.cube.storage.ProjectStorageInfoCollector;
 import io.kyligence.kap.metadata.cube.storage.StorageInfoEnum;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
@@ -187,23 +187,19 @@ public class ProjectService extends BasicService {
         if (overrideProps == null) {
             overrideProps = Maps.newLinkedHashMap();
         }
-        if (newProject.getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
-            overrideProps.put("kylin.metadata.semi-automatic-mode",
-                    getConfig().isSemiAutoMode() ? KylinConfig.TRUE : KylinConfig.FALSE);
-            overrideProps.put(ProjectInstance.EXPOSE_COMPUTED_COLUMN_CONF, KylinConfig.TRUE);
-        } else {
-            overrideProps.put(ProjectInstance.EXPOSE_COMPUTED_COLUMN_CONF, KylinConfig.FALSE);
-        }
+
+        overrideProps.put("kylin.metadata.semi-automatic-mode", String.valueOf(getConfig().isSemiAutoMode()));
+        overrideProps.put(ProjectInstance.EXPOSE_COMPUTED_COLUMN_CONF, KylinConfig.TRUE);
 
         encryptJdbcPassInOverrideKylinProps(overrideProps);
         ProjectInstance currentProject = getManager(NProjectManager.class).getProject(projectName);
         if (currentProject != null) {
             throw new KylinException(DUPLICATE_PROJECT_NAME,
-                    String.format(Locale.ROOT, msg.getPROJECT_ALREADY_EXIST(), projectName));
+                    String.format(Locale.ROOT, msg.getProjectAlreadyExist(), projectName));
         }
         final String owner = SecurityContextHolder.getContext().getAuthentication().getName();
-        ProjectInstance createdProject = getManager(NProjectManager.class).createProject(projectName, owner, description,
-                overrideProps, newProject.getMaintainModelType());
+        ProjectInstance createdProject = getManager(NProjectManager.class).createProject(projectName, owner,
+                description, overrideProps);
         logger.debug("New project created.");
         return createdProject;
     }
@@ -519,7 +515,7 @@ public class ProjectService extends BasicService {
         Preconditions.checkNotNull(username, "username can not be null");
         Preconditions.checkNotNull(password, "password can not be null");
         if (!JdbcUtils.checkConnectionParameter(driver, url, username, password)) {
-            throw new KylinException(INVALID_JDBC_SOURCE_CONFIG, MsgPicker.getMsg().getJDBC_CONNECTION_INFO_WRONG());
+            throw new KylinException(INVALID_JDBC_SOURCE_CONFIG, MsgPicker.getMsg().getJdbcConnectionInfoWrong());
         }
     }
 
@@ -549,7 +545,6 @@ public class ProjectService extends BasicService {
 
         response.setProject(project);
         response.setDescription(projectInstance.getDescription());
-        response.setMaintainModelType(projectInstance.getMaintainModelType());
         response.setDefaultDatabase(projectInstance.getDefaultDatabase());
         response.setSemiAutomaticMode(config.isSemiAutoMode());
 
@@ -655,16 +650,17 @@ public class ProjectService extends BasicService {
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     @Transaction(project = 0)
     public void updateSnapshotConfig(String project, SnapshotConfigRequest snapshotConfigRequest) {
-        getManager(NProjectManager.class).updateProject(project, copyForWrite ->
-                copyForWrite.putOverrideKylinProps("kylin.snapshot.manual-management-enabled", snapshotConfigRequest.getSnapshotManualManagementEnabled().toString()));
+        getManager(NProjectManager.class).updateProject(project,
+                copyForWrite -> copyForWrite.putOverrideKylinProps("kylin.snapshot.manual-management-enabled",
+                        snapshotConfigRequest.getSnapshotManualManagementEnabled().toString()));
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     @Transaction(project = 0)
     public void updateSCD2Config(String project, SCD2ConfigRequest scd2ConfigRequest,
             ProjectModelSupporter modelService) {
-        getManager(NProjectManager.class).updateProject(project, copyForWrite ->
-                copyForWrite.putOverrideKylinProps("kylin.query.non-equi-join-model-enabled",
+        getManager(NProjectManager.class).updateProject(project,
+                copyForWrite -> copyForWrite.putOverrideKylinProps("kylin.query.non-equi-join-model-enabled",
                         scd2ConfigRequest.getScd2Enabled().toString()));
 
         if (Boolean.TRUE.equals(scd2ConfigRequest.getScd2Enabled())) {
@@ -702,9 +698,9 @@ public class ProjectService extends BasicService {
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     @Transaction(project = 0)
     public void updateComputedColumnConfig(String project, ComputedColumnConfigRequest computedColumnConfigRequest) {
-        getManager(NProjectManager.class).updateProject(project, copyForWrite ->
-                copyForWrite.putOverrideKylinProps(ProjectInstance.EXPOSE_COMPUTED_COLUMN_CONF,
-                    String.valueOf(computedColumnConfigRequest.getExposeComputedColumn())));
+        getManager(NProjectManager.class).updateProject(project,
+                copyForWrite -> copyForWrite.putOverrideKylinProps(ProjectInstance.EXPOSE_COMPUTED_COLUMN_CONF,
+                        String.valueOf(computedColumnConfigRequest.getExposeComputedColumn())));
     }
 
     @Transaction(project = 0)
@@ -745,9 +741,6 @@ public class ProjectService extends BasicService {
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     @Transaction(project = 0)
     public void updateProjectGeneralInfo(String project, ProjectGeneralInfoRequest projectGeneralInfoRequest) {
-        if (getManager(NProjectManager.class).getProject(project).isSmartMode()) {
-            projectGeneralInfoRequest.setSemiAutoMode(false);
-        }
         getManager(NProjectManager.class).updateProject(project, copyForWrite -> {
             copyForWrite.setDescription(projectGeneralInfoRequest.getDescription());
             copyForWrite.putOverrideKylinProps("kylin.metadata.semi-automatic-mode",
@@ -773,8 +766,8 @@ public class ProjectService extends BasicService {
     @Transaction(project = 0)
     public void dropProject(String project) {
         if (SecondStorageUtil.isProjectEnable(project)) {
-            throw new KylinException(PROJECT_DROP_FAILED, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getPROJECT_DROP_FAILED_SECOND_STORAGE_ENABLED(), project));
+            throw new KylinException(PROJECT_DROP_FAILED,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getProjectDropFailedSecondStorageEnabled(), project));
         }
 
         val kylinConfig = KylinConfig.getInstanceFromEnv();
@@ -794,7 +787,7 @@ public class ProjectService extends BasicService {
             logger.warn("The following jobs are in running or pending status and should be killed before dropping"
                     + " the project {} : {}", project, jobIds);
             throw new KylinException(PROJECT_DROP_FAILED,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_DROP_FAILED_JOBS_NOT_KILLED(), project));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getProjectDropFailedJobsNotKilled(), project));
         }
 
         NProjectManager prjManager = getManager(NProjectManager.class);
@@ -821,7 +814,7 @@ public class ProjectService extends BasicService {
             prjManager.updateProject(projectInstance);
         } else {
             throw new KylinException(DATABASE_NOT_EXIST,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getDATABASE_NOT_EXIST(), defaultDatabase));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getDatabaseNotExist(), defaultDatabase));
         }
     }
 
@@ -839,8 +832,13 @@ public class ProjectService extends BasicService {
 
     @Transaction(project = 0)
     public void setDataSourceType(String project, String sourceType) {
-        getManager(NProjectManager.class).updateProject(project, copyForWrite ->
-                copyForWrite.putOverrideKylinProps("kylin.source.default", sourceType));
+        getManager(NProjectManager.class).updateProject(project,
+                copyForWrite -> copyForWrite.putOverrideKylinProps(DATASOURCE_TYPE.getValue(), sourceType));
+    }
+
+    public String getDataSourceType(String project) {
+        return getManager(NProjectManager.class).getProject(project).getOverrideKylinProps()
+                .get(DATASOURCE_TYPE.getValue());
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
@@ -902,9 +900,9 @@ public class ProjectService extends BasicService {
             aclEvaluate.checkIsGlobalAdmin();
             checkTargetOwnerPermission(project, ownerChangeRequest.getOwner());
         } catch (AccessDeniedException e) {
-            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getPROJECT_CHANGE_PERMISSION());
+            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getProjectChangePermission());
         } catch (IOException e) {
-            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getOWNER_CHANGE_ERROR());
+            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getOwnerChangeError());
         }
 
         getManager(NProjectManager.class).updateProject(project,
@@ -916,7 +914,7 @@ public class ProjectService extends BasicService {
         projectAdminUsers.remove(getManager(NProjectManager.class).getProject(project).getOwner());
         if (CollectionUtils.isEmpty(projectAdminUsers) || !projectAdminUsers.contains(owner)) {
             Message msg = MsgPicker.getMsg();
-            throw new KylinException(PERMISSION_DENIED, msg.getPROJECT_OWNER_CHANGE_INVALID_USER());
+            throw new KylinException(PERMISSION_DENIED, msg.getProjectOwnerChangeInvalidUser());
         }
     }
 
@@ -1009,10 +1007,10 @@ public class ProjectService extends BasicService {
     public File generateTempKeytab(String principal, MultipartFile keytabFile) throws Exception {
         Message msg = MsgPicker.getMsg();
         if (null == principal || principal.isEmpty()) {
-            throw new KylinException(EMPTY_PARAMETER, msg.getPRINCIPAL_EMPTY());
+            throw new KylinException(EMPTY_PARAMETER, msg.getPrincipalEmpty());
         }
         if (keytabFile.getOriginalFilename() == null || !keytabFile.getOriginalFilename().endsWith(".keytab")) {
-            throw new KylinException(FILE_TYPE_MISMATCH, msg.getKEYTAB_FILE_TYPE_MISMATCH());
+            throw new KylinException(FILE_TYPE_MISMATCH, msg.getKeytabFileTypeMismatch());
         }
         String kylinConfHome = KapConfig.getKylinConfDirAtBestEffort();
         File kFile = new File(kylinConfHome, principal + KerberosLoginManager.TMP_KEYTAB_SUFFIX);

@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.service;
 
 import static java.util.stream.Collectors.groupingBy;
+
 import static org.apache.kylin.common.exception.ServerErrorCode.COMPUTED_COLUMN_CASCADE_ERROR;
 import static org.apache.kylin.common.exception.ServerErrorCode.COMPUTED_COLUMN_DEPENDS_ANTI_FLATTEN_LOOKUP;
 import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_COMPUTED_COLUMN_NAME;
@@ -91,8 +92,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.guava20.shaded.common.base.Supplier;
-import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
@@ -186,7 +185,9 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkContext;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.util.AddTableNameSqlVisitor;
+import io.kyligence.kap.engine.spark.smarter.IndexDependencyParser;
 import io.kyligence.kap.engine.spark.utils.ComputedColumnEvalUtil;
+import io.kyligence.kap.guava20.shaded.common.base.Supplier;
 import io.kyligence.kap.metadata.acl.AclTCRDigest;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.acl.NDataModelAclParams;
@@ -212,7 +213,6 @@ import io.kyligence.kap.metadata.model.ExcludedLookupChecker;
 import io.kyligence.kap.metadata.model.FusionModel;
 import io.kyligence.kap.metadata.model.FusionModelManager;
 import io.kyligence.kap.metadata.model.JoinedFlatTable;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.MultiPartitionDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -270,6 +270,7 @@ import io.kyligence.kap.rest.service.params.ModelQueryParams;
 import io.kyligence.kap.rest.util.ModelTriple;
 import io.kyligence.kap.rest.util.ModelUtils;
 import io.kyligence.kap.secondstorage.SecondStorage;
+import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
 import io.kyligence.kap.secondstorage.SecondStorageUpdater;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import io.kyligence.kap.secondstorage.enums.LockTypeEnum;
@@ -283,6 +284,7 @@ import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import io.kyligence.kap.tool.bisync.BISyncModel;
 import io.kyligence.kap.tool.bisync.BISyncTool;
 import io.kyligence.kap.tool.bisync.SyncContext;
+import io.kyligence.kap.tool.bisync.model.MeasureDef;
 import lombok.Setter;
 import lombok.val;
 import lombok.var;
@@ -399,7 +401,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         }
 
         if (model instanceof FusionModelResponse) {
-            FusionModel fusionModel = getManager(FusionModelManager.class, model.getProject()).getFusionModel(model.getId());
+            FusionModel fusionModel = getManager(FusionModelManager.class, model.getProject())
+                    .getFusionModel(model.getId());
             NDataModel batchModel = fusionModel.getBatchModel();
             if (!batchModel.isBroken()) {
                 List<NDataSegmentResponse> batchSegments = getSegmentsResponse(batchModel.getUuid(), model.getProject(),
@@ -912,7 +915,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
 
     private boolean checkSCD2ForbiddenOnline(NDataModel modelDesc, String projectName) {
         boolean isSCD2 = SCD2CondChecker.INSTANCE.isScd2Model(modelDesc);
-        return !getManager(NProjectManager.class).getProject(projectName).getConfig().isQueryNonEquiJoinModelEnabled() && isSCD2;
+        return !getManager(NProjectManager.class).getProject(projectName).getConfig().isQueryNonEquiJoinModelEnabled()
+                && isSCD2;
     }
 
     protected RealizationStatusEnum getModelStatus(String modelId, String projectName) {
@@ -942,10 +946,17 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                 JobTypeEnum.SUB_PARTITION_BUILD);
     }
 
+    private List<AbstractExecutable> getPartialRunningExecutable(String project, String modelId) {
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        NExecutableManager execManager = NExecutableManager.getInstance(kylinConfig, project);
+        return execManager.listPartialExec(path -> StringUtils.endsWith(path, modelId), ExecutableState::isRunning,
+                JobTypeEnum.INDEX_BUILD, JobTypeEnum.SUB_PARTITION_BUILD);
+    }
+
     public List<NDataSegmentResponse> getSegmentsResponse(String modelId, String project, String start, String end,
             String status, Collection<Long> withAllIndexes, Collection<Long> withoutAnyIndexes, boolean allToComplement,
             String sortBy, boolean reverse) {
-        val executables = getAllRunningExecutable(project);
+        val executables = getPartialRunningExecutable(project, modelId);
         return getSegmentsResponse(modelId, project, start, end, status, withAllIndexes, withoutAnyIndexes, executables,
                 allToComplement, sortBy, reverse);
     }
@@ -994,10 +1005,9 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                 }
             }
         }
-        List<NDataSegment> indexFiltered = new LinkedList<>();
-        segs.forEach(segment -> filterSeg(withAllIndexes, withoutAnyIndexes, allToComplement,
-                indexPlan.getAllLayoutIds(false), indexFiltered, segment));
-        segmentResponseList = indexFiltered.stream()
+        segmentResponseList = segs.stream()
+                .filter(segment -> filterSeg(withAllIndexes, withoutAnyIndexes, allToComplement,
+                        indexPlan.getAllLayoutIds(false), segment))
                 .filter(segment -> !StringUtils.isNotEmpty(status) || status
                         .equalsIgnoreCase(SegmentUtil.getSegmentStatusToDisplay(segs, segment, executables).toString()))
                 .map(segment -> new NDataSegmentResponse(dataflow, segment, executables)).collect(Collectors.toList());
@@ -1021,7 +1031,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                                 return a;
                             }));
 
-            List<Set<String>> shards = SecondStorageNodeHelper.groupsToShards(SecondStorageUtil.listNodeGroup(getConfig(), project));
+            List<Set<String>> shards = SecondStorageNodeHelper
+                    .groupsToShards(SecondStorageUtil.listNodeGroup(getConfig(), project));
 
             segmentResponseList.forEach(segment -> {
                 if (tablePartitions.containsKey(segment.getId())) {
@@ -1031,21 +1042,10 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                         nodes.addAll(partition.getShardNodes());
                     }
 
-                    // key: node_name / value: node_size
-                    Map<String, Long> nodesSize = partitions.stream()
-                            .flatMap(partition -> partition.getSizeInNode().entrySet().stream())
-                            .collect(Collectors.toMap(
-                                    Map.Entry::getKey,
-                                    Map.Entry::getValue,
-                                    Long::sum
-                            ));
+                    segment.setSecondStorageSize(SecondStorageUtil.calculateSecondStorageSize(shards, partitions));
 
-                    long maxNodeSize = shards.stream()
-                            .mapToLong(shard -> shard.stream().mapToLong(nodesSize::get).max().orElse(0))
-                            .sum();
-                    segment.setSecondStorageSize(maxNodeSize);
-
-                    Map<String, List<SecondStorageNode>> pairs = SecondStorageUtil.convertNodesToPairs(new ArrayList<>(nodes));
+                    Map<String, List<SecondStorageNode>> pairs = SecondStorageUtil
+                            .convertNodesToPairs(new ArrayList<>(nodes));
                     segment.setSecondStorageNodes(pairs);
                 } else {
                     segment.setSecondStorageNodes(Collections.emptyMap());
@@ -1055,28 +1055,23 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         }
     }
 
-    private void filterSeg(Collection<Long> withAllIndexes, Collection<Long> withoutAnyIndexes, boolean allToComplement,
-            Set<Long> allIndexWithoutTobeDel, List<NDataSegment> indexFiltered, NDataSegment segment) {
+    private boolean filterSeg(Collection<Long> withAllIndexes, Collection<Long> withoutAnyIndexes,
+            boolean allToComplement, Set<Long> allIndexWithoutTobeDel, NDataSegment segment) {
         if (allToComplement) {
             // find seg that does not have all indexes(don't include tobeDeleted)
             val segLayoutIds = segment.getSegDetails().getLayouts().stream().map(NDataLayout::getLayoutId)
                     .collect(Collectors.toSet());
-            if (!Sets.difference(allIndexWithoutTobeDel, segLayoutIds).isEmpty()) {
-                indexFiltered.add(segment);
-            }
-        } else if (withAllIndexes != null && !withAllIndexes.isEmpty()) {
-            // find seg that has all required indexes
-            if (segment.getLayoutIds().containsAll(withAllIndexes)) {
-                indexFiltered.add(segment);
-            }
-        } else if (withoutAnyIndexes != null && !withoutAnyIndexes.isEmpty()) {
-            // find seg that miss any of the indexes
-            if (!segment.getLayoutIds().containsAll(withoutAnyIndexes)) {
-                indexFiltered.add(segment);
-            }
-        } else {
-            indexFiltered.add(segment);
+            return !Sets.difference(allIndexWithoutTobeDel, segLayoutIds).isEmpty();
         }
+        if (CollectionUtils.isNotEmpty(withAllIndexes)) {
+            // find seg that has all required indexes
+            return segment.getLayoutIds().containsAll(withAllIndexes);
+        }
+        if (CollectionUtils.isNotEmpty(withoutAnyIndexes)) {
+            // find seg that miss any of the indexes
+            return !segment.getLayoutIds().containsAll(withoutAnyIndexes);
+        }
+        return true;
     }
 
     public Segments<NDataSegment> getSegmentsByRange(String modelId, String project, String start, String end) {
@@ -1188,7 +1183,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         val dataflowManager = getManager(NDataflowManager.class, project);
         val models = dataflowManager.getTableOrientedModelsUsingRootTable(tableDesc);
         List<RelatedModelResponse> relatedModel = new ArrayList<>();
-        val errorExecutables = getManager(NExecutableManager.class, project).getExecutablesByStatus(ExecutableState.ERROR);
+        val errorExecutables = getManager(NExecutableManager.class, project)
+                .getExecutablesByStatus(ExecutableState.ERROR);
         for (var dataModelDesc : models) {
             Map<SegmentRange, SegmentStatusEnum> segmentRanges = new HashMap<>();
             val model = dataModelDesc.getUuid();
@@ -1242,16 +1238,11 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         checkModelPermission(project, modelId);
         val model = getModelById(modelId, project);
         val modelName = model.getAlias();
-        dropModel(modelId, project, false);
+        innerDropModel(modelId, project);
         EventBusFactory.getInstance().postSync(new ModelDropEvent(project, modelId, modelName));
     }
 
-    void dropModel(String modelId, String project, boolean ignoreType) {
-        val projectInstance = getManager(NProjectManager.class).getProject(project);
-        if (!ignoreType) {
-            Preconditions.checkState(MaintainModelType.MANUAL_MAINTAIN == projectInstance.getMaintainModelType());
-        }
-
+    void innerDropModel(String modelId, String project) {
         NDataModel dataModelDesc = getModelById(modelId, project);
         boolean isStreamingModel = false;
         if (dataModelDesc.isStreaming()) {
@@ -1301,7 +1292,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         NDataModel dataModelDesc = getModelById(modelId, project);
         if (ManagementType.TABLE_ORIENTED == dataModelDesc.getManagementType()) {
             throw new KylinException(PERMISSION_DENIED,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getMODEL_CAN_NOT_PURGE(), dataModelDesc.getAlias()));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getModelCanNotPurge(), dataModelDesc.getAlias()));
         }
         purgeModel(modelId, project);
     }
@@ -1489,13 +1480,13 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                 if (SCD2CondChecker.INSTANCE.isScd2Model(dataflow.getModel())
                         && !projectService.getProjectConfig(project).isScd2Enabled()) {
                     throw new KylinException(MODEL_ONLINE_ABANDON,
-                            MsgPicker.getMsg().getSCD2_MODEL_ONLINE_WITH_SCD2_CONFIG_OFF());
+                            MsgPicker.getMsg().getScd2ModelOnlineWithScd2ConfigOff());
                 }
                 if (dataflow.getSegments().isEmpty() && !KylinConfig.getInstanceFromEnv().isUTEnv()) {
-                    throw new KylinException(MODEL_ONLINE_ABANDON, MsgPicker.getMsg().getMODEL_ONLINE_WITH_EMPTY_SEG());
+                    throw new KylinException(MODEL_ONLINE_ABANDON, MsgPicker.getMsg().getModelOnlineWithEmptySeg());
                 }
                 if (dataflowManager.isOfflineModel(dataflow)) {
-                    throw new KylinException(MODEL_ONLINE_ABANDON, MsgPicker.getMsg().getMODEL_ONLINE_FORBIDDEN());
+                    throw new KylinException(MODEL_ONLINE_ABANDON, MsgPicker.getMsg().getModelOnlineForbidden());
                 }
                 nDataflowUpdate.setStatus(RealizationStatusEnum.ONLINE);
             }
@@ -1506,13 +1497,14 @@ public class ModelService extends BasicService implements TableModelSupporter, P
     private void checkDataflowStatus(NDataflow dataflow, String modelId) {
         if (RealizationStatusEnum.BROKEN == dataflow.getStatus()) {
             throw new KylinException(DUPLICATE_JOIN_CONDITION,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getBROKEN_MODEL_CANNOT_ONOFFLINE(), modelId));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getBrokenModelCannotOnoffline(), modelId));
         }
     }
 
     public SegmentRange getSegmentRangeByModel(String project, String modelId, String start, String end) {
         TableRef tableRef = getManager(NDataModelManager.class, project).getDataModelDesc(modelId).getRootFactTable();
-        TableDesc tableDesc = getManager(NTableMetadataManager.class, project).getTableDesc(tableRef.getTableIdentity());
+        TableDesc tableDesc = getManager(NTableMetadataManager.class, project)
+                .getTableDesc(tableRef.getTableIdentity());
         return SourceFactory.getSource(tableDesc).getSegmentRange(start, end);
     }
 
@@ -1522,7 +1514,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
     }
 
     public List<NDataModel> getModelsUsingTable(String table, String project) {
-        return getManager(NDataflowManager.class, project).getModelsUsingTable(getManager(NTableMetadataManager.class, project).getTableDesc(table));
+        return getManager(NDataflowManager.class, project)
+                .getModelsUsingTable(getManager(NTableMetadataManager.class, project).getTableDesc(table));
     }
 
     public RefreshAffectedSegmentsResponse getRefreshAffectedSegmentsResponse(String project, String table,
@@ -1567,7 +1560,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                 }
 
                 if (CollectionUtils.isNotEmpty(segments.getBuildingSegments())) {
-                    throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getSEGMENT_CAN_NOT_REFRESH());
+                    throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getSegmentCanNotRefresh());
                 }
             } else {
                 checkSegRefreshingInLagBehindModel(segments);
@@ -1603,7 +1596,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
 
     @VisibleForTesting
     public void checkFlatTableSql(NDataModel dataModel) {
-        if (KylinConfig.getInstanceFromEnv().isUTEnv()) {
+        if (KylinConfig.getInstanceFromEnv().isUTEnv() || getManager(NProjectManager.class)
+                .getProject(dataModel.getProject()).getConfig().isSkipCheckFlatTable()) {
             return;
         }
         if (getModelConfig(dataModel).skipCheckFlatTable()) {
@@ -1630,20 +1624,24 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                 ss.sql(pushdownSql);
             }
         } catch (Exception e) {
-            Pattern pattern = Pattern.compile("cannot resolve '(.*?)' given input columns");
-            Matcher matcher = pattern.matcher(e.getMessage().replace("`", ""));
-            if (matcher.find()) {
-                String column = matcher.group(1);
-                String table = column.contains(".") ? column.split("\\.")[0] : dataModel.getRootFactTableName();
-                String error = String.format(Locale.ROOT, MsgPicker.getMsg().getTABLENOTFOUND(), dataModel.getAlias(),
-                        column, table);
-                throw new KylinException(TABLE_NOT_EXIST, error);
-            } else {
-                String errorMsg = String.format(Locale.ROOT, "model [%s], %s", dataModel.getAlias(),
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getDEFAULT_REASON(),
-                                null != e.getMessage() ? e.getMessage() : "null"));
-                throw new KylinException(FAILED_EXECUTE_MODEL_SQL, errorMsg);
-            }
+            buildExceptionMessage(dataModel, e);
+        }
+    }
+
+    private static void buildExceptionMessage(NDataModel dataModel, Exception e) {
+        Pattern pattern = Pattern.compile("cannot resolve '(.*?)' given input columns");
+        Matcher matcher = pattern.matcher(e.getMessage().replace("`", ""));
+        if (matcher.find()) {
+            String column = matcher.group(1);
+            String table = column.contains(".") ? column.split("\\.")[0] : dataModel.getRootFactTableName();
+            String error = String.format(Locale.ROOT, MsgPicker.getMsg().getTableNotFound(), dataModel.getAlias(),
+                    column, table);
+            throw new KylinException(TABLE_NOT_EXIST, error);
+        } else {
+            String errorMsg = String.format(Locale.ROOT, "model [%s], %s", dataModel.getAlias(),
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getDefaultReason(),
+                            null != e.getMessage() ? e.getMessage() : "null"));
+            throw new KylinException(FAILED_EXECUTE_MODEL_SQL, errorMsg);
         }
     }
 
@@ -1683,7 +1681,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                         .filter(column -> column.getName().equalsIgnoreCase(columnName)).findAny().isPresent();
                 if (!hasPartitionColumn && !modelRequest.getDimensionNameIdMap().containsKey(fullColumnName)) {
                     throw new KylinException(TIMESTAMP_COLUMN_NOT_EXIST,
-                            String.format(Locale.ROOT, MsgPicker.getMsg().getTIMESTAMP_PARTITION_COLUMN_NOT_EXIST()));
+                            String.format(Locale.ROOT, MsgPicker.getMsg().getTimestampPartitionColumnNotExist()));
                 }
             }
         }
@@ -1772,7 +1770,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
 
         if (modelRequestList.stream()
                 .anyMatch(modelRequest -> !FusionIndexService.checkUpdateIndexEnabled(project, modelRequest.getId()))) {
-            throw new KylinException(STREAMING_INDEX_UPDATE_DISABLE, MsgPicker.getMsg().getSTREAMING_INDEXES_CONVERT());
+            throw new KylinException(STREAMING_INDEX_UPDATE_DISABLE, MsgPicker.getMsg().getStreamingIndexesConvert());
         }
 
         for (ModelRequest modelRequest : modelRequestList) {
@@ -1894,12 +1892,9 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         checkModelRequest(modelRequest);
 
         //remove some attributes in modelResponse to fit NDataModel
-        val prjManager = getManager(NProjectManager.class);
-        val prj = prjManager.getProject(project);
         val dataModel = semanticUpdater.convertToDataModel(modelRequest);
-        if (MaintainModelType.AUTO_MAINTAIN == prj.getMaintainModelType()
-                || ManagementType.TABLE_ORIENTED == dataModel.getManagementType()) {
-            throw new KylinException(FAILED_CREATE_MODEL, MsgPicker.getMsg().getINVALID_CREATE_MODEL());
+        if (ManagementType.TABLE_ORIENTED == dataModel.getManagementType()) {
+            throw new KylinException(FAILED_CREATE_MODEL, MsgPicker.getMsg().getInvalidCreateModel());
         }
 
         preProcessBeforeModelSave(dataModel, project);
@@ -2038,13 +2033,13 @@ public class ModelService extends BasicService implements TableModelSupporter, P
             if (StringUtils.length(dimension.getName()) > maxModelDimensionMeasureNameLength
                     || !Pattern.compile(VALID_NAME_FOR_DIMENSION).matcher(dimension.getName()).matches())
                 throw new KylinException(INVALID_NAME,
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_DIMENSION_NAME(), dimension.getName(),
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getInvalidDimensionName(), dimension.getName(),
                                 maxModelDimensionMeasureNameLength));
 
             // check duplicate dimension names
             if (dimensionNames.contains(dimension.getName()))
                 throw new KylinException(DUPLICATE_DIMENSION_NAME, String.format(Locale.ROOT,
-                        MsgPicker.getMsg().getDUPLICATE_DIMENSION_NAME(), dimension.getName()));
+                        MsgPicker.getMsg().getDuplicateDimensionName(), dimension.getName()));
 
             dimensionNames.add(dimension.getName());
         }
@@ -2063,13 +2058,13 @@ public class ModelService extends BasicService implements TableModelSupporter, P
             if (StringUtils.length(measure.getName()) > maxModelDimensionMeasureNameLength
                     || !checkIsValidMeasureName(measure.getName()))
                 throw new KylinException(INVALID_NAME,
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_MEASURE_NAME(), measure.getName(),
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getInvalidMeasureName(), measure.getName(),
                                 maxModelDimensionMeasureNameLength));
 
             // check duplicate measure names
             if (measureNames.contains(measure.getName()))
                 throw new KylinException(DUPLICATE_MEASURE_NAME,
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getDUPLICATE_MEASURE_NAME(), measure.getName()));
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getDuplicateMeasureName(), measure.getName()));
 
             // check duplicate measure definitions
             SimplifiedMeasure dupMeasure = null;
@@ -2087,11 +2082,11 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                             .getEffectiveMeasures().get(dupMeasure.getId());
                     if (existingMeasure != null && existingMeasure.getType() == NDataModel.MeasureType.INTERNAL) {
                         throw new KylinException(DUPLICATE_MEASURE_EXPRESSION, String.format(Locale.ROOT,
-                                MsgPicker.getMsg().getDUPLICATE_INTERNAL_MEASURE_DEFINITION(), measure.getName()));
+                                MsgPicker.getMsg().getDuplicateInternalMeasureDefinition(), measure.getName()));
                     }
                 }
                 throw new KylinException(DUPLICATE_MEASURE_EXPRESSION, String.format(Locale.ROOT,
-                        MsgPicker.getMsg().getDUPLICATE_MEASURE_DEFINITION(), measure.getName()));
+                        MsgPicker.getMsg().getDuplicateMeasureDefinition(), measure.getName()));
             }
 
             measureNames.add(measure.getName());
@@ -2134,7 +2129,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
             for (int i = 0; i < size; i++) {
                 if (joinKeys.contains(Pair.newPair(primaryKeys[i], foreignKey[i])))
                     throw new KylinException(DUPLICATE_JOIN_CONDITION, String.format(Locale.ROOT,
-                            MsgPicker.getMsg().getDUPLICATE_JOIN_CONDITIONS(), primaryKeys[i], foreignKey[i]));
+                            MsgPicker.getMsg().getDuplicateJoinConditions(), primaryKeys[i], foreignKey[i]));
 
                 joinKeys.add(Pair.newPair(primaryKeys[i], foreignKey[i]));
             }
@@ -2162,7 +2157,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         if (StringUtils.isEmpty(format)) {
             return;
         }
-        getManager(NDataModelManager.class, project).updateDataModel(modelId, model -> model.getPartitionDesc().setPartitionDateFormat(format));
+        getManager(NDataModelManager.class, project).updateDataModel(modelId,
+                model -> model.getPartitionDesc().setPartitionDateFormat(format));
 
     }
 
@@ -2184,7 +2180,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         aclEvaluate.checkProjectOperationPermission(project);
         Preconditions.checkArgument(!PushDownUtil.needPushdown(start, end), "Load data must set start and end date");
         NDataModel dataModelDesc = getManager(NDataModelManager.class, project).getDataModelDesc(modelId);
-        TableDesc table = getManager(NTableMetadataManager.class, project).getTableDesc(dataModelDesc.getRootFactTableName());
+        TableDesc table = getManager(NTableMetadataManager.class, project)
+                .getTableDesc(dataModelDesc.getRootFactTableName());
         SegmentRange segmentRangeToBuild = SourceFactory.getSource(table).getSegmentRange(start, end);
         List<NDataSegment> segmentGaps = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                 .checkHoleIfNewSegBuild(modelId, segmentRangeToBuild);
@@ -2207,8 +2204,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         aclEvaluate.checkProjectOperationPermission(project);
         NDataModel dataModel = getManager(NDataModelManager.class, project).getDataModelDesc(model);
         if (ManagementType.TABLE_ORIENTED == dataModel.getManagementType()) {
-            throw new KylinException(PERMISSION_DENIED, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getMODEL_SEGMENT_CAN_NOT_REMOVE(), dataModel.getAlias()));
+            throw new KylinException(PERMISSION_DENIED,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getModelSegmentCanNotRemove(), dataModel.getAlias()));
         }
         NDataflowManager dataflowManager = getManager(NDataflowManager.class, project);
         checkSegmentsExistById(model, project, ids);
@@ -2330,7 +2327,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         val dataflowManager = getManager(NDataflowManager.class, project);
         val df = dataflowManager.getDataflow(modelId);
         val model = df.getModel();
-        ModelUtils.checkPartitionColumn(model, partitionDesc, MsgPicker.getMsg().getPARTITION_COLUMN_SAVE_ERROR());
+        ModelUtils.checkPartitionColumn(model, partitionDesc, MsgPicker.getMsg().getPartitionColumnSaveError());
 
         if (PartitionDesc.isEmptyPartitionDesc(model.getPartitionDesc()) && df.getFirstSegment() == null
                 && !model.isMultiPartitionModel()) {
@@ -2418,16 +2415,10 @@ public class ModelService extends BasicService implements TableModelSupporter, P
     }
 
     public void checkModelAndIndexManually(FullBuildSegmentParams params) {
-        NDataModel modelDesc = getManager(NDataModelManager.class, params.getProject()).getDataModelDesc(params.getModelId());
-        if (ManagementType.MODEL_BASED != modelDesc.getManagementType()) {
-            throw new KylinException(PERMISSION_DENIED, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getCAN_NOT_BUILD_SEGMENT_MANUALLY(), modelDesc.getAlias()));
-        }
-
         if (params.isNeedBuild()) {
             val indexPlan = getIndexPlan(params.getModelId(), params.getProject());
             if (indexPlan == null || indexPlan.getAllLayouts().isEmpty()) {
-                throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getCAN_NOT_BUILD_SEGMENT());
+                throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getCanNotBuildSegment());
             }
         }
     }
@@ -2504,7 +2495,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
             model.updateRandomUuid();
         }
 
-        model.init(getConfig(), project, getManager(NDataflowManager.class, project).listUnderliningDataModels());
+        model.init(getConfig(), project, getCCRelatedModels(project));
         model.getComputedColumnDescs().forEach(cc -> {
             String innerExp = KapQueryUtil.massageComputedColumn(model, project, cc, null);
             cc.setInnerExpression(innerExp);
@@ -2530,7 +2521,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                 String antiFlattenLookup = checker.detectAntiFlattenLookup(cc);
                 if (antiFlattenLookup != null) {
                     throw new KylinException(COMPUTED_COLUMN_DEPENDS_ANTI_FLATTEN_LOOKUP, String.format(Locale.ROOT,
-                            MsgPicker.getMsg().getCC_ON_ANTI_FLATTEN_LOOKUP(), antiFlattenLookup));
+                            MsgPicker.getMsg().getccOnAntiFlattenLookup(), antiFlattenLookup));
                 }
                 ComputedColumnDesc.simpleParserCheck(cc.getExpression(), model.getAliasMap().keySet());
                 String innerExpression = KapQueryUtil.massageComputedColumn(model, project, cc,
@@ -2576,12 +2567,12 @@ public class ModelService extends BasicService implements TableModelSupporter, P
     static void checkCCName(String name) {
         if (PushDownConverterKeyWords.CALCITE.contains(name.toUpperCase(Locale.ROOT))
                 || PushDownConverterKeyWords.HIVE.contains(name.toUpperCase(Locale.ROOT))) {
-            throw new KylinException(INVALID_NAME, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getINVALID_COMPUTER_COLUMN_NAME_WITH_KEYWORD(), name));
+            throw new KylinException(INVALID_NAME,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getInvalidComputerColumnNameWithKeyword(), name));
         }
         if (!Pattern.compile("^[a-zA-Z]+\\w*$").matcher(name).matches()) {
             throw new KylinException(INVALID_NAME,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_COMPUTER_COLUMN_NAME(), name));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getInvalidComputerColumnName(), name));
         }
     }
 
@@ -2613,18 +2604,22 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         }
 
         if (CollectionUtils.isNotEmpty(ambiguousCCNameSet)) {
-            StringBuilder error = new StringBuilder();
-            ambiguousCCNameSet.forEach(name -> {
-                error.append(String.format(Locale.ROOT, MsgPicker.getMsg().getCHECK_CC_AMBIGUITY(), name));
-                error.append("\r\n");
-            });
-            throw new KylinException(DUPLICATE_COMPUTED_COLUMN_NAME, error.toString());
+            buildDuplicateCCException(ambiguousCCNameSet);
         }
+    }
+
+    private void buildDuplicateCCException(Set<String> ambiguousCCNameSet) {
+        StringBuilder error = new StringBuilder();
+        ambiguousCCNameSet.forEach(name -> {
+            error.append(String.format(Locale.ROOT, MsgPicker.getMsg().getCheckCcAmbiguity(), name));
+            error.append("\r\n");
+        });
+        throw new KylinException(DUPLICATE_COMPUTED_COLUMN_NAME, error.toString());
     }
 
     void preProcessBeforeModelSave(NDataModel model, String project) {
         if (!model.getComputedColumnDescs().isEmpty()) {
-            model.init(getConfig(), project, getManager(NDataflowManager.class, project).listUnderliningDataModels(), true);
+            model.init(getConfig(), project, getCCRelatedModels(project), true);
         } else {
             model.init(getConfig(), project, Lists.newArrayList(), true);
         }
@@ -2667,8 +2662,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         SecondStorageUtil.checkSegmentRemove(project, model, ids);
         NDataModel dataModel = getManager(NDataModelManager.class, project).getDataModelDesc(model);
         if (ManagementType.TABLE_ORIENTED == dataModel.getManagementType()) {
-            throw new KylinException(PERMISSION_DENIED, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getMODEL_SEGMENT_CAN_NOT_REMOVE(), dataModel.getAlias()));
+            throw new KylinException(PERMISSION_DENIED,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getModelSegmentCanNotRemove(), dataModel.getAlias()));
         }
         NDataflowManager dataflowManager = getManager(NDataflowManager.class, project);
         checkSegmentsExistById(model, project, ids);
@@ -2680,8 +2675,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
             if (dataflow.getSegment(id) != null) {
                 idsToDelete.add(id);
             } else {
-                throw new IllegalArgumentException(String.format(Locale.ROOT, MsgPicker.getMsg().getSEG_NOT_FOUND(), id,
-                        dataflow.getModelAlias()));
+                throw new IllegalArgumentException(
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getSegNotFound(), id, dataflow.getModelAlias()));
             }
         }
         if (SecondStorageUtil.isModelEnable(project, model)) {
@@ -2805,11 +2800,11 @@ public class ModelService extends BasicService implements TableModelSupporter, P
             val segment = df.getSegment(id);
             if (segment == null) {
                 throw new IllegalArgumentException(
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getSEG_NOT_FOUND(), id, df.getModelAlias()));
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getSegNotFound(), id, df.getModelAlias()));
             }
 
             if (SegmentStatusEnum.READY != segment.getStatus() && SegmentStatusEnum.WARNING != segment.getStatus()) {
-                throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getINVALID_MERGE_SEGMENT());
+                throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getInvalidMergeSegment());
             }
 
             val segmentStart = segment.getTSRange().getStart();
@@ -2865,8 +2860,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
 
                 val copyModel = modelManager.copyForWrite(originModel);
                 UpdateImpact updateImpact = semanticUpdater.updateModelColumns(copyModel, request, true);
-                copyModel.init(modelManager.getConfig(), project,
-                        getManager(NDataflowManager.class, project).listUnderliningDataModels());
+                copyModel.init(modelManager.getConfig(), project, getCCRelatedModels(project));
 
                 BaseIndexUpdateHelper baseIndexUpdater = new BaseIndexUpdateHelper(originModel,
                         request.isWithBaseIndex());
@@ -2899,8 +2893,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                     checkFlatTableSql(newModel);
                 }
 
-                val needBuild = semanticUpdater.doHandleSemanticUpdate(project, modelId, originModel, request.getStart(),
-                        request.getEnd());
+                val needBuild = semanticUpdater.doHandleSemanticUpdate(project, modelId, originModel,
+                        request.getStart(), request.getEnd());
 
                 updateExcludedCheckerResult(project, request);
                 baseIndexUpdater.setSecondStorageEnabled(request.isWithSecondStorage());
@@ -2910,10 +2904,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                 }
                 modelChangeSupporters.forEach(listener -> listener.onUpdate(project, modelId));
 
-                changeSecondStorageIfNeeded(
-                        project,
-                        request,
-                        () -> !semanticUpdater.isSignificantChange(originModel, modelManager.getDataModelDesc(modelId)));
+                changeSecondStorageIfNeeded(project, request, () -> !semanticUpdater.isSignificantChange(originModel,
+                        modelManager.getDataModelDesc(modelId)));
                 return baseIndexResponse;
             }, project);
         } catch (TransactionException te) {
@@ -3025,7 +3017,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         aclEvaluate.checkProjectOperationPermission(project);
         checkSegmentsExistByName(modelId, project, segNames);
 
-        NDataflow dataflow = getManager(NDataflowManager.class, project).getDataflow(getIndexPlan(modelId, project).getUuid());
+        NDataflow dataflow = getManager(NDataflowManager.class, project).getDataflow(modelId);
 
         ids = Stream.of(segNames).map(segmentName -> {
             val segmentByName = dataflow.getSegmentByName(segmentName);
@@ -3061,7 +3053,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                         .filter(id -> !newModel.getEffectiveDimensions().containsKey(id))
                         .map(originModel::getColumnNameByColumnId).collect(Collectors.toList());
                 throw new KylinException(FAILED_UPDATE_MODEL, String.format(Locale.ROOT,
-                        MsgPicker.getMsg().getDIMENSION_NOTFOUND(), StringUtils.join(dimensionNames, ",")));
+                        MsgPicker.getMsg().getDimensionNotfound(), StringUtils.join(dimensionNames, ",")));
             }
 
             for (NAggregationGroup agg : rule.getAggregationGroups()) {
@@ -3070,7 +3062,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                             .filter(measureId -> !newModel.getEffectiveMeasures().containsKey(measureId))
                             .map(originModel::getMeasureNameByMeasureId).collect(Collectors.toList());
                     throw new KylinException(FAILED_UPDATE_MODEL, String.format(Locale.ROOT,
-                            MsgPicker.getMsg().getMEASURE_NOTFOUND(), StringUtils.join(measureNames, ",")));
+                            MsgPicker.getMsg().getMeasureNotfound(), StringUtils.join(measureNames, ",")));
                 }
             }
         }
@@ -3084,7 +3076,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
             val columnNames = tableIndexColumns.stream().filter(x -> !allSelectedColumns.contains(x))
                     .map(originModel::getColumnNameByColumnId).collect(Collectors.toList());
             throw new KylinException(FAILED_UPDATE_MODEL, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getDIMENSION_NOTFOUND(), StringUtils.join(columnNames, ",")));
+                    MsgPicker.getMsg().getDimensionNotfound(), StringUtils.join(columnNames, ",")));
         }
 
         //check recommend agg index contains removed columns
@@ -3097,7 +3089,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                         .filter(id -> !newModel.getEffectiveDimensions().containsKey(id))
                         .map(originModel::getColumnNameByColumnId).collect(Collectors.toList());
                 throw new KylinException(FAILED_UPDATE_MODEL, String.format(Locale.ROOT,
-                        MsgPicker.getMsg().getDIMENSION_NOTFOUND(), StringUtils.join(dimensionNames, ",")));
+                        MsgPicker.getMsg().getDimensionNotfound(), StringUtils.join(dimensionNames, ",")));
             }
 
             if (!newModel.getEffectiveMeasures().keySet().containsAll(aggIndex.getMeasures())) {
@@ -3105,7 +3097,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                         .filter(measureId -> !newModel.getEffectiveMeasures().containsKey(measureId))
                         .map(originModel::getMeasureNameByMeasureId).collect(Collectors.toList());
                 throw new KylinException(FAILED_UPDATE_MODEL, String.format(Locale.ROOT,
-                        MsgPicker.getMsg().getMEASURE_NOTFOUND(), StringUtils.join(measureNames, ",")));
+                        MsgPicker.getMsg().getMeasureNotfound(), StringUtils.join(measureNames, ",")));
 
             }
         }
@@ -3131,11 +3123,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         val modelManager = getManager(NDataModelManager.class, project);
         val origin = modelManager.getDataModelDesc(modelRequest.getId());
         val broken = modelQuerySupporter.getBrokenModel(project, origin.getId());
-        val prjManager = getManager(NProjectManager.class);
-        val prj = prjManager.getProject(project);
-
-        if (MaintainModelType.AUTO_MAINTAIN == prj.getMaintainModelType()
-                || ManagementType.TABLE_ORIENTED == broken.getManagementType()) {
+        if (ManagementType.TABLE_ORIENTED == broken.getManagementType()) {
             throw new KylinException(FAILED_UPDATE_MODEL, "Can not repair model manually smart mode!");
         }
         broken.setPartitionDesc(modelRequest.getPartitionDesc());
@@ -3153,7 +3141,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                 modelChangeSupporters.forEach(listener -> listener.onUpdateSingle(project, model.getUuid()));
                 saveDateFormatIfNotExist(project, model.getUuid(), format);
             });
-            getManager(NDataflowManager.class, project).updateDataflowStatus(broken.getId(), RealizationStatusEnum.ONLINE);
+            getManager(NDataflowManager.class, project).updateDataflowStatus(broken.getId(),
+                    RealizationStatusEnum.ONLINE);
             return modelMgr.getDataModelDesc(model.getUuid());
         }, project);
     }
@@ -3225,9 +3214,10 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         for (val modelDesc : modelsUsingTable) {
             if (!modelDesc.getRootFactTable().getTableDesc().getIdentity().equals(tableName)
                     || modelDesc.isJoinTable(tableName)) {
-                Preconditions.checkState(getManager(NDataLoadingRangeManager.class, project).getDataLoadingRange(tableName) == null);
+                Preconditions.checkState(
+                        getManager(NDataLoadingRangeManager.class, project).getDataLoadingRange(tableName) == null);
                 throw new KylinException(PERMISSION_DENIED, String.format(Locale.ROOT,
-                        MsgPicker.getMsg().getINVALID_SET_TABLE_INC_LOADING(), tableName, modelDesc.getAlias()));
+                        MsgPicker.getMsg().getInvalidSetTableIncLoading(), tableName, modelDesc.getAlias()));
             }
         }
     }
@@ -3300,12 +3290,12 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         val props = request.getOverrideProps();
         if (props == null) {
             throw new KylinException(INVALID_PARAMETER,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_NULL_VALUE(), "override_props"));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getInvalidNullValue(), "override_props"));
         }
         for (val pair : props.entrySet()) {
             if (Objects.isNull(pair.getValue())) {
                 throw new KylinException(INVALID_PARAMETER,
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_NULL_VALUE(), pair.getKey()));
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getInvalidNullValue(), pair.getKey()));
             }
         }
         String cores = props.get("kylin.engine.spark-conf.spark.executor.cores");
@@ -3315,24 +3305,24 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         String baseCuboidAllowed = props.get("kylin.cube.aggrgroup.is-base-cuboid-always-valid");
         if (null != cores && !StringUtil.validateNumber(cores)) {
             throw new KylinException(INVALID_PARAMETER,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_INTEGER_FORMAT(), "spark.executor.cores"));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getInvalidIntegerFormat(), "spark.executor.cores"));
         }
         if (null != instances && !StringUtil.validateNumber(instances)) {
             throw new KylinException(INVALID_PARAMETER, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getINVALID_INTEGER_FORMAT(), "spark.executor.instances"));
+                    MsgPicker.getMsg().getInvalidIntegerFormat(), "spark.executor.instances"));
         }
         if (null != pattitions && !StringUtil.validateNumber(pattitions)) {
             throw new KylinException(INVALID_PARAMETER, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getINVALID_INTEGER_FORMAT(), "spark.sql.shuffle.partitions"));
+                    MsgPicker.getMsg().getInvalidIntegerFormat(), "spark.sql.shuffle.partitions"));
         }
         if (null != memory
                 && (!memory.endsWith("g") || !StringUtil.validateNumber(memory.substring(0, memory.length() - 1)))) {
             throw new KylinException(INVALID_PARAMETER,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_MEMORY_SIZE(), "spark.executor.memory"));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getInvalidMemorySize(), "spark.executor.memory"));
         }
         if (null != baseCuboidAllowed && !StringUtil.validateBoolean(baseCuboidAllowed)) {
             throw new KylinException(INVALID_PARAMETER, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getINVALID_BOOLEAN_FORMAT(), "is-base-cuboid-always-valid"));
+                    MsgPicker.getMsg().getInvalidBooleanFormat(), "is-base-cuboid-always-valid"));
         }
     }
 
@@ -3344,15 +3334,15 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         RetentionRange retentionRange = request.getRetentionRange();
 
         if (Boolean.TRUE.equals(autoMergeEnabled) && (null == timeRanges || timeRanges.isEmpty())) {
-            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getINVALID_AUTO_MERGE_CONFIG());
+            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getInvalidAutoMergeConfig());
         }
         if (null != volatileRange && volatileRange.isVolatileRangeEnabled()
                 && (volatileRange.getVolatileRangeNumber() < 0 || null == volatileRange.getVolatileRangeType())) {
-            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getINVALID_VOLATILE_RANGE_CONFIG());
+            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getInvalidVolatileRangeConfig());
         }
         if (null != retentionRange && retentionRange.isRetentionRangeEnabled()
                 && retentionRange.getRetentionRangeNumber() < 0) {
-            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getINVALID_RETENTION_RANGE_CONFIG());
+            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getInvalidRetentionRangeConfig());
         }
         checkPropParameter(request);
     }
@@ -3383,7 +3373,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         val response = new PurgeModelAffectedResponse();
         val byteSize = getManager(NDataflowManager.class, project).getDataflowStorageSize(model);
         response.setByteSize(byteSize);
-        long jobSize = getManager(NExecutableManager.class, project).countByModelAndStatus(model, ExecutableState::isProgressing);
+        long jobSize = getManager(NExecutableManager.class, project).countByModelAndStatus(model,
+                ExecutableState::isProgressing);
         response.setRelatedJobSize(jobSize);
         return response;
     }
@@ -3417,7 +3408,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
             }
         }
 
-        NDataModel oldDataModel = getManager(NDataModelManager.class, model.getProject()).getDataModelDesc(model.getUuid());
+        NDataModel oldDataModel = getManager(NDataModelManager.class, model.getProject())
+                .getDataModelDesc(model.getUuid());
         Set<Long> affectedLayouts = Sets.newHashSet();
         if (oldDataModel != null && !oldDataModel.isBroken()) {
             model = getManager(NDataModelManager.class, model.getProject()).copyForWrite(oldDataModel);
@@ -3449,7 +3441,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
             CalciteParser.getExpNode(cc.getExpression()).accept(sqlVisitor);
         } catch (Util.FoundOne e) {
             throw new KylinException(COMPUTED_COLUMN_CASCADE_ERROR, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getNESTED_CC_CASCADE_ERROR(), ccInCheck, cc.getFullName()));
+                    MsgPicker.getMsg().getNestedCcCascadeError(), ccInCheck, cc.getFullName()));
         }
     }
 
@@ -3509,7 +3501,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                     checker.getExcludedLookups());
             if (antiFlattenLookup != null) {
                 throw new KylinException(FILTER_CONDITION_DEPENDS_ANTI_FLATTEN_LOOKUP, String.format(Locale.ROOT,
-                        MsgPicker.getMsg().getFILTER_CONDITION_ON_ANTI_FLATTEN_LOOKUP(), antiFlattenLookup));
+                        MsgPicker.getMsg().getFilterConditionOnAntiFlattenLookup(), antiFlattenLookup));
             }
         }
         return sqlNode
@@ -3558,7 +3550,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
     }
 
     @Transaction(project = 0)
-    public void updateDataModelParatitionDesc(String project, String modelAlias,
+    public void updateModelPartitionColumn(String project, String modelAlias,
             ModelParatitionDescRequest modelParatitionDescRequest) {
         aclEvaluate.checkProjectWritePermission(project);
         if (getManager(NProjectManager.class).getProject(project) == null) {
@@ -3568,20 +3560,27 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         if (oldDataModel == null) {
             throw new KylinException(MODEL_NAME_NOT_EXIST, modelAlias);
         }
-        checkModelPermission(project, oldDataModel.getId());
-
-        PartitionDesc partitionDesc = modelParatitionDescRequest.getPartitionDesc();
-        if (partitionDesc != null) {
-            String rootFactTable = oldDataModel.getRootFactTableName().split("\\.")[1];
-            if (!partitionDesc.getPartitionDateColumn().toUpperCase(Locale.ROOT).startsWith(rootFactTable + ".")) {
-                throw new KylinException(INVALID_PARTITION_COLUMN, MsgPicker.getMsg().getINVALID_PARTITION_COLUMN());
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            NDataModel model = getManager(NDataModelManager.class, project).getDataModelDesc(oldDataModel.getUuid());
+            if (model == null) {
+                throw new KylinException(MODEL_NAME_NOT_EXIST, modelAlias);
             }
-        }
+            checkModelPermission(project, oldDataModel.getId());
+            PartitionDesc partitionColumn = modelParatitionDescRequest.getPartitionDesc();
+            if (partitionColumn != null) {
+                String rootFactTable = oldDataModel.getRootFactTableName().split("\\.")[1];
+                if (!StringUtils.startsWithIgnoreCase(partitionColumn.getPartitionDateColumn(), rootFactTable + ".")) {
+                    throw new KylinException(INVALID_PARTITION_COLUMN, MsgPicker.getMsg().getInvalidPartitionColumn());
+                }
+            }
+            getManager(NDataModelManager.class, project).updateDataModel(oldDataModel.getUuid(), copyForWrite -> {
+                copyForWrite.setPartitionDesc(modelParatitionDescRequest.getPartitionDesc());
+            });
+            semanticUpdater.handleSemanticUpdate(project, oldDataModel.getUuid(), oldDataModel,
+                    modelParatitionDescRequest.getStart(), modelParatitionDescRequest.getEnd());
+            return null;
 
-        getManager(NDataModelManager.class, project).updateDataModel(oldDataModel.getUuid(),
-                copyForWrite -> copyForWrite.setPartitionDesc(modelParatitionDescRequest.getPartitionDesc()));
-        semanticUpdater.handleSemanticUpdate(project, oldDataModel.getUuid(), oldDataModel,
-                modelParatitionDescRequest.getStart(), modelParatitionDescRequest.getEnd(), false);
+        }, project);
     }
 
     @Transaction(project = 0)
@@ -3590,9 +3589,9 @@ public class ModelService extends BasicService implements TableModelSupporter, P
             aclEvaluate.checkProjectAdminPermission(project);
             checkTargetOwnerPermission(project, modelId, ownerChangeRequest.getOwner());
         } catch (AccessDeniedException e) {
-            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getMODEL_CHANGE_PERMISSION());
+            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getModelChangePermission());
         } catch (IOException e) {
-            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getOWNER_CHANGE_ERROR());
+            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getOwnerChangeError());
         }
 
         getManager(NDataModelManager.class, project).updateDataModel(modelId,
@@ -3609,7 +3608,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
 
         if (CollectionUtils.isEmpty(projectManagementUsers) || !projectManagementUsers.contains(owner)) {
             Message msg = MsgPicker.getMsg();
-            throw new KylinException(PERMISSION_DENIED, msg.getMODEL_OWNER_CHANGE_INVALID_USER());
+            throw new KylinException(PERMISSION_DENIED, msg.getModelOwnerChangeInvalidUser());
         }
     }
 
@@ -3624,14 +3623,14 @@ public class ModelService extends BasicService implements TableModelSupporter, P
             // check size
             Preconditions.checkArgument(request.getAliasCols().size() == multiPartitionDesc.getColumns().size(),
                     new KylinException(INVALID_MULTI_PARTITION_MAPPING_REQUEST,
-                            msg.getMULTI_PARTITION_MAPPING_REQEUST_NOT_VALID()));
+                            msg.getMultiPartitionMappingReqeustNotValid()));
 
             for (int i = 0; i < request.getPartitionCols().size(); i++) {
                 val partitionCol = request.getPartitionCols().get(i);
                 val columnRef = model.findColumn(partitionCol);
                 if (!columnRef.equals(multiPartitionDesc.getColumnRefs().get(i))) {
                     throw new KylinException(INVALID_MULTI_PARTITION_MAPPING_REQUEST,
-                            msg.getMULTI_PARTITION_MAPPING_REQEUST_NOT_VALID());
+                            msg.getMultiPartitionMappingReqeustNotValid());
                 }
             }
 
@@ -3640,7 +3639,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
             for (MultiPartitionDesc.PartitionInfo partitionInfo : multiPartitionDesc.getPartitions()) {
                 if (partitionValues.stream().noneMatch(value -> Arrays.equals(value, partitionInfo.getValues()))) {
                     throw new KylinException(INVALID_MULTI_PARTITION_MAPPING_REQUEST,
-                            msg.getMULTI_PARTITION_MAPPING_REQEUST_NOT_VALID());
+                            msg.getMultiPartitionMappingReqeustNotValid());
                 }
             }
         }
@@ -3728,7 +3727,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         aliasModelRequestMap.forEach((alias, requests) -> {
             if (requests.size() > 1) {
                 throw new KylinException(INVALID_NAME,
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getMODEL_ALIAS_DUPLICATED(),
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getModelAliasDuplicated(),
                                 requests.stream().map(ModelRequest::getAlias).collect(Collectors.joining(", "))));
             }
         });
@@ -3825,14 +3824,56 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                 : dataModelDesc.getPartitionDesc().getPartitionDateFormat();
     }
 
-    public BISyncModel biExportCustomModel(String projectName, String modelId, SyncContext.BI targetBI,
-            SyncContext.ModelElement modelElement, String host, int port) {
-        Set<String> groups = getCurrentUserGroups();
-        return exportCustomModel(projectName, modelId, targetBI, modelElement, host, port, groups);
-    }
-
     public BISyncModel exportModel(String projectName, String modelId, SyncContext.BI targetBI,
             SyncContext.ModelElement modelElement, String host, int port) {
+        SyncContext syncContext = getADMINSyncContext(projectName, modelId, targetBI, modelElement, host, port);
+
+        return BISyncTool.dumpToBISyncModel(syncContext);
+    }
+
+    public BISyncModel exportTDSDimensionsAndMeasuresByNormalUser(SyncContext syncContext, List<String> dimensions,
+            List<String> measures) {
+        Set<String> groups = getCurrentUserGroups();
+        String currentUserName = aclEvaluate.getCurrentUserName();
+        String projectName = syncContext.getProjectName();
+        String modelId = syncContext.getModelId();
+        NDataflow dataflow = getManager(NDataflowManager.class, projectName).getDataflow(modelId);
+        if (dataflow.getStatus() == RealizationStatusEnum.BROKEN) {
+            throw new KylinException(ServerErrorCode.MODEL_BROKEN,
+                    "The model is broken and cannot be exported TDS file");
+        }
+
+        Set<String> authTables = getAllAuthTables(projectName, groups, currentUserName);
+        Set<String> authColumns = getAllAuthColumns(projectName, groups, currentUserName);
+
+        Set<String> newAuthColumns = Sets.newHashSet();
+        dataflow.getModel().getAllTables().forEach(tableRef -> {
+            List<TblColRef> collect = tableRef.getColumns().stream()
+                    .filter(column -> authColumns.contains(column.getCanonicalName())).collect(Collectors.toList());
+            collect.forEach(x -> newAuthColumns.add(x.getAliasDotName()));
+        });
+
+        checkTableHasColumnPermission(syncContext.getModelElement(), projectName, modelId, newAuthColumns, dimensions,
+                measures);
+
+        return BISyncTool.dumpHasPermissionToBISyncModel(syncContext, authTables, newAuthColumns, dimensions, measures);
+    }
+
+    public BISyncModel exportTDSDimensionsAndMeasuresByAdmin(SyncContext syncContext, List<String> dimensions,
+            List<String> measures) {
+        String projectName = syncContext.getProjectName();
+        String modelId = syncContext.getModelId();
+        NDataflow dataflow = getManager(NDataflowManager.class, projectName).getDataflow(modelId);
+        if (dataflow.getStatus() == RealizationStatusEnum.BROKEN) {
+            throw new KylinException(MODEL_BROKEN, "The model is broken and cannot be exported TDS file");
+        }
+        checkModelExportPermission(projectName, modelId);
+        checkModelPermission(projectName, modelId);
+        return BISyncTool.dumpBISyncModel(syncContext, dimensions, measures);
+    }
+
+    public SyncContext getADMINSyncContext(String projectName, String modelId, SyncContext.BI targetBI,
+            SyncContext.ModelElement element, String host, int port) {
         NDataflow dataflow = getManager(NDataflowManager.class, projectName).getDataflow(modelId);
         if (dataflow.getStatus() == RealizationStatusEnum.BROKEN) {
             throw new KylinException(MODEL_BROKEN, "The model is broken and cannot be exported TDS file");
@@ -3840,29 +3881,10 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         checkModelExportPermission(projectName, modelId);
         checkModelPermission(projectName, modelId);
 
-        SyncContext syncContext = getSyncContext(projectName, modelId, targetBI, modelElement, host, port);
-
-        return BISyncTool.dumpToBISyncModel(syncContext);
+        return getSyncContext(projectName, modelId, targetBI, element, host, port);
     }
 
-    public BISyncModel exportCustomModel(String projectName, String modelId, SyncContext.BI targetBI,
-            SyncContext.ModelElement modelElement, String host, int port, Set<String> groups) {
-        String currentUserName = aclEvaluate.getCurrentUserName();
-        NDataflow dataflow = getManager(NDataflowManager.class, projectName).getDataflow(modelId);
-        if (dataflow.getStatus() == RealizationStatusEnum.BROKEN) {
-            throw new KylinException(ServerErrorCode.MODEL_BROKEN,
-                    "The model is broken and cannot be exported TDS file");
-        }
-        Set<String> authTables = getAllAuthTables(projectName, groups, currentUserName);
-        Set<String> authColumns = getAllAuthColumns(projectName, groups, currentUserName);
-        checkTableHasColumnPermission(projectName, modelId, authColumns);
-
-        SyncContext syncContext = getSyncContext(projectName, modelId, targetBI, modelElement, host, port);
-
-        return BISyncTool.dumpHasPermissionToBISyncModel(syncContext, authTables, authColumns);
-    }
-
-    private SyncContext getSyncContext(String projectName, String modelId, SyncContext.BI targetBI,
+    public SyncContext getSyncContext(String projectName, String modelId, SyncContext.BI targetBI,
             SyncContext.ModelElement modelElement, String host, int port) {
         SyncContext syncContext = new SyncContext();
         syncContext.setProjectName(projectName);
@@ -3876,7 +3898,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         return syncContext;
     }
 
-    public void checkTableHasColumnPermission(String project, String modeId, Set<String> authColumns) {
+    public void checkTableHasColumnPermission(SyncContext.ModelElement modelElement, String project, String modeId,
+            Set<String> authColumns, List<String> dimensions, List<String> measures) {
         if (AclPermissionUtil.isAdmin()) {
             return;
         }
@@ -3886,19 +3909,94 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         long jointCount = model.getJoinTables().stream()
                 .filter(table -> authColumns
                         .containsAll(Arrays.stream(table.getJoin().getPrimaryKeyColumns())
-                                .map(TblColRef::getCanonicalName).collect(Collectors.toSet()))
+                                .map(TblColRef::getAliasDotName).collect(Collectors.toSet()))
                         && authColumns.containsAll(Arrays.stream(table.getJoin().getForeignKeyColumns())
-                                .map(TblColRef::getCanonicalName).collect(Collectors.toSet())))
+                                .map(TblColRef::getAliasDotName).collect(Collectors.toSet())))
                 .count();
         long singleTableCount = model.getAllTables().stream().filter(ref -> ref.getColumns().stream()
-                .map(TblColRef::getCanonicalName).collect(Collectors.toSet()).stream().anyMatch(authColumns::contains))
+                .map(TblColRef::getAliasDotName).collect(Collectors.toSet()).stream().anyMatch(authColumns::contains))
                 .count();
 
-        if (jointCount != model.getJoinTables().size() || singleTableCount == 0) {
+        if (jointCount != model.getJoinTables().size() || singleTableCount == 0
+                || (modelElement.equals(SyncContext.ModelElement.CUSTOM_COLS)
+                        && !checkColumnPermission(model, authColumns, dimensions, measures))) {
             throw new KylinException(ServerErrorCode.INVALID_TABLE_AUTH,
-                    MsgPicker.getMsg().getTABLE_NO_COLUMNS_PERMISSION());
+                    MsgPicker.getMsg().getTableNoColumnsPermission());
+        }
+    }
+
+    public boolean checkColumnPermission(NDataModel model, Set<String> authColumns, List<String> dimensions,
+            List<String> measures) {
+
+        if (!checkDimensionPermission(model, authColumns, dimensions)) {
+            return false;
+        }
+        if (CollectionUtils.isEmpty(measures)) {
+            return true;
+        }
+        List<MeasureDef> authMeasures = model.getEffectiveMeasures().values().stream()
+                .filter(measure -> measures.contains(measure.getName()))
+                .filter(measure -> checkMeasurePermission(authColumns, measure, model)).map(MeasureDef::new)
+                .collect(Collectors.toList());
+        return authMeasures.size() == measures.size();
+
+    }
+
+    private boolean checkDimensionPermission(NDataModel model, Set<String> authColumns, List<String> dimensions) {
+        if (CollectionUtils.isEmpty(dimensions)) {
+            return true;
+        }
+        List<ComputedColumnDesc> computedColumnDescs = model.getComputedColumnDescs().stream()
+                .filter(cc -> dimensions.contains(cc.getFullName())).collect(Collectors.toList());
+
+        long authComputedCount = computedColumnDescs.stream()
+                .filter(cc -> authColumns.containsAll(convertCCToNormalCols(model, cc))).count();
+
+        if (computedColumnDescs.size() != authComputedCount) {
+            return false;
         }
 
+        List<String> normalColumns = dimensions.stream().filter(column -> !computedColumnDescs.stream()
+                .map(ComputedColumnDesc::getFullName).collect(Collectors.toList()).contains(column))
+                .collect(Collectors.toList());
+        return authColumns.containsAll(normalColumns);
+    }
+
+    public Set<String> convertCCToNormalCols(NDataModel model, ComputedColumnDesc computedColumnDesc) {
+        IndexDependencyParser parser = new IndexDependencyParser(model);
+        try {
+            Set<TblColRef> tblColRefList = parser.unwrapComputeColumn(computedColumnDesc.getInnerExpression());
+            return tblColRefList.stream().map(TblColRef::getAliasDotName).collect(Collectors.toSet());
+        } catch (Exception e) {
+            log.warn("UnWrap computed column {} in project {} model {} exception",
+                    computedColumnDesc.getInnerExpression(), model.getProject(), model.getAlias(), e);
+        }
+        return Collections.emptySet();
+    }
+
+    private boolean checkMeasurePermission(Set<String> authColumns, NDataModel.Measure measure, NDataModel model) {
+        Set<String> measureColumns = measure.getFunction().getParameters().stream()
+                .filter(parameterDesc -> parameterDesc.getColRef() != null)
+                .map(parameterDesc -> parameterDesc.getColRef().getAliasDotName()).collect(Collectors.toSet());
+
+        List<ComputedColumnDesc> computedColumnDescs = model.getComputedColumnDescs().stream()
+                .filter(cc -> measureColumns.contains(cc.getFullName()))
+                .collect(Collectors.toList());
+
+        long authComputedCount = computedColumnDescs.stream()
+                .filter(cc -> authColumns.containsAll(convertCCToNormalCols(model, cc))).count();
+
+        if (computedColumnDescs.size() != authComputedCount) {
+            return false;
+        }
+
+        List<String> normalColumns = measureColumns.stream()
+                .filter(column -> !computedColumnDescs.stream()
+                        .map(ComputedColumnDesc::getFullName).collect(Collectors.toList())
+                        .contains(column))
+                .collect(Collectors.toList());
+
+        return authColumns.containsAll(normalColumns);
     }
 
     private Set<String> getAllAuthTables(String project, Set<String> groups, String user) {
@@ -3998,7 +4096,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         List<String[]> absentValues = MultiPartitionUtil.findAbsentValues(modelPartitionValues, subPartitionValues);
         if (!absentValues.isEmpty()) {
             throw new KylinException(INVALID_PARTITION_VALUES, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getINVALID_PARTITION_VALUE(),
+                    MsgPicker.getMsg().getInvalidPartitionValue(),
                     absentValues.stream().map(arr -> String.join(", ", arr)).collect(Collectors.joining(", "))));
         }
     }
@@ -4014,14 +4112,18 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         }
         if (StringUtils.isNotEmpty(segmentId)) {
             // remove partition in target segment
-            getManager(NDataflowManager.class, project).removeLayoutPartition(modelId, partitions, Sets.newHashSet(segmentId));
+            getManager(NDataflowManager.class, project).removeLayoutPartition(modelId, partitions,
+                    Sets.newHashSet(segmentId));
             // remove partition in target segment
-            getManager(NDataflowManager.class, project).removeSegmentPartition(modelId, partitions, Sets.newHashSet(segmentId));
+            getManager(NDataflowManager.class, project).removeSegmentPartition(modelId, partitions,
+                    Sets.newHashSet(segmentId));
         } else {
             // remove partition in all layouts
-            getManager(NDataflowManager.class, project).removeLayoutPartition(modelId, Sets.newHashSet(partitions), null);
+            getManager(NDataflowManager.class, project).removeLayoutPartition(modelId, Sets.newHashSet(partitions),
+                    null);
             // remove partition in all  segments
-            getManager(NDataflowManager.class, project).removeSegmentPartition(modelId, Sets.newHashSet(partitions), null);
+            getManager(NDataflowManager.class, project).removeSegmentPartition(modelId, Sets.newHashSet(partitions),
+                    null);
             // remove partition in model
             getManager(NDataModelManager.class, project).updateDataModel(modelId, copyForWrite -> {
                 val multiPartitionDesc = copyForWrite.getMultiPartitionDesc();
@@ -4034,7 +4136,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         NDataModel model = getModelById(modelId, project);
         if (!model.isMultiPartitionModel()) {
             throw new KylinException(INVALID_MODEL_TYPE,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getMODEL_IS_NOT_MLP(), model.getAlias()));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getModelIsNotMlp(), model.getAlias()));
         }
         return model;
     }
@@ -4062,7 +4164,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         tablesInModel.add(model.getRootFactTableName());
         tablesInModel.forEach(table -> {
             if (!allAuthTables.contains(table)) {
-                throw new KylinException(FAILED_UPDATE_MODEL, MsgPicker.getMsg().getMODEL_MODIFY_ABANDON(table));
+                throw new KylinException(FAILED_UPDATE_MODEL, MsgPicker.getMsg().getModelModifyAbandon(table));
             }
         });
         tablesInModel.stream().filter(allAuthTables::contains).forEach(table -> {
@@ -4070,7 +4172,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                     .getColumns();
             Arrays.stream(columnDescs).map(column -> table + "." + column.getName()).forEach(column -> {
                 if (!allAuthColumns.contains(column)) {
-                    throw new KylinException(FAILED_UPDATE_MODEL, MsgPicker.getMsg().getMODEL_MODIFY_ABANDON(column));
+                    throw new KylinException(FAILED_UPDATE_MODEL, MsgPicker.getMsg().getModelModifyAbandon(column));
                 }
             });
         });
@@ -4126,7 +4228,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
 
     private NDataModel convertAndInitDataModel(ModelRequest request, String project) {
         NDataModel model = convertToDataModel(request);
-        model.init(KylinConfig.getInstanceFromEnv(), project, getManager(NDataflowManager.class, project).listUnderliningDataModels());
+        model.init(KylinConfig.getInstanceFromEnv(), project,
+                getManager(NDataflowManager.class, project).listUnderliningDataModels());
         for (ComputedColumnDesc cc : model.getComputedColumnDescs()) {
             String innerExp = cc.getInnerExpression();
             if (cc.getExpression().equalsIgnoreCase(innerExp)) {

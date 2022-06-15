@@ -58,7 +58,7 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.query.exception.NAsyncQueryIllegalParamException;
 import org.apache.kylin.query.util.AsyncQueryUtil;
-import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.rest.exception.NotFoundException;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -95,7 +95,7 @@ public class AsyncQueryService extends BasicService {
     }
 
     public List<List<String>> getMetaData(String project, String queryId) throws IOException {
-        checkStatus(queryId, QueryStatus.SUCCESS, project, MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
+        checkStatus(queryId, QueryStatus.SUCCESS, project, MsgPicker.getMsg().getQueryResultNotFound());
         Path asyncQueryResultDir = getAsyncQueryResultDir(project, queryId);
         List<List<String>> result = Lists.newArrayList();
         FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
@@ -126,13 +126,13 @@ public class AsyncQueryService extends BasicService {
 
     public void retrieveSavedQueryResult(String project, String queryId, boolean includeHeader,
             HttpServletResponse response, String fileFormat, String encode, String separator) throws IOException {
-        checkStatus(queryId, QueryStatus.SUCCESS, project, MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
+        checkStatus(queryId, QueryStatus.SUCCESS, project, MsgPicker.getMsg().getQueryResultNotFound());
 
         FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
         Path dataPath = getAsyncQueryResultDir(project, queryId);
 
         if (!fileSystem.exists(dataPath)) {
-            throw new BadRequestException(MsgPicker.getMsg().getQUERY_RESULT_FILE_NOT_FOUND());
+            throw new NotFoundException(MsgPicker.getMsg().getQueryResultFileNotFound());
         }
 
         try (ServletOutputStream outputStream = response.getOutputStream()) {
@@ -157,8 +157,15 @@ public class AsyncQueryService extends BasicService {
                 processJSON(outputStream, dataPath, encode);
                 break;
             case "xlsx":
-                XLSXExcelWriter xlsxExcelWriter = new XLSXExcelWriter();
-                processXLSX(outputStream, dataPath, includeHeader, columnNames, xlsxExcelWriter);
+                if (!includeHeader) {
+                    processFile(outputStream, dataPath);
+                } else {
+                    XLSXExcelWriter xlsxExcelWriter = new XLSXExcelWriter();
+                    processXLSX(outputStream, dataPath, includeHeader, columnNames, xlsxExcelWriter);
+                }
+                break;
+            case "parquet":
+                processFile(outputStream, dataPath);
                 break;
             default:
                 logger.info("Query:{}, processed", queryId);
@@ -173,7 +180,7 @@ public class AsyncQueryService extends BasicService {
         Path dataPath = new Path(getAsyncQueryResultDir(project, queryId), AsyncQueryUtil.getFailureFlagFileName());
 
         if (!fileSystem.exists(dataPath)) {
-            throw new BadRequestException(msg.getQUERY_EXCEPTION_FILE_NOT_FOUND());
+            throw new NotFoundException(msg.getQueryExceptionFileNotFound());
         }
         try (FSDataInputStream inputStream = fileSystem.open(dataPath);
                 InputStreamReader reader = new InputStreamReader(inputStream, Charset.defaultCharset())) {
@@ -234,7 +241,7 @@ public class AsyncQueryService extends BasicService {
     }
 
     public long fileStatus(String project, String queryId) throws IOException {
-        checkStatus(queryId, QueryStatus.SUCCESS, project, MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
+        checkStatus(queryId, QueryStatus.SUCCESS, project, MsgPicker.getMsg().getQueryResultNotFound());
         Path asyncQueryResultDir = getAsyncQueryResultDir(project, queryId);
         if (AsyncQueryUtil.getFileSystem().exists(asyncQueryResultDir) && AsyncQueryUtil.getFileSystem().isDirectory(asyncQueryResultDir)) {
             long totalFileSize = 0;
@@ -245,7 +252,7 @@ public class AsyncQueryService extends BasicService {
             }
             return totalFileSize;
         } else {
-            throw new BadRequestException(MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
+            throw new NotFoundException(MsgPicker.getMsg().getQueryResultNotFound());
         }
     }
 
@@ -283,7 +290,7 @@ public class AsyncQueryService extends BasicService {
     public boolean deleteByQueryId(String project, String queryId) throws IOException {
         Path resultDir = getAsyncQueryResultDir(project, queryId);
         if (queryStatus(project, queryId) == QueryStatus.MISS) {
-            throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
+            throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getQueryResultNotFound());
         }
         logger.info("clean async query result for query id [{}]", queryId);
         return AsyncQueryUtil.getFileSystem().delete(resultDir, true);
@@ -326,7 +333,7 @@ public class AsyncQueryService extends BasicService {
 
     public String asyncQueryResultPath(String project, String queryId) throws IOException {
         if (queryStatus(project, queryId) == QueryStatus.MISS) {
-            throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
+            throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getQueryResultNotFound());
         }
         return getAsyncQueryResultDir(project, queryId).toString();
     }
@@ -384,6 +391,18 @@ public class AsyncQueryService extends BasicService {
         }
         String json = new ObjectMapper().writeValueAsString(rowResults);
         IOUtils.copy(IOUtils.toInputStream(json), outputStream);
+    }
+
+    private void processFile(OutputStream outputStream, Path dataPath) throws IOException {
+        FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
+        FileStatus[] fileStatuses = fileSystem.listStatus(dataPath);
+        for (FileStatus f : fileStatuses) {
+            if (!f.getPath().getName().startsWith("_")) {
+                try (FSDataInputStream inputStream = fileSystem.open(f.getPath())) {
+                    IOUtils.copy(inputStream, outputStream);
+                }
+            }
+        }
     }
 
     private void processXLSX(OutputStream outputStream, Path dataPath, boolean includeHeader, String columnNames, XLSXExcelWriter excelWriter)

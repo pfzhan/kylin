@@ -582,7 +582,6 @@ public class NDataModel extends RootPersistentEntity {
             return factTableRefs.contains(t);
     }
 
-    //TODO: different from isFactTable(TableRef t)
     public boolean isFactTable(String fullTableName) {
         for (TableRef t : factTableRefs) {
             if (t.getTableIdentity().equals(fullTableName))
@@ -617,7 +616,7 @@ public class NDataModel extends RootPersistentEntity {
         TblColRef result = tableRef.getColumn(column.toUpperCase(Locale.ROOT));
         if (result == null)
             throw new KylinException(COLUMN_NOT_EXIST,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getBAD_SQL_COLUMN_NOT_FOUND_REASON(),
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getBadSqlColumnNotFoundReason(),
                             String.format(Locale.ROOT, "%s.%s", table, column)));
         return result;
     }
@@ -640,9 +639,8 @@ public class NDataModel extends RootPersistentEntity {
             }
         }
 
-        if (result == null)
-            throw new RuntimeException(
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getBAD_SQL_COLUMN_NOT_FOUND_REASON(), input));
+        Preconditions.checkArgument(result != null,
+                String.format(Locale.ROOT, MsgPicker.getMsg().getBadSqlColumnNotFoundReason(), input));
         return result;
     }
 
@@ -675,7 +673,7 @@ public class NDataModel extends RootPersistentEntity {
             }
             if (result == null) {
                 throw new KylinException(TABLE_NOT_EXIST,
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getTABLE_NOT_FOUND(), table));
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getTableNotFound(), table));
             }
         }
         return result;
@@ -760,15 +758,15 @@ public class NDataModel extends RootPersistentEntity {
                 throw new IllegalStateException("Join table does not exist:" + join.getTable());
 
             TableDesc tableDesc = tables.get(join.getTable());
-            String alias = join.getAlias();
-            if (alias == null) {
-                alias = tableDesc.getName();
+            String joinAlias = join.getAlias();
+            if (joinAlias == null) {
+                joinAlias = tableDesc.getName();
             }
-            alias = alias.toUpperCase(Locale.ROOT);
-            join.setAlias(alias);
+            joinAlias = joinAlias.toUpperCase(Locale.ROOT);
+            join.setAlias(joinAlias);
 
             boolean isLookup = join.getKind() == TableKind.LOOKUP;
-            TableRef ref = new TableRef(this, alias, tableDesc, isLookup);
+            TableRef ref = new TableRef(this, joinAlias, tableDesc, isLookup);
             if (join.isDerivedForbidden()) {
                 queryDerivedDisabledRefs.add(ref);
             }
@@ -783,11 +781,12 @@ public class NDataModel extends RootPersistentEntity {
     }
 
     private void addAlias(TableRef ref) {
-        String alias = ref.getAlias();
-        if (aliasMap.containsKey(alias))
-            throw new IllegalStateException("Alias '" + alias + "' ref to multiple tables: " + ref.getTableIdentity()
-                    + ", " + aliasMap.get(alias).getTableIdentity());
-        aliasMap.put(alias, ref);
+        String tableAlias = ref.getAlias();
+        if (aliasMap.containsKey(tableAlias)) {
+            throw new IllegalStateException(String.format(Locale.ROOT, "Alias '%s' ref to multiple tables: %s, %s",
+                    tableAlias, ref.getTableIdentity(), aliasMap.get(tableAlias).getTableIdentity()));
+        }
+        aliasMap.put(tableAlias, ref);
 
         TableDesc table = ref.getTableDesc();
         addTableName(table.getName(), ref);
@@ -917,9 +916,9 @@ public class NDataModel extends RootPersistentEntity {
             }
             for (int i = 0; i < fkCols.length; i++) {
                 if (!fkCols[i].getDatatype().equals(pkCols[i].getDatatype())) {
-                    logger.warn("PK " + dimTable + "." + pkCols[i].getName() + "." + pkCols[i].getDatatype()
-                            + " are not consistent with FK " + join.getFKSide().getTableIdentity() + "."
-                            + fkCols[i].getName() + "." + fkCols[i].getDatatype());
+                    logger.warn("PK {}.{}.{} are not consistent with FK {}.{}.{}", dimTable, pkCols[i].getName(),
+                            pkCols[i].getDatatype(), join.getFKSide().getTableIdentity(), fkCols[i].getName(),
+                            fkCols[i].getDatatype());
                 }
             }
         }
@@ -1004,7 +1003,6 @@ public class NDataModel extends RootPersistentEntity {
         return project;
     }
 
-
     public Map<String, TableDesc> getExtendedTables(Map<String, TableDesc> originalTables) {
         // tweak the tables according to Computed Columns defined in model
         Map<String, TableDesc> tables = Maps.newHashMap();
@@ -1023,17 +1021,16 @@ public class NDataModel extends RootPersistentEntity {
         return tables;
     }
 
-    public void init(KylinConfig config, String project, List<NDataModel> otherModels) {
-        init(config, project, otherModels, false);
+    public void init(KylinConfig config, String project, List<NDataModel> ccRelatedModels) {
+        init(config, project, ccRelatedModels, false);
     }
 
-    public void init(KylinConfig config, String project, List<NDataModel> otherModels, boolean saveCheck) {
+    public void init(KylinConfig config, String project, List<NDataModel> ccRelatedModels, boolean saveCheck) {
         this.project = project;
         this.saveCheck = saveCheck;
 
         init(config);
-
-        initComputedColumns(otherModels);
+        initComputedColumns(ccRelatedModels);
         this.effectiveCols = initAllNamedColumns(NamedColumn::isExist);
         this.effectiveDimensions = initAllNamedColumns(NamedColumn::isDimension);
         initAllMeasures();
@@ -1042,16 +1039,12 @@ public class NDataModel extends RootPersistentEntity {
         keepColumnOrder();
         keepMeasureOrder();
 
-        ProjectInstance projectInstance = NProjectManager.getInstance(config).getProject(getProject());
-        if (Objects.nonNull(projectInstance)
-                && projectInstance.getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
-            val lookups = getJoinTables().stream().filter(joinTableDesc -> joinTableDesc.getKind() == TableKind.LOOKUP)
-                    .map(JoinTableDesc::getTable).collect(Collectors.toSet());
+        val lookups = getJoinTables().stream().filter(joinTableDesc -> joinTableDesc.getKind() == TableKind.LOOKUP)
+                .map(JoinTableDesc::getTable).collect(Collectors.toSet());
 
-            if (lookups.contains(getRootFactTableName())) {
-                throw new KylinException(TABLE_JOIN_RELATIONSHIP_ERROR,
-                        MsgPicker.getMsg().getDIMENSION_TABLE_USED_IN_THIS_MODEL());
-            }
+        if (lookups.contains(getRootFactTableName())) {
+            throw new KylinException(TABLE_JOIN_RELATIONSHIP_ERROR,
+                    MsgPicker.getMsg().getDimensionTableUsedInThisModel());
         }
     }
 
@@ -1080,12 +1073,8 @@ public class NDataModel extends RootPersistentEntity {
     }
 
     public boolean isIncrementBuildOnExpertMode() {
-        if (NProjectManager.getInstance(this.config).getProject(getProject())
-                .getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
-            return !PartitionDesc.isEmptyPartitionDesc(getPartitionDesc())
-                    && !StringUtils.isEmpty(partitionDesc.getPartitionDateFormat());
-        }
-        return false;
+        return !PartitionDesc.isEmptyPartitionDesc(getPartitionDesc())
+                && !StringUtils.isEmpty(partitionDesc.getPartitionDateFormat());
     }
 
     public void checkSingleIncrementingLoadingTable() {
@@ -1149,7 +1138,7 @@ public class NDataModel extends RootPersistentEntity {
                     }
                 }
             } catch (Exception e) {
-                throw new KylinException(FAILED_UPDATE_MODEL, MsgPicker.getMsg().getINIT_MEASURE_FAILED(), e);
+                throw new KylinException(FAILED_UPDATE_MODEL, MsgPicker.getMsg().getInitMeasureFailed(), e);
             }
         }
 
@@ -1192,8 +1181,8 @@ public class NDataModel extends RootPersistentEntity {
         return getColRef(getColumnIdByColumnName(columnName));
     }
 
-    public void initComputedColumns(List<NDataModel> otherModels) {
-        Preconditions.checkNotNull(otherModels);
+    public void initComputedColumns(List<NDataModel> ccRelatedModels) {
+        Preconditions.checkNotNull(ccRelatedModels);
 
         // init
         for (ComputedColumnDesc newCC : this.computedColumnDescs) {
@@ -1219,7 +1208,7 @@ public class NDataModel extends RootPersistentEntity {
         checkCCExprHealth();
         if (config.validateComputedColumn()) {
             selfCCConflictCheck();
-            crossCCConflictCheck(otherModels);
+            crossCCConflictCheck(ccRelatedModels);
         }
     }
 
@@ -1252,10 +1241,10 @@ public class NDataModel extends RootPersistentEntity {
     }
 
     // check duplication with other models:
-    private void crossCCConflictCheck(List<NDataModel> otherModels) {
+    private void crossCCConflictCheck(List<NDataModel> ccRelatedModels) {
 
         List<Pair<ComputedColumnDesc, NDataModel>> existingCCs = Lists.newArrayList();
-        for (NDataModel otherModel : otherModels) {
+        for (NDataModel otherModel : ccRelatedModels) {
             if (!StringUtils.equals(otherModel.getUuid(), this.getUuid())) { // when update, self is already in otherModels
                 for (ComputedColumnDesc cc : otherModel.getComputedColumnDescs()) {
                     existingCCs.add(Pair.newPair(cc, otherModel));
@@ -1494,9 +1483,7 @@ public class NDataModel extends RootPersistentEntity {
     }
 
     public Set<Integer> getEffectiveInternalMeasureIds() {
-        return getEffectiveMeasures().values().stream()
-                .filter(m -> m.getType() == NDataModel.MeasureType.INTERNAL)
-                .map(NDataModel.Measure::getId)
-                .collect(Collectors.toSet());
+        return getEffectiveMeasures().values().stream().filter(m -> m.getType() == NDataModel.MeasureType.INTERNAL)
+                .map(NDataModel.Measure::getId).collect(Collectors.toSet());
     }
 }

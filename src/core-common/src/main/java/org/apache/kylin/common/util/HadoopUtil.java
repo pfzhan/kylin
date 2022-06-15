@@ -170,11 +170,11 @@ public class HadoopUtil {
 
     //add sonar rule:  filesystem.get forbidden
     public static FileSystem getWorkingFileSystem() {
-        return getFileSystem(KylinConfig.getInstanceFromEnv().getHdfsWorkingDirectory(null));
+        return getFileSystem(KylinConfig.readSystemKylinConfig().getHdfsWorkingDirectory(null));
     }
 
     public static FileSystem getWorkingFileSystem(Configuration conf) {
-        Path workingPath = new Path(KylinConfig.getInstanceFromEnv().getHdfsWorkingDirectory(null));
+        Path workingPath = new Path(KylinConfig.readSystemKylinConfig().getHdfsWorkingDirectory(null));
         return getFileSystem(workingPath, conf);
     }
 

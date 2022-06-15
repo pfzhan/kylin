@@ -23,33 +23,40 @@
  */
 package io.kyligence.kap.secondstorage.enums;
 
-import org.apache.kylin.common.exception.KylinException;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
+import static io.kyligence.kap.secondstorage.enums.LockOperateTypeEnum.LOCK;
+import static io.kyligence.kap.secondstorage.enums.LockOperateTypeEnum.check;
+import static io.kyligence.kap.secondstorage.enums.LockOperateTypeEnum.parse;
+import static io.kyligence.kap.secondstorage.enums.LockOperateTypeEnum.values;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-public class LockOperateTypeEnumTest {
-    private final List<String> lockOperateTypes = Arrays.stream(LockOperateTypeEnum.values()).map(x -> x.name()).collect(Collectors.toList());
+import org.apache.kylin.common.exception.KylinException;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+class LockOperateTypeEnumTest {
+    private final List<String> lockOperateTypes = Arrays.stream(values()).map(Enum::name).collect(Collectors.toList());
 
     @Test
-    public void testCheckSuccess() {
-        lockOperateTypes.stream().forEach(x -> LockOperateTypeEnum.check(x));
+    void testCheckSuccess() {
+        lockOperateTypes.forEach(LockOperateTypeEnum::check);
     }
 
     @Test
-    public void testCheckError() {
-        Exception exception = Assertions.assertThrows(KylinException.class, () -> LockOperateTypeEnum.check(UUID.randomUUID().toString()));
-        Assertions.assertEquals(exception.getMessage(), "'lockOperateType' is required.");
+    void testCheckError() {
+        String lockOperateType = UUID.randomUUID().toString();
+        Assertions.assertThrows(KylinException.class, () -> check(lockOperateType),
+                REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY.getMsg("lockOperateType"));
     }
 
     @Test
-    public void testParse() {
-        Assertions.assertEquals(LockOperateTypeEnum.parse(null), null);
-        Assertions.assertEquals(LockOperateTypeEnum.parse(UUID.randomUUID().toString()), null);
-        Assertions.assertEquals(LockOperateTypeEnum.parse(LockOperateTypeEnum.LOCK.name()), LockOperateTypeEnum.LOCK);
+    void testParse() {
+        Assertions.assertNull(parse(null));
+        Assertions.assertNull(parse(UUID.randomUUID().toString()));
+        Assertions.assertEquals(LOCK, parse(LOCK.name()));
     }
 }

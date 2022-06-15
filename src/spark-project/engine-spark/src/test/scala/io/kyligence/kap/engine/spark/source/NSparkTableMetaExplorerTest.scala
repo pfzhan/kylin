@@ -39,8 +39,6 @@ class NSparkTableMetaExplorerTest extends SparderBaseFunSuite with SharedSparkSe
     spark.sql("CREATE TABLE hive_table (a int, b int)")
 
 
-
-
     withTable("hive_table") {
 
       val view = CatalogTable(
@@ -172,7 +170,8 @@ class NSparkTableMetaExplorerTest extends SparderBaseFunSuite with SharedSparkSe
       tableType = CatalogTableType.MANAGED,
       storage = CatalogStorageFormat.empty,
       st,
-      properties = Map()
+      properties = Map("role" -> "arn:aws:iam::4296365xxx:role/role-test-xxx",
+        "s3_endpoint" -> "us-west-1.amazonaws.com")
     )
   }
 
@@ -189,6 +188,8 @@ class NSparkTableMetaExplorerTest extends SparderBaseFunSuite with SharedSparkSe
       val res = new NSparkTableMetaExplorer().getSparkTableMeta("", "hive_table_types")
       assert(res.allColumns.size() == 1)
       assert(res.allColumns.get(0).name.equals("c"))
+      assert("arn:aws:iam::4296365xxx:role/role-test-xxx".equals(res.s3Role))
+      assert("us-west-1.amazonaws.com".equals(res.s3Endpoint))
     }
   }
 }

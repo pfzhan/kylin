@@ -24,8 +24,6 @@
 
 package io.kyligence.kap.metadata.model;
 
-import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_ID_NOT_EXIST;
-
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -38,6 +36,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.code.ErrorCodeServer;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
@@ -45,8 +44,6 @@ import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 import org.apache.kylin.metadata.model.TableDesc;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -60,9 +57,10 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.exception.ModelBrokenException;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class NDataModelManager {
-    private static final Logger logger = LoggerFactory.getLogger(NDataModelManager.class);
 
     public static NDataModelManager getInstance(KylinConfig config, String project) {
         return config.getManager(project, NDataModelManager.class);
@@ -103,8 +101,12 @@ public class NDataModelManager {
                     throw new ModelBrokenException();
                 }
 
-                model.init(config, project,
-                        listAllValidCache().stream().filter(m -> !m.isBroken()).collect(Collectors.toList()));
+                if (!model.getComputedColumnDescs().isEmpty()) {
+                    model.init(config, project,
+                            listAllValidCache().stream().filter(m -> !m.isBroken()).collect(Collectors.toList()));
+                } else {
+                    model.init(config, project, Lists.newArrayList());
+                }
                 postModelRepairEvent(model);
                 return model;
             }
@@ -238,7 +240,7 @@ public class NDataModelManager {
             if (existingModel.getAlias().equalsIgnoreCase(model.getAlias())
                     || existingModel.getUuid().equals(model.getUuid())) {
                 throw new IllegalArgumentException(
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getDUPLICATE_MODEL_NAME(), model.getAlias()));
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getDuplicateModelName(), model.getAlias()));
             }
         }
     }
@@ -290,7 +292,7 @@ public class NDataModelManager {
     public NDataModel updateDataModel(String modelId, NDataModelUpdater updater) {
         val cached = getDataModelDesc(modelId);
         if (cached == null) {
-            throw new KylinException(MODEL_ID_NOT_EXIST, modelId);
+            throw new KylinException(ErrorCodeServer.MODEL_ID_NOT_EXIST, modelId);
         }
         val copy = copyForWrite(cached);
         updater.modify(copy);

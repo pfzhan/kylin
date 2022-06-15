@@ -25,7 +25,14 @@
 package io.kyligence.kap.rest.controller;
 
 import static org.apache.kylin.common.exception.CommonErrorCode.UNKNOWN_ERROR_CODE;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.DATETIME_FORMAT_EMPTY;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.DATETIME_FORMAT_PARSE_ERROR;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.INTEGER_NON_NEGATIVE_CHECK;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.TIME_INVALID_RANGE_LESS_THAN_ZERO;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.TIME_INVALID_RANGE_NOT_CONSISTENT;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.TIME_INVALID_RANGE_NOT_FORMAT_MS;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.USER_AUTH_INFO_NOTFOUND;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -45,6 +52,7 @@ import org.apache.kylin.rest.exception.ForbiddenException;
 import org.apache.kylin.rest.exception.NotFoundException;
 import org.apache.kylin.rest.exception.UnauthorizedException;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -79,13 +87,32 @@ public class NBasicControllerTest extends NLocalFileMetadataTestCase {
 
         Mockito.when(fixtureController.request()).thenThrow(new RuntimeException(), new ForbiddenException(),
                 new NotFoundException(StringUtils.EMPTY), new AccessDeniedException(StringUtils.EMPTY),
-                new UnauthorizedException(USER_AUTH_INFO_NOTFOUND), new KylinException(UNKNOWN_ERROR_CODE, StringUtils.EMPTY));
+                new UnauthorizedException(USER_AUTH_INFO_NOTFOUND),
+                new KylinException(UNKNOWN_ERROR_CODE, StringUtils.EMPTY));
         createTestMetadata();
     }
 
     @After
     public void teardown() {
         cleanupTestMetadata();
+    }
+
+    @Test
+    public void testValidatePriority() {
+        Assert.assertThrows(KylinException.class, () -> NBasicController.validatePriority(9999));
+
+    }
+
+    @Test
+    public void testCheckId() {
+        Assert.assertThrows(KylinException.class, () -> NBasicController.checkId(""));
+
+    }
+
+    @Test
+    public void testCheckSqlIsNotNull() {
+        Assert.assertThrows(KylinException.class, () -> NBasicController.checkSqlIsNotNull(null));
+
     }
 
     @Test
@@ -146,14 +173,14 @@ public class NBasicControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testCheckRequiredArgException() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("'model' is required");
+        thrown.expectMessage(REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY.getMsg("model"));
         nBasicController.checkRequiredArg("model", "");
     }
 
     @Test
     public void testCheckStartAndEndException() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getINVALID_RANGE_NOT_CONSISTENT());
+        thrown.expectMessage(TIME_INVALID_RANGE_NOT_CONSISTENT.getMsg());
         nBasicController.validateDataRange("10", "");
     }
 
@@ -174,21 +201,21 @@ public class NBasicControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testTimeRangeInvalidStart() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getINVALID_RANGE_LESS_THAN_ZERO());
+        thrown.expectMessage(TIME_INVALID_RANGE_LESS_THAN_ZERO.getMsg());
         nBasicController.validateDataRange("-1", "1");
     }
 
     @Test
     public void testTimeRangeInvalidEnd() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getINVALID_RANGE_LESS_THAN_ZERO());
+        thrown.expectMessage(TIME_INVALID_RANGE_LESS_THAN_ZERO.getMsg());
         nBasicController.validateDataRange("2", "-1");
     }
 
     @Test
     public void testTimeRangeInvalidFormat() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getINVALID_RANGE_NOT_FORMAT());
+        thrown.expectMessage(TIME_INVALID_RANGE_NOT_FORMAT_MS.getMsg());
         nBasicController.validateDataRange("start", "end");
     }
 
@@ -237,15 +264,16 @@ public class NBasicControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testCheckSegmentParms_throwsException() {
-        String[] ids = new String[] {"TEST_ID1"};
-        String[] names = new String[] {"TEST_NAME1"};
+        String[] ids = new String[] { "TEST_ID1" };
+        String[] names = new String[] { "TEST_NAME1" };
 
         // test throwing SEGMENT_CONFLICT_PARAMETER
         try {
             nBasicController.checkSegmentParms(ids, names);
         } catch (Exception e) {
             assertTrue(e instanceof KylinException);
-            assertEquals("KE-010022214: Can't enter segment ID and name at the same time. Please re-enter.", e.toString());
+            assertEquals("KE-010022214: Can't enter segment ID and name at the same time. Please re-enter.",
+                    e.toString());
         }
 
         // test throwing SEGMENT_EMPTY_PARAMETER
@@ -256,4 +284,19 @@ public class NBasicControllerTest extends NLocalFileMetadataTestCase {
             assertEquals("KE-010022215: Please enter segment ID or name.", e.toString());
         }
     }
+
+    @Test
+    public void testValidateDateTimeFormatPattern() {
+        Assert.assertThrows(DATETIME_FORMAT_EMPTY.getMsg(), KylinException.class,
+                () -> nBasicController.validateDateTimeFormatPattern(""));
+        Assert.assertThrows(DATETIME_FORMAT_PARSE_ERROR.getMsg("AABBSS"), KylinException.class,
+                () -> nBasicController.validateDateTimeFormatPattern("AABBSS"));
+    }
+
+    @Test
+    public void testCheckNonNegativeIntegerArg() {
+        Assert.assertThrows(INTEGER_NON_NEGATIVE_CHECK.getMsg(), KylinException.class,
+                () -> nBasicController.checkNonNegativeIntegerArg("id", -1));
+    }
+
 }

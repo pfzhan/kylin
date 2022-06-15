@@ -73,12 +73,13 @@ public class FavoriteQueryControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testImportSqls() throws Exception {
+        getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "true");
         MockMultipartFile file = new MockMultipartFile("files", "sqls.sql", "text/plain",
                 new FileInputStream(new File("./src/test/resources/ut_sqls_file/sqls1.sql")));
         MockMultipartFile file2 = new MockMultipartFile("files", "sqls.sql", "text/plain",
                 new FileInputStream(new File("./src/test/resources/ut_sqls_file/sqls2.txt")));
-        mockMvc.perform(MockMvcRequestBuilders.multipart("/api/query/favorite_queries/sql_files").file(file)
-                .file(file2).contentType(MediaType.APPLICATION_JSON).param("project", PROJECT)
+        mockMvc.perform(MockMvcRequestBuilders.multipart("/api/query/favorite_queries/sql_files").file(file).file(file2)
+                .contentType(MediaType.APPLICATION_JSON).param("project", PROJECT)
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
@@ -87,6 +88,7 @@ public class FavoriteQueryControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testSqlValidate() throws Exception {
+        getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "true");
         SQLValidateRequest request = new SQLValidateRequest(PROJECT, "sql");
         mockMvc.perform(MockMvcRequestBuilders.put("/api/query/favorite_queries/sql_validation")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))

@@ -46,6 +46,7 @@ import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletResponse;
 
+import io.kyligence.kap.guava20.shaded.common.collect.ImmutableMap;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.time.DateUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -158,6 +159,23 @@ public class QueryHistoryService extends BasicService implements AsyncTaskQueryH
         return data;
     }
 
+    public Map<String, Long> queryTiredStorageMetric(QueryHistoryRequest request) {
+        processRequestParams(request);
+
+        if (haveSpaces(request.getSql())) {
+            return ImmutableMap.of("total_scan_count", 0L);
+        }
+
+        QueryHistoryDAO queryHistoryDAO = getQueryHistoryDao();
+        List<QueryHistory> queryHistories = queryHistoryDAO.getQueryHistoriesByConditions(request, 1, 0);
+
+        if (queryHistories.isEmpty()) {
+            return ImmutableMap.of("total_scan_count", 0L);
+        }
+
+        return ImmutableMap.of("total_scan_count", queryHistories.get(0).getTotalScanCount());
+    }
+
     private void processRequestParams(QueryHistoryRequest request) {
         Preconditions.checkArgument(StringUtils.isNotEmpty(request.getProject()));
         aclEvaluate.checkProjectReadPermission(request.getProject());
@@ -235,7 +253,7 @@ public class QueryHistoryService extends BasicService implements AsyncTaskQueryH
                 NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(request.getProject()))) {
             request.setAdmin(true);
         } else {
-            throw new ForbiddenException(MsgPicker.getMsg().getEXPORT_RESULT_NOT_ALLOWED());
+            throw new ForbiddenException(MsgPicker.getMsg().getExportResultNotAllowed());
         }
         List<QueryHistory> queryHistories = queryHistoryDAO.getQueryHistoriesSubmitters(request, size);
         return queryHistories.stream().map(QueryHistory::getQuerySubmitter).collect(Collectors.toList());

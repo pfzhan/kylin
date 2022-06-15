@@ -42,6 +42,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.secondstorage.database.QueryOperator;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.SecondStorageConfig;
@@ -254,6 +255,12 @@ public class SecondStorageService extends BasicService implements SecondStorageU
         }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID);
     }
 
+    @Override
+    public Map<String, Object> getQueryMetric(String project, String queryId) {
+        QueryOperator queryOperator = SecondStorageFactoryUtils.createQueryMetricOperator(project);
+        return queryOperator.getQueryMetric(queryId);
+    }
+
     public SecondStorageService setModelService(final ModelService modelService) {
         this.modelService = modelService;
         return this;
@@ -364,7 +371,7 @@ public class SecondStorageService extends BasicService implements SecondStorageU
         JobInfoResponse.JobInfo jobInfo = null;
         if (enable) {
             if (!new HashSet<>(listAvailablePairs()).containsAll(pairs)) {
-                throw new KylinException(SECOND_STORAGE_NODE_NOT_AVAILABLE, MsgPicker.getMsg().getSECOND_STORAGE_NODE_NOT_AVAILABLE());
+                throw new KylinException(SECOND_STORAGE_NODE_NOT_AVAILABLE, MsgPicker.getMsg().getSecondStorageNodeNotAvailable());
             }
             if (!SecondStorageUtil.isProjectEnable(project)) {
                 enableProjectSecondStorage(project, pairs);
@@ -510,7 +517,7 @@ public class SecondStorageService extends BasicService implements SecondStorageU
         val models = this.validateProjectDisable(project);
         if (!models.isEmpty()) {
             throw new KylinException(JobErrorCode.SECOND_STORAGE_PROJECT_JOB_EXISTS,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getSECOND_STORAGE_PROJECT_JOB_EXISTS(), project));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getSecondStorageProjectJobExists(), project));
         }
     }
 
@@ -814,7 +821,7 @@ public class SecondStorageService extends BasicService implements SecondStorageU
     public List<String> getProjectSecondStorageJobs(String project) {
         if (!SecondStorageUtil.isProjectEnable(project)) {
             throw new KylinException(SECOND_STORAGE_PROJECT_STATUS_ERROR,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getSECOND_STORAGE_PROJECT_ENABLED(), project));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getSecondStorageProjectEnabled(), project));
         }
         val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         return executableManager.getJobs().stream()

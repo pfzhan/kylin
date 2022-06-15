@@ -35,6 +35,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Locale;
 import java.util.function.Function;
 
 public class ClickHouseSystemQuery {
@@ -50,7 +51,20 @@ public class ClickHouseSystemQuery {
             return ExceptionUtils.rethrow(sqlException);
         }
     };
-    private static final Select sql = new Select(TableIdentifier.table("system", "parts"))
+
+    public static final Function<ResultSet, QueryMetric> QUERY_METRIC_MAPPER= rs -> {
+        try {
+            return QueryMetric.builder()
+                    .readRows(rs.getLong(1))
+                    .readBytes(rs.getLong(2))
+                    .clientName(rs.getString(3))
+                    .build();
+        } catch (SQLException sqlException) {
+            return ExceptionUtils.rethrow(sqlException);
+        }
+    };
+
+    private static final Select tableStorageSize = new Select(TableIdentifier.table("system", "parts"))
             .column(ColumnWithAlias.builder().name("database").build())
             .column(ColumnWithAlias.builder().name("table").build())
             .column(ColumnWithAlias.builder().name("partition").build())
@@ -61,11 +75,22 @@ public class ClickHouseSystemQuery {
                     .column(ColumnWithAlias.builder().name("partition").build()))
             .where("active=1");
 
+    private static final Select queryMetric = new Select(TableIdentifier.table("system", "query_log"))
+            .column(ColumnWithAlias.builder().expr("sum(read_rows)").alias("readRows").build())
+            .column(ColumnWithAlias.builder().expr("sum(read_bytes)").alias("readBytes").build())
+            .column(ColumnWithAlias.builder().name("client_name").alias("clientName").build())
+            .groupby(new GroupBy().column(ColumnWithAlias.builder().name("client_name").build()))
+            .where("type = 'QueryFinish' AND event_time >= addHours(now(), -1) AND event_date >= addDays(now(), -1) AND position(client_name, '%s') = 1");
+
     private ClickHouseSystemQuery() {}
+
     public static String queryTableStorageSize() {
-        return sql.toSql(new ClickHouseRender());
+        return tableStorageSize.toSql(new ClickHouseRender());
     }
 
+    public static String queryQueryMetric(String queryId) {
+        return String.format(Locale.ROOT, queryMetric.toSql(new ClickHouseRender()), queryId);
+    }
 
     @Data
     @Builder
@@ -74,5 +99,13 @@ public class ClickHouseSystemQuery {
         private String table;
         private String partition;
         private long bytes;
+    }
+
+    @Data
+    @Builder
+    public static class QueryMetric {
+        private String clientName;
+        private long readRows;
+        private long readBytes;
     }
 }

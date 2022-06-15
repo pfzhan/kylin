@@ -45,7 +45,7 @@ import org.apache.kylin.metadata.model.{TableDesc, TableExtDesc}
 import org.apache.kylin.source.SourceFactory
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils
-import org.apache.spark.sql.{Dataset, Encoders, Row, SparkSession}
+import org.apache.spark.sql.{Dataset, Encoders, Row, SparderEnv, SparkSession}
 import org.apache.spark.utils.ProxyThreadUtils
 
 import scala.collection.JavaConverters._
@@ -316,7 +316,7 @@ class SnapshotBuilder(var jobId: String) extends Logging with Serializable {
 
   def getSourceData(ss: SparkSession, tableDesc: TableDesc): Dataset[Row] = {
     val params = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv)
-      .getProject(tableDesc.getProject).getOverrideKylinProps
+      .getProject(tableDesc.getProject).getLegalOverrideKylinProps
     SourceFactory
       .createEngineAdapter(tableDesc, classOf[NSparkCubingEngine.NSparkCubingSource])
       .getSourceData(tableDesc, ss, params)
@@ -391,7 +391,7 @@ class SnapshotBuilder(var jobId: String) extends Logging with Serializable {
     val resourcePath = baseDir + "/" + snapshotTablePath
     val (repartitionNum, sizeMB) = try {
       val sizeInMB = ResourceDetectUtils.getPaths(sourceData.queryExecution.sparkPlan)
-        .map(path => HadoopUtil.getContentSummary(path.getFileSystem(HadoopUtil.getCurrentConfiguration), path).getLength)
+        .map(path => HadoopUtil.getContentSummary(path.getFileSystem(SparderEnv.getHadoopConfiguration()), path).getLength)
         .sum * 1.0 / MB
       val num = Math.ceil(sizeInMB / KylinBuildEnv.get().kylinConfig.getSnapshotShardSizeMB).intValue()
       (num, sizeInMB)
@@ -464,7 +464,7 @@ class SnapshotBuilder(var jobId: String) extends Logging with Serializable {
   private[builder] def decideSparkJobArg(sourceData: Dataset[Row]): (Int, Double) = {
     try {
       val sizeInMB = ResourceDetectUtils.getPaths(sourceData.queryExecution.sparkPlan)
-        .map(path => HadoopUtil.getContentSummary(path.getFileSystem(HadoopUtil.getCurrentConfiguration), path).getLength)
+        .map(path => HadoopUtil.getContentSummary(path.getFileSystem(SparderEnv.getHadoopConfiguration()), path).getLength)
         .sum * 1.0 / MB
       val num = Math.ceil(sizeInMB / KylinBuildEnv.get().kylinConfig.getSnapshotShardSizeMB).intValue()
       (num, sizeInMB)

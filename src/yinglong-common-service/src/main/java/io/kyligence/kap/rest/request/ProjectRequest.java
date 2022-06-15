@@ -31,15 +31,14 @@ import java.util.regex.Pattern;
 
 import javax.validation.constraints.AssertTrue;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.springframework.validation.FieldError;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import lombok.Data;
 import lombok.val;
 
@@ -51,8 +50,6 @@ public class ProjectRequest implements Validation, ProjectInsensitiveRequest {
     private String description;
     @JsonProperty("override_kylin_properties")
     private LinkedHashMap<String, String> overrideKylinProps;
-    @JsonProperty("maintain_model_type")
-    private MaintainModelType maintainModelType;
 
     @AssertTrue
     @JsonIgnore
@@ -68,10 +65,8 @@ public class ProjectRequest implements Validation, ProjectInsensitiveRequest {
     @Override
     public String getErrorMessage(List<FieldError> errors) {
         val message = MsgPicker.getMsg();
-        if (!CollectionUtils.isEmpty(errors)) {
-            if (errors.get(0).getField().equalsIgnoreCase("nameValid")) {
-                return message.getINVALID_PROJECT_NAME();
-            }
+        if (!CollectionUtils.isEmpty(errors) && errors.get(0).getField().equalsIgnoreCase("nameValid")) {
+            return message.getInvalidProjectName();
         }
         return "";
     }

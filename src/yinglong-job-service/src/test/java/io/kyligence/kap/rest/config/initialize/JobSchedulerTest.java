@@ -70,6 +70,7 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
@@ -226,6 +227,8 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
         }), MODEL_ID);
         jobManager.refreshSegmentJob(new JobParam(df.getSegments().get(0), MODEL_ID, "ADMIN"));
         List<AbstractExecutable> executables = getRunningExecutables(DEFAULT_PROJECT, MODEL_ID);
+        val segmentResponse = new NDataSegmentResponse(df, df.getSegments().get(0), executables);
+        Assert.assertEquals(1, segmentResponse.getLockedIndexCount());
         Assert.assertEquals(18, getProcessLayout(executables.get(0)));
     }
 

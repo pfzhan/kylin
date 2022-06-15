@@ -27,7 +27,6 @@ package io.kyligence.kap.newten;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.util.ExecAndComp;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
@@ -47,6 +46,7 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import io.kyligence.kap.util.ExecAndComp;
 import lombok.val;
 
 public class NMultiPartitionJobTest extends NLocalWithSparkSessionTest {
@@ -95,8 +95,8 @@ public class NMultiPartitionJobTest extends NLocalWithSparkSessionTest {
         indexDataConstructor.buildIndex(dfID, segmentRange, Sets.newLinkedHashSet(layouts), true, buildPartitions);
         String sqlHitCube = " select count(1) from TEST_BANK_INCOME t1 inner join TEST_BANK_LOCATION t2 on t1. COUNTRY = t2. COUNTRY "
                 + " where  t1.dt = '2020-11-05' ";
-        List<String> hitCubeResult = ExecAndComp.queryModelWithoutCompute(getProject(), sqlHitCube).collectAsList().stream()
-                .map(Row::toString).collect(Collectors.toList());
+        List<String> hitCubeResult = ExecAndComp.queryModelWithoutCompute(getProject(), sqlHitCube).collectAsList()
+                .stream().map(Row::toString).collect(Collectors.toList());
         Assert.assertEquals(1, hitCubeResult.size());
 
         // will auto offline
@@ -105,6 +105,75 @@ public class NMultiPartitionJobTest extends NLocalWithSparkSessionTest {
         long endTime2 = SegmentRange.dateToLong("2020-11-07");
         val segmentRange2 = new SegmentRange.TimePartitionedSegmentRange(startTime2, endTime2);
         indexDataConstructor.buildIndex(dfID, segmentRange2, Sets.newLinkedHashSet(layouts), true, buildPartitions);
+        NDataflow df2 = dfManager.getDataflow(dfID);
+        Assert.assertEquals(RealizationStatusEnum.OFFLINE, df2.getStatus());
+    }
+
+    @Test
+    public void testGlobalDict() throws Exception {
+        String dfID = "0080e4e4-69af-449e-b09f-05c90dfa04b6";
+        NDataflowManager dfManager = NDataflowManager.getInstance(getTestConfig(), getProject());
+        NDataflow df = dfManager.getDataflow(dfID);
+        val update = new NDataflowUpdate(df.getUuid());
+        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+        dfManager.updateDataflow(update);
+
+        val layouts = df.getIndexPlan().getAllLayouts();
+        long startTime = SegmentRange.dateToLong("2020-11-01");
+        long endTime = SegmentRange.dateToLong("2020-11-06");
+        val segmentRange = new SegmentRange.TimePartitionedSegmentRange(startTime, endTime);
+
+        val segmentId = indexDataConstructor.buildIndex(dfID, segmentRange, Sets.newLinkedHashSet(layouts), true,
+                Lists.<String[]> newArrayList(new String[] { "un" }));
+        String sqlHitCube = " select count(distinct INCOME) from TEST_BANK_INCOME t1 "
+                + "where t1.dt < '2020-11-06' and t1.dt >= '2020-11-01'";
+        String whereSql = " and COUNTRY in ('un')";
+        List<Row> result = ExecAndComp.queryModelWithoutCompute(getProject(), sqlHitCube + whereSql).collectAsList();
+        Assert.assertEquals(1, result.size());
+        Assert.assertEquals(1, result.get(0).size());
+        Assert.assertEquals(2, result.get(0).getLong(0));
+
+        whereSql = " and COUNTRY in ('un', 'usa')";
+        indexDataConstructor.buildMultiPartition(dfID, segmentId, Sets.newLinkedHashSet(layouts), true,
+                Lists.<String[]> newArrayList(new String[] { "usa" }));
+        result = ExecAndComp.queryModelWithoutCompute(getProject(), sqlHitCube + whereSql).collectAsList();
+        Assert.assertEquals(1, result.size());
+        Assert.assertEquals(1, result.get(0).size());
+        Assert.assertEquals(5, result.get(0).getLong(0));
+
+        whereSql = " and COUNTRY in ('un', 'usa', 'cn')";
+        indexDataConstructor.buildMultiPartition(dfID, segmentId, Sets.newLinkedHashSet(layouts), true,
+                Lists.<String[]> newArrayList(new String[] { "cn" }));
+        result = ExecAndComp.queryModelWithoutCompute(getProject(), sqlHitCube + whereSql).collectAsList();
+        Assert.assertEquals(1, result.size());
+        Assert.assertEquals(1, result.get(0).size());
+        Assert.assertEquals(9, result.get(0).getLong(0));
+
+        whereSql = " and COUNTRY in ('un')";
+        result = ExecAndComp.queryModelWithoutCompute(getProject(), sqlHitCube + whereSql).collectAsList();
+        Assert.assertEquals(1, result.size());
+        Assert.assertEquals(1, result.get(0).size());
+        Assert.assertEquals(2, result.get(0).getLong(0));
+
+        whereSql = " and COUNTRY in ('usa')";
+        result = ExecAndComp.queryModelWithoutCompute(getProject(), sqlHitCube + whereSql).collectAsList();
+        Assert.assertEquals(1, result.size());
+        Assert.assertEquals(1, result.get(0).size());
+        Assert.assertEquals(5, result.get(0).getLong(0));
+
+        whereSql = " and COUNTRY in ('cn')";
+        result = ExecAndComp.queryModelWithoutCompute(getProject(), sqlHitCube + whereSql).collectAsList();
+        Assert.assertEquals(1, result.size());
+        Assert.assertEquals(1, result.get(0).size());
+        Assert.assertEquals(6, result.get(0).getLong(0));
+
+        // will auto offline
+        overwriteSystemProp("kylin.model.multi-partition-enabled", "false");
+        long startTime2 = SegmentRange.dateToLong("2020-11-06");
+        long endTime2 = SegmentRange.dateToLong("2020-11-07");
+        val segmentRange2 = new SegmentRange.TimePartitionedSegmentRange(startTime2, endTime2);
+        indexDataConstructor.buildIndex(dfID, segmentRange2, Sets.newLinkedHashSet(layouts), true,
+                Lists.<String[]> newArrayList(new String[] { "africa" }));
         NDataflow df2 = dfManager.getDataflow(dfID);
         Assert.assertEquals(RealizationStatusEnum.OFFLINE, df2.getStatus());
     }

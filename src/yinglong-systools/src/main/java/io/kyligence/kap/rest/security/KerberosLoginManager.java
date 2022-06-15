@@ -28,6 +28,8 @@ import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIE
 
 import java.io.File;
 import java.security.PrivilegedAction;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -36,6 +38,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.Singletons;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.source.ISourceMetadataExplorer;
 import org.apache.kylin.source.SourceFactory;
@@ -43,6 +46,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.common.util.FileUtils;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 
@@ -72,13 +76,12 @@ public class KerberosLoginManager {
                 ugi = UserGroupInformation.getLoginUser();
             }
         } catch (Exception e) {
-            logger.error("Fetch project {} ugi error, principal: {}.", projectName, principal, e);
             try {
                 ugi = UserGroupInformation.getLoginUser();
             } catch (Exception ex) {
                 logger.error("Fetch login user error.", projectName, principal, ex);
             }
-            throw new KylinException(INVALID_KERBEROS_FILE, MsgPicker.getMsg().getKERBEROS_INFO_ERROR(), e);
+            throw new KylinException(INVALID_KERBEROS_FILE, MsgPicker.getMsg().getKerberosInfoError(), e);
         }
 
         return ugi;
@@ -106,7 +109,7 @@ public class KerberosLoginManager {
         try {
             UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytab);
         } catch (Exception e) {
-            throw new KylinException(INVALID_KERBEROS_FILE, MsgPicker.getMsg().getKERBEROS_INFO_ERROR(), e);
+            throw new KylinException(INVALID_KERBEROS_FILE, MsgPicker.getMsg().getKerberosInfoError(), e);
         }
     }
 
@@ -117,7 +120,7 @@ public class KerberosLoginManager {
 
         UserGroupInformation ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytab);
         if (!checkExistsTablesAccess(ugi, project)) {
-            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getPROJECT_HIVE_PERMISSION_ERROR());
+            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getProjectHivePermissionError());
         }
     }
 
@@ -127,8 +130,21 @@ public class KerberosLoginManager {
         return ugi.doAs((PrivilegedAction<Boolean>) () -> {
             ProjectInstance projectInstance = projectManager.getProject(project);
             val tables = projectInstance.getTables();
-            ISourceMetadataExplorer explorer = SourceFactory.getSource(projectInstance).getSourceMetadataExplorer();
-            return explorer.checkTablesAccess(tables);
+            AtomicBoolean accessible = new AtomicBoolean(true);
+            val tableMap = tables.stream().map(tableName -> {
+                NTableMetadataManager tableMetadataManager = NTableMetadataManager
+                        .getInstance(KylinConfig.getInstanceFromEnv(), project);
+                return tableMetadataManager.getTableDesc(tableName);
+            }).collect(Collectors.groupingBy(TableDesc::getSourceType));
+
+            tableMap.forEach((sourceType, tableDescSet) -> {
+                ISourceMetadataExplorer explorer = SourceFactory.getSource(sourceType, projectInstance.getConfig())
+                        .getSourceMetadataExplorer();
+                accessible.set(accessible.get() && explorer.checkTablesAccess(
+                        tableDescSet.stream().map(tableDesc -> tableDesc.getIdentity()).collect(Collectors.toSet())));
+            });
+            return accessible.get();
         });
     }
+
 }
