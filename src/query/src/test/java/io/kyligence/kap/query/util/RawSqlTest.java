@@ -188,4 +188,32 @@ public class RawSqlTest {
             assertEquals("select * from table1" + "\n" + "LIMIT 14", tmpSql.getStatementString());
         }
     }
+
+    @Test
+    public void testMaxResultRowsEnabled() throws ParseException {
+        RawSql tmpSql = new RawSqlParser("select * from table1").parse();
+        try (MockedStatic<KylinConfig> kylinConfigMockedStatic = mockStatic(KylinConfig.class)) {
+            KylinConfig kylinConfig = mock(KylinConfig.class);
+            kylinConfigMockedStatic.when(KylinConfig::getInstanceFromEnv).thenReturn(kylinConfig);
+
+            when(kylinConfig.getMaxResultRows()).thenReturn(15);
+            when(kylinConfig.getForceLimit()).thenReturn(14);
+            tmpSql.autoAppendLimit(kylinConfig, 16);
+            assertEquals("select * from table1" + "\n" + "LIMIT 15", tmpSql.getStatementString());
+        }
+    }
+
+    @Test
+    public void testCompareMaxResultRowsAndLimit() throws ParseException {
+        RawSql tmpSql = new RawSqlParser("select * from table1").parse();
+        try (MockedStatic<KylinConfig> kylinConfigMockedStatic = mockStatic(KylinConfig.class)) {
+            KylinConfig kylinConfig = mock(KylinConfig.class);
+            kylinConfigMockedStatic.when(KylinConfig::getInstanceFromEnv).thenReturn(kylinConfig);
+
+            when(kylinConfig.getMaxResultRows()).thenReturn(15);
+            when(kylinConfig.getForceLimit()).thenReturn(14);
+            tmpSql.autoAppendLimit(kylinConfig, 13);
+            assertEquals("select * from table1" + "\n" + "LIMIT 13", tmpSql.getStatementString());
+        }
+    }
 }

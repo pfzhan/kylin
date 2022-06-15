@@ -919,6 +919,7 @@ class KylinConfigBaseTest {
         map.put("getLightningClusterId", new PropertiesEntity("kylin.lightning.cluster-id", "0", 0L));
         map.put("getLightningWorkspaceId", new PropertiesEntity("kylin.lightning.workspace-id", "0", 0L));
         map.put("getJobCallbackLanguage", new PropertiesEntity("kylin.job.callback-language", "en", "en"));
+        map.put("getMaxResultRows", new PropertiesEntity("kylin.query.max-result-rows", "0", 0));
     }
 
     @Test
