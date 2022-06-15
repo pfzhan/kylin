@@ -122,7 +122,7 @@ object SecondStorage extends LogEx {
 
     var result = Option.empty[DataFrame]
     // Only support table index
-    val enableSSForThisQuery = enabled && layout.getIndex.isTableIndex && !QueryContext.current().isForceTableIndex
+    val enableSSForThisQuery = enabled && layout.getIndex.isTableIndex
     val allSegIds = pruningInfo.split(",").map(s => s.split(":")(0)).toSet.asJava
     while (enableSSForThisQuery && result.isEmpty && QueryContext.current().isRetrySecondStorage) {
       val tableData = Option.apply(enableSSForThisQuery)

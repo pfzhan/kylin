@@ -226,10 +226,14 @@ public class TDVTTest implements JobWaiter {
     }
 
     private String runWithTableIndex(String sqlStatement) throws Exception {
-        QueryContext.current().setForceTableIndex(true);
-        Dataset<Row> plan = ExecAndComp.queryModelWithoutCompute(project, sqlStatement);
-        FilePruner filePruner = ClickHouseUtils.findFilePruner(plan.queryExecution().optimizedPlan());
-        Assert.assertNotNull(filePruner);
-        return computeResult(plan);
+        try {
+            QueryContext.current().setRetrySecondStorage(false);
+            Dataset<Row> plan = ExecAndComp.queryModelWithoutCompute(project, sqlStatement);
+            FilePruner filePruner = ClickHouseUtils.findFilePruner(plan.queryExecution().optimizedPlan());
+            Assert.assertNotNull(filePruner);
+            return computeResult(plan);
+        } finally {
+            QueryContext.current().setRetrySecondStorage(true);
+        }
     }
 }

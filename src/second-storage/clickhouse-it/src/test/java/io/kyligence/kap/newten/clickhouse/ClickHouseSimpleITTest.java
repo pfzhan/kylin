@@ -61,8 +61,6 @@ import org.apache.commons.lang3.time.DateUtils;
 import org.apache.kylin.common.ForceToTieredStorage;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
-import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
@@ -1460,8 +1458,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
                             Dataset<Row> rows = ExecAndComp.queryModel(getProject(), sql, null);
                             Assert.assertFalse(OLAPContext.getNativeRealizations().stream().allMatch(NativeQueryRealization::isSecondStorage));
                         }catch (Exception e){
-                            Assert.assertTrue(e instanceof SQLException && e.getCause() instanceof KylinException);
-                            Assert.assertTrue(e.getMessage().contains(MsgPicker.getMsg().getForcedToTieredstorageAndForceToIndex()));
+                            Assert.assertTrue(e instanceof SQLException);
                         }
                         return null;
                     },
@@ -1491,8 +1488,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
                             Dataset<Row> rows = ExecAndComp.queryModel(getProject(), sql, null);
                             Assert.assertFalse(OLAPContext.getNativeRealizations().stream().allMatch(NativeQueryRealization::isSecondStorage));
                         }catch (Exception e){
-                            Assert.assertTrue(e instanceof SQLException && e.getCause() instanceof KylinException);
-                            Assert.assertTrue(e.getMessage().contains(MsgPicker.getMsg().getForcedToTieredstorageReturnError()));
+                            Assert.assertTrue(e instanceof SQLException);
                         }
                         return null;
                     },
@@ -1522,8 +1518,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
                             Dataset<Row> rows = ExecAndComp.queryModel(getProject(), sql, null);
                             Assert.assertFalse(OLAPContext.getNativeRealizations().stream().allMatch(NativeQueryRealization::isSecondStorage));
                         }catch (Exception e){
-                            Assert.assertTrue(e instanceof SQLException && e.getCause() instanceof KylinException);
-                            Assert.assertTrue(e.getMessage().contains(MsgPicker.getMsg().getForcedToTieredstorageInvalidParameter()));
+                            Assert.assertTrue(e instanceof SQLException);
                         }
                         return null;
                     },
