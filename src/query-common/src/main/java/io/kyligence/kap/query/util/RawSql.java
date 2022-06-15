@@ -121,7 +121,7 @@ public class RawSql {
         // https://issues.apache.org/jira/browse/KYLIN-2649
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         int forceLimit;
-        if ((forceLimit = kylinConfig.getForceLimit()) > 0 && !limitAppended
+        if ((forceLimit = kylinConfig.getForceLimit()) > 0 && !limitAppended && !sqlElements.contains("limit")
                 && getStatementString().toLowerCase(Locale.ROOT).matches("^select\\s+\\*\\p{all}*")) {
             appendStmtBlock("\nLIMIT " + forceLimit);
         }

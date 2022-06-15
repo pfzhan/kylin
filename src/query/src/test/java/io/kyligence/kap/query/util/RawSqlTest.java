@@ -166,4 +166,17 @@ public class RawSqlTest {
         RawSql createRawSql = new RawSqlParser("create table xxx as (select col1, col2 from table1)").parse();
         assertEquals(Boolean.FALSE, ReflectionTestUtils.invokeMethod(createRawSql, "isSelectStatement"));
     }
+
+    @Test
+    public void testSqlLimitAndForceLimit() throws ParseException {
+        RawSql tmpSql = new RawSqlParser("select * from table1 limit 10").parse();
+        try (MockedStatic<KylinConfig> kylinConfigMockedStatic = mockStatic(KylinConfig.class)) {
+            KylinConfig kylinConfig = mock(KylinConfig.class);
+            kylinConfigMockedStatic.when(KylinConfig::getInstanceFromEnv).thenReturn(kylinConfig);
+
+            when(kylinConfig.getForceLimit()).thenReturn(15);
+            tmpSql.autoAppendLimit(0);
+            assertEquals("select * from table1 limit 10", tmpSql.getStatementString());
+        }
+    }
 }
