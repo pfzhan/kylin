@@ -604,7 +604,7 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
 
             // Parsing user sql by RawSqlParser
             RawSql rawSql = new RawSqlParser(sqlRequest.getSql()).parse();
-            rawSql.autoAppendLimit(sqlRequest.getLimit(), sqlRequest.getOffset());
+            rawSql.autoAppendLimit(kylinConfig, sqlRequest.getLimit(), sqlRequest.getOffset());
 
             // Reset request sql for code compatibility
             sqlRequest.setSql(rawSql.getStatementString());

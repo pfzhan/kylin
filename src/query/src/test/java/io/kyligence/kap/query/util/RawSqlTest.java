@@ -56,34 +56,29 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.KylinConfigExt;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import io.kyligence.kap.metadata.project.NProjectManager;
 
 @RunWith(MockitoJUnitRunner.class)
 public class RawSqlTest {
 
     private static final String SQL = "select /*+ MODEL_PRIORITY(model1, model2) */ 'col1-;1', col2 -- comment1;\n"
-            + "from table -- comment2\n"
-            + "/* comment3\n"
-            + "   comment4;\n"
-            + "   comment5\n"
-            + "*/\n"
+            + "from table -- comment2\n" + "/* comment3\n" + "   comment4;\n" + "   comment5\n" + "*/\n"
             + "limit /* comment6 */ 10; -- comment7;";
 
     private static final String STATEMENT_STRING = "select /*+ MODEL_PRIORITY(model1, model2) */ 'col1-;1', col2\n"
-            + "from table\n"
-            + "limit 10";
+            + "from table\n" + "limit 10";
 
     private static final String FULL_TEXT_STRING = "select /*+ MODEL_PRIORITY(model1, model2) */ 'col1-;1', col2 -- comment1;\n"
-            + "from table -- comment2\n"
-            + "/* comment3\n"
-            + "   comment4;\n"
-            + "   comment5\n"
-            + "*/\n"
+            + "from table -- comment2\n" + "/* comment3\n" + "   comment4;\n" + "   comment5\n" + "*/\n"
             + "limit /* comment6 */ 10 -- comment7;";
 
     private static final String SQL2 = "select * from table1";
@@ -118,10 +113,10 @@ public class RawSqlTest {
             kylinConfigMockedStatic.when(KylinConfig::getInstanceFromEnv).thenReturn(kylinConfig);
 
             when(kylinConfig.getForceLimit()).thenReturn(-1);
-            rawSql2.autoAppendLimit(20);
+            rawSql2.autoAppendLimit(kylinConfig, 20);
             assertEquals(SQL2 + "\nLIMIT 20", rawSql2.getStatementString());
 
-            rawSql2.autoAppendLimit(20, 10);
+            rawSql2.autoAppendLimit(kylinConfig, 20, 10);
             assertEquals(SQL2 + "\nLIMIT 20\nOFFSET 10", rawSql2.getStatementString());
         }
     }
@@ -133,7 +128,7 @@ public class RawSqlTest {
             kylinConfigMockedStatic.when(KylinConfig::getInstanceFromEnv).thenReturn(kylinConfig);
 
             when(kylinConfig.getForceLimit()).thenReturn(15);
-            rawSql2.autoAppendLimit(0, 0);
+            rawSql2.autoAppendLimit(kylinConfig, 0, 0);
             assertEquals(SQL2 + "\nLIMIT 15", rawSql2.getStatementString());
         }
     }
@@ -175,8 +170,22 @@ public class RawSqlTest {
             kylinConfigMockedStatic.when(KylinConfig::getInstanceFromEnv).thenReturn(kylinConfig);
 
             when(kylinConfig.getForceLimit()).thenReturn(15);
-            tmpSql.autoAppendLimit(0);
+            tmpSql.autoAppendLimit(kylinConfig, 0);
             assertEquals("select * from table1 limit 10", tmpSql.getStatementString());
+        }
+    }
+
+    @Test
+    public void testProjectForceLimitEnabled() throws ParseException {
+        RawSql tmpSql = new RawSqlParser("select * from table1").parse();
+        try (MockedStatic<NProjectManager> nProjectManagerMockedStatic = Mockito.mockStatic(NProjectManager.class)) {
+            NProjectManager projectManager = Mockito.mock(NProjectManager.class);
+            nProjectManagerMockedStatic.when(() -> NProjectManager.getInstance(Mockito.any()))
+                    .thenReturn(projectManager);
+            KylinConfigExt kylinConfigExt = Mockito.mock(KylinConfigExt.class);
+            when(kylinConfigExt.getForceLimit()).thenReturn(14);
+            tmpSql.autoAppendLimit(kylinConfigExt, 0);
+            assertEquals("select * from table1" + "\n" + "LIMIT 14", tmpSql.getStatementString());
         }
     }
 }
