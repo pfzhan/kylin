@@ -3310,4 +3310,8 @@ public abstract class KylinConfigBase implements Serializable {
     public String getJobCallbackLanguage() {
         return getOptional("kylin.job.callback-language", "en");
     }
+
+    public Integer getMaxResultRows() {
+        return Integer.parseInt(this.getOptional("kylin.query.max-result-rows", "0"));
+    }
 }

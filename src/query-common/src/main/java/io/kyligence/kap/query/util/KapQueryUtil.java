@@ -348,6 +348,12 @@ public class KapQueryUtil {
 
         //Split keywords and variables from sql by punctuation and whitespace character
         List<String> sqlElements = Lists.newArrayList(sql.toLowerCase(Locale.ROOT).split("(?![\\._])\\p{P}|\\s+"));
+
+        Integer maxRows = kylinConfig.getMaxResultRows();
+        if (maxRows != null && maxRows > 0 && (maxRows < limit || limit <= 0)) {
+            limit = maxRows;
+        }
+
         if (limit > 0 && !sqlElements.contains("limit")) {
             sql += ("\nLIMIT " + limit);
         }

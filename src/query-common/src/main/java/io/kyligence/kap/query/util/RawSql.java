@@ -109,6 +109,11 @@ public class RawSql {
                 .newArrayList(getStatementString().toLowerCase(Locale.ROOT).split("(?![\\._])\\p{P}|\\s+"));
         boolean limitAppended = false;
 
+        Integer maxRows = kylinConfig.getMaxResultRows();
+        if (maxRows != null && maxRows > 0 && (maxRows < limit || limit <= 0)) {
+            limit = maxRows;
+        }
+
         if (limit > 0 && !sqlElements.contains("limit")) {
             appendStmtBlock("\nLIMIT " + limit);
             limitAppended = true;
