@@ -43,6 +43,7 @@ management:
   endpoint:
     health:
       enabled: true
+      show-details: always
     prometheus:
       enabled: true
   endpoints:
