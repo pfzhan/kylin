@@ -96,6 +96,7 @@ import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.cube.model.RuleBasedIndex;
 import io.kyligence.kap.metadata.model.MultiPartitionDesc;
 import io.kyligence.kap.metadata.model.MultiPartitionKeyMappingImpl;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -884,8 +885,13 @@ public class MetaStoreServiceTest extends ServiceTestBase {
 
     @Test
     public void testImportModelMetadataWithRecInExpertModeProject() throws Exception {
-        File file = new File(
-                "src/test/resources/ut_model_metadata/target_project_model_metadata_2020_11_21_16_40_43_61D23206229CEB0C078F24AAACADF5DB.zip");
+        String id = "761215ee-3f21-4d1a-aae5-3d0d9d6ede85";
+        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), "original_project");
+        indexPlanManager.updateIndexPlan(id, copyForWrite -> {
+            copyForWrite.setRuleBasedIndex(new RuleBasedIndex());
+        });
+        String fileName = "issue_model_metadata_2022_06_17_14_54_54_F89122A7E22F485D8359616BC1C30718.zip";
+        File file = new File("src/test/resources/ut_model_metadata/" + fileName);
         val multipartFile = new MockMultipartFile(file.getName(), file.getName(), null, new FileInputStream(file));
         ModelImportRequest request = new ModelImportRequest();
         List<ModelImportRequest.ModelImport> models = new ArrayList<>();
@@ -907,6 +913,8 @@ public class MetaStoreServiceTest extends ServiceTestBase {
         rawRecItems = jdbcRawRecStore.listAll("original_project", dataModel.getUuid(), dataModel.getSemanticVersion(),
                 10);
         Assert.assertEquals(0, rawRecItems.size());
+        IndexEntity index = indexPlanManager.getIndexPlan(dataModel.getUuid()).getIndexEntity(160000);
+        Assert.assertEquals(1, index.getLayouts().size());
     }
 
     @Test
