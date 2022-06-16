@@ -137,7 +137,7 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
     }
 
     protected void initHandler() {
-        logger.info("Handler class name {}", KylinConfig.getInstanceFromEnv().getSparkBuildJobHandlerClassName());
+        logger.debug("Handler class name {}", KylinConfig.getInstanceFromEnv().getSparkBuildJobHandlerClassName());
         sparkJobHandler = (ISparkJobHandler) ClassUtil
                 .newInstance(KylinConfig.getInstanceFromEnv().getSparkBuildJobHandlerClassName());
     }
@@ -434,7 +434,7 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
     }
 
     public void killOrphanApplicationIfExists(String jobStepId) {
-        sparkJobHandler.killOrphanApplicationIfExists(jobStepId, getConfig(), getSparkConf());
+        sparkJobHandler.killOrphanApplicationIfExists(project, jobStepId, getConfig(), getSparkConf());
     }
 
     protected Map<String, String> getSparkConfigOverride(KylinConfig config) {

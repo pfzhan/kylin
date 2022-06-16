@@ -71,7 +71,8 @@ public class DefaultSparkBuildJobHandler implements ISparkJobHandler {
     private static final String EQUALS = "=";
 
     @Override
-    public void killOrphanApplicationIfExists(String jobStepId, KylinConfig config, Map<String, String> sparkConf) {
+    public void killOrphanApplicationIfExists(String project, String jobStepId, KylinConfig config,
+            Map<String, String> sparkConf) {
         try {
             val sparkMaster = sparkConf.getOrDefault(SPARK_MASTER, "local");
             if (sparkMaster.startsWith("local")) {
@@ -185,7 +186,7 @@ public class DefaultSparkBuildJobHandler implements ISparkJobHandler {
             return;
         }
         List<String> illegals = Lists.newArrayList();
-        Matcher matcher = Pattern.compile("(`.*?`)|(\\$\\(.*?\\))").matcher(command);
+        Matcher matcher = Pattern.compile("(`[^`]*+`)|(\\$\\([^)]*+)").matcher(command);
         while (matcher.find()) {
             illegals.add(matcher.group());
         }

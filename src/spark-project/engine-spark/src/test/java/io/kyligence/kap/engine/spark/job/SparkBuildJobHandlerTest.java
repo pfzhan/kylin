@@ -47,10 +47,13 @@ public class SparkBuildJobHandlerTest extends NLocalWithSparkSessionTest {
         Assert.assertTrue(handler instanceof DefaultSparkBuildJobHandler);
         Map<String, String> sparkConf = Maps.newHashMap();
         String jobStepId = "testId";
-        handler.killOrphanApplicationIfExists(jobStepId, config, sparkConf);
-        sparkConf.put(SPARK_MASTER, "mock");
+        handler.killOrphanApplicationIfExists(getProject(), jobStepId, config, sparkConf);
         config.setProperty("kylin.engine.cluster-manager-timeout-threshold", "3s");
-        handler.killOrphanApplicationIfExists(jobStepId, config, sparkConf);
+
+        NSparkExecutable sparkExecutable = new NSparkExecutable();
+        sparkExecutable.setProject(getProject());
+        config.setProperty("kylin.engine.spark-conf." + SPARK_MASTER, "mock");
+        sparkExecutable.killOrphanApplicationIfExists(jobStepId);
     }
 
     @Test

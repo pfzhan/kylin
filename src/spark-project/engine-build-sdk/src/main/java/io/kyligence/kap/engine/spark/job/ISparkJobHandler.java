@@ -32,7 +32,8 @@ import org.apache.kylin.job.exception.ExecuteException;
 
 public interface ISparkJobHandler {
 
-    void killOrphanApplicationIfExists(String jobStepId, KylinConfig config, Map<String, String> sparkConf);
+    void killOrphanApplicationIfExists(String project, String jobStepId, KylinConfig config,
+            Map<String, String> sparkConf);
 
     void checkApplicationJar(KylinConfig config) throws ExecuteException;
 
