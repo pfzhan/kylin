@@ -53,10 +53,20 @@ management:
         include: prometheus,health
 
   health:
-    redis:
+    defaults:
       enabled: false
-    ldap:
-      enabled: false
+    metaStore:
+      enabled: true
+    sparkSqlContext:
+      enabled: true
+    fileSystem:
+      enabled: true
+    sparkContext:
+      enabled: true
+    diskspace:
+      enabled: true
+    refresh:
+      enabled: true
 
 spring:
   servlet:
@@ -73,6 +83,10 @@ spring:
         period: 86400
       static-locations: "file://${KYLIN_HOME}/server/public"
   cloud:
+    discovery:
+      client:
+        composite-indicator:
+          enabled: false
     zookeeper:
       connect-string: ${kylin.env.zookeeper-connect-string}
       discovery:
