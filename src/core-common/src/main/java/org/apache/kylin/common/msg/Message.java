@@ -50,7 +50,7 @@ import org.apache.kylin.common.Singletons;
 public class Message {
     private final String secondStorageProjectEnabled = "The project %s does not have tiered storage enabled.";
     private final String secondStorageModelEnabled = "The model %s does not have tiered storage enabled.";
-    private final String secondStorageSegmentWithoutBaseIndex= "The base table index is missing in the segments, please add and try again.";
+    private final String secondStorageSegmentWithoutBaseIndex = "The base table index is missing in the segments, please add and try again.";
     private final String secondStorageDeleteNodeFailed = "Node %s has data, size is %d bytes";
     private final String forcedToTieredstorageAndForceToIndex = "When force_to_index=ture, the query cannot pushdown when using tiered storage fails, forcedToTieredStorage=1 or conf=1 is invalid, please modify and try again";
     private final String forcedToTieredstorageReturnError = "Query failed. Tiered storage is unavailable, please fix and try again.";
@@ -758,6 +758,11 @@ public class Message {
 
     public String saveModelFail() {
         return "Can’t save model \"%s\". Please ensure that the used column \"%s\" exist in source table \"%s\".";
+    }
+
+    public String getViewDateFormatDetectionError() {
+        return "It is not supported to obtain the time format of the partition column of "
+                + "the view table, please manually select or enter.";
     }
 
     // Async push down get date format

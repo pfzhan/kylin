@@ -89,7 +89,7 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
     @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(TableDesc.class);
 
-    private static final String TABLE_TYPE_VIEW = "VIEW";
+    public static final String TABLE_TYPE_VIEW = "VIEW";
     private static final String materializedTableNamePrefix = "kylin_intermediate_";
     public static final long NOT_READY = -1;
     private static final String TRANSACTIONAL_TABLE_NAME_SUFFIX = "_hive_tx_intermediate";

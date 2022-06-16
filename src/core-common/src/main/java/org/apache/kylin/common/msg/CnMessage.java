@@ -790,6 +790,11 @@ public class CnMessage extends Message {
         return "模型 “%s” 保存失败。请确保模型中使用的列 “%s” 在源表 “%s” 中存在。";
     }
 
+    @Override
+    public String getViewDateFormatDetectionError() {
+        return "暂不支持获取视图表的分区列时间格式，请手动选择或输入。";
+    }
+
     // Async push down get date format
     @Override
     public String getPushdownPartitionformatError() {

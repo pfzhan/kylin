@@ -34,6 +34,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_COMPUTED
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARTITION_COLUMN;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 import static org.apache.kylin.common.exception.ServerErrorCode.TABLE_NOT_EXIST;
+import static org.apache.kylin.common.exception.ServerErrorCode.VIEW_PARTITION_DATE_FORMAT_DETECTION_FORBIDDEN;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_ID_NOT_EXIST;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_NOT_EXIST;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.TABLE_RELOAD_HAVING_NOT_FINAL_JOB;
@@ -772,6 +773,11 @@ public class TableService extends BasicService {
             throw new KylinException(COLUMN_NOT_EXIST, String.format(Locale.ROOT,
                     "Can not find the column:%s in table:%s, project:%s", partitionColumn, table, project));
         }
+        if (tableDesc.isView()) {
+            throw new KylinException(VIEW_PARTITION_DATE_FORMAT_DETECTION_FORBIDDEN,
+                    MsgPicker.getMsg().getViewDateFormatDetectionError());
+        }
+
         try {
             if (tableDesc.isKafkaTable()) {
                 List<ByteBuffer> messages = kafkaService.getMessages(tableDesc.getKafkaConfig(), project, 0);

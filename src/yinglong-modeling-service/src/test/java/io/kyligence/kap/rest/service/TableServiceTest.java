@@ -663,6 +663,23 @@ public class TableServiceTest extends CSVSourceTestCase {
         cleanPushdownEnv();
     }
 
+    @Test
+    public void testGetPartitionFormatForbidden() throws Exception {
+        setupPushdownEnv();
+        testGetBatchLoadTablesBefore();
+        final String table = "DEFAULT.TEST_KYLIN_FACT";
+        final NTableMetadataManager tableMgr = getInstance(getTestConfig(), "default");
+        final TableDesc tableDesc = tableMgr.getTableDesc(table);
+        tableDesc.setTableType(TableDesc.TABLE_TYPE_VIEW);
+        tableMgr.updateTableDesc(tableDesc);
+        try {
+            tableService.getPartitionColumnFormat("default", table, "CAL_DT");
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertEquals(MsgPicker.getMsg().getViewDateFormatDetectionError(), e.getMessage());
+        }
+    }
+
     private void testGetBatchLoadTablesBefore() {
         List<BatchLoadTableResponse> responses = tableService.getBatchLoadTables("default");
         Assert.assertEquals(0, responses.size());
@@ -1532,8 +1549,11 @@ public class TableServiceTest extends CSVSourceTestCase {
     public void testCheckMessage() {
         Assert.assertThrows(KylinException.class,
                 () -> ReflectionTestUtils.invokeMethod(tableService, "checkMessage", "table", null));
+    }
+
+    @Test
+    public void testCheckMessageWithArgs() {
         Assert.assertThrows(KylinException.class,
                 () -> ReflectionTestUtils.invokeMethod(tableService, "checkMessage", "table", new ArrayList<>()));
-
     }
 }
