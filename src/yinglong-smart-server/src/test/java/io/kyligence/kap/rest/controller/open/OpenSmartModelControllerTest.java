@@ -202,6 +202,25 @@ public class OpenSmartModelControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testSqlAcceleration() throws Exception {
+        changeProjectToSemiAutoMode("default");
+        List<String> sqls = Lists.newArrayList("select price, count(*) from test_kylin_fact limit 1");
+        OpenSqlAccelerateRequest favoriteRequest = new OpenSqlAccelerateRequest("default", sqls, null);
+
+        // reuse existed model
+        AbstractContext context = new ModelReuseContext(getTestConfig(), favoriteRequest.getProject(),
+                sqls.toArray(new String[0]));
+        val result = new SuggestionResponse(Lists.newArrayList(), Lists.newArrayList());
+        Mockito.doReturn(context).when(modelSmartService).suggestModel(favoriteRequest.getProject(), sqls, true, false);
+        Mockito.doReturn(result).when(modelSmartService).buildModelSuggestionResponse(context);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/sql_acceleration")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(favoriteRequest))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(openSmartModelController).accelerateSqls(Mockito.any());
+    }
+
+    @Test
     public void testCheckSqlListNotEmpty() {
         List<String> sqls = null;
         try {
