@@ -42,21 +42,32 @@
 
 package org.apache.kylin.measure.bitmap;
 
-import java.util.List;
+import org.junit.Assert;
+import org.junit.Test;
 
-public class BitmapIntersectDistinctCountAggV2Func {
+import java.util.ArrayList;
 
-    public static Object init() {
-        return null;
+public class BitmapIntersectDistinctCountAggV2FuncTest {
+
+    @Test
+    public void testInitMethod() {
+        Object result = BitmapIntersectDistinctCountAggV2Func.init();
+        BitmapIntersectDistinctCountAggV2Func.merge(1, 1,
+                "key", new ArrayList(), "1");
+        Assert.assertEquals(null, result);
     }
 
-    public static Object add(Object result, Object value, Object key, List keyList, String filterType) {
-        return null;
+    @Test
+    public void testAddMethod() {
+        Object resultData = BitmapIntersectDistinctCountAggV2Func.add(null, null,
+                null, null, null);
+        Assert.assertEquals(null, resultData);
     }
 
-    public static void merge(Object result, Object value, Object key, List keyList, String filterType) { }
-
-    public static Object result(Object result) {
-        return null;
+    @Test
+    public void testResultMethod() {
+        Object resultData = BitmapIntersectDistinctCountAggV2Func.result(null);
+        Assert.assertEquals(null, resultData);
     }
+
 }
