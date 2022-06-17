@@ -129,7 +129,7 @@
         <beanutils.version>1.9.4</beanutils.version>
         <xerces.version>2.12.2</xerces.version>
         <bcprov-ext-jdk15on.version>1.67</bcprov-ext-jdk15on.version>
-        <bcprov-jdk15on.version>1.67</bcprov-jdk15on.version>
+        <bcprov-jdk15on.version>1.70</bcprov-jdk15on.version>
         <opencsv.version>5.5.2</opencsv.version>
 
         <mybatis.version>3.5.6</mybatis.version>
@@ -144,17 +144,16 @@
         <forbiddenapis.version>3.1</forbiddenapis.version>
         <javassist.version>3.20.0-GA</javassist.version>
         <esapi.version>2.3.0.0</esapi.version>
+        <api-util.version>1.0.2</api-util.version>
+        <neko-htmlunit.version>2.62.0</neko-htmlunit.version>
+
         <!--metric-->
         <dropwizard.version>4.1.1</dropwizard.version>
 
         <spring.cloud.version>2021.0.0</spring.cloud.version>
-        <spring.boot.version>2.6.3</spring.boot.version>
+        <spring.boot.version>2.6.8</spring.boot.version>
         <spring-session.version>2.6.1-kylin-r2</spring-session.version>
         <spring.framework.security.extensions.version>1.0.10.RELEASE</spring.framework.security.extensions.version>
-        <spring-jdbc.version>5.3.15</spring-jdbc.version>
-        <spring-beans.version>5.3.18</spring-beans.version>
-        <spring-core.version>5.3.18</spring-core.version>
-        <spring-tx.version>5.3.19</spring-tx.version>
         <spring-security-web.version>5.6.4</spring-security-web.version>
         <opensaml.version>2.6.6</opensaml.version>
         <aspectj.version>1.8.9</aspectj.version>
@@ -2178,36 +2177,6 @@
                 <version>${spring-session.version}</version>
             </dependency>
 
-            <dependency>
-                <groupId>org.springframework</groupId>
-                <artifactId>spring-beans</artifactId>
-                <version>${spring-beans.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.springframework</groupId>
-                <artifactId>spring-core</artifactId>
-                <version>${spring-core.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.springframework</groupId>
-                <artifactId>spring-jdbc</artifactId>
-                <version>${spring-jdbc.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>org.springframework</groupId>
-                        <artifactId>spring-beans</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-
-            <dependency>
-                <groupId>org.springframework</groupId>
-                <artifactId>spring-tx</artifactId>
-                <version>${spring-tx.version}</version>
-            </dependency>
-
             <!-- Spring Security -->
             <dependency>
                 <groupId>org.springframework.security</groupId>
@@ -2716,6 +2685,16 @@
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
                 <version>${jackson-databind.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.directory.api</groupId>
+                <artifactId>api-util</artifactId>
+                <version>${api-util.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>net.sourceforge.htmlunit</groupId>
+                <artifactId>neko-htmlunit</artifactId>
+                <version>${neko-htmlunit.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
