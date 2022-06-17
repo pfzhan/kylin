@@ -1634,7 +1634,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         if (matcher.find()) {
             String column = matcher.group(1);
             String table = column.contains(".") ? column.split("\\.")[0] : dataModel.getRootFactTableName();
-            String error = String.format(Locale.ROOT, MsgPicker.getMsg().getTableNotFound(), dataModel.getAlias(),
+            String error = String.format(Locale.ROOT, MsgPicker.getMsg().saveModelFail(), dataModel.getAlias(),
                     column, table);
             throw new KylinException(TABLE_NOT_EXIST, error);
         } else {
@@ -1678,7 +1678,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                 val fullColumnName = modelRequest.getPartitionDesc().getPartitionDateColumn();
                 val columnName = fullColumnName.substring(fullColumnName.indexOf(".") + 1);
                 val hasPartitionColumn = modelRequest.getSimplifiedDimensions().stream()
-                        .filter(column -> column.getName().equalsIgnoreCase(columnName)).findAny().isPresent();
+                        .anyMatch(column -> column.getName().equalsIgnoreCase(columnName));
                 if (!hasPartitionColumn && !modelRequest.getDimensionNameIdMap().containsKey(fullColumnName)) {
                     throw new KylinException(TIMESTAMP_COLUMN_NOT_EXIST,
                             String.format(Locale.ROOT, MsgPicker.getMsg().getTimestampPartitionColumnNotExist()));
@@ -2947,10 +2947,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                 && request.isWithSecondStorage()) {
             val indexPlanManager = getManager(NIndexPlanManager.class, project);
             if (!indexPlanManager.getIndexPlan(request.getId()).containBaseTableLayout()) {
-                indexPlanManager.updateIndexPlan(request.getId(), copied -> {
-                    copied.createAndAddBaseIndex(
-                            Collections.singletonList(copied.createBaseTableIndex(copied.getModel())));
-                });
+                indexPlanManager.updateIndexPlan(request.getId(), copied -> copied.createAndAddBaseIndex(
+                        Collections.singletonList(copied.createBaseTableIndex(copied.getModel()))));
             }
             SecondStorageUtil.initModelMetaData(project, request.getId());
         }
@@ -3573,9 +3571,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                     throw new KylinException(INVALID_PARTITION_COLUMN, MsgPicker.getMsg().getInvalidPartitionColumn());
                 }
             }
-            getManager(NDataModelManager.class, project).updateDataModel(oldDataModel.getUuid(), copyForWrite -> {
-                copyForWrite.setPartitionDesc(modelParatitionDescRequest.getPartitionDesc());
-            });
+            getManager(NDataModelManager.class, project).updateDataModel(oldDataModel.getUuid(),
+                    copyForWrite -> copyForWrite.setPartitionDesc(modelParatitionDescRequest.getPartitionDesc()));
             semanticUpdater.handleSemanticUpdate(project, oldDataModel.getUuid(), oldDataModel,
                     modelParatitionDescRequest.getStart(), modelParatitionDescRequest.getEnd());
             return null;
