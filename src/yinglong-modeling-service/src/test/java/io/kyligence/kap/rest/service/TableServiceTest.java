@@ -680,6 +680,20 @@ public class TableServiceTest extends CSVSourceTestCase {
         }
     }
 
+    @Test
+    public void testGetPartitionFormatException() throws Exception {
+        setupPushdownEnv();
+        getTestConfig().setProperty("kylin.query.pushdown.partition-check.runner-class-name", "io.kyligence.kap.AAA");
+        testGetBatchLoadTablesBefore();
+        final String table = "DEFAULT.TEST_KYLIN_FACT";
+        try {
+            tableService.getPartitionColumnFormat("default", table, "CAL_DT");
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertEquals(MsgPicker.getMsg().getPushdownPartitionFormatError(), e.getMessage());
+        }
+    }
+
     private void testGetBatchLoadTablesBefore() {
         List<BatchLoadTableResponse> responses = tableService.getBatchLoadTables("default");
         Assert.assertEquals(0, responses.size());

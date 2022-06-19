@@ -355,7 +355,7 @@ public class SystemService extends BasicService {
             NDataModel model = getManager(NDataModelManager.class, projectName).getDataModelDescByAlias(modelAlias);
             if (model == null) {
                 throw new KylinException(CONFIG_NONEXIST_MODEL,
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getNonExistenModel(), modelAlias), false);
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getNonExistedModel(), modelAlias), false);
             }
             val indexPlan = getManager(NIndexPlanManager.class, projectName).getIndexPlan(model.getId());
             if (indexPlan != null) {

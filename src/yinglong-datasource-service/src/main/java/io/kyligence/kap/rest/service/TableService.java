@@ -797,7 +797,7 @@ public class TableService extends BasicService {
 
         } catch (Exception e) {
             logger.error("Failed to get date format.", e);
-            throw new KylinException(INVALID_PARTITION_COLUMN, MsgPicker.getMsg().getPushdownPartitionformatError());
+            throw new KylinException(INVALID_PARTITION_COLUMN, MsgPicker.getMsg().getPushdownPartitionFormatError());
         }
     }
 

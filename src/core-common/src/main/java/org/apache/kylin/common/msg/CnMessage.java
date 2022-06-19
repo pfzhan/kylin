@@ -367,11 +367,6 @@ public class CnMessage extends Message {
         return "此项目未开启多级分区，多级分区无法使用。请开启后重试。";
     }
 
-    // Table
-    public String getHIVE_TABLE_NOT_FOUND() {
-        return "找不到 Hive 表 '%s'";
-    }
-
     // table sampling
     @Override
     public String getBeyondMixSamplingRowshint() {
@@ -797,7 +792,7 @@ public class CnMessage extends Message {
 
     // Async push down get date format
     @Override
-    public String getPushdownPartitionformatError() {
+    public String getPushdownPartitionFormatError() {
         return "自动探测失败，请手动选择分区格式。";
     }
 
@@ -2095,7 +2090,7 @@ public class CnMessage extends Message {
     }
 
     @Override
-    public String getPARAMETER_IS_REQUIRED() {
+    public String getParameterIsRequired() {
         return "找不到 '%s'。";
     }
 
@@ -2105,7 +2100,7 @@ public class CnMessage extends Message {
     }
 
     @Override
-    public String getNonExistenModel() {
+    public String getNonExistedModel() {
         return "模型 %s 不存在，请检查后再重试.";
     }
 
