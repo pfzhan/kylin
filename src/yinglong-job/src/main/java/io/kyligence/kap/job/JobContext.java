@@ -29,7 +29,9 @@ import java.util.Objects;
 
 import javax.annotation.Resource;
 
+import io.kyligence.kap.job.util.JobInfoUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
+import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
@@ -185,5 +187,13 @@ public class JobContext implements InitializingBean, DisposableBean {
                 .offset(0).limit(10000)
                 .build();
         return jobInfoMapper.selectByJobFilter(mapperFilter);
+    }
+
+    public ExecutablePO getExecutablePOByUuid(String uuid) {
+        JobInfo jobInfo = jobInfoMapper.selectByJobId(uuid);
+        if (null != jobInfo) {
+            return JobInfoUtil.deserializeExecutablePO(jobInfo);
+        }
+        return null;
     }
 }

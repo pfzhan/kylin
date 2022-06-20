@@ -24,12 +24,17 @@
 package io.kyligence.kap.rest.delegate;
 
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.rest.util.SpringContext;
+import org.awaitility.Awaitility;
 import org.springframework.stereotype.Component;
 
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.rest.request.MergeAndUpdateTableExtRequest;
 import io.kyligence.kap.rest.service.TableExtService;
 import lombok.extern.slf4j.Slf4j;
@@ -60,6 +65,10 @@ public class TableMetadataInvoker extends TableMetadataBaseInvoker {
     @Override
     public void mergeAndUpdateTableExt(String project, MergeAndUpdateTableExtRequest request) {
         getDelegate().mergeAndUpdateTableExt(project, request);
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        waitForSync(() -> NTableMetadataManager.getInstance(config, project)
+                .getOrCreateTableExt(request.getOrigin().getIdentity()).getJodID()
+                .equals(request.getOther().getJodID()));
     }
 
     @Override
@@ -74,5 +83,9 @@ public class TableMetadataInvoker extends TableMetadataBaseInvoker {
 
     public List<String> getTableNamesByFuzzyKey(String project, String fuzzyKey) {
         return getDelegate().getTableNamesByFuzzyKey(fuzzyKey, project);
+    }
+
+    private void waitForSync(Callable<Boolean> callable) {
+        Awaitility.await().atMost(5, TimeUnit.SECONDS).until(callable);
     }
 }

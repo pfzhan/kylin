@@ -35,6 +35,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.rest.delegate.ModelMetadataBaseInvoker;
+import io.kyligence.kap.rest.request.DataFlowUpdateRequest;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
@@ -278,7 +280,8 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
         NDataSegment[] nDataSegments = toRemovedSegments.toArray(new NDataSegment[0]);
         NDataflowUpdate nDataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
         nDataflowUpdate.setToRemoveSegs(nDataSegments);
-        nDataflowManager.updateDataflow(nDataflowUpdate);
+        ModelMetadataBaseInvoker.getInstance()
+                .updateDataflow(new DataFlowUpdateRequest(project, nDataflowUpdate, null, null));
         updatePartitionOnCancelJob();
     }
 

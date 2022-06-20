@@ -71,7 +71,7 @@ public interface ModelMetadataRPC extends ModelMetadataContract {
     @PostMapping(value = "/get_model_name_by_id")
     String getModelNameById(@RequestParam("modelId") String modelId, @RequestParam("project") String project);
 
-    @PostMapping(value = "/feign/get_segment_by_range")
+    @PostMapping(value = "/get_segment_by_range")
     Segments<NDataSegment> getSegmentsByRange(@RequestParam("modelId") String modelId,
             @RequestParam("project") String project, @RequestParam("start") String start,
             @RequestParam("end") String end);

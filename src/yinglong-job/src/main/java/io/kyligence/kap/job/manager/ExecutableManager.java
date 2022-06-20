@@ -356,26 +356,6 @@ public class ExecutableManager {
         EventBusFactory.getInstance().postSync(new CliCommandExecutor.JobKilled(jobId));
     }
 
-    @Deprecated
-    private boolean resumeRunningJob(ExecutablePO po) {
-        boolean result = false;
-        if (po.getOutput().getStatus().equalsIgnoreCase(ExecutableState.RUNNING.toString())) {
-            Map<String, String> info = Maps.newHashMap();
-            if (Objects.nonNull(po.getOutput().getInfo())) {
-                info.putAll(po.getOutput().getInfo());
-            }
-            Optional.ofNullable(REMOVE_INFO).ifPresent(set -> set.forEach(info::remove));
-            po.getOutput().setInfo(info);
-            po.getOutput().setStatus(ExecutableState.READY.toString());
-            po.getOutput().addEndTime(System.currentTimeMillis());
-            result = true;
-        }
-        for (ExecutablePO task : Optional.ofNullable(po.getTasks()).orElse(Lists.newArrayList())) {
-            result = resumeRunningJob(task) || result;
-        }
-        return result;
-    }
-
     private void killRemoteProcess(ExecutablePO executablePO, CliCommandExecutor exe) {
         if (!executablePO.getOutput().getStatus().equalsIgnoreCase(ExecutableState.RUNNING.toString()))
             return;
@@ -542,7 +522,7 @@ public class ExecutableManager {
     public ExecutableOutputPO getJobOutput(String taskOrJobId, String segmentId) {
         val jobId = extractJobId(taskOrJobId);
         val executablePO = jobInfoDao.getExecutablePOByUuid(jobId);
-        return getJobOutput(jobId, executablePO, segmentId);
+        return getJobOutput(taskOrJobId, executablePO, segmentId);
     }
 
     public ExecutableOutputPO getJobOutput(String taskOrJobId, ExecutablePO executablePO) {
@@ -620,12 +600,16 @@ public class ExecutableManager {
         });
     }
 
-    @Transactional
     public void resumeJob(String jobId, AbstractExecutable job) {
+        resumeJob(jobId, job, false);
+    }
+
+    @Transactional
+    public void resumeJob(String jobId, AbstractExecutable job, boolean force) {
         if (Objects.isNull(job)) {
             return;
         }
-        if (!job.getStatus().isNotProgressing()) {
+        if (!job.getStatus().isNotProgressing() && !force) {
             throw new KylinException(JOB_UPDATE_STATUS_FAILED, "RESUME", jobId, job.getStatus());
         }
 

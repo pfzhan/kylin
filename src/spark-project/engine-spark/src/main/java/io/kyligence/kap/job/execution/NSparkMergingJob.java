@@ -31,6 +31,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import io.kyligence.kap.rest.delegate.ModelMetadataBaseInvoker;
+import io.kyligence.kap.rest.request.DataFlowUpdateRequest;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.JobTypeEnum;
@@ -192,6 +194,7 @@ public class NSparkMergingJob extends DefaultChainedExecutableOnModel {
         }
         NDataflowUpdate nDataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
         nDataflowUpdate.setToRemoveSegs(toRemovedSegments.toArray(new NDataSegment[0]));
-        nDataflowManager.updateDataflow(nDataflowUpdate);
+        ModelMetadataBaseInvoker.getInstance()
+                .updateDataflow(new DataFlowUpdateRequest(project, nDataflowUpdate, null, null));
     }
 }

@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 
 import io.kyligence.kap.common.util.ThreadUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.constant.JobStatusEnum;
+import org.apache.kylin.job.execution.ExecutableState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -230,10 +230,6 @@ public class JdbcJobScheduler implements JobScheduler {
                     logger.warn("Job not found: {}", jobId);
                     return;
                 }
-                if (jobInfo.getJobStatus().equals(JobStatusEnum.READY.name())) {
-                    logger.warn("Job status is READY, wait for master to change it to pending");
-                    return;
-                }
                 final AbstractJobExecutable jobExecutable = getJobExecutable(jobInfo);
                 if (!jobContext.getResourceAcquirer().tryAcquire(jobExecutable)) {
                     return;
@@ -255,6 +251,14 @@ public class JdbcJobScheduler implements JobScheduler {
                     new JobAcquireListener(jobExecutable));
             if (!jobLock.tryAcquire()) {
                 logger.info("Acquire job lock failed.");
+                return;
+            }
+            AbstractExecutable executable = (AbstractExecutable) jobExecutable;
+            if (executable.getStatus().equals(ExecutableState.RUNNING)) {
+                // resume job status from running to ready
+                ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), executable.getProject())
+                        .resumeJob(jobExecutable.getJobId(), executable, true);
+                jobLock.tryRelease();
                 return;
             }
 
