@@ -24,17 +24,18 @@
 
 package io.kyligence.kap.clickhouse.job;
 
-import io.kyligence.kap.metadata.cube.model.NBatchConstants;
-import lombok.val;
-import org.apache.kylin.job.ProjectJob;
-import org.apache.kylin.job.SecondStorageCleanJobBuildParams;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.DefaultChainedExecutable;
-import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.factory.JobFactory;
-
 import java.util.Collections;
 import java.util.Set;
+
+import org.apache.kylin.job.ProjectJob;
+import org.apache.kylin.job.SecondStorageCleanJobBuildParams;
+import org.apache.kylin.job.execution.JobTypeEnum;
+
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.execution.DefaultChainedExecutable;
+import io.kyligence.kap.job.factory.JobFactory;
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
+import lombok.val;
 
 public class ClickHouseProjectCleanJob extends DefaultChainedExecutable implements ProjectJob {
 

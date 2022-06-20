@@ -40,8 +40,6 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,6 +51,7 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.job.execution.AbstractExecutable;
 import io.kyligence.kap.job.execution.NTableSamplingJob;
 import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.job.manager.JobManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.rest.aspect.Transaction;
 import lombok.val;
@@ -71,7 +70,7 @@ public class TableSamplingService extends BasicService implements TableSamplingS
     public List<String> sampling(Set<String> tables, String project, int rows, int priority, String yarnQueue,
             Object tag) {
         aclEvaluate.checkProjectWritePermission(project);
-        NExecutableManager execMgr = NExecutableManager.getInstance(getConfig(), project);
+        ExecutableManager execMgr = ExecutableManager.getInstance(getConfig(), project);
         NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getConfig(), project);
         JobStatisticsManager jobStatisticsManager = JobStatisticsManager.getInstance(getConfig(), project);
 

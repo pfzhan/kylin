@@ -25,13 +25,14 @@
 package io.kyligence.kap.tool.garbage;
 
 import org.apache.kylin.job.exception.ExecuteException;
-import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecuteResult;
-import org.apache.kylin.job.execution.ExecutableContext;
+
+import io.kyligence.kap.job.JobContext;
+import io.kyligence.kap.job.execution.AbstractExecutable;
 
 public class MockCleanableExecutable extends AbstractExecutable {
     @Override
-    protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
+    protected ExecuteResult doWork(JobContext context) throws ExecuteException {
         return ExecuteResult.createSucceed();
     }
 

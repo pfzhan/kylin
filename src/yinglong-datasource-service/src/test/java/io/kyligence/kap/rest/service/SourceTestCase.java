@@ -29,12 +29,8 @@ import java.sql.DriverManager;
 import java.util.Comparator;
 import java.util.List;
 
-import io.kyligence.kap.job.execution.AbstractExecutable;
-import io.kyligence.kap.job.manager.ExecutableManager;
-import io.kyligence.kap.job.util.ExecutableUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.source.jdbc.H2Database;
@@ -45,6 +41,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.job.util.ExecutableUtils;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.epoch.EpochManager;
@@ -137,7 +136,7 @@ public class SourceTestCase extends NLocalFileMetadataTestCase {
     }
 
     protected void deleteJobByForce(AbstractExecutable executable) {
-        val exManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        val exManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         exManager.updateJobOutput(executable.getId(), ExecutableState.DISCARDED);
         exManager.deleteJob(executable.getId());
     }

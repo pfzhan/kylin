@@ -31,8 +31,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.kylin.job.engine.JobEngineConfig;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -56,7 +54,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ITStorageCleanerTest extends NLocalWithSparkSessionTest {
 
-    private NDefaultScheduler scheduler;
+    // private NDefaultScheduler scheduler;
 
     @Before
     public void setUp() throws Exception {
@@ -72,9 +70,10 @@ public class ITStorageCleanerTest extends NLocalWithSparkSessionTest {
                 "top_n")) {
             projectMgr.forceDropProject(project);
         }
-        NDefaultScheduler.destroyInstance();
-        scheduler = NDefaultScheduler.getInstance(getProject());
-        scheduler.init(new JobEngineConfig(getTestConfig()));
+        //TODO need to be rewritten
+        //        NDefaultScheduler.destroyInstance();
+        //        scheduler = NDefaultScheduler.getInstance(getProject());
+        //        scheduler.init(new JobEngineConfig(getTestConfig()));
 
         val tableMgr = NTableMetadataManager.getInstance(getTestConfig(), getProject());
         val table = tableMgr.getTableDesc("DEFAULT.TEST_KYLIN_FACT");
@@ -84,7 +83,8 @@ public class ITStorageCleanerTest extends NLocalWithSparkSessionTest {
 
     @After
     public void tearDown() throws Exception {
-        NDefaultScheduler.destroyInstance();
+        //TODO need to be rewritten
+        // NDefaultScheduler.destroyInstance();
         this.cleanupTestMetadata();
     }
 

@@ -40,9 +40,6 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.util.OptionsHelper;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.DefaultChainedExecutable;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,6 +47,9 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 
 import io.kyligence.kap.common.util.OptionBuilder;
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.execution.DefaultChainedExecutable;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.tool.util.DiagnosticFilesChecker;
 import lombok.val;
@@ -213,7 +213,7 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
         Future eventLogTask = executorService.submit(() -> {
             if (job instanceof DefaultChainedExecutable) {
                 recordTaskStartTime(JOB_EVENTLOGS);
-                val appIds = NExecutableManager.getInstance(getKylinConfig(), project).getYarnApplicationJobs(jobId);
+                val appIds = ExecutableManager.getInstance(getKylinConfig(), project).getYarnApplicationJobs(jobId);
                 Map<String, String> sparkConf = getKylinConfig().getSparkConfigOverride();
                 KylinLogTool.extractJobEventLogs(exportDir, appIds, sparkConf);
                 recordTaskExecutorTimeToFile(JOB_EVENTLOGS, recordTime);
@@ -237,7 +237,7 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
         val projects = NProjectManager.getInstance(getKylinConfig()).listAllProjects().stream()
                 .map(ProjectInstance::getName).collect(Collectors.toList());
         for (String project : projects) {
-            AbstractExecutable job = NExecutableManager.getInstance(getKylinConfig(), project).getJob(jobId);
+            AbstractExecutable job = ExecutableManager.getInstance(getKylinConfig(), project).getJob(jobId);
             if (job != null) {
                 return job;
             }

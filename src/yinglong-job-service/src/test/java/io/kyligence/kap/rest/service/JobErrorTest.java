@@ -31,15 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import io.kyligence.kap.job.execution.ChainedStageExecutable;
-import io.kyligence.kap.job.execution.NSparkExecutable;
-import io.kyligence.kap.job.execution.SucceedChainedTestExecutable;
-import io.kyligence.kap.job.execution.SucceedTestExecutable;
-import io.kyligence.kap.job.execution.stage.NStageForBuild;
-import io.kyligence.kap.job.execution.stage.NStageForMerge;
-import io.kyligence.kap.job.execution.stage.NStageForSnapshot;
-import io.kyligence.kap.job.execution.stage.StageBase;
-import io.kyligence.kap.job.manager.ExecutableManager;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.exception.ErrorCode;
 import org.apache.kylin.common.exception.ExceptionReason;
@@ -51,10 +42,10 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.exception.ExecuteException;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.DefaultOutput;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.SucceedChainedTestExecutable;
+import org.apache.kylin.job.execution.SucceedTestExecutable;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
@@ -77,6 +68,16 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.execution.ChainedExecutable;
+import io.kyligence.kap.job.execution.ChainedStageExecutable;
+import io.kyligence.kap.job.execution.NSparkExecutable;
+import io.kyligence.kap.job.execution.stage.NStageForBuild;
+import io.kyligence.kap.job.execution.stage.NStageForMerge;
+import io.kyligence.kap.job.execution.stage.NStageForSnapshot;
+import io.kyligence.kap.job.execution.stage.StageBase;
+import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.job.service.JobInfoService;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import lombok.val;
@@ -85,6 +86,9 @@ import lombok.var;
 public class JobErrorTest extends NLocalFileMetadataTestCase {
     @InjectMocks
     private final JobService jobService = Mockito.spy(new JobService());
+
+    @InjectMocks
+    private final JobInfoService jobInfoService = Mockito.spy(new JobInfoService());
 
     @Mock
     private final ModelService modelService = Mockito.spy(ModelService.class);
@@ -372,7 +376,7 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
         manager.updateJobError(jobId, failedStepId, failedSegmentId, failedStack, failedReason);
 
         ExceptionReason.setLang("en");
-        var jobDetail = jobService.getJobDetail(getProject(), executable.getId());
+        var jobDetail = jobInfoService.getJobDetail(getProject(), executable.getId());
         Assert.assertEquals(1, jobDetail.size());
         var stepResponse = jobDetail.get(0);
         Assert.assertEquals(failedStepId, stepResponse.getFailedStepId());

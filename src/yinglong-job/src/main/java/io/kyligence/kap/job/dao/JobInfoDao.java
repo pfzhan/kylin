@@ -74,6 +74,11 @@ public class JobInfoDao {
                 .collect(Collectors.toList());
     }
 
+    // TODO implement this
+    public List<ExecutablePO> getPartialJobs(Predicate<String> predicate, String project) {
+        return getJobs(project);
+    }
+
     public List<ExecutablePO> getJobs(String project, long timeStart, long timeEndExclusive) {
         return getJobs(project).stream()
                 .filter(x -> x.getLastModified() >= timeStart && x.getLastModified() < timeEndExclusive)
@@ -122,7 +127,12 @@ public class JobInfoDao {
         jobInfoMapper.deleteByJobId(jobId);
     }
 
-    private JobInfo constructJobInfo(ExecutablePO executablePO) {
+    public void dropAllJobs() {
+        jobInfoMapper.deleteAllJob();
+    }
+
+    // visible for UT
+    public JobInfo constructJobInfo(ExecutablePO executablePO) {
         JobInfo jobInfo = new JobInfo();
         jobInfo.setJobId(executablePO.getId());
         jobInfo.setJobType(executablePO.getJobType().name());

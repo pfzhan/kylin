@@ -24,9 +24,11 @@
 
 package org.apache.kylin.job.handler;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import org.apache.kylin.job.model.JobParam;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import io.kyligence.kap.job.handler.AbstractJobHandler;
 
 public abstract class AbstractSecondStorageJobHanlder extends AbstractJobHandler {
 

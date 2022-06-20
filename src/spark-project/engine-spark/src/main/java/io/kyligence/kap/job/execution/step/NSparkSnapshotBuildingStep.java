@@ -29,6 +29,7 @@ import java.util.Arrays;
 import java.util.Locale;
 import java.util.Set;
 
+import io.kyligence.kap.engine.spark.job.SnapshotBuildFinishedEvent;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
@@ -36,7 +37,6 @@ import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.ExecuteResult;
-import org.apache.kylin.job.model.SnapshotBuildFinishedEvent;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;

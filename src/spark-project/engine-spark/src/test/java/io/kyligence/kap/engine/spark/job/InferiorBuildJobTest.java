@@ -28,8 +28,6 @@ import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ClassUtil;
-import org.apache.kylin.job.engine.JobEngineConfig;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.storage.IStorage;
@@ -72,19 +70,21 @@ public class InferiorBuildJobTest extends NLocalWithSparkSessionTest {
         overwriteSystemProp("kylin.engine.persist-flattable-threshold", "0");
         overwriteSystemProp("kylin.engine.persist-flatview", "true");
 
-        NDefaultScheduler.destroyInstance();
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        scheduler.init(new JobEngineConfig(getTestConfig()));
-        if (!scheduler.hasStarted()) {
-            throw new RuntimeException("scheduler has not been started");
-        }
+        //TODO need to be rewritten
+        //        NDefaultScheduler.destroyInstance();
+        //        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
+        //        scheduler.init(new JobEngineConfig(getTestConfig()));
+        //        if (!scheduler.hasStarted()) {
+        //            throw new RuntimeException("scheduler has not been started");
+        //        }
 
         config = getTestConfig();
     }
 
     @After
     public void after() {
-        NDefaultScheduler.destroyInstance();
+        //TODO need to be rewritten
+        //        NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
     }
 

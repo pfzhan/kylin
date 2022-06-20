@@ -46,7 +46,6 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.util.OptionBuilder;
 import org.apache.commons.cli.Option;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -54,7 +53,6 @@ import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.OptionsHelper;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.assertj.core.api.Assertions;
 import org.junit.After;
 import org.junit.Before;
@@ -62,19 +60,21 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.base.Throwables;
-import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.persistence.AuditLog;
 import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.common.util.OptionBuilder;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import lombok.val;
-import org.springframework.test.util.ReflectionTestUtils;
 
 public class AuditLogToolTest extends NLocalFileMetadataTestCase {
 
@@ -117,7 +117,7 @@ public class AuditLogToolTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testDumpJobAuditLog() throws Exception {
-        val job = NExecutableManager.getInstance(getTestConfig(), project).getJob(jobId);
+        val job = ExecutableManager.getInstance(getTestConfig(), project).getJob(jobId);
         val junitFolder = temporaryFolder.getRoot();
         val tool = new AuditLogTool(getTestConfig());
         tool.execute(new String[] { "-project", project, "-job", jobId, "-dir", junitFolder.getAbsolutePath() });
@@ -126,7 +126,7 @@ public class AuditLogToolTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testDumpFullAuditLog() throws Exception {
-        val job = NExecutableManager.getInstance(getTestConfig(), project).getJob(jobId);
+        val job = ExecutableManager.getInstance(getTestConfig(), project).getJob(jobId);
         val start = job.getStartTime() + TimeUnit.HOURS.toMillis(-10);
         val end = job.getEndTime() + TimeUnit.HOURS.toMillis(10);
         val junitFolder = temporaryFolder.getRoot();

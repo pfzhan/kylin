@@ -24,10 +24,7 @@
 
 package io.kyligence.kap.newten;
 
-import io.kyligence.kap.util.ExecAndComp;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.engine.JobEngineConfig;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -43,6 +40,7 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.util.ExecAndComp;
 
 public class ReuseFlatTableTest extends NLocalWithSparkSessionTest {
 
@@ -51,17 +49,19 @@ public class ReuseFlatTableTest extends NLocalWithSparkSessionTest {
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         overwriteSystemProp("kylin.engine.persist-flattable-enabled", "true");
         this.createTestMetadata("src/test/resources/ut_meta/reuse_flattable");
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
-        if (!scheduler.hasStarted()) {
-            throw new RuntimeException("scheduler has not been started");
-        }
+        //TODO need to be rewritten
+        //        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
+        //        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
+        //        if (!scheduler.hasStarted()) {
+        //            throw new RuntimeException("scheduler has not been started");
+        //        }
         populateSSWithCSVData(getTestConfig(), getProject(), ss);
     }
 
     @After
     public void after() throws Exception {
-        NDefaultScheduler.destroyInstance();
+        //TODO need to be rewritten
+        //NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
     }
 

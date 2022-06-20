@@ -25,7 +25,6 @@
 package io.kyligence.kap.rest.service;
 
 import static java.util.stream.Collectors.groupingBy;
-
 import static org.apache.kylin.common.exception.ServerErrorCode.COMPUTED_COLUMN_CASCADE_ERROR;
 import static org.apache.kylin.common.exception.ServerErrorCode.COMPUTED_COLUMN_DEPENDS_ANTI_FLATTEN_LOOKUP;
 import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_COMPUTED_COLUMN_NAME;
@@ -95,9 +94,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
-import io.kyligence.kap.rest.delegate.JobMetadataRequest;
-import io.kyligence.kap.rest.delegate.JobMetadataRequest.SecondStorageJobHandlerEnum;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
@@ -125,10 +121,8 @@ import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.SecondStorageJobParamUtil;
 import org.apache.kylin.job.common.SegmentUtil;
-import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
@@ -191,6 +185,8 @@ import io.kyligence.kap.common.util.AddTableNameSqlVisitor;
 import io.kyligence.kap.engine.spark.smarter.IndexDependencyParser;
 import io.kyligence.kap.engine.spark.utils.ComputedColumnEvalUtil;
 import io.kyligence.kap.guava20.shaded.common.base.Supplier;
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.metadata.acl.AclTCRDigest;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.acl.NDataModelAclParams;
@@ -233,6 +229,9 @@ import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.rest.aspect.Transaction;
 import io.kyligence.kap.rest.constant.ModelAttributeEnum;
 import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
+import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
+import io.kyligence.kap.rest.delegate.JobMetadataRequest;
+import io.kyligence.kap.rest.delegate.JobMetadataRequest.SecondStorageJobHandlerEnum;
 import io.kyligence.kap.rest.delegate.ModelMetadataContract;
 import io.kyligence.kap.rest.request.AddSegmentRequest;
 import io.kyligence.kap.rest.request.MergeSegmentRequest;
@@ -964,14 +963,14 @@ public class ModelService extends BasicService implements TableModelSupporter, P
 
     private List<AbstractExecutable> getAllRunningExecutable(String project) {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        NExecutableManager execManager = NExecutableManager.getInstance(kylinConfig, project);
+        ExecutableManager execManager = ExecutableManager.getInstance(kylinConfig, project);
         return execManager.listExecByJobTypeAndStatus(ExecutableState::isRunning, JobTypeEnum.INDEX_BUILD,
                 JobTypeEnum.SUB_PARTITION_BUILD);
     }
 
     private List<AbstractExecutable> getPartialRunningExecutable(String project, String modelId) {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        NExecutableManager execManager = NExecutableManager.getInstance(kylinConfig, project);
+        ExecutableManager execManager = ExecutableManager.getInstance(kylinConfig, project);
         return execManager.listPartialExec(path -> StringUtils.endsWith(path, modelId), ExecutableState::isRunning,
                 JobTypeEnum.INDEX_BUILD, JobTypeEnum.SUB_PARTITION_BUILD);
     }
@@ -1206,8 +1205,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         val dataflowManager = getManager(NDataflowManager.class, project);
         val models = dataflowManager.getTableOrientedModelsUsingRootTable(tableDesc);
         List<RelatedModelResponse> relatedModel = new ArrayList<>();
-        val errorExecutables = getManager(NExecutableManager.class, project)
-                .getExecutablesByStatus(ExecutableState.ERROR);
+        val errorExecutables = getManager(ExecutableManager.class, project).getExecutablesByStatus(ExecutableState.ERROR);
         for (var dataModelDesc : models) {
             Map<SegmentRange, SegmentStatusEnum> segmentRanges = new HashMap<>();
             val model = dataModelDesc.getUuid();
@@ -3471,8 +3469,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         val response = new PurgeModelAffectedResponse();
         val byteSize = getManager(NDataflowManager.class, project).getDataflowStorageSize(model);
         response.setByteSize(byteSize);
-        long jobSize = getManager(NExecutableManager.class, project).countByModelAndStatus(model,
-                ExecutableState::isProgressing);
+        long jobSize = getManager(ExecutableManager.class, project).countByModelAndStatus(model, ExecutableState::isProgressing);
         response.setRelatedJobSize(jobSize);
         return response;
     }

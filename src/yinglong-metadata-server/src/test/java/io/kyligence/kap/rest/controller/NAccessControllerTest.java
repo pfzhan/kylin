@@ -36,7 +36,6 @@ import org.apache.kylin.common.persistence.AclEntity;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
-import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.security.AclEntityType;
@@ -65,6 +64,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.job.execution.AbstractExecutable;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.rest.request.AccessRequest;

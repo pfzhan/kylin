@@ -78,7 +78,7 @@ public abstract class ExecutableHandler {
 
     protected void addJob(String segmentId, JobTypeEnum jobTypeEnum) {
         JobManager manager = JobManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
-        NDataSegment segment = new NDataSegment();
+        NDataSegment segment = NDataSegment.empty();
         if (segmentId != null) {
             segment.setId(segmentId);
         }

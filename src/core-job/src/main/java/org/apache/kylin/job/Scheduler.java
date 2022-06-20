@@ -43,9 +43,10 @@
 
 package org.apache.kylin.job;
 
+import java.lang.reflect.Executable;
+
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.exception.SchedulerException;
-import org.apache.kylin.job.execution.Executable;
 
 /**
  */

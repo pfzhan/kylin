@@ -48,9 +48,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.RandomUtil;
-import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.measure.percentile.PercentileCounter;
 import org.apache.kylin.measure.percentile.PercentileSerializer;
 import org.apache.kylin.metadata.datatype.DataType;
@@ -107,16 +105,18 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
     @Before
     public void setup() throws Exception {
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
-        if (!scheduler.hasStarted()) {
-            throw new RuntimeException("scheduler has not been started");
-        }
+        //TODO need to be rewritten
+        //        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
+        //        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
+        //        if (!scheduler.hasStarted()) {
+        //            throw new RuntimeException("scheduler has not been started");
+        //        }
     }
 
     @After
     public void after() {
-        NDefaultScheduler.destroyInstance();
+        //TODO need to be rewritten
+        // NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
     }
 

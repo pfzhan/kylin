@@ -40,20 +40,20 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.ExecutableApplication;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.OptionsHelper;
-import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.OptionBuilder;
 import io.kyligence.kap.common.util.Unsafe;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -117,7 +117,7 @@ public class MigrateJobTool extends ExecutableApplication {
      * @param projectInstance
      */
     private void updateExecute(ProjectInstance projectInstance) {
-        NExecutableManager executableManager = NExecutableManager.getInstance(config, projectInstance.getName());
+        ExecutableManager executableManager = ExecutableManager.getInstance(config, projectInstance.getName());
 
         List<AbstractExecutable> executeJobs = executableManager.getAllExecutables().stream()
                 .filter(executable -> JobTypeEnum.INC_BUILD == executable.getJobType()

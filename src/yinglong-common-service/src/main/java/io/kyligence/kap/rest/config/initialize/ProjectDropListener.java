@@ -30,7 +30,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 
 import io.kyligence.kap.common.metrics.MetricsGroup;
 import io.kyligence.kap.metadata.epoch.EpochManager;
@@ -55,7 +54,6 @@ public class ProjectDropListener {
             RDBMSQueryHistoryDAO.getInstance().dropProjectMeasurement(project);
             RawRecManager.getInstance(project).deleteByProject(project);
             QueryHistoryTaskScheduler.shutdownByProject(project);
-            NDefaultScheduler.shutdownByProject(project);
 
             MetricsGroup.removeProjectMetrics(project);
             if (KylinConfig.getInstanceFromEnv().isPrometheusMetricsEnabled()) {

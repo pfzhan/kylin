@@ -24,83 +24,10 @@
 
 package org.apache.kylin.job.impl.threadpool;
 
-import static org.awaitility.Awaitility.await;
-
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Locale;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
-
-import org.apache.commons.lang.StringUtils;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.dao.ExecutableOutputPO;
-import org.apache.kylin.job.dao.ExecutablePO;
-import org.apache.kylin.job.engine.JobEngineConfig;
-import org.apache.kylin.job.exception.JobStoppedException;
-import org.apache.kylin.job.exception.JobStoppedNonVoluntarilyException;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.BaseTestExecutable;
-import org.apache.kylin.job.execution.DefaultChainedExecutable;
-import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
-import org.apache.kylin.job.execution.ErrorTestExecutable;
-import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.FailedTestExecutable;
-import org.apache.kylin.job.execution.FiveSecondErrorTestExecutable;
-import org.apache.kylin.job.execution.FiveSecondSucceedTestExecutable;
-import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.LongRunningTestExecutable;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.execution.NoErrorStatusExecutableOnModel;
-import org.apache.kylin.job.execution.SucceedTestExecutable;
-import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-import org.assertj.core.api.Assertions;
-import org.awaitility.core.ConditionTimeoutException;
-import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
-import org.junit.rules.TestRule;
-import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.junit.rule.Repeat;
-import io.kyligence.kap.junit.rule.RepeatRule;
-import io.kyligence.kap.metadata.cube.model.NBatchConstants;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.epoch.EpochManager;
-import io.kyligence.kap.metadata.model.ManagementType;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
-import lombok.val;
-import lombok.var;
 
 public class NDefaultSchedulerTest extends BaseSchedulerTest {
     private static final Logger logger = LoggerFactory.getLogger(NDefaultSchedulerTest.class);
@@ -111,6 +38,8 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         super("default");
     }
 
+    //TODO need to be rewritten
+    /*
     @Override
     public void setup() throws Exception {
         overwriteSystemProp("kylin.job.auto-set-concurrent-jobs", "true");
@@ -123,6 +52,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
 
     @Rule
     public TestRule chain = RuleChain.outerRule(new RepeatRule()).around(thrown);
+
 
     @Test
     public void testSingleTaskJob() {
@@ -1406,6 +1336,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         Assert.assertEquals(1, killProcessCount.get());
     }
 
+    /*
     @Test
     @Repeat(3)
     public void testConcurrentJobLimit() {
@@ -2031,4 +1962,5 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
             scheduler.getContext().setReachQuotaLimit(false);
         }
     }
+     */
 }

@@ -86,10 +86,8 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.ShellException;
 import org.apache.kylin.job.dao.ExecutablePO;
-import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.filter.function.LikeMatchers;
@@ -136,6 +134,8 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.guava20.shaded.common.graph.Graph;
 import io.kyligence.kap.guava20.shaded.common.graph.Graphs;
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.metadata.acl.AclTCR;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -211,6 +211,10 @@ public class TableService extends BasicService {
     @Autowired(required = false)
     @Qualifier("jobService")
     private JobSupporter jobService;
+
+    @Autowired(required = false)
+    @Qualifier("jobInfoService")
+    private JobSupporter jobInfoService;
 
     @Autowired
     private AclEvaluate aclEvaluate;
@@ -801,7 +805,7 @@ public class TableService extends BasicService {
     }
 
     private List<AbstractExecutable> stopAndGetSnapshotJobs(String project, String table) {
-        val execManager = getManager(NExecutableManager.class, project);
+        val execManager = getManager(ExecutableManager.class, project);
         val executables = execManager.listExecByJobTypeAndStatus(ExecutableState::isRunning, SNAPSHOT_BUILD,
                 SNAPSHOT_REFRESH);
 
@@ -889,7 +893,7 @@ public class TableService extends BasicService {
         val response = new PreUnloadTableResponse();
         val dataflowManager = getManager(NDataflowManager.class, project);
         val tableMetadataManager = getManager(NTableMetadataManager.class, project);
-        val execManager = getManager(NExecutableManager.class, project);
+        val execManager = getManager(ExecutableManager.class, project);
 
         val tableDesc = tableMetadataManager.getTableDesc(tableIdentity);
         if (Objects.isNull(tableDesc)) {
@@ -1494,11 +1498,11 @@ public class TableService extends BasicService {
     }
 
     private List<String> getEffectedJobs(TableDesc newTableDesc, JobInfoEnum jobInfoType) {
-        val notFinalStateJobs = NExecutableManager
+        val notFinalStateJobs = ExecutableManager
                 .getInstance(KylinConfig.readSystemKylinConfig(), newTableDesc.getProject())
                 .getAllJobs(0, Long.MAX_VALUE).stream()
                 .filter(job -> !ExecutableState.valueOf(job.getOutput().getStatus()).isFinalState())
-                .map(job -> getManager(NExecutableManager.class, job.getProject()).fromPO(job))
+                .map(job -> getManager(ExecutableManager.class, job.getProject()).fromPO(job))
                 .collect(Collectors.toList());
 
         List<String> effectedJobs = Lists.newArrayList();

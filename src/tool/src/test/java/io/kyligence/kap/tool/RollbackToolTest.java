@@ -34,8 +34,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 
-import io.kyligence.kap.job.execution.NSparkCubingJob;
-import io.kyligence.kap.job.manager.ExecutableManager;
 import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -44,7 +42,6 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.junit.After;
@@ -62,6 +59,8 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.job.execution.NSparkCubingJob;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.favorite.FavoriteRule.AbstractCondition;
@@ -242,7 +241,7 @@ public class RollbackToolTest extends NLocalFileMetadataTestCase {
         MetadataTool.backup(kylinConfig);
         val jobId = RandomUtil.randomUUIDStr();
         UnitOfWork.doInTransactionWithRetry(() -> {
-            val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+            val executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
             mockJob("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", jobId, SegmentRange.dateToLong("2012-01-01"),
                     SegmentRange.dateToLong("2012-09-01"));
             return 0;
@@ -253,19 +252,19 @@ public class RollbackToolTest extends NLocalFileMetadataTestCase {
         Thread.sleep(1000);
 
         UnitOfWork.doInTransactionWithRetry(() -> {
-            val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+            val executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
             executableManager.updateJobOutput(jobId, ExecutableState.RUNNING);
             return 0;
         }, "default", 1);
 
         UnitOfWork.doInTransactionWithRetry(() -> {
-            val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+            val executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
             executableManager.updateJobOutput(jobId, ExecutableState.SUCCEED);
             return 0;
         }, "default", 1);
         tool.execute(new String[] { "-skipCheckData", "true", "-time", t1.format(DATE_TIME_FORMATTER), "-project",
                 "default" });
-        Assert.assertSame(ExecutableState.READY, NExecutableManager
+        Assert.assertSame(ExecutableState.READY, ExecutableManager
                 .getInstance(KylinConfig.getInstanceFromEnv(), "default").getAllExecutables().get(0).getStatus());
     }
 

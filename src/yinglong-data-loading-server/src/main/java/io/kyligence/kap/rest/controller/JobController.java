@@ -113,7 +113,8 @@ public class JobController extends BaseController {
         jobInfoService.checkJobStatus(statuses);
         checkRequiredArg("time_filter", timeFilter);
         JobFilter jobFilter = new JobFilter(statuses, jobNames, timeFilter, subject, key, project, sortBy, reverse);
-        DataResult<List<ExecutableResponse>> executables = jobInfoService.listJobs(jobFilter, pageOffset, pageSize);
+        List<ExecutableResponse> result = jobInfoService.listJobs(jobFilter, pageOffset, pageSize);
+        DataResult<List<ExecutableResponse>> executables = new DataResult<>(result, result.size());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, executables, "");
     }
 

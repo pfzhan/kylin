@@ -27,9 +27,7 @@ import java.io.IOException;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.rest.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -81,18 +79,6 @@ public class EpochChangedListener {
                 return;
             }
 
-            val oldScheduler = NDefaultScheduler.getInstance(project);
-
-            if (oldScheduler.hasStarted()
-                    && epochManager.checkEpochId(oldScheduler.getContext().getEpochId(), project)) {
-                return;
-            }
-
-            // if epoch id check failed, shutdown first
-            if (oldScheduler.hasStarted()) {
-                oldScheduler.forceShutdown();
-            }
-
             log.info("start thread of project: {}", project);
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 if (kylinConfig.isJobNode() || kylinConfig.isDataLoadingNode()) {
@@ -122,11 +108,6 @@ public class EpochChangedListener {
     }
 
     private void initSchedule(KylinConfig kylinConfig, String project) {
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
-        scheduler.init(new JobEngineConfig(kylinConfig));
-        if (!scheduler.hasStarted()) {
-            throw new RuntimeException("Scheduler for " + project + " has not been started");
-        }
         StreamingScheduler ss = StreamingScheduler.getInstance(project);
         ss.init();
         if (!ss.getHasStarted().get()) {
@@ -143,7 +124,6 @@ public class EpochChangedListener {
             try {
                 NExecutableManager.getInstance(kylinConfig, project).destoryAllProcess();
                 QueryHistoryTaskScheduler.shutdownByProject(project);
-                NDefaultScheduler.shutdownByProject(project);
                 StreamingScheduler.shutdownByProject(project);
                 recommendationUpdateScheduler.removeProject(project);
             } catch (Exception e) {

@@ -29,13 +29,12 @@ import java.util.Objects;
 
 import javax.annotation.Resource;
 
-import io.kyligence.kap.job.util.JobInfoUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
-import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.stereotype.Component;
 
@@ -53,8 +52,11 @@ import io.kyligence.kap.job.scheduler.JdbcJobScheduler;
 import io.kyligence.kap.job.scheduler.ParallelLimiter;
 import io.kyligence.kap.job.scheduler.ResourceAcquirer;
 import io.kyligence.kap.job.scheduler.SharedFileProgressReporter;
+import lombok.Getter;
+import lombok.Setter;
 
 @Component
+@ConditionalOnProperty("spring.job-datasource.url")
 public class JobContext implements InitializingBean, DisposableBean {
 
     // resource block
@@ -73,6 +75,10 @@ public class JobContext implements InitializingBean, DisposableBean {
 
     @Autowired
     private DataSourceTransactionManager transactionManager;
+
+    @Getter
+    @Setter
+    private volatile boolean reachQuotaLimit = false;
 
     private ParallelLimiter parallelLimiter;
     private ResourceAcquirer resourceAcquirer;
@@ -187,13 +193,5 @@ public class JobContext implements InitializingBean, DisposableBean {
                 .offset(0).limit(10000)
                 .build();
         return jobInfoMapper.selectByJobFilter(mapperFilter);
-    }
-
-    public ExecutablePO getExecutablePOByUuid(String uuid) {
-        JobInfo jobInfo = jobInfoMapper.selectByJobId(uuid);
-        if (null != jobInfo) {
-            return JobInfoUtil.deserializeExecutablePO(jobInfo);
-        }
-        return null;
     }
 }

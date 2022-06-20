@@ -23,20 +23,16 @@
  */
 package org.apache.kylin.job.runners;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.metadata.cube.storage.ProjectStorageInfoCollector;
-import io.kyligence.kap.metadata.cube.storage.StorageInfoEnum;
-import lombok.val;
-import lombok.var;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class QuotaStorageCheckRunner extends AbstractDefaultSchedulerRunner {
+public class QuotaStorageCheckRunner{ // extends AbstractDefaultSchedulerRunner {
     private static final Logger logger = LoggerFactory.getLogger(QuotaStorageCheckRunner.class);
 
+    //TODO need to be rewritten
+    /*
     private final ProjectStorageInfoCollector collector;
+
 
     public QuotaStorageCheckRunner(NDefaultScheduler nDefaultScheduler) {
         super(nDefaultScheduler);
@@ -73,4 +69,6 @@ public class QuotaStorageCheckRunner extends AbstractDefaultSchedulerRunner {
         }
         return false;
     }
+     */
+
 }

@@ -45,11 +45,6 @@ package org.apache.kylin.job.execution;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kylin.common.KylinConfig;
-
-import java.util.Collections;
-import java.util.Map;
-import java.util.concurrent.ConcurrentMap;
 
 /**
  */
@@ -66,37 +61,37 @@ public class ExecutableContext {
     @Setter
     private volatile boolean isLicenseOverCapacity = false;
 
-    private final ConcurrentMap<String, Executable> runningJobs;
-    private final ConcurrentMap<String, Long> runningJobInfos;
-    private final KylinConfig kylinConfig;
+//    private final ConcurrentMap<String, Executable> runningJobs;
+//    private final ConcurrentMap<String, Long> runningJobInfos;
+//    private final KylinConfig kylinConfig;
 
-    public ExecutableContext(ConcurrentMap<String, Executable> runningJobs,
-                             ConcurrentMap<String, Long> runningJobInfos, KylinConfig kylinConfig, long epochId) {
-        this.runningJobs = runningJobs;
-        this.runningJobInfos = runningJobInfos;
-        this.kylinConfig = kylinConfig;
-        this.epochId = epochId;
-    }
+//    public ExecutableContext(ConcurrentMap<String, Executable> runningJobs,
+//                             ConcurrentMap<String, Long> runningJobInfos, KylinConfig kylinConfig, long epochId) {
+//        this.runningJobs = runningJobs;
+//        this.runningJobInfos = runningJobInfos;
+//        this.kylinConfig = kylinConfig;
+//        this.epochId = epochId;
+//    }
 
-    public KylinConfig getConfig() {
-        return kylinConfig;
-    }
+//    public KylinConfig getConfig() {
+//        return kylinConfig;
+//    }
 
-    public void addRunningJob(Executable executable) {
-        runningJobs.put(executable.getId(), executable);
-        runningJobInfos.put(executable.getId(), System.currentTimeMillis());
-    }
+//    public void addRunningJob(Executable executable) {
+//        runningJobs.put(executable.getId(), executable);
+//        runningJobInfos.put(executable.getId(), System.currentTimeMillis());
+//    }
 
-    public void removeRunningJob(Executable executable) {
-        runningJobs.remove(executable.getId());
-        runningJobInfos.remove(executable.getId());
-    }
+//    public void removeRunningJob(Executable executable) {
+//        runningJobs.remove(executable.getId());
+//        runningJobInfos.remove(executable.getId());
+//    }
 
-    public Map<String, Executable> getRunningJobs() {
-        return Collections.unmodifiableMap(runningJobs);
-    }
+//    public Map<String, Executable> getRunningJobs() {
+//        return Collections.unmodifiableMap(runningJobs);
+//    }
 
-    public Map<String, Long> getRunningJobInfos() {
-        return Collections.unmodifiableMap(runningJobInfos);
-    }
+//    public Map<String, Long> getRunningJobInfos() {
+//        return Collections.unmodifiableMap(runningJobInfos);
+//    }
 }

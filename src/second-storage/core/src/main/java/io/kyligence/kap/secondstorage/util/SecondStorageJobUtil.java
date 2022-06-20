@@ -24,16 +24,6 @@
 
 package io.kyligence.kap.secondstorage.util;
 
-import com.google.common.collect.Sets;
-import io.kyligence.kap.secondstorage.SecondStorageUtil;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exception.JobErrorCode;
-import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -41,13 +31,25 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.JobErrorCode;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.job.execution.JobTypeEnum;
+
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
+
 public class SecondStorageJobUtil {
     public static final Set<JobTypeEnum> SECOND_STORAGE_JOBS = Sets.newHashSet(JobTypeEnum.EXPORT_TO_SECOND_STORAGE,
             JobTypeEnum.SECOND_STORAGE_SEGMENT_CLEAN, JobTypeEnum.SECOND_STORAGE_MODEL_CLEAN);
 
     public static List<AbstractExecutable> findSecondStorageJobByProject(String project) {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        NExecutableManager executableManager = NExecutableManager.getInstance(config, project);
+        ExecutableManager executableManager = ExecutableManager.getInstance(config, project);
         return executableManager.getJobs().stream().map(executableManager::getJob)
                 .filter(job -> SECOND_STORAGE_JOBS.contains(job.getJobType()))
                 .collect(Collectors.toList());

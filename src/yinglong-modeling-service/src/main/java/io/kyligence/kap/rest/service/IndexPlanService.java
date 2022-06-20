@@ -54,10 +54,8 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.common.SegmentUtil;
-import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
@@ -84,6 +82,8 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.engine.spark.smarter.IndexDependencyParser;
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexEntity.Source;
@@ -586,7 +586,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
         Segments<NDataSegment> segments = df.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING,
                 SegmentStatusEnum.NEW);
 
-        val executableManager = getManager(NExecutableManager.class, project);
+        val executableManager = getManager(ExecutableManager.class, project);
         List<AbstractExecutable> executables = executableManager.listExecByModelAndStatus(modelId,
                 ExecutableState::isProgressing, JobTypeEnum.INDEX_BUILD, JobTypeEnum.INC_BUILD,
                 JobTypeEnum.INDEX_REFRESH, JobTypeEnum.INDEX_MERGE);
@@ -811,7 +811,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
 
     @VisibleForTesting
     public Set<Long> getLayoutsByRunningJobs(String project, String modelId) {
-        List<AbstractExecutable> runningJobList = NExecutableManager
+        List<AbstractExecutable> runningJobList = ExecutableManager
                 .getInstance(KylinConfig.getInstanceFromEnv(), project) //
                 .getPartialExecutablesByStatusList(
                         Sets.newHashSet(ExecutableState.READY, ExecutableState.PENDING, ExecutableState.RUNNING,

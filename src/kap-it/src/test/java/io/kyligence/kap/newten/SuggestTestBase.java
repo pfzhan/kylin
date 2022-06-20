@@ -36,14 +36,12 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.util.ExecAndComp;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -75,6 +73,7 @@ import io.kyligence.kap.newten.auto.AutoTestBase;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
+import io.kyligence.kap.util.ExecAndComp;
 import io.kyligence.kap.util.RecAndQueryCompareUtil;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -105,7 +104,8 @@ public abstract class SuggestTestBase extends NLocalWithSparkSessionTest {
 
     @After
     public void tearDown() throws Exception {
-        NDefaultScheduler.destroyInstance();
+        //TODO need to be rewritten
+        // NDefaultScheduler.destroyInstance();
         if (jdbcTemplate != null) {
             jdbcTemplate.batchUpdate("DROP ALL OBJECTS");
         }

@@ -40,19 +40,12 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.job.execution.NSparkCubingJob;
-import io.kyligence.kap.job.execution.merger.AfterBuildResourceMerger;
-import io.kyligence.kap.job.manager.ExecutableManager;
-import io.kyligence.kap.job.util.ExecutableUtils;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.RandomUtil;
-import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -84,6 +77,10 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.TempMetadataBuilder;
+import io.kyligence.kap.job.execution.NSparkCubingJob;
+import io.kyligence.kap.job.execution.merger.AfterBuildResourceMerger;
+import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.job.util.ExecutableUtils;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -172,11 +169,12 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
         projectManager.forceDropProject("broken_test");
         projectManager.forceDropProject("bad_query_test");
 
-        val scheduler = NDefaultScheduler.getInstance(getProject());
-        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
+        //TODO need to be rewritten
+        //        val scheduler = NDefaultScheduler.getInstance(getProject());
+        //        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
 
-        NExecutableManager originExecutableManager = NExecutableManager.getInstance(getTestConfig(), getProject());
-        NExecutableManager executableManager = Mockito.spy(originExecutableManager);
+        ExecutableManager originExecutableManager = ExecutableManager.getInstance(getTestConfig(), getProject());
+        ExecutableManager executableManager = Mockito.spy(originExecutableManager);
 
         val config = KylinConfig.getInstanceFromEnv();
         val dsMgr = NDataflowManager.getInstance(config, getProject());
@@ -221,8 +219,8 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
     @After
     public void teardown() throws Exception {
         cleanPushdownEnv();
-
-        NDefaultScheduler.destroyInstance();
+        //TODO need to be rewritten
+        // NDefaultScheduler.destroyInstance();
     }
 
     @Test

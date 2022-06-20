@@ -75,7 +75,7 @@ public abstract class AbstractJobHandler {
         return true;
     }
 
-    protected final void doHandle(JobParam jobParam) {
+    public final void doHandle(JobParam jobParam) {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         if (needComputeJobBucket()) {
             ExecutableUtil.computeJobBucket(jobParam);

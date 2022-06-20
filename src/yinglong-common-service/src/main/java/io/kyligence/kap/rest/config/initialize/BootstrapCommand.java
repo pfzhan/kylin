@@ -23,16 +23,13 @@
  */
 package io.kyligence.kap.rest.config.initialize;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.engine.JobEngineConfig;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.springframework.stereotype.Component;
+
+import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
@@ -45,26 +42,9 @@ public class BootstrapCommand implements Runnable {
         for (ProjectInstance project : projectManager.listAllProjects()) {
             initProject(kylinConfig, project);
         }
-
-        for (val scheduler : NDefaultScheduler.listAllSchedulers()) {
-            val project = scheduler.getProject();
-            if (projectManager.getProject(scheduler.getProject()) == null) {
-                NDefaultScheduler.shutdownByProject(project);
-            }
-        }
     }
 
     void initProject(KylinConfig config, final ProjectInstance project) {
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project.getName());
-            scheduler.init(new JobEngineConfig(config));
-            if (!scheduler.hasStarted()) {
-                throw new RuntimeException("Scheduler for " + project.getName() + " has not been started");
-            }
-
-            return 0;
-        }, project.getName(), 1, UnitOfWork.DEFAULT_EPOCH_ID);
-
         log.info("init project {} finished", project.getName());
     }
 }

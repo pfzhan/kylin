@@ -53,7 +53,6 @@ import org.apache.kylin.common.util.ExecutableApplication;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.OptionsHelper;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.joda.time.format.DateTimeFormat;
 
@@ -69,6 +68,7 @@ import io.kyligence.kap.common.persistence.event.ResourceDeleteEvent;
 import io.kyligence.kap.common.util.MetadataChecker;
 import io.kyligence.kap.common.util.OptionBuilder;
 import io.kyligence.kap.common.util.Unsafe;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegDetails;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -327,8 +327,8 @@ public class RollbackTool extends ExecutableApplication {
 
         for (String project : updateProjects) {
 
-            val currentExecutableManager = NExecutableManager.getInstance(currentConfig, project);
-            val restoreExecutableManager = NExecutableManager.getInstance(restoreConfig, project);
+            val currentExecutableManager = ExecutableManager.getInstance(currentConfig, project);
+            val restoreExecutableManager = ExecutableManager.getInstance(restoreConfig, project);
 
             restoreExecutableManager.getAllExecutables().stream().forEach(e -> {
                 if (currentExecutableManager.getJob(e.getId()) != null) {

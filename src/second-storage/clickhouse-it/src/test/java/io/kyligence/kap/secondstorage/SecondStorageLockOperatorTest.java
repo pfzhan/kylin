@@ -510,7 +510,7 @@ public class SecondStorageLockOperatorTest extends SecondStorageMetadataHelperTe
         val indexResponse = modelService.updateDataModelSemantic(getProject(), getChangedModelRequest(columnName));
         val layoutId = JsonUtil.readValue(JsonUtil.writeValueAsString(indexResponse), BuildBaseIndexUT.class).tableIndex.layoutId;
 
-        getNExecutableManager().getAllExecutables().forEach(exec -> waitJobFinish(getProject(), exec.getId()));
+        getExecutableManager().getAllExecutables().forEach(exec -> waitJobFinish(getProject(), exec.getId()));
         return layoutId;
     }
 

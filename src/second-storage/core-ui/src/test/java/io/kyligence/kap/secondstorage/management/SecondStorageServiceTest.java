@@ -24,24 +24,15 @@
 
 package io.kyligence.kap.secondstorage.management;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.common.util.Unsafe;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
-import io.kyligence.kap.secondstorage.SecondStorageUtil;
-import io.kyligence.kap.secondstorage.config.ClusterInfo;
-import io.kyligence.kap.secondstorage.config.Node;
-import io.kyligence.kap.secondstorage.management.request.ProjectEnableRequest;
-import lombok.val;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
@@ -59,12 +50,24 @@ import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.common.util.Unsafe;
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
+import io.kyligence.kap.secondstorage.config.ClusterInfo;
+import io.kyligence.kap.secondstorage.config.Node;
+import io.kyligence.kap.secondstorage.management.request.ProjectEnableRequest;
+import lombok.val;
+
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({ NProjectManager.class, SecondStorageUtil.class, NExecutableManager.class, UserGroupInformation.class,
         AbstractExecutable.class })
 public class SecondStorageServiceTest extends NLocalFileMetadataTestCase {
     private final Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
-    private NExecutableManager executableManager = Mockito.mock(NExecutableManager.class);
+    private ExecutableManager executableManager = Mockito.mock(ExecutableManager.class);
     private SecondStorageService secondStorageService = new SecondStorageService();
 
     @Before

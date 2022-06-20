@@ -31,10 +31,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.util.ExecAndComp;
 import org.apache.commons.collections.ListUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.parquet.Strings;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparderEnv;
@@ -43,6 +41,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.util.ExecAndComp;
 import scala.collection.JavaConversions;
 
 public class CalciteDynamicTest extends NLocalWithSparkSessionTest {
@@ -54,7 +53,8 @@ public class CalciteDynamicTest extends NLocalWithSparkSessionTest {
 
     @After
     public void after() {
-        NDefaultScheduler.destroyInstance();
+        //TODO need to be rewritten
+        // NDefaultScheduler.destroyInstance();
     }
 
     @Test

@@ -27,11 +27,8 @@ package io.kyligence.kap.newten;
 import java.io.File;
 import java.util.List;
 
-import io.kyligence.kap.util.ExecAndComp;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.job.engine.JobEngineConfig;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.spark.sql.SparderEnv;
 import org.junit.After;
 import org.junit.Before;
@@ -42,6 +39,7 @@ import org.slf4j.LoggerFactory;
 import com.sun.tools.javac.util.Assert;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.util.ExecAndComp;
 
 public class NAggPushDownTest extends NLocalWithSparkSessionTest {
     private static final Logger logger = LoggerFactory.getLogger(NAggPushDownTest.class);
@@ -54,16 +52,18 @@ public class NAggPushDownTest extends NLocalWithSparkSessionTest {
         overwriteSystemProp("kylin.query.match-partial-inner-join-model", "true");
         overwriteSystemProp("kylin.query.calcite.aggregate-pushdown-enabled", "true");
         this.createTestMetadata("src/test/resources/ut_meta/agg_push_down");
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
-        if (!scheduler.hasStarted()) {
-            throw new RuntimeException("scheduler has not been started");
-        }
+        //TODO need to be rewritten
+        //        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
+        //        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
+        //        if (!scheduler.hasStarted()) {
+        //            throw new RuntimeException("scheduler has not been started");
+        //        }
     }
 
     @After
     public void after() throws Exception {
-        NDefaultScheduler.destroyInstance();
+        //TODO need to be rewritten
+        // NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
     }
 

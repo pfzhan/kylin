@@ -27,22 +27,10 @@ package io.kyligence.kap.engine.spark.job;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.job.execution.NSparkCubingJob;
-import io.kyligence.kap.job.execution.NSparkExecutable;
-import io.kyligence.kap.job.execution.NSparkMergingJob;
-import io.kyligence.kap.job.execution.NTableSamplingJob;
-import io.kyligence.kap.job.execution.step.NResourceDetectStep;
-import io.kyligence.kap.job.execution.step.NSparkCleanupAfterMergeStep;
-import io.kyligence.kap.job.execution.step.SparkCleanupTransactionalTableStep;
-import io.kyligence.kap.job.factory.JobFactory;
-import io.kyligence.kap.job.manager.ExecutableManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.constant.ExecutableConstants;
-import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
@@ -55,6 +43,16 @@ import org.sparkproject.guava.collect.Sets;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.engine.spark.stats.analyzer.TableAnalyzerJob;
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.execution.NSparkCubingJob;
+import io.kyligence.kap.job.execution.NSparkExecutable;
+import io.kyligence.kap.job.execution.NSparkMergingJob;
+import io.kyligence.kap.job.execution.NTableSamplingJob;
+import io.kyligence.kap.job.execution.step.NResourceDetectStep;
+import io.kyligence.kap.job.execution.step.NSparkCleanupAfterMergeStep;
+import io.kyligence.kap.job.execution.step.SparkCleanupTransactionalTableStep;
+import io.kyligence.kap.job.factory.JobFactory;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -75,7 +73,8 @@ public class JobStepFactoryTest extends NLocalWithSparkSessionTest {
 
     @After
     public void after() {
-        NDefaultScheduler.destroyInstance();
+        //TODO need to be rewritten
+        // NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
     }
 
@@ -223,6 +222,6 @@ public class JobStepFactoryTest extends NLocalWithSparkSessionTest {
         NSparkCubingJob job = NSparkCubingJob.create(new JobFactory.JobBuildParams(Sets.newHashSet(oneSeg),
                 Sets.newLinkedHashSet(layouts), "ADMIN", JobTypeEnum.INDEX_BUILD, jobId, null, null, null, null, null));
         ExecutableManager.getInstance(getTestConfig(), "default").addJob(job);
-        return NExecutableManager.getInstance(getTestConfig(), "default").getJob(jobId);
+        return ExecutableManager.getInstance(getTestConfig(), "default").getJob(jobId);
     }
 }

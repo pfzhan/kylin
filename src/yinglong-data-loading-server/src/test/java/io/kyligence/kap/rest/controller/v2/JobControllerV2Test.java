@@ -51,8 +51,9 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.rest.request.JobFilter;
-import io.kyligence.kap.rest.response.ExecutableResponse;
+import io.kyligence.kap.job.rest.ExecutableResponse;
+import io.kyligence.kap.job.rest.JobFilter;
+import io.kyligence.kap.job.service.JobInfoService;
 import io.kyligence.kap.rest.service.JobService;
 
 public class JobControllerV2Test {
@@ -61,6 +62,9 @@ public class JobControllerV2Test {
 
     @Mock
     private JobService jobService;
+
+    @Mock
+    private JobInfoService jobInfoService;
 
     @InjectMocks
     private final JobControllerV2 jobControllerV2 = Mockito.spy(new JobControllerV2());
@@ -88,8 +92,8 @@ public class JobControllerV2Test {
     public void tesResume() throws Exception {
         String jobId = "e1ad7bb0-522e-456a-859d-2eab1df448de";
         ExecutableResponse response = new ExecutableResponse();
-        Mockito.when(jobService.getJobInstance(jobId)).thenReturn(response);
-        Mockito.when(jobService.manageJob(jobId, response, JobActionEnum.RESUME.toString()))
+        Mockito.when(jobInfoService.getJobInstance(jobId)).thenReturn(response);
+        Mockito.when(jobInfoService.manageJob(jobId, response, JobActionEnum.RESUME.toString()))
                 .thenReturn(new ExecutableResponse());
 
         mockMvc.perform(
@@ -106,7 +110,7 @@ public class JobControllerV2Test {
         List<String> jobNames = Lists.newArrayList();
         JobFilter jobFilter = new JobFilter(Lists.newArrayList("NEW"), jobNames, 4, "", "", "default", "job_name",
                 false);
-        Mockito.when(jobService.listJobs(jobFilter)).thenReturn(jobs);
+        Mockito.when(jobInfoService.listJobs(jobFilter)).thenReturn(jobs);
         mockMvc.perform(MockMvcRequestBuilders.get("/api/jobs").contentType(MediaType.APPLICATION_JSON)
                 .param("projectName", "default").param("pageOffset", "0").param("pageSize", "10")
                 .param("timeFilter", "1").param("jobName", "").param("status", "0")

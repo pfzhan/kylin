@@ -24,13 +24,14 @@
 
 package org.apache.kylin.job;
 
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.factory.JobFactory;
-import org.apache.kylin.job.model.JobParam;
-
 import java.util.Objects;
 import java.util.Set;
+
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.model.JobParam;
+
+import io.kyligence.kap.job.factory.JobFactory;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
 
 public class SecondStorageCleanJobBuildParams extends JobFactory.JobBuildParams {
     private String project;

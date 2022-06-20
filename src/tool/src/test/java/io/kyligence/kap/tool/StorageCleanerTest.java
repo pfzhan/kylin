@@ -37,11 +37,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.util.HadoopUtil;
-import org.apache.kylin.job.common.ShellExecutable;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.junit.After;
 import org.junit.Assert;
@@ -52,6 +48,10 @@ import org.junit.Test;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.execution.DefaultChainedExecutable;
+import io.kyligence.kap.job.execution.ShellExecutable;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
@@ -159,7 +159,7 @@ public class StorageCleanerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testCleanup_WithRunningJobs() throws Exception {
-        val jobMgr = NExecutableManager.getInstance(getTestConfig(), "default");
+        val jobMgr = ExecutableManager.getInstance(getTestConfig(), "default");
         val job1 = new DefaultChainedExecutable();
         job1.setProject("default");
         val task1 = new ShellExecutable();
@@ -268,7 +268,7 @@ public class StorageCleanerTest extends NLocalFileMetadataTestCase {
 
         val dfMgr = NDataflowManager.getInstance(config, "default");
         val df = dfMgr.getDataflowByModelAlias("nmodel_basic_inner");
-        val execMgr = NExecutableManager.getInstance(config, "default");
+        val execMgr = ExecutableManager.getInstance(config, "default");
         val job1 = new DefaultChainedExecutable();
         job1.setId("job1");
         execMgr.addJob(job1);

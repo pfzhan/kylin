@@ -32,8 +32,6 @@ import java.util.Map;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.job.engine.JobEngineConfig;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.measure.topn.TopNCounter;
 import org.apache.kylin.metadata.model.SegmentRange.TimePartitionedSegmentRange;
 import org.apache.kylin.metadata.realization.CapabilityResult;
@@ -70,17 +68,19 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
         overwriteSystemProp("kylin.engine.persist-flattable-enabled", "false");
 
         dfMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
-        if (!scheduler.hasStarted()) {
-            throw new RuntimeException("scheduler has not been started");
-        }
+        //TODO need to be rewritten
+        //        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
+        //        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
+        //        if (!scheduler.hasStarted()) {
+        //            throw new RuntimeException("scheduler has not been started");
+        //        }
         getTestConfig().setProperty("kylin.query.heterogeneous-segment-enabled", "false");
     }
 
     @After
     public void after() throws Exception {
-        NDefaultScheduler.destroyInstance();
+        //TODO need to be rewritten
+        // NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
         FileUtils.deleteQuietly(new File("../kap-it/metastore_db"));
     }

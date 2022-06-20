@@ -31,13 +31,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.util.ExecAndComp;
 import org.apache.commons.collections.ListUtils;
 import org.apache.hadoop.util.Shell;
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.RandomUtil;
-import org.apache.kylin.job.engine.JobEngineConfig;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.rest.util.PrepareSQLUtils;
 import org.apache.parquet.Strings;
@@ -65,6 +61,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.query.engine.PrepareSqlStateParam;
 import io.kyligence.kap.query.pushdown.SparkSqlClient;
+import io.kyligence.kap.util.ExecAndComp;
 import scala.collection.JavaConversions;
 
 @RunWith(TimeZoneTestRunner.class)
@@ -99,16 +96,18 @@ public class TimeZoneQueryTest extends NLocalWithSparkSessionTest {
     public void setup() throws Exception {
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         this.createTestMetadata("src/test/resources/ut_meta/timezone");
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
-        if (!scheduler.hasStarted()) {
-            throw new RuntimeException("scheduler has not been started");
-        }
+        //TODO need to be rewritten
+        //        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
+        //        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
+        //        if (!scheduler.hasStarted()) {
+        //            throw new RuntimeException("scheduler has not been started");
+        //        }
     }
 
     @After
     public void after() throws Exception {
-        NDefaultScheduler.destroyInstance();
+        //TODO need to be rewritten
+        // NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
     }
 

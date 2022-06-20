@@ -35,7 +35,6 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.Path;
-import org.apache.kylin.job.execution.ExecutableParams;
 import org.apache.spark.tracker.BuildContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +44,7 @@ import com.google.common.collect.ImmutableSet;
 
 import io.kyligence.kap.engine.spark.application.SparkApplication;
 import io.kyligence.kap.engine.spark.scheduler.JobRuntime;
+import io.kyligence.kap.job.execution.ExecutableParams;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;

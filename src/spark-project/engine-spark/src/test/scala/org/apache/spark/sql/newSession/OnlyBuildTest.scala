@@ -28,9 +28,6 @@ import io.kyligence.kap.engine.spark.IndexDataConstructor
 import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataflow, NDataflowManager}
 import io.kyligence.kap.metadata.model.NDataModelManager.NDataModelUpdater
 import io.kyligence.kap.metadata.model.{NDataModel, NDataModelManager}
-import org.apache.kylin.common.KylinConfig
-import org.apache.kylin.job.engine.JobEngineConfig
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler
 import org.apache.kylin.metadata.model.SegmentRange
 import org.apache.spark.sql.test.SQLTestUtils
 
@@ -56,14 +53,16 @@ abstract class OnlyBuildTest extends SQLTestUtils with WithKylinExternalCatalog 
   override def beforeAll(): Unit = {
     overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1")
     super.beforeAll()
-    val scheduler = NDefaultScheduler.getInstance(project)
-    scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv))
-    assert(scheduler.hasStarted)
+    //TODO need to be rewritten
+    //    val scheduler = NDefaultScheduler.getInstance(project)
+    //    scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv))
+    //    assert(scheduler.hasStarted)
     setStorage(NDataModelManager.getInstance(kylinConf, project), dfID)
   }
 
   override def afterAll(): Unit = {
-    NDefaultScheduler.destroyInstance()
+    //TODO need to be rewritten
+    // NDefaultScheduler.destroyInstance()
     super.afterAll()
   }
 

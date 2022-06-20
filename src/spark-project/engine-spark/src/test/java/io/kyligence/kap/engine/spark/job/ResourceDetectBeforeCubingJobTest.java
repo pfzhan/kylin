@@ -26,14 +26,8 @@ package io.kyligence.kap.engine.spark.job;
 
 import java.util.Set;
 
-import io.kyligence.kap.engine.spark.IndexDataConstructor;
-import io.kyligence.kap.job.execution.NSparkCubingJob;
-import io.kyligence.kap.job.execution.NSparkExecutable;
-import io.kyligence.kap.job.manager.ExecutableManager;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.junit.After;
 import org.junit.Assert;
@@ -41,7 +35,11 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sparkproject.guava.collect.Sets;
 
+import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.job.execution.NSparkCubingJob;
+import io.kyligence.kap.job.execution.NSparkExecutable;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
@@ -56,20 +54,21 @@ public class ResourceDetectBeforeCubingJobTest extends NLocalWithSparkSessionTes
     public void setup() {
         ss.sparkContext().setLogLevel("ERROR");
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
-
-        NDefaultScheduler.destroyInstance();
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        scheduler.init(new JobEngineConfig(getTestConfig()));
-        if (!scheduler.hasStarted()) {
-            throw new RuntimeException("scheduler has not been started");
-        }
+        //TODO need to be written
+        //        NDefaultScheduler.destroyInstance();
+        //        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
+        //        scheduler.init(new JobEngineConfig(getTestConfig()));
+        //        if (!scheduler.hasStarted()) {
+        //            throw new RuntimeException("scheduler has not been started");
+        //        }
 
         config = getTestConfig();
     }
 
     @After
     public void after() {
-        NDefaultScheduler.destroyInstance();
+        //TODO need to be written
+        // NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
     }
 

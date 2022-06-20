@@ -27,27 +27,24 @@ package io.kyligence.kap.tool.garbage;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.dao.ExecutablePO;
-import org.apache.kylin.job.dao.NExecutableDao;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.job.manager.ExecutableManager;
 
 public class ExecutableCleanerTest extends NLocalFileMetadataTestCase {
 
     private static final String DEFAULT_PROJECT = "default";
 
-    private NExecutableManager manager;
-    private NExecutableDao dao;
+    private ExecutableManager manager;
 
     @Before
     public void init() {
         createTestMetadata();
-        manager = NExecutableManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        dao = NExecutableDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        manager = ExecutableManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
     }
 
     @After
@@ -99,10 +96,10 @@ public class ExecutableCleanerTest extends NLocalFileMetadataTestCase {
         executable.setParam("test1", "test1");
         executable.setId(jobId);
         executable.setProject(DEFAULT_PROJECT);
-        ExecutablePO po = NExecutableManager.toPO(executable, DEFAULT_PROJECT);
+        ExecutablePO po = ExecutableManager.toPO(executable, DEFAULT_PROJECT);
         ExecutableOutputPO executableOutputPO = new ExecutableOutputPO();
         executableOutputPO.setCreateTime(createTime);
         po.setOutput(executableOutputPO);
-        dao.addJob(po);
+        manager.addJob(po);
     }
 }

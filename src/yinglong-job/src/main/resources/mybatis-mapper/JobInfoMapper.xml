@@ -35,6 +35,9 @@
     delete from job_info
     where id = #{id,jdbcType=BIGINT}
   </delete>
+  <delete id="deleteAllJob">
+    delete from job_info
+  </delete>
   <insert id="insert" parameterType="io.kyligence.kap.job.domain.JobInfo">
     insert into job_info (id, job_id, job_type, 
       job_status, project, subject, 

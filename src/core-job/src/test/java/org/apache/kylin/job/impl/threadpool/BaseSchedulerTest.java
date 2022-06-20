@@ -42,28 +42,17 @@
 
 package org.apache.kylin.job.impl.threadpool;
 
-import static org.awaitility.Awaitility.with;
-
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.dao.NExecutableDao;
-import org.apache.kylin.job.engine.JobEngineConfig;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
-import org.awaitility.core.ConditionFactory;
-import org.junit.After;
-import org.junit.Before;
-import org.mockito.Mockito;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import lombok.val;
 
 public abstract class BaseSchedulerTest extends NLocalFileMetadataTestCase {
 
-    protected NDefaultScheduler scheduler;
+    //TODO need to be rewritten
+    // protected NDefaultScheduler scheduler;
 
     protected static NExecutableManager executableManager;
     protected static NExecutableDao executableDao;
@@ -76,6 +65,8 @@ public abstract class BaseSchedulerTest extends NLocalFileMetadataTestCase {
         this.project = project;
     }
 
+    //TODO need to be rewritten
+    /*
     @Before
     public void setup() throws Exception {
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
@@ -138,5 +129,6 @@ public abstract class BaseSchedulerTest extends NLocalFileMetadataTestCase {
     protected final ConditionFactory getConditionFactory() {
         return getConditionFactory(60000);
     }
+     */
 
 }

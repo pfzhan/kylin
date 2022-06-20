@@ -27,13 +27,9 @@ package io.kyligence.kap.newten;
 import java.util.ArrayList;
 import java.util.List;
 
-import io.kyligence.kap.util.ExecAndComp;
 import org.apache.hadoop.util.Shell;
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.RandomUtil;
-import org.apache.kylin.job.engine.JobEngineConfig;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.spark.SparkConf;
 import org.apache.spark.sql.SparderEnv;
@@ -56,6 +52,7 @@ import io.kyligence.kap.junit.TimeZoneTestRunner;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.util.ExecAndComp;
 import lombok.val;
 import scala.runtime.AbstractFunction1;
 
@@ -94,11 +91,12 @@ public class NFilePruningV2Test extends NLocalWithSparkSessionTest {
     public void setup() throws Exception {
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         this.createTestMetadata("src/test/resources/ut_meta/file_pruning");
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
-        if (!scheduler.hasStarted()) {
-            throw new RuntimeException("scheduler has not been started");
-        }
+        //TODO need to be rewritten
+        //        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
+        //        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
+        //        if (!scheduler.hasStarted()) {
+        //            throw new RuntimeException("scheduler has not been started");
+        //        }
         NDataModelManager instance = NDataModelManager.getInstance(getTestConfig(), getProject());
         instance.updateDataModel("8c670664-8d05-466a-802f-83c023b56c77", write -> write.setStorageType(2));
         instance.updateDataModel("8c670664-8d05-466a-802f-83c023b56c78", write -> write.setStorageType(2));
@@ -108,7 +106,8 @@ public class NFilePruningV2Test extends NLocalWithSparkSessionTest {
 
     @After
     public void after() throws Exception {
-        NDefaultScheduler.destroyInstance();
+        //TODO need to be rewritten
+        // NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
     }
 

@@ -28,17 +28,17 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.execution.DefaultChainedExecutableOnModel;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import lombok.val;
 
 public class MigrateJobToolTest extends NLocalFileMetadataTestCase {
@@ -56,7 +56,7 @@ public class MigrateJobToolTest extends NLocalFileMetadataTestCase {
     @Test
     public void test() {
         // execute before
-        NExecutableManager executableManager = NExecutableManager.getInstance(getTestConfig(), "version40");
+        ExecutableManager executableManager = ExecutableManager.getInstance(getTestConfig(), "version40");
 
         List<AbstractExecutable> executeJobs = executableManager.getAllExecutables().stream()
                 .filter(executable -> JobTypeEnum.INC_BUILD == executable.getJobType()
@@ -78,7 +78,7 @@ public class MigrateJobToolTest extends NLocalFileMetadataTestCase {
         getTestConfig().clearManagers();
         ResourceStore.clearCache();
 
-        executableManager = NExecutableManager.getInstance(getTestConfig(), "version40");
+        executableManager = ExecutableManager.getInstance(getTestConfig(), "version40");
 
         executeJobs = executableManager.getAllExecutables().stream()
                 .filter(executable -> JobTypeEnum.INC_BUILD == executable.getJobType()

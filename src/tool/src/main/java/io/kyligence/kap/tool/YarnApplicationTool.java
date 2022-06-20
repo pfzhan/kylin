@@ -37,14 +37,14 @@ import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.ExecutableApplication;
 import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.common.util.ShellException;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.ChainedExecutable;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.common.util.OptionBuilder;
 import io.kyligence.kap.common.util.Unsafe;
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.execution.ChainedExecutable;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import lombok.val;
 
 public class YarnApplicationTool extends ExecutableApplication {
@@ -96,14 +96,14 @@ public class YarnApplicationTool extends ExecutableApplication {
         final String dir = optionsHelper.getOptionValue(OPTION_DIR);
         val jobId = optionsHelper.getOptionValue(OPTION_JOB);
         val project = optionsHelper.getOptionValue(OPTION_PROJECT);
-        AbstractExecutable job = NExecutableManager.getInstance(kylinConfig, project).getJob(jobId);
+        AbstractExecutable job = ExecutableManager.getInstance(kylinConfig, project).getJob(jobId);
         if (job instanceof ChainedExecutable) {
             FileUtils.writeLines(new File(dir), extract(project, jobId));
         }
     }
 
     private Set<String> extract(String project, String jobId) {
-        return NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getYarnApplicationJobs(jobId);
+        return ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getYarnApplicationJobs(jobId);
     }
 
     public void extractYarnLogs(File exportDir, String project, String jobId) {
@@ -111,7 +111,7 @@ public class YarnApplicationTool extends ExecutableApplication {
             File yarnLogsDir = new File(exportDir, "yarn_application_log");
             FileUtils.forceMkdir(yarnLogsDir);
 
-            AbstractExecutable job = NExecutableManager.getInstance(kylinConfig, project).getJob(jobId);
+            AbstractExecutable job = ExecutableManager.getInstance(kylinConfig, project).getJob(jobId);
             if (!(job instanceof ChainedExecutable)) {
                 logger.warn("job type is not ChainedExecutable!");
                 return;

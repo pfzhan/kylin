@@ -50,9 +50,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import io.kyligence.kap.job.execution.DefaultChainedExecutable;
-import io.kyligence.kap.job.manager.ExecutableManager;
-import io.kyligence.kap.job.util.ExecutableUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.time.DateUtils;
@@ -64,14 +61,9 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.SecondStorageJobParamUtil;
 import org.apache.kylin.job.common.ExecutableUtil;
-import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.handler.AbstractJobHandler;
 import org.apache.kylin.job.handler.SecondStorageSegmentCleanJobHandler;
 import org.apache.kylin.job.handler.SecondStorageSegmentLoadJobHandler;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.query.relnode.OLAPContext;
@@ -123,6 +115,12 @@ import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.guava20.shaded.common.collect.ImmutableMap;
 import io.kyligence.kap.guava20.shaded.common.collect.Lists;
 import io.kyligence.kap.guava20.shaded.common.collect.Maps;
+import io.kyligence.kap.job.execution.DefaultChainedExecutable;
+import io.kyligence.kap.job.handler.AbstractJobHandler;
+import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.job.manager.JobManager;
+import io.kyligence.kap.job.service.JobInfoService;
+import io.kyligence.kap.job.util.ExecutableUtils;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
@@ -176,6 +174,8 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
     private final AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
     @Mock
     private final JobService jobService = Mockito.spy(JobService.class);
+    @Mock
+    private final JobInfoService jobInfoService = Mockito.spy(JobInfoService.class);
     @Mock
     private final AclUtil aclUtil = Mockito.spy(AclUtil.class);
 
@@ -237,7 +237,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
         ReflectionTestUtils.setField(jobService, "aclEvaluate", aclEvaluate);
 
         secondStorageService.setAclEvaluate(aclEvaluate);
-        secondStorageService.setJobService(jobService);
+        secondStorageService.setJobInfoService(jobInfoService);
         secondStorageService.setModelService(modelService);
         secondStorageEndpoint.setSecondStorageService(secondStorageService);
         secondStorageEndpoint.setModelService(modelService);
@@ -253,11 +253,12 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
         overwriteSystemProp("kylin.second-storage.query-pushdown-limit", "0");
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         overwriteSystemProp("kylin.second-storage.class", ClickHouseStorage.class.getCanonicalName());
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
-        if (!scheduler.hasStarted()) {
-            throw new RuntimeException("scheduler has not been started");
-        }
+        //TODO need to be rewritten
+        //        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
+        //        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
+        //        if (!scheduler.hasStarted()) {
+        //            throw new RuntimeException("scheduler has not been started");
+        //        }
         SecurityContextHolder.getContext().setAuthentication(authentication);
         populateSSWithCSVData(getTestConfig(), getProject(), ss);
         indexDataConstructor = new IndexDataConstructor(getProject());
@@ -271,7 +272,8 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
         }
         QueryContext.reset();
         ClickHouseConfigLoader.clean();
-        NDefaultScheduler.destroyInstance();
+        //TODO need to be rewritten
+        // NDefaultScheduler.destroyInstance();
         ResourceStore.clearCache();
         FileUtils.deleteDirectory(new File("../clickhouse-it/metastore_db"));
         super.tearDown();
@@ -987,29 +989,29 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
                 val jobId = triggerClickHouseLoadJob(project, modelId, userName, segs);
 
                 await().atMost(30, TimeUnit.SECONDS).until(() -> {
-                    val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+                    val executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
                     return executableManager.getJob(jobId).getStatus() == ExecutableState.RUNNING;
                 });
 
                 EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-                    val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+                    val executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
                     executableManager.pauseJob(jobId);
                     return null;
                 }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID, jobId);
 
                 waitJobEnd(project, jobId);
-
-                NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
-                await().atMost(30, TimeUnit.SECONDS)
-                        .until(() -> scheduler.getContext().getRunningJobs().values().size() == 0);
+                //TODO need to be rewritten
+                //                NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
+                //                await().atMost(30, TimeUnit.SECONDS)
+                //                        .until(() -> scheduler.getContext().getRunningJobs().values().size() == 0);
 
                 EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-                    val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+                    val executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
                     executableManager.resumeJob(jobId);
                     return null;
                 }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID, jobId);
                 await().atMost(30, TimeUnit.SECONDS).until(() -> {
-                    val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+                    val executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
                     return executableManager.getJob(jobId).getStatus() == ExecutableState.RUNNING;
                 });
                 waitJobFinish(project, jobId);
@@ -1043,7 +1045,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
         request.setModel(modelId);
         request.setSegmentIds(segments);
         secondStorageEndpoint.cleanStorage(request, segments);
-        val manager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
+        val manager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
         val job = manager.getAllExecutables().stream().filter(ClickHouseSegmentCleanJob.class::isInstance).findFirst();
         Assert.assertTrue(job.isPresent());
         waitJobFinish(job.get().getId(), isAllowFailed);

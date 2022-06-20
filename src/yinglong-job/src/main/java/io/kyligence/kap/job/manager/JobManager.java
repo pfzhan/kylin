@@ -26,7 +26,6 @@ package io.kyligence.kap.job.manager;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_ABANDON;
-import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_STORAGE_QUOTA_LIMIT;
 
 import java.util.stream.Collectors;
 
@@ -36,7 +35,6 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.job.common.ExecutableUtil;
 import org.apache.kylin.job.common.SegmentUtil;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.model.JobParam;
 
 import io.kyligence.kap.job.handler.AbstractJobHandler;
@@ -170,10 +168,11 @@ public class JobManager {
     }
 
     public static void checkStorageQuota(String project) {
-        val scheduler = NDefaultScheduler.getInstance(project);
-        if (scheduler.hasStarted() && scheduler.getContext().isReachQuotaLimit()) {
-            log.error("Add job failed due to no available storage quota in project {}", project);
-            throw new KylinException(JOB_STORAGE_QUOTA_LIMIT);
-        }
+        //TODO need to be rewritten
+//        val scheduler = NDefaultScheduler.getInstance(project);
+//        if (scheduler.hasStarted() && scheduler.getContext().isReachQuotaLimit()) {
+//            log.error("Add job failed due to no available storage quota in project {}", project);
+//            throw new KylinException(JOB_STORAGE_QUOTA_LIMIT);
+//        }
     }
 }

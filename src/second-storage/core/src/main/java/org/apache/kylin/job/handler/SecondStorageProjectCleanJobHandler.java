@@ -24,10 +24,10 @@
 
 package org.apache.kylin.job.handler;
 
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.factory.JobFactory;
 import org.apache.kylin.job.SecondStorageCleanJobBuildParams;
-import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.factory.JobFactory;
 import org.apache.kylin.job.factory.JobFactoryConstant;
 import org.apache.kylin.job.model.JobParam;
 

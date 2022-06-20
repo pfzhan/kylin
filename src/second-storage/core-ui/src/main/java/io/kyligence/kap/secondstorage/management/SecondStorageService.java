@@ -52,7 +52,6 @@ import org.apache.kylin.job.SecondStorageJobParamUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -74,7 +73,12 @@ import io.kyligence.kap.job.handler.SecondStorageIndexCleanJobHandler;
 import io.kyligence.kap.job.handler.SecondStorageModelCleanJobHandler;
 import io.kyligence.kap.job.handler.SecondStorageProjectCleanJobHandler;
 import io.kyligence.kap.job.handler.SecondStorageSegmentCleanJobHandler;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.job.manager.JobManager;
+import io.kyligence.kap.job.rest.ExecutableResponse;
+import io.kyligence.kap.job.rest.ExecutableStepResponse;
+import io.kyligence.kap.job.rest.JobFilter;
+import io.kyligence.kap.job.service.JobInfoService;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -86,11 +90,7 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.aspect.Transaction;
-import io.kyligence.kap.rest.request.JobFilter;
-import io.kyligence.kap.rest.response.ExecutableResponse;
-import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import io.kyligence.kap.rest.response.JobInfoResponse;
-import io.kyligence.kap.rest.service.JobService;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.secondstorage.SecondStorage;
 import io.kyligence.kap.secondstorage.SecondStorageConstants;
@@ -124,7 +124,7 @@ import lombok.val;
 public class SecondStorageService extends BasicService implements SecondStorageUpdater {
     private static final Logger logger = LoggerFactory.getLogger(SecondStorageService.class);
 
-    private JobService jobService;
+    private JobInfoService jobInfoService;
 
     private AclEvaluate aclEvaluate;
 
@@ -135,8 +135,8 @@ public class SecondStorageService extends BasicService implements SecondStorageU
     }
 
     @Autowired
-    public SecondStorageService setJobService(final JobService jobService) {
-        this.jobService = jobService;
+    public SecondStorageService setJobInfoService(final JobInfoService jobInfoService) {
+        this.jobInfoService = jobInfoService;
         return this;
     }
 
@@ -295,7 +295,7 @@ public class SecondStorageService extends BasicService implements SecondStorageU
             val modelManager = NDataModelManager.getInstance(config, project);
             val dataflowManager = NDataflowManager.getInstance(config, project);
             val allModelAlias = modelManager.listAllModelAlias();
-            val execManager = NExecutableManager.getInstance(config, project);
+            val execManager = ExecutableManager.getInstance(config, project);
             List<String> failedModels = new ArrayList<>();
             List<String> submittedModels = new ArrayList<>();
             List<JobInfoResponse.JobInfo> jobInfos = new ArrayList<>();
@@ -594,9 +594,9 @@ public class SecondStorageService extends BasicService implements SecondStorageU
         if (LockOperateTypeEnum.LOCK.name().equals(operateType) && !KylinConfig.getInstanceFromEnv().isUTEnv()) {
             JobFilter jobFilter = new JobFilter(Arrays.asList(JobStatusEnum.RUNNING.name()),
                     null, 0, null, null, project, "last_modified", true);
-            List<ExecutableResponse> executableResponses = jobService.listJobs(jobFilter);
+            List<ExecutableResponse> executableResponses = jobInfoService.listJobs(jobFilter);
             executableResponses.stream().forEach(job -> {
-                List<ExecutableStepResponse> executableStepResponses = jobService.getJobDetail(project, job.getId());
+                List<ExecutableStepResponse> executableStepResponses = jobInfoService.getJobDetail(project, job.getId());
                 executableStepResponses.stream().forEach(step -> {
                     if ((SecondStorageConstants.SKIP_STEP_RUNNING.contains(step.getName()) && step.getStatus() == JobStatusEnum.RUNNING)
                             || SecondStorageConstants.SKIP_JOB_RUNNING.contains(step.getName())) {
@@ -786,8 +786,7 @@ public class SecondStorageService extends BasicService implements SecondStorageU
 
     public List<String> validateProjectDisable(String project) {
         SecondStorageUtil.validateProjectLock(project, Arrays.asList(LockTypeEnum.LOAD.name()));
-        val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        executableManager.getAllExecutables();
+        val executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val allJobs = executableManager.getJobs().stream()
                 .map(executableManager::getJob)
                 .filter(job -> SecondStorageUtil.RUNNING_STATE.contains(job.getStatus()))
@@ -823,7 +822,7 @@ public class SecondStorageService extends BasicService implements SecondStorageU
             throw new KylinException(SECOND_STORAGE_PROJECT_STATUS_ERROR,
                     String.format(Locale.ROOT, MsgPicker.getMsg().getSecondStorageProjectEnabled(), project));
         }
-        val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         return executableManager.getJobs().stream()
                 .map(executableManager::getJob)
                 .filter(job -> SecondStorageUtil.RELATED_JOBS.contains(job.getJobType()))

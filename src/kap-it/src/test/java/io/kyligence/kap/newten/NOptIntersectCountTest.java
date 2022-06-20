@@ -29,10 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.util.ExecAndComp;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.engine.JobEngineConfig;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparderEnv;
 import org.junit.After;
@@ -50,6 +47,7 @@ import io.kyligence.kap.engine.spark.storage.ParquetStorage;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.util.ExecAndComp;
 
 public class NOptIntersectCountTest extends NLocalWithSparkSessionTest {
 
@@ -58,16 +56,18 @@ public class NOptIntersectCountTest extends NLocalWithSparkSessionTest {
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         overwriteSystemProp("kylin.engine.persist-flattable-enabled", "false");
         this.createTestMetadata("src/test/resources/ut_meta/opt_intersect_count");
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
-        if (!scheduler.hasStarted()) {
-            throw new RuntimeException("scheduler has not been started");
-        }
+        //TODO need to be rewritten
+        //        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
+        //        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
+        //        if (!scheduler.hasStarted()) {
+        //            throw new RuntimeException("scheduler has not been started");
+        //        }
     }
 
     @After
     public void after() throws Exception {
-        NDefaultScheduler.destroyInstance();
+        //TODO need to be rewritten
+        // NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
     }
 

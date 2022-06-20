@@ -28,9 +28,6 @@ import java.io.IOException;
 import java.util.Set;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.job.execution.NSparkSnapshotJob;
-import io.kyligence.kap.job.manager.ExecutableManager;
-import io.kyligence.kap.job.util.ExecutableUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -40,10 +37,8 @@ import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.RandomUtil;
-import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.parquet.Strings;
 import org.junit.After;
@@ -55,6 +50,9 @@ import com.google.common.collect.ImmutableSet;
 
 import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.job.execution.NSparkSnapshotJob;
+import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.job.util.ExecutableUtils;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import lombok.val;
 
@@ -69,18 +67,20 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
         overwriteSystemProp("kylin.engine.persist-flattable-threshold", "0");
         overwriteSystemProp("kylin.engine.persist-flatview", "true");
 
-        NDefaultScheduler.destroyInstance();
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        scheduler.init(new JobEngineConfig(getTestConfig()));
-        if (!scheduler.hasStarted()) {
-            throw new RuntimeException("scheduler has not been started");
-        }
+        //TODO need to be rewritten
+        //        NDefaultScheduler.destroyInstance();
+        //        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
+        //        scheduler.init(new JobEngineConfig(getTestConfig()));
+        //        if (!scheduler.hasStarted()) {
+        //            throw new RuntimeException("scheduler has not been started");
+        //        }
         config = getTestConfig();
     }
 
     @After
     public void after() {
-        NDefaultScheduler.destroyInstance();
+        //TODO need to be rewritten
+        // NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
     }
 

@@ -48,15 +48,16 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.rest.util.SpringContext;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.job.JobContext;
+import io.kyligence.kap.job.dao.JobInfoDao;
 import io.kyligence.kap.job.execution.AbstractExecutable;
 import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
@@ -388,29 +389,15 @@ public class SecondStorageUtil {
     }
 
     public static ExecutableState getJobStatus(String project, String jobId) {
-        NExecutableManager manager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        ExecutableManager manager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         return manager.getJob(jobId).getStatus();
     }
 
-    // TODO remove
     public static void checkJobRestart(String project, String jobId) {
-        if (!isProjectEnable(project)) return;
-        NExecutableManager executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        org.apache.kylin.job.execution.AbstractExecutable abstractExecutable = executableManager.getJob(jobId);
-        JobTypeEnum type = abstractExecutable.getJobType();
-        boolean canRestart = type != JobTypeEnum.EXPORT_TO_SECOND_STORAGE;
-
-        ExecutablePO jobDetail = executableManager.getAllJobs().stream().filter(job -> job.getId().equals(jobId))
-                .findFirst().orElseThrow(() -> new IllegalStateException("Job not found"));
-        if (BUILD_JOBS.contains(jobDetail.getJobType())) {
-            long finishedCount = jobDetail.getTasks().stream()
-                    .filter(task -> "SUCCEED".equals(task.getOutput().getStatus())).count();
-            // build job can't restart when second storage step is running
-            canRestart = finishedCount < 3;
-        }
-        if (!canRestart) {
-            throw new KylinException(ServerErrorCode.JOB_RESTART_FAILED, MsgPicker.getMsg().getJobRestartFailed());
-        }
+        ExecutablePO executablePO = SpringContext.getBean(JobInfoDao.class).getExecutablePOByUuid(jobId);
+        AbstractExecutable executable = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .fromPO(executablePO);
+        checkJobRestart(project, jobId, executable);
     }
 
     public static void checkJobRestart(String project, String jobId, AbstractExecutable abstractExecutable) {
@@ -451,31 +438,12 @@ public class SecondStorageUtil {
             throw new KylinException(ServerErrorCode.SEGMENT_DROP_FAILED, MsgPicker.getMsg().getSegmentDropFailed());
         }
     }
-
-    // TODO remove
+    
     public static void checkJobResume(String project, String jobId) {
-        if (!isProjectEnable(project)) return;
-        NExecutableManager executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        org.apache.kylin.job.execution.AbstractExecutable abstractExecutable = executableManager.getJob(jobId);
-        JobTypeEnum type = abstractExecutable.getJobType();
-        boolean secondStorageLoading = type == JobTypeEnum.EXPORT_TO_SECOND_STORAGE;
-        ExecutablePO jobDetail = executableManager.getAllJobs().stream().filter(job -> job.getId().equals(jobId))
-                .findFirst().orElseThrow(() -> new IllegalStateException("Job not found"));
-        if (BUILD_JOBS.contains(jobDetail.getJobType())) {
-            secondStorageLoading = true;
-            long finishedCount = jobDetail.getTasks().stream()
-                    .filter(task -> "SUCCEED".equals(task.getOutput().getStatus())).count();
-            // build job can't restart when second storage step is running
-            if (finishedCount < 3) {
-                secondStorageLoading = false;
-            }
-        }
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
-        long runningJobsCount = scheduler.getContext().getRunningJobs().keySet().stream()
-                .filter(id -> id.startsWith(jobId)).count();
-        if (secondStorageLoading && runningJobsCount > 0) {
-            throw new KylinException(ServerErrorCode.JOB_RESUME_FAILED, MsgPicker.getMsg().getJobResumeFailed());
-        }
+        ExecutablePO executablePO = SpringContext.getBean(JobInfoDao.class).getExecutablePOByUuid(jobId);
+        AbstractExecutable executable = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .fromPO(executablePO);
+        checkJobResume(project, jobId, executable, executablePO);
     }
 
     public static void checkJobResume(String project, String jobId, AbstractExecutable abstractExecutable,
@@ -494,9 +462,9 @@ public class SecondStorageUtil {
                 secondStorageLoading = false;
             }
         }
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
-        long runningJobsCount = scheduler.getContext().getRunningJobs().keySet().stream()
-                .filter(id -> id.startsWith(jobId)).count();
+        JobContext jobContext = SpringContext.getBean(JobContext.class);
+        long runningJobsCount = jobContext.fetchAllRunningJobs(project, null, null).stream()
+                .filter(jobInfo -> jobInfo.getJobId().startsWith(jobId)).count();
         if (secondStorageLoading && runningJobsCount > 0) {
             throw new KylinException(ServerErrorCode.JOB_RESUME_FAILED, MsgPicker.getMsg().getJobResumeFailed());
         }

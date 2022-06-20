@@ -23,20 +23,18 @@
 package io.kyligence.kap.common
 
 import java.io.File
-import java.util.stream.Collectors
-import java.util.{Objects, UUID}
+import java.util.Objects
+
 import com.google.common.collect.{Lists, Maps, Sets}
 import io.kyligence.kap.common.persistence.metadata.MetadataStore
 import io.kyligence.kap.common.util.Unsafe
-import io.kyligence.kap.job.util.ExecutableUtils
-import io.kyligence.kap.job.execution.step.NSparkMergingStep
-import io.kyligence.kap.job.execution.merger.{AfterBuildResourceMerger, AfterMergeOrRefreshResourceMerger}
-import io.kyligence.kap.job.execution.{AbstractExecutable, NSparkCubingJob, NSparkMergingJob}
-import io.kyligence.kap.job.execution.step.NSparkCubingStep
 import io.kyligence.kap.engine.spark.utils.{FileNames, HDFSUtils}
+import io.kyligence.kap.job.execution.merger.{AfterBuildResourceMerger, AfterMergeOrRefreshResourceMerger}
+import io.kyligence.kap.job.execution.step.{NSparkCubingStep, NSparkMergingStep}
+import io.kyligence.kap.job.execution.{AbstractExecutable, NSparkCubingJob, NSparkMergingJob}
 import io.kyligence.kap.job.manager.ExecutableManager
+import io.kyligence.kap.job.util.ExecutableUtils
 import io.kyligence.kap.metadata.cube.model._
-import io.kyligence.kap.metadata.model.NTableMetadataManager
 import io.kyligence.kap.query.runtime.plan.TableScanPlan
 import org.apache.commons.io.FileUtils
 import org.apache.hadoop.conf.Configuration
@@ -44,17 +42,15 @@ import org.apache.hadoop.fs.Path
 import org.apache.kylin.common.persistence.ResourceStore
 import org.apache.kylin.common.util.RandomUtil
 import org.apache.kylin.common.{KapConfig, KylinConfig, StorageURL}
-import org.apache.kylin.job.engine.JobEngineConfig
-import org.apache.kylin.job.execution.{ExecutableState, NExecutableManager}
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler
-import org.apache.kylin.metadata.model.{SegmentRange, TableDesc}
+import org.apache.kylin.job.execution.ExecutableState
+import org.apache.kylin.metadata.model.SegmentRange
 import org.apache.kylin.metadata.realization.RealizationStatusEnum
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.common.SparderQueryTest
+import org.apache.spark.sql.functions._
 import org.junit.Assert
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, Suite}
-import org.apache.spark.sql.functions._
 
 import scala.collection.JavaConverters._
 
@@ -65,17 +61,18 @@ trait JobSupport
   self: Suite =>
   val DEFAULT_PROJECT = "default"
   val schedulerInterval = "1"
-  var scheduler: NDefaultScheduler = _
+  // var scheduler: NDefaultScheduler = _
   val systemProp = Maps.newHashMap[String, String]()
 
   override def beforeAll(): Unit = {
     super.beforeAll()
     Unsafe.setProperty("kylin.job.scheduler.poll-interval-second", schedulerInterval)
-    scheduler = NDefaultScheduler.getInstance(DEFAULT_PROJECT)
-    scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv))
-    if (!scheduler.hasStarted) {
-      throw new RuntimeException("scheduler has not been started")
-    }
+    // TODO need to be rewritten
+    // scheduler = NDefaultScheduler.getInstance(DEFAULT_PROJECT)
+    // scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv))
+    //    if (!scheduler.hasStarted) {
+    //      throw new RuntimeException("scheduler has not been started")
+    //    }
   }
 
   private def restoreSparderEnv(): Unit = {
@@ -95,7 +92,7 @@ trait JobSupport
   }
 
   override def afterAll(): Unit = {
-    scheduler.shutdown()
+    // scheduler.shutdown()
     restoreSparderEnv()
     super.afterAll()
 

@@ -24,25 +24,25 @@
 
 package io.kyligence.kap.secondstorage.test.utils;
 
-import io.kyligence.kap.job.execution.DefaultChainedExecutable;
-import io.kyligence.kap.job.manager.ExecutableManager;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.SecondStorageJobParamUtil;
-import org.apache.kylin.job.common.ExecutableUtil;
-import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.handler.AbstractJobHandler;
-import org.apache.kylin.job.handler.SecondStorageModelCleanJobHandler;
-import org.apache.kylin.job.handler.SecondStorageSegmentLoadJobHandler;
-import org.apache.kylin.job.model.JobParam;
-import org.junit.Assert;
+import static io.kyligence.kap.engine.spark.IndexDataConstructor.firstFailedJobErrorMessage;
+import static org.awaitility.Awaitility.await;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
-import static io.kyligence.kap.engine.spark.IndexDataConstructor.firstFailedJobErrorMessage;
-import static org.awaitility.Awaitility.await;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.SecondStorageJobParamUtil;
+import org.apache.kylin.job.common.ExecutableUtil;
+import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.handler.SecondStorageModelCleanJobHandler;
+import org.apache.kylin.job.handler.SecondStorageSegmentLoadJobHandler;
+import org.apache.kylin.job.model.JobParam;
+import org.junit.Assert;
+
+import io.kyligence.kap.job.execution.DefaultChainedExecutable;
+import io.kyligence.kap.job.handler.AbstractJobHandler;
+import io.kyligence.kap.job.manager.ExecutableManager;
 
 public interface JobWaiter {
     default void waitJobFinish(String project, String jobId) {
@@ -82,6 +82,6 @@ public interface JobWaiter {
 
     default void waitAllJobFinish(String project) {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        NExecutableManager.getInstance(config, project).getAllExecutables().forEach(exec -> waitJobFinish(project, exec.getId()));
+        ExecutableManager.getInstance(config, project).getAllExecutables().forEach(exec -> waitJobFinish(project, exec.getId()));
     }
 }

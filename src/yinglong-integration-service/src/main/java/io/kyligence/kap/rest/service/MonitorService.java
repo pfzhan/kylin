@@ -31,20 +31,12 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.metrics.service.MonitorDao;
-import io.kyligence.kap.common.state.StateSwitchConstant;
-import io.kyligence.kap.common.util.ClusterConstant;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.state.QueryShareStateManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.BasicService;
@@ -64,8 +56,16 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.cluster.ClusterManagerFactory;
 import io.kyligence.kap.common.metrics.service.JobStatusMonitorMetric;
+import io.kyligence.kap.common.metrics.service.MonitorDao;
 import io.kyligence.kap.common.metrics.service.MonitorMetric;
 import io.kyligence.kap.common.metrics.service.QueryMonitorMetric;
+import io.kyligence.kap.common.state.StateSwitchConstant;
+import io.kyligence.kap.common.util.ClusterConstant;
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.execution.DefaultChainedExecutable;
+import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.state.QueryShareStateManager;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
 import io.kyligence.kap.rest.monitor.AbstractMonitorCollectTask;
@@ -149,7 +149,7 @@ public class MonitorService extends BasicService {
         List<AbstractExecutable> errorJobs = new ArrayList<>();
 
         for (ProjectInstance project : getReadableProjects()) {
-            val executableManager = getManager(NExecutableManager.class, project.getName());
+            val executableManager = getManager(ExecutableManager.class, project.getName());
 
             for (AbstractExecutable executable : executableManager.getAllExecutables()) {
                 if (executable.getStatus().isFinalState()) {

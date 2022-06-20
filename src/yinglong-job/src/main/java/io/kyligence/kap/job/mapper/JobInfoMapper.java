@@ -52,6 +52,8 @@ public interface JobInfoMapper {
 
     int deleteByJobId(@Param("jobId") String jobId);
 
+    int deleteAllJob();
+
     int insertJobInfoSelective(JobInfo jobInfo);
 
     JobInfo selectByJobId(@Param("jobId") String jobId);

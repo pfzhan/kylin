@@ -23,11 +23,7 @@
  */
 package io.kyligence.kap.secondstorage.test;
 
-import io.kyligence.kap.job.util.ExecutableUtils;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.engine.JobEngineConfig;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-
+//TODO need to be rewritten
 public class EnableScheduler extends EnableLocalMeta {
 
     public EnableScheduler(String project, String... extraMeta) {
@@ -37,6 +33,7 @@ public class EnableScheduler extends EnableLocalMeta {
     @Override
     protected void before() throws Throwable {
         super.before();
+        /*
         ExecutableUtils.initJobFactory();
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
@@ -44,11 +41,13 @@ public class EnableScheduler extends EnableLocalMeta {
         if (!scheduler.hasStarted()) {
             throw new RuntimeException("scheduler has not been started");
         }
+
+         */
     }
 
     @Override
     protected void after() {
-        NDefaultScheduler.destroyInstance();
+        // NDefaultScheduler.destroyInstance();
         super.after();
     }
 

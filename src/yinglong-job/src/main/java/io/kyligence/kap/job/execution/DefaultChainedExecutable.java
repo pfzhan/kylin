@@ -205,7 +205,7 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
                 .postSync(new JobFinishedNotifier(getId(), getProject(), getTargetSubject(), getDuration(),
                         state.toString(), getJobType().toString(), this.getSegmentIds(), this.getLayoutIds(),
                         getTargetPartitions(), getWaitTime(), this.getClass().getName(), this.getSubmitter(),
-                        result.succeed(), getJobStartTime(), getJobEndTime(), getTag()));
+                        result.succeed(), getJobStartTime(), getJobEndTime(), getTag(), result.getThrowable()));
     }
 
     private long getJobStartTime() {

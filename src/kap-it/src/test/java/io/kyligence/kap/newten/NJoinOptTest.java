@@ -31,11 +31,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import io.kyligence.kap.util.ExecAndComp;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.engine.JobEngineConfig;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.spark.SparkConf;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
@@ -53,6 +50,7 @@ import org.junit.Test;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.util.ExecAndComp;
 import lombok.val;
 import scala.Option;
 import scala.runtime.AbstractFunction1;
@@ -85,16 +83,18 @@ public class NJoinOptTest extends NLocalWithSparkSessionTest {
     public void setup() throws Exception {
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         this.createTestMetadata("src/test/resources/ut_meta/join_opt");
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
-        if (!scheduler.hasStarted()) {
-            throw new RuntimeException("scheduler has not been started");
-        }
+        //TODO need to be rewritten
+        //        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
+        //        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
+        //        if (!scheduler.hasStarted()) {
+        //            throw new RuntimeException("scheduler has not been started");
+        //        }
     }
 
     @After
     public void after() throws Exception {
-        NDefaultScheduler.destroyInstance();
+        //TODO need to be rewritten
+        // NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
     }
 

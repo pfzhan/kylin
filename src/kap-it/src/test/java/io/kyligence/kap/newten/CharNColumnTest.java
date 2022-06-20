@@ -28,8 +28,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.engine.JobEngineConfig;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.spark.sql.SparderEnv;
 import org.junit.After;
 import org.junit.Assert;
@@ -46,16 +44,18 @@ public class CharNColumnTest extends NLocalWithSparkSessionTest {
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         overwriteSystemProp("kylin.engine.persist-flattable-enabled", "false");
         this.createTestMetadata("src/test/resources/ut_meta/test_char_n_column");
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
-        if (!scheduler.hasStarted()) {
-            throw new RuntimeException("scheduler has not been started");
-        }
+        //TODO need to be rewritten
+        //        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
+        //        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
+        //        if (!scheduler.hasStarted()) {
+        //            throw new RuntimeException("scheduler has not been started");
+        //        }
     }
 
     @After
     public void after() throws Exception {
-        NDefaultScheduler.destroyInstance();
+        //TODO need to be rewritten
+        // NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
     }
 

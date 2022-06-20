@@ -28,18 +28,15 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-import io.kyligence.kap.util.ExecAndComp;
 import org.apache.commons.io.FileUtils;
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.job.engine.JobEngineConfig;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.spark.sql.SparderEnv;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.util.ExecAndComp;
 import io.kyligence.kap.util.ExecAndComp.CompareLevel;
 
 public class TableIndexTest extends NLocalWithSparkSessionTest {
@@ -47,17 +44,19 @@ public class TableIndexTest extends NLocalWithSparkSessionTest {
     @Before
     public void setup() {
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
-        if (!scheduler.hasStarted()) {
-            throw new RuntimeException("scheduler has not been started");
-        }
+        //TODO need to be rewritten
+        //        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
+        //        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
+        //        if (!scheduler.hasStarted()) {
+        //            throw new RuntimeException("scheduler has not been started");
+        //        }
         populateSSWithCSVData(getTestConfig(), getProject(), ss);
     }
 
     @After
     public void after() throws Exception {
-        NDefaultScheduler.destroyInstance();
+        //TODO need to be rewritten
+        // NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
         FileUtils.deleteQuietly(new File("../kap-it/metastore_db"));
     }

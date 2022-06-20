@@ -28,11 +28,12 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.manager.ExecutableManager;
 
 
 public class ExecutableCleaner extends MetadataCleaner {
@@ -52,7 +53,7 @@ public class ExecutableCleaner extends MetadataCleaner {
 
         long expirationTime = config.getExecutableSurvivalTimeThreshold();
 
-        NExecutableManager executableManager = NExecutableManager.getInstance(config, project);
+        ExecutableManager executableManager = ExecutableManager.getInstance(config, project);
 
         List<AbstractExecutable> executables = executableManager.getAllExecutables();
         List<AbstractExecutable> filteredExecutables = executables.stream().filter(job -> {

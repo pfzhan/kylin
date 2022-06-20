@@ -27,11 +27,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-import io.kyligence.kap.util.ExecAndComp;
 import org.apache.commons.io.FileUtils;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.engine.JobEngineConfig;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -48,6 +44,7 @@ import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.util.ExecAndComp;
 
 public class NFlattableJoinWithoutLookupTest extends NLocalWithSparkSessionTest {
 
@@ -60,16 +57,18 @@ public class NFlattableJoinWithoutLookupTest extends NLocalWithSparkSessionTest 
         overwriteSystemProp("kylin.engine.persist-flattable-enabled", "false");
         this.createTestMetadata("src/test/resources/ut_meta/flattable_without_join_lookup");
         dfMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
-        if (!scheduler.hasStarted()) {
-            throw new RuntimeException("scheduler has not been started");
-        }
+        //TODO need to be rewritten
+        //        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
+        //        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
+        //        if (!scheduler.hasStarted()) {
+        //            throw new RuntimeException("scheduler has not been started");
+        //        }
     }
 
     @After
     public void after() throws Exception {
-        NDefaultScheduler.destroyInstance();
+        //TODO need to be rewritten
+        // NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
         FileUtils.deleteQuietly(new File("../kap-it/metastore_db"));
     }

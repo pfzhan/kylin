@@ -24,45 +24,19 @@
 
 package io.kyligence.kap.secondstorage;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
-import io.kyligence.kap.clickhouse.database.ClickHouseOperator;
-import io.kyligence.kap.clickhouse.ddl.ClickHouseCreateTable;
-import io.kyligence.kap.clickhouse.ddl.ClickHouseRender;
-import io.kyligence.kap.clickhouse.job.ClickHouse;
-import io.kyligence.kap.clickhouse.job.ClickHouseModelCleanJob;
-import io.kyligence.kap.clickhouse.job.ClickHouseSegmentCleanJob;
-import io.kyligence.kap.clickhouse.job.Engine;
-import io.kyligence.kap.clickhouse.job.LoadContext;
-import io.kyligence.kap.clickhouse.management.ClickHouseConfigLoader;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.common.util.Unsafe;
-import io.kyligence.kap.engine.spark.IndexDataConstructor;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
-import io.kyligence.kap.metadata.query.NativeQueryRealization;
-import io.kyligence.kap.rest.service.ModelService;
-import io.kyligence.kap.secondstorage.management.OpenSecondStorageEndpoint;
-import io.kyligence.kap.util.ExecAndComp;
-import io.kyligence.kap.newten.clickhouse.ClickHouseUtils;
-import io.kyligence.kap.rest.response.NDataSegmentResponse;
-import io.kyligence.kap.secondstorage.config.ClusterInfo;
-import io.kyligence.kap.secondstorage.config.Node;
-import io.kyligence.kap.secondstorage.ddl.exp.ColumnWithType;
-import io.kyligence.kap.secondstorage.management.SecondStorageEndpoint;
-import io.kyligence.kap.secondstorage.management.SecondStorageScheduleService;
-import io.kyligence.kap.secondstorage.management.SecondStorageService;
-import io.kyligence.kap.secondstorage.management.request.RecoverRequest;
-import io.kyligence.kap.secondstorage.management.request.StorageRequest;
-import io.kyligence.kap.secondstorage.test.ClickHouseClassRule;
-import io.kyligence.kap.secondstorage.test.EnableClickHouseJob;
-import io.kyligence.kap.secondstorage.test.EnableTestUser;
-import io.kyligence.kap.secondstorage.test.SharedSparkSession;
-import io.kyligence.kap.secondstorage.test.utils.JobWaiter;
-import lombok.val;
+import static io.kyligence.kap.clickhouse.ClickHouseConstants.CONFIG_CLICKHOUSE_QUERY_CATALOG;
+import static io.kyligence.kap.secondstorage.SecondStorageConcurrentTestUtil.registerWaitPoint;
+import static org.apache.kylin.common.exception.JobErrorCode.SECOND_STORAGE_JOB_EXISTS;
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JOB;
+import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_NODE_NOT_AVAILABLE;
+import static org.awaitility.Awaitility.await;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
@@ -70,7 +44,6 @@ import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -86,18 +59,47 @@ import org.mockito.Mockito;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
 
-import static io.kyligence.kap.clickhouse.ClickHouseConstants.CONFIG_CLICKHOUSE_QUERY_CATALOG;
-import static io.kyligence.kap.secondstorage.SecondStorageConcurrentTestUtil.registerWaitPoint;
-import static org.apache.kylin.common.exception.JobErrorCode.SECOND_STORAGE_JOB_EXISTS;
-import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JOB;
-import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_NODE_NOT_AVAILABLE;
-import static org.awaitility.Awaitility.await;
+import io.kyligence.kap.clickhouse.database.ClickHouseOperator;
+import io.kyligence.kap.clickhouse.ddl.ClickHouseCreateTable;
+import io.kyligence.kap.clickhouse.ddl.ClickHouseRender;
+import io.kyligence.kap.clickhouse.job.ClickHouse;
+import io.kyligence.kap.clickhouse.job.ClickHouseModelCleanJob;
+import io.kyligence.kap.clickhouse.job.ClickHouseSegmentCleanJob;
+import io.kyligence.kap.clickhouse.job.Engine;
+import io.kyligence.kap.clickhouse.job.LoadContext;
+import io.kyligence.kap.clickhouse.management.ClickHouseConfigLoader;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.util.Unsafe;
+import io.kyligence.kap.engine.spark.IndexDataConstructor;
+import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.metadata.query.NativeQueryRealization;
+import io.kyligence.kap.newten.clickhouse.ClickHouseUtils;
+import io.kyligence.kap.rest.response.NDataSegmentResponse;
+import io.kyligence.kap.rest.service.ModelService;
+import io.kyligence.kap.secondstorage.config.ClusterInfo;
+import io.kyligence.kap.secondstorage.config.Node;
+import io.kyligence.kap.secondstorage.ddl.exp.ColumnWithType;
+import io.kyligence.kap.secondstorage.management.OpenSecondStorageEndpoint;
+import io.kyligence.kap.secondstorage.management.SecondStorageEndpoint;
+import io.kyligence.kap.secondstorage.management.SecondStorageScheduleService;
+import io.kyligence.kap.secondstorage.management.SecondStorageService;
+import io.kyligence.kap.secondstorage.management.request.RecoverRequest;
+import io.kyligence.kap.secondstorage.management.request.StorageRequest;
+import io.kyligence.kap.secondstorage.test.ClickHouseClassRule;
+import io.kyligence.kap.secondstorage.test.EnableClickHouseJob;
+import io.kyligence.kap.secondstorage.test.EnableTestUser;
+import io.kyligence.kap.secondstorage.test.SharedSparkSession;
+import io.kyligence.kap.secondstorage.test.utils.JobWaiter;
+import io.kyligence.kap.util.ExecAndComp;
+import lombok.val;
 
 public class SecondStorageJavaTest implements JobWaiter {
     private static final String modelName = "test_table_index";
@@ -140,7 +142,7 @@ public class SecondStorageJavaTest implements JobWaiter {
     public void testModelUpdate() throws Exception {
         buildModel();
         secondStorageService.updateIndex(project, modelId);
-        val manager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val manager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         Assert.assertTrue(manager.getAllExecutables().stream().noneMatch(ClickHouseModelCleanJob.class::isInstance));
         secondStorageService.disableModel(project, modelId);
         int jobNum = manager.getAllExecutables().size();
@@ -165,7 +167,7 @@ public class SecondStorageJavaTest implements JobWaiter {
         request.setModel(modelId);
         request.setSegmentIds(segs);
         secondStorageEndpoint.cleanStorage(request, segs);
-        val manager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val manager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val job = manager.getAllExecutables().stream().filter(ClickHouseSegmentCleanJob.class::isInstance).findFirst();
         Assert.assertTrue(job.isPresent());
         waitJobFinish(project, job.get().getId());
@@ -190,7 +192,7 @@ public class SecondStorageJavaTest implements JobWaiter {
         request.setModelName(modelName);
         request.setSegmentIds(segs);
         openSecondStorageEndpoint.cleanStorage(request);
-        val manager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val manager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val job1 = manager.getAllExecutables().stream().filter(ClickHouseSegmentCleanJob.class::isInstance).findFirst();
         int partitionNum = tableFlowManager.get().get(modelId).orElseThrow(() -> new IllegalStateException("tableflow not found")).getTableDataList().get(0).getPartitions().size();
         Assert.assertEquals(0, partitionNum);
@@ -279,7 +281,7 @@ public class SecondStorageJavaTest implements JobWaiter {
     @Test
     public void testModelCleanJobWithoutSegments() {
         val jobId = triggerModelCleanJob(project, modelId, enableTestUser.getUser());
-        val manager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val manager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val job = manager.getJob(jobId);
         Assert.assertTrue(job.getDataRangeStart() < job.getDataRangeEnd());
     }
@@ -406,7 +408,7 @@ public class SecondStorageJavaTest implements JobWaiter {
         request.setModel(modelId);
         request.setSegmentIds(segs);
         secondStorageEndpoint.cleanStorage(request, segs);
-        val manager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val manager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val job = manager.getAllExecutables().stream().filter(ClickHouseSegmentCleanJob.class::isInstance).findFirst();
         Assert.assertTrue(job.isPresent());
         waitJobFinish(project, job.get().getId());
@@ -422,37 +424,38 @@ public class SecondStorageJavaTest implements JobWaiter {
         registerWaitPoint(SecondStorageConcurrentTestUtil.WAIT_PAUSED, 10000);
         val jobId = triggerClickHouseLoadJob(project, modelId, enableTestUser.getUser(), segs);
         await().atMost(2, TimeUnit.SECONDS).until(() -> {
-            val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            val executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             return executableManager.getJob(jobId).getStatus() == ExecutableState.RUNNING;
         });
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            val executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             executableManager.pauseJob(jobId);
             return null;
         }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID, jobId);
         waitJobEnd(project, jobId);
 //        Thread.sleep(15000);
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
-        await().atMost(15, TimeUnit.SECONDS).until(() -> scheduler.getContext().getRunningJobs().values().size() == 0);
+        //TODO need to be rewritten
+//        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
+//        await().atMost(15, TimeUnit.SECONDS).until(() -> scheduler.getContext().getRunningJobs().values().size() == 0);
         val tableFlowManager = SecondStorageUtil.tableFlowManager(KylinConfig.getInstanceFromEnv(), project);
         int partitionNum = tableFlowManager.get().get(modelId).orElseThrow(() -> new IllegalStateException("tableflow not found")).getTableDataList().get(0).getPartitions().size();
         Assert.assertEquals(0, partitionNum);
         Assert.assertFalse(SecondStorageLockUtils.containsKey(modelId, SegmentRange.TimePartitionedSegmentRange.createInfinite()));
 
         await().atMost(10, TimeUnit.SECONDS).untilAsserted(() -> {
-            val manager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            val manager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             val job = manager.getJob(jobId);
             Assert.assertEquals(ExecutableState.PAUSED, job.getStatus());
 //            Assert.assertEquals("{\"completedSegments\":[],\"completedFiles\":[]}", job.getOutput().getExtra().get(LoadContext.CLICKHOUSE_LOAD_CONTEXT));
         });
 
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            val executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             executableManager.resumeJob(jobId);
             return null;
         }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID, jobId);
         await().atMost(10, TimeUnit.SECONDS).until(() -> {
-            val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            val executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             return executableManager.getJob(jobId).getStatus() == ExecutableState.RUNNING;
         });
         waitJobFinish(project, jobId);
@@ -512,7 +515,7 @@ public class SecondStorageJavaTest implements JobWaiter {
     @Test
     public void testModelUpdateNoClean() throws Exception {
         buildModel();
-        val manager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val manager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val jobCnt = manager.getAllExecutables().stream()
                 .filter(ClickHouseModelCleanJob.class::isInstance)
                 .filter(job -> modelId.equals(job.getTargetModelId())).count();

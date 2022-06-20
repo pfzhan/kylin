@@ -29,14 +29,11 @@ import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.job.util.ExecutableUtils;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.RandomUtil;
-import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
@@ -58,6 +55,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.TempMetadataBuilder;
+import io.kyligence.kap.job.util.ExecutableUtils;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
@@ -120,9 +118,10 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         overwriteSystemProp("kylin.job.event.poll-interval-second", "1");
         overwriteSystemProp("kylin.engine.spark.build-class-name",
                 "io.kyligence.kap.engine.spark.job.MockedDFBuildJob");
-        NDefaultScheduler.destroyInstance();
-        val scheduler = NDefaultScheduler.getInstance(getProject());
-        scheduler.init(new JobEngineConfig(getTestConfig()));
+        //TODO need to be rewritten
+        //        NDefaultScheduler.destroyInstance();
+        //        val scheduler = NDefaultScheduler.getInstance(getProject());
+        //        scheduler.init(new JobEngineConfig(getTestConfig()));
 
         val dfManager = NDataflowManager.getInstance(getTestConfig(), getProject());
         var df = dfManager.getDataflow(MODEL_ID);
@@ -167,7 +166,8 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
 
     @After
     public void tearDown() throws IOException {
-        NDefaultScheduler.getInstance(getProject()).shutdown();
+        //TODO need to be rewritten
+        // NDefaultScheduler.getInstance(getProject()).shutdown();
         super.tearDown();
     }
 

@@ -23,16 +23,17 @@
  */
 package io.kyligence.kap.rest.service;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.job.util.ExecutableUtils;
-import lombok.val;
+import java.util.List;
+
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.junit.Before;
 
-import java.util.List;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.job.util.ExecutableUtils;
+import lombok.val;
 
 /**
  *
@@ -45,12 +46,12 @@ public class LocalFileMetadataTestCase extends NLocalFileMetadataTestCase {
     }
 
     protected List<AbstractExecutable> getRunningExecutables(String project, String model) {
-        return NExecutableManager.getInstance(getTestConfig(), project)
+        return ExecutableManager.getInstance(getTestConfig(), project)
                 .getRunningExecutables(project, model);
     }
 
     protected void deleteJobByForce(AbstractExecutable executable) {
-        val exManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        val exManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         exManager.updateJobOutput(executable.getId(), ExecutableState.DISCARDED);
         exManager.deleteJob(executable.getId());
     }

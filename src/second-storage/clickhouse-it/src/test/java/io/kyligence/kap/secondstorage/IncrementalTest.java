@@ -29,18 +29,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.ImmutableList;
-import io.kyligence.kap.rest.service.IndexPlanService;
-import io.kyligence.kap.rest.service.ModelBuildService;
-import io.kyligence.kap.rest.service.ModelSemanticHelper;
-import io.kyligence.kap.rest.service.ModelService;
-import io.kyligence.kap.rest.service.NUserGroupService;
-import io.kyligence.kap.secondstorage.management.request.ProjectLoadRequest;
-import io.kyligence.kap.secondstorage.management.request.ProjectRecoveryResponse;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -56,15 +46,29 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.springframework.test.util.ReflectionTestUtils;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import io.kyligence.kap.engine.spark.IndexDataConstructor;
+import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.job.manager.JobManager;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.rest.service.IndexPlanService;
+import io.kyligence.kap.rest.service.ModelBuildService;
+import io.kyligence.kap.rest.service.ModelSemanticHelper;
+import io.kyligence.kap.rest.service.ModelService;
+import io.kyligence.kap.rest.service.NUserGroupService;
 import io.kyligence.kap.secondstorage.management.SecondStorageEndpoint;
 import io.kyligence.kap.secondstorage.management.SecondStorageService;
+import io.kyligence.kap.secondstorage.management.request.ProjectLoadRequest;
+import io.kyligence.kap.secondstorage.management.request.ProjectRecoveryResponse;
 import io.kyligence.kap.secondstorage.management.request.StorageRequest;
 import io.kyligence.kap.secondstorage.test.ClickHouseClassRule;
 import io.kyligence.kap.secondstorage.test.EnableClickHouseJob;
@@ -72,10 +76,6 @@ import io.kyligence.kap.secondstorage.test.EnableTestUser;
 import io.kyligence.kap.secondstorage.test.SharedSparkSession;
 import io.kyligence.kap.secondstorage.test.utils.JobWaiter;
 import lombok.val;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.springframework.test.util.ReflectionTestUtils;
 
 public class IncrementalTest implements JobWaiter {
     private static final String modelName = "test_table_index";
@@ -193,7 +193,7 @@ public class IncrementalTest implements JobWaiter {
         request.setModel(modelId);
         secondStorageEndpoint.cleanStorage(request, segs.subList(0, 1));
 
-        val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
+        val executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
         val jobs = executableManager.listExecByModelAndStatus(modelId, ExecutableState::isRunning, null);
         jobs.forEach(job -> waitJobFinish(getProject(), job.getId()));
 

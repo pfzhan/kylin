@@ -23,21 +23,23 @@
  */
 package io.kyligence.kap.clickhouse.job;
 
-import com.google.common.base.Preconditions;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NBatchConstants;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.DefaultChainedExecutable;
-import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.factory.JobFactory;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.job.execution.JobTypeEnum;
+
+import com.google.common.base.Preconditions;
+
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.execution.DefaultChainedExecutable;
+import io.kyligence.kap.job.factory.JobFactory;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
 
 public class ClickHouseJob extends DefaultChainedExecutable {
 

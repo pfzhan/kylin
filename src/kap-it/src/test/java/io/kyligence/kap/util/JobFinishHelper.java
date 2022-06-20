@@ -29,15 +29,16 @@ import static org.awaitility.Awaitility.with;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.awaitility.core.ConditionFactory;
+
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.manager.ExecutableManager;
 
 public class JobFinishHelper {
 
     public static void waitJobFinish(KylinConfig config, String project, String jobId, long maxWaitMilliseconds) {
-        NExecutableManager executableManager = NExecutableManager.getInstance(config, project);
+        ExecutableManager executableManager = ExecutableManager.getInstance(config, project);
         getConditionFactory(maxWaitMilliseconds).until(() -> {
             AbstractExecutable job = executableManager.getJob(jobId);
             ExecutableState status = job.getStatus();

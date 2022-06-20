@@ -28,11 +28,11 @@ import java.util.Comparator;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.junit.Assert;
 
+import io.kyligence.kap.job.manager.JobManager;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;

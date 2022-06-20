@@ -46,8 +46,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.guava20.shaded.common.util.concurrent.RateLimiter;
-import io.kyligence.kap.tool.util.ProjectTemporaryTableCleanerHelper;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -64,16 +62,19 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.ShellException;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.source.ISourceMetadataExplorer;
+import org.apache.kylin.source.SourceFactory;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.persistence.TrashRecord;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
+import io.kyligence.kap.guava20.shaded.common.util.concurrent.RateLimiter;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.metadata.cube.model.LayoutPartition;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegDetails;
@@ -83,6 +84,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.tool.util.ProjectTemporaryTableCleanerHelper;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -92,8 +94,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kylin.source.ISourceMetadataExplorer;
-import org.apache.kylin.source.SourceFactory;
 
 @Slf4j
 public class StorageCleaner {
@@ -341,7 +341,7 @@ public class StorageCleaner {
 
         private void collectJobTmp(String project) {
             val config = KylinConfig.getInstanceFromEnv();
-            val executableManager = NExecutableManager.getInstance(config, project);
+            val executableManager = ExecutableManager.getInstance(config, project);
             Set<String> activeJobs = executableManager.getAllExecutables().stream()
                     .map(e -> project + JOB_TMP_ROOT + "/" + e.getId()).collect(Collectors.toSet());
             for (StorageItem item : allFileSystems) {
@@ -436,7 +436,7 @@ public class StorageCleaner {
         }
 
         public void execute() {
-            val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            val executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             Set<String> activeJobs = executableManager.getAllExecutables().stream()
                     .map(e -> project + JOB_TMP_ROOT + "/" + e.getId()).collect(Collectors.toSet());
             List<FileTreeNode> jobTemps = allFileSystems.iterator().next().getProject(project).getJobTmps();

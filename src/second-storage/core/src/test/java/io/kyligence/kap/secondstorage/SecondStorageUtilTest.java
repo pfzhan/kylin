@@ -24,18 +24,15 @@
 
 package io.kyligence.kap.secondstorage;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.guava20.shaded.common.collect.ImmutableList;
-import io.kyligence.kap.secondstorage.config.ClusterInfo;
-import io.kyligence.kap.secondstorage.config.Node;
-import io.kyligence.kap.secondstorage.metadata.Manager;
-import io.kyligence.kap.secondstorage.metadata.TableData;
-import io.kyligence.kap.secondstorage.metadata.TableFlow;
-import io.kyligence.kap.secondstorage.metadata.TablePartition;
-import io.kyligence.kap.secondstorage.response.SecondStorageNode;
+import java.lang.reflect.Field;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.RandomUtil;
-import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.rest.constant.Constant;
@@ -53,19 +50,24 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.ReflectionUtils;
 
-import java.lang.reflect.Field;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.guava20.shaded.common.collect.ImmutableList;
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.secondstorage.config.ClusterInfo;
+import io.kyligence.kap.secondstorage.config.Node;
+import io.kyligence.kap.secondstorage.metadata.Manager;
+import io.kyligence.kap.secondstorage.metadata.TableData;
+import io.kyligence.kap.secondstorage.metadata.TableFlow;
+import io.kyligence.kap.secondstorage.metadata.TablePartition;
+import io.kyligence.kap.secondstorage.response.SecondStorageNode;
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({SecondStorageNodeHelper.class, NExecutableManager.class})
 public class SecondStorageUtilTest extends NLocalFileMetadataTestCase {
     private final Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
     private Manager<TableFlow> tableFlowManager = Mockito.mock(Manager.class);
-    private NExecutableManager executableManager = Mockito.mock(NExecutableManager.class);
+    private ExecutableManager executableManager = Mockito.mock(ExecutableManager.class);
 
     @Before
     public void setUp() throws Exception {

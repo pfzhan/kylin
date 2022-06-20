@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.job.service;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_ACTION_ILLEGAL;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_NOT_EXIST;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_STATUS_ILLEGAL;
@@ -40,11 +41,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import io.kyligence.kap.job.rest.JobMapperFilter;
-import io.kyligence.kap.job.util.JobFilterUtil;
-import io.kyligence.kap.rest.delegate.TableMetadataInvoker;
-import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.io.IOUtils;
@@ -57,6 +55,8 @@ import org.apache.kylin.common.exception.JobErrorCode;
 import org.apache.kylin.common.exception.JobExceptionReason;
 import org.apache.kylin.common.exception.JobExceptionResolve;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.Message;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.JsonUtil;
@@ -67,9 +67,9 @@ import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.Output;
 import org.apache.kylin.metadata.model.Segments;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
@@ -77,6 +77,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -103,20 +104,31 @@ import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.job.rest.ExecutableResponse;
 import io.kyligence.kap.job.rest.ExecutableStepResponse;
 import io.kyligence.kap.job.rest.JobFilter;
+import io.kyligence.kap.job.rest.JobMapperFilter;
+import io.kyligence.kap.job.util.JobFilterUtil;
 import io.kyligence.kap.job.util.JobInfoUtil;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.model.FusionModel;
+import io.kyligence.kap.metadata.model.FusionModelManager;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.rest.aspect.Transaction;
 import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
+import io.kyligence.kap.rest.delegate.TableMetadataInvoker;
 import io.kyligence.kap.rest.request.JobUpdateRequest;
+import io.kyligence.kap.rest.service.JobSupporter;
+import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.ProjectService;
 import io.kyligence.kap.rest.util.SparkHistoryUIUtil;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import lombok.SneakyThrows;
 import lombok.val;
 import lombok.var;
 
-@Service
-public class JobInfoService extends BasicService {
+@Service("jobInfoService")
+public class JobInfoService extends BasicService implements JobSupporter {
 
     private static final Logger logger = LoggerFactory.getLogger(JobInfoService.class);
 
@@ -125,6 +137,17 @@ public class JobInfoService extends BasicService {
     private static final String PARSE_ERROR_MSG = "Error parsing the executablePO: ";
     public static final String EXCEPTION_CODE_PATH = "exception_to_code.json";
     public static final String EXCEPTION_CODE_DEFAULT = "KE-030001000";
+
+    private static final Map<String, String> JOB_TYPE_MAP = Maps.newHashMap();
+
+    static {
+        JOB_TYPE_MAP.put("INDEX_REFRESH", "Refresh Data");
+        JOB_TYPE_MAP.put("INDEX_MERGE", "Merge Data");
+        JOB_TYPE_MAP.put("INDEX_BUILD", "Build Index");
+        JOB_TYPE_MAP.put("INC_BUILD", "Load Data");
+        JOB_TYPE_MAP.put("TABLE_SAMPLING", "Sample Table");
+    }
+
 
     @Autowired
     private ProjectService projectService;
@@ -139,6 +162,9 @@ public class JobInfoService extends BasicService {
 
     @Autowired(required = false)
     private TableMetadataInvoker tableMetadataInvoker;
+
+    @Autowired
+    private ModelService modelService;
 
     @Autowired
     public JobInfoService setAclEvaluate(AclEvaluate aclEvaluate) {
@@ -202,14 +228,36 @@ public class JobInfoService extends BasicService {
         return convert(executable, executablePO);
     }
 
+    /**
+     * for 3x api, jobId is unique.
+     *
+     * @param jobId
+     * @return
+     */
+    public String getProjectByJobId(String jobId) {
+        Preconditions.checkNotNull(jobId);
+
+        for (ProjectInstance projectInstance : getReadableProjects()) {
+            ExecutableManager executableManager = getManager(ExecutableManager.class, projectInstance.getName());
+            if (Objects.nonNull(executableManager.getJob(jobId))) {
+                return projectInstance.getName();
+            }
+        }
+        return null;
+    }
+
     @VisibleForTesting
     public List<ProjectInstance> getReadableProjects() {
         return projectService.getReadableProjects(null, false);
     }
 
+    public List<ExecutableResponse> listJobs(final JobFilter jobFilter) {
+        return listJobs(jobFilter, -1, -1);
+    }
+
     // TODO model == null || !model.isFusionModel();
-    // TODO query TABLE_SAMPLING, SNAPSHOT_BUILD, SNAPSHOT_REFRESH, SECOND_STORAGE_NODE_CLEAN by 'subject' (JobUtil.deduceTargetSubject)
-    public DataResult<List<ExecutableResponse>> listJobs(final JobFilter jobFilter, int offset, int limit) {
+    // TODO query SECOND_STORAGE_NODE_CLEAN by 'subject' (JobUtil.deduceTargetSubject)
+    public List<ExecutableResponse> listJobs(final JobFilter jobFilter, int offset, int limit) {
         // TODO check permission when 'project' is empty
         if (StringUtils.isNotEmpty(jobFilter.getProject())) {
             aclEvaluate.checkProjectOperationPermission(jobFilter.getProject());
@@ -223,7 +271,7 @@ public class JobInfoService extends BasicService {
                             .fromPO(executablePO);
                     return this.convert(executable, executablePO);
                 }).collect(Collectors.toList());
-        return new DataResult<>(result, result.size());
+        return result;
     }
 
     public List<ExecutableStepResponse> getJobDetail(String project, String jobId) {
@@ -372,6 +420,20 @@ public class JobInfoService extends BasicService {
         }
     }
 
+    @Transactional
+    public ExecutableResponse manageJob(String project, ExecutableResponse job, String action) throws IOException {
+        Preconditions.checkNotNull(project);
+        Preconditions.checkNotNull(job);
+        Preconditions.checkArgument(!StringUtils.isBlank(action));
+
+        if (JobActionEnum.DISCARD == JobActionEnum.valueOf(action)) {
+            return job;
+        }
+        ExecutablePO executablePO = jobInfoDao.getExecutablePOByUuid(job.getId());
+        updateJobStatus(job.getId(), executablePO, project, action);
+        return getJobInstance(job.getId());
+    }
+
     @VisibleForTesting
     public void updateJobStatus(String jobId, ExecutablePO executablePO, String project, String action) throws IOException {
         val executableManager = getManager(ExecutableManager.class, project);
@@ -444,14 +506,13 @@ public class JobInfoService extends BasicService {
      * @param yarnAppUrl
      */
     public void updateSparkJobInfo(String project, String jobId, String taskId, String yarnAppId, String yarnAppUrl) {
+        if (jobId.contains(ASYNC_QUERY_JOB_ID_PRE)) {
+            return;
+        }
         val executableManager = getManager(ExecutableManager.class, project);
         Map<String, String> extraInfo = Maps.newHashMap();
         extraInfo.put(ExecutableConstants.YARN_APP_ID, yarnAppId);
         extraInfo.put(ExecutableConstants.YARN_APP_URL, yarnAppUrl);
-
-        if (jobId.contains(ASYNC_QUERY_JOB_ID_PRE)) {
-            return;
-        }
 
         executableManager.updateJobOutput(taskId, null, extraInfo, null, null);
     }
@@ -506,7 +567,8 @@ public class JobInfoService extends BasicService {
                 .collect(Collectors.toList());
     }
 
-    private ExecutableResponse convert(AbstractExecutable executable, ExecutablePO executablePO) {
+    @VisibleForTesting
+    public ExecutableResponse convert(AbstractExecutable executable, ExecutablePO executablePO) {
         ExecutableResponse executableResponse = ExecutableResponse.create(executable, executablePO);
         executableResponse.setStatus(executable.getStatus(executablePO).toJobStatus());
         return executableResponse;
@@ -775,5 +837,92 @@ public class JobInfoService extends BasicService {
         val output = executableManager.getOutputFromHDFSByJobId(jobId, stepId, Integer.MAX_VALUE);
         return Optional.ofNullable(output.getVerboseMsgStream()).orElse(
                 IOUtils.toInputStream(Optional.ofNullable(output.getVerboseMsg()).orElse(StringUtils.EMPTY), "UTF-8"));
+    }
+
+    public List<ExecutableResponse> addOldParams(List<ExecutableResponse> executableResponseList) {
+        executableResponseList.forEach(executableResponse -> {
+            ExecutableResponse.OldParams oldParams = new ExecutableResponse.OldParams();
+            NDataModel nDataModel = modelService.getManager(NDataModelManager.class, executableResponse.getProject())
+                    .getDataModelDesc(executableResponse.getTargetModel());
+            String modelName = Objects.isNull(nDataModel) ? null : nDataModel.getAlias();
+
+            List<ExecutableStepResponse> stepResponseList = getJobDetail(executableResponse.getProject(),
+                    executableResponse.getId());
+            stepResponseList.forEach(stepResponse -> {
+                ExecutableStepResponse.OldParams stepOldParams = new ExecutableStepResponse.OldParams();
+                stepOldParams.setExecWaitTime(stepResponse.getWaitTime());
+                stepResponse.setOldParams(stepOldParams);
+            });
+
+            oldParams.setProjectName(executableResponse.getProject());
+            oldParams.setRelatedCube(modelName);
+            oldParams.setDisplayCubeName(modelName);
+            oldParams.setUuid(executableResponse.getId());
+            oldParams.setType(JOB_TYPE_MAP.get(executableResponse.getJobName()));
+            oldParams.setName(executableResponse.getJobName());
+            oldParams.setExecInterruptTime(0L);
+            oldParams.setMrWaiting(executableResponse.getWaitTime());
+
+            executableResponse.setOldParams(oldParams);
+            executableResponse.setSteps(stepResponseList);
+        });
+
+        return executableResponseList;
+    }
+
+    @Override
+    public void stopBatchJob(String project, TableDesc tableDesc) {
+        for (NDataModel tableRelatedModel : getManager(NDataflowManager.class, project).getModelsUsingTable(tableDesc)) {
+            stopBatchJobByModel(project, tableRelatedModel.getId());
+        }
+    }
+
+    private void stopBatchJobByModel(String project, String modelId) {
+
+        NDataModel model = getManager(NDataModelManager.class, project).getDataModelDesc(modelId);
+        FusionModelManager fusionModelManager = FusionModelManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                project);
+        FusionModel fusionModel = fusionModelManager.getFusionModel(modelId);
+        if (!model.isFusionModel() || Objects.isNull(fusionModel)) {
+            logger.warn("model is not fusion model or fusion model is null, {}", modelId);
+            return;
+        }
+
+        ExecutableManager executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                project);
+        executableManager.getJobs().stream().map(executableManager::getJob).filter(
+                        job -> StringUtils.equalsIgnoreCase(job.getTargetModelId(), fusionModel.getBatchModel().getUuid()))
+                .forEach(job -> {
+                    Set<ExecutableState> matchedExecutableStates = Stream
+                            .of(JobStatusEnum.FINISHED, JobStatusEnum.ERROR, JobStatusEnum.DISCARDED)
+                            .map(this::parseToExecutableState).collect(Collectors.toSet());
+                    if (!matchedExecutableStates.contains(job.getOutput().getState())) {
+                        executableManager.discardJob(job.getId());
+                    }
+                });
+    }
+
+    private ExecutableState parseToExecutableState(JobStatusEnum status) {
+        Message msg = MsgPicker.getMsg();
+        switch (status) {
+            case SUICIDAL:
+            case DISCARDED:
+                return ExecutableState.SUICIDAL;
+            case ERROR:
+                return ExecutableState.ERROR;
+            case FINISHED:
+                return ExecutableState.SUCCEED;
+            case NEW:
+            case READY:
+                return ExecutableState.READY;
+            case PENDING:
+                return ExecutableState.PENDING;
+            case RUNNING:
+                return ExecutableState.RUNNING;
+            case STOPPED:
+                return ExecutableState.PAUSED;
+            default:
+                throw new KylinException(INVALID_PARAMETER, msg.getIllegalExecutableState());
+        }
     }
 }

@@ -37,7 +37,6 @@ import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -48,10 +47,10 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.job.rest.ExecutableResponse;
+import io.kyligence.kap.job.rest.JobFilter;
+import io.kyligence.kap.job.service.JobInfoService;
 import io.kyligence.kap.rest.controller.BaseController;
-import io.kyligence.kap.rest.request.JobFilter;
-import io.kyligence.kap.rest.response.ExecutableResponse;
-import io.kyligence.kap.rest.service.JobService;
 import io.swagger.annotations.ApiOperation;
 
 @Controller
@@ -61,8 +60,7 @@ public class JobControllerV2 extends BaseController {
     private static final String JOB_ID_ARG_NAME = "jobId";
 
     @Autowired
-    @Qualifier("jobService")
-    private JobService jobService;
+    private JobInfoService jobInfoService;
 
     @Autowired
     public AclEvaluate aclEvaluate;
@@ -72,10 +70,10 @@ public class JobControllerV2 extends BaseController {
     @ResponseBody
     public EnvelopeResponse<ExecutableResponse> resume(@PathVariable(value = "jobId") String jobId) throws IOException {
         checkRequiredArg(JOB_ID_ARG_NAME, jobId);
-        final ExecutableResponse jobInstance = jobService.getJobInstance(jobId);
+        final ExecutableResponse jobInstance = jobInfoService.getJobInstance(jobId);
         aclEvaluate.checkProjectOperationPermission(jobInstance.getProject());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
-                jobService.manageJob(jobInstance.getProject(), jobInstance, JobActionEnum.RESUME.toString()), "");
+                jobInfoService.manageJob(jobInstance.getProject(), jobInstance, JobActionEnum.RESUME.toString()), "");
     }
 
     @ApiOperation(value = "getJobList", tags = { "DW" })
@@ -95,7 +93,7 @@ public class JobControllerV2 extends BaseController {
         for (Integer code : status) {
             JobStatusEnum jobStatus = JobStatusEnum.getByCode(code);
             if (Objects.isNull(jobStatus)) {
-                jobService.checkJobStatus(String.valueOf(code));
+                jobInfoService.checkJobStatus(String.valueOf(code));
                 continue;
             }
             statuses.add(jobStatus.toString());
@@ -104,8 +102,8 @@ public class JobControllerV2 extends BaseController {
         JobFilter jobFilter = new JobFilter(statuses,
                 Objects.isNull(jobName) ? Lists.newArrayList() : Lists.newArrayList(jobName), timeFilter, null, key,
                 project, sortBy, reverse);
-        List<ExecutableResponse> executables = jobService.listJobs(jobFilter);
-        executables = jobService.addOldParams(executables);
+        List<ExecutableResponse> executables = jobInfoService.listJobs(jobFilter);
+        executables = jobInfoService.addOldParams(executables);
         Map<String, Object> result = getDataResponse("jobs", executables, pageOffset, pageSize);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, result, "");
     }

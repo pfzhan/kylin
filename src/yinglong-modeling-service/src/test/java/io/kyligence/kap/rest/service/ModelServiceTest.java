@@ -89,8 +89,6 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
@@ -142,6 +140,8 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.engine.spark.utils.ComputedColumnEvalUtil;
+import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.job.manager.JobManager;
 import io.kyligence.kap.junit.rule.TransactionExceptedException;
 import io.kyligence.kap.metadata.acl.AclTCR;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
@@ -178,7 +178,11 @@ import io.kyligence.kap.metadata.model.RetentionRange;
 import io.kyligence.kap.metadata.model.VolatileRange;
 import io.kyligence.kap.metadata.model.util.ExpandableMeasureUtil;
 import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinTableDesc;
+<<<<<<< HEAD
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+=======
+import io.kyligence.kap.metadata.project.NProjectManager;
+>>>>>>> KE-36679 fix code style
 import io.kyligence.kap.metadata.query.QueryTimesResponse;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.metadata.user.ManagedUser;
@@ -190,7 +194,6 @@ import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.MultiPartitionMappingRequest;
 import io.kyligence.kap.rest.request.OwnerChangeRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
-import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
 import io.kyligence.kap.rest.response.CheckSegmentResponse;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
 import io.kyligence.kap.rest.response.FusionModelResponse;
@@ -207,10 +210,6 @@ import io.kyligence.kap.rest.response.SegmentPartitionResponse;
 import io.kyligence.kap.rest.response.SimplifiedColumnResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import io.kyligence.kap.rest.util.SCD2SimplificationConvertUtil;
-import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
-import io.kyligence.kap.secondstorage.SecondStorageUtil;
-import io.kyligence.kap.secondstorage.config.Node;
-import io.kyligence.kap.secondstorage.metadata.NodeGroup;
 import io.kyligence.kap.streaming.jobs.StreamingJobListener;
 import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import io.kyligence.kap.tool.bisync.SyncContext;
@@ -1497,8 +1496,8 @@ public class ModelServiceTest extends SourceTestCase {
 
     @Test
     public void testGetRelatedModels_HasNoErrorJobs() {
-        NExecutableManager executableManager = mock(NExecutableManager.class);
-        when(modelService.getManager(NExecutableManager.class, "default")).thenReturn(executableManager);
+        ExecutableManager executableManager = mock(ExecutableManager.class);
+        when(modelService.getManager(ExecutableManager.class, "default")).thenReturn(executableManager);
         when(executableManager.getExecutablesByStatus(ExecutableState.ERROR)).thenReturn(Lists.newArrayList());
         List<RelatedModelResponse> responses = modelService.getRelateModels("default", "DEFAULT.TEST_KYLIN_FACT",
                 "nmodel_basic");
@@ -4152,7 +4151,7 @@ public class ModelServiceTest extends SourceTestCase {
             model.setManagementType(ManagementType.MODEL_BASED);
         });
         modelService.updatePartitionColumn(project, modelId, null, null);
-        val runningExecutables = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+        val runningExecutables = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                 .getRunningExecutables(project, modelId);
         Assert.assertEquals(0, runningExecutables.size());
     }

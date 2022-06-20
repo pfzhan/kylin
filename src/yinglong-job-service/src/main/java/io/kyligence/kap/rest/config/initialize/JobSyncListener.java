@@ -64,14 +64,15 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.job.manager.SegmentAutoMergeUtil;
 import org.apache.kylin.metadata.model.TimeRange;
 import org.apache.kylin.rest.util.SpringContext;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+<<<<<<< HEAD
 import com.google.common.base.Throwables;
+=======
+>>>>>>> KE-36679 fix code style
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -85,6 +86,7 @@ import io.kyligence.kap.common.scheduler.JobReadyNotifier;
 import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
 import io.kyligence.kap.job.execution.NSparkCubingJob;
+import io.kyligence.kap.job.manager.SegmentAutoMergeUtil;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -92,7 +94,10 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.response.SegmentPartitionResponse;
 import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.MeterRegistry;
+<<<<<<< HEAD
 import lombok.Builder;
+=======
+>>>>>>> KE-36679 fix code style
 import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
@@ -101,6 +106,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
+//TODO need to be rewritten
 public class JobSyncListener {
     private static final long RETRY_INTERVAL = 5000L;
     private static final int MAX_RETRY_COUNT = 5;
@@ -144,13 +150,13 @@ public class JobSyncListener {
     @Subscribe
     public void onJobIsReady(JobReadyNotifier notifier) {
         jobReadyNotified = true;
-        NDefaultScheduler.getInstance(notifier.getProject()).fetchJobsImmediately();
+        // NDefaultScheduler.getInstance(notifier.getProject()).fetchJobsImmediately();
     }
 
     @Subscribe
     public void onJobFinished(JobFinishedNotifier notifier) {
         try {
-            NDefaultScheduler.getInstance(notifier.getProject()).fetchJobsImmediately();
+            // NDefaultScheduler.getInstance(notifier.getProject()).fetchJobsImmediately();
             postJobInfo(extractJobInfo(notifier));
         } finally {
             updateMetrics(notifier);

@@ -37,7 +37,6 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.QueryErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.query.util.PushDownUtil;
@@ -70,7 +69,8 @@ public class NBadQueryAndPushDownTest extends NLocalWithSparkSessionTest {
 
     @After
     public void teardown() {
-        NDefaultScheduler.destroyInstance();
+        //TODO need to be rewritten
+        // NDefaultScheduler.destroyInstance();
         super.cleanupTestMetadata();
     }
 

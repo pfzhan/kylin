@@ -22,7 +22,7 @@
 
 package io.kyligence.kap.engine.spark.job
 
-import org.apache.kylin.job.execution.AbstractExecutable
+import io.kyligence.kap.job.execution.AbstractExecutable
 import org.apache.spark.sql.common.{LocalMetadata, SharedSparkSession, SparderBaseFunSuite}
 
 class TestSparkCubingStep extends SparderBaseFunSuite with SharedSparkSession with LocalMetadata {

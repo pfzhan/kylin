@@ -28,15 +28,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import io.kyligence.kap.util.ExecAndComp;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.hadoop.util.Shell;
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.RandomUtil;
-import org.apache.kylin.job.engine.JobEngineConfig;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.spark.SparkConf;
 import org.apache.spark.sql.SparderEnv;
@@ -58,6 +54,7 @@ import io.kyligence.kap.junit.TimeZoneTestRunner;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.query.relnode.ContextUtil;
+import io.kyligence.kap.util.ExecAndComp;
 import lombok.val;
 import scala.runtime.AbstractFunction1;
 
@@ -90,17 +87,19 @@ public class MultiPartitionPruningTest extends NLocalWithSparkSessionTest implem
     public void setup() throws Exception {
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         this.createTestMetadata("src/test/resources/ut_meta/multi_partition_pruning");
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
-        if (!scheduler.hasStarted()) {
-            throw new RuntimeException("scheduler has not been started");
-        }
+        //TODO need to be rewritten
+        //        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
+        //        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
+        //        if (!scheduler.hasStarted()) {
+        //            throw new RuntimeException("scheduler has not been started");
+        //        }
         overwriteSystemProp("kylin.model.multi-partition-enabled", "true");
     }
 
     @After
     public void after() throws Exception {
-        NDefaultScheduler.destroyInstance();
+        //TODO need to be rewritten
+        // NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
     }
 

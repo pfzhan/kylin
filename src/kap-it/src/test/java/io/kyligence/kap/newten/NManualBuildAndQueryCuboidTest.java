@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.measure.bitmap.BitmapCounter;
 import org.apache.kylin.measure.bitmap.BitmapSerializer;
 import org.apache.kylin.metadata.datatype.DataType;
@@ -87,7 +86,8 @@ public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
 
     @After
     public void after() {
-        NDefaultScheduler.destroyInstance();
+        //TODO need to be rewritten
+        // NDefaultScheduler.destroyInstance();
         super.cleanupTestMetadata();
     }
 

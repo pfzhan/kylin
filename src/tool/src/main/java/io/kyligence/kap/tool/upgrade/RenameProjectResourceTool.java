@@ -24,10 +24,10 @@
 
 package io.kyligence.kap.tool.upgrade;
 
+import static io.kyligence.kap.job.execution.AbstractExecutable.DEPENDENT_FILES;
 import static io.kyligence.kap.metadata.cube.model.NBatchConstants.P_DIST_META_URL;
 import static io.kyligence.kap.metadata.cube.model.NBatchConstants.P_OUTPUT_META_URL;
 import static io.kyligence.kap.metadata.cube.model.NBatchConstants.P_PROJECT_NAME;
-import static org.apache.kylin.job.execution.AbstractExecutable.DEPENDENT_FILES;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;

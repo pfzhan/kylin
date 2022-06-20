@@ -380,7 +380,7 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
                 // job quits voluntarily or non-voluntarily, in this case, the job is "finished"
                 // we createSucceed() to run onExecuteFinished()
                 result = ExecuteResult.createSucceed();
-            } catch (Throwable e) {
+            } catch (Exception e) {
                 result = ExecuteResult.createError(e);
             }
 
@@ -635,7 +635,7 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
         return output.getEndTime();
     }
 
-    protected final Map<String, String> getExtraInfo() {
+    public final Map<String, String> getExtraInfo() {
         return getOutput().getExtra();
     }
 

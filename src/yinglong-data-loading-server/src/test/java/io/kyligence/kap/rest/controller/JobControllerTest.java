@@ -52,14 +52,15 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.job.rest.ExecutableResponse;
+import io.kyligence.kap.job.rest.ExecutableStepResponse;
+import io.kyligence.kap.job.rest.JobFilter;
+import io.kyligence.kap.job.service.JobInfoService;
 import io.kyligence.kap.rest.request.JobErrorRequest;
-import io.kyligence.kap.rest.request.JobFilter;
 import io.kyligence.kap.rest.request.JobUpdateRequest;
 import io.kyligence.kap.rest.request.SparkJobTimeRequest;
 import io.kyligence.kap.rest.request.SparkJobUpdateRequest;
 import io.kyligence.kap.rest.request.StageRequest;
-import io.kyligence.kap.rest.response.ExecutableResponse;
-import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import io.kyligence.kap.rest.service.JobService;
 import io.kyligence.kap.tool.restclient.RestClient;
 import lombok.val;
@@ -70,6 +71,9 @@ public class JobControllerTest extends NLocalFileMetadataTestCase {
 
     @Mock
     private JobService jobService;
+
+    @Mock
+    private JobInfoService jobInfoService;
 
     @InjectMocks
     private final JobController jobController = Mockito.spy(new JobController());
@@ -99,7 +103,7 @@ public class JobControllerTest extends NLocalFileMetadataTestCase {
         List<String> jobNames = Lists.newArrayList();
         List<String> statuses = Lists.newArrayList("NEW", "RUNNING");
         JobFilter jobFilter = new JobFilter(statuses, jobNames, 4, "", "", "default", "job_name", false);
-        Mockito.when(jobService.listJobs(jobFilter)).thenReturn(jobs);
+        Mockito.when(jobInfoService.listJobs(jobFilter)).thenReturn(jobs);
         mockMvc.perform(MockMvcRequestBuilders.get("/api/jobs").contentType(MediaType.APPLICATION_JSON)
                 .param("project", "default").param("page_offset", "0").param("page_size", "10")
                 .param("time_filter", "1").param("subject", "").param("key", "").param("job_names", "")
@@ -132,7 +136,7 @@ public class JobControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testDropJob() throws Exception {
-        Mockito.doNothing().when(jobService).batchDropJob("default",
+        Mockito.doNothing().when(jobInfoService).batchDropJob("default",
                 Lists.newArrayList("e1ad7bb0-522e-456a-859d-2eab1df448de"), Lists.newArrayList());
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/jobs").param("project", "default")
                 .param("job_ids", "e1ad7bb0-522e-456a-859d-2eab1df448de").param("statuses", "")
@@ -144,7 +148,7 @@ public class JobControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testDropGlobalJob() throws Exception {
-        Mockito.doNothing().when(jobService)
+        Mockito.doNothing().when(jobInfoService)
                 .batchDropGlobalJob(Lists.newArrayList("e1ad7bb0-522e-456a-859d-2eab1df448de"), Lists.newArrayList());
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/jobs")
                 .param("job_ids", "e1ad7bb0-522e-456a-859d-2eab1df448de").param("statuses", "")
@@ -156,7 +160,7 @@ public class JobControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testDropJob_selectNoneJob_exception() throws Exception {
-        Mockito.doNothing().when(jobService).batchDropJob("default", Lists.newArrayList(), Lists.newArrayList());
+        Mockito.doNothing().when(jobInfoService).batchDropJob("default", Lists.newArrayList(), Lists.newArrayList());
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/jobs").param("project", "default").param("job_ids", "")
                 .param("statuses", "").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
@@ -166,7 +170,7 @@ public class JobControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testUpdateJobStatus_PASS() throws Exception {
         val request = mockJobUpdateRequest();
-        Mockito.doNothing().when(jobService).batchUpdateJobStatus(mockJobUpdateRequest().getJobIds(), "default",
+        Mockito.doNothing().when(jobInfoService).batchUpdateJobStatus(mockJobUpdateRequest().getJobIds(), "default",
                 "RESUME", mockJobUpdateRequest().getStatuses());
         mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/status").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
@@ -181,7 +185,7 @@ public class JobControllerTest extends NLocalFileMetadataTestCase {
     public void testUpdateGlobalJobStatus_PASS() throws Exception {
         val request = mockJobUpdateRequest();
         request.setProject(null);
-        Mockito.doNothing().when(jobService).batchUpdateGlobalJobStatus(mockJobUpdateRequest().getJobIds(), "RESUME",
+        Mockito.doNothing().when(jobInfoService).batchUpdateGlobalJobStatus(mockJobUpdateRequest().getJobIds(), "RESUME",
                 mockJobUpdateRequest().getStatuses());
         mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/status").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
@@ -196,7 +200,7 @@ public class JobControllerTest extends NLocalFileMetadataTestCase {
     public void testUpdateJobStatus_selectNoneJob_Exception() throws Exception {
         val request = mockJobUpdateRequest();
         request.setJobIds(Lists.newArrayList());
-        Mockito.doNothing().when(jobService).batchUpdateJobStatus(mockJobUpdateRequest().getJobIds(), "default",
+        Mockito.doNothing().when(jobInfoService).batchUpdateJobStatus(mockJobUpdateRequest().getJobIds(), "default",
                 "RESUME", mockJobUpdateRequest().getStatuses());
         mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/status").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
@@ -209,7 +213,7 @@ public class JobControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetJobDetail() throws Exception {
-        Mockito.when(jobService.getJobDetail("default", "e1ad7bb0-522e-456a-859d-2eab1df448de"))
+        Mockito.when(jobInfoService.getJobDetail("default", "e1ad7bb0-522e-456a-859d-2eab1df448de"))
                 .thenReturn(mockStepsResponse());
         mockMvc.perform(MockMvcRequestBuilders.get("/api/jobs/{job}/detail", "e1ad7bb0-522e-456a-859d-2eab1df448de")
                 .contentType(MediaType.APPLICATION_JSON).param("project", "default")
@@ -290,7 +294,7 @@ public class JobControllerTest extends NLocalFileMetadataTestCase {
         request.setTaskId("c");
         request.setYarnAppUrl("url");
         request.setYarnAppId("app_id");
-        Mockito.doNothing().when(jobService).updateSparkJobInfo(request.getProject(), request.getJobId(),
+        Mockito.doNothing().when(jobInfoService).updateSparkJobInfo(request.getProject(), request.getJobId(),
                 request.getTaskId(), request.getYarnAppId(), request.getYarnAppUrl());
         mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/spark").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
@@ -329,7 +333,7 @@ public class JobControllerTest extends NLocalFileMetadataTestCase {
         request.setSegmentId("b");
         request.setTaskId("c");
         request.setStatus("RUNNING");
-        Mockito.doNothing().when(jobService).updateStageStatus(request.getProject(), request.getTaskId(),
+        Mockito.doNothing().when(jobInfoService).updateStageStatus(request.getProject(), request.getTaskId(),
                 request.getSegmentId(), request.getStatus(), request.getUpdateInfo(), request.getErrMsg());
         mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/stage/status") //
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
@@ -343,7 +347,7 @@ public class JobControllerTest extends NLocalFileMetadataTestCase {
         request.setSegmentId("b");
         request.setTaskId("");
         request.setStatus("RUNNING");
-        Mockito.doNothing().when(jobService).updateStageStatus(request.getProject(), request.getTaskId(),
+        Mockito.doNothing().when(jobInfoService).updateStageStatus(request.getProject(), request.getTaskId(),
                 request.getSegmentId(), request.getStatus(), request.getUpdateInfo(), request.getErrMsg());
         mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/stage/status") //
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
@@ -361,7 +365,7 @@ public class JobControllerTest extends NLocalFileMetadataTestCase {
         request.setTaskId("c");
         request.setYarnJobWaitTime("2");
         request.setYarnJobRunTime("1");
-        Mockito.doNothing().when(jobService).updateSparkTimeInfo(request.getProject(), request.getJobId(),
+        Mockito.doNothing().when(jobInfoService).updateSparkTimeInfo(request.getProject(), request.getJobId(),
                 request.getTaskId(), request.getYarnJobWaitTime(), request.getYarnJobRunTime());
         mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/wait_and_run_time")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))

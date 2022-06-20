@@ -24,12 +24,12 @@
 
 package org.apache.kylin.job;
 
-import org.apache.kylin.job.execution.AbstractExecutable;
-
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+
+import io.kyligence.kap.job.execution.AbstractExecutable;
 
 public class SecondStorageStepFactory {
     private static final Map<Class<? extends SecondStorageStep>, Supplier<AbstractExecutable>> SUPPLIER_MAP = new ConcurrentHashMap<>(5);

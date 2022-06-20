@@ -27,15 +27,9 @@ package io.kyligence.kap.engine.spark.job;
 import java.io.IOException;
 import java.util.List;
 
-import io.kyligence.kap.job.execution.AbstractExecutable;
-import io.kyligence.kap.job.execution.NSparkCubingJob;
-import io.kyligence.kap.job.execution.NSparkMergingJob;
-import io.kyligence.kap.job.manager.ExecutableManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.RandomUtil;
-import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.junit.After;
 import org.junit.Assert;
@@ -45,6 +39,10 @@ import org.junit.Test;
 import org.sparkproject.guava.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.execution.NSparkCubingJob;
+import io.kyligence.kap.job.execution.NSparkMergingJob;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
@@ -58,18 +56,20 @@ public class NSparkCubingJobOnYarnTest extends NLocalFileMetadataTestCase {
     public void setup() throws Exception {
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         createTestMetadata();
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance("default");
-        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
-        overwriteSystemProp("kylin.hadoop.conf.dir", "../examples/test_case_data/sandbox");
-        overwriteSystemProp("SPARK_HOME", "../../build/spark");
-        if (!scheduler.hasStarted()) {
-            throw new RuntimeException("scheduler has not been started");
-        }
+        //TODO need to be rewritten
+        //        NDefaultScheduler scheduler = NDefaultScheduler.getInstance("default");
+        //        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
+        //        overwriteSystemProp("kylin.hadoop.conf.dir", "../examples/test_case_data/sandbox");
+        //        overwriteSystemProp("SPARK_HOME", "../../build/spark");
+        //        if (!scheduler.hasStarted()) {
+        //            throw new RuntimeException("scheduler has not been started");
+        //        }
     }
 
     @After
     public void after() throws Exception {
-        NDefaultScheduler.destroyInstance();
+        //TODO need to be rewritten
+        // NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
     }
 

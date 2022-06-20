@@ -24,21 +24,22 @@
 
 package io.kyligence.kap.clickhouse.job;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.SecondStorageCleanJobBuildParams;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.metadata.model.SegmentRange;
+
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.execution.DefaultChainedExecutable;
+import io.kyligence.kap.job.factory.JobFactory;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import lombok.val;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.SecondStorageCleanJobBuildParams;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.DefaultChainedExecutable;
-import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.factory.JobFactory;
-import org.apache.kylin.metadata.model.SegmentRange;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 public class ClickHouseSegmentCleanJob extends DefaultChainedExecutable {
 

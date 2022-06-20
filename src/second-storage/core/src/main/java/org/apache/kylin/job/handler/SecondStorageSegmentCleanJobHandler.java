@@ -24,17 +24,18 @@
 
 package org.apache.kylin.job.handler;
 
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import java.util.stream.Collectors;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.SecondStorageCleanJobBuildParams;
-import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.factory.JobFactory;
 import org.apache.kylin.job.factory.JobFactoryConstant;
 import org.apache.kylin.job.model.JobParam;
 
-import java.util.stream.Collectors;
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.factory.JobFactory;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 
 public class SecondStorageSegmentCleanJobHandler extends AbstractSecondStorageJobHanlder {
     @Override

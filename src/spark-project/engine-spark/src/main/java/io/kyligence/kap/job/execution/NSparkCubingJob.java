@@ -35,13 +35,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.rest.delegate.ModelMetadataBaseInvoker;
-import io.kyligence.kap.rest.request.DataFlowUpdateRequest;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.util.RandomUtil;
-import org.apache.kylin.job.execution.ExecutableParams;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.slf4j.Logger;
@@ -67,6 +64,8 @@ import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.PartitionStatusEnum;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.job.JobBucket;
+import io.kyligence.kap.rest.delegate.ModelMetadataBaseInvoker;
+import io.kyligence.kap.rest.request.DataFlowUpdateRequest;
 import lombok.val;
 
 /**

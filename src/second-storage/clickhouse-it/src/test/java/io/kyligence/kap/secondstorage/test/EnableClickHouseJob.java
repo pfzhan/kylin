@@ -23,10 +23,20 @@
  */
 package io.kyligence.kap.secondstorage.test;
 
+import static io.kyligence.kap.common.util.NLocalFileMetadataTestCase.getLocalWorkingDirectory;
+
+import java.io.IOException;
+import java.util.List;
+
+import org.apache.kylin.common.KylinConfig;
+import org.eclipse.jetty.toolchain.test.SimpleRequest;
+import org.junit.Assert;
+import org.testcontainers.containers.JdbcDatabaseContainer;
+
 import io.kyligence.kap.clickhouse.ClickHouseStorage;
 import io.kyligence.kap.clickhouse.job.ClickHouseLoad;
-import static io.kyligence.kap.common.util.NLocalFileMetadataTestCase.getLocalWorkingDirectory;
 import io.kyligence.kap.common.util.Unsafe;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.newten.clickhouse.ClickHouseUtils;
 import io.kyligence.kap.newten.clickhouse.EmbeddedHttpServer;
 import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
@@ -35,14 +45,6 @@ import io.kyligence.kap.secondstorage.management.SecondStorageService;
 import io.kyligence.kap.secondstorage.test.utils.JobWaiter;
 import lombok.SneakyThrows;
 import lombok.val;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.eclipse.jetty.toolchain.test.SimpleRequest;
-import org.junit.Assert;
-import org.testcontainers.containers.JdbcDatabaseContainer;
-
-import java.io.IOException;
-import java.util.List;
 
 
 public class EnableClickHouseJob extends EnableScheduler implements JobWaiter {
@@ -83,7 +85,7 @@ public class EnableClickHouseJob extends EnableScheduler implements JobWaiter {
     @SneakyThrows
     @Override
     protected void after() {
-        val execManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val execManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val jobs = execManager.getAllExecutables();
         jobs.forEach(job -> waitJobEnd(project, job.getId()));
         val jobInfo = secondStorageService.changeProjectSecondStorageState(project, null, false);

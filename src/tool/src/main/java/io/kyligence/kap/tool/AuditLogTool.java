@@ -57,8 +57,6 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.ExecutableApplication;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.OptionsHelper;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -71,6 +69,8 @@ import io.kyligence.kap.common.persistence.AuditLog;
 import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
 import io.kyligence.kap.common.util.OptionBuilder;
 import io.kyligence.kap.common.util.Unsafe;
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import lombok.val;
 
 public class AuditLogTool extends ExecutableApplication {
@@ -170,7 +170,7 @@ public class AuditLogTool extends ExecutableApplication {
         if (StringUtils.isEmpty(jobId)) {
             throw new KylinException(PARAMETER_EMPTY, "job");
         }
-        AbstractExecutable job = NExecutableManager.getInstance(kylinConfig, project).getJob(jobId);
+        AbstractExecutable job = ExecutableManager.getInstance(kylinConfig, project).getJob(jobId);
         long startTs = job.getStartTime();
         long endTs = job.getEndTime();
 

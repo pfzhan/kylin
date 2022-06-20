@@ -24,7 +24,23 @@
 
 package io.kyligence.kap.clickhouse.job;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.SecondStorageCleanJobBuildParams;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.metadata.model.SegmentRange;
+
 import com.google.common.base.Preconditions;
+
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.execution.DefaultChainedExecutable;
+import io.kyligence.kap.job.factory.JobFactory;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -33,20 +49,6 @@ import io.kyligence.kap.secondstorage.metadata.Manager;
 import io.kyligence.kap.secondstorage.metadata.TableFlow;
 import io.kyligence.kap.secondstorage.metadata.TablePartition;
 import lombok.val;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.SecondStorageCleanJobBuildParams;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.DefaultChainedExecutable;
-import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.factory.JobFactory;
-import org.apache.kylin.metadata.model.SegmentRange;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 public class ClickHouseIndexCleanJob extends DefaultChainedExecutable {
 

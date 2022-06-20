@@ -29,13 +29,18 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.execution.ChainedExecutable;
+import io.kyligence.kap.job.execution.ChainedStageExecutable;
 import io.kyligence.kap.job.execution.NSparkExecutable;
-import io.kyligence.kap.job.execution.SucceedChainedTestExecutable;
+import org.apache.kylin.job.execution.SucceedChainedTestExecutable;
 import io.kyligence.kap.job.execution.stage.NStageForBuild;
 import io.kyligence.kap.job.execution.stage.NStageForMerge;
 import io.kyligence.kap.job.execution.stage.NStageForSnapshot;
 import io.kyligence.kap.job.execution.stage.StageBase;
 import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.job.rest.ExecutableStepResponse;
+import io.kyligence.kap.job.service.JobInfoService;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.kylin.common.util.JsonUtil;
@@ -43,11 +48,7 @@ import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.exception.ExecuteException;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.ChainedExecutable;
-import org.apache.kylin.job.execution.ChainedStageExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
@@ -69,13 +70,15 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
-import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import lombok.val;
 import lombok.var;
 
 public class StageTest extends NLocalFileMetadataTestCase {
     @InjectMocks
     private final JobService jobService = Mockito.spy(new JobService());
+
+    @InjectMocks
+    private final JobInfoService jobInfoService = Mockito.spy(new JobInfoService());
 
     @Mock
     private final ModelService modelService = Mockito.spy(ModelService.class);
@@ -147,7 +150,7 @@ public class StageTest extends NLocalFileMetadataTestCase {
 
         manager.discardJob(executable.getId());
 
-        val jobDetail = jobService.getJobDetail(getProject(), executable.getId());
+        val jobDetail = jobInfoService.getJobDetail(getProject(), executable.getId());
         jobDetail.forEach(res -> {
             Assert.assertEquals(JobStatusEnum.DISCARDED, res.getStatus());
             if (CollectionUtils.isNotEmpty(res.getSubStages())) {
@@ -327,7 +330,7 @@ public class StageTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testSetStageOutput() {
-        NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), getProject());
+        ExecutableManager manager = ExecutableManager.getInstance(jobService.getConfig(), getProject());
 
         var taskOrJobId = RandomUtil.randomUUIDStr();
         var jobOutput = new ExecutableOutputPO();

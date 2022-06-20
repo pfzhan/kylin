@@ -51,11 +51,8 @@ import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.dao.JobStatistics;
 import org.apache.kylin.job.dao.JobStatisticsManager;
-import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -127,19 +124,21 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         overwriteSystemProp("kylin.engine.persist-flattable-threshold", "0");
         overwriteSystemProp("kylin.engine.persist-flatview", "true");
 
-        NDefaultScheduler.destroyInstance();
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        scheduler.init(new JobEngineConfig(getTestConfig()));
-        if (!scheduler.hasStarted()) {
-            throw new RuntimeException("scheduler has not been started");
-        }
+        //TODO need to be rewritten
+        //        NDefaultScheduler.destroyInstance();
+        //        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
+        //        scheduler.init(new JobEngineConfig(getTestConfig()));
+        //        if (!scheduler.hasStarted()) {
+        //            throw new RuntimeException("scheduler has not been started");
+        //        }
 
         config = getTestConfig();
     }
 
     @After
     public void after() {
-        NDefaultScheduler.destroyInstance();
+        //TODO need to be rewritten
+        // NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
     }
 
@@ -510,7 +509,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(1, df.getSegments().size());
         await().untilAsserted(() -> Assert.assertEquals(ExecutableState.RUNNING, job.getStatus()));
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject()).discardJob(job.getId());
+            ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject()).discardJob(job.getId());
             return null;
         }, getProject(), UnitOfWork.DEFAULT_MAX_RETRY, UnitOfWork.DEFAULT_EPOCH_ID, job.getId());
         dsMgr = NDataflowManager.getInstance(config, getProject());
@@ -544,7 +543,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         execMgr.addJob(firstMergeJob);
         await().untilAsserted(() -> Assert.assertEquals(ExecutableState.RUNNING, firstMergeJob.getStatus()));
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject())
+            ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject())
                     .discardJob(firstMergeJob.getId());
             return null;
         }, getProject(), UnitOfWork.DEFAULT_MAX_RETRY, UnitOfWork.DEFAULT_EPOCH_ID, firstMergeJob.getId());
@@ -850,7 +849,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
 
         // pause job simulation
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).pauseJob(job.getId());
+            ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).pauseJob(job.getId());
             return null;
         }, project, UnitOfWork.DEFAULT_MAX_RETRY, UnitOfWork.DEFAULT_EPOCH_ID, job.getId());
 
@@ -873,7 +872,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
 
         // remove break points, then resume job
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            NExecutableManager tempExecMgr = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            ExecutableManager tempExecMgr = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             tempExecMgr.removeBreakPoints(cubeStep.getId());
             tempExecMgr.resumeJob(job.getId());
             return null;
@@ -898,7 +897,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         // sorry, at present, job restart simulation unstable
         //// restart job simulation
         // EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-        //     NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).restartJob(job.getId());
+        //     ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).restartJob(job.getId());
         //     return null;
         // }, project, UnitOfWork.DEFAULT_MAX_RETRY, UnitOfWork.DEFAULT_EPOCH_ID, job.getId());
         // // job wouldn't be resumable after restart

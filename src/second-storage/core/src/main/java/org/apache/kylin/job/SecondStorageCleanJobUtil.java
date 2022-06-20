@@ -24,8 +24,9 @@
 package org.apache.kylin.job;
 
 import org.apache.kylin.job.common.ExecutableUtil;
-import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.model.JobParam;
+
+import io.kyligence.kap.job.execution.AbstractExecutable;
 
 
 public class SecondStorageCleanJobUtil extends ExecutableUtil {

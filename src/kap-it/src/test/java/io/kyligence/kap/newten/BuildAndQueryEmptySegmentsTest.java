@@ -27,15 +27,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.engine.spark.IndexDataConstructor;
-import io.kyligence.kap.job.execution.NSparkMergingJob;
-import io.kyligence.kap.job.execution.merger.AfterMergeOrRefreshResourceMerger;
-import io.kyligence.kap.job.manager.ExecutableManager;
-import io.kyligence.kap.util.ExecAndComp;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.spark.sql.Dataset;
@@ -47,7 +41,11 @@ import org.junit.Test;
 
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.job.execution.NSparkMergingJob;
+import io.kyligence.kap.job.execution.merger.AfterMergeOrRefreshResourceMerger;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -55,6 +53,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.util.ExecAndComp;
 
 public class BuildAndQueryEmptySegmentsTest extends NLocalWithSparkSessionTest {
 
@@ -94,7 +93,8 @@ public class BuildAndQueryEmptySegmentsTest extends NLocalWithSparkSessionTest {
 
     @After
     public void cleanup() {
-        NDefaultScheduler.destroyInstance();
+        //TODO need to be rewritten
+        // NDefaultScheduler.destroyInstance();
         super.cleanupTestMetadata();
     }
 

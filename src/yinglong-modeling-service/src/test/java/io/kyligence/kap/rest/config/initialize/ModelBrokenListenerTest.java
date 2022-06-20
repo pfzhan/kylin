@@ -29,7 +29,6 @@ import static org.awaitility.Awaitility.await;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
@@ -45,6 +44,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import io.kyligence.kap.common.scheduler.EventBusFactory;
+import io.kyligence.kap.job.manager.JobManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;

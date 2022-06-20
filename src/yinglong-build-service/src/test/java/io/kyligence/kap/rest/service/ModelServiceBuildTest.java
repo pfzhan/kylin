@@ -50,14 +50,6 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.job.execution.AbstractExecutable;
-import io.kyligence.kap.job.execution.NSparkCubingJob;
-import io.kyligence.kap.job.execution.SucceedChainedTestExecutable;
-import io.kyligence.kap.job.execution.handler.ExecutableAddCuboidHandler;
-import io.kyligence.kap.job.execution.handler.ExecutableAddSegmentHandler;
-import io.kyligence.kap.job.execution.handler.ExecutableHandler;
-import io.kyligence.kap.job.execution.handler.ExecutableMergeOrRefreshHandler;
-import io.kyligence.kap.job.manager.ExecutableManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -65,10 +57,10 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.dao.ExecutablePO;
-import org.apache.kylin.job.execution.ExecutableParams;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.execution.SucceedChainedTestExecutable;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -101,6 +93,13 @@ import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.engine.spark.utils.ComputedColumnEvalUtil;
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.execution.ExecutableParams;
+import io.kyligence.kap.job.execution.NSparkCubingJob;
+import io.kyligence.kap.job.execution.handler.ExecutableAddCuboidHandler;
+import io.kyligence.kap.job.execution.handler.ExecutableAddSegmentHandler;
+import io.kyligence.kap.job.execution.handler.ExecutableMergeOrRefreshHandler;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.junit.rule.TransactionExceptedException;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -780,7 +779,7 @@ public class ModelServiceBuildTest extends SourceTestCase {
                 "1609430400000", true, Sets.newHashSet(), null, 0, true);
         Assert.assertEquals(1, jobInfo2.getJobs().size());
         Assert.assertEquals(jobInfo2.getJobs().get(0).getJobName(), JobTypeEnum.INC_BUILD.name());
-        val job2 = NExecutableManager.getInstance(getTestConfig(), "default")
+        val job2 = ExecutableManager.getInstance(getTestConfig(), "default")
                 .getJob(jobInfo2.getJobs().get(0).getJobId());
         Assert.assertEquals(3, job2.getTargetPartitions().size());
 
@@ -1374,7 +1373,7 @@ public class ModelServiceBuildTest extends SourceTestCase {
         val project = "default";
 
         NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        NExecutableManager executableManager = NExecutableManager.getInstance(getTestConfig(), project);
+        ExecutableManager executableManager = ExecutableManager.getInstance(getTestConfig(), project);
         NDataflow dataflow = dataflowManager.getDataflow(modelId);
         val model = dataflow.getModel();
         NDataflowUpdate dataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
