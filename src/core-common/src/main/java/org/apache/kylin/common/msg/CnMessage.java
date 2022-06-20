@@ -2101,7 +2101,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getDisablePushDownPrompt() {
-        return "当您需要分层存储查询异常时查询下压，需要开启下压开关。";
+        return "当您需要查询下压时，需要开启下压开关。";
     }
 
     @Override

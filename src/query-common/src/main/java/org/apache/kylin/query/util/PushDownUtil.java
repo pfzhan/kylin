@@ -58,7 +58,6 @@ import javax.ws.rs.BadRequestException;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.apache.kylin.common.ForceToTieredStorage;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
@@ -108,10 +107,9 @@ public class PushDownUtil {
         String project = queryParams.getProject();
         kylinConfig = prj.getConfig();
         if (!kylinConfig.isPushDownEnabled()) {
-            if (queryParams.isForcedToPushDown()) {
-                throw new KylinException(QueryErrorCode.INVALID_PARAMETER_PUSH_DOWN,
-                        "you should turn on pushdown when you want to force to pushdown");
-            } else if (ForceToTieredStorage.CH_FAIL_TO_PUSH_DOWN == queryParams.getForcedToTieredStorage()) {
+            SQLException sqlException = queryParams.getSqlException();
+            if (queryParams.isForcedToPushDown()
+                    || (sqlException != null && sqlException.getMessage().contains(QueryContext.ROUTE_USE_FORCEDTOTIEREDSTORAGE))) {
                 throw new KylinException(QueryErrorCode.INVALID_PARAMETER_PUSH_DOWN,
                         MsgPicker.getMsg().getDisablePushDownPrompt());
             }

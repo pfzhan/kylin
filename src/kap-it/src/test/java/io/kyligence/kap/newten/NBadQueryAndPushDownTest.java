@@ -35,6 +35,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.QueryErrorCode;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
@@ -245,8 +246,7 @@ public class NBadQueryAndPushDownTest extends NLocalWithSparkSessionTest {
             Assert.assertTrue(e instanceof KylinException);
             Assert.assertEquals(((KylinException) e).getErrorCode(),
                     QueryErrorCode.INVALID_PARAMETER_PUSH_DOWN.toErrorCode());
-            Assert.assertEquals(Throwables.getRootCause(e).getMessage(),
-                    "you should turn on pushdown when you want to force to pushdown");
+            Assert.assertEquals(MsgPicker.getMsg().getDisablePushDownPrompt(), Throwables.getRootCause(e).getMessage());
         } finally {
             KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_ENABLED, "true");
         }

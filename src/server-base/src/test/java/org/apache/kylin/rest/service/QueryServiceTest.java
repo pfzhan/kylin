@@ -308,11 +308,34 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         String correctedSql = KapQueryUtil.massageSql(queryParams);
 
         overwriteSystemProp("kylin.query.pushdown-enabled", "false");
-        Mockito.when(queryExec.executeQuery(correctedSql))
-                .thenThrow(new SQLException(QueryContext.ROUTE_USE_FORCEDTOTIEREDSTORAGE));
+        Mockito.doThrow(new SQLException(new SQLException(QueryContext.ROUTE_USE_FORCEDTOTIEREDSTORAGE)))
+                .when(queryService.queryRoutingEngine).execute(Mockito.anyString(), Mockito.any());
 
         final SQLResponse response = queryService.queryWithCache(sqlRequest);
         Assert.assertEquals(MsgPicker.getMsg().getDisablePushDownPrompt(), response.getExceptionMessage());
+    }
+
+    @Test
+    public void testQueryPushDownWhenNormalDisable() throws Throwable {
+        final String sql = "select * from abc";
+        final String project = "default";
+        final QueryExec queryExec = Mockito.mock(QueryExec.class);
+        SQLRequest sqlRequest = new SQLRequest();
+        sqlRequest.setSql(sql);
+        sqlRequest.setProject(project);
+        sqlRequest.setForcedToTieredStorage(1);
+
+        QueryParams queryParams = new QueryParams(KapQueryUtil.getKylinConfig(sqlRequest.getProject()),
+                sqlRequest.getSql(), sqlRequest.getProject(), sqlRequest.getLimit(), sqlRequest.getOffset(),
+                queryExec.getDefaultSchemaName(), true);
+        String correctedSql = KapQueryUtil.massageSql(queryParams);
+
+        overwriteSystemProp("kylin.query.pushdown-enabled", "false");
+        Mockito.doThrow(new SQLException(new SQLException("No model found for OLAPContex")))
+                .when(queryService.queryRoutingEngine).execute(Mockito.anyString(), Mockito.any());
+
+        final SQLResponse response = queryService.queryWithCache(sqlRequest);
+        Assert.assertNotEquals(MsgPicker.getMsg().getDisablePushDownPrompt(), response.getExceptionMessage());
     }
 
     @Test
