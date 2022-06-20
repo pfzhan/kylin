@@ -31,10 +31,12 @@ import io.kyligence.kap.metadata.state.QueryShareStateManager;
 import io.kyligence.kap.query.MockContext;
 import lombok.val;
 import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exception.NewQueryRefuseException;
 import org.apache.kylin.query.SlowQueryDetector;
 import org.apache.kylin.query.exception.UserStopQueryException;
+import org.apache.spark.SparkConf;
 import org.apache.spark.scheduler.JobFailed;
 import org.apache.spark.scheduler.SparkListener;
 import org.apache.spark.scheduler.SparkListenerJobEnd;
@@ -147,6 +149,49 @@ public class TestResultPlan extends NLocalFileMetadataTestCase {
         isJobEnd.await(10, TimeUnit.SECONDS);
         Assert.assertTrue(sparkJobEnd.get().jobResult() instanceof JobFailed);
         Assert.assertTrue(((JobFailed)sparkJobEnd.get().jobResult()).exception().getMessage().contains("cancelled part of cancelled job group"));
+    }
+
+    @Test
+    public void testSetQueryFairSchedulerPool() {
+        long fakeScanRows = 10000;
+        int fakePartitionNum = 5;
+        String pool;
+
+        SparkConf sparkConf = new SparkConf();
+        QueryContext queryContext = QueryContext.current();
+
+        queryContext.getQueryTagInfo().setHighPriorityQuery(true);
+        pool = ResultPlan.getQueryFairSchedulerPool(sparkConf, queryContext, fakeScanRows, fakePartitionNum);
+        Assert.assertEquals("vip_tasks", pool);
+        queryContext.getQueryTagInfo().setHighPriorityQuery(false);
+
+        queryContext.getQueryTagInfo().setTableIndex(true);
+        pool = ResultPlan.getQueryFairSchedulerPool(sparkConf, queryContext, fakeScanRows, fakePartitionNum);
+        Assert.assertEquals("extreme_heavy_tasks", pool);
+        queryContext.getQueryTagInfo().setTableIndex(false);
+
+        pool = ResultPlan.getQueryFairSchedulerPool(sparkConf, queryContext, fakeScanRows, fakePartitionNum);
+        Assert.assertEquals("heavy_tasks", pool);
+        fakePartitionNum = SparderEnv.getTotalCore() - 1;
+        pool = ResultPlan.getQueryFairSchedulerPool(sparkConf, queryContext, fakeScanRows, fakePartitionNum);
+        Assert.assertEquals("lightweight_tasks", pool);
+
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        try (KylinConfig.SetAndUnsetThreadLocalConfig autoUnset = KylinConfig.setAndUnsetThreadLocalConfig(config)) {
+            config.setProperty("kylin.query.query-limit-enabled", "true");
+            pool = ResultPlan.getQueryFairSchedulerPool(sparkConf, queryContext, fakeScanRows, fakePartitionNum);
+            Assert.assertEquals("lightweight_tasks", pool);
+
+            sparkConf.set("spark.dynamicAllocation.enabled", "true");
+            sparkConf.set("spark.dynamicAllocation.maxExecutors", "1");
+            config.setProperty("kylin.query.big-query-source-scan-rows-threshold", String.valueOf(fakeScanRows + 1));
+            pool = ResultPlan.getQueryFairSchedulerPool(sparkConf, queryContext, fakeScanRows, fakePartitionNum);
+            Assert.assertEquals("lightweight_tasks", pool);
+
+            config.setProperty("kylin.query.big-query-source-scan-rows-threshold", String.valueOf(fakeScanRows - 1));
+            pool = ResultPlan.getQueryFairSchedulerPool(sparkConf, queryContext, fakeScanRows, fakePartitionNum);
+            Assert.assertEquals("heavy_tasks", pool);
+        }
     }
 
     @Test

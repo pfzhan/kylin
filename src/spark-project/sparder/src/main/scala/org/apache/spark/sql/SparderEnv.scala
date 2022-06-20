@@ -129,6 +129,11 @@ object SparderEnv extends Logging {
     getSparkSession.sparkContext.conf.get(key)
   }
 
+  def isSparkExecutorResourceLimited(sparkConf: SparkConf): Boolean = {
+    !sparkConf.get("spark.dynamicAllocation.enabled", "false").toBoolean ||
+      sparkConf.get("spark.dynamicAllocation.maxExecutors", Int.MinValue.toString).toInt > 0
+  }
+
   def getTotalCore: Int = {
     val sparkConf = getSparkSession.sparkContext.getConf
     if (sparkConf.get("spark.master").startsWith("local")) {

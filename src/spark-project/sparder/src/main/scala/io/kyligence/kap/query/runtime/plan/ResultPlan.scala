@@ -22,7 +22,6 @@
 package io.kyligence.kap.query.runtime.plan
 
 import java.io.{File, FileOutputStream}
-
 import com.google.common.cache.{Cache, CacheBuilder}
 import io.kyligence.kap.engine.spark.utils.LogEx
 import io.kyligence.kap.metadata.query.StructField
@@ -43,10 +42,9 @@ import org.apache.spark.sql.util.SparderTypeUtil
 import org.apache.spark.sql.{DataFrame, SaveMode, SparderEnv}
 
 import java.util
-
 import org.apache.hadoop.fs.Path
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
-import org.apache.spark.sql.types.StructType
+import org.apache.spark.SparkConf
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -59,12 +57,12 @@ object ResultType extends Enumeration {
 
 object ResultPlan extends LogEx {
   val PARTITION_SPLIT_BYTES: Long = KylinConfig.getInstanceFromEnv.getQueryPartitionSplitSizeMB * 1024 * 1024 // 64MB
+  val SPARK_SCHEDULER_POOL: String = "spark.scheduler.pool"
 
   private def collectInternal(df: DataFrame, rowType: RelDataType): (java.lang.Iterable[util.List[String]], Int) = logTime("collectInternal", debug = true) {
     val jobGroup = Thread.currentThread().getName
     val sparkContext = SparderEnv.getSparkSession.sparkContext
     val kapConfig = KapConfig.getInstanceFromEnv
-    var pool = "heavy_tasks"
     val partitionsNum =
       if (kapConfig.getSparkSqlShufflePartitions != -1) {
         kapConfig.getSparkSqlShufflePartitions
@@ -76,16 +74,7 @@ object ResultPlan extends LogEx {
     logInfo(s"partitions num are: $partitionsNum," +
       s" total scan bytes are: ${QueryContext.current().getMetrics.getSourceScanBytes}," +
       s" total cores are: ${SparderEnv.getTotalCore}")
-    if (QueryContext.current().getQueryTagInfo.isHighPriorityQuery) {
-      pool = "vip_tasks"
-    } else if (QueryContext.current().getQueryTagInfo.isTableIndex) {
-      pool = "extreme_heavy_tasks"
-    } else if (partitionsNum < SparderEnv.getTotalCore) {
-      pool = "lightweight_tasks"
-    }
 
-    // set priority
-    sparkContext.setLocalProperty("spark.scheduler.pool", pool)
     val queryId = QueryContext.current().getQueryId
     sparkContext.setLocalProperty(QueryToExecutionIDCache.KYLIN_QUERY_ID_KEY, queryId)
     df.sparkSession.sessionState.conf.setLocalProperty("spark.sql.shuffle.partitions", partitionsNum.toString)
@@ -101,8 +90,11 @@ object ResultPlan extends LogEx {
       sparkContext.setLocalProperty("source_scan_rows", QueryContext.current().getMetrics.getSourceScanRows.toString)
       logDebug(s"source_scan_rows is ${QueryContext.current().getMetrics.getSourceScanRows.toString}")
 
-      // judge whether to refuse the new big query
       val sumOfSourceScanRows = QueryContext.current.getMetrics.calSumOfSourceScanRows
+      val pool = getQueryFairSchedulerPool(sparkContext.getConf, QueryContext.current(), sumOfSourceScanRows, partitionsNum)
+      sparkContext.setLocalProperty(SPARK_SCHEDULER_POOL, pool)
+
+      // judge whether to refuse the new big query
       if(QueryShareStateManager.isShareStateSwitchEnabled
         && sumOfSourceScanRows >= KapConfig.getInstanceFromEnv.getBigQuerySourceScanRowsThreshold
         && SparkQueryJobManager.isNewBigQueryRefuse) {
@@ -161,6 +153,22 @@ object ResultPlan extends LogEx {
     }
   }
 
+  def getQueryFairSchedulerPool(sparkConf: SparkConf, queryContext: QueryContext, sumOfSourceScanRows: Long, partitionsNum: Int): String = {
+    var pool = "heavy_tasks"
+    if (queryContext.getQueryTagInfo.isHighPriorityQuery) {
+      pool = "vip_tasks"
+    } else if (queryContext.getQueryTagInfo.isTableIndex) {
+      pool = "extreme_heavy_tasks"
+    } else if (KapConfig.getInstanceFromEnv.isQueryLimitEnabled && SparderEnv.isSparkExecutorResourceLimited(sparkConf)) {
+      if (sumOfSourceScanRows < KapConfig.getInstanceFromEnv.getBigQuerySourceScanRowsThreshold) {
+        pool = "lightweight_tasks"
+      }
+    } else if (partitionsNum < SparderEnv.getTotalCore) {
+      pool = "lightweight_tasks"
+    }
+    pool
+  }
+
   /**
    * use to check acl  or other
    *
@@ -175,7 +183,7 @@ object ResultPlan extends LogEx {
       methodBody
     } finally {
       // remember clear local properties.
-      df.sparkSession.sparkContext.setLocalProperty("spark.scheduler.pool", null)
+      df.sparkSession.sparkContext.setLocalProperty(SPARK_SCHEDULER_POOL, null)
       df.sparkSession.sessionState.conf.setLocalProperty("spark.sql.shuffle.partitions", null)
       SparderEnv.setDF(df)
       HadoopUtil.setCurrentConfiguration(null)
@@ -221,6 +229,9 @@ object ResultPlan extends LogEx {
     sparkContext.setJobGroup(jobGroup,
       QueryContext.current().getMetrics.getCorrectedSql,
       interruptOnCancel = true)
+    if(kapConfig.isQueryLimitEnabled && SparderEnv.isSparkExecutorResourceLimited(sparkContext.getConf)) {
+      sparkContext.setLocalProperty(SPARK_SCHEDULER_POOL, "async_query_tasks")
+    }
     df.sparkSession.sparkContext.setLocalProperty(QueryToExecutionIDCache.KYLIN_QUERY_EXECUTION_ID, queryExecutionId)
 
     QueryContext.currentTrace().endLastSpan()

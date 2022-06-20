@@ -726,4 +726,8 @@ public class KapConfig {
         return config.getOptional("kylin.query.share-state-switch-implement", "close");
     }
 
+    public boolean isQueryLimitEnabled() {
+        return Boolean.parseBoolean(config.getOptional("kylin.query.query-limit-enabled", FALSE));
+    }
+
 }

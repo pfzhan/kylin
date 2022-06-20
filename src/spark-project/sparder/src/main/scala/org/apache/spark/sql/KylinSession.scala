@@ -22,10 +22,9 @@
 
 package org.apache.spark.sql
 
-import java.io.File
+import java.io.{BufferedReader, BufferedWriter, File, FileReader, FileWriter, PrintWriter}
 import java.net.URI
 import java.nio.file.Paths
-
 import io.kyligence.kap.common.util.Unsafe
 import io.kyligence.kap.query.util.ExtractFactory
 import org.apache.hadoop.fs.Path
@@ -40,7 +39,10 @@ import org.apache.spark.sql.kylin.external.{KylinSessionStateBuilder, KylinShare
 import org.apache.spark.sql.udf.UdfManager
 import org.apache.spark.util.{KylinReflectUtils, Utils}
 import org.apache.spark.{SparkConf, SparkContext}
+import org.springframework.expression.common.TemplateParserContext
+import org.springframework.expression.spel.standard.SpelExpressionParser
 
+import java.util
 import scala.collection.JavaConverters._
 
 class KylinSession(
@@ -100,6 +102,8 @@ class KylinSession(
 }
 
 object KylinSession extends Logging {
+  def NORMAL_FAIR_SCHEDULER_FILE_NAME: String = "/fairscheduler.xml"
+  def QUERY_LIMIT_FAIR_SCHEDULER_FILE_NAME: String = "/query-limit-fair-scheduler.xml"
 
   implicit class KylinBuilder(builder: Builder) {
     var queryCluster: Boolean = true
@@ -246,12 +250,9 @@ object KylinSession extends Logging {
         cartesianPartitionThreshold = confThreshold.toInt
       }
       sparkConf.set("spark.sql.cartesianPartitionNumThreshold", cartesianPartitionThreshold.toString)
-      if (new File(
-        KylinConfig.getKylinConfDir.getCanonicalPath + "/fairscheduler.xml")
-        .exists()) {
-        val fairScheduler = "file://" + KylinConfig.getKylinConfDir.getCanonicalPath + "/fairscheduler.xml"
-        sparkConf.set("spark.scheduler.allocation.file", fairScheduler)
-      }
+
+      val fairSchedulerConfigDirPath = KylinConfig.getKylinConfDir.getCanonicalPath
+      applyFairSchedulerConfig(kapConfig, fairSchedulerConfigDirPath, sparkConf)
 
       if (kapConfig.isQueryEscapedLiteral) {
         sparkConf.set("spark.sql.parser.escapedStringLiterals", "true")
@@ -357,6 +358,52 @@ object KylinSession extends Logging {
       }
     }
     extensions
+  }
+
+  def applyFairSchedulerConfig(kapConfig: KapConfig, confFileDirPath: String, sparkConf: SparkConf): Unit = {
+    var fairScheduler: String = null
+    val isQueryLimitValid = kapConfig.isQueryLimitEnabled && SparderEnv.isSparkExecutorResourceLimited(sparkConf)
+    if (isQueryLimitValid) {
+      var executorNum = sparkConf.get("spark.executor.instances").toInt
+      val dynamicAllocationEnabled = sparkConf.get("spark.dynamicAllocation.enabled", "false").toBoolean
+      if (dynamicAllocationEnabled) {
+        executorNum = sparkConf.get("spark.dynamicAllocation.maxExecutors").toInt
+      }
+      val cores = sparkConf.get("spark.executor.cores").toInt
+      fairScheduler = confFileDirPath + KylinSession.QUERY_LIMIT_FAIR_SCHEDULER_FILE_NAME
+      prepareQueryLimitSchedulerConfig(executorNum * cores, fairScheduler)
+      fairScheduler = "file://" + fairScheduler
+      sparkConf.set("spark.scheduler.allocation.file", fairScheduler)
+    } else if (new File(confFileDirPath + KylinSession.NORMAL_FAIR_SCHEDULER_FILE_NAME).exists()) {
+      fairScheduler = "file://" + confFileDirPath + KylinSession.NORMAL_FAIR_SCHEDULER_FILE_NAME
+      sparkConf.set("spark.scheduler.allocation.file", fairScheduler)
+    }
+  }
+
+  def prepareQueryLimitSchedulerConfig(sparkSlots: Int, fairSchedulerConfPath: String): Unit = {
+    val params = new java.util.HashMap[String, Int]
+    params.put("heavyTaskPoolWeight", sparkSlots)
+    params.put("lightweightTaskPoolWeight", Math.pow(sparkSlots, 2).toInt + 1)
+    params.put("lightweightTaskPoolMinShare", sparkSlots)
+    params.put("vipTaskPoolWeight", Math.pow(sparkSlots, 2).toInt + 2)
+    params.put("vipTaskPoolMinShare", Math.pow(sparkSlots, 2).toInt + 1)
+
+    val confTemplateFile = new File(fairSchedulerConfPath + ".template")
+    val fileReader = new BufferedReader(new FileReader(confTemplateFile))
+    val confFile = new File(fairSchedulerConfPath)
+    val fileWriter = new BufferedWriter(new FileWriter(confFile))
+    var templateLine: String = null
+    var processedLine: String = null
+    val parser = new SpelExpressionParser()
+    val parserCtx = new TemplateParserContext()
+    while ( {
+      templateLine = fileReader.readLine(); templateLine != null
+    }) {
+      processedLine = parser.parseExpression(templateLine, parserCtx).getValue(params, classOf[String]) + "\r\n"
+      fileWriter.write(processedLine)
+    }
+    fileReader.close()
+    fileWriter.close()
   }
 
 }
