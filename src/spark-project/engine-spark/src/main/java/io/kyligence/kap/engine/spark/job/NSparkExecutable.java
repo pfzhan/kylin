@@ -205,7 +205,7 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
             getExecutableManager(getProject()) //
                     .updateStageStatus(getId() + "_00", null, ExecutableState.RUNNING, null, null);
             return 0;
-        }, context.getEpochId(), project);
+        }, project, UnitOfWork.DEFAULT_MAX_RETRY, context.getEpochId(), getTempLockName());
     }
 
     @Override

@@ -384,7 +384,7 @@ public abstract class AbstractExecutable implements Executable {
                 // job quits voluntarily or non-voluntarily, in this case, the job is "finished"
                 // we createSucceed() to run onExecuteFinished()
                 result = ExecuteResult.createSucceed();
-            } catch (Throwable e) {
+            } catch (Exception e) {
                 result = ExecuteResult.createError(e);
             }
 
@@ -831,7 +831,7 @@ public abstract class AbstractExecutable implements Executable {
             getExecutableManager(project).updateJobError(getId(), getId(), null,
                     ExceptionUtils.getStackTrace(exception), exception.getMessage());
             return null;
-        }, getEpochId(), project);
+        }, project, UnitOfWork.DEFAULT_MAX_RETRY, getEpochId(), getTempLockName());
     }
 
     public final String getTempLockName() {
