@@ -294,7 +294,7 @@ class KylinConfigBaseTest {
 
         map.put("isJobLogPrintEnabled", new PropertiesEntity("kylin.job.log-print-enabled", "true", true));
 
-        map.put("getDefaultSource", new PropertiesEntity("kylin.source.default", "0", 0));
+        map.put("getDefaultSource", new PropertiesEntity("kylin.source.default", "9", 9));
 
         map.put("getHiveUrl", new PropertiesEntity("kylin.source.hive.connection-url", "", ""));
 
@@ -919,6 +919,7 @@ class KylinConfigBaseTest {
         map.put("getLightningClusterId", new PropertiesEntity("kylin.lightning.cluster-id", "0", 0L));
         map.put("getLightningWorkspaceId", new PropertiesEntity("kylin.lightning.workspace-id", "0", 0L));
         map.put("getJobCallbackLanguage", new PropertiesEntity("kylin.job.callback-language", "en", "en"));
+        map.put("getMaxResultRows", new PropertiesEntity("kylin.query.max-result-rows", "0", 0));
     }
 
     @Test

@@ -1106,7 +1106,7 @@ public abstract class KylinConfigBase implements Serializable {
     // ============================================================================
 
     public int getDefaultSource() {
-        return Integer.parseInt(getOptional("kylin.source.default", "0"));
+        return Integer.parseInt(getOptional("kylin.source.default", "9"));
     }
 
     public Map<Integer, String> getSourceEngines() {
@@ -3344,5 +3344,9 @@ public abstract class KylinConfigBase implements Serializable {
 
     public String getJobCallbackLanguage() {
         return getOptional("kylin.job.callback-language", "en");
+    }
+
+    public Integer getMaxResultRows() {
+        return Integer.parseInt(this.getOptional("kylin.query.max-result-rows", "0"));
     }
 }
