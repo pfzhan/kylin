@@ -26,6 +26,7 @@ import java.io.{BufferedReader, BufferedWriter, File, FileReader, FileWriter, Pr
 import java.net.URI
 import java.nio.file.Paths
 import io.kyligence.kap.common.util.Unsafe
+import io.kyligence.kap.metadata.query.BigQueryThresholdUpdater
 import io.kyligence.kap.query.util.ExtractFactory
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.security.UserGroupInformation
@@ -241,6 +242,9 @@ object KylinSession extends Logging {
       if (sparkConf.get("spark.sql.shuffle.partitions", "").isEmpty) {
         sparkConf.set("spark.sql.shuffle.partitions", sparkCores.toString)
       }
+
+      BigQueryThresholdUpdater.initBigQueryThresholdBySparkResource(instances, cores)
+
       sparkConf.set("spark.debug.maxToStringFields", "1000")
       sparkConf.set("spark.scheduler.mode", "FAIR")
       val cartesianFactor = KylinConfig.getInstanceFromEnv.getCartesianPartitionNumThresholdFactor

@@ -24,7 +24,7 @@ package io.kyligence.kap.query.runtime.plan
 import java.io.{File, FileOutputStream}
 import com.google.common.cache.{Cache, CacheBuilder}
 import io.kyligence.kap.engine.spark.utils.LogEx
-import io.kyligence.kap.metadata.query.StructField
+import io.kyligence.kap.metadata.query.{BigQueryThresholdUpdater, StructField}
 import io.kyligence.kap.metadata.state.QueryShareStateManager
 import io.kyligence.kap.query.engine.RelColumnMetaDataExtractor
 import io.kyligence.kap.query.engine.exec.ExecuteResult
@@ -103,13 +103,13 @@ object ResultPlan extends LogEx {
 
       // judge whether to refuse the new big query
       logDebug(s"Total source scan rows: $sumOfSourceScanRows")
+      val bigQueryThreshold = BigQueryThresholdUpdater.getBigQueryThreshold
       if(QueryShareStateManager.isShareStateSwitchEnabled
-        && sumOfSourceScanRows >= KapConfig.getInstanceFromEnv.getBigQuerySourceScanRowsThreshold
+        && sumOfSourceScanRows >= bigQueryThreshold
         && SparkQueryJobManager.isNewBigQueryRefuse) {
         QueryContext.current().getQueryTagInfo.setRefused(true)
         throw new NewQueryRefuseException("Refuse new big query, sum of source_scan_rows is " + sumOfSourceScanRows
-          + ", refuse query threshold is " + KapConfig.getInstanceFromEnv.getBigQuerySourceScanRowsThreshold
-          + ". Current step: Collecting dataset for sparder. ")
+          + ", refuse query threshold is " + bigQueryThreshold + ". Current step: Collecting dataset for sparder. ")
       }
 
       QueryContext.current.record("executed_plan")

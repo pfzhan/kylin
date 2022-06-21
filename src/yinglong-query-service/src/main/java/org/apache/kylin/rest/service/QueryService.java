@@ -75,6 +75,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.query.BigQueryThresholdUpdater;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.validate.SqlValidatorException;
@@ -82,6 +83,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.ForceToTieredStorage;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.QueryTrace;
@@ -648,6 +650,11 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
 
             addToQueryHistory(sqlRequest, sqlResponse, rawSql.getFullTextString());
 
+            if (isCollectQueryScanRowsAndTimeEnabled()) {
+                BigQueryThresholdUpdater.collectQueryScanRowsAndTime(QueryContext.currentMetrics().duration(),
+                        QueryContext.currentMetrics().getTotalScanRows());
+            }
+
             //check query result row count
             NCircuitBreaker.verifyQueryResultRowCount(sqlResponse.getResultRowCount());
 
@@ -672,6 +679,12 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
                 QueryMetricsContext.reset();
             }
         }
+    }
+
+    public boolean isCollectQueryScanRowsAndTimeEnabled() {
+        return KapConfig.getInstanceFromEnv().isAutoAdjustBigQueryRowsThresholdEnabled()
+                && !QueryContext.current().getQueryTagInfo().isAsyncQuery()
+                && !QueryContext.current().getQueryTagInfo().isStorageCacheUsed();
     }
 
     private SQLResponse searchCache(SQLRequest sqlRequest, KylinConfig kylinConfig) {

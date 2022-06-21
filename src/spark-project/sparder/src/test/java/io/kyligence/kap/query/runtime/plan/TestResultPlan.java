@@ -66,6 +66,7 @@ public class TestResultPlan extends NLocalFileMetadataTestCase {
         getTestConfig().setMetadataUrl(
                 "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
         getTestConfig().setProperty("kylin.query.share-state-switch-implement", "jdbc");
+        getTestConfig().setProperty("kylin.query.big-query-source-scan-rows-threshold", "100000000");
         ss = SparkSession.builder().appName("local").master("local[1]")
                 .getOrCreate();
         SparderEnv.setSparkSession(ss);
@@ -152,6 +153,25 @@ public class TestResultPlan extends NLocalFileMetadataTestCase {
         isJobEnd.await(10, TimeUnit.SECONDS);
         Assert.assertTrue(sparkJobEnd.get().jobResult() instanceof JobFailed);
         Assert.assertTrue(((JobFailed)sparkJobEnd.get().jobResult()).exception().getMessage().contains("cancelled part of cancelled job group"));
+
+        Thread queryThread2 = new Thread(() -> {
+            try {
+                slowQueryDetector.queryStart("foo");
+                QueryShareStateManager.getInstance().setState(
+                        Collections.singletonList(AddressUtil.concatInstanceName()),
+                        StateSwitchConstant.QUERY_LIMIT_STATE, "true");
+                QueryContext.current().getMetrics().addAccumSourceScanRows(
+                        KapConfig.getInstanceFromEnv().getBigQuerySourceScanRowsThreshold() - 1);
+                String sql = "select * from TEST_KYLIN_FACT";
+                ResultPlan.getResult(ss.sql(sql), null);
+            } catch (Exception e) {
+                Assert.assertTrue(e instanceof UserStopQueryException);
+            } finally {
+                slowQueryDetector.queryEnd();
+            }
+        });
+        queryThread2.start();
+        queryThread2.join();
     }
 
     @Test
