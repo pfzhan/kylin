@@ -22,6 +22,7 @@
 package org.apache.spark.sql.execution.datasource
 
 import io.kyligence.kap.engine.spark.utils.LogEx
+import org.apache.kylin.common.QueryContext
 import org.apache.spark.sql.catalyst.planning.PhysicalOperation
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.catalyst.expressions
@@ -124,6 +125,8 @@ object KylinSourceStrategy extends Strategy with LogEx {
       logTime("listFiles", debug = true) {
         filePruner.listFiles(partitionKeyFilters.iterator.toSeq, dataFilters.iterator.toSeq)
       }
+      val sourceScanRows = filePruner.cached.get((partitionKeyFilters.iterator.toSeq, dataFilters.iterator.toSeq))._2
+      QueryContext.current().getMetrics.addAccumSourceScanRows(sourceScanRows)
       val scan =
         new KylinFileSourceScanExec(
           fsRelation,
@@ -134,7 +137,8 @@ object KylinSourceStrategy extends Strategy with LogEx {
           None,
           dataFilters,
           table.map(_.identifier),
-          false)
+          false,
+          sourceScanRows)
 
       val afterScanFilter = afterScanFilters.toSeq.reduceOption(expressions.And)
       val withFilter = afterScanFilter.map(execution.FilterExec(_, scan)).getOrElse(scan)

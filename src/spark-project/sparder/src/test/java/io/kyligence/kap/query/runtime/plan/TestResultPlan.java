@@ -100,7 +100,8 @@ public class TestResultPlan extends NLocalFileMetadataTestCase {
         QueryShareStateManager.getInstance().setState(Collections.singletonList(AddressUtil.concatInstanceName()),
                 StateSwitchConstant.QUERY_LIMIT_STATE, "true");
         QueryContext queryContext = QueryContext.current();
-        queryContext.getMetrics().addSourceScanRows(KapConfig.getInstanceFromEnv().getBigQuerySourceScanRowsThreshold() + 1);
+        queryContext.getMetrics()
+                .addAccumSourceScanRows(KapConfig.getInstanceFromEnv().getBigQuerySourceScanRowsThreshold() + 1);
         String sql = "select * from TEST_KYLIN_FACT";
         try {
             ResultPlan.getResult(ss.sql(sql), null);
@@ -133,9 +134,11 @@ public class TestResultPlan extends NLocalFileMetadataTestCase {
         Thread queryThread = new Thread(() -> {
             try {
                 slowQueryDetector.queryStart("foo");
-                QueryShareStateManager.getInstance().setState(Collections.singletonList(AddressUtil.concatInstanceName()),
+                QueryShareStateManager.getInstance().setState(
+                        Collections.singletonList(AddressUtil.concatInstanceName()),
                         StateSwitchConstant.QUERY_LIMIT_STATE, "false");
-                QueryContext.current().getMetrics().addSourceScanRows(KapConfig.getInstanceFromEnv().getBigQuerySourceScanRowsThreshold() + 1);
+                QueryContext.current().getMetrics()
+                        .addAccumSourceScanRows(KapConfig.getInstanceFromEnv().getBigQuerySourceScanRowsThreshold() + 1);
                 String sql = "select * from TEST_KYLIN_FACT";
                 ResultPlan.getResult(ss.sql(sql), null);
             } catch (Exception e) {

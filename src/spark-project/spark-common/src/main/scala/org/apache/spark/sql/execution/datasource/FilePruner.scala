@@ -207,11 +207,11 @@ class FilePruner(val session: SparkSession,
     }
   }
 
-  var cached = new java.util.HashMap[(Seq[Expression], Seq[Expression]), Seq[PartitionDirectory]]()
+  var cached = new java.util.HashMap[(Seq[Expression], Seq[Expression]), (Seq[PartitionDirectory], Long)]()
 
   override def listFiles(partitionFilters: Seq[Expression], dataFilters: Seq[Expression]): Seq[PartitionDirectory] = {
     if (cached.containsKey((partitionFilters, dataFilters))) {
-      return cached.get((partitionFilters, dataFilters))
+      return cached.get((partitionFilters, dataFilters))._1
     }
 
     require(isResolved)
@@ -271,11 +271,11 @@ class FilePruner(val session: SparkSession,
     setShufflePartitions(totalFileSize, sourceRows, session)
     if (selected.isEmpty) {
       val value = Seq.empty[PartitionDirectory]
-      cached.put((partitionFilters, dataFilters), value)
+      cached.put((partitionFilters, dataFilters), (value, sourceRows))
       value
     } else {
       val value = Seq(PartitionDirectory(InternalRow.empty, selected.flatMap(_.files)))
-      cached.put((partitionFilters, dataFilters), value)
+      cached.put((partitionFilters, dataFilters), (value, sourceRows))
       value
     }
 

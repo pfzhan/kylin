@@ -730,4 +730,8 @@ public class KapConfig {
         return Boolean.parseBoolean(config.getOptional("kylin.query.query-limit-enabled", FALSE));
     }
 
+    public boolean isApplyLimitInfoToSourceScanRowsEnabled() {
+        return Boolean.parseBoolean(config.getOptional("kylin.query.apply-limit-info-to-source-scan-rows-enabled", FALSE));
+    }
+
 }

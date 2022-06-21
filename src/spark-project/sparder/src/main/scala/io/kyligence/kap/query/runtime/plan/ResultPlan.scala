@@ -36,7 +36,7 @@ import org.apache.kylin.common.{KapConfig, KylinConfig, QueryContext}
 import org.apache.kylin.query.SlowQueryDetector
 import org.apache.kylin.query.exception.UserStopQueryException
 import org.apache.kylin.query.util.AsyncQueryUtil
-import org.apache.spark.sql.execution.QueryExecution
+import org.apache.spark.sql.execution.{CollectLimitExec, ColumnarToRowExec, InputAdapter, KylinFileSourceScanExec, LocalLimitExec, ProjectExec, QueryExecution, SparkPlan, WholeStageCodegenExec}
 import org.apache.spark.sql.hive.QueryMetricUtils
 import org.apache.spark.sql.util.SparderTypeUtil
 import org.apache.spark.sql.{DataFrame, SaveMode, SparderEnv}
@@ -46,6 +46,7 @@ import org.apache.hadoop.fs.Path
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import org.apache.spark.SparkConf
 
+import java.util.concurrent.atomic.AtomicLong
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 
@@ -84,17 +85,24 @@ object ResultPlan extends LogEx {
       interruptOnCancel = true)
     try {
       val autoBroadcastJoinThreshold = SparderEnv.getSparkSession.sessionState.conf.autoBroadcastJoinThreshold
-      df.queryExecution.executedPlan
+      val sparkPlan = df.queryExecution.executedPlan
+      var sumOfSourceScanRows = QueryContext.current.getMetrics.getAccumSourceScanRows
+      if (KapConfig.getInstanceFromEnv.isQueryLimitEnabled && KapConfig.getInstanceFromEnv.isApplyLimitInfoToSourceScanRowsEnabled) {
+        val accumRowsCounter = new AtomicLong(0)
+        extractEachStageLimitRows(sparkPlan, -1, accumRowsCounter)
+        sumOfSourceScanRows = accumRowsCounter.get()
+        logDebug(s"Spark executed plan is \n $sparkPlan; \n accumRowsCounter: $accumRowsCounter")
+      }
       logInfo(s"autoBroadcastJoinThreshold: [before:$autoBroadcastJoinThreshold, " +
         s"after: ${SparderEnv.getSparkSession.sessionState.conf.autoBroadcastJoinThreshold}]")
       sparkContext.setLocalProperty("source_scan_rows", QueryContext.current().getMetrics.getSourceScanRows.toString)
       logDebug(s"source_scan_rows is ${QueryContext.current().getMetrics.getSourceScanRows.toString}")
 
-      val sumOfSourceScanRows = QueryContext.current.getMetrics.calSumOfSourceScanRows
       val pool = getQueryFairSchedulerPool(sparkContext.getConf, QueryContext.current(), sumOfSourceScanRows, partitionsNum)
       sparkContext.setLocalProperty(SPARK_SCHEDULER_POOL, pool)
 
       // judge whether to refuse the new big query
+      logDebug(s"Total source scan rows: $sumOfSourceScanRows")
       if(QueryShareStateManager.isShareStateSwitchEnabled
         && sumOfSourceScanRows >= KapConfig.getInstanceFromEnv.getBigQuerySourceScanRowsThreshold
         && SparkQueryJobManager.isNewBigQueryRefuse) {
@@ -120,6 +128,10 @@ object ResultPlan extends LogEx {
       QueryContext.current().getMetrics.setQueryJobCount(jobCount)
       QueryContext.current().getMetrics.setQueryStageCount(stageCount)
       QueryContext.current().getMetrics.setQueryTaskCount(taskCount)
+
+      logInfo(s"Actual total scan count: $scanRows, " +
+        s"file scan row count: ${QueryContext.current.getMetrics.getAccumSourceScanRows}, " +
+        s"may apply limit row count: $sumOfSourceScanRows")
 
       val resultTypes = rowType.getFieldList.asScala
       (() => new util.Iterator[util.List[String]] {
@@ -167,6 +179,32 @@ object ResultPlan extends LogEx {
       pool = "lightweight_tasks"
     }
     pool
+  }
+
+  def extractEachStageLimitRows(exPlan: SparkPlan, stageLimitRows: Int, rowsCounter: AtomicLong): Unit = {
+    exPlan match {
+      case exec: KylinFileSourceScanExec =>
+        val sourceScanRows = exec.getSourceScanRows
+        val finalScanRows = if (stageLimitRows > 0) Math.min(stageLimitRows, sourceScanRows) else sourceScanRows
+        rowsCounter.addAndGet(finalScanRows)
+        logDebug(s"Apply limit to source scan, sourceScanRows: $sourceScanRows, " +
+          s"stageLimit: $stageLimitRows, finalScanRows: $finalScanRows")
+      case _ =>
+        var tempStageLimitRows = stageLimitRows
+        exPlan match {
+          case exec: LocalLimitExec =>
+            tempStageLimitRows = exec.limit
+          case exec: CollectLimitExec =>
+            tempStageLimitRows = exec.limit
+          case _ => if (!exPlan.isInstanceOf[ProjectExec] && !exPlan.isInstanceOf[ColumnarToRowExec]
+            && !exPlan.isInstanceOf[InputAdapter] && !exPlan.isInstanceOf[WholeStageCodegenExec]) {
+            tempStageLimitRows = -1
+          }
+        }
+        exPlan.children.foreach(childPlan => {
+          extractEachStageLimitRows(childPlan, tempStageLimitRows, rowsCounter)
+        })
+    }
   }
 
   /**
