@@ -75,6 +75,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.query.util.TokenMgrError;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.validate.SqlValidatorException;
@@ -663,7 +664,7 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
             } else {
                 return new SQLResponse(null, null, 0, true, e.getMessage());
             }
-        } catch (Throwable t) {
+        } catch (TokenMgrError t) {
             QueryContext.current().getMetrics().setException(true);
             return new SQLResponse(null, null, 0, true, t.getMessage());
         } finally {
