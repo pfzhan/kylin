@@ -62,8 +62,6 @@ import java.util.Collection;
  */
 public class HepUtils {
     public static final ImmutableList<RelOptRule> CUBOID_OPT_RULES = ImmutableList.of(
-            // Filter Simplification
-            FilterJoinConditionMergeRule.INSTANCE, FilterSimplifyRule.INSTANCE,
             // Transpose Rule
             KapJoinProjectTransposeRule.BOTH_PROJECT, KapJoinProjectTransposeRule.LEFT_PROJECT,
             KapJoinProjectTransposeRule.RIGHT_PROJECT,
@@ -113,6 +111,12 @@ public class HepUtils {
             KapAggSumCastRule.INSTANCE,
             KapProjectRule.INSTANCE,
             KapAggregateRule.INSTANCE
+    );
+
+    public static final ImmutableList<RelOptRule> FilterReductionRules = ImmutableList.of(
+            FilterJoinConditionMergeRule.INSTANCE,
+            FilterSimplifyRule.INSTANCE,
+            KapFilterRule.INSTANCE
     );
 
 
