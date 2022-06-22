@@ -53,6 +53,10 @@ cp -rf influxdb ${package_name}/
 cp -rf grafana ${package_name}/
 cp -rf postgresql ${package_name}/
 
+if [[ -d docs ]]; then
+  cp -rf docs ${package_name}/
+fi
+
 # Add ssb data preparation files
 mkdir -p ${package_name}/tool/ssb
 cp -rf ../src/examples/sample_cube/data ${package_name}/tool/ssb/
