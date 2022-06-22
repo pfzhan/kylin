@@ -189,14 +189,8 @@ public class MetricsRegistryTest extends NLocalFileMetadataTestCase {
         kylinConfig.setProperty("kylin.metrics.prometheus-enabled", "true");
         MetricsRegistry.registerProjectPrometheusMetrics(kylinConfig, project);
 
-        Collection<Gauge> gauges2 = meterRegistry.find(PrometheusMetrics.STORAGE_BYTES.getValue()).gauges();
-        Collection<Gauge> gauges3 = meterRegistry.find(PrometheusMetrics.GARBAGE_BYTES.getValue()).gauges();
         Collection<Gauge> gauges4 = meterRegistry.find(PrometheusMetrics.JOB_COUNTS.getValue()).gauges();
-        Assert.assertEquals(1, gauges2.size());
-        Assert.assertEquals(1, gauges3.size());
         Assert.assertEquals(1, gauges4.size());
-        gauges2.forEach(Gauge::value);
-        gauges3.forEach(Gauge::value);
         gauges4.forEach(Gauge::value);
 
         Collection<Meter> meters2 = meterRegistry.find(PrometheusMetrics.JOB_COUNTS.getValue()).meters();
