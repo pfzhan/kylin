@@ -75,7 +75,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.query.BigQueryThresholdUpdater;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.validate.SqlValidatorException;
@@ -169,6 +168,7 @@ import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.query.BigQueryThresholdUpdater;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistorySql;
@@ -188,6 +188,7 @@ import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.query.util.QueryModelPriorities;
 import io.kyligence.kap.query.util.RawSql;
 import io.kyligence.kap.query.util.RawSqlParser;
+import io.kyligence.kap.query.util.TokenMgrError;
 import io.kyligence.kap.rest.aspect.Transaction;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.config.AppConfig;
@@ -606,7 +607,7 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
 
             // Parsing user sql by RawSqlParser
             RawSql rawSql = new RawSqlParser(sqlRequest.getSql()).parse();
-            rawSql.autoAppendLimit(sqlRequest.getLimit(), sqlRequest.getOffset());
+            rawSql.autoAppendLimit(kylinConfig, sqlRequest.getLimit(), sqlRequest.getOffset());
 
             // Reset request sql for code compatibility
             sqlRequest.setSql(rawSql.getStatementString());
@@ -670,7 +671,7 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
             } else {
                 return new SQLResponse(null, null, 0, true, e.getMessage());
             }
-        } catch (Throwable t) {
+        } catch (TokenMgrError t) {
             QueryContext.current().getMetrics().setException(true);
             return new SQLResponse(null, null, 0, true, t.getMessage());
         } finally {
