@@ -35,6 +35,7 @@ import io.kyligence.kap.clickhouse.job.ClickHouseModelCleanJob;
 import io.kyligence.kap.clickhouse.job.ClickHouseProjectCleanJob;
 import io.kyligence.kap.clickhouse.management.ClickHouseConfigLoader;
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import io.kyligence.kap.guava20.shaded.common.collect.ImmutableSet;
@@ -47,6 +48,7 @@ import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.metadata.query.QueryHistoryInfo;
 import io.kyligence.kap.metadata.query.QueryMetrics;
@@ -307,6 +309,115 @@ public class SecondStorageLockTest implements JobWaiter {
         _httpServer = EmbeddedHttpServer.startServer(getLocalWorkingDirectory());
 
         indexDataConstructor = new IndexDataConstructor(getProject());
+    }
+
+    @Test
+    public void testCleanClickhouseTempTable() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse()) {
+            final String catalog = "default";
+
+            Unsafe.setProperty(ClickHouseLoad.SOURCE_URL, getSourceUrl());
+            Unsafe.setProperty(ClickHouseLoad.ROOT_PATH, getLocalWorkingDirectory());
+
+            val clickhouse = new JdbcDatabaseContainer[]{clickhouse1};
+            int replica = 1;
+            configClickhouseWith(clickhouse, replica, catalog, () -> {
+                buildIncrementalLoadQuery("2012-01-01", "2012-01-02");
+                waitAllJobFinish();
+                secondStorageService.changeProjectSecondStorageState(getProject(), SecondStorageNodeHelper.getAllPairs(), true);
+                Assert.assertEquals(clickhouse.length, SecondStorageUtil.listProjectNodes(getProject()).size());
+                secondStorageService.changeModelSecondStorageState(getProject(), modelId, true);
+                setQuerySession(catalog, clickhouse[0].getJdbcUrl(), clickhouse[0].getDriverClassName());
+
+                val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
+                val dataflow = dataflowManager.getDataflow(modelId);
+                val segs = dataflow.getQueryableSegments().stream().map(NDataSegment::getId).collect(Collectors.toList());
+                SecondStorageConcurrentTestUtil.registerWaitPoint(SecondStorageConcurrentTestUtil.WAIT_BEFORE_COMMIT, 10000);
+                int rows = 0;
+                String database = NameUtil.getDatabase(dataflow);
+                val jobId2 = triggerClickHouseLoadJob(getProject(), modelId, enableTestUser.getUser(), segs);
+                TimeUnit.SECONDS.sleep(5);
+
+                EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+                    val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
+                    executableManager.pauseJob(jobId2);
+                    return null;
+                }, getProject(), 1, UnitOfWork.DEFAULT_EPOCH_ID, jobId2);
+                waitJobEnd(getProject(), jobId2);
+
+                secondStorageScheduleService.secondStorageTempTableCleanTask();
+
+                try (Connection connection = DriverManager.getConnection(clickhouse1.getJdbcUrl());
+                     val stmt = connection.createStatement()) {
+                    val rs = stmt.executeQuery(String.format(Locale.ROOT, "select count() cnt from system.tables where database='%s'", database));
+
+                    if (rs.next()) {
+                        rows = rs.getInt("cnt");
+                    }
+                }
+                assertNotEquals(0, rows);
+                return true;
+            });
+        }
+    }
+
+    @Test
+    public void testCleanClickhouseDiscardTable() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse()) {
+            final String catalog = "default";
+
+            Unsafe.setProperty(ClickHouseLoad.SOURCE_URL, getSourceUrl());
+            Unsafe.setProperty(ClickHouseLoad.ROOT_PATH, getLocalWorkingDirectory());
+
+            val clickhouse = new JdbcDatabaseContainer[]{clickhouse1};
+            int replica = 1;
+            configClickhouseWith(clickhouse, replica, catalog, () -> {
+                buildIncrementalLoadQuery("2012-01-01", "2012-01-02");
+                waitAllJobFinish();
+                secondStorageService.changeProjectSecondStorageState(getProject(), SecondStorageNodeHelper.getAllPairs(), true);
+                Assert.assertEquals(clickhouse.length, SecondStorageUtil.listProjectNodes(getProject()).size());
+                secondStorageService.changeModelSecondStorageState(getProject(), modelId, true);
+                setQuerySession(catalog, clickhouse[0].getJdbcUrl(), clickhouse[0].getDriverClassName());
+
+                val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
+                val dataflow = dataflowManager.getDataflow(modelId);
+                val segs = dataflow.getQueryableSegments().stream().map(NDataSegment::getId).collect(Collectors.toList());
+                SecondStorageConcurrentTestUtil.registerWaitPoint(SecondStorageConcurrentTestUtil.WAIT_BEFORE_COMMIT, 10000);
+
+                val jobId1 = triggerClickHouseLoadJob(getProject(), modelId, enableTestUser.getUser(), segs);
+                TimeUnit.SECONDS.sleep(5);
+
+                EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+                    val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
+                    executableManager.pauseJob(jobId1);
+                    return null;
+                }, getProject(), 1, UnitOfWork.DEFAULT_EPOCH_ID, jobId1);
+                waitJobEnd(getProject(), jobId1);
+                EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+                    val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
+                    executableManager.discardJob(jobId1);
+                    return null;
+                }, getProject(), 1, UnitOfWork.DEFAULT_EPOCH_ID);
+                waitJobEnd(getProject(), jobId1);
+
+                secondStorageScheduleService.secondStorageTempTableCleanTask();
+
+                String database = NameUtil.getDatabase(dataflow);
+                int rows = 0;
+
+                try (Connection connection = DriverManager.getConnection(clickhouse1.getJdbcUrl());
+                     val stmt = connection.createStatement()) {
+                    val rs = stmt.executeQuery(String.format(Locale.ROOT, "select count() cnt from system.tables where database='%s'", database));
+
+                    if (rs.next()) {
+                        rows = rs.getInt("cnt");
+
+                    }
+                }
+                assertEquals(0, rows);
+                return true;
+            });
+        }
     }
 
     @Test
