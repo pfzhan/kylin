@@ -24,9 +24,16 @@
 
 package io.kyligence.kap.rest.delegate;
 
+import java.util.List;
+import java.util.Set;
+
+import org.apache.kylin.job.dao.ExecutablePO;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @FeignClient(name = "yinglong-data-loading-booter", path = "/kylin/api/job_delegate/feign")
 public interface JobMetadataRpc extends JobMetadataContract {
@@ -39,4 +46,24 @@ public interface JobMetadataRpc extends JobMetadataContract {
 
     @PostMapping(value = "/add_segment_job")
     String addSegmentJob(JobMetadataRequest jobMetadataRequest);
+
+    @PostMapping(value = "/get_layouts_by_running_jobs")
+    Set<Long> getLayoutsByRunningJobs(@RequestParam("project") String project, @RequestParam("modelId") String modelId);
+
+    @PostMapping(value = "/count_by_model_and_status")
+    long countByModelAndStatus(@RequestParam("project") String project, @RequestParam("model") String model,
+            @RequestParam("status") String status, @RequestParam("jobTypes") JobTypeEnum... jobTypes);
+
+    @PostMapping(value = "get_job_executables")
+    List<ExecutablePO> getJobExecutablesPO(@RequestParam("project") String project);
+
+    @PostMapping(value = "list_exec_by_job_type_and_status")
+    List<ExecutablePO> listExecPOByJobTypeAndStatus(@RequestParam("project") String project,
+            @RequestParam("state") String state, @RequestParam("jobTypes") JobTypeEnum... jobTypes);
+
+    @PostMapping(value = "discard_job")
+    void discardJob(@RequestParam("project") String project, @RequestParam("jobId") String jobId);
+
+    @PostMapping(value = "stop_batch_job")
+    void stopBatchJob(@RequestParam("project") String project, @RequestBody TableDesc tableDesc);
 }

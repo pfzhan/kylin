@@ -120,7 +120,6 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.SecondStorageJobParamUtil;
-import org.apache.kylin.job.common.SegmentUtil;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.model.JobParam;
@@ -187,6 +186,7 @@ import io.kyligence.kap.engine.spark.utils.ComputedColumnEvalUtil;
 import io.kyligence.kap.guava20.shaded.common.base.Supplier;
 import io.kyligence.kap.job.execution.AbstractExecutable;
 import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.job.util.SegmentUtil;
 import io.kyligence.kap.metadata.acl.AclTCRDigest;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.acl.NDataModelAclParams;
@@ -964,8 +964,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
     private List<AbstractExecutable> getAllRunningExecutable(String project) {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         ExecutableManager execManager = ExecutableManager.getInstance(kylinConfig, project);
-        return execManager.listExecByJobTypeAndStatus(ExecutableState::isRunning, JobTypeEnum.INDEX_BUILD,
-                JobTypeEnum.SUB_PARTITION_BUILD);
+        return jobMetadataInvoker.listExecPOByJobTypeAndStatus(project, "isRunning", JobTypeEnum.INDEX_BUILD,
+                JobTypeEnum.SUB_PARTITION_BUILD).stream().map(execManager::fromPO).collect(Collectors.toList());
     }
 
     private List<AbstractExecutable> getPartialRunningExecutable(String project, String modelId) {

@@ -24,6 +24,13 @@
 
 package io.kyligence.kap.rest.delegate;
 
+import java.util.List;
+import java.util.Set;
+
+import org.apache.kylin.job.dao.ExecutablePO;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.metadata.model.TableDesc;
+
 public interface JobMetadataContract {
 
     String addIndexJob(JobMetadataRequest jobMetadataRequest);
@@ -31,4 +38,17 @@ public interface JobMetadataContract {
     String addSecondStorageJob(JobMetadataRequest jobMetadataRequest);
 
     String addSegmentJob(JobMetadataRequest jobMetadataRequest);
+
+    Set<Long> getLayoutsByRunningJobs(String project, String modelId);
+
+    long countByModelAndStatus(String project, String model, String status, JobTypeEnum... jobTypes);
+
+    List<ExecutablePO> getJobExecutablesPO(String project);
+
+    List<ExecutablePO> listExecPOByJobTypeAndStatus(String project, String state, JobTypeEnum... jobTypes);
+
+    void discardJob(String project, String jobId);
+
+    void stopBatchJob(String project, TableDesc tableDesc);
+
 }

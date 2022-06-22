@@ -24,14 +24,21 @@
 
 package io.kyligence.kap.rest.delegate;
 
-import io.kyligence.kap.common.persistence.metadata.HDFSMetadataStore;
-import io.kyligence.kap.common.persistence.metadata.MetadataStore;
-import lombok.extern.slf4j.Slf4j;
+import java.util.List;
+import java.util.Set;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinRuntimeException;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.job.dao.ExecutablePO;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.util.SpringContext;
 import org.springframework.stereotype.Component;
+
+import io.kyligence.kap.common.persistence.metadata.HDFSMetadataStore;
+import io.kyligence.kap.common.persistence.metadata.MetadataStore;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
@@ -77,6 +84,30 @@ public class JobMetadataInvoker {
 
     public String addSegmentJob(JobMetadataRequest jobMetadataRequest) {
         return getDelegate().addSegmentJob(jobMetadataRequest);
+    }
+
+    public Set<Long> getLayoutsByRunningJobs(String project, String modelId) {
+        return getDelegate().getLayoutsByRunningJobs(project, modelId);
+    }
+
+    public long countByModelAndStatus(String project, String model, String status, JobTypeEnum... jobTypes) {
+        return getDelegate().countByModelAndStatus(project, model, status, jobTypes);
+    }
+
+    public List<ExecutablePO> getJobExecutablesPO(String project) {
+        return getDelegate().getJobExecutablesPO(project);
+    }
+
+    public List<ExecutablePO> listExecPOByJobTypeAndStatus(String project, String state, JobTypeEnum... jobTypes) {
+        return getDelegate().listExecPOByJobTypeAndStatus(project, state, jobTypes);
+    }
+
+    public void discardJob(String project, String jobId) {
+        getDelegate().discardJob(project, jobId);
+    }
+
+    public void stopBatchJob(String project, TableDesc tableDesc) {
+        getDelegate().stopBatchJob(project, tableDesc);
     }
 
 }

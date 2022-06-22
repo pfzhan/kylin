@@ -54,7 +54,6 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.common.SegmentUtil;
-import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -82,8 +81,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.engine.spark.smarter.IndexDependencyParser;
-import io.kyligence.kap.job.execution.AbstractExecutable;
-import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexEntity.Source;
@@ -586,12 +583,10 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
         Segments<NDataSegment> segments = df.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING,
                 SegmentStatusEnum.NEW);
 
-        val executableManager = getManager(ExecutableManager.class, project);
-        List<AbstractExecutable> executables = executableManager.listExecByModelAndStatus(modelId,
-                ExecutableState::isProgressing, JobTypeEnum.INDEX_BUILD, JobTypeEnum.INC_BUILD,
-                JobTypeEnum.INDEX_REFRESH, JobTypeEnum.INDEX_MERGE);
+        val executablesCount = jobMetadataInvoker.countByModelAndStatus(project, modelId, "isProgressing",
+                JobTypeEnum.INDEX_BUILD, JobTypeEnum.INC_BUILD, JobTypeEnum.INDEX_REFRESH, JobTypeEnum.INDEX_MERGE);
 
-        if (segments.isEmpty() && executables.isEmpty()) {
+        if (segments.isEmpty() && executablesCount == 0) {
             result.setShowLoadData(false);
         }
 
@@ -811,16 +806,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
 
     @VisibleForTesting
     public Set<Long> getLayoutsByRunningJobs(String project, String modelId) {
-        List<AbstractExecutable> runningJobList = ExecutableManager
-                .getInstance(KylinConfig.getInstanceFromEnv(), project) //
-                .getPartialExecutablesByStatusList(
-                        Sets.newHashSet(ExecutableState.READY, ExecutableState.PENDING, ExecutableState.RUNNING,
-                                ExecutableState.PAUSED, ExecutableState.ERROR), //
-                        path -> StringUtils.endsWith(path, modelId));
-
-        return runningJobList.stream()
-                .filter(abstractExecutable -> Objects.equals(modelId, abstractExecutable.getTargetSubject()))
-                .map(AbstractExecutable::getToBeDeletedLayoutIds).flatMap(Set::stream).collect(Collectors.toSet());
+        return jobMetadataInvoker.getLayoutsByRunningJobs(project, modelId);
     }
 
     private IndexResponse convertToResponse(LayoutEntity layoutEntity, NDataModel model) {

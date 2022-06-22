@@ -24,16 +24,24 @@
 
 package io.kyligence.kap.rest.delegate;
 
-import io.kyligence.kap.job.delegate.JobMetadataDelegate;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+
+import java.util.List;
+import java.util.Set;
+
+import org.apache.kylin.job.dao.ExecutablePO;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import io.kyligence.kap.job.delegate.JobMetadataDelegate;
 
 @Controller
 @RequestMapping(value = "/api/job_delegate", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
@@ -59,4 +67,46 @@ public class JobMetadataDelegateController {
     public String addSegmentJob(@RequestBody JobMetadataRequest jobMetadataRequest) {
         return jobMetadataDelegate.addSegmentJob(jobMetadataRequest);
     }
+
+    @PostMapping(value = "/feign/get_layouts_by_running_jobs")
+    @ResponseBody
+    public Set<Long> getLayoutsByRunningJobs(@RequestParam("project") String project,
+            @RequestParam("modelId") String modelId) {
+        return jobMetadataDelegate.getLayoutsByRunningJobs(project, modelId);
+    }
+
+    @PostMapping(value = "/feign/count_by_model_and_status")
+    @ResponseBody
+    public long countByModelAndStatus(@RequestParam("project") String project, @RequestParam("model") String model,
+            @RequestParam("status") String status,
+            @RequestParam(value = "jobTypes", required = false) JobTypeEnum... jobTypes) {
+        return jobMetadataDelegate.countByModelAndStatus(project, model, status, jobTypes);
+    }
+
+    @PostMapping(value = "/feign/get_job_executables")
+    @ResponseBody
+    public List<ExecutablePO> getJobExecutablesPO(@RequestParam("project") String project) {
+        return jobMetadataDelegate.getJobExecutablesPO(project);
+    }
+
+    @PostMapping(value = "/feign/list_exec_by_job_type_and_status")
+    @ResponseBody
+    public List<ExecutablePO> listExecPOByJobTypeAndStatus(@RequestParam("project") String project,
+            @RequestParam("state") String state, @RequestParam("jobTypes") JobTypeEnum... jobTypes) {
+        return jobMetadataDelegate.listExecPOByJobTypeAndStatus(project, state, jobTypes);
+    }
+
+    @PostMapping(value = "/feign/discard_job")
+    @ResponseBody
+    public void discardJob(@RequestParam("project") String project, @RequestParam("jobId") String jobId) {
+        jobMetadataDelegate.discardJob(project, jobId);
+    }
+
+    @PostMapping(value = "/feign/stop_batch_job")
+    @ResponseBody
+    public void stopBatchJob(@RequestParam("project") String project, @RequestBody TableDesc tableDesc) {
+        jobMetadataDelegate.stopBatchJob(project, tableDesc);
+    }
+
+
 }

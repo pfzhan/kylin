@@ -70,6 +70,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.Array;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.CliCommandExecutor;
@@ -407,10 +408,6 @@ public class ExecutableManager {
             throw new IllegalStateException(
                     "Cannot drop running job " + executable.getDisplayName() + ", please discard it first.");
         }
-    }
-
-    public List<String> getJobs() {
-        return getAllJobs().stream().map(executablePO -> executablePO.getId()).collect(Collectors.toList());
     }
 
     public AbstractExecutable getJob(String id) {
@@ -1093,7 +1090,11 @@ public class ExecutableManager {
     }
 
     public long countByModelAndStatus(String model, Predicate<ExecutableState> predicate) {
-        return listExecByModelAndStatus(model, predicate, null).size();
+        return countByModelAndStatus(model, predicate, null);
+    }
+
+    public long countByModelAndStatus(String model, Predicate<ExecutableState> predicate, JobTypeEnum... jobTypes) {
+        return listExecByModelAndStatus(model, predicate, jobTypes).size();
     }
 
     public List<AbstractExecutable> listExecByModelAndStatus(String model, Predicate<ExecutableState> predicate,
@@ -1116,20 +1117,6 @@ public class ExecutableManager {
     public List<ExecutablePO> listExecutablePOByModelAndStatus(String model, Predicate<ExecutableState> predicate,
                                                                JobTypeEnum... jobTypes) {
         return listExecutablePOByModelAndStatus(model, predicate, jobInfoDao.getPartialJobs(path -> StringUtils.endsWith(path, model), project), jobTypes);
-    }
-
-    public List<AbstractExecutable> listExecByJobTypeAndStatus(Predicate<ExecutableState> predicate,
-                                                               JobTypeEnum... jobTypes) {
-        if (jobTypes == null) {
-            return Lists.newArrayList();
-        }
-        List<JobTypeEnum> jobTypeList = Lists.newArrayList(jobTypes);
-        return jobInfoDao.getJobs(null).stream() //
-                .filter(job -> job.getJobType() != null) //
-                .filter(job -> jobTypeList.contains(job.getJobType())) //
-                .filter(job -> predicate.test(ExecutableState.valueOf(job.getOutput().getStatus()))) //
-                .map(this::fromPO) //
-                .collect(Collectors.toList());
     }
 
     public void setJobResumable(final String taskOrJobId) {
@@ -1205,6 +1192,12 @@ public class ExecutableManager {
     }
 
 
+    public List<String> getJobs() {
+        return getAllJobs().stream().sorted(Comparator.comparing(ExecutablePO::getCreateTime))
+                .sorted(Comparator.comparing(ExecutablePO::getPriority)).map(RootPersistentEntity::resourceName)
+                .collect(Collectors.toList());
+    }
+    
     public List<ExecutablePO> getAllJobs() {
         return jobInfoDao.getJobs(project);
     }
@@ -1539,7 +1532,7 @@ public class ExecutableManager {
 
     public List<AbstractExecutable> getExecutablesByStatusList(Set<ExecutableState> statusSet) {
         Preconditions.checkNotNull(statusSet);
-        List<ExecutablePO> filterJobs = Lists.newArrayList(jobInfoDao.getJobs(null));
+        List<ExecutablePO> filterJobs = Lists.newArrayList(jobInfoDao.getJobs(project));
         if (CollectionUtils.isNotEmpty(statusSet)) {
             filterJobs.removeIf(job -> !statusSet.contains(ExecutableState.valueOf(job.getOutput().getStatus())));
         }
@@ -1729,5 +1722,24 @@ public class ExecutableManager {
                 return true;
             });
         }
+    }
+
+    public List<AbstractExecutable> listExecByJobTypeAndStatus(Predicate<ExecutableState> predicate,
+            JobTypeEnum... jobTypes) {
+        return listExecPOByJobTypeAndStatus(predicate, jobTypes).stream().map(this::fromPO)
+                .collect(Collectors.toList());
+    }
+
+    public List<ExecutablePO> listExecPOByJobTypeAndStatus(Predicate<ExecutableState> predicate,
+            JobTypeEnum... jobTypes) {
+        if (jobTypes == null) {
+            return Lists.newArrayList();
+        }
+        List<JobTypeEnum> jobTypeList = Lists.newArrayList(jobTypes);
+        return jobInfoDao.getJobs(project).stream() //
+                .filter(job -> job.getJobType() != null) //
+                .filter(job -> jobTypeList.contains(job.getJobType())) //
+                .filter(job -> predicate.test(ExecutableState.valueOf(job.getOutput().getStatus()))) //
+                .collect(Collectors.toList());
     }
 }

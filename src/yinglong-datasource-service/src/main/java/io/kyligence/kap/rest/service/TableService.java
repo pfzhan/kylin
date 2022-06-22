@@ -209,10 +209,6 @@ public class TableService extends BasicService {
     private TableIndexPlanSupporter indexPlanService;
 
     @Autowired(required = false)
-    @Qualifier("jobService")
-    private JobSupporter jobService;
-
-    @Autowired(required = false)
     @Qualifier("jobInfoService")
     private JobSupporter jobInfoService;
 
@@ -806,15 +802,16 @@ public class TableService extends BasicService {
 
     private List<AbstractExecutable> stopAndGetSnapshotJobs(String project, String table) {
         val execManager = getManager(ExecutableManager.class, project);
-        val executables = execManager.listExecByJobTypeAndStatus(ExecutableState::isRunning, SNAPSHOT_BUILD,
+
+        val executables = jobMetadataInvoker.listExecPOByJobTypeAndStatus(project, "isRunning", SNAPSHOT_BUILD,
                 SNAPSHOT_REFRESH);
 
-        List<AbstractExecutable> conflictJobs = executables.stream()
+        List<AbstractExecutable> conflictJobs = executables.stream().map(execManager::fromPO)
                 .filter(exec -> table.equalsIgnoreCase(exec.getParam(NBatchConstants.P_TABLE_NAME)))
                 .collect(Collectors.toList());
 
         conflictJobs.forEach(job -> {
-            execManager.discardJob(job.getId());
+            jobMetadataInvoker.discardJob(project, job.getId());
         });
         return conflictJobs;
     }
@@ -839,7 +836,7 @@ public class TableService extends BasicService {
             unloadKafkaTableUsingTable(project, tableDesc);
         } else {
             stopStreamingJobByTable(project, tableDesc);
-            jobService.stopBatchJob(project, tableDesc);
+            jobMetadataInvoker.stopBatchJob(project, tableDesc);
         }
 
         unloadTable(project, table);
@@ -893,7 +890,6 @@ public class TableService extends BasicService {
         val response = new PreUnloadTableResponse();
         val dataflowManager = getManager(NDataflowManager.class, project);
         val tableMetadataManager = getManager(NTableMetadataManager.class, project);
-        val execManager = getManager(ExecutableManager.class, project);
 
         val tableDesc = tableMetadataManager.getTableDesc(tableIdentity);
         if (Objects.isNull(tableDesc)) {
@@ -916,8 +912,7 @@ public class TableService extends BasicService {
         storageSize += getSnapshotSize(project, tableIdentity, fs);
         response.setStorageSize(storageSize);
 
-        response.setHasJob(
-                execManager.countByModelAndStatus(tableIdentity, state -> state == ExecutableState.RUNNING) > 0);
+        response.setHasJob(jobMetadataInvoker.countByModelAndStatus(project, tableIdentity, "RUNNING", null) > 0);
         response.setHasSnapshot(tableDesc.getLastSnapshotPath() != null);
 
         return response;
@@ -1498,9 +1493,7 @@ public class TableService extends BasicService {
     }
 
     private List<String> getEffectedJobs(TableDesc newTableDesc, JobInfoEnum jobInfoType) {
-        val notFinalStateJobs = ExecutableManager
-                .getInstance(KylinConfig.readSystemKylinConfig(), newTableDesc.getProject())
-                .getAllJobs(0, Long.MAX_VALUE).stream()
+        val notFinalStateJobs = jobMetadataInvoker.getJobExecutablesPO(newTableDesc.getProject()).stream()
                 .filter(job -> !ExecutableState.valueOf(job.getOutput().getStatus()).isFinalState())
                 .map(job -> getManager(ExecutableManager.class, job.getProject()).fromPO(job))
                 .collect(Collectors.toList());

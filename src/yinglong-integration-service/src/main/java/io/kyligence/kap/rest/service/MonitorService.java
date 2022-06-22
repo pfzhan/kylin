@@ -36,6 +36,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
@@ -68,6 +69,7 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.state.QueryShareStateManager;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
+import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
 import io.kyligence.kap.rest.monitor.AbstractMonitorCollectTask;
 import io.kyligence.kap.rest.monitor.MonitorReporter;
 import io.kyligence.kap.rest.monitor.SparkContextCanary;
@@ -94,6 +96,9 @@ public class MonitorService extends BasicService {
     @Setter
     @Autowired
     private ClusterManager clusterManager;
+
+    @Autowired
+    private JobMetadataInvoker jobMetadataInvoker;
 
     @VisibleForTesting
     public List<ProjectInstance> getReadableProjects() {
@@ -130,7 +135,7 @@ public class MonitorService extends BasicService {
                 return queryMonitorMetric;
             }
         });
-        if (!kylinConfig.isJobNode()) {
+        if (!kylinConfig.isJobNode()  && !kylinConfig.isDataLoadingNode()) {
             return;
         }
         MonitorReporter.getInstance().submit(
@@ -151,16 +156,17 @@ public class MonitorService extends BasicService {
         for (ProjectInstance project : getReadableProjects()) {
             val executableManager = getManager(ExecutableManager.class, project.getName());
 
-            for (AbstractExecutable executable : executableManager.getAllExecutables()) {
-                if (executable.getStatus().isFinalState()) {
+            for (ExecutablePO executablePO : jobMetadataInvoker.getJobExecutablesPO(project.getName())) {
+                AbstractExecutable executable = executableManager.fromPO(executablePO);
+                if (executable.getStatus(executablePO).isFinalState()) {
                     finishedJobs.add(executable);
-                } else if (ExecutableState.RUNNING == executable.getStatus()) {
+                } else if (ExecutableState.RUNNING == executable.getStatus(executablePO)) {
                     runningJobs.add(executable);
-                } else if (ExecutableState.READY == executable.getStatus()
-                        || ExecutableState.PAUSED == executable.getStatus()
-                        || ExecutableState.PENDING == executable.getStatus()) {
+                } else if (ExecutableState.READY == executable.getStatus(executablePO)
+                        || ExecutableState.PAUSED == executable.getStatus(executablePO)
+                        || ExecutableState.PENDING == executable.getStatus(executablePO)) {
                     pendingJobs.add(executable);
-                } else if (ExecutableState.ERROR == executable.getStatus()) {
+                } else if (ExecutableState.ERROR == executable.getStatus(executablePO)) {
                     errorJobs.add(executable);
                 }
             }

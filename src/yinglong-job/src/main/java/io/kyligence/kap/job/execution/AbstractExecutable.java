@@ -492,6 +492,7 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
     }
 
     @Override
+    @Deprecated
     public final ExecutableState getStatus() {
         ExecutableManager manager = getManager();
         return manager.getOutput(this.getId()).getState();

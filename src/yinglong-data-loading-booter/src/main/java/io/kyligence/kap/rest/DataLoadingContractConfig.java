@@ -24,17 +24,20 @@
 
 package io.kyligence.kap.rest;
 
+import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
+import org.springframework.stereotype.Component;
+
+import io.kyligence.kap.job.delegate.JobMetadataDelegate;
+import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
 import io.kyligence.kap.rest.delegate.JobStatisticsInvoker;
 import io.kyligence.kap.rest.delegate.JobStatisticsRPC;
 import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
 import io.kyligence.kap.rest.delegate.ModelMetadataRPC;
 import io.kyligence.kap.rest.delegate.TableMetadataInvoker;
 import io.kyligence.kap.rest.delegate.TableMetadataRPC;
-import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.InitializingBean;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
-import org.springframework.stereotype.Component;
 
 @Component
 public class DataLoadingContractConfig implements InitializingBean, ApplicationContextAware {
@@ -46,6 +49,8 @@ public class DataLoadingContractConfig implements InitializingBean, ApplicationC
         ModelMetadataInvoker.setDelegate(applicationContext.getBean(ModelMetadataRPC.class));
         JobStatisticsInvoker.setDelegate(applicationContext.getBean(JobStatisticsRPC.class));
         TableMetadataInvoker.setDelegate(applicationContext.getBean(TableMetadataRPC.class));
+
+        JobMetadataInvoker.setDelegate(applicationContext.getBean(JobMetadataDelegate.class));
     }
 
     @Override

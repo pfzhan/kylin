@@ -51,7 +51,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
@@ -70,6 +69,7 @@ import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.SetThreadName;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.metadata.model.ISourceAware;
@@ -108,7 +108,6 @@ import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.scheduler.SourceUsageUpdateNotifier;
 import io.kyligence.kap.common.util.EncryptUtil;
 import io.kyligence.kap.common.util.JdbcUtils;
-import io.kyligence.kap.job.execution.AbstractExecutable;
 import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.metadata.cube.storage.ProjectStorageInfoCollector;
 import io.kyligence.kap.metadata.cube.storage.StorageInfoEnum;
@@ -121,6 +120,7 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 import io.kyligence.kap.rest.aspect.Transaction;
 import io.kyligence.kap.rest.config.initialize.ProjectDropListener;
+import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
 import io.kyligence.kap.rest.request.ComputedColumnConfigRequest;
 import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
 import io.kyligence.kap.rest.request.JdbcRequest;
@@ -173,6 +173,9 @@ public class ProjectService extends BasicService {
 
     @Autowired
     UserService userService;
+
+    @Autowired
+    private JobMetadataInvoker jobMetadataInvoker;
 
     private static final String DEFAULT_VAL = "default";
 
@@ -770,14 +773,14 @@ public class ProjectService extends BasicService {
                     String.format(Locale.ROOT, MsgPicker.getMsg().getProjectDropFailedSecondStorageEnabled(), project));
         }
 
-        val kylinConfig = KylinConfig.getInstanceFromEnv();
-        ExecutableManager executableManager = ExecutableManager.getInstance(kylinConfig, project);
-        List<String> jobIds = executableManager.getJobs().stream().map(executableManager::getJob)
-                .filter(Objects::nonNull)
-                .filter(abstractExecutable -> (abstractExecutable.getStatus().toJobStatus() == JobStatusEnum.RUNNING)
-                        || (abstractExecutable.getStatus().toJobStatus() == JobStatusEnum.PENDING)
-                        || (abstractExecutable.getStatus().toJobStatus() == JobStatusEnum.STOPPED))
-                .map(AbstractExecutable::getId).collect(Collectors.toList());
+        ExecutableManager executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        List<String> jobIds = jobMetadataInvoker.getJobExecutablesPO(project).stream()
+                .map(executablePO -> new Pair<>(executablePO, executableManager.fromPO(executablePO)))
+                .filter(pair -> pair.getSecond() != null)
+                .filter(pair -> (pair.getSecond().getStatus(pair.getFirst()).toJobStatus() == JobStatusEnum.RUNNING)
+                        || (pair.getSecond().getStatus(pair.getFirst()).toJobStatus() == JobStatusEnum.PENDING)
+                        || (pair.getSecond().getStatus(pair.getFirst()).toJobStatus() == JobStatusEnum.STOPPED))
+                .map(pair -> pair.getSecond().getId()).collect(Collectors.toList());
         val streamingJobStatusList = Arrays.asList(JobStatusEnum.STARTING, JobStatusEnum.RUNNING,
                 JobStatusEnum.STOPPING);
         val streamingJobList = getManager(StreamingJobManager.class, project).listAllStreamingJobMeta().stream()

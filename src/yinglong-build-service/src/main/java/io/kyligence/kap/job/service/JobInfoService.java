@@ -891,7 +891,7 @@ public class JobInfoService extends BasicService implements JobSupporter {
         ExecutableManager executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(),
                 project);
         executableManager.getJobs().stream().map(executableManager::getJob).filter(
-                        job -> StringUtils.equalsIgnoreCase(job.getTargetModelId(), fusionModel.getBatchModel().getUuid()))
+                job -> StringUtils.equalsIgnoreCase(job.getTargetModelId(), fusionModel.getBatchModel().getUuid()))
                 .forEach(job -> {
                     Set<ExecutableState> matchedExecutableStates = Stream
                             .of(JobStatusEnum.FINISHED, JobStatusEnum.ERROR, JobStatusEnum.DISCARDED)

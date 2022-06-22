@@ -24,21 +24,43 @@
 
 package io.kyligence.kap.job.delegate;
 
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinRuntimeException;
+import org.apache.kylin.job.dao.ExecutablePO;
+import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.rest.service.BasicService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.job.execution.AbstractExecutable;
 import io.kyligence.kap.job.handler.AbstractJobHandler;
 import io.kyligence.kap.job.handler.SecondStorageIndexCleanJobHandler;
 import io.kyligence.kap.job.handler.SecondStorageSegmentCleanJobHandler;
 import io.kyligence.kap.job.handler.SecondStorageSegmentLoadJobHandler;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.job.manager.JobManager;
+import io.kyligence.kap.job.service.JobInfoService;
 import io.kyligence.kap.rest.delegate.JobMetadataContract;
 import io.kyligence.kap.rest.delegate.JobMetadataRequest;
 import lombok.val;
-
-import org.apache.kylin.common.exception.KylinRuntimeException;
-import org.apache.kylin.rest.service.BasicService;
-import org.springframework.stereotype.Service;
+import lombok.experimental.Delegate;
 
 @Service
 public class JobMetadataDelegate extends BasicService implements JobMetadataContract {
+
+    @Delegate
+    @Autowired
+    private JobInfoService jobInfoService;
 
     @Override
     public String addIndexJob(JobMetadataRequest jobMetadataRequest) {
@@ -71,5 +93,46 @@ public class JobMetadataDelegate extends BasicService implements JobMetadataCont
             default:
                 throw new KylinRuntimeException("Can not create SecondStorageJobHandler.");
         }
+    }
+
+    public Set<Long> getLayoutsByRunningJobs(String project, String modelId) {
+        List<AbstractExecutable> runningJobList = ExecutableManager
+                .getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .getPartialExecutablesByStatusList(
+                        Sets.newHashSet(ExecutableState.READY, ExecutableState.PENDING, ExecutableState.RUNNING,
+                                ExecutableState.PAUSED, ExecutableState.ERROR), //
+                        path -> StringUtils.endsWith(path, modelId));
+
+        return runningJobList.stream()
+                .filter(abstractExecutable -> Objects.equals(modelId, abstractExecutable.getTargetSubject()))
+                .map(AbstractExecutable::getToBeDeletedLayoutIds).flatMap(Set::stream).collect(Collectors.toSet());
+    }
+    
+    public long countByModelAndStatus(String project, String model, String status, JobTypeEnum... jobTypes) {
+        Predicate<ExecutableState> predicate = null;
+        if (status.equals("isProgressing")) {
+            predicate = ExecutableState::isProgressing;
+        } else if (status.equals("RUNNING")) {
+            predicate = state -> state == ExecutableState.RUNNING;
+        }
+        return ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).countByModelAndStatus(model,
+                predicate, jobTypes);
+    }
+
+    public List<ExecutablePO> getJobExecutablesPO(String project) {
+        return ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getAllJobs();
+    }
+
+    public List<ExecutablePO> listExecPOByJobTypeAndStatus(String project, String state, JobTypeEnum... jobTypes) {
+        Predicate<ExecutableState> predicate = null;
+        if (state.equals("isRunning")) {
+            predicate = ExecutableState::isRunning;
+        }
+        return ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .listExecPOByJobTypeAndStatus(predicate, jobTypes);
+    }
+
+    public void discardJob(String project, String jobId) {
+        ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).discardJob(jobId);
     }
 }
