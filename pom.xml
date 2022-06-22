@@ -73,7 +73,7 @@
         <kryo.version>4.0.0</kryo.version>
 
         <!-- Calcite Version -->
-        <calcite.version>1.116.0-kylin-4.x-r020</calcite.version>
+        <calcite.version>1.116.0-kylin-4.x-r021</calcite.version>
         <avatica.version>1.10.0</avatica.version>
 
         <!-- Hadoop Common deps, keep compatible with hadoop2.version -->
