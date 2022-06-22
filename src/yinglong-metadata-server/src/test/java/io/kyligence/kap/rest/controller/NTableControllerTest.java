@@ -27,7 +27,6 @@ package io.kyligence.kap.rest.controller;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_SAMPLING_RANGE_INVALID;
-import static org.apache.kylin.common.exception.code.ErrorCodeServer.TIME_INVALID_RANGE_LESS_THAN_ZERO;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -261,117 +260,6 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nTableController).setPartitionKey(Mockito.any(PartitionKeyRequest.class));
-    }
-
-    @Test
-    public void testSetDateRangePass() throws Exception {
-        final DateRangeRequest dateRangeRequest = mockDateRangeRequest();
-        dateRangeRequest.setTable("DEFAULT.TEST_KYLIN_FACT");
-        Mockito.doNothing().when(tableService).setDataRange("default", dateRangeRequest);
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/data_range") //
-                .contentType(MediaType.APPLICATION_JSON) //
-                .content(JsonUtil.writeValueAsString(dateRangeRequest)) //
-                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nTableController).setDateRanges(Mockito.any(DateRangeRequest.class));
-    }
-
-    @Test
-    public void getGetBatchLoadTables() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/batch_load") //
-                .contentType(MediaType.APPLICATION_JSON) //
-                .param("project", "default") //
-                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nTableController).getBatchLoadTables("default");
-    }
-
-    @Test
-    public void batchLoadTablesWithEmptyRequest() throws Exception {
-        List<DateRangeRequest> requests = Lists.newArrayList();
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/batch_load") //
-                .contentType(MediaType.APPLICATION_JSON) //
-                .content(JsonUtil.writeValueAsString(requests)) //
-                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nTableController).batchLoad(Mockito.anyList());
-    }
-
-    @Test
-    public void batchLoadTables_DateRange_LessThan0_Exception() throws Exception {
-        DateRangeRequest request = new DateRangeRequest();
-        request.setProject("default");
-        request.setTable("DEFAULT.TEST_KYLIN_FACT");
-        request.setStart("-1");
-        request.setEnd("-1");
-        List<DateRangeRequest> requests = Lists.newArrayList(request);
-        final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/batch_load") //
-                .contentType(MediaType.APPLICATION_JSON) //
-                .content(JsonUtil.writeValueAsString(requests)) //
-                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
-                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
-        Mockito.verify(nTableController).batchLoad(Mockito.anyList());
-
-        final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
-        Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(),
-                TIME_INVALID_RANGE_LESS_THAN_ZERO.getMsg()));
-    }
-
-    @Test
-    public void batchLoadTables_DateRange_EndLessThanStart_Exception() throws Exception {
-        String errorMsg = "The end time must be greater than the start time";
-        DateRangeRequest request = new DateRangeRequest();
-        request.setProject("default");
-        request.setTable("DEFAULT.TEST_KYLIN_FACT");
-        request.setStart("100");
-        request.setEnd("1");
-        List<DateRangeRequest> requests = Lists.newArrayList(request);
-        final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/batch_load") //
-                .contentType(MediaType.APPLICATION_JSON) //
-                .content(JsonUtil.writeValueAsString(requests)) //
-                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
-                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
-        Mockito.verify(nTableController).batchLoad(Mockito.anyList());
-
-        final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
-        Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(), errorMsg));
-    }
-
-    @Test
-    public void testSetDateRang_lessThan0_exception() throws Exception {
-        final DateRangeRequest dateRangeRequest = mockDateRangeRequest();
-        dateRangeRequest.setStart("-1");
-        dateRangeRequest.setTable("TEST_KYLIN_FACT");
-        Mockito.doNothing().when(tableService).setDataRange("default", dateRangeRequest);
-        final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/data_range") //
-                .contentType(MediaType.APPLICATION_JSON) //
-                .content(JsonUtil.writeValueAsString(dateRangeRequest)) //
-                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
-                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
-        Mockito.verify(nTableController).setDateRanges(Mockito.any(DateRangeRequest.class));
-
-        final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
-        Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(),
-                TIME_INVALID_RANGE_LESS_THAN_ZERO.getMsg()));
-    }
-
-    @Test
-    public void testSetDateRang_EndLessThanStart_exception() throws Exception {
-        String errorMsg = "The end time must be greater than the start time";
-        final DateRangeRequest dateRangeRequest = mockDateRangeRequest();
-        dateRangeRequest.setStart("100");
-        dateRangeRequest.setEnd("1");
-        dateRangeRequest.setTable("TEST_KYLIN_FACT");
-        Mockito.doNothing().when(tableService).setDataRange("default", dateRangeRequest);
-        final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/data_range") //
-                .contentType(MediaType.APPLICATION_JSON) //
-                .content(JsonUtil.writeValueAsString(dateRangeRequest)) //
-                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
-                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
-        Mockito.verify(nTableController).setDateRanges(Mockito.any(DateRangeRequest.class));
-
-        final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
-        Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(), errorMsg));
     }
 
     @Test

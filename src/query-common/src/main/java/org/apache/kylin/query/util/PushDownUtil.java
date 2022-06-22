@@ -172,10 +172,11 @@ public class PushDownUtil {
         Future<Pair<String, String>> pushDownTask = asyncExecutor.submit(() -> {
             try {
                 return getMaxAndMinTime(partitionColumn, table, project);
-            } catch (KylinException e) {
-                throw e;
             } catch (Exception e) {
                 logger.error("Failed to get partition column latest data range by push down!", e);
+                if (e instanceof KylinException) {
+                    throw e;
+                }
             }
             return null;
         });

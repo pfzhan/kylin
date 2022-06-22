@@ -578,14 +578,14 @@ public class ModelServiceBuildTest extends SourceTestCase {
         cleanPushdownEnv();
     }
 
-    private void testGetLatestData() throws Exception {
-        ExistedDataRangeResponse response = modelService.getLatestDataRange("default",
+    private void testGetLatestData() {
+        ExistedDataRangeResponse data = modelService.getLatestDataRange("default",
                 "89af4ee2-2cdb-4b07-b39e-4c29856309aa", null);
-        Assert.assertEquals(String.valueOf(Long.MAX_VALUE), response.getEndTime());
+        Assert.assertEquals(String.valueOf(Long.MAX_VALUE), data.getEndTime());
     }
 
     @Test
-    public void test() throws Exception {
+    public void testDetectViewPartitionDateFormatForbidden() throws Exception {
         setupPushdownEnv();
 
         final String table = "DEFAULT.TEST_KYLIN_FACT";
@@ -597,7 +597,22 @@ public class ModelServiceBuildTest extends SourceTestCase {
             modelService.getLatestDataRange("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", null);
             Assert.fail();
         } catch (Exception e) {
-            Assert.assertEquals(MsgPicker.getMsg().getViewDateFormatDetectionError(), e.getCause().getMessage());
+            Assert.assertEquals(MsgPicker.getMsg().getViewDateFormatDetectionError(), e.getMessage());
+        }
+    }
+
+    @Test
+    public void testDetectPartitionDateFormatError() throws Exception {
+        setupPushdownEnv();
+        final NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), "default");
+        modelManager.updateDataModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa", copyForWrite -> {
+            copyForWrite.getPartitionDesc().setPartitionDateFormat("yyyyMMdd");
+        });
+        try {
+            modelService.getLatestDataRange("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", null);
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertEquals(MsgPicker.getMsg().getPushdownDatarangeError(), e.getMessage());
         }
     }
 

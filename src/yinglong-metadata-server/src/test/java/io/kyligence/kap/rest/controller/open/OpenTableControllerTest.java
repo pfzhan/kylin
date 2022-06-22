@@ -28,14 +28,12 @@ import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLI
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.junit.After;
 import org.junit.Before;
@@ -57,7 +55,6 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.rest.controller.NTableController;
-import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.OpenReloadTableRequest;
 import io.kyligence.kap.rest.request.TableLoadRequest;
 import io.kyligence.kap.rest.response.PreUnloadTableResponse;
@@ -141,25 +138,6 @@ public class OpenTableControllerTest extends NLocalFileMetadataTestCase {
                 .param("source_type", "1").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError());
         Mockito.verify(openTableController).getTableDesc(project1, tableName1, database1, false, true, 0, 10, 1);
-    }
-
-    @Test
-    public void testSetDateRangePass() throws Exception {
-        String project = "default";
-        String tableName = "DEFAULT.TEST_KYLIN_FACT";
-        mockGetTable(project, tableName);
-
-        DateRangeRequest dateRangeRequest = new DateRangeRequest();
-        dateRangeRequest.setProject(project);
-        dateRangeRequest.setTable(tableName);
-        Mockito.doReturn(new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "")).when(nTableController)
-                .setDateRanges(dateRangeRequest);
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/data_range") //
-                .contentType(MediaType.APPLICATION_JSON) //
-                .content(JsonUtil.writeValueAsString(dateRangeRequest)) //
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))) //
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(openTableController).setDateRanges(Mockito.any(DateRangeRequest.class));
     }
 
     @Test
