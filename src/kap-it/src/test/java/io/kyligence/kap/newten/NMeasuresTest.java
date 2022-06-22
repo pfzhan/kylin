@@ -543,6 +543,12 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
                 + "2012-06-24, 2012-04-18, 2012-03-01)]", rows1.get(3).toString());
         Assert.assertEquals("[10000004,WrappedArray(2012-09-12, 2012-09-13, 2012-04-12, 2012-12-12, 2012-07-25,"
                 + " 2012-03-18, 2012-12-13, 2012-08-20, 2012-09-10, 2012-10-10)]", rows1.get(4).toString());
+
+        List<Row> rows2 = ExecAndComp.queryModel(getProject(),
+                "select size(collect_set(SELLER_ID)) from (select SELLER_ID from test_kylin_fact group by SELLER_ID limit 10) t")
+                .collectAsList();
+        Assert.assertEquals("[10]", rows2.get(0).toString());
+
     }
 
     private Double decodePercentileCol(Row row, int index) {
