@@ -26,11 +26,15 @@ package io.kyligence.kap.job;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Resource;
 
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.runners.JobCheckRunner;
+import org.apache.kylin.job.runners.JobCheckUtil;
+import org.apache.kylin.job.runners.QuotaStorageCheckRunner;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,8 +56,6 @@ import io.kyligence.kap.job.scheduler.JdbcJobScheduler;
 import io.kyligence.kap.job.scheduler.ParallelLimiter;
 import io.kyligence.kap.job.scheduler.ResourceAcquirer;
 import io.kyligence.kap.job.scheduler.SharedFileProgressReporter;
-import lombok.Getter;
-import lombok.Setter;
 
 @Component
 @ConditionalOnProperty("spring.job-datasource.url")
@@ -76,9 +78,7 @@ public class JobContext implements InitializingBean, DisposableBean {
     @Autowired
     private DataSourceTransactionManager transactionManager;
 
-    @Getter
-    @Setter
-    private volatile boolean reachQuotaLimit = false;
+    private ConcurrentHashMap<String, Boolean> projectReachQuotaLimitMap;
 
     private ParallelLimiter parallelLimiter;
     private ResourceAcquirer resourceAcquirer;
@@ -140,6 +140,11 @@ public class JobContext implements InitializingBean, DisposableBean {
         jobScheduler = new JdbcJobScheduler(this);
         jobScheduler.start();
 
+        QuotaStorageCheckRunner quotaStorageCheckRunner = new QuotaStorageCheckRunner(this);
+        JobCheckUtil.startQuotaStorageCheckRunner(quotaStorageCheckRunner);
+
+        JobCheckRunner jobCheckRunner = new JobCheckRunner(this);
+        JobCheckUtil.startJobCheckRunner(jobCheckRunner);
     }
 
     public String getServerNode() {
@@ -193,5 +198,13 @@ public class JobContext implements InitializingBean, DisposableBean {
                 .offset(0).limit(10000)
                 .build();
         return jobInfoMapper.selectByJobFilter(mapperFilter);
+    }
+
+    public void setProjectReachQuotaLimit(String project, Boolean reachQuotaLimit) {
+        projectReachQuotaLimitMap.put(project, reachQuotaLimit);
+    }
+
+    public boolean isProjectReachQuotaLimit(String project) {
+        return projectReachQuotaLimitMap.get(project);
     }
 }

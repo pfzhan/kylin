@@ -23,52 +23,70 @@
  */
 package org.apache.kylin.job.runners;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class QuotaStorageCheckRunner{ // extends AbstractDefaultSchedulerRunner {
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.job.JobContext;
+import io.kyligence.kap.metadata.cube.storage.ProjectStorageInfoCollector;
+import io.kyligence.kap.metadata.cube.storage.StorageInfoEnum;
+import lombok.val;
+import lombok.var;
+
+import java.util.List;
+
+public class QuotaStorageCheckRunner implements Runnable {
+
     private static final Logger logger = LoggerFactory.getLogger(QuotaStorageCheckRunner.class);
 
-    //TODO need to be rewritten
-    /*
     private final ProjectStorageInfoCollector collector;
 
+    private JobContext jobContext;
 
-    public QuotaStorageCheckRunner(NDefaultScheduler nDefaultScheduler) {
-        super(nDefaultScheduler);
-
+    public QuotaStorageCheckRunner(JobContext jobContext) {
+        this.jobContext = jobContext;
         val storageInfoEnumList = Lists.newArrayList(StorageInfoEnum.STORAGE_QUOTA, StorageInfoEnum.TOTAL_STORAGE);
         collector = new ProjectStorageInfoCollector(storageInfoEnumList);
     }
 
     @Override
-    protected void doRun() {
-        logger.info("start check project {} storage quota.", nDefaultScheduler.getProject());
-        context.setReachQuotaLimit(reachStorageQuota());
+    public void run() {
+        if (!KylinConfig.getInstanceFromEnv().isCheckQuotaStorageEnabled()) {
+            return;
+        }
+        logger.info("Start check all project storage quota.");
+        // context.setReachQuotaLimit(reachStorageQuota());
+        NProjectManager nProjectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+        List<ProjectInstance> projectInstanceList = nProjectManager.listAllProjects();
+        for (ProjectInstance projectInstance : projectInstanceList) {
+            String project = projectInstance.getName();
+            jobContext.setProjectReachQuotaLimit(project, reachStorageQuota(project));
+        }
     }
 
-    private boolean reachStorageQuota() {
-        var storageVolumeInfo = collector.getStorageVolumeInfo(KylinConfig.getInstanceFromEnv(), nDefaultScheduler.getProject());
+    private boolean reachStorageQuota(String project) {
+        var storageVolumeInfo = collector.getStorageVolumeInfo(KylinConfig.getInstanceFromEnv(), project);
         var totalSize = storageVolumeInfo.getTotalStorageSize();
         int retryCount = 3;
         while (retryCount-- > 0 && totalSize < 0) {
-            storageVolumeInfo = collector.getStorageVolumeInfo(KylinConfig.getInstanceFromEnv(),
-                    nDefaultScheduler.getProject());
+            storageVolumeInfo = collector.getStorageVolumeInfo(KylinConfig.getInstanceFromEnv(), project);
             totalSize = storageVolumeInfo.getTotalStorageSize();
         }
         val storageQuotaSize = storageVolumeInfo.getStorageQuotaSize();
         if (totalSize < 0) {
             logger.error(
                     "Project '{}' : an exception occurs when getting storage volume info, no job will be scheduled!!! The error info : {}",
-                    nDefaultScheduler.getProject(), storageVolumeInfo.getThrowableMap().get(StorageInfoEnum.TOTAL_STORAGE));
+                    project, storageVolumeInfo.getThrowableMap().get(StorageInfoEnum.TOTAL_STORAGE));
             return true;
         }
         if (totalSize >= storageQuotaSize) {
-            logger.info("Project '{}' reach storage quota, no job will be scheduled!!!", nDefaultScheduler.getProject());
+            logger.info("Project '{}' reach storage quota, no job will be scheduled!!!", project);
             return true;
         }
         return false;
     }
-     */
-
 }

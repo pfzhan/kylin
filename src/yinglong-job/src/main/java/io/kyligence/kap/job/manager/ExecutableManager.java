@@ -615,10 +615,12 @@ public class ExecutableManager {
     }
 
     // only for UT
+    @Transactional
     public void resumeJob(String jobId) {
         resumeJob(jobId, getJob(jobId));
     }
 
+    @Transactional
     public void resumeJob(String jobId, AbstractExecutable job) {
         resumeJob(jobId, job, false);
     }
@@ -873,11 +875,13 @@ public class ExecutableManager {
     }
 
     // only for UT
+    @Transactional
     public void pauseJob(String jobId) {
         ExecutablePO executablePO = jobInfoDao.getExecutablePOByUuid(jobId);
         pauseJob(jobId, executablePO, fromPO(executablePO));
     }
 
+    @Transactional
     public void pauseJob(String jobId, ExecutablePO executablePO, AbstractExecutable job) {
         if (job == null) {
             return;
@@ -896,6 +900,38 @@ public class ExecutableManager {
         job.onExecuteStopHook();
     }
 
+    @Transactional
+    public void errorJob(String jobId) {
+        AbstractExecutable job = getJob(jobId);
+        if (job == null) {
+            return;
+        }
+
+        if (job instanceof DefaultChainedExecutable) {
+            List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
+            tasks.stream().filter(task -> task.getStatus() != ExecutableState.ERROR)
+                    .filter(task -> task.getStatus() != ExecutableState.SUCCEED)
+                    .forEach(task -> updateJobOutput(task.getId(), ExecutableState.ERROR));
+            tasks.forEach(task -> {
+                if (task instanceof ChainedStageExecutable) {
+                    final Map<String, List<StageBase>> tasksMap = ((ChainedStageExecutable) task).getStagesMap();
+                    if (MapUtils.isNotEmpty(tasksMap)) {
+                        for (Map.Entry<String, List<StageBase>> entry : tasksMap.entrySet()) {
+                            Optional.ofNullable(entry.getValue()).orElse(Lists.newArrayList())//
+                                    .stream()
+                                    .filter(stage -> stage.getStatus(entry.getKey()) != ExecutableState.ERROR
+                                            && stage.getStatus(entry.getKey()) != ExecutableState.SUCCEED)
+                                    .forEach(stage -> //
+                                            updateStageStatus(stage.getId(), entry.getKey(), ExecutableState.ERROR, null, null));
+                        }
+                    }
+                }
+            });
+        }
+
+        updateJobOutput(jobId, ExecutableState.ERROR);
+    }
+
     public void updateStagePaused(AbstractExecutable job) {
         if (job instanceof DefaultChainedExecutable) {
             List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
@@ -909,7 +945,7 @@ public class ExecutableManager {
                                     .stream() //
                                     .filter(stage -> stage.getStatus(entry.getKey()) == ExecutableState.RUNNING)//
                                     .forEach(stage -> //
-                                            updateStageStatus(stage.getId(), entry.getKey(), ExecutableState.PAUSED, null, null));
+                            updateStageStatus(stage.getId(), entry.getKey(), ExecutableState.PAUSED, null, null));
                         }
                     }
                 }
@@ -963,6 +999,7 @@ public class ExecutableManager {
         }
     }
 
+    @Transactional
     public void discardJob(String jobId) {
         discardJob(jobId, getJob(jobId));
     }
@@ -1466,6 +1503,7 @@ public class ExecutableManager {
         jobInfoDao.dropAllJobs();
     }
 
+    @Transactional
     public void suicideJob(String jobId) {
         AbstractExecutable job = getJob(jobId);
         if (job == null) {
@@ -1498,6 +1536,7 @@ public class ExecutableManager {
         updateJobOutput(jobId, ExecutableState.SUICIDAL);
     }
 
+    @Transactional
     public void resumeAllRunningJobs() {
         val jobs = jobInfoDao.getJobs(null);
         CliCommandExecutor exe = getCliCommandExecutor();

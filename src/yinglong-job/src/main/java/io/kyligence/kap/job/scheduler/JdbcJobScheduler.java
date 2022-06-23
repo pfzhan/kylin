@@ -34,15 +34,17 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.util.ThreadUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.runners.JobCheckUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
+import io.kyligence.kap.common.util.ThreadUtils;
 import io.kyligence.kap.job.JobContext;
 import io.kyligence.kap.job.core.AbstractJobExecutable;
 import io.kyligence.kap.job.core.lock.JdbcJobLock;
@@ -51,6 +53,7 @@ import io.kyligence.kap.job.core.lock.LockException;
 import io.kyligence.kap.job.domain.JobInfo;
 import io.kyligence.kap.job.execution.AbstractExecutable;
 import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.job.util.JobInfoUtil;
 
 public class JdbcJobScheduler implements JobScheduler {
 
@@ -98,6 +101,10 @@ public class JdbcJobScheduler implements JobScheduler {
 
     private boolean hasRunningJob() {
         return !runningJobMap.isEmpty();
+    }
+
+    public Map<String, JobExecutor> getRunningJob() {
+        return runningJobMap;
     }
 
     @Override
@@ -234,7 +241,7 @@ public class JdbcJobScheduler implements JobScheduler {
                 if (!jobContext.getResourceAcquirer().tryAcquire(jobExecutable)) {
                     return;
                 }
-                executorPool.execute(() -> executeJob(jobExecutable));
+                executorPool.execute(() -> executeJob(jobExecutable, jobInfo));
             });
         } catch (Exception e) {
             logger.error("Something's wrong when consuming job", e);
@@ -243,7 +250,7 @@ public class JdbcJobScheduler implements JobScheduler {
         }
     }
 
-    private void executeJob(AbstractJobExecutable jobExecutable) {
+    private void executeJob(AbstractJobExecutable jobExecutable, JobInfo jobInfo) {
         try (JobExecutor jobExecutor = new JobExecutor(jobContext, jobExecutable)) {
             JdbcJobLock jobLock = new JdbcJobLock(jobExecutable.getJobId(), jobContext.getServerNode(),
                     jobContext.getJobConfig().getJobSchedulerJobRenewalSec(),
@@ -253,6 +260,13 @@ public class JdbcJobScheduler implements JobScheduler {
                 logger.info("Acquire job lock failed.");
                 return;
             }
+
+            if (jobContext.isProjectReachQuotaLimit(jobExecutable.getProject())
+                    && JobCheckUtil.stopJobIfStorageQuotaLimitReached(jobContext, jobInfo, jobExecutable)) {
+                jobLock.tryRelease();
+                return;
+            }
+            
             AbstractExecutable executable = (AbstractExecutable) jobExecutable;
             if (executable.getStatus().equals(ExecutableState.RUNNING)) {
                 // resume job status from running to ready
@@ -262,6 +276,7 @@ public class JdbcJobScheduler implements JobScheduler {
                 return;
             }
 
+            jobExecutor.setStartTime(System.currentTimeMillis());
             runningJobMap.put(jobExecutable.getJobId(), jobExecutor);
 
             try {
@@ -278,8 +293,9 @@ public class JdbcJobScheduler implements JobScheduler {
     }
 
     private AbstractJobExecutable getJobExecutable(JobInfo jobInfo) {
+        ExecutablePO executablePO = JobInfoUtil.deserializeExecutablePO(jobInfo);
         return ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), jobInfo.getProject())
-                .getJob(jobInfo.getJobId());
+                .fromPO(executablePO);
     }
 
     private class MasterAcquireListener implements LockAcquireListener {
