@@ -3314,4 +3314,12 @@ public abstract class KylinConfigBase implements Serializable {
     public Integer getMaxResultRows() {
         return Integer.parseInt(this.getOptional("kylin.query.max-result-rows", "0"));
     }
+
+    public Integer getLoadHiveTableWaitSparderSeconds() {
+        return Integer.parseInt(this.getOptional("kylin.source.load-hive-table-wait-sparder-seconds", "900"));
+    }
+
+    public Integer getLoadHiveTableWaitSparderIntervals() {
+        return Integer.parseInt(this.getOptional("kylin.source.load-hive-table-wait-sparder-interval-seconds", "10"));
+    }
 }
