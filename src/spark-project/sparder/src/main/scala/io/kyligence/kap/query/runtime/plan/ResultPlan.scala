@@ -98,12 +98,13 @@ object ResultPlan extends LogEx {
       sparkContext.setLocalProperty("source_scan_rows", QueryContext.current().getMetrics.getSourceScanRows.toString)
       logDebug(s"source_scan_rows is ${QueryContext.current().getMetrics.getSourceScanRows.toString}")
 
-      val pool = getQueryFairSchedulerPool(sparkContext.getConf, QueryContext.current(), sumOfSourceScanRows, partitionsNum)
+      val bigQueryThreshold = BigQueryThresholdUpdater.getBigQueryThreshold
+      val pool = getQueryFairSchedulerPool(sparkContext.getConf, QueryContext.current(), bigQueryThreshold,
+        sumOfSourceScanRows, partitionsNum)
       sparkContext.setLocalProperty(SPARK_SCHEDULER_POOL, pool)
 
       // judge whether to refuse the new big query
       logDebug(s"Total source scan rows: $sumOfSourceScanRows")
-      val bigQueryThreshold = BigQueryThresholdUpdater.getBigQueryThreshold
       if(QueryShareStateManager.isShareStateSwitchEnabled
         && sumOfSourceScanRows >= bigQueryThreshold
         && SparkQueryJobManager.isNewBigQueryRefuse) {
@@ -131,7 +132,9 @@ object ResultPlan extends LogEx {
 
       logInfo(s"Actual total scan count: $scanRows, " +
         s"file scan row count: ${QueryContext.current.getMetrics.getAccumSourceScanRows}, " +
-        s"may apply limit row count: $sumOfSourceScanRows")
+        s"may apply limit row count: $sumOfSourceScanRows, Big query threshold: $bigQueryThreshold, Allocate pool: $pool, " +
+        s"Is Vip: ${QueryContext.current().getQueryTagInfo.isHighPriorityQuery}, " +
+        s"Is TableIndex: ${QueryContext.current().getQueryTagInfo.isTableIndex}")
 
       val resultTypes = rowType.getFieldList.asScala
       (() => new util.Iterator[util.List[String]] {
@@ -165,14 +168,15 @@ object ResultPlan extends LogEx {
     }
   }
 
-  def getQueryFairSchedulerPool(sparkConf: SparkConf, queryContext: QueryContext, sumOfSourceScanRows: Long, partitionsNum: Int): String = {
+  def getQueryFairSchedulerPool(sparkConf: SparkConf, queryContext: QueryContext, bigQueryThreshold: Long,
+                                sumOfSourceScanRows: Long, partitionsNum: Int): String = {
     var pool = "heavy_tasks"
     if (queryContext.getQueryTagInfo.isHighPriorityQuery) {
       pool = "vip_tasks"
     } else if (queryContext.getQueryTagInfo.isTableIndex) {
       pool = "extreme_heavy_tasks"
     } else if (KapConfig.getInstanceFromEnv.isQueryLimitEnabled && SparderEnv.isSparkExecutorResourceLimited(sparkConf)) {
-      if (sumOfSourceScanRows < KapConfig.getInstanceFromEnv.getBigQuerySourceScanRowsThreshold) {
+      if (sumOfSourceScanRows < bigQueryThreshold) {
         pool = "lightweight_tasks"
       }
     } else if (partitionsNum < SparderEnv.getTotalCore) {

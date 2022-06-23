@@ -27,6 +27,7 @@ package io.kyligence.kap.query.runtime.plan;
 import io.kyligence.kap.common.state.StateSwitchConstant;
 import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.query.BigQueryThresholdUpdater;
 import io.kyligence.kap.metadata.state.QueryShareStateManager;
 import io.kyligence.kap.query.MockContext;
 import lombok.val;
@@ -183,37 +184,62 @@ public class TestResultPlan extends NLocalFileMetadataTestCase {
         SparkConf sparkConf = new SparkConf();
         QueryContext queryContext = QueryContext.current();
 
+        long bigQueryThreshold = BigQueryThresholdUpdater.getBigQueryThreshold();
         queryContext.getQueryTagInfo().setHighPriorityQuery(true);
-        pool = ResultPlan.getQueryFairSchedulerPool(sparkConf, queryContext, fakeScanRows, fakePartitionNum);
+        pool = ResultPlan.getQueryFairSchedulerPool(sparkConf, queryContext, bigQueryThreshold, fakeScanRows,
+                fakePartitionNum);
         Assert.assertEquals("vip_tasks", pool);
         queryContext.getQueryTagInfo().setHighPriorityQuery(false);
 
         queryContext.getQueryTagInfo().setTableIndex(true);
-        pool = ResultPlan.getQueryFairSchedulerPool(sparkConf, queryContext, fakeScanRows, fakePartitionNum);
+        pool = ResultPlan.getQueryFairSchedulerPool(sparkConf, queryContext, bigQueryThreshold, fakeScanRows,
+                fakePartitionNum);
         Assert.assertEquals("extreme_heavy_tasks", pool);
         queryContext.getQueryTagInfo().setTableIndex(false);
 
-        pool = ResultPlan.getQueryFairSchedulerPool(sparkConf, queryContext, fakeScanRows, fakePartitionNum);
+        pool = ResultPlan.getQueryFairSchedulerPool(sparkConf, queryContext, bigQueryThreshold, fakeScanRows,
+                fakePartitionNum);
         Assert.assertEquals("heavy_tasks", pool);
         fakePartitionNum = SparderEnv.getTotalCore() - 1;
-        pool = ResultPlan.getQueryFairSchedulerPool(sparkConf, queryContext, fakeScanRows, fakePartitionNum);
+        pool = ResultPlan.getQueryFairSchedulerPool(sparkConf, queryContext, bigQueryThreshold, fakeScanRows,
+                fakePartitionNum);
         Assert.assertEquals("lightweight_tasks", pool);
 
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         try (KylinConfig.SetAndUnsetThreadLocalConfig autoUnset = KylinConfig.setAndUnsetThreadLocalConfig(config)) {
             config.setProperty("kylin.query.query-limit-enabled", "true");
-            pool = ResultPlan.getQueryFairSchedulerPool(sparkConf, queryContext, fakeScanRows, fakePartitionNum);
-            Assert.assertEquals("lightweight_tasks", pool);
-
             sparkConf.set("spark.dynamicAllocation.enabled", "true");
             sparkConf.set("spark.dynamicAllocation.maxExecutors", "1");
+            config.setProperty("kylin.query.big-query-source-scan-rows-threshold", "-1");
+
+            BigQueryThresholdUpdater.resetBigQueryThreshold();
+            Assert.assertEquals(-1, BigQueryThresholdUpdater.getBigQueryThreshold());
             config.setProperty("kylin.query.big-query-source-scan-rows-threshold", String.valueOf(fakeScanRows + 1));
-            pool = ResultPlan.getQueryFairSchedulerPool(sparkConf, queryContext, fakeScanRows, fakePartitionNum);
+            BigQueryThresholdUpdater.resetBigQueryThreshold();
+            BigQueryThresholdUpdater.initBigQueryThresholdBySparkResource(1, 1);
+            bigQueryThreshold = BigQueryThresholdUpdater.getBigQueryThreshold();
+            Assert.assertEquals(fakeScanRows + 1, bigQueryThreshold);
+            pool = ResultPlan.getQueryFairSchedulerPool(sparkConf, queryContext, bigQueryThreshold, fakeScanRows,
+                    fakePartitionNum);
             Assert.assertEquals("lightweight_tasks", pool);
 
             config.setProperty("kylin.query.big-query-source-scan-rows-threshold", String.valueOf(fakeScanRows - 1));
-            pool = ResultPlan.getQueryFairSchedulerPool(sparkConf, queryContext, fakeScanRows, fakePartitionNum);
+            BigQueryThresholdUpdater.resetBigQueryThreshold();
+            BigQueryThresholdUpdater.initBigQueryThresholdBySparkResource(1, 1);
+            bigQueryThreshold = BigQueryThresholdUpdater.getBigQueryThreshold();
+            Assert.assertEquals(fakeScanRows - 1, bigQueryThreshold);
+            pool = ResultPlan.getQueryFairSchedulerPool(sparkConf, queryContext, bigQueryThreshold, fakeScanRows,
+                    fakePartitionNum);
             Assert.assertEquals("heavy_tasks", pool);
+
+            config.setProperty("kylin.query.big-query-source-scan-rows-threshold", String.valueOf(-1));
+            BigQueryThresholdUpdater.resetBigQueryThreshold();
+            BigQueryThresholdUpdater.initBigQueryThresholdBySparkResource(1, 1);
+            bigQueryThreshold = BigQueryThresholdUpdater.getBigQueryThreshold();
+            Assert.assertEquals(12891053, bigQueryThreshold);
+            pool = ResultPlan.getQueryFairSchedulerPool(sparkConf, queryContext, bigQueryThreshold, fakeScanRows,
+                    fakePartitionNum);
+            Assert.assertEquals("lightweight_tasks", pool);
         }
     }
 
