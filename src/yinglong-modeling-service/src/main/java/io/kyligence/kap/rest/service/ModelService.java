@@ -421,8 +421,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         long inputRecordCnt = oldParams.getInputRecordCnt();
         long inputRecordSizeBytes = oldParams.getInputRecordSizeBytes();
         for (NDataSegmentResponse segment : segments) {
-            long sourceRows = segment.getSegDetails().getLayouts().stream().map(NDataLayout::getSourceRows)
-                    .max(Long::compareTo).orElse(0L);
+            long sourceRows = segment.getSourceCount();
             inputRecordCnt += sourceRows;
             inputRecordSizeBytes += segment.getSourceBytesSize();
 
@@ -600,8 +599,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                 List<NDataSegmentResponse> segments = getSegmentsResponse(modelResponse.getId(), project, "1",
                         String.valueOf(Long.MAX_VALUE - 1), null, LAST_MODIFY, true);
                 for (NDataSegmentResponse segment : segments) {
-                    long sourceRows = segment.getSegDetails().getLayouts().stream().map(NDataLayout::getSourceRows)
-                            .max(Long::compareTo).orElse(0L);
+                    long sourceRows = segment.getSourceCount();
                     inputRecordCnt += sourceRows;
                     inputRecordSizeBytes += segment.getSourceBytesSize();
 
