@@ -46,6 +46,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import lombok.val;
 import org.apache.commons.lang3.text.StrSubstitutor;
 
 import com.google.common.collect.Maps;
@@ -100,8 +101,8 @@ public class KylinConfigExt extends KylinConfig {
     }
 
     @Override
-    public HashMap<String, String> getReadonlyProperties() {
-        final StrSubstitutor substitutor = getSubstitutor();
+    public Map<String, String> getReadonlyProperties() {
+        val substitutor = getSubstitutor();
         HashMap<String, String> config = Maps.newHashMap();
         for (Map.Entry<String, String> entry : this.overrides.entrySet()) {
             config.put(entry.getKey(), substitutor.replace(entry.getValue()));
