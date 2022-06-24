@@ -45,7 +45,6 @@ package org.apache.kylin.job.impl.threadpool;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.kylin.job.dao.NExecutableDao;
-import org.apache.kylin.job.execution.NExecutableManager;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
@@ -54,7 +53,7 @@ public abstract class BaseSchedulerTest extends NLocalFileMetadataTestCase {
     //TODO need to be rewritten
     // protected NDefaultScheduler scheduler;
 
-    protected static NExecutableManager executableManager;
+    // protected static NExecutableManager executableManager;
     protected static NExecutableDao executableDao;
 
     protected String project;

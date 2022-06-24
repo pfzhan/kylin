@@ -473,6 +473,7 @@ public class JobInfoService extends BasicService implements JobSupporter {
 
     }
 
+    @Transaction(project = 0)
     public void updateJobError(String project, String jobId, String failedStepId, String failedSegmentId,
                                String failedStack, String failedReason) {
         if (StringUtils.isBlank(failedStepId)) {
@@ -538,6 +539,11 @@ public class JobInfoService extends BasicService implements JobSupporter {
         aclEvaluate.checkProjectOperationPermission(project);
         val executableManager = getManager(ExecutableManager.class, project);
         return executableManager.getOutputFromHDFSByJobId(jobId, stepId).getVerboseMsg();
+    }
+
+    public void killExistApplication(String project, String jobId) {
+        AbstractExecutable job = getManager(ExecutableManager.class, project).getJob(jobId);
+        killExistApplication(job);
     }
 
     public void killExistApplication(AbstractExecutable job) {

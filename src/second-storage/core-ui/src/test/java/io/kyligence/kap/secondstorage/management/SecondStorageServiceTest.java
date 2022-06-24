@@ -35,7 +35,6 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
 import org.junit.Assert;
@@ -63,7 +62,7 @@ import io.kyligence.kap.secondstorage.management.request.ProjectEnableRequest;
 import lombok.val;
 
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({ NProjectManager.class, SecondStorageUtil.class, NExecutableManager.class, UserGroupInformation.class,
+@PrepareForTest({ NProjectManager.class, SecondStorageUtil.class, ExecutableManager.class, UserGroupInformation.class,
         AbstractExecutable.class })
 public class SecondStorageServiceTest extends NLocalFileMetadataTestCase {
     private final Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
@@ -113,7 +112,7 @@ public class SecondStorageServiceTest extends NLocalFileMetadataTestCase {
         PowerMockito.stub(PowerMockito.method(SecondStorageUtil.class, "isProjectEnable", String.class)).toReturn(true);
         PowerMockito.stub(PowerMockito.method(SecondStorageUtil.class, "isModelEnable", String.class, String.class))
                 .toReturn(true);
-        PowerMockito.stub(PowerMockito.method(NExecutableManager.class, "getInstance", KylinConfig.class, String.class))
+        PowerMockito.stub(PowerMockito.method(ExecutableManager.class, "getInstance", KylinConfig.class, String.class))
                 .toReturn(executableManager);
     }
 

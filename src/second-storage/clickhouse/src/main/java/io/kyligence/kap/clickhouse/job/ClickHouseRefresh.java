@@ -24,9 +24,26 @@
 
 package io.kyligence.kap.clickhouse.job;
 
+import static io.kyligence.kap.secondstorage.SecondStorageConstants.P_OLD_SEGMENT_IDS;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import javax.annotation.concurrent.NotThreadSafe;
+
+import org.apache.kylin.job.SecondStorageJobParamUtil;
+import org.apache.kylin.job.handler.SecondStorageIndexCleanJobHandler;
+import org.apache.kylin.job.model.JobParam;
+
 import com.google.common.base.Preconditions;
+
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.job.handler.SecondStorageIndexCleanJobHandler;
 import io.kyligence.kap.job.manager.JobManager;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
@@ -37,21 +54,6 @@ import io.kyligence.kap.secondstorage.metadata.TableData;
 import io.kyligence.kap.secondstorage.metadata.TableFlow;
 import io.kyligence.kap.secondstorage.metadata.TablePlan;
 import lombok.val;
-import org.apache.kylin.job.SecondStorageJobParamUtil;
-
-import org.apache.kylin.job.model.JobParam;
-
-import javax.annotation.concurrent.NotThreadSafe;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import static io.kyligence.kap.secondstorage.SecondStorageConstants.P_OLD_SEGMENT_IDS;
 
 @NotThreadSafe
 public class ClickHouseRefresh extends ClickHouseLoad {

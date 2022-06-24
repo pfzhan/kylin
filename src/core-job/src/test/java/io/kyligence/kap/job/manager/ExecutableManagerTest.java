@@ -84,6 +84,7 @@ import io.kyligence.kap.job.execution.DefaultChainedExecutable;
 import io.kyligence.kap.job.execution.DefaultChainedExecutableOnModel;
 import io.kyligence.kap.job.execution.EmailNotificationContent;
 import io.kyligence.kap.job.execution.Executable;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import lombok.val;
@@ -574,8 +575,8 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
                 SNAPSHOT_BUILD);
         Assert.assertEquals(0, runJobTypeExecutables.size());
         val executables = executableManager.getExecutablesByStatus(
-                com.google.common.collect.Lists.newArrayList(job.getId()),
-                com.google.common.collect.Lists.newArrayList(ExecutableState.READY));
+                Lists.newArrayList(job.getId()),
+                Lists.newArrayList(ExecutableState.READY));
         Assert.assertEquals(1, executables.size());
         val executables2 = executableManager.getExecutablesByStatusList(Sets.newHashSet(ExecutableState.READY));
         val executables21 = executableManager.getPartialExecutablesByStatusList(Sets.newHashSet(ExecutableState.READY),
@@ -824,7 +825,7 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
         // Test log file sampling
         String verboseMsg = manager.getStreamingOutputFromHDFS(jobId).getVerboseMsg();
         String[] actualVerboseMsgLines = StringUtils.splitByWholeSeparatorPreserveAllTokens(verboseMsg, "\n");
-        ArrayList<String> exceptLinesL = com.google.common.collect.Lists.newArrayList(exceptLines);
+        ArrayList<String> exceptLinesL = Lists.newArrayList(exceptLines);
         exceptLinesL.add("================================================================");
         assertTrue(Sets.newHashSet(exceptLinesL).containsAll(Sets.newHashSet(actualVerboseMsgLines)));
 

@@ -341,7 +341,6 @@
         <module>src/second-storage/clickhouse-it</module>
         <!-- yinglong modules -->
         <module>src/yinglong-systools</module>
-        <module>src/yinglong-job</module>
         <!-- yinglong service -->
         <module>src/yinglong-modeling-service</module>
         <module>src/yinglong-smart-service</module>
@@ -567,11 +566,6 @@
                 <artifactId>yinglong-integration-service</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            <dependency>
-                <groupId>io.kyligence.yinglong</groupId>
-                <artifactId>yinglong-job</artifactId>
-                <version>${project.version}</version>
-            </dependency>
 
             <dependency>
                 <groupId>com.alibaba.cloud</groupId>
@@ -775,12 +769,6 @@
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-core-job</artifactId>
-                <version>${project.version}</version>
-                <type>test-jar</type>
-            </dependency>
-            <dependency>
-                <groupId>io.kyligence.yinglong</groupId>
-                <artifactId>yinglong-job</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
             </dependency>

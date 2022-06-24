@@ -56,10 +56,6 @@
             <artifactId>kap-core-common</artifactId>
             <type>test-jar</type>
         </dependency>
-        <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-job</artifactId>
-        </dependency>
 
         <dependency>
             <groupId>org.apache.commons</groupId>

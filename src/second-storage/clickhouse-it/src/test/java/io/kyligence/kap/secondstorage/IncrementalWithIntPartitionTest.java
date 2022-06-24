@@ -44,7 +44,6 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -402,7 +401,7 @@ public class IncrementalWithIntPartitionTest implements JobWaiter {
         registerWaitPoint(SecondStorageConcurrentTestUtil.WAIT_PAUSED, 10000);
         val jobId = refreshSegment(segs.get(1), false);
         await().atMost(15, TimeUnit.SECONDS).until(() -> {
-            val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            val executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             ExecutablePO jobDetail = executableManager.getAllJobs().stream().filter(job -> job.getId().equals(jobId))
                     .findFirst().orElseThrow(() -> new IllegalStateException("Job not found"));
             long finishedCount = jobDetail.getTasks().stream().filter(task -> "SUCCEED".equals(task.getOutput().getStatus())).count();

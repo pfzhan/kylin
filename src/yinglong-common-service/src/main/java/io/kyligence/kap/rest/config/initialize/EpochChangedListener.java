@@ -27,7 +27,6 @@ import java.io.IOException;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.rest.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -39,6 +38,7 @@ import io.kyligence.kap.common.scheduler.EpochStartedNotifier;
 import io.kyligence.kap.common.scheduler.ProjectControlledNotifier;
 import io.kyligence.kap.common.scheduler.ProjectEscapedNotifier;
 import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.rest.service.task.QueryHistoryTaskScheduler;
@@ -122,7 +122,7 @@ public class EpochChangedListener {
         if (!GLOBAL.equals(project)) {
             log.info("Shutdown related thread: {}", project);
             try {
-                NExecutableManager.getInstance(kylinConfig, project).destoryAllProcess();
+                ExecutableManager.getInstance(kylinConfig, project).destroyAllProcess();
                 QueryHistoryTaskScheduler.shutdownByProject(project);
                 StreamingScheduler.shutdownByProject(project);
                 recommendationUpdateScheduler.removeProject(project);

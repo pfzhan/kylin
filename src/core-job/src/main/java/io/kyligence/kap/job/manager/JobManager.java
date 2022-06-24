@@ -26,9 +26,11 @@ package io.kyligence.kap.job.manager;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_ABANDON;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_STORAGE_QUOTA_LIMIT;
 
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.job.JobContext;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -47,6 +49,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kylin.rest.util.SpringContext;
 
 @Slf4j
 public class JobManager {
@@ -168,11 +171,10 @@ public class JobManager {
     }
 
     public static void checkStorageQuota(String project) {
-        //TODO need to be rewritten
-//        val scheduler = NDefaultScheduler.getInstance(project);
-//        if (scheduler.hasStarted() && scheduler.getContext().isReachQuotaLimit()) {
-//            log.error("Add job failed due to no available storage quota in project {}", project);
-//            throw new KylinException(JOB_STORAGE_QUOTA_LIMIT);
-//        }
+        JobContext jobContext = SpringContext.getBean(JobContext.class);
+        if (null != jobContext && jobContext.isProjectReachQuotaLimit(project)) {
+            log.error("Add job failed due to no available storage quota in project {}", project);
+            throw new KylinException(JOB_STORAGE_QUOTA_LIMIT);
+        }
     }
 }

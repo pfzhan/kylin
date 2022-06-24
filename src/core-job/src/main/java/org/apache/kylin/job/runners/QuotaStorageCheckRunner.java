@@ -23,7 +23,8 @@
  */
 package org.apache.kylin.job.runners;
 
-import io.kyligence.kap.metadata.project.NProjectManager;
+import java.util.List;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
@@ -34,10 +35,9 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.job.JobContext;
 import io.kyligence.kap.metadata.cube.storage.ProjectStorageInfoCollector;
 import io.kyligence.kap.metadata.cube.storage.StorageInfoEnum;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 import lombok.var;
-
-import java.util.List;
 
 public class QuotaStorageCheckRunner implements Runnable {
 

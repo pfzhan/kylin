@@ -34,7 +34,6 @@ import java.util.Map;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
 import org.junit.Assert;
@@ -63,7 +62,7 @@ import io.kyligence.kap.secondstorage.metadata.TablePartition;
 import io.kyligence.kap.secondstorage.response.SecondStorageNode;
 
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({SecondStorageNodeHelper.class, NExecutableManager.class})
+@PrepareForTest({SecondStorageNodeHelper.class, ExecutableManager.class})
 public class SecondStorageUtilTest extends NLocalFileMetadataTestCase {
     private final Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
     private Manager<TableFlow> tableFlowManager = Mockito.mock(Manager.class);
@@ -82,7 +81,7 @@ public class SecondStorageUtilTest extends NLocalFileMetadataTestCase {
     }
 
     private void prepareManger() {
-        PowerMockito.stub(PowerMockito.method(NExecutableManager.class, "getInstance", KylinConfig.class, String.class)).toReturn(executableManager);
+        PowerMockito.stub(PowerMockito.method(ExecutableManager.class, "getInstance", KylinConfig.class, String.class)).toReturn(executableManager);
     }
 
     private TableFlow prepareTableFlow() throws NoSuchFieldException {

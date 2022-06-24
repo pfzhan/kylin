@@ -29,12 +29,17 @@ import static java.util.stream.Collectors.joining;
 import static org.apache.kylin.job.factory.JobFactoryConstant.CUBE_JOB_FACTORY;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.secondstorage.SecondStorageConstants;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
+import io.kyligence.kap.secondstorage.enums.LockTypeEnum;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
@@ -191,29 +196,29 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
         JobStepType.RESOURCE_DETECT.createStep(job, config);
         JobStepType.CUBING.createStep(job, config);
         JobStepType.UPDATE_METADATA.createStep(job, config);
-        // TODO SecondStorage
-//        if (SecondStorageUtil.isModelEnable(df.getProject(), job.getTargetSubject())) {
-//            // can't refresh segment when second storage do rebalanced
-//            if (Objects.equals(jobType, JobTypeEnum.INDEX_REFRESH)) {
-//                SecondStorageUtil.validateProjectLock(df.getProject(),
-//                        Collections.singletonList(LockTypeEnum.LOAD.name()));
-//            }
-//            boolean hasBaseIndex = layouts.stream().anyMatch(SecondStorageUtil::isBaseTableIndex);
-//            if (Objects.equals(jobType, JobTypeEnum.INDEX_BUILD) || Objects.equals(jobType, JobTypeEnum.INC_BUILD)) {
-//                if (hasBaseIndex) {
-//                    JobStepType.SECOND_STORAGE_EXPORT.createStep(job, config);
-//                }
-//            } else if (Objects.equals(jobType, JobTypeEnum.INDEX_REFRESH) && hasBaseIndex) {
-//                val oldSegs = job.getTargetSegments().stream().map(segId -> {
-//                    val curSeg = df.getSegment(segId);
-//                    return Objects.requireNonNull(df.getSegments().stream()
-//                            .filter(seg -> seg.getSegRange().equals(curSeg.getSegRange()) && !seg.getId().equals(segId))
-//                            .findFirst().orElse(null)).getId();
-//                }).collect(Collectors.toList());
-//                job.setParam(SecondStorageConstants.P_OLD_SEGMENT_IDS, String.join(",", oldSegs));
-//                JobStepType.SECOND_STORAGE_REFRESH.createStep(job, config);
-//            }
-//        }
+
+        if (SecondStorageUtil.isModelEnable(df.getProject(), job.getTargetSubject())) {
+            // can't refresh segment when second storage do rebalanced
+            if (Objects.equals(jobType, JobTypeEnum.INDEX_REFRESH)) {
+                SecondStorageUtil.validateProjectLock(df.getProject(),
+                        Collections.singletonList(LockTypeEnum.LOAD.name()));
+            }
+            boolean hasBaseIndex = layouts.stream().anyMatch(SecondStorageUtil::isBaseTableIndex);
+            if (Objects.equals(jobType, JobTypeEnum.INDEX_BUILD) || Objects.equals(jobType, JobTypeEnum.INC_BUILD)) {
+                if (hasBaseIndex) {
+                    JobStepType.SECOND_STORAGE_EXPORT.createStep(job, config);
+                }
+            } else if (Objects.equals(jobType, JobTypeEnum.INDEX_REFRESH) && hasBaseIndex) {
+                val oldSegs = job.getTargetSegments().stream().map(segId -> {
+                    val curSeg = df.getSegment(segId);
+                    return Objects.requireNonNull(df.getSegments().stream()
+                            .filter(seg -> seg.getSegRange().equals(curSeg.getSegRange()) && !seg.getId().equals(segId))
+                            .findFirst().orElse(null)).getId();
+                }).collect(Collectors.toList());
+                job.setParam(SecondStorageConstants.P_OLD_SEGMENT_IDS, String.join(",", oldSegs));
+                JobStepType.SECOND_STORAGE_REFRESH.createStep(job, config);
+            }
+        }
 
         Boolean isRangePartitionTable = df.getModel().getAllTableRefs().stream()
                 .anyMatch(tableRef -> tableRef.getTableDesc().isRangePartition());

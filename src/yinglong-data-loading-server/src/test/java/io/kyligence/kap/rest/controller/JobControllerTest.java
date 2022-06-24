@@ -314,7 +314,7 @@ public class JobControllerTest extends NLocalFileMetadataTestCase {
         request.setFailedStack("error");
         request.setFailedReason("reason");
 
-        Mockito.doNothing().when(jobService).updateJobError(request.getProject(), request.getJobId(),
+        Mockito.doNothing().when(jobInfoService).updateJobError(request.getProject(), request.getJobId(),
                 request.getFailedStepId(), request.getFailedSegmentId(), request.getFailedStack(),
                 request.getFailedReason());
 

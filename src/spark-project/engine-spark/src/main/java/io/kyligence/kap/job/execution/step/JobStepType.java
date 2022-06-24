@@ -48,6 +48,7 @@ import io.kyligence.kap.job.execution.NSparkExecutable;
 import io.kyligence.kap.job.execution.NTableSamplingJob;
 import io.kyligence.kap.job.execution.handler.ExecutableHandlerFactory;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kylin.job.SecondStorageStepFactory;
 
 @Slf4j
 public enum JobStepType {
@@ -155,48 +156,47 @@ public enum JobStepType {
         }
     },
 
-    // TODO SecondStorage
-//    SECOND_STORAGE_EXPORT {
-//        @Override
-//        protected AbstractExecutable create(DefaultChainedExecutable parent, KylinConfig config) {
-//            return SecondStorageStepFactory.create(SecondStorageStepFactory.SecondStorageLoadStep.class, step -> {
-//                step.setProject(parent.getProject());
-//                step.setParams(parent.getParams());
-//            });
-//        }
-//
-//        @Override
-//        protected void addSubStage(NSparkExecutable parent, KylinConfig config) {
-//        }
-//    },
+    SECOND_STORAGE_EXPORT {
+        @Override
+        protected AbstractExecutable create(DefaultChainedExecutable parent, KylinConfig config) {
+            return SecondStorageStepFactory.create(SecondStorageStepFactory.SecondStorageLoadStep.class, step -> {
+                step.setProject(parent.getProject());
+                step.setParams(parent.getParams());
+            });
+        }
 
-//    SECOND_STORAGE_REFRESH {
-//        @Override
-//        protected AbstractExecutable create(DefaultChainedExecutable parent, KylinConfig config) {
-//            return SecondStorageStepFactory.create(SecondStorageStepFactory.SecondStorageRefreshStep.class, step -> {
-//                step.setProject(parent.getProject());
-//                step.setParams(parent.getParams());
-//            });
-//        }
-//
-//        @Override
-//        protected void addSubStage(NSparkExecutable parent, KylinConfig config) {
-//        }
-//    },
+        @Override
+        protected void addSubStage(NSparkExecutable parent, KylinConfig config) {
+        }
+    },
 
-//    SECOND_STORAGE_MERGE {
-//        @Override
-//        protected AbstractExecutable create(DefaultChainedExecutable parent, KylinConfig config) {
-//            return SecondStorageStepFactory.create(SecondStorageStepFactory.SecondStorageMergeStep.class, step -> {
-//                step.setProject(parent.getProject());
-//                step.setParams(parent.getParams());
-//            });
-//        }
-//
-//        @Override
-//        protected void addSubStage(NSparkExecutable parent, KylinConfig config) {
-//        }
-//    },
+    SECOND_STORAGE_REFRESH {
+        @Override
+        protected AbstractExecutable create(DefaultChainedExecutable parent, KylinConfig config) {
+            return SecondStorageStepFactory.create(SecondStorageStepFactory.SecondStorageRefreshStep.class, step -> {
+                step.setProject(parent.getProject());
+                step.setParams(parent.getParams());
+            });
+        }
+
+        @Override
+        protected void addSubStage(NSparkExecutable parent, KylinConfig config) {
+        }
+    },
+
+    SECOND_STORAGE_MERGE {
+        @Override
+        protected AbstractExecutable create(DefaultChainedExecutable parent, KylinConfig config) {
+            return SecondStorageStepFactory.create(SecondStorageStepFactory.SecondStorageMergeStep.class, step -> {
+                step.setProject(parent.getProject());
+                step.setParams(parent.getParams());
+            });
+        }
+
+        @Override
+        protected void addSubStage(NSparkExecutable parent, KylinConfig config) {
+        }
+    },
 
     CLEAN_UP_TRANSACTIONAL_TABLE {
         @Override

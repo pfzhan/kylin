@@ -43,7 +43,6 @@ import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -480,7 +479,7 @@ public class SecondStorageJavaTest implements JobWaiter {
     @Test(expected = KylinException.class)
     public void testCheckJobRestart() throws Exception {
         buildModel();
-        val manager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val manager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val job = manager.getAllJobs().get(0);
         SecondStorageUtil.checkJobRestart(project, job.getId());
     }

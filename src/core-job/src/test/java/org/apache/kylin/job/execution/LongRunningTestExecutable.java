@@ -21,26 +21,27 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package org.apache.kylin.job.execution;
 
-package io.kyligence.kap.job.handler;
+import org.apache.kylin.job.exception.ExecuteException;
 
-import java.util.Collections;
+import io.kyligence.kap.job.JobContext;
 
-import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.factory.JobFactoryConstant;
-import org.apache.kylin.job.model.JobParam;
-
-import io.kyligence.kap.job.execution.AbstractExecutable;
-import io.kyligence.kap.job.factory.JobFactory;
-
-public class SecondStorageProjectCleanJobHandler extends AbstractSecondStorageJobHanlder {
+public class LongRunningTestExecutable extends BaseTestExecutable {
     @Override
-    protected AbstractExecutable createJob(JobParam jobParam) {
-        SecondStorageCleanJobBuildParams params = new SecondStorageCleanJobBuildParams(
-                Collections.emptySet(),
-                jobParam,
-                JobTypeEnum.SECOND_STORAGE_NODE_CLEAN);
-        params.setProject(jobParam.getProject());
-        return JobFactory.createJob(JobFactoryConstant.STORAGE_NODE_CLEAN_FACTORY, params);
+    protected ExecuteResult doWork(JobContext context) throws ExecuteException {
+        try {
+            Thread.sleep(Long.MAX_VALUE);
+        } catch (InterruptedException e) {
+        }
+        throw new RuntimeException("test timeout");
+    }
+
+    public LongRunningTestExecutable() {
+        super();
+    }
+
+    public LongRunningTestExecutable(Object notSetId) {
+        super(notSetId);
     }
 }

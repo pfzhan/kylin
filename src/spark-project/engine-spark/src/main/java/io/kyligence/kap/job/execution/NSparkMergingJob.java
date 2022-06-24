@@ -28,11 +28,15 @@ import static java.util.stream.Collectors.joining;
 import static org.apache.kylin.job.factory.JobFactoryConstant.MERGE_JOB_FACTORY;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
 import io.kyligence.kap.rest.delegate.ModelMetadataBaseInvoker;
 import io.kyligence.kap.rest.request.DataFlowUpdateRequest;
+import io.kyligence.kap.secondstorage.SecondStorageConstants;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
+import io.kyligence.kap.secondstorage.enums.LockTypeEnum;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.JobTypeEnum;
@@ -146,16 +150,16 @@ public class NSparkMergingJob extends DefaultChainedExecutableOnModel {
         final Segments<NDataSegment> mergingSegments = df.getMergingSegments(mergedSegment);
         cleanStep.setParam(NBatchConstants.P_SEGMENT_IDS,
                 String.join(",", NSparkCubingUtil.toSegmentIds(mergingSegments)));
-        // TODO SecondStorage
-//        if (SecondStorageUtil.isModelEnable(df.getProject(), job.getTargetSubject())
-//                && layouts.stream().anyMatch(SecondStorageUtil::isBaseTableIndex)) {
-//            // can't merge segment when second storage do rebalanced
-//            SecondStorageUtil.validateProjectLock(df.getProject(), Collections.singletonList(LockTypeEnum.LOAD.name()));
-//            AbstractExecutable mergeStep = JobStepType.SECOND_STORAGE_MERGE.createStep(job, config);
-//            mergeStep.setParam(SecondStorageConstants.P_MERGED_SEGMENT_ID, mergedSegment.getId());
-//            mergeStep.setParam(NBatchConstants.P_SEGMENT_IDS,
-//                    String.join(",", NSparkCubingUtil.toSegmentIds(mergingSegments)));
-//        }
+
+        if (SecondStorageUtil.isModelEnable(df.getProject(), job.getTargetSubject())
+                && layouts.stream().anyMatch(SecondStorageUtil::isBaseTableIndex)) {
+            // can't merge segment when second storage do rebalanced
+            SecondStorageUtil.validateProjectLock(df.getProject(), Collections.singletonList(LockTypeEnum.LOAD.name()));
+            AbstractExecutable mergeStep = JobStepType.SECOND_STORAGE_MERGE.createStep(job, config);
+            mergeStep.setParam(SecondStorageConstants.P_MERGED_SEGMENT_ID, mergedSegment.getId());
+            mergeStep.setParam(NBatchConstants.P_SEGMENT_IDS,
+                    String.join(",", NSparkCubingUtil.toSegmentIds(mergingSegments)));
+        }
         JobStepType.UPDATE_METADATA.createStep(job, config);
         return job;
     }

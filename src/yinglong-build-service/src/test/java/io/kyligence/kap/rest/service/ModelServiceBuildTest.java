@@ -59,7 +59,6 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.execution.SucceedChainedTestExecutable;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -306,7 +305,7 @@ public class ModelServiceBuildTest extends SourceTestCase {
 
         modelBuildService.mergeSegmentsManually(new MergeSegmentParams("default", dfId,
                 new String[] { dataSegment1.getId(), dataSegment2.getId(), dataSegment3.getId() }));
-        val execManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        val execManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         val executables = getRunningExecutables("default", "741ca86a-1f13-46da-a59f-95fb68615e3a");
         Assert.assertEquals(1, executables.size());
         Assert.assertEquals(JobTypeEnum.INDEX_MERGE, executables.get(0).getJobType());

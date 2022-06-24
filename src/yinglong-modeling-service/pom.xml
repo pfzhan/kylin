@@ -65,12 +65,6 @@
 
         <!-- test -->
         <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-job</artifactId>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-core-job</artifactId>
             <type>test-jar</type>

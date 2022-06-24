@@ -25,6 +25,7 @@
 package io.kyligence.kap.job.service;
 
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_ACTION_ILLEGAL;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_STATUS_ILLEGAL;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_UPDATE_STATUS_FAILED;
 import static org.apache.kylin.job.constant.JobStatusEnum.SKIP;
 import static org.junit.Assert.assertEquals;
@@ -43,6 +44,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -53,20 +55,29 @@ import java.util.stream.Collectors;
 
 import io.kyligence.kap.rest.service.JobService;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.ErrorCode;
+import org.apache.kylin.common.exception.ExceptionResolve;
+import org.apache.kylin.common.exception.JobErrorCode;
+import org.apache.kylin.common.exception.JobExceptionReason;
+import org.apache.kylin.common.exception.JobExceptionResolve;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.RandomUtil;
+import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.dao.ExecutablePO;
+import org.apache.kylin.job.execution.BaseTestExecutable;
 import org.apache.kylin.job.execution.DefaultOutput;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.FiveSecondSucceedTestExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.execution.SucceedChainedTestExecutable;
+import org.apache.kylin.job.execution.SucceedTestExecutable;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.spark.application.NoRetryException;
 import org.assertj.core.api.Assertions;
 import org.junit.Assert;
 import org.junit.Rule;
@@ -95,6 +106,8 @@ import io.kyligence.kap.job.rest.ExecutableStepResponse;
 import io.kyligence.kap.job.rest.JobFilter;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.model.FusionModel;
+import io.kyligence.kap.metadata.model.FusionModelManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
@@ -404,7 +417,7 @@ public class JobInfoServiceTest extends NLocalFileMetadataTestCase {
         ExecutableManager manager = Mockito.spy(ExecutableManager.getInstance(getTestConfig(), getProject()));
         ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = NLocalFileMetadataTestCase
                 .getInstanceByProject();
-        managersByPrjCache.get(NExecutableManager.class).put(getProject(), manager);
+        managersByPrjCache.get(ExecutableManager.class).put(getProject(), manager);
         ExecutablePO job1 = Mockito.spy(ExecutablePO.class);
         job1.setProject(getProject());
         job1.setName("sparkjob1");
@@ -459,7 +472,7 @@ public class JobInfoServiceTest extends NLocalFileMetadataTestCase {
     private List<AbstractExecutable> mockJobs1(ExecutableManager executableManager) throws Exception {
         ExecutableManager manager = Mockito.spy(ExecutableManager.getInstance(getTestConfig(), "default1"));
         ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = getInstanceByProject();
-        managersByPrjCache.get(NExecutableManager.class).put(getProject(), manager);
+        managersByPrjCache.get(ExecutableManager.class).put(getProject(), manager);
         List<AbstractExecutable> jobs = new ArrayList<>();
         SucceedChainedTestExecutable job1 = new SucceedChainedTestExecutable();
         job1.setProject("default1");
@@ -488,7 +501,7 @@ public class JobInfoServiceTest extends NLocalFileMetadataTestCase {
         ExecutableManager manager = Mockito.spy(ExecutableManager.getInstance(getTestConfig(), getProject()));
         ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = NLocalFileMetadataTestCase
                 .getInstanceByProject();
-        managersByPrjCache.get(NExecutableManager.class).put(getProject(), manager);
+        managersByPrjCache.get(ExecutableManager.class).put(getProject(), manager);
         List<AbstractExecutable> jobs = new ArrayList<>();
         SucceedChainedTestExecutable job1 = new SucceedChainedTestExecutable();
         job1.setProject(getProject());
@@ -836,4 +849,140 @@ public class JobInfoServiceTest extends NLocalFileMetadataTestCase {
                 () -> ReflectionTestUtils.invokeMethod(new JobInfoService(), "parseToExecutableState", SKIP));
     }
 
+    public void testFusionModelStopBatchJob() {
+
+        String project = "streaming_test";
+        FusionModelManager mgr = FusionModelManager.getInstance(getTestConfig(), project);
+        ExecutableManager manager = ExecutableManager.getInstance(jobInfoService.getConfig(), project);
+
+        FusionModel fusionModel = mgr.getFusionModel("b05034a8-c037-416b-aa26-9e6b4a41ee40");
+
+        BaseTestExecutable executable = new SucceedTestExecutable();
+        executable.setProject(project);
+        executable.setTargetSubject(fusionModel.getBatchModel().getUuid());
+        manager.addJob(executable);
+        manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, null, null, null);
+
+        // test fusion model stop batch job
+        String table = "SSB.P_LINEORDER_STREAMING";
+        NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(getTestConfig(), project);
+        val tableDesc = tableMetadataManager.getTableDesc(table);
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            jobInfoService.stopBatchJob(project, tableDesc);
+            return null;
+        }, project);
+        AbstractExecutable job = manager.getJob(executable.getId());
+        Assert.assertEquals(ExecutableState.DISCARDED, job.getStatus());
+
+        // test no fusion model
+        String table2 = "SSB.DATES";
+        val tableDesc2 = tableMetadataManager.getTableDesc(table2);
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            jobInfoService.stopBatchJob(project, tableDesc2);
+            return null;
+        }, project);
+    }
+
+    @Test
+    public void testKillExistApplication() {
+        ExecutableManager manager = ExecutableManager.getInstance(jobInfoService.getConfig(), getProject());
+        SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
+        executable.setProject(getProject());
+        addSegment(executable);
+        val task = new NSparkExecutable();
+        task.setProject(getProject());
+        addSegment(task);
+        executable.addTask(task);
+        manager.addJob(executable);
+        jobInfoService.killExistApplication(executable);
+
+        jobInfoService.killExistApplication(getProject(), executable.getId());
+    }
+
+    @Test
+    public void testSetExceptionResolveAndCode() {
+        val manager = ExecutableManager.getInstance(jobInfoService.getConfig(), getProject());
+        val executable = new SucceedChainedTestExecutable();
+        executable.setProject(getProject());
+        executable.setId(RandomUtil.randomUUIDStr());
+        executable.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        manager.addJob(executable);
+
+        val project = getProject();
+        val jobId = executable.getId();
+        var failedStepId = RandomUtil.randomUUIDStr();
+        var failedSegmentId = RandomUtil.randomUUIDStr();
+        var failedStack = ExceptionUtils.getStackTrace(new NoRetryException("date format not match"));
+        var failedReason = "date format not match";
+        jobInfoService.updateJobError(project, jobId, failedStepId, failedSegmentId, failedStack, failedReason);
+
+        ExecutableStepResponse executableStepResponse = new ExecutableStepResponse();
+        jobInfoService.setExceptionResolveAndCodeAndReason(executable.getOutput(), executableStepResponse);
+        Assert.assertEquals(JobExceptionResolve.JOB_DATE_FORMAT_NOT_MATCH_ERROR.toExceptionResolve().getResolve(),
+                executableStepResponse.getFailedResolve());
+        Assert.assertEquals(JobErrorCode.JOB_DATE_FORMAT_NOT_MATCH_ERROR.toErrorCode().getLocalizedString(),
+                executableStepResponse.getFailedCode());
+        Assert.assertEquals(JobExceptionReason.JOB_DATE_FORMAT_NOT_MATCH_ERROR.toExceptionReason().getReason(),
+                executableStepResponse.getFailedReason());
+
+        ErrorCode.setMsg("en");
+        ExceptionResolve.setLang("en");
+        jobInfoService.setExceptionResolveAndCodeAndReason(executable.getOutput(), executableStepResponse);
+        Assert.assertEquals(JobExceptionResolve.JOB_DATE_FORMAT_NOT_MATCH_ERROR.toExceptionResolve().getResolve(),
+                executableStepResponse.getFailedResolve());
+        Assert.assertEquals(JobErrorCode.JOB_DATE_FORMAT_NOT_MATCH_ERROR.toErrorCode().getLocalizedString(),
+                executableStepResponse.getFailedCode());
+        Assert.assertEquals(JobExceptionReason.JOB_DATE_FORMAT_NOT_MATCH_ERROR.toExceptionReason().getReason(),
+                executableStepResponse.getFailedReason());
+
+        // test default reason / code / resolve
+        manager.updateJobError(jobId, null, null, null, null);
+        jobInfoService.updateJobError(project, jobId, failedStepId, failedSegmentId, failedStack, "test");
+        jobInfoService.setExceptionResolveAndCodeAndReason(executable.getOutput(), executableStepResponse);
+        Assert.assertEquals(JobExceptionResolve.JOB_BUILDING_ERROR.toExceptionResolve().getResolve(),
+                executableStepResponse.getFailedResolve());
+        Assert.assertEquals(JobErrorCode.JOB_BUILDING_ERROR.toErrorCode().getLocalizedString(),
+                executableStepResponse.getFailedCode());
+        Assert.assertEquals(JobExceptionReason.JOB_BUILDING_ERROR.toExceptionReason().getReason() + ": test",
+                executableStepResponse.getFailedReason());
+
+        ErrorCode.setMsg("en");
+        ExceptionResolve.setLang("en");
+        jobInfoService.setExceptionResolveAndCodeAndReason(executable.getOutput(), executableStepResponse);
+        Assert.assertEquals(JobExceptionResolve.JOB_BUILDING_ERROR.toExceptionResolve().getResolve(),
+                executableStepResponse.getFailedResolve());
+        Assert.assertEquals(JobErrorCode.JOB_BUILDING_ERROR.toErrorCode().getLocalizedString(),
+                executableStepResponse.getFailedCode());
+        Assert.assertEquals(JobExceptionReason.JOB_BUILDING_ERROR.toExceptionReason().getReason() + ": test",
+                executableStepResponse.getFailedReason());
+    }
+
+    @Test
+    public void testHistoryTrackerUrl() {
+        getTestConfig().setProperty("kylin.history-server.enable", "true");
+        AbstractExecutable task = new FiveSecondSucceedTestExecutable();
+        task.setProject("default");
+        DefaultOutput stepOutput = new DefaultOutput();
+        stepOutput.setState(ExecutableState.RUNNING);
+        stepOutput.setExtra(new HashMap<>());
+        Map<String, String> waiteTimeMap = new HashMap<>();
+        ExecutableState jobState = ExecutableState.RUNNING;
+        ExecutableStepResponse result = jobInfoService.parseToExecutableStep(task, stepOutput, waiteTimeMap, jobState);
+        assert !result.getInfo().containsKey(ExecutableConstants.SPARK_HISTORY_APP_URL);
+        stepOutput.getExtra().put(ExecutableConstants.YARN_APP_ID, "app-id");
+        result = jobInfoService.parseToExecutableStep(task, stepOutput, waiteTimeMap, jobState);
+        assert result.getInfo().containsKey(ExecutableConstants.SPARK_HISTORY_APP_URL);
+        getTestConfig().setProperty("kylin.history-server.enable", "false");
+        result = jobInfoService.parseToExecutableStep(task, stepOutput, waiteTimeMap, jobState);
+        assert !result.getInfo().containsKey(ExecutableConstants.SPARK_HISTORY_APP_URL);
+
+    }
+
+    @Test
+    public void testCheckJobStatus() {
+        jobInfoService.checkJobStatus(Lists.newArrayList("RUNNING"));
+        thrown.expect(KylinException.class);
+        thrown.expectMessage(JOB_STATUS_ILLEGAL.getMsg());
+        jobInfoService.checkJobStatus("UNKNOWN");
+    }
 }

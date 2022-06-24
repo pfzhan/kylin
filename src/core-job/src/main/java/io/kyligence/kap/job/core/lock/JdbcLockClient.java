@@ -32,9 +32,9 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.common.util.ThreadUtils;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.common.util.ThreadUtils;
 import io.kyligence.kap.job.JobContext;
 
 public class JdbcLockClient {

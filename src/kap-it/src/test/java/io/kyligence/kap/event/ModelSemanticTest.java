@@ -33,7 +33,6 @@ import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.RandomUtil;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
@@ -55,6 +54,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.TempMetadataBuilder;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.job.util.ExecutableUtils;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
@@ -83,7 +83,7 @@ import lombok.extern.slf4j.Slf4j;
 public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
 
     public static final String MODEL_ID = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-    protected NExecutableManager executableManager;
+    protected ExecutableManager executableManager;
     NIndexPlanManager indexPlanManager;
     NDataflowManager dataflowManager;
 
@@ -158,7 +158,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
             copyForWrite.setManagementType(ManagementType.MODEL_BASED);
         });
 
-        NExecutableManager originExecutableManager = NExecutableManager.getInstance(getTestConfig(), getProject());
+        ExecutableManager originExecutableManager = ExecutableManager.getInstance(getTestConfig(), getProject());
         executableManager = Mockito.spy(originExecutableManager);
         indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
         dataflowManager = NDataflowManager.getInstance(getTestConfig(), getProject());

@@ -368,6 +368,16 @@ public class ExecutableManager {
         EventBusFactory.getInstance().postSync(new CliCommandExecutor.JobKilled(jobId));
     }
 
+    public void destroyAllProcess() {
+        if (KylinConfig.getInstanceFromEnv().isUTEnv()) {
+            return;
+        }
+        List<String> jobs = getJobs();
+        for (String job : jobs) {
+            destroyProcess(job);
+        }
+    }
+
     private void killRemoteProcess(ExecutablePO executablePO, CliCommandExecutor exe) {
         if (!executablePO.getOutput().getStatus().equalsIgnoreCase(ExecutableState.RUNNING.toString()))
             return;

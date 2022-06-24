@@ -31,6 +31,7 @@ import java.util.Optional;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.job.SecondStorageCleanJobUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -160,9 +161,8 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
                 executableResponse.setTargetSubject("The snapshot is deleted");
                 executableResponse.setTargetSubjectError(true);
             }
-            // TODO SecondStorage
-//        } else if (SecondStorageCleanJobUtil.isProjectCleanJob(abstractExecutable)) {
-//            executableResponse.setTargetSubject(abstractExecutable.getProject());
+        } else if (SecondStorageCleanJobUtil.isProjectCleanJob(abstractExecutable)) {
+            executableResponse.setTargetSubject(abstractExecutable.getProject());
         } else {
             val dataflow = NDataflowManager
                     .getInstance(KylinConfig.getInstanceFromEnv(), abstractExecutable.getProject())

@@ -29,9 +29,9 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
-import org.apache.kylin.job.execution.NExecutableManager;
 
 import io.kyligence.kap.common.metrics.MetricsGroup;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
@@ -49,7 +49,7 @@ public class ProjectDropListener {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
 
         try {
-            NExecutableManager.getInstance(kylinConfig, project).destoryAllProcess();
+            ExecutableManager.getInstance(kylinConfig, project).destroyAllProcess();
             StreamingJobManager.getInstance(kylinConfig, project).destroyAllProcess();
             RDBMSQueryHistoryDAO.getInstance().dropProjectMeasurement(project);
             RawRecManager.getInstance(project).deleteByProject(project);

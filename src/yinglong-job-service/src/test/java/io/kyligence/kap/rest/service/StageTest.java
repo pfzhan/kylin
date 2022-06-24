@@ -174,9 +174,9 @@ public class StageTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testConvertToExecutableState() {
-        ExecutableState executableState = jobService.convertToExecutableState(null);
+        ExecutableState executableState = jobInfoService.convertToExecutableState(null);
         Assert.assertNull(executableState);
-        executableState = jobService.convertToExecutableState(ExecutableState.PAUSED.toString());
+        executableState = jobInfoService.convertToExecutableState(ExecutableState.PAUSED.toString());
         Assert.assertEquals(ExecutableState.PAUSED, executableState);
     }
 
