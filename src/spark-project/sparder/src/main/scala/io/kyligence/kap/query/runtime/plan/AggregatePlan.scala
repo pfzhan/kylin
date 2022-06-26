@@ -265,8 +265,13 @@ object AggregatePlan extends LogEx {
               }
             }
           case FunctionDesc.FUNC_COLLECT_SET =>
-            array_distinct(flatten(collect_set(col(argNames.head))))
-              .alias(aggName)
+            call match {
+              case kac: KylinAggregateCall =>
+                array_distinct(flatten(collect_set(col(argNames.head))))
+                  .alias(aggName)
+              case _ =>
+                collect_set(col(argNames.head)).alias(aggName)
+            }
           case _ =>
             throw new IllegalArgumentException(
               s"""Unsupported function name $funcName""")

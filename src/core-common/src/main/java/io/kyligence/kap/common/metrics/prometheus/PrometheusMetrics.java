@@ -44,9 +44,6 @@ public enum PrometheusMetrics {
     QUERY_STAGES("ke_queries_stages", Type.PROJECT_METRIC), //
     QUERY_TASKS("ke_queries_tasks", Type.PROJECT_METRIC), //
 
-    STORAGE_BYTES("ke_storage_bytes", Type.PROJECT_METRIC), //
-    GARBAGE_BYTES("ke_garbage_bytes", Type.PROJECT_METRIC), //
-
     SPARDER_UP("ke_sparder_up", Type.INSTANCE_METRIC), //
 
     JOB_COUNTS("ke_job_counts", Type.PROJECT_METRIC), //

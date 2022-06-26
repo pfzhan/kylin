@@ -184,18 +184,7 @@ public class MetricsRegistry {
             return;
         }
         MeterRegistry meterRegistry = SpringContext.getBean(MeterRegistry.class);
-        ProjectService projectService = SpringContext.getBean(ProjectService.class);
         Tags projectTag = Tags.of(MetricsTag.PROJECT.getVal(), project);
-        Gauge.builder(PrometheusMetrics.STORAGE_BYTES.getValue(),
-                () -> projectService.getStorageVolumeInfoResponse(project).getTotalStorageSize()).tags(projectTag)
-                .register(meterRegistry);
-
-        ProjectStorageInfoCollector collector = new ProjectStorageInfoCollector(
-                Lists.newArrayList(StorageInfoEnum.GARBAGE_STORAGE));
-        StorageVolumeInfo storageVolumeInfo = collector.getStorageVolumeInfo(kylinConfig, project);
-        Gauge.builder(PrometheusMetrics.GARBAGE_BYTES.getValue(), storageVolumeInfo::getGarbageStorageSize)
-                .tags(projectTag).register(meterRegistry);
-
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
         Gauge.builder(PrometheusMetrics.JOB_COUNTS.getValue(),
                 () -> Objects.isNull(scheduler.getContext()) ? 0
