@@ -147,6 +147,7 @@ public class NAutoBuildAndQueryTest extends AutoTestBase {
                 new TestScenario(CompareLevel.SAME, "query/sql_timestamp"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_udf"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_union"), //
+                new TestScenario(CompareLevel.SAME, "query/sql_union_cache"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_value"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_verifyContent"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_window/new_sql_window"), //
