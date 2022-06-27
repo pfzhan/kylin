@@ -787,7 +787,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getViewDateFormatDetectionError() {
-        return "暂不支持获取视图表的分区列时间格式，请手动选择或输入。";
+        return "暂不支持获取视图表的分区列时间格式或数据范围，请手动选择或输入。";
     }
 
     // Async push down get date format

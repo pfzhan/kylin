@@ -57,7 +57,6 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.sparkproject.guava.collect.Sets;
@@ -67,7 +66,6 @@ import com.google.common.base.Preconditions;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.common.util.TempMetadataBuilder;
 import io.kyligence.kap.engine.spark.job.NSparkMergingJob;
-import io.kyligence.kap.engine.spark.job.NSparkMergingStep;
 import io.kyligence.kap.engine.spark.merger.AfterMergeOrRefreshResourceMerger;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
@@ -125,8 +123,7 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         ss = SparkSession.builder().withExtensions(ext -> {
             ext.injectOptimizerRule(ss -> new ConvertInnerJoinToSemiJoin());
             return null;
-        })
-        .config(sparkConf).getOrCreate();
+        }).config(sparkConf).getOrCreate();
         SparderEnv.setSparkSession(ss);
     }
 
@@ -146,6 +143,7 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         Random r = new Random(10000);
         zkTestServer = new TestingServer(r.nextInt(), true);
         overwriteSystemProp("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());
+        overwriteSystemProp("kylin.source.provider.9", "io.kyligence.kap.engine.spark.mockup.CsvSource");
         indexDataConstructor = new IndexDataConstructor(getProject());
     }
 
@@ -298,7 +296,6 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
                 SegmentRange.dateToLong("2011-01-01 00:00:00"), SegmentRange.dateToLong("2015-01-01 00:00:00")), false);
         NSparkMergingJob job = NSparkMergingJob.merge(firstMergeSeg, Sets.newLinkedHashSet(toBuildLayouts), "ADMIN",
                 RandomUtil.randomUUIDStr());
-        NSparkMergingStep sparkStep = job.getSparkMergingStep();
         NExecutableManager execMgr = NExecutableManager.getInstance(getTestConfig(), getProject());
         // launch the job
         execMgr.addJob(job);
@@ -307,7 +304,6 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
             throw new IllegalStateException(IndexDataConstructor.firstFailedJobErrorMessage(execMgr, job));
         }
 
-        Assert.assertTrue(job instanceof NSparkMergingJob);
         val merger = new AfterMergeOrRefreshResourceMerger(getTestConfig(), getProject());
         merger.merge(job.getSparkMergingStep());
 

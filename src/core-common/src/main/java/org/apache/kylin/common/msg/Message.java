@@ -761,8 +761,8 @@ public class Message {
     }
 
     public String getViewDateFormatDetectionError() {
-        return "It is not supported to obtain the time format of the partition column of "
-                + "the view table, please manually select or enter.";
+        return "It is not supported to obtain the time format of the partition column "
+                + "or the data range of the view table, please manually select or enter.";
     }
 
     // Async push down get date format
