@@ -757,30 +757,6 @@ public class TableService extends BasicService {
         }
     }
 
-    private String setPartitionColumnFormat(String time, String project, String table) {
-        String format = DateFormat.proposeDateFormat(time);
-
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
-            NDataLoadingRangeManager rangeManager = getManager(NDataLoadingRangeManager.class, project);
-
-            val copy = rangeManager.copyForWrite(dataLoadingRange);
-            copy.setPartitionDateFormat(format);
-            rangeManager.updateDataLoadingRange(copy);
-
-            // sync to all related models
-            val dataflowManager = getManager(NDataflowManager.class, project);
-            TableDesc tableDesc = getManager(NTableMetadataManager.class, project).getTableDesc(table);
-            val models = dataflowManager.getTableOrientedModelsUsingRootTable(tableDesc);
-            for (val model : models) {
-                modelService.onSyncPartition(model.getUuid(), project);
-            }
-
-            return 0;
-        }, project);
-        return format;
-    }
-
     @VisibleForTesting
     public SegmentRange getSegmentRangeByTable(DateRangeRequest dateRangeRequest) {
         String project = dateRangeRequest.getProject();

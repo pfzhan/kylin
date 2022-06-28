@@ -56,7 +56,7 @@ public class Message {
     private static final String FORCED_TO_TIERED_STORAGE_RETURN_ERROR = "Query failed. Tiered storage is unavailable, please fix and try again.";
     private static final String FORCED_TO_TIERED_STORAGE_INVALID_PARAMETER = "invalid parameters, please fix and try again.";
     private static final String PARAMETER_IS_REQUIRED = "'%s' is required.";
-    private static final String DISABLE_PUSH_DOWN_PROMPT = "You should turn on pushdown as you want to pushdown when tiered storage is abnormal.";
+    private static final String DISABLE_PUSH_DOWN_PROMPT = "You should turn on pushdown button if you want to pushdown.";
     private static final String QUERY_NODE_INVALID = "Can’t execute this request on Query node. Please check and try again.";
     private static final String NON_EXISTED_MODEL = "Model %s doesn't exist. Please confirm and try again later.";
     private static final String LACK_PROJECT = "Please fill in the project parameters.";
