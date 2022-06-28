@@ -27,6 +27,7 @@ package io.kyligence.kap.common.util;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 
 import org.apache.commons.io.Charsets;
 import org.apache.commons.io.FileUtils;
@@ -48,7 +49,8 @@ public class TempMetadataBuilder {
     public static final String KAP_META_TEST_DATA = "../examples/test_case_data/localmeta";
     public static final String SPARK_PROJECT_KAP_META_TEST_DATA = "../../examples/test_case_data/localmeta";
     public static final String TEMP_TEST_METADATA = "../examples/test_data/"
-            + ProcessUtils.getCurrentId(System.currentTimeMillis() + "");
+            + ProcessUtils.getCurrentId(System.currentTimeMillis() + "_"
+            + UUID.randomUUID().toString());
 
     public static String prepareLocalTempMetadata() {
         return prepareLocalTempMetadata(Lists.newArrayList());

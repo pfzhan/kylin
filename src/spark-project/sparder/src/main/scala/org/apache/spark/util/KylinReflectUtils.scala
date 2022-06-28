@@ -24,6 +24,7 @@
 package org.apache.spark.util
 
 import org.apache.spark.sql.internal.StaticSQLConf.CATALOG_IMPLEMENTATION
+import org.apache.spark.util.Utils.getContextOrSparkClassLoader
 import org.apache.spark.{SPARK_VERSION, SparkContext}
 
 import scala.reflect.runtime._
@@ -32,12 +33,16 @@ object KylinReflectUtils {
   private val rm = universe.runtimeMirror(getClass.getClassLoader)
 
   def getSessionState(sparkContext: SparkContext, kylinSession: Object, parentSessionState: Object): Any = {
+
     if (SPARK_VERSION.startsWith("2.4") || SPARK_VERSION.startsWith("3.")) {
       var className: String =
         "org.apache.spark.sql.hive.KylinHiveSessionStateBuilder"
       if (!"hive".equals(sparkContext.getConf
-            .get(CATALOG_IMPLEMENTATION.key, "in-memory"))) {
+        .get(CATALOG_IMPLEMENTATION.key, "in-memory"))) {
         className = "org.apache.spark.sql.hive.KylinSessionStateBuilder"
+      }
+      if (SPARK_VERSION.startsWith("3.1")) {
+        className = "org.apache.spark.sql.hive.KylinHiveSessionStateBuilderV31"
       }
       val tuple = createObject(className, kylinSession, parentSessionState)
       val method = tuple._2.getMethod("build")
@@ -48,14 +53,18 @@ object KylinReflectUtils {
   }
 
   def createObject(className: String, conArgs: Object*): (Any, Class[_]) = {
-    val clazz = Utils.classForName(className)
+    // scalastyle:off classforname
+    val clazz = Class.forName(className, true, getContextOrSparkClassLoader);
+    // scalastyle:on classforname
     val ctor = clazz.getConstructors.head
     ctor.setAccessible(true)
     (ctor.newInstance(conArgs: _*), clazz)
   }
 
   def createObject(className: String): (Any, Class[_]) = {
-    val clazz = Utils.classForName(className)
+    // scalastyle:off classforname
+    val clazz = Class.forName(className, true, getContextOrSparkClassLoader);
+    // scalastyle:on classforname
     val ctor = clazz.getConstructors.head
     ctor.setAccessible(true)
     (ctor.newInstance(), clazz)

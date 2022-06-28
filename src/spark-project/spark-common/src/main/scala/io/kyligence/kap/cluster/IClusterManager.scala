@@ -44,6 +44,7 @@ trait IClusterManager {
   def fetchQueueStatistics(queueName: String): ResourceInfo
 
   def applicationExisted(jobId: String): Boolean
+
 }
 
 // memory unit is MB

@@ -151,7 +151,8 @@ public class MetaStoreService extends BasicService {
         return modelService.getManager(NDataflowManager.class, project).listAllDataflows(true).stream()
                 .filter(df -> ids.isEmpty() || ids.contains(df.getUuid())).map(df -> {
                     if (df.checkBrokenWithRelatedInfo()) {
-                        NDataModel dataModel = getManager(NDataModelManager.class, project).getDataModelDescWithoutInit(df.getUuid());
+                        NDataModel dataModel = getManager(NDataModelManager.class, project)
+                                .getDataModelDescWithoutInit(df.getUuid());
                         dataModel.setBroken(true);
                         return dataModel;
                     } else {
@@ -512,6 +513,13 @@ public class MetaStoreService extends BasicService {
      */
     private void updateIndexPlan(String project, NDataModel nDataModel, IndexPlan targetIndexPlan,
             boolean hasModelOverrideProps) {
+        NIndexPlanManager indexPlanManager = getManager(NIndexPlanManager.class, project);
+        indexPlanManager.updateIndexPlan(nDataModel.getUuid(), copyForWrite -> {
+            List<IndexEntity> toBeDeletedIndexes = copyForWrite.getToBeDeletedIndexes();
+            toBeDeletedIndexes.clear();
+            toBeDeletedIndexes.addAll(targetIndexPlan.getToBeDeletedIndexes());
+            copyForWrite.updateNextId();
+        });
         if (targetIndexPlan.getRuleBasedIndex() != null) {
             indexPlanService.updateRuleBasedCuboid(project, UpdateRuleBasedCuboidRequest.convertToRequest(project,
                     nDataModel.getUuid(), false, targetIndexPlan.getRuleBasedIndex()));
@@ -520,12 +528,7 @@ public class MetaStoreService extends BasicService {
                     nDataModel.getUuid(), false, new RuleBasedIndex()));
         }
 
-        NIndexPlanManager indexPlanManager = getManager(NIndexPlanManager.class, project);
         indexPlanManager.updateIndexPlan(nDataModel.getUuid(), copyForWrite -> {
-            List<IndexEntity> toBeDeletedIndexes = copyForWrite.getToBeDeletedIndexes();
-            toBeDeletedIndexes.clear();
-            toBeDeletedIndexes.addAll(targetIndexPlan.getToBeDeletedIndexes());
-
             if (hasModelOverrideProps) {
                 copyForWrite.setOverrideProps(targetIndexPlan.getOverrideProps());
             }
@@ -663,8 +666,8 @@ public class MetaStoreService extends BasicService {
                     .getDataModelDescByAlias(modelImport.getOriginalName());
 
             if (dataModel == null) {
-                throw new KylinException(MODEL_IMPORT_ERROR, String.format(Locale.ROOT,
-                        msg.getCanNotOverwriteModel(), modelImport.getOriginalName(), modelImport.getImportType()));
+                throw new KylinException(MODEL_IMPORT_ERROR, String.format(Locale.ROOT, msg.getCanNotOverwriteModel(),
+                        modelImport.getOriginalName(), modelImport.getImportType()));
             }
 
             val modelSchemaChange = checkResult.getModels().get(modelImport.getOriginalName());
@@ -675,8 +678,8 @@ public class MetaStoreService extends BasicService {
                     createType = "NEW";
                 }
                 throw new KylinException(MODEL_IMPORT_ERROR,
-                        String.format(Locale.ROOT, msg.getUnSuitableImportType(createType),
-                                modelImport.getImportType(), modelImport.getOriginalName()));
+                        String.format(Locale.ROOT, msg.getUnSuitableImportType(createType), modelImport.getImportType(),
+                                modelImport.getOriginalName()));
             }
         } else if (modelImport.getImportType() == ModelImportRequest.ImportType.NEW) {
 
@@ -695,9 +698,8 @@ public class MetaStoreService extends BasicService {
             val modelSchemaChange = checkResult.getModels().get(modelImport.getTargetName());
 
             if (modelSchemaChange == null || !modelSchemaChange.creatable()) {
-                throw new KylinException(MODEL_IMPORT_ERROR,
-                        String.format(Locale.ROOT, msg.getUnSuitableImportType(null), modelImport.getImportType(),
-                                modelImport.getTargetName()));
+                throw new KylinException(MODEL_IMPORT_ERROR, String.format(Locale.ROOT,
+                        msg.getUnSuitableImportType(null), modelImport.getImportType(), modelImport.getTargetName()));
             }
 
         }

@@ -43,6 +43,7 @@
 package org.apache.kylin.query.util;
 
 import static org.apache.kylin.common.exception.QueryErrorCode.EMPTY_TABLE;
+import static org.apache.kylin.common.exception.ServerErrorCode.VIEW_PARTITION_DATE_FORMAT_DETECTION_FORBIDDEN;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -71,6 +72,7 @@ import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.metadata.realization.RoutingIndicatorException;
 import org.apache.kylin.query.security.AccessDeniedException;
@@ -84,6 +86,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.query.exception.NoAuthorizedColsError;
 import io.kyligence.kap.query.util.KapQueryUtil;
@@ -92,13 +95,12 @@ import lombok.val;
 public class PushDownUtil {
     private static final Logger logger = LoggerFactory.getLogger(PushDownUtil.class);
 
-    private static ExecutorService asyncExecutor = Executors.newCachedThreadPool();
+    private static final ExecutorService asyncExecutor = Executors.newCachedThreadPool();
 
     private PushDownUtil() {
     }
 
-    public static PushdownResult tryPushDownQueryToIterator(QueryParams queryParams)
-            throws Exception {
+    public static PushdownResult tryPushDownQueryToIterator(QueryParams queryParams) throws Exception {
 
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         val prjManager = NProjectManager.getInstance(kylinConfig);
@@ -107,9 +109,11 @@ public class PushDownUtil {
         String project = queryParams.getProject();
         kylinConfig = prj.getConfig();
         if (!kylinConfig.isPushDownEnabled()) {
-            if (queryParams.isForcedToPushDown()) {
+            SQLException sqlException = queryParams.getSqlException();
+            if (queryParams.isForcedToPushDown() || (sqlException != null
+                    && sqlException.getMessage().contains(QueryContext.ROUTE_USE_FORCEDTOTIEREDSTORAGE))) {
                 throw new KylinException(QueryErrorCode.INVALID_PARAMETER_PUSH_DOWN,
-                        "you should turn on pushdown when you want to force to pushdown");
+                        MsgPicker.getMsg().getDisablePushDownPrompt());
             }
             return null;
         }
@@ -164,11 +168,15 @@ public class PushDownUtil {
 
     public static Pair<String, String> getMaxAndMinTimeWithTimeOut(String partitionColumn, String table, String project)
             throws Exception {
+
         Future<Pair<String, String>> pushDownTask = asyncExecutor.submit(() -> {
             try {
                 return getMaxAndMinTime(partitionColumn, table, project);
             } catch (Exception e) {
                 logger.error("Failed to get partition column latest data range by push down!", e);
+                if (e instanceof KylinException) {
+                    throw e;
+                }
             }
             return null;
         });
@@ -192,7 +200,7 @@ public class PushDownUtil {
                 table);
         Pair<String, String> result = new Pair<>();
         // pushdown
-        List<List<String>> returnRows = PushDownUtil.selectPartitionColumn(sql, project).getFirst();
+        List<List<String>> returnRows = PushDownUtil.selectPartitionColumn(sql, table, project).getFirst();
 
         if (returnRows.isEmpty() || returnRows.get(0).get(0) == null || returnRows.get(0).get(1) == null)
             throw new BadRequestException(String.format(Locale.ROOT, MsgPicker.getMsg().getNoDataInTable(), table));
@@ -209,14 +217,15 @@ public class PushDownUtil {
 
     /**
      * Use push down engine to select partition column
-     *
-     * @param sql     sql to select partition column
-     * @param project project name
-     * @return query results and meta data pair
-     * @throws Exception
      */
-    public static Pair<List<List<String>>, List<SelectedColumnMeta>> selectPartitionColumn(String sql, String project)
-            throws Exception {
+    public static Pair<List<List<String>>, List<SelectedColumnMeta>> selectPartitionColumn(String sql, String table,
+            String project) throws Exception {
+        NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        final TableDesc tableDesc = tableMgr.getTableDesc(table);
+        if (tableDesc.isView()) {
+            throw new KylinException(VIEW_PARTITION_DATE_FORMAT_DETECTION_FORBIDDEN,
+                    MsgPicker.getMsg().getViewDateFormatDetectionError());
+        }
         val prjManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         val prj = prjManager.getProject(project);
         val kylinConfig = prj.getConfig();
@@ -244,7 +253,7 @@ public class PushDownUtil {
                 table, partitionColumn);
 
         // push down
-        List<List<String>> returnRows = PushDownUtil.selectPartitionColumn(sql, project).getFirst();
+        List<List<String>> returnRows = PushDownUtil.selectPartitionColumn(sql, table, project).getFirst();
         if (CollectionUtils.isEmpty(returnRows) || CollectionUtils.isEmpty(returnRows.get(0)))
             throw new KylinException(EMPTY_TABLE,
                     String.format(Locale.ROOT, MsgPicker.getMsg().getNoDataInTable(), table));
@@ -298,10 +307,9 @@ public class PushDownUtil {
      * @param queryParams
      * @return
      * @throws Exception
-     * @deprecated
      */
-    @Deprecated
-    public static Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownQuery(QueryParams queryParams) throws Exception {
+    public static Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownQuery(QueryParams queryParams)
+            throws Exception {
         val results = tryPushDownQueryToIterator(queryParams);
         if (results == null) {
             return null;

@@ -101,6 +101,7 @@ import io.kyligence.kap.common.util.FileUtils;
 import io.kyligence.kap.common.util.SizeConvertUtil;
 import io.kyligence.kap.common.util.Unsafe;
 import lombok.val;
+import java.util.Collections;
 
 /**
  * An abstract class to encapsulate access to a set of 'properties'.
@@ -170,6 +171,15 @@ public abstract class KylinConfigBase implements Serializable {
         }
 
         return getKylinHome() + File.separator + "spark";
+    }
+
+    public Map<String, String> getReadonlyProperties(){
+        val substitutor = getSubstitutor();
+        HashMap<String, String> config = Maps.newHashMap();
+        for (Entry<Object, Object> entry : this.properties.entrySet()) {
+            config.put((String) entry.getKey(), substitutor.replace((String) entry.getValue()));
+        }
+        return config;
     }
 
     // backward compatibility check happens when properties is loaded or updated
@@ -1358,6 +1368,15 @@ public abstract class KylinConfigBase implements Serializable {
         return getOptional("kylin.engine.spark.build-class-name", "io.kyligence.kap.engine.spark.job.SegmentBuildJob");
     }
 
+    public List<String> getSparkBuildConfExtraRules() {
+        String rules = getOptional("kylin.engine.spark.build-conf-extra-rules");
+        if (StringUtils.isEmpty(rules)) {
+            return Collections.<String>emptyList();
+        }
+        return Lists.newArrayList(rules.split(","));
+    }
+
+
     public String getSparkTableSamplingClassName() {
         return getOptional("kylin.engine.spark.sampling-class-name",
                 "io.kyligence.kap.engine.spark.stats.analyzer.TableAnalyzerJob");
@@ -1600,6 +1619,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.query.optimized-sum-cast-double-rule-enabled", TRUE));
     }
 
+    public boolean isQueryFilterReductionEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.query.filter-reduction-enabled", TRUE));
+    }
+
     public boolean isConvertCountDistinctExpressionEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.query.convert-count-distinct-expression-enabled", FALSE));
     }
@@ -1675,6 +1698,7 @@ public abstract class KylinConfigBase implements Serializable {
     /**
      * The threshold for cartesian product partition number is
      * executor instance num * executor core num * cartesian-partition-num-threshold-factor
+     *
      * @return
      */
     public int getCartesianPartitionNumThresholdFactor() {
@@ -3281,12 +3305,12 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public ForceToTieredStorage getSystemForcedToTieredStorage() {
-        int i = Integer.parseInt(getOptional("kylin.system.forced-to-tiered-storage", "0"));
+        int i = Integer.parseInt(getOptional("kylin.second-storage.route-when-ch-fail", "0"));
         return ForceToTieredStorage.values()[i];
     }
 
     public ForceToTieredStorage getProjectForcedToTieredStorage() {
-        int i = Integer.parseInt(getOptional("kylin.project.forced-to-tiered-storage"));
+        int i = Integer.parseInt(getOptional("kylin.second-storage.route-when-ch-fail"));
         return ForceToTieredStorage.values()[i];
     }
 
@@ -3300,6 +3324,21 @@ public abstract class KylinConfigBase implements Serializable {
 
     public boolean isRemoveLdapCustomSecurityLimitEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.security.remove-ldap-custom-security-limit-enabled", "false"));
+    }
+
+    public String getSparkBuildJobHandlerClassName() {
+        return getOptional("kylin.engine.spark.build-job-handler-class-name",
+                "io.kyligence.kap.engine.spark.job.DefaultSparkBuildJobHandler");
+    }
+
+    public String getBuildJobProgressReporter() {
+        return getOptional("kylin.engine.spark.build-job-progress-reporter",
+                "io.kyligence.kap.engine.spark.job.RestfulJobProgressReport");
+    }
+
+    public String getBuildJobEnviromentAdaptor() {
+        return getOptional("kylin.engine.spark.build-job-enviroment-adaptor",
+                "io.kyligence.kap.engine.spark.job.DefaultEnviromentAdaptor");
     }
 
     public boolean useDynamicS3RoleCredentialInTable() {

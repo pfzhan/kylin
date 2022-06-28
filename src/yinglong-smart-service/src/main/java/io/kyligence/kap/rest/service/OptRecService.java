@@ -120,6 +120,7 @@ public class OptRecService extends BasicService {
         private final List<Long> addedLayoutIdList = Lists.newArrayList();
         private final List<Long> removedLayoutIdList = Lists.newArrayList();
         private final Map<String, NDataModel.Measure> functionToMeasureMap = Maps.newHashMap();
+        private Set<Integer> abnormalRecIds = Sets.newHashSet();
 
         @Getter
         private final OptRecV2 recommendation;
@@ -139,6 +140,8 @@ public class OptRecService extends BasicService {
             List<RawRecItem> rawRecItems = getAllRelatedRecItems(recItemIds, isAdd);
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 if (isAdd) {
+                    rawRecItems.sort(Comparator.comparing(RawRecItem::getId));
+                    abnormalRecIds = reduceDupCCRecItems(rawRecItems, abnormalRecIds);
                     rewriteModel(rawRecItems);
                     Map<Long, RawRecItem> addedLayouts = rewriteIndexPlan(rawRecItems);
                     addedLayouts = checkAndRemoveDirtyLayouts(addedLayouts);
@@ -251,30 +254,13 @@ public class OptRecService extends BasicService {
             logBeginRewrite("Model");
             NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             modelManager.updateDataModel(recommendation.getUuid(), copyForWrite -> {
-                copyForWrite.getAllNamedColumns().forEach(column -> {
-                    if (column.isExist()) {
-                        columns.putIfAbsent(column.getId(), column);
-                    }
-                    if (column.isDimension()) {
-                        dimensions.putIfAbsent(column.getId(), column);
-                    }
-                });
+                prepareColsMeasData(copyForWrite);
 
-                copyForWrite.getAllMeasures().forEach(measure -> {
-                    if (!measure.isTomb()) {
-                        measures.putIfAbsent(measure.getId(), measure);
+                for (RawRecItem rawRecItem : recItems) {
+                    if (isAbnormal(rawRecItem)) {
+                        abnormalRecIds.add(rawRecItem.getId());
+                        continue;
                     }
-                });
-
-                copyForWrite.getAllMeasures().forEach(measure -> {
-                    if (!measure.isTomb()) {
-                        functionToMeasureMap.put(measure.getFunction().toString(), measure);
-                    }
-                });
-
-                List<RawRecItem> newRecItems = reduceDupCCRecItems(recItems);
-
-                for (RawRecItem rawRecItem : newRecItems) {
                     switch (rawRecItem.getType()) {
                     case DIMENSION:
                         writeDimensionToModel(copyForWrite, rawRecItem);
@@ -310,16 +296,40 @@ public class OptRecService extends BasicService {
             logFinishRewrite("Model");
         }
 
-        private List<RawRecItem> reduceDupCCRecItems(List<RawRecItem> recItems) {
+        private void prepareColsMeasData(NDataModel copyForWrite) {
+            copyForWrite.getAllNamedColumns().forEach(column -> {
+                if (column.isExist()) {
+                    columns.putIfAbsent(column.getId(), column);
+                }
+                if (column.isDimension()) {
+                    dimensions.putIfAbsent(column.getId(), column);
+                }
+            });
+
+            copyForWrite.getAllMeasures().forEach(measure -> {
+                if (!measure.isTomb()) {
+                    measures.putIfAbsent(measure.getId(), measure);
+                }
+            });
+
+            copyForWrite.getAllMeasures().forEach(measure -> {
+                if (!measure.isTomb()) {
+                    functionToMeasureMap.put(measure.getFunction().toString(), measure);
+                }
+            });
+        }
+
+        private Set<Integer> reduceDupCCRecItems(List<RawRecItem> recItems, Set<Integer> abnormalRecIds) {
             List<RawRecItem> ccRecItems = recItems.stream()
                     .filter(rawRecItem -> rawRecItem.getType() == RawRecItem.RawRecType.COMPUTED_COLUMN)
                     .collect(Collectors.toList());
             if (ccRecItems.isEmpty()) {
-                return recItems;
+                return abnormalRecIds;
             }
             List<RawRecItem> sortedCCRecItems = ccRecItems.stream()
                     .sorted(Comparator.comparing(o -> ((CCRecItemV2) o.getRecEntity()).getCc().getInnerExpression()))
                     .collect(Collectors.toList());
+
             HashMap<Integer, Integer> dupCCRecItemMap = Maps.newHashMap();
             int resId = sortedCCRecItems.get(0).getId();
             for (int i = 1; i < sortedCCRecItems.size(); i++) {
@@ -328,27 +338,15 @@ public class OptRecService extends BasicService {
                 String expr1 = ((CCRecItemV2) curRecItem.getRecEntity()).getCc().getInnerExpression();
                 String expr2 = ((CCRecItemV2) prevRecItem.getRecEntity()).getCc().getInnerExpression();
                 if (expr1.equalsIgnoreCase(expr2)) {
-                    dupCCRecItemMap.put(curRecItem.getId(), resId);
-                    recItems.remove(curRecItem);
+                    int curRecItemId = curRecItem.getId();
+                    dupCCRecItemMap.put(curRecItemId, resId);
+                    abnormalRecIds.add(curRecItemId);
                 } else {
                     resId = curRecItem.getId();
                 }
             }
-            if (dupCCRecItemMap.isEmpty()) {
-                return recItems;
-            }
-            return recItems.stream().map(rawRecItem -> {
-                int[] dependIDs = rawRecItem.getDependIDs();
-                dependIDs = Arrays.stream(dependIDs).map(id -> {
-                    Integer dupId = dupCCRecItemMap.get(-id);
-                    if (dupId != null) {
-                        return -dupId;
-                    }
-                    return id;
-                }).toArray();
-                rawRecItem.setDependIDs(dependIDs);
-                return rawRecItem;
-            }).collect(Collectors.toList());
+
+            return abnormalRecIds;
         }
 
         private void writeMeasureToModel(NDataModel model, RawRecItem rawRecItem) {
@@ -454,6 +452,10 @@ public class OptRecService extends BasicService {
             indexMgr.updateIndexPlan(recommendation.getUuid(), copyForWrite -> {
                 IndexPlan.IndexPlanUpdateHandler updateHandler = copyForWrite.createUpdateHandler();
                 for (RawRecItem rawRecItem : recItems) {
+                    if (isAbnormal(rawRecItem)) {
+                        abnormalRecIds.add(rawRecItem.getId());
+                        continue;
+                    }
                     if (!rawRecItem.isAddLayoutRec()) {
                         continue;
                     }
@@ -498,6 +500,11 @@ public class OptRecService extends BasicService {
 
             return layoutIds.stream().filter(id -> approvedLayouts.containsKey(id))
                     .collect(Collectors.toMap(Function.identity(), id -> approvedLayouts.get(id)));
+        }
+
+        private boolean isAbnormal(RawRecItem rawRecItem) {
+            return Arrays.stream(rawRecItem.getDependIDs()).anyMatch(id -> abnormalRecIds.contains(-id))
+                    || abnormalRecIds.contains(rawRecItem.getId());
         }
 
         private boolean isInvalidColId(List<Integer> cols, NDataModel model) {

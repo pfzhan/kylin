@@ -145,7 +145,7 @@ public class SecondStorageUtil {
     }
 
     public static boolean isBaseTableIndex(LayoutEntity index) {
-        return IndexEntity.isTableIndex(index.getId()) && index.isBaseIndex();
+        return index != null && IndexEntity.isTableIndex(index.getId()) && index.isBaseIndex();
     }
 
     public static Optional<LayoutEntity> getBaseIndex(NDataflow df) {

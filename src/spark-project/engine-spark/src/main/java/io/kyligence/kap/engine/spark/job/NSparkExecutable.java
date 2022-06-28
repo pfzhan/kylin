@@ -26,8 +26,6 @@ package io.kyligence.kap.engine.spark.job;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
@@ -39,16 +37,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KapConfig;
@@ -58,9 +52,7 @@ import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.util.BufferedLogger;
 import org.apache.kylin.common.util.ClassUtil;
-import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.StringUtil;
@@ -83,13 +75,10 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.cluster.ClusterManagerFactory;
-import io.kyligence.kap.cluster.IClusterManager;
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
 import io.kyligence.kap.engine.spark.merger.MetadataMerger;
-import io.kyligence.kap.guava20.shaded.common.util.concurrent.UncheckedTimeoutException;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -118,9 +107,7 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
     private static final String COMMA = ",";
     private static final String COLON = ":";
     private static final String EMPTY = "";
-    private static final String EQUALS = "=";
     private static final String SPACE = " ";
-    private static final String SUBMIT_LINE_FORMAT = " \\\n";
 
     private static final String DRIVER_EXTRA_CLASSPATH = "spark.driver.extraClassPath";
     private static final String EXECUTOR_EXTRA_CLASSPATH = "spark.executor.extraClassPath";
@@ -128,20 +115,31 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
     protected static final String SPARK_MASTER = "spark.master";
     protected static final String DEPLOY_MODE = "spark.submit.deployMode";
     protected static final String CLUSTER_MODE = "cluster";
+    protected ISparkJobHandler sparkJobHandler;
 
     private transient final List<StageBase> stages = Lists.newCopyOnWriteArrayList();
     private final Map<String, List<StageBase>> stagesMap = Maps.newConcurrentMap();
 
     public NSparkExecutable() {
         super();
+        logger.info("Has-args NSparkExecutable");
+        initHandler();
     }
 
     public NSparkExecutable(Object notSetId) {
         super(notSetId);
+        logger.info("No-args NSparkExecutable");
+        initHandler();
     }
 
     public String getDataflowId() {
         return this.getParam(NBatchConstants.P_DATAFLOW_ID);
+    }
+
+    protected void initHandler() {
+        logger.info("Handler class name {}", KylinConfig.getInstanceFromEnv().getSparkBuildJobHandlerClassName());
+        sparkJobHandler = (ISparkJobHandler) ClassUtil
+                .newInstance(KylinConfig.getInstanceFromEnv().getSparkBuildJobHandlerClassName());
     }
 
     @Override
@@ -229,7 +227,9 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
         if (StringUtils.isEmpty(kylinJobJar) && !config.isUTEnv()) {
             throw new RuntimeException("Missing kylin job jar");
         }
-        checkApplicationJar(config, kylinJobJar);
+        if (!config.isUTEnv()) {
+            sparkJobHandler.checkApplicationJar(config);
+        }
 
         String hadoopConfDir = HadoopUtil.getHadoopConfDir();
 
@@ -261,6 +261,8 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
             }, project, UnitOfWork.DEFAULT_MAX_RETRY, context.getEpochId(), getTempLockName());
         }
 
+        sparkJobHandler.prepareEnviroment(project, jobId, getParams());
+
         String argsPath = createArgsFileOnHDFS(config, jobId);
         if (config.isUTEnv()) {
             return runLocalMode(argsPath);
@@ -281,21 +283,7 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
     }
 
     protected String createArgsFileOnHDFS(KylinConfig config, String jobId) throws ExecuteException {
-        val fs = HadoopUtil.getWorkingFileSystem();
-        Path path = fs.makeQualified(new Path(config.getJobTmpArgsDir(project, jobId)));
-        try (FSDataOutputStream out = fs.create(path)) {
-            val params = filterEmptySegments(getParams());
-
-            out.write(JsonUtil.writeValueAsBytes(params));
-        } catch (IOException e) {
-            try {
-                fs.delete(path, true);
-            } catch (IOException e1) {
-                throw new ExecuteException("Write spark args failed! Error for delete file: " + path.toString(), e1);
-            }
-            throw new ExecuteException("Write spark args failed: ", e);
-        }
-        return path.toString();
+        return sparkJobHandler.createArgsFileOnRemoteFileSystem(config, getProject(), jobId, this.getParams());
     }
 
     /**
@@ -394,49 +382,59 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
         return KylinConfigExt.createInstance(kylinConfigExt, jobOverrides);
     }
 
+    public SparkAppDescription getSparkAppDesc() {
+        val desc = new SparkAppDescription();
+
+        val conf = getConfig();
+        desc.setJobNamePrefix(getJobNamePrefix());
+        desc.setProject(getProject());
+        desc.setJobId(getId());
+        desc.setStepId(getStepId());
+        desc.setSparkSubmitClassName(getSparkSubmitClassName());
+
+        val sparkConf = getSparkConf(conf);
+        desc.setSparkConf(sparkConf);
+        desc.setComma(COMMA);
+        desc.setSparkJars(getSparkJars(conf, sparkConf));
+        desc.setSparkFiles(getSparkFiles(conf, sparkConf));
+        return desc;
+    }
+
     protected ExecuteResult runSparkSubmit(String hadoopConfDir, String kylinJobJar, String appArgs) {
-        val patternedLogger = new BufferedLogger(logger);
-
+        killOrphanApplicationIfExists(getId());
         try {
-            killOrphanApplicationIfExists(getId());
-            String cmd = generateSparkCmd(hadoopConfDir, kylinJobJar, appArgs);
+            Object cmd;
+            val desc = getSparkAppDesc();
+            desc.setHadoopConfDir(hadoopConfDir);
+            desc.setKylinJobJar(kylinJobJar);
+            desc.setAppArgs(appArgs);
 
-            CliCommandExecutor exec = new CliCommandExecutor();
-            CliCommandExecutor.CliCmdExecResult r = exec.execute(cmd, patternedLogger, getParentId());
-            if (StringUtils.isNotEmpty(r.getProcessId())) {
+            cmd = sparkJobHandler.generateSparkCmd(KylinConfig.getInstanceFromEnv(), desc);
+
+            Map<String, String> updateInfo = sparkJobHandler.runSparkSubmit(cmd, getParentId());
+            String output = updateInfo.get("output");
+            if (StringUtils.isNotEmpty(updateInfo.get("process_id"))) {
                 try {
-                    Map<String, String> updateInfo = Maps.newHashMap();
-                    updateInfo.put("process_id", r.getProcessId());
+                    updateInfo.remove("output");
                     EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                         NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                                .updateJobOutput(getParentId(), this.getStatus(), updateInfo, null, null);
+                                .updateJobOutput(getParentId(), getStatus(), updateInfo, null, null);
                         return null;
                     }, project, UnitOfWork.DEFAULT_MAX_RETRY, getEpochId(), getTempLockName());
                 } catch (Exception e) {
                     logger.warn("failed to record process id.");
                 }
             }
-
-            return ExecuteResult.createSucceed(r.getCmd());
+            return ExecuteResult.createSucceed(output);
         } catch (Exception e) {
+            logger.warn("failed to execute spark submit command.");
             wrapWithExecuteExceptionUpdateJobError(e);
             return ExecuteResult.createError(e);
         }
     }
 
     public void killOrphanApplicationIfExists(String jobStepId) {
-        try {
-            val sparkConf = getSparkConf();
-            val sparkMaster = sparkConf.getOrDefault(SPARK_MASTER, "local");
-            if (sparkMaster.startsWith("local")) {
-                logger.info("Skip kill orphan app for spark.master={}", sparkMaster);
-                return;
-            }
-            final IClusterManager cm = ClusterManagerFactory.create(getConfig());
-            cm.killApplication(jobStepId);
-        } catch (UncheckedTimeoutException e) {
-            logger.warn("Kill orphan app timeout {}", e.getMessage());
-        }
+        sparkJobHandler.killOrphanApplicationIfExists(jobStepId, getConfig(), getSparkConf());
     }
 
     protected Map<String, String> getSparkConfigOverride(KylinConfig config) {
@@ -450,64 +448,6 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
             confMap.put("spark.hadoop.hive.metastore.sasl.enabled", "true");
         }
         return confMap;
-    }
-
-    protected String generateSparkCmd(String hadoopConfDir, String kylinJobJar, String appArgs) {
-        // Hadoop conf dir.
-        StringBuilder cmdBuilder = new StringBuilder("export HADOOP_CONF_DIR=");
-        cmdBuilder.append(hadoopConfDir);
-        cmdBuilder.append(SPACE).append("&&");
-
-        // Spark submit.
-        cmdBuilder.append(SPACE).append(KylinConfigBase.getSparkHome()).append(File.separator);
-        cmdBuilder.append("bin/spark-submit");
-        cmdBuilder.append(SUBMIT_LINE_FORMAT);
-
-        // Application main class.
-        cmdBuilder.append(SPACE).append("--class");
-        cmdBuilder.append(SPACE).append("io.kyligence.kap.engine.spark.application.SparkEntry");
-        cmdBuilder.append(SUBMIT_LINE_FORMAT);
-
-        // Application name.
-        cmdBuilder.append(SPACE).append("--name");
-        cmdBuilder.append(SPACE).append(getJobNamePrefix()).append(getId());
-        cmdBuilder.append(SUBMIT_LINE_FORMAT);
-
-        final KylinConfig kylinConf = getConfig();
-        // Read only mappings.
-        final Map<String, String> sparkConf = getSparkConf(kylinConf);
-
-        // Spark jars.
-        cmdBuilder.append(SPACE).append("--jars");
-        cmdBuilder.append(SPACE).append(String.join(COMMA, getSparkJars(kylinConf, sparkConf)));
-        cmdBuilder.append(SUBMIT_LINE_FORMAT);
-
-        // Log4j config files.
-        cmdBuilder.append(SPACE).append("--files");
-        cmdBuilder.append(SPACE).append(String.join(COMMA, getSparkFiles(kylinConf, sparkConf)));
-        cmdBuilder.append(SUBMIT_LINE_FORMAT);
-
-        // Spark conf.
-        // Maybe we would rewrite some confs, like 'extraJavaOptions', 'extraClassPath',
-        // and the confs rewrited should be removed from props thru #removeUnNecessaryDump.
-        wrapSparkConf(cmdBuilder, sparkConf);
-
-        // Application jar. KylinJobJar is the application-jar (of spark-submit),
-        // path to a bundled jar including your application and all dependencies,
-        // The URL must be globally visible inside of your cluster,
-        // for instance, an hdfs:// path or a file:// path that is present on all nodes.
-        cmdBuilder.append(SPACE).append(kylinJobJar);
-        cmdBuilder.append(SUBMIT_LINE_FORMAT);
-
-        // Application parameter file.
-        cmdBuilder.append(SPACE).append(appArgs);
-
-        final String command = cmdBuilder.toString();
-        logger.info("spark submit cmd: {}", command);
-
-        // Safe check.
-        checkCommandInjection(command);
-        return command;
     }
 
     private ExecuteResult runLocalMode(String appArgs) {
@@ -541,9 +481,8 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
         final Properties props = config.exportToProperties();
         // If we don't remove these configurations,
         // they will be overwritten in the SparkApplication
-        removeUnNecessaryDump(props);
-
         props.setProperty("kylin.metadata.url", metaDumpUrl);
+        modifyDump(props);
 
         if (kylinPropsOnly) {
             ResourceStore.dumpKylinProps(tmpDir, props);
@@ -568,11 +507,18 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
         }
 
         // copy metadata to target metaUrl
-        KylinConfig dstConfig = KylinConfig.createKylinConfig(props);
+        Properties propsForMetaStore = config.exportToProperties();
+        propsForMetaStore.setProperty("kylin.metadata.url", metaDumpUrl);
+        KylinConfig dstConfig = KylinConfig.createKylinConfig(propsForMetaStore);
         MetadataStore.createMetadataStore(dstConfig).uploadFromFile(tmpDir);
         // clean up
         logger.debug("Copied metadata to the target metaUrl, delete the temp dir: {}", tmpDir);
         FileUtils.forceDelete(tmpDir);
+    }
+
+    private void modifyDump(Properties props) {
+        sparkJobHandler.modifyDump(props);
+        removeUnNecessaryDump(props);
     }
 
     private void removeUnNecessaryDump(Properties props) {
@@ -631,30 +577,6 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
             HadoopUtil.deletePath(HadoopUtil.getCurrentConfiguration(), path);
         } catch (Exception e) {
             logger.error("delete job tmp in path {} failed.", taskPath, e);
-        }
-    }
-
-    private void checkApplicationJar(KylinConfig config, String path) throws ExecuteException {
-        if (config.isUTEnv()) {
-            return;
-        }
-        // Application-jar:
-        // Path to a bundled jar including your application and all dependencies.
-        // The URL must be globally visible inside of your cluster,
-        // for instance, an hdfs:// path or a file:// path that is present on all nodes.
-        try {
-            final String failedMsg = "Application jar should be only one bundled jar.";
-            URI uri = new URI(path);
-            if (Objects.isNull(uri.getScheme()) || uri.getScheme().startsWith("file:/")) {
-                Preconditions.checkState(new File(path).exists(), failedMsg);
-                return;
-            }
-
-            Path path0 = new Path(path);
-            FileSystem fs = HadoopUtil.getFileSystem(path0);
-            Preconditions.checkState(fs.exists(path0), failedMsg);
-        } catch (URISyntaxException | IOException e) {
-            throw new ExecuteException("Failed to check application jar.", e);
         }
     }
 
@@ -721,24 +643,6 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
     @Override
     public Map<String, List<StageBase>> getStagesMap() {
         return stagesMap;
-    }
-
-    private void wrapSparkConf(StringBuilder cmdBuilder, Map<String, String> sparkConf) {
-        for (Map.Entry<String, String> entry : sparkConf.entrySet()) {
-            switch (entry.getKey()) {
-            // Avoid duplicated from '--jars'
-            // Avoid duplicated from '--files'
-            case SPARK_JARS_1:
-            case SPARK_JARS_2:
-            case SPARK_FILES_1:
-            case SPARK_FILES_2:
-                // Do nothing.
-                break;
-            default:
-                appendSparkConf(cmdBuilder, entry.getKey(), entry.getValue());
-                break;
-            }
-        }
     }
 
     private boolean isClusterMode(Map<String, String> sparkConf) {
@@ -855,6 +759,7 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
         rewriteSpecifiedKrb5Conf(EXECUTOR_EXTRA_JAVA_OPTIONS, remoteKrb5, confMap);
     }
 
+    //no need this parameters: -Dlog4j.configuration,-Dkap.spark.mountDir,-Dorg.xerial.snappy.tempdir
     private void rewriteExecutorExtraJavaOptions(KylinConfig kylinConf, Map<String, String> sparkConf) {
         StringBuilder sb = new StringBuilder();
         if (sparkConf.containsKey(EXECUTOR_EXTRA_JAVA_OPTIONS)) {
@@ -917,12 +822,6 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
         }
     }
 
-    protected void appendSparkConf(StringBuilder sb, String confKey, String confValue) {
-        // Multiple parameters in "--conf" need to be enclosed in single quotes
-        sb.append(" --conf '").append(confKey).append(EQUALS).append(confValue).append("' ");
-        sb.append(SUBMIT_LINE_FORMAT);
-    }
-
     private Set<String> getSparkJars(KylinConfig kylinConf, Map<String, String> sparkConf) {
         Set<String> jarPaths = Sets.newLinkedHashSet();
         // Client mode, application jar (kylinJobJar here) wouldn't ln as '__app__.jar'.
@@ -960,23 +859,4 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
         return Collections.unmodifiableSet(sparkFiles);
     }
 
-    private void checkCommandInjection(String command) {
-        if (Objects.isNull(command)) {
-            return;
-        }
-        List<String> illegals = Lists.newArrayList();
-        Matcher matcher = Pattern.compile("(`.*?`)|(\\$\\(.*?\\))").matcher(command);
-        while (matcher.find()) {
-            illegals.add(matcher.group());
-        }
-
-        if (illegals.isEmpty()) {
-            return;
-        }
-
-        String msg = String.format("Not allowed to specify injected command through "
-                + "java options (like: %s). Vulnerabilities would allow attackers to trigger "
-                + "such a crash or crippling of the service.", String.join(", ", illegals));
-        throw new IllegalArgumentException(msg);
-    }
 }

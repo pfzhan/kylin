@@ -320,7 +320,7 @@ public class OptRecServiceAliasConflictTest extends OptRecV2TestBase {
         measureList.sort(Integer::compareTo);
         List<LayoutEntity> allLayouts = getIndexPlan().getAllLayouts();
         allLayouts.sort(Comparator.comparing(LayoutEntity::getId));
-        Assert.assertEquals("[8, 10, 13, 19]", dimensionList.toString());
+        Assert.assertEquals("[8, 10, 13, 20]", dimensionList.toString());
         Assert.assertEquals("[100000, 100001, 100002]", measureList.toString());
         Assert.assertEquals(2, allLayouts.size());
     }

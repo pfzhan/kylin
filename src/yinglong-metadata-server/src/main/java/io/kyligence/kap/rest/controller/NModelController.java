@@ -27,10 +27,8 @@ package io.kyligence.kap.rest.controller;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_MODEL;
-import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_DETECT_DATA_RANGE;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_MODEL;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARTITION_COLUMN;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_RANGE;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.DATETIME_FORMAT_PARSE_ERROR;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_INVALID;
 
@@ -52,7 +50,6 @@ import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.CommonErrorCode;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.exception.KylinTimeoutException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.rest.response.DataResult;
@@ -292,7 +289,9 @@ public class NModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<ExistedDataRangeResponse> getLatestData(@PathVariable(value = "model") String modelId,
             @RequestParam(value = "project") String project) {
-        return getPartitionLatestData(project, modelId, null);
+        String projectName = checkProjectName(project);
+        ExistedDataRangeResponse response = modelService.getLatestDataRange(projectName, modelId, null);
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
     @ApiOperation(value = "getLatestData", tags = { "AI" }, notes = "Update URL: {model}")
@@ -300,22 +299,9 @@ public class NModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<ExistedDataRangeResponse> getPartitionLatestData(
             @PathVariable(value = "model") String modelId, @RequestBody PartitionColumnRequest request) {
-        return getPartitionLatestData(request.getProject(), modelId, request.getPartitionDesc());
-    }
-
-    private EnvelopeResponse<ExistedDataRangeResponse> getPartitionLatestData(String project, String modelId,
-            PartitionDesc partitionDesc) {
-        checkProjectName(project);
-
-        ExistedDataRangeResponse response;
-        try {
-            response = modelService.getLatestDataRange(project, modelId, partitionDesc);
-        } catch (KylinTimeoutException e) {
-            throw new KylinException(FAILED_DETECT_DATA_RANGE, MsgPicker.getMsg().getpushdownDatarangeTimeout());
-        } catch (Exception e) {
-            throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getPushdownDatarangeError());
-        }
-
+        String project = checkProjectName(request.getProject());
+        ExistedDataRangeResponse response = modelService.getLatestDataRange(project, modelId,
+                request.getPartitionDesc());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 

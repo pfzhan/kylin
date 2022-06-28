@@ -103,7 +103,7 @@ public class NAutoBuildAndQueryTest extends AutoTestBase {
             overrideKylinProps.put("kylin.query.metadata.expose-computed-column", "FALSE");
         });
 
-        executeTestScenario(22,
+        executeTestScenario(24,
                 /* CompareLevel = SAME */
                 new TestScenario(CompareLevel.SAME, "query/h2"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_replace_special_symbol"), //
@@ -122,6 +122,7 @@ public class NAutoBuildAndQueryTest extends AutoTestBase {
                 new TestScenario(CompareLevel.SAME, "query/sql_distinct_dim"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_except"),
                 new TestScenario(CompareLevel.SAME, "query/sql_extended_column"), //
+                new TestScenario(CompareLevel.SAME, "query/sql_filter_simplify"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_grouping"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_hive"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_in"), //
@@ -146,6 +147,7 @@ public class NAutoBuildAndQueryTest extends AutoTestBase {
                 new TestScenario(CompareLevel.SAME, "query/sql_timestamp"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_udf"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_union"), //
+                new TestScenario(CompareLevel.SAME, "query/sql_union_cache"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_value"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_verifyContent"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_window/new_sql_window"), //

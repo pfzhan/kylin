@@ -27,6 +27,8 @@ package io.kyligence.kap.query.util;
 import com.google.common.collect.ImmutableList;
 import io.kyligence.kap.query.optrule.CountDistinctCaseWhenFunctionRule;
 import io.kyligence.kap.query.optrule.JoinFilterRule;
+import io.kyligence.kap.query.optrule.FilterJoinConditionMergeRule;
+import io.kyligence.kap.query.optrule.FilterSimplifyRule;
 import io.kyligence.kap.query.optrule.KapAggFilterTransposeRule;
 import io.kyligence.kap.query.optrule.KapAggJoinTransposeRule;
 import io.kyligence.kap.query.optrule.KapAggProjectMergeRule;
@@ -109,6 +111,12 @@ public class HepUtils {
             KapAggSumCastRule.INSTANCE,
             KapProjectRule.INSTANCE,
             KapAggregateRule.INSTANCE
+    );
+
+    public static final ImmutableList<RelOptRule> FilterReductionRules = ImmutableList.of(
+            FilterJoinConditionMergeRule.INSTANCE,
+            FilterSimplifyRule.INSTANCE,
+            KapFilterRule.INSTANCE
     );
 
 

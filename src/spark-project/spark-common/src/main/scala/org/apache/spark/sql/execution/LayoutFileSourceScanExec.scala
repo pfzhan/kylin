@@ -238,6 +238,7 @@ case class LayoutFileSourceScanExec(
     val locationDesc =
       location.getClass.getSimpleName +
         Utils.buildLocationMetadata(location.rootPaths, maxMetadataValueLength)
+    val indexIds = location.rootPaths.map(path => path.getName)
     val metadata =
       Map(
         "Format" -> relation.fileFormat.toString,

@@ -34,6 +34,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_JOIN_C
 import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_MEASURE_EXPRESSION;
 import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_MEASURE_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_MODEL;
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_DETECT_DATA_RANGE;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_EXECUTE_MODEL_SQL;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_MODEL;
 import static org.apache.kylin.common.exception.ServerErrorCode.FILTER_CONDITION_DEPENDS_ANTI_FLATTEN_LOOKUP;
@@ -45,6 +46,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARTITION_COLUMN;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARTITION_VALUES;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_RANGE;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_SEGMENT_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_BROKEN;
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_ONLINE_ABANDON;
@@ -53,6 +55,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.STREAMING_INDEX_
 import static org.apache.kylin.common.exception.ServerErrorCode.TABLE_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.TIMESTAMP_COLUMN_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.UNAUTHORIZED_ENTITY;
+import static org.apache.kylin.common.exception.ServerErrorCode.VIEW_PARTITION_DATE_FORMAT_DETECTION_FORBIDDEN;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_ID_NOT_EXIST;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_DUPLICATE;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_EMPTY;
@@ -106,6 +109,7 @@ import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.JobErrorCode;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.KylinTimeoutException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.exception.code.ErrorCodeServer;
 import org.apache.kylin.common.msg.Message;
@@ -1634,8 +1638,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         if (matcher.find()) {
             String column = matcher.group(1);
             String table = column.contains(".") ? column.split("\\.")[0] : dataModel.getRootFactTableName();
-            String error = String.format(Locale.ROOT, MsgPicker.getMsg().getTableNotFound(), dataModel.getAlias(),
-                    column, table);
+            String error = String.format(Locale.ROOT, MsgPicker.getMsg().saveModelFail(), dataModel.getAlias(), column,
+                    table);
             throw new KylinException(TABLE_NOT_EXIST, error);
         } else {
             String errorMsg = String.format(Locale.ROOT, "model [%s], %s", dataModel.getAlias(),
@@ -1678,7 +1682,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                 val fullColumnName = modelRequest.getPartitionDesc().getPartitionDateColumn();
                 val columnName = fullColumnName.substring(fullColumnName.indexOf(".") + 1);
                 val hasPartitionColumn = modelRequest.getSimplifiedDimensions().stream()
-                        .filter(column -> column.getName().equalsIgnoreCase(columnName)).findAny().isPresent();
+                        .anyMatch(column -> column.getName().equalsIgnoreCase(columnName));
                 if (!hasPartitionColumn && !modelRequest.getDimensionNameIdMap().containsKey(fullColumnName)) {
                     throw new KylinException(TIMESTAMP_COLUMN_NOT_EXIST,
                             String.format(Locale.ROOT, MsgPicker.getMsg().getTimestampPartitionColumnNotExist()));
@@ -2162,8 +2166,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
 
     }
 
-    private Pair<String, String> getMaxAndMinTimeInPartitionColumnByPushdown(String project, String table,
-            PartitionDesc desc) throws Exception {
+    private Pair<String, String> getPartitionColMinMaxValue(String project, String table, PartitionDesc desc)
+            throws Exception {
         Preconditions.checkNotNull(desc);
         String partitionColumn = desc.getPartitionDateColumn();
         String dateFormat = desc.getPartitionDateFormat();
@@ -2947,10 +2951,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                 && request.isWithSecondStorage()) {
             val indexPlanManager = getManager(NIndexPlanManager.class, project);
             if (!indexPlanManager.getIndexPlan(request.getId()).containBaseTableLayout()) {
-                indexPlanManager.updateIndexPlan(request.getId(), copied -> {
-                    copied.createAndAddBaseIndex(
-                            Collections.singletonList(copied.createBaseTableIndex(copied.getModel())));
-                });
+                indexPlanManager.updateIndexPlan(request.getId(), copied -> copied.createAndAddBaseIndex(
+                        Collections.singletonList(copied.createBaseTableIndex(copied.getModel()))));
             }
             SecondStorageUtil.initModelMetaData(project, request.getId());
         }
@@ -3347,25 +3349,36 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         checkPropParameter(request);
     }
 
-    public ExistedDataRangeResponse getLatestDataRange(String project, String modelId, PartitionDesc desc)
-            throws Exception {
-        Preconditions.checkNotNull(modelId);
+    public ExistedDataRangeResponse getLatestDataRange(String project, String modelId, PartitionDesc desc) {
         aclEvaluate.checkProjectReadPermission(project);
-
-        val df = getManager(NDataflowManager.class, project).getDataflow(modelId);
-        val model = df.getModel();
-        val table = model.getRootFactTableName();
-        if (Objects.nonNull(desc) && !desc.equals(model.getPartitionDesc())) {
-            Pair<String, String> pushdownResult = getMaxAndMinTimeInPartitionColumnByPushdown(project, table, desc);
+        Preconditions.checkNotNull(modelId);
+        try {
+            val df = getManager(NDataflowManager.class, project).getDataflow(modelId);
+            val model = df.getModel();
+            val table = model.getRootFactTableName();
+            if (Objects.nonNull(desc) && !desc.equals(model.getPartitionDesc())) {
+                Pair<String, String> pushdownResult = getPartitionColMinMaxValue(project, table, desc);
+                return new ExistedDataRangeResponse(pushdownResult.getFirst(), pushdownResult.getSecond());
+            }
+            Pair<String, String> pushdownResult = getPartitionColMinMaxValue(project, table, model.getPartitionDesc());
+            pushdownResult.setFirst(PushDownUtil.calcStart(pushdownResult.getFirst(), df.getCoveredRange()));
+            if (Long.parseLong(pushdownResult.getFirst()) > Long.parseLong(pushdownResult.getSecond())) {
+                pushdownResult.setSecond(pushdownResult.getFirst());
+            }
             return new ExistedDataRangeResponse(pushdownResult.getFirst(), pushdownResult.getSecond());
+        } catch (Exception e) {
+            if (e instanceof KylinTimeoutException) {
+                throw new KylinException(FAILED_DETECT_DATA_RANGE, MsgPicker.getMsg().getpushdownDatarangeTimeout());
+            }
+            Throwable cause = e.getCause();
+            if (cause instanceof KylinException) {
+                ServerErrorCode code = VIEW_PARTITION_DATE_FORMAT_DETECTION_FORBIDDEN;
+                if (((KylinException) cause).getErrorCode().equals(code.toErrorCode())) {
+                    throw new KylinException(code, MsgPicker.getMsg().getViewDateFormatDetectionError());
+                }
+            }
+            throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getPushdownDatarangeError());
         }
-        Pair<String, String> pushdownResult = getMaxAndMinTimeInPartitionColumnByPushdown(project, table,
-                model.getPartitionDesc());
-        pushdownResult.setFirst(PushDownUtil.calcStart(pushdownResult.getFirst(), df.getCoveredRange()));
-        if (Long.parseLong(pushdownResult.getFirst()) > Long.parseLong(pushdownResult.getSecond())) {
-            pushdownResult.setSecond(pushdownResult.getFirst());
-        }
-        return new ExistedDataRangeResponse(pushdownResult.getFirst(), pushdownResult.getSecond());
     }
 
     public PurgeModelAffectedResponse getPurgeModelAffectedResponse(String project, String model) {
@@ -3573,9 +3586,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                     throw new KylinException(INVALID_PARTITION_COLUMN, MsgPicker.getMsg().getInvalidPartitionColumn());
                 }
             }
-            getManager(NDataModelManager.class, project).updateDataModel(oldDataModel.getUuid(), copyForWrite -> {
-                copyForWrite.setPartitionDesc(modelParatitionDescRequest.getPartitionDesc());
-            });
+            getManager(NDataModelManager.class, project).updateDataModel(oldDataModel.getUuid(),
+                    copyForWrite -> copyForWrite.setPartitionDesc(modelParatitionDescRequest.getPartitionDesc()));
             semanticUpdater.handleSemanticUpdate(project, oldDataModel.getUuid(), oldDataModel,
                     modelParatitionDescRequest.getStart(), modelParatitionDescRequest.getEnd());
             return null;
@@ -3980,8 +3992,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                 .map(parameterDesc -> parameterDesc.getColRef().getAliasDotName()).collect(Collectors.toSet());
 
         List<ComputedColumnDesc> computedColumnDescs = model.getComputedColumnDescs().stream()
-                .filter(cc -> measureColumns.contains(cc.getFullName()))
-                .collect(Collectors.toList());
+                .filter(cc -> measureColumns.contains(cc.getFullName())).collect(Collectors.toList());
 
         long authComputedCount = computedColumnDescs.stream()
                 .filter(cc -> authColumns.containsAll(convertCCToNormalCols(model, cc))).count();
@@ -3990,10 +4001,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
             return false;
         }
 
-        List<String> normalColumns = measureColumns.stream()
-                .filter(column -> !computedColumnDescs.stream()
-                        .map(ComputedColumnDesc::getFullName).collect(Collectors.toList())
-                        .contains(column))
+        List<String> normalColumns = measureColumns.stream().filter(column -> !computedColumnDescs.stream()
+                .map(ComputedColumnDesc::getFullName).collect(Collectors.toList()).contains(column))
                 .collect(Collectors.toList());
 
         return authColumns.containsAll(normalColumns);

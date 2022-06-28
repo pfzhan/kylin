@@ -57,7 +57,6 @@ import com.google.common.annotations.VisibleForTesting;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.rest.controller.NBasicController;
 import io.kyligence.kap.rest.controller.NTableController;
-import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.OpenReloadTableRequest;
 import io.kyligence.kap.rest.request.TableLoadRequest;
 import io.kyligence.kap.rest.response.LoadTableResponse;
@@ -150,24 +149,6 @@ public class OpenTableController extends NBasicController {
         updateDataSourceType(tableLoadRequest.getProject(), tableLoadRequest.getDataSourceType());
 
         return tableController.loadTables(tableLoadRequest);
-    }
-
-    /**
-     * auto mode, load data
-     * @param request
-     * @return
-     * @throws Exception
-     */
-    @ApiOperation(value = "setDateRanges", tags = { "AI" })
-    @PostMapping(value = "/data_range")
-    @ResponseBody
-    public EnvelopeResponse<String> setDateRanges(@RequestBody DateRangeRequest request) throws Exception {
-        String projectName = checkProjectName(request.getProject());
-        request.setProject(projectName);
-        checkRequiredArg("tableName", request.getTable());
-
-        getTable(request.getProject(), request.getTable());
-        return tableController.setDateRanges(request);
     }
 
     @ApiOperation(value = "preReloadTable", tags = { "AI" })

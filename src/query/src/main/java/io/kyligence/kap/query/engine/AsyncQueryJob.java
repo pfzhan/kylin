@@ -24,17 +24,18 @@
 
 package io.kyligence.kap.query.engine;
 
+import static org.apache.kylin.query.util.AsyncQueryUtil.ASYNC_QUERY_JOB_ID_PRE;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import io.kyligence.kap.engine.spark.job.NSparkExecutable;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.QueryContext;
-import org.apache.kylin.query.util.QueryParams;
+import org.apache.kylin.common.exception.KylinRuntimeException;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.BufferedLogger;
 import org.apache.kylin.common.util.CliCommandExecutor;
@@ -43,20 +44,22 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.ExecuteResult;
 import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.query.util.QueryParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
+import io.kyligence.kap.engine.spark.job.DefaultSparkBuildJobHandler;
+import io.kyligence.kap.engine.spark.job.NSparkExecutable;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import lombok.val;
-
-import static org.apache.kylin.query.util.AsyncQueryUtil.ASYNC_QUERY_JOB_ID_PRE;
 
 public class AsyncQueryJob extends NSparkExecutable {
 
@@ -81,18 +84,31 @@ public class AsyncQueryJob extends NSparkExecutable {
     }
 
     @Override
+    protected void initHandler() {
+        sparkJobHandler = new DefaultSparkBuildJobHandler();
+    }
+
+    @Override
     protected ExecuteResult runSparkSubmit(String hadoopConf, String kylinJobJar, String appArgs) {
         val patternedLogger = new BufferedLogger(logger);
-
         try {
             killOrphanApplicationIfExists(getId());
-            String cmd = generateSparkCmd(hadoopConf, kylinJobJar, appArgs);
-            CliCommandExecutor exec = new CliCommandExecutor();
+            val desc = getSparkAppDesc();
+            desc.setHadoopConfDir(hadoopConf);
+            desc.setKylinJobJar(kylinJobJar);
+            desc.setAppArgs(appArgs);
+            String cmd = (String) sparkJobHandler.generateSparkCmd(KylinConfig.getInstanceFromEnv(), desc);
+            CliCommandExecutor exec = getCliCommandExecutor();
             CliCommandExecutor.CliCmdExecResult r = exec.execute(cmd, patternedLogger, getId());
             return ExecuteResult.createSucceed(r.getCmd());
         } catch (Exception e) {
             return ExecuteResult.createError(e);
         }
+    }
+
+    @VisibleForTesting
+    public CliCommandExecutor getCliCommandExecutor() {
+        return new CliCommandExecutor();
     }
 
     @Override
@@ -139,7 +155,7 @@ public class AsyncQueryJob extends NSparkExecutable {
         KylinConfig config = KylinConfigExt.createInstance(originConfig, overrideCopy);
         String kylinJobJar = config.getKylinJobJarPath();
         if (StringUtils.isEmpty(kylinJobJar) && !config.isUTEnv()) {
-            throw new RuntimeException("Missing kylin job jar");
+            throw new KylinRuntimeException("Missing kylin job jar");
         }
 
         ObjectMapper fieldOnlyMapper = new ObjectMapper();

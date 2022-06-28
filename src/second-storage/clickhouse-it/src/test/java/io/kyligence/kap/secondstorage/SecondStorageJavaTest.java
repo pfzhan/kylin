@@ -429,7 +429,7 @@ public class SecondStorageJavaTest implements JobWaiter {
             val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             executableManager.pauseJob(jobId);
             return null;
-        }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID);
+        }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID, jobId);
         waitJobEnd(project, jobId);
 //        Thread.sleep(15000);
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
@@ -450,7 +450,7 @@ public class SecondStorageJavaTest implements JobWaiter {
             val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             executableManager.resumeJob(jobId);
             return null;
-        }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID);
+        }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID, jobId);
         await().atMost(10, TimeUnit.SECONDS).until(() -> {
             val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             return executableManager.getJob(jobId).getStatus() == ExecutableState.RUNNING;

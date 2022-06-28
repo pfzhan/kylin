@@ -73,4 +73,19 @@ public class PushDownUtilTest extends NLocalFileMetadataTestCase {
             Assert.assertFalse(e instanceof IllegalArgumentException);
         }
     }
+
+    @Test
+    public void testTryPushDownQuery_PushDownDisable() throws Exception {
+        try {
+            overwriteSystemProp("kylin.query.pushdown-enabled", "false");
+            QueryParams queryParams = new QueryParams();
+            queryParams.setProject("default");
+            queryParams.setSelect(true);
+            queryParams.setForcedToPushDown(true);
+            PushDownUtil.tryPushDownQuery(queryParams);
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertFalse(e instanceof IllegalArgumentException);
+        }
+    }
 }

@@ -119,7 +119,6 @@ cp -rf ${KYLIN_HOME}/sample_project/template/* ${KYLIN_HOME}/sample_project/samp
 
 #### Add version info into model
 kylin_version=4.0.0.0
-echo "kylin version is "$kylin_version
 sed -i "s/%default_version%/${kylin_version}/g" ${KYLIN_HOME}/sample_project/sample_model/metadata/_global/project/learn_kylin.json
 sed -i "s/%default_version%/${kylin_version}/g" ${KYLIN_HOME}/sample_project/sample_model/metadata/learn_kylin/dataflow/2d07e878-da28-a203-2d2c-185b4c6656f1.json
 sed -i "s/%default_version%/${kylin_version}/g" ${KYLIN_HOME}/sample_project/sample_model/metadata/learn_kylin/index_plan/2d07e878-da28-a203-2d2c-185b4c6656f1.json

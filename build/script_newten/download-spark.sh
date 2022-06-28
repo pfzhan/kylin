@@ -31,23 +31,14 @@ source build/script_newten/functions.sh
 
 rm -rf build/spark
 
-spark_pkg_name="spark-newten-3.2.0-4.x-r70"
+spark_version_pom=`mvn help:evaluate -Dexpression=spark.version | grep -E '^[0-9]+\.[0-9]+\.[0-9]+' `
+spark_pkg_name=spark-newten-"`echo ${spark_version_pom}| sed "s/-kylin//g"`"
 spark_pkg_file_name="${spark_pkg_name}.tgz"
-spark_pkg_md5="d41f3023f28d63f0ef925fe4314341c2"
-
-checkDownloadSparkVersion ${spark_pkg_name}
 
 if [ ! -f "build/${spark_pkg_file_name}" ]
 then
     echo "no binary file found"
     wget --directory-prefix=build/ https://s3.cn-north-1.amazonaws.com.cn/download-resource/kyspark/${spark_pkg_file_name} || echo "Download spark failed"
-else
-    if [ `calMd5 build/${spark_pkg_file_name} | awk '{print $1}'` != "${spark_pkg_md5}" ]
-    then
-        echo "md5 check failed"
-        rm build/${spark_pkg_file_name}
-        wget --directory-prefix=build/ https://s3.cn-north-1.amazonaws.com.cn/download-resource/kyspark/${spark_pkg_file_name}  || echo "Download spark failed"
-    fi
 fi
 
 mkdir -p  build/${spark_pkg_name}
