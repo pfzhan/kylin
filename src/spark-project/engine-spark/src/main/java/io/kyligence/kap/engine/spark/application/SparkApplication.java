@@ -45,6 +45,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.io.IOUtils;
@@ -99,11 +101,13 @@ import io.kyligence.kap.engine.spark.job.ResourceDetect;
 import io.kyligence.kap.engine.spark.job.SegmentBuildJob;
 import io.kyligence.kap.engine.spark.job.SparkJobConstants;
 import io.kyligence.kap.engine.spark.job.UdfManager;
+import io.kyligence.kap.engine.spark.scheduler.ClusterMonitor;
 import io.kyligence.kap.engine.spark.utils.JobMetricsUtils;
 import io.kyligence.kap.engine.spark.utils.SparkConfHelper;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.query.pushdown.SparkSubmitter;
 import lombok.val;
 import scala.runtime.AbstractFunction1;
@@ -124,6 +128,9 @@ public abstract class SparkApplication implements Application {
      */
     protected String path;
 
+    private ClusterMonitor clusterMonitor;
+    private final AtomicLong atomicDisconnectSparkMasterTimes = new AtomicLong(0);
+    private final AtomicBoolean atomicUnreachableSparkMaster = new AtomicBoolean(false);
     private final AtomicReference<SparkConf> atomicSparkConf = new AtomicReference<>(null);
     private final AtomicReference<SparkSession> atomicSparkSession = new AtomicReference<>(null);
     private final AtomicReference<KylinBuildEnv> atomicBuildEnv = new AtomicReference<>(null);
@@ -138,6 +145,10 @@ public abstract class SparkApplication implements Application {
         } catch (Exception e) {
             throw new RuntimeException("Error execute " + this.getClass().getName(), e);
         }
+    }
+
+    public AtomicBoolean getAtomicUnreachableSparkMaster() {
+        return atomicUnreachableSparkMaster;
     }
 
     public final Map<String, String> getParams() {
@@ -324,6 +335,9 @@ public abstract class SparkApplication implements Application {
             infos.recordJobId(jobId);
             infos.recordProject(project);
             infos.recordJobStepId(System.getProperty("spark.driver.param.taskId", jobId));
+
+            monitorSparkMaster();
+
             HadoopUtil.setCurrentConfiguration(new Configuration());
             ////////
             exchangeSparkConf(buildEnv.sparkConf());
@@ -339,6 +353,12 @@ public abstract class SparkApplication implements Application {
 
             /// backwards compatibility
             ss = getSparkSession();
+
+            if (config.useDynamicS3RoleCredentialInTable()) {
+                val tableMetadataManager = NTableMetadataManager.getInstance(config, project);
+                tableMetadataManager.listAllTables().forEach(tableDesc -> SparderEnv
+                        .addS3CredentialFromTableToSpark(tableMetadataManager.getOrCreateTableExt(tableDesc), ss));
+            }
 
             if (!config.isUTEnv()) {
                 Unsafe.setProperty("kylin.env", config.getDeployEnv());
@@ -408,8 +428,10 @@ public abstract class SparkApplication implements Application {
     protected void extraInit() {
     }
 
-    protected void extraDestroy() {
-        //do nothing
+    public void extraDestroy() {
+        if (clusterMonitor != null) {
+            clusterMonitor.shutdown();
+        }
     }
 
     protected abstract void doExecute() throws Exception;
@@ -631,5 +653,11 @@ public abstract class SparkApplication implements Application {
         }
         JobMetricsUtils.unRegisterListener(sparkSession);
         sparkSession.stop();
+    }
+
+    private void monitorSparkMaster() {
+        clusterMonitor = new ClusterMonitor();
+        clusterMonitor.monitorSparkMaster(atomicBuildEnv, atomicSparkSession, atomicDisconnectSparkMasterTimes,
+                atomicUnreachableSparkMaster);
     }
 }

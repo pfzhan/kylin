@@ -48,7 +48,7 @@ class NSparkKafkaSource(val kylinConfig: KylinConfig) extends ISource {
    * Return an explorer to sync table metadata from the data source.
    */
   override def getSourceMetadataExplorer: ISourceMetadataExplorer = {
-    new NSparkMetadataExplorer()
+    new KafkaExplorer()
   }
 
   /**

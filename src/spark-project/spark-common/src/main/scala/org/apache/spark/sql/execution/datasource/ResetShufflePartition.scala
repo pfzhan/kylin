@@ -30,6 +30,7 @@ trait ResetShufflePartition extends Logging {
   def setShufflePartitions(bytes: Long, sourceRows: Long, sparkSession: SparkSession): Unit = {
     QueryContext.current().getMetrics.setSourceScanBytes(bytes)
     QueryContext.current().getMetrics.setSourceScanRows(sourceRows)
+    QueryContext.current().getMetrics.addSourceScanRows(sourceRows)
     val defaultParallelism = sparkSession.sparkContext.defaultParallelism
     val kapConfig = KapConfig.getInstanceFromEnv
     val partitionsNum = if (kapConfig.getSparkSqlShufflePartitions != -1) {

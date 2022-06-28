@@ -87,9 +87,11 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.ModifyTableNameSqlVisitor;
+import io.kyligence.kap.engine.spark.utils.ComputedColumnEvalUtil;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.model.RuleBasedIndex;
@@ -115,7 +117,6 @@ import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import io.kyligence.kap.rest.util.SCD2SimplificationConvertUtil;
 import io.kyligence.kap.secondstorage.SecondStorageUpdater;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
-import io.kyligence.kap.engine.spark.utils.ComputedColumnEvalUtil;
 import lombok.Setter;
 import lombok.val;
 import lombok.var;
@@ -454,7 +455,7 @@ public class ModelSemanticHelper extends BasicService {
             .stream().filter(m -> !m.isTomb())
             .collect(Collectors.toMap(SimplifiedMeasure::fromMeasure, Function.identity(), (u, v) -> {
                 throw new KylinException(ServerErrorCode.DUPLICATE_MEASURE_EXPRESSION,
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getDUPLICATE_MEASURE_DEFINITION(), v.getName()));
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getDuplicateMeasureDefinition(), v.getName()));
             }));
 
     private Function<List<NDataModel.NamedColumn>, Map<String, NDataModel.NamedColumn>> toDimensionMap = allCols -> allCols
@@ -479,8 +480,15 @@ public class ModelSemanticHelper extends BasicService {
         Map<String, String> matchAlias = getAliasTransformMap(originModel, expectedModel);
         updateModelColumnForTableAliasModify(expectedModel, matchAlias);
 
-        List<NDataModel> allModels = getManager(NDataflowManager.class, project).listUnderliningDataModels();
-        expectedModel.init(KylinConfig.getInstanceFromEnv(), project, allModels, saveCheck);
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.readSystemKylinConfig(), project);
+        List<NDataModel> ccRelatedModels = dataflowManager.listAllDataflows(true).stream() //
+                .filter(df -> df.getModel() == null || df.checkBrokenWithRelatedInfo()
+                        || !df.getModel().getComputedColumnDescs().isEmpty()) //
+                .map(model -> getManager(NDataflowManager.class, project).getDataflow(model.getId()))
+                .filter(df -> !df.checkBrokenWithRelatedInfo()) //
+                .map(NDataflow::getModel).collect(Collectors.toList());
+
+        expectedModel.init(KylinConfig.getInstanceFromEnv(), project, ccRelatedModels, saveCheck);
 
         originModel.setJoinTables(expectedModel.getJoinTables());
         originModel.setCanvas(expectedModel.getCanvas());
@@ -541,12 +549,10 @@ public class ModelSemanticHelper extends BasicService {
         List<NDataModel.Measure> newMeasures = Lists.newArrayList();
         compareAndUpdateColumns(toMeasureMap.apply(originModel.getAllMeasures()),
                 toMeasureMap.apply(expectedModel.getAllMeasures()), newMeasures::add,
-                oldMeasure -> oldMeasure.setTomb(true),
-                (oldMeasure, newMeasure) -> {
+                oldMeasure -> oldMeasure.setTomb(true), (oldMeasure, newMeasure) -> {
                     oldMeasure.setName(newMeasure.getName());
                     oldMeasure.setComment(newMeasure.getComment());
-                }
-        );
+                });
         updateMeasureStatus(newMeasures, originModel, updateImpact);
 
         // compare originModel and expectedModel's existing allNamedColumn
@@ -759,7 +765,7 @@ public class ModelSemanticHelper extends BasicService {
     }
 
     public boolean doHandleSemanticUpdate(String project, String model, NDataModel originModel, String start,
-                                          String end) {
+            String end) {
         val config = KylinConfig.getInstanceFromEnv();
         val indePlanManager = NIndexPlanManager.getInstance(config, project);
         val modelMgr = NDataModelManager.getInstance(config, project);
@@ -907,7 +913,8 @@ public class ModelSemanticHelper extends BasicService {
 
     public SegmentRange getSegmentRangeByModel(String project, String modelId, String start, String end) {
         TableRef tableRef = getManager(NDataModelManager.class, project).getDataModelDesc(modelId).getRootFactTable();
-        TableDesc tableDesc = getManager(NTableMetadataManager.class, project).getTableDesc(tableRef.getTableIdentity());
+        TableDesc tableDesc = getManager(NTableMetadataManager.class, project)
+                .getTableDesc(tableRef.getTableIdentity());
         return SourceFactory.getSource(tableDesc).getSegmentRange(start, end);
     }
 

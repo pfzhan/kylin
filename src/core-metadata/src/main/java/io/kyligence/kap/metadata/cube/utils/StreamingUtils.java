@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.metadata.cube.utils;
 
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.STREAMING_TABLE_REFRESH_INTERVAL_UNIT_ERROR;
+
 import java.lang.management.ManagementFactory;
 import java.util.Locale;
 import java.util.Map;
@@ -32,6 +34,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -114,7 +117,7 @@ public class StreamingUtils {
 
     public static Long parseTableRefreshInterval(String inputInterval) {
         if (inputInterval == null || "".equals(inputInterval.trim())) {
-            inputInterval = "-1m";
+            return TimeUtil.timeStringAs("-1m", TimeUnit.MINUTES);
         }
         if (inputInterval.endsWith("m")) {
             return TimeUtil.timeStringAs(inputInterval, TimeUnit.MINUTES);
@@ -123,7 +126,7 @@ public class StreamingUtils {
         } else if (inputInterval.endsWith("d")) {
             return 24 * 60 * TimeUtil.timeStringAs(inputInterval, TimeUnit.DAYS);
         } else {
-            throw new IllegalArgumentException("Dimension table refresh interval unit must be m, h or d...");
+            throw new KylinException(STREAMING_TABLE_REFRESH_INTERVAL_UNIT_ERROR);
         }
     }
 

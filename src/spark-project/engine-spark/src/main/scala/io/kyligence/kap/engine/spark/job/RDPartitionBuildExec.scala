@@ -35,7 +35,7 @@ import org.apache.spark.sql.datasource.storage.StorageStoreUtils
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils
 import java.io.IOException
 
-import org.apache.spark.sql.hive.utils.ResourceDetectUtils.getResourceSize
+import org.apache.spark.sql.SparderEnv
 
 import scala.collection.JavaConverters._
 
@@ -90,7 +90,7 @@ class RDPartitionBuildExec(private val jobContext: RDSegmentBuildJob, //
       ).asJava
 
       logInfo(s"Detected source: $sourceName $leaves ${paths.asScala.mkString(",")}")
-      sourceSize.put(sourceName, getResourceSize(config.isConcurrencyFetchDataSourceSize, paths.asScala.map(path => new Path(path)): _*))
+      sourceSize.put(sourceName, ResourceDetectUtils.getResourceSize(SparderEnv.getHadoopConfiguration(),config.isConcurrencyFetchDataSourceSize, paths.asScala.map(path => new Path(path)): _*))
       sourceLeaves.put(sourceName, leaves)
     }
 

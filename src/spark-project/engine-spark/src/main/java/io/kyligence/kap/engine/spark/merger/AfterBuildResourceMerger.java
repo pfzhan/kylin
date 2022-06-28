@@ -132,22 +132,20 @@ public class AfterBuildResourceMerger extends SparkJobMetadataMerger {
     public NDataLayout[] mergeNormalModelAfterCatchUp(String flowName, Set<String> segmentIds, Set<Long> layoutIds,
             ResourceStore remoteStore) {
         val localDataflowManager = NDataflowManager.getInstance(getConfig(), getProject());
-        val localDataflow = localDataflowManager.getDataflow(flowName);
+        val dataflow = localDataflowManager.getDataflow(flowName);
         val remoteDataflowManager = NDataflowManager.getInstance(remoteStore.getConfig(), getProject());
         val remoteDataflow = remoteDataflowManager.getDataflow(flowName).copy();
 
-        val dataflow = localDataflowManager.getDataflow(flowName);
         val dfUpdate = new NDataflowUpdate(flowName);
         val addCuboids = Lists.<NDataLayout> newArrayList();
         val availableLayoutIds = getAvailableLayoutIds(dataflow, layoutIds);
 
         List<NDataSegment> segsToUpdate = Lists.newArrayList();
         for (String segId : segmentIds) {
-            val localSeg = localDataflow.getSegment(segId);
+            val localSeg = dataflow.getSegment(segId);
             val remoteSeg = remoteDataflow.getSegment(segId);
             // ignore if local segment is not ready
-            if (localSeg == null || (localSeg.getStatus() != SegmentStatusEnum.READY
-                    && localSeg.getStatus() != SegmentStatusEnum.WARNING)) {
+            if (isUnavailableSegment(localSeg)) {
                 continue;
             }
             remoteSeg.setLastBuildTime(remoteSeg.getSegDetails().getLastModified());
@@ -168,6 +166,13 @@ public class AfterBuildResourceMerger extends SparkJobMetadataMerger {
         localDataflowManager.updateDataflow(dfUpdate);
         updateIndexPlan(flowName, remoteStore);
         return dfUpdate.getToAddOrUpdateLayouts();
+    }
+
+    private boolean isUnavailableSegment(NDataSegment localSeg) {
+        if (localSeg == null) {
+            return true;
+        }
+        return localSeg.getStatus() != SegmentStatusEnum.READY && localSeg.getStatus() != SegmentStatusEnum.WARNING;
     }
 
     /**
@@ -192,8 +197,7 @@ public class AfterBuildResourceMerger extends SparkJobMetadataMerger {
             val localSeg = localDataflow.getSegment(segId);
             val remoteSeg = remoteDataflow.getSegment(segId);
             // ignore if local segment is not ready
-            if (localSeg == null || (localSeg.getStatus() != SegmentStatusEnum.READY
-                    && localSeg.getStatus() != SegmentStatusEnum.WARNING)) {
+            if (isUnavailableSegment(localSeg)) {
                 continue;
             }
             NDataSegment updateSegment = upsertSegmentPartition(localSeg, remoteSeg, partitionIds);

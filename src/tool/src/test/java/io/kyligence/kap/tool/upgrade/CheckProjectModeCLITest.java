@@ -23,17 +23,14 @@
  */
 package io.kyligence.kap.tool.upgrade;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.OptionsHelper;
-import org.apache.kylin.metadata.project.ProjectInstance;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
 public class CheckProjectModeCLITest extends NLocalFileMetadataTestCase {
 
@@ -52,16 +49,10 @@ public class CheckProjectModeCLITest extends NLocalFileMetadataTestCase {
 
     @Test
     public void test() throws Exception {
-        KylinConfig systemKylinConfig = KylinConfig.getInstanceFromEnv();
-        Assert.assertTrue(NProjectManager.getInstance(systemKylinConfig).listAllProjects().stream()
-                .anyMatch(ProjectInstance::isSmartMode));
-
         CheckProjectModeCLI checkProjectModeCLI = new CheckProjectModeCLI();
         OptionsHelper optionsHelper = new OptionsHelper();
         optionsHelper.parseOptions(checkProjectModeCLI.getOptions(),
                 new String[] { "-d", getTestConfig().getMetadataUrl().toString(), "-e" });
-        thrown.expect(RuntimeException.class);
-        thrown.expectMessage("Smart mode project exist, stop upgrade.");
         checkProjectModeCLI.execute(optionsHelper);
     }
 

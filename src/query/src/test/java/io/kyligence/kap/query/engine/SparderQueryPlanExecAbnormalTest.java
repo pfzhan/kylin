@@ -24,7 +24,10 @@
 package io.kyligence.kap.query.engine;
 
 import org.apache.calcite.rel.RelNode;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.kylin.common.ForceToTieredStorage;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.spark.SparkException;
 import org.junit.After;
 import org.junit.Assert;
@@ -38,10 +41,23 @@ import io.kyligence.kap.query.engine.exec.sparder.SparderQueryPlanExec;
 import io.kyligence.kap.query.engine.meta.MutableDataContext;
 import lombok.SneakyThrows;
 
+import java.sql.SQLException;
+
 public class SparderQueryPlanExecAbnormalTest {
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
+
+    static class ThrowForceToTieredStorageException implements ThrownExceptionEngine.EngineAction {
+        ThrowForceToTieredStorageException() {
+        }
+
+        @SneakyThrows
+        @Override
+        public boolean apply() {
+            return ExceptionUtils.rethrow(new SQLException(QueryContext.ROUTE_USE_FORCEDTOTIEREDSTORAGE));
+        }
+    }
 
     static class ThrowExceptionAtFirstTime implements ThrownExceptionEngine.EngineAction {
         public int callNumber = 0;
@@ -127,6 +143,43 @@ public class SparderQueryPlanExecAbnormalTest {
             Assert.assertFalse(QueryContext.current().isForceTableIndex());
             Assert.assertEquals(0, QueryContext.current().getSecondStorageUsageMap().size());
         }
+    }
+
+    @Test(expected = SQLException.class)
+    public void testQueryRouteWithForceToTieredStoragePushDown() {
+        ThrowForceToTieredStorageException throwExceptionAtFirstTime = new ThrowForceToTieredStorageException();
+        ThrownExceptionEngine engine = new ThrownExceptionEngine(throwExceptionAtFirstTime);
+        TestSparderQueryPlanExec exec = new TestSparderQueryPlanExec(engine);
+        QueryContext.current().setForcedToTieredStorage(ForceToTieredStorage.CH_FAIL_TO_PUSH_DOWN);
+        Assert.assertNull(exec.executeToIterable(null, null).getRows());
+    }
+
+    @Test(expected = KylinException.class)
+    public void testQueryRouteWithForceToTieredStorageReturn() {
+        ThrowForceToTieredStorageException throwExceptionAtFirstTime = new ThrowForceToTieredStorageException();
+        ThrownExceptionEngine engine = new ThrownExceptionEngine(throwExceptionAtFirstTime);
+        TestSparderQueryPlanExec exec = new TestSparderQueryPlanExec(engine);
+        QueryContext.current().setForcedToTieredStorage(ForceToTieredStorage.CH_FAIL_TO_RETURN);
+        Assert.assertNull(exec.executeToIterable(null, null).getRows());
+    }
+
+    @Test(expected = KylinException.class)
+    public void testQueryRouteWithForceToTieredStorageInvalid() {
+        ThrowForceToTieredStorageException throwExceptionAtFirstTime = new ThrowForceToTieredStorageException();
+        ThrownExceptionEngine engine = new ThrownExceptionEngine(throwExceptionAtFirstTime);
+        TestSparderQueryPlanExec exec = new TestSparderQueryPlanExec(engine);
+        QueryContext.current().setForcedToTieredStorage(ForceToTieredStorage.CH_FAIL_TO_PUSH_DOWN);
+        QueryContext.current().setForceTableIndex(true);
+        Assert.assertNull(exec.executeToIterable(null, null).getRows());
+    }
+
+    @Test(expected = KylinException.class)
+    public void testQueryRouteWithForceToTieredStorageOther() {
+        ThrowForceToTieredStorageException throwExceptionAtFirstTime = new ThrowForceToTieredStorageException();
+        ThrownExceptionEngine engine = new ThrownExceptionEngine(throwExceptionAtFirstTime);
+        TestSparderQueryPlanExec exec = new TestSparderQueryPlanExec(engine);
+        QueryContext.current().setForcedToTieredStorage(ForceToTieredStorage.CH_FAIL_TAIL);
+        Assert.assertNull(exec.executeToIterable(null, null).getRows());
     }
 
 }

@@ -6,7 +6,6 @@ export const projectList = [
     description: "",
     keytab: null,
     last_modified: 1611558227000,
-    maintain_model_type: "AUTO_MAINTAIN",
     mvcc: 0,
     name: "xm_test",
     override_kylin_properties: {

@@ -263,7 +263,10 @@ public class NBadQueryAndPushDownTest extends NLocalWithSparkSessionTest {
         String pushdownSql = ExecAndComp.removeDataBaseInSql(sql);
         String massagedSql = KapQueryUtil.normalMassageSql(KylinConfig.getInstanceFromEnv(), pushdownSql, limit, offset);
         QueryParams queryParams = new QueryParams(prjName, massagedSql, "DEFAULT", BackdoorToggles.getPrepareOnly(),
-                sqlException, isForced, true, limit, offset);
+                sqlException, isForced);
+        queryParams.setSelect(true);
+        queryParams.setLimit(limit);
+        queryParams.setOffset(offset);
         Pair<List<List<String>>, List<SelectedColumnMeta>> result = PushDownUtil.tryPushDownQuery(queryParams);
         if (result == null) {
             throw sqlException;

@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.service;
 
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY;
 
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
@@ -112,7 +113,7 @@ public class StreamingJobService extends BasicService {
 
     public void launchStreamingJob(String project, String modelId, JobTypeEnum jobType) {
         checkModelStatus(project, modelId, jobType);
-        ModelUtils.checkPartitionColumn(project, modelId, MsgPicker.getMsg().getPARTITION_COLUMN_START_ERROR());
+        ModelUtils.checkPartitionColumn(project, modelId, MsgPicker.getMsg().getPartitionColumnStartError());
         StreamingScheduler scheduler = StreamingScheduler.getInstance(project);
         scheduler.submitJob(project, modelId, jobType);
     }
@@ -125,8 +126,8 @@ public class StreamingJobService extends BasicService {
         val modelMgr = NDataModelManager.getInstance(config, jobMeta.getProject());
         val model = modelMgr.getDataModelDesc(jobMeta.getModelId());
         if (model.isBroken() || isBatchModelBroken(model)) {
-            throw new KylinException(ServerErrorCode.JOB_START_FAILURE, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getJOB_BROKEN_MODEL_START_FAILURE(), model.getAlias()));
+            throw new KylinException(ServerErrorCode.JOB_START_FAILURE,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getJobBrokenModelStartFailure(), model.getAlias()));
         }
     }
 
@@ -161,11 +162,7 @@ public class StreamingJobService extends BasicService {
 
     private void checkJobParams(Map<String, String> params) {
         val tableRefreshInterval = params.get(StreamingConstants.STREAMING_TABLE_REFRESH_INTERVAL);
-        try {
-            StreamingUtils.parseTableRefreshInterval(tableRefreshInterval);
-        } catch (Exception e) {
-            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getINVALID_CUSTOMIZE_FORMAT());
-        }
+        StreamingUtils.parseTableRefreshInterval(tableRefreshInterval);
     }
 
     public void updateStreamingJobStatus(String project, List<String> jobIds, String action) {
@@ -452,7 +449,7 @@ public class StreamingJobService extends BasicService {
         }
 
         if (StringUtils.isEmpty(project)) {
-            throw new KylinException(INVALID_PARAMETER, "project is required when filter by jobid.");
+            throw new KylinException(REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY, "project");
         }
 
         val config = KylinConfig.getInstanceFromEnv();
@@ -491,7 +488,7 @@ public class StreamingJobService extends BasicService {
         if (timeFilter > 0) {
             long startTime;
             if (timeFilter > 7 * 24 * 60) {
-                throw new KylinException(INVALID_PARAMETER, msg.getILLEGAL_TIME_FILTER());
+                throw new KylinException(INVALID_PARAMETER, msg.getIllegalTimeFilter());
             } else {
                 calendar.add(Calendar.MINUTE, -timeFilter);
                 startTime = calendar.getTimeInMillis();

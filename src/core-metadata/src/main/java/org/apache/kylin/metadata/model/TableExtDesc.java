@@ -42,23 +42,8 @@
 
 package org.apache.kylin.metadata.model;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.Maps;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
-import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.persistence.RootPersistentEntity;
-import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.measure.hllc.HLLCounter;
-import org.apache.kylin.metadata.MetadataConstants;
-
 import java.io.Serializable;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -68,9 +53,34 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.persistence.RootPersistentEntity;
+import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.measure.hllc.HLLCounter;
+import org.apache.kylin.metadata.MetadataConstants;
+
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.base.Strings;
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
+
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
+@Slf4j
 public class TableExtDesc extends RootPersistentEntity implements Serializable {
+
+    public static final String S3_ROLE_PROPERTY_KEY = "s3_role";
+    public static final String LOCATION_PROPERTY_KEY = "location";
+    public static final String S3_ENDPOINT_KEY = "s3_endpoint";
 
     public static String concatRawResourcePath(String nameOnPath) {
         return ResourceStore.TABLE_EXD_RESOURCE_ROOT + "/" + nameOnPath + ".json";
@@ -265,6 +275,26 @@ public class TableExtDesc extends RootPersistentEntity implements Serializable {
                 && !this.dataSourceProps.get("partition_column").isEmpty();
     }
 
+    public S3RoleCredentialInfo getS3RoleCredentialInfo() {
+        String location = this.dataSourceProps.get(LOCATION_PROPERTY_KEY);
+        String s3Role = this.dataSourceProps.get(S3_ROLE_PROPERTY_KEY);
+        String s3Endpoint = this.dataSourceProps.get(S3_ENDPOINT_KEY);
+        if (Strings.isNullOrEmpty(location)) {
+            return null;
+        }
+        String bucket = null;
+        try {
+            bucket = new URI(location).getAuthority();
+        } catch (Exception e) {
+            log.warn("invalid s3 location {}", location, e);
+        }
+        if (Strings.isNullOrEmpty(bucket)) {
+            return null;
+        }
+        return new S3RoleCredentialInfo(bucket, s3Role, s3Endpoint);
+
+    }
+
     @Override
     public int hashCode() {
         return getIdentity().hashCode();
@@ -279,6 +309,20 @@ public class TableExtDesc extends RootPersistentEntity implements Serializable {
     public String toString() {
         return "TableExtDesc{" + "name='" + (null == identity ? "NULL" : identity) + '\'' + ", columns_samples="
                 + (null == columnStats ? "null" : Arrays.toString(columnStats.toArray()));
+    }
+
+    @Getter
+    @Setter
+    public class S3RoleCredentialInfo {
+        private String bucket;
+        private String role;
+        private String endpoint;
+
+        public S3RoleCredentialInfo(String bucket, String role, String endpoint) {
+            this.bucket = bucket;
+            this.role = role;
+            this.endpoint = endpoint;
+        }
     }
 
     @Data

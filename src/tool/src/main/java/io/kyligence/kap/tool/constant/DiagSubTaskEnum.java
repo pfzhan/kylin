@@ -45,5 +45,6 @@ public enum DiagSubTaskEnum {
     YARN, //
     TIERED_STORAGE_LOGS,
     SPARK_STREAMING_LOGS,
-    CANDIDATE_LOG
+    CANDIDATE_LOG,
+    SYSTEM_USAGE
 }

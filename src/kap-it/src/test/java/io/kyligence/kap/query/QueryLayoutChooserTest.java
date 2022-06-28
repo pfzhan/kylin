@@ -729,7 +729,7 @@ public class QueryLayoutChooserTest extends AutoTestBase {
                 NDataflow dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
                         .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
                 Map<String, String> sqlAlias2ModelName = RealizationChooser.matchJoins(dataflow.getModel(), context);
-                Assert.assertEquals(null, sqlAlias2ModelName);
+                Assert.assertTrue(sqlAlias2ModelName.isEmpty());
             }
         } finally {
             getTestConfig().setProperty("kylin.query.join-match-optimization-enabled", "false");

@@ -104,7 +104,7 @@ public class SchemaUtil {
                 String.format(Locale.ROOT, "Table(%s) not exist in project(%s)", tableIdentity, project));
         tables.add(table);
 
-        NDataModelManager modelManager = NDataModelManager.getInstance(config, project);
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.readSystemKylinConfig(), project);
         List<NDataModel> models = modelManager.listAllModels().stream() //
                 .filter(model -> model.isBroken() || isTableRelatedModel(tableIdentity, model)) //
                 .collect(Collectors.toList());

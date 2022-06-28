@@ -23,22 +23,25 @@
  */
 package io.kyligence.kap.metadata.cube;
 
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.STREAMING_TABLE_REFRESH_INTERVAL_UNIT_ERROR;
+
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
 import lombok.val;
 import lombok.var;
-import org.junit.rules.ExpectedException;
 
 public class StreamingUtilsTest extends NLocalFileMetadataTestCase {
     public static final String PROJECT = "streaming_test";
@@ -131,14 +134,13 @@ public class StreamingUtilsTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(2 * 60L, StreamingUtils.parseTableRefreshInterval("2h").longValue());
         Assert.assertEquals(3 * 24 * 60L, StreamingUtils.parseTableRefreshInterval("3d").longValue());
 
-        thrown.expect(IllegalArgumentException.class);
-        StreamingUtils.parseTableRefreshInterval("3t");
+        Assert.assertThrows(STREAMING_TABLE_REFRESH_INTERVAL_UNIT_ERROR.getMsg(), KylinException.class,
+                () -> StreamingUtils.parseTableRefreshInterval("3t"));
     }
 
     @Test
     public void testLocalMode() {
-        val config = StreamingUtils.isLocalMode();
-        Assert.assertEquals(false, config);
+        Assert.assertFalse(StreamingUtils.isLocalMode());
     }
 
     @Test

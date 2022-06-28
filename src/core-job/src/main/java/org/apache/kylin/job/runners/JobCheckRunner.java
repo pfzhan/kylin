@@ -23,8 +23,8 @@
  */
 package org.apache.kylin.job.runners;
 
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
-import lombok.val;
+import java.util.Map;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.Executable;
 import org.apache.kylin.job.execution.NExecutableManager;
@@ -32,7 +32,9 @@ import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Map;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import lombok.val;
 
 public class JobCheckRunner extends AbstractDefaultSchedulerRunner {
 
@@ -66,7 +68,7 @@ public class JobCheckRunner extends AbstractDefaultSchedulerRunner {
                         return true;
                     }
                     return false;
-                }, context.getEpochId(), project);
+                }, project, UnitOfWork.DEFAULT_MAX_RETRY, context.getEpochId(), jobId);
             }
         } catch (Exception e) {
             logger.warn("[UNEXPECTED_THINGS_HAPPENED] project " + project + " job " + jobId

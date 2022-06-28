@@ -24,14 +24,23 @@
 
 package io.kyligence.kap.rest.service;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_NAME;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_SAMPLING_RANGE_INVALID;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.Message;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.rest.service.BasicService;
@@ -51,13 +60,16 @@ import lombok.val;
 @Component("tableSamplingService")
 public class TableSamplingService extends BasicService implements TableSamplingSupporter {
 
+    private static final int MAX_SAMPLING_ROWS = 20_000_000;
+    private static final int MIN_SAMPLING_ROWS = 10_000;
+
     @Autowired
     private AclEvaluate aclEvaluate;
 
     @Override
     @Transaction(project = 1)
     public List<String> sampling(Set<String> tables, String project, int rows, int priority, String yarnQueue,
-                                 Object tag) {
+            Object tag) {
         aclEvaluate.checkProjectWritePermission(project);
         NExecutableManager execMgr = NExecutableManager.getInstance(getConfig(), project);
         NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getConfig(), project);
@@ -89,15 +101,33 @@ public class TableSamplingService extends BasicService implements TableSamplingS
     }
 
     private Map<String, AbstractExecutable> collectRunningSamplingJobs(Set<String> tables, String project) {
-        final List<AbstractExecutable> jobs = NExecutableManager.getInstance(getConfig(), project) //
-                .getAllExecutables().stream() //
-                .filter(executable -> executable instanceof NTableSamplingJob) //
-                .filter(job -> !job.getStatus().isFinalState()) //
+        final List<AbstractExecutable> jobs = NExecutableManager
+                .getInstance(KylinConfig.readSystemKylinConfig(), project).getAllJobs(0, Long.MAX_VALUE).stream()
+                .filter(job -> !ExecutableState.valueOf(job.getOutput().getStatus()).isFinalState())
+                .map(job -> getManager(NExecutableManager.class, job.getProject()).fromPO(job)) //
+                .filter(NTableSamplingJob.class::isInstance) //
                 .filter(job -> tables.contains(job.getTargetSubject())) //
                 .collect(Collectors.toList());
 
         Map<String, AbstractExecutable> map = Maps.newHashMap();
         jobs.forEach(job -> map.put(job.getTargetSubject(), job));
         return map;
+    }
+
+    public static void checkSamplingRows(int rows) {
+        if (rows > MAX_SAMPLING_ROWS || rows < MIN_SAMPLING_ROWS) {
+            throw new KylinException(JOB_SAMPLING_RANGE_INVALID, MIN_SAMPLING_ROWS, MAX_SAMPLING_ROWS);
+        }
+    }
+
+    public static void checkSamplingTable(String tableName) {
+        Message msg = MsgPicker.getMsg();
+        if (tableName == null || StringUtils.isEmpty(tableName.trim())) {
+            throw new KylinException(INVALID_TABLE_NAME, msg.getFailedForNoSamplingTable());
+        }
+
+        if (tableName.contains(" ") || !tableName.contains(".") || tableName.split("\\.").length != 2) {
+            throw new KylinException(INVALID_TABLE_NAME, msg.getSamplingFailedForIllegalTableName());
+        }
     }
 }

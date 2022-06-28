@@ -33,11 +33,20 @@ import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CONNECT_C
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_DOWNLOAD_FILE;
 import static org.apache.kylin.common.exception.ServerErrorCode.INCORRECT_PROJECT_MODE;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_RANGE;
 import static org.apache.kylin.common.exception.ServerErrorCode.UNSUPPORTED_STREAMING_OPERATION;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.BOOLEAN_TYPE_CHECK;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.DATETIME_FORMAT_EMPTY;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.DATETIME_FORMAT_PARSE_ERROR;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.INTEGER_NON_NEGATIVE_CHECK;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.PARAMETER_INVALID_SUPPORT_LIST;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_CONFLICT_PARAMETER;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_EMPTY_PARAMETER;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.TIME_INVALID_RANGE_END_LESS_THAN_EQUALS_START;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.TIME_INVALID_RANGE_LESS_THAN_ZERO;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.TIME_INVALID_RANGE_NOT_CONSISTENT;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.TIME_INVALID_RANGE_NOT_FORMAT_MS;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.USER_UNAUTHORIZED;
 import static org.apache.kylin.metadata.model.PartitionDesc.transformTimestamp2Format;
 
@@ -162,7 +171,7 @@ public class NBasicController {
         KylinException kylinException = null;
         while (cause != null && cause.getCause() != null) {
             if (cause instanceof CannotCreateTransactionException) {
-                kylinException = new KylinException(FAILED_CONNECT_CATALOG, msg.getCONNECT_DATABASE_ERROR(), false);
+                kylinException = new KylinException(FAILED_CONNECT_CATALOG, msg.getConnectDatabaseError(), false);
             }
             if (cause instanceof KylinException) {
                 kylinException = (KylinException) cause;
@@ -211,7 +220,7 @@ public class NBasicController {
     @ResponseBody
     ErrorResponse handleAccessDenied(HttpServletRequest req, Throwable ex) {
         getLogger().error("", ex);
-        KylinException e = new KylinException(ACCESS_DENIED, MsgPicker.getMsg().getACCESS_DENY());
+        KylinException e = new KylinException(ACCESS_DENIED, MsgPicker.getMsg().getAccessDeny());
         return new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(req), e);
     }
 
@@ -261,8 +270,7 @@ public class NBasicController {
 
     protected void checkRequiredArg(String fieldName, Object fieldValue) {
         if (fieldValue == null || StringUtils.isEmpty(String.valueOf(fieldValue))) {
-            throw new KylinException(INVALID_PARAMETER,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getPARAMETER_IS_REQUIRED(), fieldName));
+            throw new KylinException(REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY, fieldName);
         }
     }
 
@@ -291,8 +299,7 @@ public class NBasicController {
                 throw new NumberFormatException();
             }
         } catch (NumberFormatException e) {
-            throw new KylinException(INVALID_PARAMETER,
-                    String.format(Locale.ROOT, "'%s' must be a non-negative integer.", fieldName));
+            throw new KylinException(INTEGER_NON_NEGATIVE_CHECK, fieldName);
         }
     }
 
@@ -300,8 +307,7 @@ public class NBasicController {
         checkRequiredArg(fieldName, fieldValue);
         String booleanString = String.valueOf(fieldValue);
         if (!"true".equalsIgnoreCase(booleanString) && !"false".equalsIgnoreCase(booleanString)) {
-            throw new KylinException(INVALID_PARAMETER,
-                    String.format(Locale.ROOT, "'%s' must be boolean type.", fieldName));
+            throw new KylinException(BOOLEAN_TYPE_CHECK, booleanString, "Boolean");
         }
     }
 
@@ -366,7 +372,7 @@ public class NBasicController {
 
     public String checkProjectName(String project) {
         if (StringUtils.isEmpty(project)) {
-            throw new KylinException(EMPTY_PROJECT_NAME, MsgPicker.getMsg().getEMPTY_PROJECT_NAME());
+            throw new KylinException(EMPTY_PROJECT_NAME, MsgPicker.getMsg().getEmptyProjectName());
         }
 
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
@@ -389,9 +395,9 @@ public class NBasicController {
         }
     }
 
-    public List<String> checkSqlIsNotNull(List<String> rawSqls) {
+    public static List<String> checkSqlIsNotNull(List<String> rawSqls) {
         if (CollectionUtils.isEmpty(rawSqls)) {
-            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getSQL_LIST_IS_EMPTY());
+            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getSqlListIsEmpty());
         }
         return rawSqls;
     }
@@ -412,14 +418,14 @@ public class NBasicController {
     // Invoke this method after checkProjectName(), otherwise NPE will happen
     public void checkProjectNotSemiAuto(String project) {
         if (!NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project).isSemiAutoMode()) {
-            throw new KylinException(INCORRECT_PROJECT_MODE, MsgPicker.getMsg().getPROJECT_UNMODIFIABLE_REASON());
+            throw new KylinException(INCORRECT_PROJECT_MODE, MsgPicker.getMsg().getProjectUnmodifiableReason());
         }
     }
 
     // Invoke this method after checkProjectName(), otherwise NPE will happen
     public void checkProjectUnmodifiable(String project) {
         if (NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project).isExpertMode()) {
-            throw new KylinException(INCORRECT_PROJECT_MODE, MsgPicker.getMsg().getPROJECT_UNMODIFIABLE_REASON());
+            throw new KylinException(INCORRECT_PROJECT_MODE, MsgPicker.getMsg().getProjectUnmodifiableReason());
         }
     }
 
@@ -436,21 +442,21 @@ public class NBasicController {
                 .collect(Collectors.toList());
 
         if (!illegalStatus.isEmpty()) {
-            throw new KylinException(INVALID_PARAMETER, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getNot_IN_EFFECTIVE_COLLECTION(), illegalStatus, enumStrSet));
+            throw new KylinException(PARAMETER_INVALID_SUPPORT_LIST, "status",
+                    "ONLINE, OFFLINE, WARNING, BROKEN");
         }
         return formattedStatus;
     }
 
-    public void checkId(String uuid) {
+    public static void checkId(String uuid) {
         if (StringUtils.isEmpty(uuid)) {
-            throw new KylinException(EMPTY_ID, MsgPicker.getMsg().getID_CANNOT_EMPTY());
+            throw new KylinException(EMPTY_ID, MsgPicker.getMsg().getIdCannotEmpty());
         }
     }
 
-    public void validatePriority(int priority) {
+    public static void validatePriority(int priority) {
         if (!ExecutablePO.isPriorityValid(priority)) {
-            throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getINVALID_PRIORITY());
+            throw new KylinException(PARAMETER_INVALID_SUPPORT_LIST, "priority", "0, 1, 2, 3, 4");
         }
     }
 
@@ -460,10 +466,10 @@ public class NBasicController {
 
     private void validateRange(long start, long end) {
         if (start < 0 || end < 0) {
-            throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getINVALID_RANGE_LESS_THAN_ZERO());
+            throw new KylinException(TIME_INVALID_RANGE_LESS_THAN_ZERO);
         }
         if (start >= end) {
-            throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getINVALID_RANGE_END_LESSTHAN_START());
+            throw new KylinException(TIME_INVALID_RANGE_END_LESS_THAN_EQUALS_START);
         }
     }
 
@@ -484,36 +490,36 @@ public class NBasicController {
                 startLong = Long.parseLong(start);
                 endLong = Long.parseLong(end);
             } catch (Exception e) {
-                throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getINVALID_RANGE_NOT_FORMAT());
+                throw new KylinException(TIME_INVALID_RANGE_NOT_FORMAT_MS);
             }
 
-            if (startLong < 0 || endLong < 0)
-                throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getINVALID_RANGE_LESS_THAN_ZERO());
+            if (startLong < 0 || endLong < 0) {
+                throw new KylinException(TIME_INVALID_RANGE_LESS_THAN_ZERO);
+            }
 
             try {
                 startLong = DateFormat.getFormatTimeStamp(start, transformTimestamp2Format(partitionColumnFormat));
                 endLong = DateFormat.getFormatTimeStamp(end, transformTimestamp2Format(partitionColumnFormat));
             } catch (Exception e) {
-                throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getINVALID_RANGE_NOT_FORMAT());
+                throw new KylinException(TIME_INVALID_RANGE_NOT_FORMAT_MS);
             }
 
             if (startLong >= endLong)
-                throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getINVALID_RANGE_END_LESSTHAN_START());
+                throw new KylinException(TIME_INVALID_RANGE_END_LESS_THAN_EQUALS_START);
 
         } else {
-            throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getINVALID_RANGE_NOT_CONSISTENT());
+            throw new KylinException(TIME_INVALID_RANGE_NOT_CONSISTENT);
         }
     }
 
     public void validateDateTimeFormatPattern(String pattern) {
         if (pattern.isEmpty()) {
-            throw new KylinException(INVALID_PARAMETER, "Invalid empty datetime format ");
+            throw new KylinException(DATETIME_FORMAT_EMPTY);
         }
         try {
             new SimpleDateFormat(pattern, Locale.getDefault(Locale.Category.FORMAT));
         } catch (IllegalArgumentException e) {
-            throw new KylinException(INVALID_PARAMETER,
-                    "Invalid datetime format " + pattern + ". " + e.getLocalizedMessage());
+            throw new KylinException(DATETIME_FORMAT_PARSE_ERROR, e, pattern);
         }
     }
 
@@ -522,7 +528,7 @@ public class NBasicController {
         val kafkaConf = KafkaConfigManager.getInstance(config, project).getKafkaConfig(table);
         if (kafkaConf != null) {
             throw new KylinException(UNSUPPORTED_STREAMING_OPERATION,
-                    MsgPicker.getMsg().getSTREAMING_OPERATION_NOT_SUPPORT());
+                    MsgPicker.getMsg().getStreamingOperationNotSupport());
         }
     }
 

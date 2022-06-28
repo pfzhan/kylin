@@ -29,9 +29,9 @@ import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLI
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_MODEL;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_DETECT_DATA_RANGE;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_MODEL;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARTITION_COLUMN;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_RANGE;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.DATETIME_FORMAT_PARSE_ERROR;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_INVALID;
 
 import java.io.IOException;
@@ -47,7 +47,6 @@ import java.util.regex.Pattern;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -115,6 +114,7 @@ import io.kyligence.kap.tool.bisync.BISyncModel;
 import io.kyligence.kap.tool.bisync.SyncContext;
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Controller
@@ -311,9 +311,9 @@ public class NModelController extends NBasicController {
         try {
             response = modelService.getLatestDataRange(project, modelId, partitionDesc);
         } catch (KylinTimeoutException e) {
-            throw new KylinException(FAILED_DETECT_DATA_RANGE, MsgPicker.getMsg().getPUSHDOWN_DATARANGE_TIMEOUT());
+            throw new KylinException(FAILED_DETECT_DATA_RANGE, MsgPicker.getMsg().getpushdownDatarangeTimeout());
         } catch (Exception e) {
-            throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getPUSHDOWN_DATARANGE_ERROR());
+            throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getPushdownDatarangeError());
         }
 
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
@@ -460,21 +460,17 @@ public class NModelController extends NBasicController {
     @PostMapping(value = "/check_partition_desc")
     @ResponseBody
     public EnvelopeResponse<String> checkPartitionDesc(@RequestBody PartitionDesc partitionDesc) {
-        try {
-            validatePartitionDesc(partitionDesc);
-            String partitionDateFormat = partitionDesc.getPartitionDateFormat();
-            PartitionDesc.TimestampType timestampType = partitionDesc.getTimestampType();
-            if (timestampType == null) {
-                SimpleDateFormat simpleDateFormat = new SimpleDateFormat(partitionDateFormat,
-                        Locale.getDefault(Locale.Category.FORMAT));
-                String dateFormat = simpleDateFormat.format(new Date());
-                return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, dateFormat, "");
-            } else {
-                long timestamp = System.currentTimeMillis() / timestampType.millisecondRatio;
-                return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, timestamp + "", "");
-            }
-        } catch (Exception e) {
-            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getINVALID_CUSTOMIZE_FORMAT());
+        validatePartitionDesc(partitionDesc);
+        String partitionDateFormat = partitionDesc.getPartitionDateFormat();
+        PartitionDesc.TimestampType timestampType = partitionDesc.getTimestampType();
+        if (timestampType == null) {
+            SimpleDateFormat simpleDateFormat = new SimpleDateFormat(partitionDateFormat,
+                    Locale.getDefault(Locale.Category.FORMAT));
+            String dateFormat = simpleDateFormat.format(new Date());
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, dateFormat, "");
+        } else {
+            long timestamp = System.currentTimeMillis() / timestampType.millisecondRatio;
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, timestamp + "", "");
         }
     }
 
@@ -553,7 +549,8 @@ public class NModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> updateModelStatus(@PathVariable("model") String modelId,
             @RequestBody ModelUpdateRequest modelRenameRequest) {
-        checkProjectName(modelRenameRequest.getProject());
+        String actualProject = checkProjectName(modelRenameRequest.getProject());
+        modelRenameRequest.setProject(actualProject);
         checkRequiredArg(MODEL_ID, modelId);
         modelService.updateDataModelStatus(modelId, modelRenameRequest.getProject(), modelRenameRequest.getStatus());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
@@ -670,10 +667,10 @@ public class NModelController extends NBasicController {
     public void validatePartitionDesc(PartitionDesc partitionDesc) {
         if (partitionDesc != null) {
             if (partitionDesc.isEmpty()) {
-                throw new KylinException(INVALID_PARTITION_COLUMN, MsgPicker.getMsg().getPARTITION_COLUMN_NOT_EXIST());
+                throw new KylinException(INVALID_PARTITION_COLUMN, MsgPicker.getMsg().getPartitionColumnNotExist());
             }
             if (!isSupportFormatsFormats(partitionDesc)) {
-                throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getINVALID_CUSTOMIZE_FORMAT());
+                throw new KylinException(DATETIME_FORMAT_PARSE_ERROR, partitionDesc.getPartitionDateFormat());
             }
             if (partitionDesc.getPartitionDateFormat() != null && !partitionDesc.partitionColumnIsTimestamp()) {
                 validateDateTimeFormatPattern(partitionDesc.getPartitionDateFormat());
@@ -727,16 +724,20 @@ public class NModelController extends NBasicController {
             @RequestParam(value = "export_as") SyncContext.BI exportAs,
             @RequestParam(value = "element", required = false, defaultValue = "AGG_INDEX_COL") SyncContext.ModelElement element,
             @RequestParam(value = "server_host", required = false) String serverHost,
-            @RequestParam(value = "server_port", required = false) Integer serverPort, HttpServletRequest request,
+            @RequestParam(value = "server_port", required = false) Integer serverPort,
+            @RequestParam(value = "dimensions", required = false) List<String> dimensions,
+            @RequestParam(value = "measures", required = false) List<String> measures, HttpServletRequest request,
             HttpServletResponse response) throws IOException {
         String projectName = checkProjectName(project);
 
         String host = getHost(serverHost, request.getServerName());
         Integer port = getPort(serverPort, request.getServerPort());
 
+        SyncContext syncContext = modelService.getSyncContext(projectName, modelId, exportAs, element, host, port);
+
         BISyncModel syncModel = AclPermissionUtil.isAdmin()
-                ? modelService.exportModel(projectName, modelId, exportAs, element, host, port)
-                : modelService.biExportCustomModel(projectName, modelId, exportAs, element, host, port);
+                ? modelService.exportTDSDimensionsAndMeasuresByAdmin(syncContext, dimensions, measures)
+                : modelService.exportTDSDimensionsAndMeasuresByNormalUser(syncContext, dimensions, measures);
 
         dumpSyncModel(modelId, exportAs, projectName, syncModel, response);
     }

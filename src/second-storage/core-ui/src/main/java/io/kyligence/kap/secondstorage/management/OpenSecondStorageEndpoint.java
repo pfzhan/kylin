@@ -138,13 +138,13 @@ public class OpenSecondStorageEndpoint extends NBasicController {
     private void checkSecondStorageEnabled(StorageRequest request) {
         if (!SecondStorageUtil.isProjectEnable(request.getProject())) {
             throw new KylinException(SECOND_STORAGE_PROJECT_STATUS_ERROR,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getSECOND_STORAGE_PROJECT_ENABLED(), request.getProject()));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getSecondStorageProjectEnabled(), request.getProject()));
 
         }
 
         if (!SecondStorageUtil.isModelEnable(request.getProject(), request.getModel())) {
             throw new KylinException(SECOND_STORAGE_PROJECT_STATUS_ERROR,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getSECOND_STORAGE_MODEL_ENABLED(), request.getModelName()));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getSecondStorageModelEnabled(), request.getModelName()));
         }
     }
 

@@ -31,7 +31,6 @@ import static io.kyligence.kap.tool.util.ScreenPrintUtil.systemExitWhenMainThrea
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
-import java.util.stream.Collectors;
 
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -43,9 +42,9 @@ import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.metadata.project.ProjectInstance;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.OptionBuilder;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -89,13 +88,7 @@ public class CheckProjectModeCLI extends ExecutableApplication {
         KylinConfig systemKylinConfig = KylinConfig.getInstanceFromEnv();
         systemKylinConfig.setMetadataUrl(metadataUrl);
 
-        log.info("start to check project mode.");
-        NProjectManager projectManager = NProjectManager.getInstance(systemKylinConfig);
-
-        List<ProjectInstance> allProjects = projectManager.listAllProjects();
-        List<ProjectInstance> projectInstanceList = allProjects.stream().filter(ProjectInstance::isSmartMode)
-                .collect(Collectors.toList());
-
+        List<ProjectInstance> projectInstanceList = Lists.newArrayList();
         if (CollectionUtils.isNotEmpty(projectInstanceList)) {
             printlnRed(String.format(Locale.ROOT, "found %d projects %s need to be changed to AI augmented mode.",
                     projectInstanceList.size(),

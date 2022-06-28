@@ -291,7 +291,7 @@ public class DataSourceState implements Runnable {
             throw new KylinException(JOBNODE_API_INVALID, "Only job/all node can load hive table name");
         }
         if (!KylinConfig.getInstanceFromEnv().getLoadHiveTablenameEnabled()) {
-            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getINVALID_LOAD_HIVE_TABLE_NAME());
+            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getInvalidLoadHiveTableName());
         }
     }
 

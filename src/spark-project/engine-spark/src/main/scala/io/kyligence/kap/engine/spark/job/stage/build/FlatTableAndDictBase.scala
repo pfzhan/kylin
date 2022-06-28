@@ -192,7 +192,7 @@ abstract class FlatTableAndDictBase(private val jobContext: SegmentJob,
     flatTable
   }
 
-  private def prepareForDict(): (Set[TblColRef], Set[TblColRef], Set[TblColRef], Set[TblColRef]) = {
+  protected def prepareForDict(): (Set[TblColRef], Set[TblColRef], Set[TblColRef], Set[TblColRef]) = {
     val dictCols = DictionaryBuilderHelper.extractTreeRelatedGlobalDictToBuild(dataSegment, spanningTree.getIndices).asScala.toSet
     val encodeCols = DictionaryBuilderHelper.extractTreeRelatedGlobalDicts(dataSegment, spanningTree.getIndices).asScala.toSet
     val dictColsWithoutCc = dictCols.filter(!_.getColumnDesc.isComputedColumn)

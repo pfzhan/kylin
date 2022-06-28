@@ -85,13 +85,18 @@ public class TableExtServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testLoadTables() throws Exception {
         String[] tables = { "DEFAULT.TEST_KYLIN_FACT", "DEFAULT.TEST_ACCOUNT" };
-        List<Pair<TableDesc, TableExtDesc>> result = mockTablePair();
-        Mockito.doReturn(result).when(tableService).extractTableMeta(tables, "default");
+        String[] tableNames = { "TEST_KYLIN_FACT", "TEST_ACCOUNT" };
+        List<Pair<TableDesc, TableExtDesc>> result = mockTablePair(2, "DEFAULT");
+        Mockito.doReturn(result).when(tableService).extractTableMeta(Mockito.any(), Mockito.any());
         Mockito.doNothing().when(tableExtService).loadTable(result.get(0).getFirst(), result.get(0).getSecond(),
                 "default");
         Mockito.doNothing().when(tableExtService).loadTable(result.get(1).getFirst(), result.get(1).getSecond(),
                 "default");
-        LoadTableResponse response = tableExtService.loadTables(tables, "default");
+        Mockito.doReturn(Lists.newArrayList(tableNames)).when(tableService).getSourceTableNames("default", "DEFAULT",
+                "");
+        Mockito.doReturn(Lists.newArrayList("DEFAULT")).when(tableService).getSourceDbNames("default");
+
+        LoadTableResponse response = tableExtService.loadDbTables(tables, "default", false);
         Assert.assertEquals(2, response.getLoaded().size());
     }
 
@@ -100,29 +105,43 @@ public class TableExtServiceTest extends NLocalFileMetadataTestCase {
         String[] tableIdentities = { "EDW.TEST_CAL_DT", "EDW.TEST_SELLER_TYPE_DIM", "EDW.TEST_SITES" };
         String[] tableNames = { "TEST_CAL_DT", "TEST_SELLER_TYPE_DIM", "TEST_SITES" };
         LoadTableResponse loadTableResponse = new LoadTableResponse();
+        List<Pair<TableDesc, TableExtDesc>> result = mockTablePair(3, "EDW");
+        Mockito.doNothing().when(tableExtService).loadTable(result.get(1).getFirst(), result.get(1).getSecond(),
+                "default");
+        Mockito.doReturn(result).when(tableService).extractTableMeta(Mockito.any(), Mockito.any());
         loadTableResponse.setLoaded(Sets.newHashSet(tableIdentities));
-        Mockito.doReturn(Lists.newArrayList(tableNames)).when(tableService).getSourceTableNames("default", "EDW", "");
-        Mockito.doReturn(loadTableResponse).when(tableExtService).loadTables(tableIdentities, "default");
-        LoadTableResponse response = tableExtService.loadTablesByDatabase("default", new String[] { "EDW" });
-        Assert.assertEquals(0, response.getLoaded().size());
-    }
 
-    @Test
-    public void testLoadTablesByDatabaseNotInCache() throws Exception {
-        String[] tableIdentities = {"EDW.TEST_CAL_DT"};
-        String[] tableNames = {"TEST_CAL_DT"};
-        LoadTableResponse loadTableResponse = new LoadTableResponse();
-        loadTableResponse.setLoaded(Sets.newHashSet(tableIdentities));
-        Mockito.doReturn(Lists.newArrayList(tableNames)).when(tableService).getSourceTableNames("default", "EDW", "");
-        Mockito.doReturn(loadTableResponse).when(tableExtService).loadTables(tableIdentities, "default");
-        NTableMetadataManager tableManager = NTableMetadataManager.getInstance(getTestConfig(), "default");
-        tableManager.removeSourceTable("EDW.TEST_CAL_DT");
-        LoadTableResponse response = tableExtService.loadTablesByDatabase("default", new String[]{"EDW"});
+        Mockito.doReturn(Lists.newArrayList(tableNames)).when(tableService).getSourceTableNames(Mockito.any(),
+                Mockito.any(), Mockito.any());
+        Mockito.doReturn(Lists.newArrayList("EDW")).when(tableService).getSourceDbNames("default");
+
+        Mockito.doReturn(loadTableResponse).when(tableExtService).loadDbTables(tableIdentities, "default", false);
+        LoadTableResponse response = tableExtService.loadDbTables(new String[] { "EDW" }, "default", true);
+
         Assert.assertEquals(1, response.getLoaded().size());
     }
 
     @Test
-    public void testRemoveJobIdFromTableExt() throws Exception {
+    public void testLoadTablesByDatabaseNotInCache() throws Exception {
+        String[] tableIdentities = { "EDW.TEST_CAL_DT" };
+        String[] tableNames = { "TEST_CAL_DT" };
+        LoadTableResponse loadTableResponse = new LoadTableResponse();
+        loadTableResponse.setLoaded(Sets.newHashSet(tableIdentities));
+        List<Pair<TableDesc, TableExtDesc>> result = mockTablePair(1, "EDW");
+
+        Mockito.doReturn(Lists.newArrayList(tableNames)).when(tableService).getSourceTableNames("default", "EDW", "");
+        Mockito.doReturn(loadTableResponse).when(tableExtService).loadDbTables(tableIdentities, "default", false);
+
+        NTableMetadataManager tableManager = NTableMetadataManager.getInstance(getTestConfig(), "default");
+        tableManager.removeSourceTable("EDW.TEST_CAL_DT");
+        Mockito.doReturn(Lists.newArrayList("EDW")).when(tableService).getSourceDbNames("default");
+        Mockito.doReturn(result).when(tableService).extractTableMeta(Mockito.any(), Mockito.any());
+        LoadTableResponse response = tableExtService.loadDbTables(new String[] { "EDW" }, "default", true);
+        Assert.assertEquals(0, response.getLoaded().size());
+    }
+
+    @Test
+    public void testRemoveJobIdFromTableExt() {
         TableExtDesc tableExtDesc = new TableExtDesc();
         tableExtDesc.setUuid(RandomUtil.randomUUIDStr());
         tableExtDesc.setIdentity("DEFAULT.TEST_REMOVE");
@@ -140,17 +159,14 @@ public class TableExtServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertNull(tableExtDesc1.getJodID());
     }
 
-    private List<Pair<TableDesc, TableExtDesc>> mockTablePair() {
+    private List<Pair<TableDesc, TableExtDesc>> mockTablePair(int size, String tableName) {
         List<Pair<TableDesc, TableExtDesc>> result = new ArrayList<>();
-        TableDesc table1 = new TableDesc();
-        table1.setName("table1");
-        TableExtDesc tableExt1 = new TableExtDesc();
-        TableDesc table2 = new TableDesc();
-        table2.setName("table2");
-        TableExtDesc tableExt2 = new TableExtDesc();
-        result.add(Pair.newPair(table1, tableExt1));
-        result.add(Pair.newPair(table2, tableExt2));
+        for (int i = 0; i < size; i++) {
+            TableDesc table1 = new TableDesc();
+            table1.setName(tableName + i);
+            TableExtDesc tableExt1 = new TableExtDesc();
+            result.add(Pair.newPair(table1, tableExt1));
+        }
         return result;
     }
-
 }

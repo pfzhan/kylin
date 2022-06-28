@@ -46,9 +46,11 @@ public class NSparkTableMeta {
         public String getName() {
             return name;
         }
+
         public String getDataType() {
             return dataType;
         }
+
         public String getComment() {
             return comment;
         }
@@ -70,6 +72,8 @@ public class NSparkTableMeta {
     List<SparkTableColumnMeta> partitionColumns;
     boolean isTransactional;
     boolean isRangePartition;
+    String s3Role;
+    String s3Endpoint;
 
     public List<SparkTableColumnMeta> getAllColumns() {
         return allColumns;
@@ -78,7 +82,8 @@ public class NSparkTableMeta {
     public NSparkTableMeta(String tableName, String sdLocation, String sdInputFormat, String sdOutputFormat,
             String owner, String provider, String tableType, String createTime, String lastAccessTime, long fileSize,
             long fileNum, boolean isNative, List<SparkTableColumnMeta> allColumns,
-            List<SparkTableColumnMeta> partitionColumns, boolean isTransactional, boolean isRangePartition) {
+            List<SparkTableColumnMeta> partitionColumns, boolean isTransactional, boolean isRangePartition,
+            String s3Role, String s3Endpoint) {
         this.tableName = tableName;
         this.sdLocation = sdLocation;
         this.sdInputFormat = sdInputFormat;
@@ -95,6 +100,8 @@ public class NSparkTableMeta {
         this.partitionColumns = partitionColumns;
         this.isTransactional = isTransactional;
         this.isRangePartition = isRangePartition;
+        this.s3Role = s3Role;
+        this.s3Endpoint = s3Endpoint;
     }
 
     @Override
@@ -105,6 +112,6 @@ public class NSparkTableMeta {
                 + ", createTime='" + createTime + '\'' + ", lastAccessTime=" + lastAccessTime + ", fileSize=" + fileSize
                 + ", fileNum=" + fileNum + ", isNative=" + isNative + ", allColumns=" + allColumns
                 + ", partitionColumns=" + partitionColumns + ", isTransactional=" + isTransactional
-                + ", isRangePartition=" + isRangePartition + '}';
+                + ", isRangePartition=" + isRangePartition + ", s3Role=" + s3Role + ", s3Endpoint=" + s3Endpoint + '}';
     }
 }

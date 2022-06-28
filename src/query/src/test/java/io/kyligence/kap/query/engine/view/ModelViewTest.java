@@ -49,7 +49,6 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
@@ -79,7 +78,7 @@ public class ModelViewTest extends NLocalFileMetadataTestCase {
         val projMgr = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         if (projMgr.getProject(project) == null) {
             NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).createProject(project, "ADMIN", "",
-                    new LinkedHashMap<>(), MaintainModelType.MANUAL_MAINTAIN);
+                    new LinkedHashMap<>());
         }
         // copy tables from project default
         val ssbMgr = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
@@ -158,13 +157,13 @@ public class ModelViewTest extends NLocalFileMetadataTestCase {
         val projectName = "SSB_TEST";
         createProject(projectName);
         createModel(projectName, "model_single_table");
-        val schemaBefore = new QueryExec(projectName, KylinConfig.getInstanceFromEnv())
-                .getRootSchema().getSubSchema(projectName, false);
+        val schemaBefore = new QueryExec(projectName, KylinConfig.getInstanceFromEnv()).getRootSchema()
+                .getSubSchema(projectName, false);
         Assert.assertNull(schemaBefore);
 
         overwriteSystemProp("kylin.query.auto-model-view-enabled", "TRUE");
-        val schemaAfter = new QueryExec(projectName, KylinConfig.getInstanceFromEnv())
-                .getRootSchema().getSubSchema(projectName, false);
+        val schemaAfter = new QueryExec(projectName, KylinConfig.getInstanceFromEnv()).getRootSchema()
+                .getSubSchema(projectName, false);
         Assert.assertNotNull(schemaAfter);
     }
 
@@ -192,8 +191,8 @@ public class ModelViewTest extends NLocalFileMetadataTestCase {
         val modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), projectName);
         val model = modelMgr.getDataModelDescByAlias("model_single_table");
         modelMgr.updateDataModel(model.getId(), (m) -> m.setAlias("LINEORDER"));
-        val rootSchema = new QueryExec(projectName, KylinConfig.getInstanceFromEnv())
-                .getRootSchema().getSubSchema(projectName, false);
+        val rootSchema = new QueryExec(projectName, KylinConfig.getInstanceFromEnv()).getRootSchema()
+                .getSubSchema(projectName, false);
         // assert model view disappears
         Assert.assertNull(rootSchema.getTable("model_single_table", false));
         // assert lineorder is not the model view table

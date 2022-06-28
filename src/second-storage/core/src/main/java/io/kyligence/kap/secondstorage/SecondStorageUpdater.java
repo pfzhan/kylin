@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.secondstorage;
 
+import java.util.Map;
+
 public interface SecondStorageUpdater {
     /**
      * Clean second storage model
@@ -50,4 +52,12 @@ public interface SecondStorageUpdater {
      * @return clean index job id
      */
     String updateIndex(String project, String modelId);
+
+    /**
+     * Get query metric , like scan rows / scan bytes
+     * @param project project
+     * @param queryId query id
+     * @return metrics
+     */
+    Map<String, Object> getQueryMetric(String project, String queryId);
 }

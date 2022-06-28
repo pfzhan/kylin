@@ -24,20 +24,29 @@
 
 package io.kyligence.kap.metadata.query.util;
 
+import java.sql.JDBCType;
 import java.text.SimpleDateFormat;
 import java.time.ZoneOffset;
 import java.util.Locale;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 
+import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kylin.common.util.JsonUtil;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.metadata.query.QueryHistory;
+import io.kyligence.kap.metadata.query.QueryHistorySql;
 
 public class QueryHistoryUtil {
+
+    private QueryHistoryUtil() {
+        throw new IllegalStateException("Utility class");
+    }
 
     public static String getDownloadData(QueryHistory queryHistory, ZoneOffset zoneOffset, int zoneOffsetOfHours) {
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss",
@@ -59,9 +68,21 @@ public class QueryHistoryUtil {
             queryMsg = "\"" + queryMsg.replace("\"", "\"\"") + "\"";
         }
 
+        QueryHistorySql queryHistorySql = queryHistory.getQueryHistorySql();
+        String sql = queryHistorySql.getNormalizedSql();
+
         return StringUtils.join(Lists.newArrayList(formatQueryTime, queryHistory.getDuration() + "ms",
-                queryHistory.getQueryId(), "\"" + queryHistory.getSql().replace("\"", "\"\"") + "\"", answerBy,
+                queryHistory.getQueryId(), "\"" + sql.replace("\"", "\"\"") + "\"", answerBy,
                 queryHistory.getQueryStatus(), queryHistory.getHostName(), queryHistory.getQuerySubmitter(), queryMsg),
                 ',').replaceAll("\n|\r", " ");
+    }
+
+    public static String toQueryHistorySqlText(QueryHistorySql queryHistorySql) throws JsonProcessingException {
+        return JsonUtil.writeValueAsString(queryHistorySql);
+    }
+
+    public static String toDataType(String className) throws ClassNotFoundException {
+        ColumnMetaData.Rep rep = ColumnMetaData.Rep.of(Class.forName(className));
+        return JDBCType.valueOf(rep.typeId).getName();
     }
 }

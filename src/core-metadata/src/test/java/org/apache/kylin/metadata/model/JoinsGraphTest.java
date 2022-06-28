@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -43,6 +44,14 @@ public class JoinsGraphTest extends NLocalFileMetadataTestCase {
     @Before
     public void setUp() throws Exception {
         createTestMetadata();
+    }
+
+    @Test
+    public void testTableNotFound() {
+        NDataModel modelDesc = NDataModelManager.getInstance(getTestConfig(), "default")
+                .getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+
+        Assert.assertThrows(KylinException.class, () -> modelDesc.findTable("not_exits"));
     }
 
     @Test

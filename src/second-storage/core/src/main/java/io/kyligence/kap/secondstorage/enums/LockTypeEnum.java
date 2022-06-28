@@ -23,9 +23,9 @@
  */
 package io.kyligence.kap.secondstorage.enums;
 
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.msg.MsgPicker;
+import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_PROJECT_LOCKING;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.PARAMETER_INVALID_SUPPORT_LIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -34,8 +34,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
-import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_PROJECT_LOCKING;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 
 public enum LockTypeEnum {
     QUERY, LOAD, ALL;
@@ -117,26 +118,25 @@ public enum LockTypeEnum {
     public static void checkLock(String requestLock, List<String> existLocks) {
         if (requestLock == null) return;
         if (locked(Arrays.asList(requestLock), existLocks)) {
-            throw new KylinException(SECOND_STORAGE_PROJECT_LOCKING, String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_LOCKED()));
+            throw new KylinException(SECOND_STORAGE_PROJECT_LOCKING, String.format(Locale.ROOT, MsgPicker.getMsg().getProjectLocked()));
         }
     }
 
     public static void checkLocks(List<String> requestLocks, List<String> existLocks) {
         if (locked(requestLocks, existLocks)) {
-            throw new KylinException(SECOND_STORAGE_PROJECT_LOCKING, String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_LOCKED()));
+            throw new KylinException(SECOND_STORAGE_PROJECT_LOCKING, String.format(Locale.ROOT, MsgPicker.getMsg().getProjectLocked()));
         }
     }
 
     public static void check(List<String> lockTypes) {
         if (lockTypes == null || CollectionUtils.isEmpty(lockTypes)) {
-            throw new KylinException(INVALID_PARAMETER, String.format(Locale.ROOT, "'%s' is required.", "lockType"));
+            throw new KylinException(REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY, "lockType");
         }
         lockTypes.stream().forEach(x -> {
-                    LockTypeEnum typeEnum = LockTypeEnum.parse(x);
-                    if (typeEnum == null) {
-                        throw new KylinException(INVALID_PARAMETER, String.format(Locale.ROOT, "'%s' is invalid.", "lockType"));
-                    }
-                }
-        );
+            LockTypeEnum typeEnum = LockTypeEnum.parse(x);
+            if (typeEnum == null) {
+                throw new KylinException(PARAMETER_INVALID_SUPPORT_LIST, "lockType", "QUERY, LOAD, ALL");
+            }
+        });
     }
 }

@@ -24,10 +24,15 @@
 
 package io.kyligence.kap.query.runtime.plan;
 
+import io.kyligence.kap.common.state.StateSwitchConstant;
+import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.state.QueryShareStateManager;
 import io.kyligence.kap.query.MockContext;
 import lombok.val;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.exception.NewQueryRefuseException;
 import org.apache.kylin.query.SlowQueryDetector;
 import org.apache.kylin.query.exception.UserStopQueryException;
 import org.apache.spark.scheduler.JobFailed;
@@ -43,6 +48,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -55,6 +61,9 @@ public class TestResultPlan extends NLocalFileMetadataTestCase {
     @Before
     public void setUp() throws Exception {
         createTestMetadata();
+        getTestConfig().setMetadataUrl(
+                "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
+        getTestConfig().setProperty("kylin.query.share-state-switch-implement", "jdbc");
         ss = SparkSession.builder().appName("local").master("local[1]")
                 .getOrCreate();
         SparderEnv.setSparkSession(ss);
@@ -85,6 +94,20 @@ public class TestResultPlan extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testRefuseNewBigQuery() {
+        QueryShareStateManager.getInstance().setState(Collections.singletonList(AddressUtil.concatInstanceName()),
+                StateSwitchConstant.QUERY_LIMIT_STATE, "true");
+        QueryContext queryContext = QueryContext.current();
+        queryContext.getMetrics().addSourceScanRows(KapConfig.getInstanceFromEnv().getBigQuerySourceScanRowsThreshold() + 1);
+        String sql = "select * from TEST_KYLIN_FACT";
+        try {
+            ResultPlan.getResult(ss.sql(sql), null);
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof NewQueryRefuseException);
+        }
+    }
+
+    @Test
     public void testCancelQuery() throws InterruptedException {
         AtomicReference<SparkListenerJobEnd> sparkJobEnd = new AtomicReference<>();
         CountDownLatch isJobEnd = new CountDownLatch(1);
@@ -108,6 +131,9 @@ public class TestResultPlan extends NLocalFileMetadataTestCase {
         Thread queryThread = new Thread(() -> {
             try {
                 slowQueryDetector.queryStart("foo");
+                QueryShareStateManager.getInstance().setState(Collections.singletonList(AddressUtil.concatInstanceName()),
+                        StateSwitchConstant.QUERY_LIMIT_STATE, "false");
+                QueryContext.current().getMetrics().addSourceScanRows(KapConfig.getInstanceFromEnv().getBigQuerySourceScanRowsThreshold() + 1);
                 String sql = "select * from TEST_KYLIN_FACT";
                 ResultPlan.getResult(ss.sql(sql), null);
             } catch (Exception e) {

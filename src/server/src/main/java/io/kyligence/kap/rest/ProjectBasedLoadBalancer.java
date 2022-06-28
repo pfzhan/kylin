@@ -68,7 +68,7 @@ public class ProjectBasedLoadBalancer implements ReactorServiceInstanceLoadBalan
         String owner = EpochManager.getInstance().getEpochOwner(project);
         if (StringUtils.isBlank(owner)) {
             Message msg = MsgPicker.getMsg();
-            throw new KylinException(SYSTEM_IS_RECOVER, msg.getLEADERS_HANDLE_OVER());
+            throw new KylinException(SYSTEM_IS_RECOVER, msg.getLeadersHandleOver());
         }
         String[] host = owner.split(":");
         val serviceInstance = new DefaultServiceInstance("all", "all", host[0], Integer.parseInt(host[1]), false);

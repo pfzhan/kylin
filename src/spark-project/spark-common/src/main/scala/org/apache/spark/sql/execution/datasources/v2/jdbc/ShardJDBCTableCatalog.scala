@@ -23,30 +23,21 @@
  */
 package org.apache.spark.sql.execution.datasources.v2.jdbc
 
-import org.apache.spark.sql.catalyst.analysis.{NoSuchNamespaceException, NoSuchTableException}
+import java.sql.SQLException
+
+import scala.collection.JavaConverters._
+
 import org.apache.spark.sql.connector.catalog.{Identifier, Table}
 import org.apache.spark.sql.connector.read.sqlpushdown.SupportsSQL
 import org.apache.spark.sql.execution.datasources.jdbc.{JDBCOptions, JDBCRDD}
-import org.apache.spark.sql.jdbc.{JdbcDialect, JdbcDialects}
+import org.apache.spark.sql.errors.QueryCompilationErrors
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 
-import java.sql.SQLException
-import scala.collection.JavaConverters._
-
-class ShardJDBCTableCatalog extends  JDBCTableCatalog with SupportsSQL {
+class ShardJDBCTableCatalog extends JDBCTableCatalog with SupportsSQL {
   private val DEFAULT_CLICKHOUSE_URL = "jdbc:clickhouse://localhost:9000"
 
-  // TODO: remove these two variables
-  protected var options2: JDBCOptions = _
-  protected var dialect2: JdbcDialect = _
-
-  protected def checkNamespace(namespace: Array[String]): Unit = {
-    // In JDBC there is no nested database/schema
-    if (namespace.length > 1) {
-      throw new NoSuchNamespaceException(namespace)
-    }
-  }
+  private var options: JDBCOptions = _
 
   override def initialize(name: String, options: CaseInsensitiveStringMap): Unit = {
     // when url is empty, use default url
@@ -58,24 +49,20 @@ class ShardJDBCTableCatalog extends  JDBCTableCatalog with SupportsSQL {
     val newOptions = new CaseInsensitiveStringMap(modifiedOptions.asJava)
     super.initialize(name, newOptions)
 
-    val map = newOptions.asCaseSensitiveMap().asScala.toMap
-    // The `JDBCOptions` checks the existence of the table option. This is required by JDBC v1, but
-    // JDBC V2 only knows the table option when loading a table. Here we put a table option with a
-    // fake value, so that it can pass the check of `JDBCOptions`.
-    this.options2 = new JDBCOptions(map + (JDBCOptions.JDBC_TABLE_NAME -> "__invalid_dbtable"))
-    dialect2 = JdbcDialects.get(this.options2.url)
+    val optionsField = classOf[JDBCTableCatalog].getDeclaredField("options")
+    optionsField.setAccessible(true)
+    this.options = optionsField.get(this).asInstanceOf[JDBCOptions]
   }
 
   override def loadTable(ident: Identifier): Table = {
     checkNamespace(ident.namespace())
+    val optionsWithTableName = new JDBCOptions(
+      options.parameters + (JDBCOptions.JDBC_TABLE_NAME -> getTableName(ident)))
     try {
-      val name = getTableName(ident)
-      val optionsWithTableName = new JDBCOptions(
-        options2.parameters + (JDBCOptions.JDBC_TABLE_NAME -> name))
-      val schema = resolveTable(ident).getOrElse(defaultResolveTable(optionsWithTableName))
-      ShardJDBCTable(ident, schema, optionsWithTableName)
+      val schema = resolveTable(ident).getOrElse(JDBCRDD.resolveTable(optionsWithTableName))
+      new ShardJDBCTable(ident, schema, optionsWithTableName)
     } catch {
-      case _: SQLException => throw new NoSuchTableException(ident)
+      case _: SQLException => throw QueryCompilationErrors.noSuchTableError(ident)
     }
   }
 
@@ -83,12 +70,25 @@ class ShardJDBCTableCatalog extends  JDBCTableCatalog with SupportsSQL {
     None
   }
 
-  def defaultResolveTable(options: JDBCOptions): StructType = {
-    JDBCRDD.resolveTable(options)
+  private lazy val jdbcTableCatalog = classOf[JDBCTableCatalog]
+
+  private lazy val methodGetTableName = {
+    val method = jdbcTableCatalog.getDeclaredMethod("getTableName", classOf[Identifier])
+    method.setAccessible(true)
+    method
+  }
+
+  private lazy val methodCheckNamespace = {
+    val method = jdbcTableCatalog.getDeclaredMethod("checkNamespace", classOf[Array[String]])
+    method.setAccessible(true)
+    method
+  }
+
+  private def checkNamespace(namespace: Array[String]): Unit = {
+    methodCheckNamespace.invoke(this, namespace)
   }
 
   protected def getTableName(ident: Identifier): String = {
-    (ident.namespace() :+ ident.name()).map(dialect2.quoteIdentifier).mkString(".")
+    methodGetTableName.invoke(this, ident).asInstanceOf[String]
   }
-
 }

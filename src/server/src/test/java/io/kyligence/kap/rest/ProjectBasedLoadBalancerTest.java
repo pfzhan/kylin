@@ -50,7 +50,6 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.epoch.EpochManager;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 import reactor.core.publisher.Mono;
@@ -119,7 +118,7 @@ public class ProjectBasedLoadBalancerTest extends NLocalFileMetadataTestCase {
 
     private void createTestProjectAndEpoch(String project) {
         NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
-        projectManager.createProject(project, "abcd", "", null, MaintainModelType.MANUAL_MAINTAIN);
+        projectManager.createProject(project, "abcd", "", null);
         EpochManager.getInstance().updateEpochWithNotifier(project, false);
 
     }

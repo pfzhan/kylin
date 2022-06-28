@@ -65,7 +65,7 @@ public class AclEvaluate {
     private ProjectInstance getProjectInstance(String projectName) {
         Message msg = MsgPicker.getMsg();
         if (StringUtils.isEmpty(projectName)) {
-            throw new KylinException(EMPTY_PROJECT_NAME, msg.getEMPTY_PROJECT_NAME());
+            throw new KylinException(EMPTY_PROJECT_NAME, msg.getEmptyProjectName());
         }
 
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());

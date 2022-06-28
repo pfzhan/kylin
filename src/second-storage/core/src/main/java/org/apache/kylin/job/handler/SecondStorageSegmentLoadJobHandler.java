@@ -69,7 +69,7 @@ public class SecondStorageSegmentLoadJobHandler extends AbstractJobHandler {
 
         if (hasBaseIndexSegmentIds.isEmpty()) {
             throw new KylinException(BASE_TABLE_INDEX_NOT_AVAILABLE,
-                    MsgPicker.getMsg().getSECOND_STORAGE_SEGMENT_WITHOUT_BASE_INDEX());
+                    MsgPicker.getMsg().getSecondStorageSegmentWithoutBaseIndex());
         }
 
         return JobFactory.createJob(STORAGE_JOB_FACTORY,
@@ -115,14 +115,14 @@ public class SecondStorageSegmentLoadJobHandler extends AbstractJobHandler {
             return;
         }
         JobSubmissionException jobSubmissionException = new JobSubmissionException(
-                MsgPicker.getMsg().getADD_JOB_CHECK_FAIL());
+                MsgPicker.getMsg().getAddJobCheckFail());
         for (String failedSeg : failedSegs) {
             jobSubmissionException.addJobFailInfo(failedSeg,
-                    new KylinException(SECOND_STORAGE_ADD_JOB_FAILED, MsgPicker.getMsg().getADD_EXPORT_JOB_FAIL()));
+                    new KylinException(SECOND_STORAGE_ADD_JOB_FAILED, MsgPicker.getMsg().getAddExportJobFail()));
         }
         noBaseIndexSegs.forEach(seg -> jobSubmissionException.addJobFailInfo(seg,
                 new KylinException(FAILED_CREATE_JOB_EXPORT_TO_TIERED_STORAGE_WITHOUT_BASE_INDEX, String.format(Locale.ROOT,
-                        MsgPicker.getMsg().getADD_JOB_CHECK_FAIL_WITHOUT_BASE_INDEX(), seg))));
+                        MsgPicker.getMsg().getAddJobCheckFailWithoutBaseIndex(), seg))));
         throw jobSubmissionException;
     }
 }

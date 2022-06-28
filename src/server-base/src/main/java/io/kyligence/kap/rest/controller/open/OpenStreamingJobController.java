@@ -24,10 +24,9 @@
 package io.kyligence.kap.rest.controller.open;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
-import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_JOB_ID;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY;
 
 import java.util.List;
-import java.util.Locale;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -91,7 +90,7 @@ public class OpenStreamingJobController extends NBasicController {
         checkStreamingEnabled();
         checkRequiredArg("action", streamingJobExecuteRequest.getAction());
         if (CollectionUtils.isEmpty(streamingJobExecuteRequest.getJobIds())) {
-            throw new KylinException(EMPTY_JOB_ID, String.format(Locale.ROOT, "'%s' is required.", "job_ids"));
+            throw new KylinException(REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY, "job_ids");
         }
         streamingJobService.updateStreamingJobStatus(streamingJobExecuteRequest.getProject(),
                 streamingJobExecuteRequest.getJobIds(), streamingJobExecuteRequest.getAction());
@@ -114,7 +113,7 @@ public class OpenStreamingJobController extends NBasicController {
             @RequestParam(value = "job_id") String jobId) {
         checkStreamingEnabled();
         if (StringUtils.isEmpty(jobId)) {
-            throw new KylinException(EMPTY_JOB_ID, String.format(Locale.ROOT, "'%s' is required.", "job_id"));
+            throw new KylinException(REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY, "job_id");
         }
         val data = streamingJobService.getStreamingJobRecordList(jobId);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, data, "");

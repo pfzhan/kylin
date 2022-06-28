@@ -32,8 +32,11 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import io.kyligence.kap.common.metrics.service.MonitorDao;
+import io.kyligence.kap.common.state.StateSwitchConstant;
 import io.kyligence.kap.common.util.ClusterConstant;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.state.QueryShareStateManager;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
@@ -68,6 +71,7 @@ import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
 import io.kyligence.kap.rest.monitor.AbstractMonitorCollectTask;
 import io.kyligence.kap.rest.monitor.MonitorReporter;
 import io.kyligence.kap.rest.monitor.SparkContextCanary;
+import io.kyligence.kap.rest.request.AlertMessageRequest;
 import io.kyligence.kap.rest.response.ClusterStatisticStatusResponse;
 import io.kyligence.kap.rest.response.ClusterStatusResponse;
 import io.kyligence.kap.rest.response.ClusterStatusResponse.NodeState;
@@ -257,6 +261,30 @@ public class MonitorService extends BasicService {
             stringBuilder.append(executorMetricsInfo).append("\n");
         }
         return stringBuilder.toString();
+    }
+    
+    public void handleAlertMessage(AlertMessageRequest request) {
+        log.info("handle alert message : {}", request);
+        List<AlertMessageRequest.Alerts> relatedQueryLimitAlerts = request.getAlerts().stream()
+                .filter(e -> "Spark Utilization Is Too High".equalsIgnoreCase(e.getLabels().getAlertname()))
+                .collect(Collectors.toList());
+        if (CollectionUtils.isEmpty(relatedQueryLimitAlerts)) {
+            return;
+        }
+        List<String> needOpenLimitInstanceList = relatedQueryLimitAlerts.stream()
+                .filter(e -> !"resolved".equals(e.getStatus())).map(e -> e.getLabels().getInstance()).distinct()
+                .collect(Collectors.toList());
+        List<String> needCloseLimitInstanceList = relatedQueryLimitAlerts.stream()
+                .filter(e -> "resolved".equals(e.getStatus())).map(e -> e.getLabels().getInstance()).distinct()
+                .collect(Collectors.toList());
+        if (CollectionUtils.isNotEmpty(needOpenLimitInstanceList)) {
+            QueryShareStateManager.getInstance().setState(needOpenLimitInstanceList,
+                    StateSwitchConstant.QUERY_LIMIT_STATE, "true");
+        }
+        if (CollectionUtils.isNotEmpty(needCloseLimitInstanceList)) {
+            QueryShareStateManager.getInstance().setState(needCloseLimitInstanceList,
+                    StateSwitchConstant.QUERY_LIMIT_STATE, "false");
+        }
     }
 
     private ClusterStatusResponse clusterStatus(Map<String, NodeState> jobStatus, Map<String, NodeState> queryStatus) {

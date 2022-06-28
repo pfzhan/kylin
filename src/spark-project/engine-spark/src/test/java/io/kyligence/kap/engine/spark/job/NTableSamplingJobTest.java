@@ -22,8 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
-
 package io.kyligence.kap.engine.spark.job;
 
 import static org.awaitility.Awaitility.await;
@@ -40,6 +38,7 @@ import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
+import org.apache.spark.sql.SparderEnv;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -112,6 +111,40 @@ public class NTableSamplingJobTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(10_000, tableExt.getTotalRows());
         Assert.assertEquals(samplingJob.getCreateTime(), tableExt.getCreateTime());
     }
+
+    @Test
+    public void testTableSamplingJobWithS3Role() {
+        getTestConfig().setProperty("kylin.env.use-dynamic-S3-role-credential-in-table", "true");
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        val currMem = NDefaultScheduler.currentAvailableMem();
+        String tableName = "DEFAULT.TEST_KYLIN_FACT";
+        NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(config, PROJECT);
+        final TableDesc tableDesc = tableMgr.getTableDesc(tableName);
+        final TableExtDesc tableExtBefore = tableMgr.getTableExtIfExists(tableDesc);
+        Assert.assertNotNull(tableDesc);
+        Assert.assertNull(tableExtBefore);
+        TableExtDesc tableExtWithS3Role = tableMgr.getOrCreateTableExt(tableDesc);
+        tableExtWithS3Role.addDataSourceProp(TableExtDesc.LOCATION_PROPERTY_KEY, "s3://test/a");
+        tableExtWithS3Role.addDataSourceProp(TableExtDesc.S3_ROLE_PROPERTY_KEY, "s3Role");
+        tableExtWithS3Role.addDataSourceProp(TableExtDesc.S3_ENDPOINT_KEY, "us-west-1.amazonaws.com");
+
+        tableMgr.saveTableExt(tableExtWithS3Role);
+        NExecutableManager execMgr = NExecutableManager.getInstance(config, PROJECT);
+        val samplingJob = NTableSamplingJob.create(tableDesc, PROJECT, "ADMIN", 20_000_000);
+        execMgr.addJob(samplingJob);
+        Assert.assertEquals(ExecutableState.READY, samplingJob.getStatus());
+        val tableSamplingMem = config.getSparkEngineDriverMemoryTableSampling();
+        await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
+            Assert.assertEquals(NDefaultScheduler.currentAvailableMem(), currMem - tableSamplingMem, 0.1);
+        });
+        final String jobId = samplingJob.getId();
+        await().atMost(3, TimeUnit.MINUTES).until(() -> !execMgr.getJob(jobId).getStatus().isProgressing());
+        Assert.assertEquals(ExecutableState.SUCCEED, samplingJob.getStatus());
+        assert SparderEnv.getSparkSession().conf().get("fs.s3a.bucket.test.assumed.role.arn").equals("s3Role");
+        assert SparderEnv.getSparkSession().conf().get("fs.s3a.bucket.test.endpoint").equals("us-west-1.amazonaws.com");
+
+    }
+
     @Test
     public void testSamplingUpdateJobStatistics() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();

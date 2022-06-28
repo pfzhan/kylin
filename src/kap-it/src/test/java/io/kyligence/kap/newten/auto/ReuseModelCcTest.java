@@ -34,7 +34,6 @@ import org.junit.Test;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -45,6 +44,7 @@ import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.util.AccelerationContextUtil;
 import lombok.val;
 import lombok.var;
+
 public class ReuseModelCcTest extends AutoTestBase {
 
     @Override
@@ -58,45 +58,6 @@ public class ReuseModelCcTest extends AutoTestBase {
         prepareModels();
         kylinConfig.setProperty("kylin.query.transformers",
                 "org.apache.kylin.query.util.PowerBIConverter,org.apache.kylin.query.util.DefaultQueryTransformer,io.kyligence.kap.query.util.EscapeTransformer,org.apache.kylin.query.util.KeywordDefaultDirtyHack,io.kyligence.kap.query.security.RowFilter,io.kyligence.kap.query.security.HackSelectStarWithColumnACL");
-    }
-
-    /**
-     * model1: AUTO_MODEL_TEST_KYLIN_FACT_1 contains a computed column { item_count + price }, left join
-     * model2: AUTO_MODEL_TEST_KYLIN_FACT_2 contains a computed column { item_count * price }, left join
-     * To be accelerated sql statements: 
-     *   sql1. select count(item_count + price) from test_kylin_fact group by cal_dt;
-     *   sql2. select count(item_count + price), count(item_count * price) from test_kylin_fact group by cal_dt;
-     *   sql3. select * from test_kylin_fact;
-     *   sql4. select * from test_kylin_fact left join edw.test_cal_dt on test_kylin_fact.cal_dt = test_cal_dt.cal_dt;
-     *   sql5. select * from test_kylin_fact inner join edw.test_cal_dt on test_kylin_fact.cal_dt = test_cal_dt.cal_dt;
-     *
-     * expectation: all sql statements will success
-     */
-    @Test
-    public void testReuseModelOfSmartMode() {
-        NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
-        List<NDataModel> dataModels = modelManager.listAllModels();
-        Assert.assertEquals(2, dataModels.size());
-
-        String[] statements = { "select count(item_count + price) from test_kylin_fact group by cal_dt", // sql1
-                "select count(item_count + price), count(item_count * price) from test_kylin_fact group by cal_dt", // sql2
-                "select * from test_kylin_fact", // sql3
-                "select * from test_kylin_fact left join edw.test_cal_dt on test_kylin_fact.cal_dt = test_cal_dt.cal_dt", // sql4
-                "select * from test_kylin_fact inner join edw.test_cal_dt on test_kylin_fact.cal_dt = test_cal_dt.cal_dt" // sql5
-        };
-        val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), statements);
-        SmartMaster smartMaster = new SmartMaster(context);
-        smartMaster.runUtWithContext(null);
-        context.saveMetadata();
-        AccelerationContextUtil.onlineModel(context);
-
-        Assert.assertFalse(smartMaster.getContext().getAccelerateInfoMap().get(statements[0]).isNotSucceed());
-        Assert.assertFalse(smartMaster.getContext().getAccelerateInfoMap().get(statements[1]).isNotSucceed());
-        Assert.assertFalse(smartMaster.getContext().getAccelerateInfoMap().get(statements[2]).isNotSucceed());
-        Assert.assertFalse(smartMaster.getContext().getAccelerateInfoMap().get(statements[3]).isNotSucceed());
-        Assert.assertFalse(smartMaster.getContext().getAccelerateInfoMap().get(statements[4]).isNotSucceed());
-        List<NDataModel> dataModelsAfterAutoModeling = modelManager.listAllModels();
-        Assert.assertEquals(3, dataModelsAfterAutoModeling.size());
     }
 
     /**
@@ -275,7 +236,6 @@ public class ReuseModelCcTest extends AutoTestBase {
     private void transferProjectToSemiAutoMode() {
         NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
         projectManager.updateProject(getProject(), copyForWrite -> {
-            copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
             var properties = copyForWrite.getOverrideKylinProps();
             if (properties == null) {
                 properties = Maps.newLinkedHashMap();

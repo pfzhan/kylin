@@ -171,7 +171,7 @@ public class ComputedColumnDesc implements Serializable {
             public Object visit(SqlIdentifier id) {
                 if (id.names.size() != 2 || !aliasSet.contains(id.names.get(0))) {
                     throw new KylinException(COLUMN_NOT_EXIST,
-                            String.format(Locale.ROOT, MsgPicker.getMsg().getCOLUMN_UNRECOGNIZED(), id));
+                            String.format(Locale.ROOT, MsgPicker.getMsg().getColumnUnrecognized(), id));
                 }
                 return null;
             }

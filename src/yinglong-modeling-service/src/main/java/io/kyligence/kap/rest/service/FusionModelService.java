@@ -27,7 +27,6 @@ package io.kyligence.kap.rest.service;
 import java.util.List;
 import java.util.Locale;
 
-import io.kyligence.kap.metadata.model.NDataModelManager;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -45,6 +44,7 @@ import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.metadata.model.FusionModel;
 import io.kyligence.kap.metadata.model.FusionModelManager;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.rest.aspect.Transaction;
 import io.kyligence.kap.rest.request.IndexesToSegmentsRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
@@ -72,7 +72,8 @@ public class FusionModelService extends BasicService implements TableFusionModel
     public JobInfoResponse incrementBuildSegmentsManually(IncrementBuildSegmentParams params) throws Exception {
         val model = getManager(NDataModelManager.class, params.getProject()).getDataModelDesc(params.getModelId());
         if (model.isFusionModel()) {
-            val streamingModel = getManager(NDataModelManager.class, params.getProject()).getDataModelDesc(model.getFusionId());
+            val streamingModel = getManager(NDataModelManager.class, params.getProject())
+                    .getDataModelDesc(model.getFusionId());
             IncrementBuildSegmentParams copy = JsonUtil.deepCopyQuietly(params, IncrementBuildSegmentParams.class);
             String oldAliasName = streamingModel.getRootFactTableRef().getTableName();
             String tableName = model.getRootFactTableRef().getTableName();
@@ -95,7 +96,7 @@ public class FusionModelService extends BasicService implements TableFusionModel
         modelService.dropModel(modelId, project);
     }
 
-    public void dropModel(String modelId, String project, boolean ignoreType) {
+    void innerDopModel(String modelId, String project) {
         val model = getManager(NDataModelManager.class, project).getDataModelDesc(modelId);
         if (model == null) {
             return;
@@ -107,14 +108,14 @@ public class FusionModelService extends BasicService implements TableFusionModel
             if (model.fusionModelBatchPart()) {
                 String streamingId = model.getFusionId();
                 fusionModelManager.dropModel(streamingId);
-                modelService.dropModel(streamingId, project, ignoreType);
+                modelService.innerDropModel(streamingId, project);
             } else {
                 String batchId = fusionModel.getBatchModel().getUuid();
                 fusionModelManager.dropModel(modelId);
-                modelService.dropModel(batchId, project, ignoreType);
+                modelService.innerDropModel(batchId, project);
             }
         }
-        modelService.dropModel(modelId, project, ignoreType);
+        modelService.innerDropModel(modelId, project);
     }
 
     @Transaction(project = 0)
@@ -200,17 +201,17 @@ public class FusionModelService extends BasicService implements TableFusionModel
                     false);
             if (existedInStreaming) {
                 throw new KylinException(ServerErrorCode.SEGMENT_UNSUPPORTED_OPERATOR,
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getFIX_STREAMING_SEGMENT()));
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getFixStreamingSegment()));
             } else {
                 targetModelId = getBatchModel(modelId, buildSegmentsRequest.getProject()).getUuid();
             }
         } else if (dataModel.getModelType() == NDataModel.ModelType.STREAMING) {
             throw new KylinException(ServerErrorCode.SEGMENT_UNSUPPORTED_OPERATOR,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getFIX_STREAMING_SEGMENT()));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getFixStreamingSegment()));
         }
 
-        return modelBuildService.addIndexesToSegments(buildSegmentsRequest.getProject(),
-                targetModelId, buildSegmentsRequest.getSegmentIds(), buildSegmentsRequest.getIndexIds(),
+        return modelBuildService.addIndexesToSegments(buildSegmentsRequest.getProject(), targetModelId,
+                buildSegmentsRequest.getSegmentIds(), buildSegmentsRequest.getIndexIds(),
                 buildSegmentsRequest.isParallelBuildBySegment(), buildSegmentsRequest.getPriority(),
                 buildSegmentsRequest.isPartialBuild(), buildSegmentsRequest.getYarnQueue(),
                 buildSegmentsRequest.getTag());
@@ -235,7 +236,7 @@ public class FusionModelService extends BasicService implements TableFusionModel
 
     @Override
     public void onDropModel(String modelId, String project, boolean ignoreType) {
-        dropModel(modelId, project, true);
+        innerDopModel(modelId, project);
     }
 
     @Override
@@ -254,6 +255,7 @@ public class FusionModelService extends BasicService implements TableFusionModel
             }
         });
     }
+
     public boolean modelExists(String modelAlias, String project) {
         return getManager(NDataModelManager.class, project).listAllModelAlias().contains(modelAlias);
     }

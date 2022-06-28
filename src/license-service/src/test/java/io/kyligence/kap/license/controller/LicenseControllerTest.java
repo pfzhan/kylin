@@ -24,12 +24,16 @@
 package io.kyligence.kap.license.controller;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
@@ -121,6 +125,44 @@ public class LicenseControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(APPLICATION_JSON))).andExpect(MockMvcResultMatchers.status().isOk());
 
         Mockito.verify(licenseController).trialLicense(licenseRequest);
+        assertThrows(KylinException.class, () -> {
+            licenseController.trialLicense(null);
+        });
+
+        StringBuilder stringBuilder = new StringBuilder();
+        for (int i = 0; i < 181; ++i) {
+            stringBuilder.append("a");
+        }
+        String userName = stringBuilder.toString();
+        Assert.assertTrue(userName.length() > 180);
+        licenseRequest.setUsername(userName);
+        assertThrows(KylinException.class, () -> {
+            licenseController.trialLicense(licenseRequest);
+        });
+        licenseRequest.setUsername("aaa");
+
+        String illegalEmail = "abc";
+        assertFalse(licenseInfoService.filterEmail(illegalEmail));
+        licenseRequest.setEmail(illegalEmail);
+
+        assertThrows(KylinException.class, () -> {
+            licenseController.trialLicense(licenseRequest);
+        });
+        licenseRequest.setEmail(email);
+
+        String company = "@";
+        licenseRequest.setCompany(company);
+        Pattern pattern = (Pattern) ReflectionTestUtils.getField(licenseController, "trialPattern");
+        assertFalse(pattern.matcher(company).matches());
+        assertThrows(KylinException.class, () -> {
+            licenseController.trialLicense(licenseRequest);
+        });
+        licenseRequest.setCompany("ccc");
+
+        Mockito.when(licenseInfoService.getTrialLicense(licenseRequest)).thenReturn(null);
+        assertThrows(KylinException.class, () -> {
+            licenseController.trialLicense(licenseRequest);
+        });
 
     }
 

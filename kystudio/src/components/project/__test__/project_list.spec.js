@@ -134,8 +134,7 @@ describe('Component ProjectList', () => {
     expect(wrapper.vm.emptyText).toBe('No Results')
   })
   it('methods', async () => {
-    expect(wrapper.vm.canExecuteModelMetadata({maintain_model_type: 'AUTO_MAINTAIN'})).toBeFalsy()
-    expect(wrapper.vm.canExecuteModelMetadata({maintain_model_type: ''})).toBeTruthy()
+    expect(wrapper.vm.canExecuteModelMetadata()).toBeTruthy()
 
     wrapper.vm.inputFilter('')
     expect(wrapper.vm.filterData.project).toBe('')

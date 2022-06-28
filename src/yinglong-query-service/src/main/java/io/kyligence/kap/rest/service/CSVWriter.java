@@ -33,10 +33,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.kylin.query.util.AsyncQueryUtil;
 import org.apache.spark.sql.SparderEnv;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,7 +61,7 @@ public class CSVWriter {
                     if (fileStatus.getPath().getName().endsWith("parquet")) {
                         writeDataByParquet(fileStatus, writer, separator);
                     } else {
-                        writeDataByCsv(fileStatus, outputStream);
+                        writeDataByCsv(fileStatus, writer, separator);
                     }
                 }
             }
@@ -121,13 +118,10 @@ public class CSVWriter {
         }
     }
 
-    private void writeDataByCsv(FileStatus fileStatus, OutputStream outputStream) {
-        FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
-        try (FSDataInputStream inputStream = fileSystem.open(fileStatus.getPath())) {
-            IOUtils.copy(inputStream, outputStream);
-        } catch (Exception e) {
-            logger.error("Failed to download asyncQueryResult csvExcel by csv", e);
-        }
+    private void writeDataByCsv(FileStatus fileStatus, Writer writer, String separator) {
+        List<org.apache.spark.sql.Row> rowList = SparderEnv.getSparkSession().read()
+                .csv(fileStatus.getPath().toString()).collectAsList();
+        writeCsv(rowList.stream().map(row -> JavaConverters.seqAsJavaList(row.toSeq())).iterator(), writer, separator);
     }
 
 }

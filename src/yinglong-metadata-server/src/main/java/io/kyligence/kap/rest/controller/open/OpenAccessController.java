@@ -27,8 +27,8 @@ package io.kyligence.kap.rest.controller.open;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static io.kyligence.kap.rest.aspect.InsensitiveNameAspect.getCaseInsentiveType;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PARAMETER;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.UNAUTHORIZED_ENTITY;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.PARAMETER_INVALID_SUPPORT_LIST;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -245,7 +245,7 @@ public class OpenAccessController extends NBasicController {
         AclEntity ae = accessService.getAclEntity(AclEntityType.PROJECT_INSTANCE, projectUuid);
         List<AccessEntryResponse> aeResponses = accessService.generateAceResponsesByFuzzMatching(ae, name, false);
         if (CollectionUtils.isEmpty(aeResponses)) {
-            throw new KylinException(UNAUTHORIZED_ENTITY, MsgPicker.getMsg().getUNAUTHORIZED_SID());
+            throw new KylinException(UNAUTHORIZED_ENTITY, MsgPicker.getMsg().getUnauthorizedSid());
         }
     }
 
@@ -253,18 +253,18 @@ public class OpenAccessController extends NBasicController {
         if (MetadataConstants.TYPE_USER.equalsIgnoreCase(type) || MetadataConstants.TYPE_GROUP.equalsIgnoreCase(type)) {
             return;
         }
-        throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getINVALID_PARAMETER_TYPE());
+        throw new KylinException(PARAMETER_INVALID_SUPPORT_LIST, "type", "user, group");
     }
 
     private void checkNames(List<String> names) {
         if (CollectionUtils.isEmpty(names) || names.stream().anyMatch(StringUtils::isBlank)) {
-            throw new KylinException(EMPTY_PARAMETER, MsgPicker.getMsg().getEMPTY_SID());
+            throw new KylinException(EMPTY_PARAMETER, MsgPicker.getMsg().getEmptySid());
         }
     }
 
     private void checkName(String name) {
         if (StringUtils.isBlank(name)) {
-            throw new KylinException(EMPTY_PARAMETER, MsgPicker.getMsg().getEMPTY_SID());
+            throw new KylinException(EMPTY_PARAMETER, MsgPicker.getMsg().getEmptySid());
         }
     }
 

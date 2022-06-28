@@ -134,9 +134,13 @@ public class QueryRequestLimits implements AutoCloseable {
         this.maxConcurrentQuery = prj.getConfig().getQueryConcurrentRunningThresholdForProject();
 
         boolean ok = openQueryRequest(project, maxConcurrentQuery);
+        checkRequest(ok);
+    }
+
+    private static void checkRequest(boolean ok) {
         if (!ok) {
             Message msg = MsgPicker.getMsg();
-            throw new KylinException(PERMISSION_DENIED, msg.getQUERY_TOO_MANY_RUNNING());
+            throw new KylinException(PERMISSION_DENIED, msg.getQueryTooManyRunning());
         }
     }
 

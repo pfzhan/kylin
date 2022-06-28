@@ -105,6 +105,7 @@ public class QueryHistoryTaskSchedulerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testQueryAcc() {
+        getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "true");
         qhAccelerateScheduler.queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
         qhAccelerateScheduler.accelerateRuleUtil = Mockito.mock(AccelerateRuleUtil.class);
         Mockito.when(qhAccelerateScheduler.queryHistoryDAO.queryQueryHistoriesByIdOffset(Mockito.anyLong(),
@@ -129,6 +130,7 @@ public class QueryHistoryTaskSchedulerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testQueryAccResetOffset() {
+        getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "true");
         qhAccelerateScheduler.queryHistoryDAO = Mockito.spy(RDBMSQueryHistoryDAO.getInstance());
         qhAccelerateScheduler.accelerateRuleUtil = Mockito.mock(AccelerateRuleUtil.class);
         Mockito.when(qhAccelerateScheduler.queryHistoryDAO.queryQueryHistoriesByIdOffset(Mockito.anyLong(),

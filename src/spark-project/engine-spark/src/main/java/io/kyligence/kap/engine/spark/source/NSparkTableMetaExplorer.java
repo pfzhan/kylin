@@ -32,7 +32,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Sets;
 import org.apache.commons.jnet.Installer;
 import org.apache.hadoop.fs.FsUrlStreamHandlerFactory;
 import org.apache.spark.sql.SparderEnv;
@@ -45,6 +44,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import scala.Option;
 import scala.collection.JavaConversions;
@@ -79,6 +79,8 @@ public class NSparkTableMetaExplorer implements Serializable {
 
     private static final List<String> UNSUPOORT_TYPE = Lists.newArrayList("array", "map", "struct", "binary");
     private static final String CHAR_VARCHAR_TYPE_STRING_METADATA_KEY = "__CHAR_VARCHAR_TYPE_STRING";
+    public static final String S3_ROLE_PROPERTY_KEY = "role";
+    public static final String S3_ENDPOINT_PROPERTY_KEY = "s3_endpoint";
 
     public NSparkTableMeta getSparkTableMeta(String database, String tableName) {
         SessionCatalog catalog = SparderEnv.getSparkSession().sessionState().catalog();
@@ -144,6 +146,13 @@ public class NSparkTableMetaExplorer implements Serializable {
         if (tableMetadata.properties().contains("transactional")) {
             builder.setIsTransactional(Boolean.parseBoolean(tableMetadata.properties().get("transactional").get()));
         }
+        if (tableMetadata.properties().contains(S3_ROLE_PROPERTY_KEY)) {
+            builder.setS3Role(tableMetadata.properties().get(S3_ROLE_PROPERTY_KEY).get());
+        }
+
+        if (tableMetadata.properties().contains(S3_ENDPOINT_PROPERTY_KEY)) {
+            builder.setS3Endpoint(tableMetadata.properties().get(S3_ENDPOINT_PROPERTY_KEY).get());
+        }
         return builder.createSparkTableMeta();
     }
 
@@ -152,7 +161,7 @@ public class NSparkTableMetaExplorer implements Serializable {
     }
 
     private List<NSparkTableMeta.SparkTableColumnMeta> getColumns(CatalogTable tableMetadata, StructType schema,
-                                                                  boolean isCheckRepeatColumn) {
+            boolean isCheckRepeatColumn) {
         List<NSparkTableMeta.SparkTableColumnMeta> allColumns = Lists.newArrayListWithCapacity(schema.size());
         Set<String> columnCacheTemp = Sets.newHashSet();
         for (org.apache.spark.sql.types.StructField field : schema.fields()) {
@@ -166,7 +175,7 @@ public class NSparkTableMetaExplorer implements Serializable {
                         finalType);
                 continue;
             }
-            if(isCheckRepeatColumn && columnCacheTemp.contains(field.name())) {
+            if (isCheckRepeatColumn && columnCacheTemp.contains(field.name())) {
                 logger.info("The【{}】column is already included and does not need to be added again", field.name());
                 continue;
             }
@@ -192,8 +201,9 @@ public class NSparkTableMetaExplorer implements Serializable {
     }
 
     private Boolean isRangePartition(CatalogTable tableMetadata) {
-        List<NSparkTableMeta.SparkTableColumnMeta> allColumns = getColumns(tableMetadata, tableMetadata.schema(), false);
-        return allColumns.stream().collect(Collectors.groupingBy(p -> p.name)).values()
-                .stream().anyMatch(p -> p.size() > 1);
+        List<NSparkTableMeta.SparkTableColumnMeta> allColumns = getColumns(tableMetadata, tableMetadata.schema(),
+                false);
+        return allColumns.stream().collect(Collectors.groupingBy(p -> p.name)).values().stream()
+                .anyMatch(p -> p.size() > 1);
     }
 }

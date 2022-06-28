@@ -24,12 +24,14 @@
 package io.kyligence.kap.rest.config;
 
 import java.util.Date;
+import java.util.List;
 
 import org.apache.commons.jnet.Installer;
 import org.apache.hadoop.fs.FsUrlStreamHandlerFactory;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationPreparedEvent;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -48,6 +50,8 @@ import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.common.util.HostInfoFetcher;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.metadata.epoch.EpochOrchestrator;
+import io.kyligence.kap.metadata.project.NProjectLoader;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.streaming.JdbcStreamingJobStatsStore;
 import io.kyligence.kap.rest.config.initialize.AclTCRListener;
 import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
@@ -125,7 +129,9 @@ public class AppInitializer {
             resourceStore.catchup();
             resourceStore.getMetadataStore().setEpochStore(epochStore);
         }
+
         kylinConfig.getDistributedLockFactory().initialize();
+        warmUpSystemCache();
         event.getApplicationContext().publishEvent(new AfterMetadataReadyEvent(event.getApplicationContext()));
 
         if (kylinConfig.isQueryNode()) {
@@ -148,6 +154,15 @@ public class AppInitializer {
         EventBusFactory.getInstance().register(new QueryMetricsListener(), false);
 
         postInit();
+    }
+
+    private void warmUpSystemCache() {
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        List<ProjectInstance> prjInstances = NProjectManager.getInstance(kylinConfig).listAllProjects();
+        prjInstances.forEach(prjInstance -> {
+            NProjectLoader.updateCache(prjInstance.getName());
+            NProjectLoader.removeCache();
+        });
     }
 
     @EventListener(ApplicationReadyEvent.class)

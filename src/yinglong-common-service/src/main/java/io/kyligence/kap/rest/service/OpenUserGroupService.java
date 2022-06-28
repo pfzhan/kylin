@@ -26,8 +26,10 @@ package io.kyligence.kap.rest.service;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.Collectors;
 
 import io.kyligence.kap.common.annotation.ThirdPartyDependencies;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.msg.MsgPicker;
 
 import io.kyligence.kap.metadata.user.ManagedUser;
@@ -51,19 +53,19 @@ public abstract class OpenUserGroupService extends NUserGroupService {
     @Override
     public void addGroup(String name) {
         throw new UnsupportedOperationException(
-                String.format(Locale.ROOT, MsgPicker.getMsg().getGroup_EDIT_NOT_ALLOWED_FOR_CUSTOM(), "addGroup"));
+                String.format(Locale.ROOT, MsgPicker.getMsg().getGroupEditNotAllowedForCustom(), "addGroup"));
     }
 
     @Override
     public void deleteGroup(String name) {
         throw new UnsupportedOperationException(
-                String.format(Locale.ROOT, MsgPicker.getMsg().getGroup_EDIT_NOT_ALLOWED_FOR_CUSTOM(), "deleteGroup"));
+                String.format(Locale.ROOT, MsgPicker.getMsg().getGroupEditNotAllowedForCustom(), "deleteGroup"));
     }
 
     @Override
     public void modifyGroupUsers(String groupName, List<String> users) {
         throw new UnsupportedOperationException(String.format(Locale.ROOT,
-                MsgPicker.getMsg().getGroup_EDIT_NOT_ALLOWED_FOR_CUSTOM(), "modifyGroupUsers"));
+                MsgPicker.getMsg().getGroupEditNotAllowedForCustom(), "modifyGroupUsers"));
     }
 
     @Override
@@ -75,4 +77,14 @@ public abstract class OpenUserGroupService extends NUserGroupService {
     public String getUuidByGroupName(String groupName) {
         return groupName;
     }
+
+    @Override
+    public List<UserGroup> getUserGroupsFilterByGroupName(String userGroupName) {
+        aclEvaluate.checkIsGlobalAdmin();
+        return StringUtils.isEmpty(userGroupName) ? getUserGroupSpecialUuid()
+                : getUserGroupSpecialUuid().stream().filter(userGroup -> userGroup.getGroupName()
+                .toUpperCase(Locale.ROOT).contains(userGroupName.toUpperCase(Locale.ROOT)))
+                .collect(Collectors.toList());
+    }
+
 }

@@ -61,6 +61,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.sql.Types;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -80,12 +81,14 @@ import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.kylin.common.ForceToTieredStorage;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.QueryTrace;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.KylinTimeoutException;
+import org.apache.kylin.common.exception.NewQueryRefuseException;
 import org.apache.kylin.common.exception.ResourceLimitExceededException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -144,6 +147,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
@@ -165,9 +169,13 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.metadata.query.QueryHistory;
+import io.kyligence.kap.metadata.query.QueryHistorySql;
+import io.kyligence.kap.metadata.query.QueryHistorySqlParam;
 import io.kyligence.kap.metadata.query.QueryMetricsContext;
 import io.kyligence.kap.metadata.query.StructField;
+import io.kyligence.kap.metadata.query.util.QueryHistoryUtil;
 import io.kyligence.kap.query.engine.AsyncQueryJob;
+import io.kyligence.kap.query.engine.PrepareSqlStateParam;
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.query.engine.QueryRoutingEngine;
 import io.kyligence.kap.query.engine.SchemaMetaData;
@@ -176,6 +184,8 @@ import io.kyligence.kap.query.engine.data.TableSchema;
 import io.kyligence.kap.query.exception.NotSupportedSQLException;
 import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.query.util.QueryModelPriorities;
+import io.kyligence.kap.query.util.RawSql;
+import io.kyligence.kap.query.util.RawSqlParser;
 import io.kyligence.kap.rest.aspect.Transaction;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.config.AppConfig;
@@ -229,6 +239,50 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
         return "/" + project + QUERY_STORE_PATH_PREFIX + creator + MetadataConstants.FILE_SURFIX;
     }
 
+    public ForceToTieredStorage getForcedToTieredStorage(String project, ForceToTieredStorage api) {
+        switch (api){
+            case CH_FAIL_TO_DFS:
+            case CH_FAIL_TO_PUSH_DOWN:
+            case CH_FAIL_TO_RETURN:
+                return api;
+            case CH_FAIL_TAIL:
+                break;
+            default:
+                // Do nothing
+        }
+
+        try{
+            //project level config
+            ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project);
+            api = projectInstance.getConfig().getProjectForcedToTieredStorage();
+            switch (api){
+                case CH_FAIL_TO_DFS:
+                case CH_FAIL_TO_PUSH_DOWN:
+                case CH_FAIL_TO_RETURN:
+                    return api;
+                default:
+                    // Do nothing
+            }
+        } catch (Exception e) {
+            // no define or invalid do nothing
+        }
+
+        try{
+            //system
+            api = KylinConfig.getInstanceFromEnv().getSystemForcedToTieredStorage();
+            switch (api){
+                case CH_FAIL_TO_DFS:
+                case CH_FAIL_TO_PUSH_DOWN:
+                case CH_FAIL_TO_RETURN:
+                    return api;
+                default:
+                    return ForceToTieredStorage.CH_FAIL_TO_DFS;
+            }
+        } catch (Exception e) {
+            return ForceToTieredStorage.CH_FAIL_TO_DFS;
+        }
+    }
+
     public SQLResponse query(SQLRequest sqlRequest) throws Exception {
         try {
             slowQueryDetector.queryStart(sqlRequest.getStopId());
@@ -236,9 +290,14 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
 
             QueryParams queryParams = new QueryParams(KapQueryUtil.getKylinConfig(sqlRequest.getProject()),
                     sqlRequest.getSql(), sqlRequest.getProject(), sqlRequest.getLimit(), sqlRequest.getOffset(), true,
-                    sqlRequest.getExecuteAs(), sqlRequest.isForcedToPushDown(), sqlRequest.isForcedToIndex(),
-                    QueryUtils.isPrepareStatementWithParams(sqlRequest), sqlRequest.isPartialMatchIndex(),
-                    sqlRequest.isAcceptPartial(), true);
+                    sqlRequest.getExecuteAs());
+            queryParams.setForcedToPushDown(sqlRequest.isForcedToPushDown());
+            queryParams.setForcedToIndex(sqlRequest.isForcedToIndex());
+            queryParams.setPrepareStatementWithParams(QueryUtils.isPrepareStatementWithParams(sqlRequest));
+            queryParams.setPartialMatchIndex(sqlRequest.isPartialMatchIndex());
+            queryParams.setAcceptPartial(sqlRequest.isAcceptPartial());
+            queryParams.setSelect(true);
+
             if (queryParams.isPrepareStatementWithParams()) {
                 queryParams.setPrepareSql(PrepareSQLUtils.fillInParams(queryParams.getSql(),
                         ((PrepareSqlRequest) sqlRequest).getParams()));
@@ -246,6 +305,18 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
             }
             queryParams.setAclInfo(getExecuteAclInfo(queryParams.getProject(), queryParams.getExecuteAs()));
             queryParams.setACLDisabledOrAdmin(isACLDisabledOrAdmin(queryParams.getProject(), queryParams.getAclInfo()));
+            int forcedToTieredStorage;
+            ForceToTieredStorage enumForcedToTieredStorage;
+            try{
+                forcedToTieredStorage = sqlRequest.getForcedToTieredStorage();
+                enumForcedToTieredStorage = getForcedToTieredStorage(sqlRequest.getProject(), ForceToTieredStorage.values()[forcedToTieredStorage]);
+            } catch (NullPointerException e) {
+                enumForcedToTieredStorage = getForcedToTieredStorage(sqlRequest.getProject(), ForceToTieredStorage.CH_FAIL_TAIL);
+            }
+            logger.debug("forcedToTieredStorage={}", enumForcedToTieredStorage);
+            queryParams.setForcedToTieredStorage(enumForcedToTieredStorage);
+            QueryContext.current().setForcedToTieredStorage(enumForcedToTieredStorage);
+            QueryContext.current().setForceTableIndex(queryParams.isForcedToIndex());
 
             KylinConfig projectConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                     .getProject(queryParams.getProject()).getConfig();
@@ -312,7 +383,7 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
         List<Query> currentQueries = record.getQueries();
         if (currentQueries.stream().map(Query::getName).collect(Collectors.toSet()).contains(query.getName()))
             throw new KylinException(SAVE_QUERY_FAILED,
-                    String.format(Locale.ROOT, msg.getDUPLICATE_QUERY_NAME(), query.getName()));
+                    String.format(Locale.ROOT, msg.getDuplicateQueryName(), query.getName()));
 
         currentQueries.add(query);
         getStore().checkAndPutResource(getQueryKeyById(project, creator), record, QueryRecordSerializer.getInstance());
@@ -410,7 +481,8 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
                 .put(LogReport.USER_AGENT, request.getUserAgent())
                 .put(LogReport.BACK_DOOR_TOGGLES, request.getBackdoorToggles())
                 .put(LogReport.SCAN_SEGMENT_COUNT, QueryContext.current().getMetrics().getSegCount())
-                .put(LogReport.SCAN_FILE_COUNT, QueryContext.current().getMetrics().getFileCount());
+                .put(LogReport.SCAN_FILE_COUNT, QueryContext.current().getMetrics().getFileCount())
+                .put(LogReport.REFUSE, response.isRefused());
         String log = report.oldStyleLog();
         if (!(QueryContext.current().getQueryTagInfo().isAsyncQuery() && projectConfig.isUniqueAsyncQueryYarnQueue())) {
             logger.info(log);
@@ -464,7 +536,7 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
         if (executeUser == null)
             return;
         if (!KylinConfig.getInstanceFromEnv().isExecuteAsEnabled()) {
-            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getEXECUTE_AS_NOT_ENABLED());
+            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getExecuteAsNotEnabled());
         }
         // check whether service account has all read privileges
         final AclTCRManager aclTCRManager = AclTCRManager.getInstance(KylinConfig.getInstanceFromEnv(),
@@ -473,7 +545,7 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
         Set<String> groups = getCurrentUserGroups();
         if (!AclPermissionUtil.isAdmin() && !aclTCRManager.isAllTablesAuthorized(username, groups))
             throw new KylinException(PERMISSION_DENIED, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getSERVICE_ACCOUNT_NOT_ALLOWED(), username, sqlRequest.getProject()));
+                    MsgPicker.getMsg().getServiceAccountNotAllowed(), username, sqlRequest.getProject()));
 
         // check whether execute user has project read permission
         List<String> grantedProjects;
@@ -493,15 +565,19 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
         if (!kylinConfig.isQueryNode()) {
             throw new KylinException(JOB_NODE_QUERY_API_INVALID);
         }
-        if (StringUtils.isBlank(sqlRequest.getProject())) {
-            throw new KylinException(EMPTY_PROJECT_NAME, msg.getEMPTY_PROJECT_NAME());
-        }
+        checkSqlRequestProject(sqlRequest, msg);
         final NProjectManager projectMgr = NProjectManager.getInstance(kylinConfig);
         if (projectMgr.getProject(sqlRequest.getProject()) == null) {
             throw new KylinException(PROJECT_NOT_EXIST, sqlRequest.getProject());
         }
         if (StringUtils.isBlank(sqlRequest.getSql())) {
-            throw new KylinException(EMPTY_SQL_EXPRESSION, msg.getNULL_EMPTY_SQL());
+            throw new KylinException(EMPTY_SQL_EXPRESSION, msg.getNullEmptySql());
+        }
+    }
+
+    private void checkSqlRequestProject(SQLRequest sqlRequest, Message msg) {
+        if (StringUtils.isBlank(sqlRequest.getProject())) {
+            throw new KylinException(EMPTY_PROJECT_NAME, msg.getEmptyProjectName());
         }
     }
 
@@ -514,22 +590,32 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
         QueryContext queryContext = QueryContext.current();
         QueryMetricsContext.start(queryContext.getQueryId(), getDefaultServer());
 
+        final String project = sqlRequest.getProject();
         SQLResponse sqlResponse = null;
         try {
             QueryContext.currentTrace().startSpan(GET_ACL_INFO);
-            queryContext.setAclInfo(getExecuteAclInfo(sqlRequest.getProject(), sqlRequest.getExecuteAs()));
+            queryContext.setAclInfo(getExecuteAclInfo(project, sqlRequest.getExecuteAs()));
             QueryContext.currentTrace().startSpan(QueryTrace.SQL_TRANSFORMATION);
             queryContext.getMetrics().setServer(clusterManager.getLocalServer());
 
             KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-            ProjectInstance projectInstance = NProjectManager.getInstance(kylinConfig)
-                    .getProject(sqlRequest.getProject());
+            ProjectInstance projectInstance = NProjectManager.getInstance(kylinConfig).getProject(project);
             kylinConfig = projectInstance.getConfig();
 
-            // remove comment
-            removeComment(sqlRequest, queryContext);
+            // Parsing user sql by RawSqlParser
+            RawSql rawSql = new RawSqlParser(sqlRequest.getSql()).parse();
+            rawSql.autoAppendLimit(sqlRequest.getLimit(), sqlRequest.getOffset());
 
-            applyQuerySqlBlacklist(sqlRequest);
+            // Reset request sql for code compatibility
+            sqlRequest.setSql(rawSql.getStatementString());
+            // Set user sql for log & record purpose
+            queryContext.setUserSQL(rawSql.getFullTextString());
+
+            // Apply model priority if provided
+            applyModelPriority(queryContext, rawSql.getFullTextString());
+
+            // Apply sql black list check if matching
+            applyQuerySqlBlacklist(project, rawSql.getStatementString());
 
             // convert CREATE ... to WITH ...
             sqlResponse = QueryUtils.handleTempStatement(sqlRequest, kylinConfig);
@@ -541,14 +627,12 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
 
             // real execution if required
             if (sqlResponse == null) {
-                try (QueryRequestLimits ignored = new QueryRequestLimits(sqlRequest.getProject())) {
+                try (QueryRequestLimits ignored = new QueryRequestLimits(project)) {
                     sqlResponse = queryAndUpdateCache(sqlRequest, kylinConfig);
-
-                    QueryUtils.fillInPrepareStatParams(sqlRequest, sqlResponse.isQueryPushDown());
                 }
             }
 
-            QueryUtils.updateQueryContextSQLMetrics();
+            QueryUtils.updateQueryContextSQLMetrics(rawSql.getStatementString());
             QueryContext.currentTrace().amendLast(QueryTrace.PREPARE_AND_SUBMIT_JOB, System.currentTimeMillis());
             QueryContext.currentTrace().endLastSpan();
             QueryContext.currentMetrics().setQueryEndTime(System.currentTimeMillis());
@@ -562,7 +646,7 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
             }
             logQuery(sqlRequest, sqlResponse);
 
-            addToQueryHistory(sqlResponse, sqlRequest);
+            addToQueryHistory(sqlRequest, sqlResponse, rawSql.getFullTextString());
 
             //check query result row count
             NCircuitBreaker.verifyQueryResultRowCount(sqlResponse.getResultRowCount());
@@ -579,19 +663,15 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
             } else {
                 return new SQLResponse(null, null, 0, true, e.getMessage());
             }
+        } catch (Throwable t) {
+            QueryContext.current().getMetrics().setException(true);
+            return new SQLResponse(null, null, 0, true, t.getMessage());
         } finally {
             BackdoorToggles.cleanToggles();
             if (QueryMetricsContext.isStarted()) {
                 QueryMetricsContext.reset();
             }
         }
-    }
-
-    private void removeComment(SQLRequest sqlRequest, QueryContext queryContext) {
-        String userSQL = sqlRequest.getSql();
-        queryContext.setModelPriorities(QueryModelPriorities.getModelPrioritiesFromComment(userSQL));
-        queryContext.setUserSQL(userSQL);
-        sqlRequest.setSql(QueryUtil.removeCommentInSql(userSQL));
     }
 
     private SQLResponse searchCache(SQLRequest sqlRequest, KylinConfig kylinConfig) {
@@ -631,7 +711,7 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
         return response;
     }
 
-    private void addToQueryHistory(SQLResponse sqlResponse, SQLRequest sqlRequest) {
+    private void addToQueryHistory(SQLRequest sqlRequest, SQLResponse sqlResponse, String originalSql) {
         KylinConfig projectKylinConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(sqlRequest.getProject()).getConfig();
         if (!(QueryContext.current().getQueryTagInfo().isAsyncQuery()
@@ -639,6 +719,11 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
             try {
                 if (!sqlResponse.isPrepare() && QueryMetricsContext.isStarted()) {
                     val queryMetricsContext = QueryMetricsContext.collect(QueryContext.current());
+                    // KE-35556 Set stored sql a structured format json string
+                    queryMetricsContext.setSql(constructQueryHistorySqlText(sqlRequest, sqlResponse, originalSql));
+                    // KE-36662 Using sql_pattern as normalized_sql storage
+                    String normalizedSql = QueryContext.currentMetrics().getCorrectedSql();
+                    queryMetricsContext.setSqlPattern(normalizedSql);
                     QueryHistoryScheduler queryHistoryScheduler = QueryHistoryScheduler.getInstance();
                     queryHistoryScheduler.offerQueryHistoryQueue(queryMetricsContext);
                     EventBusFactory.getInstance().postAsync(queryMetricsContext);
@@ -647,6 +732,26 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
                 logger.warn("Write metric error.", th);
             }
         }
+    }
+
+    private String constructQueryHistorySqlText(SQLRequest sqlRequest, SQLResponse sqlResponse, String originalSql) throws JsonProcessingException, ClassNotFoundException {
+        // Fill in params if available
+        QueryUtils.fillInPrepareStatParams(sqlRequest, sqlResponse.isQueryPushDown());
+
+        List<QueryHistorySqlParam> params = null;
+        if (QueryUtils.isPrepareStatementWithParams(sqlRequest)) {
+            params = new ArrayList<>();
+            PrepareSqlStateParam[] requestParams = ((PrepareSqlRequest) sqlRequest).getParams();
+            for (int i = 0; i < requestParams.length; i++) {
+                PrepareSqlStateParam p = requestParams[i];
+                String dataType = QueryHistoryUtil.toDataType(p.getClassName());
+                QueryHistorySqlParam param = new QueryHistorySqlParam(i + 1, p.getClassName(), dataType, p.getValue());
+                params.add(param);
+            }
+        }
+
+        // KE-36662 Do not store normalized_sql in sql_text, as it may exceed storage limitation
+        return QueryHistoryUtil.toQueryHistorySqlText(new QueryHistorySql(originalSql, null, params));
     }
 
     private void collectToQueryContext(SQLResponse sqlResponse) {
@@ -683,7 +788,7 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
             if (isSelect) {
                 sqlResponse = query(sqlRequest);
             } else {
-                throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getNOT_SUPPORTED_SQL());
+                throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getnotSupportedSql());
             }
             if (checkCondition(queryCacheEnabled, "query cache is disabled")) {
                 // set duration for caching condition checking
@@ -705,6 +810,10 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
             queryContext.getMetrics().setQueryMsg(errMsg);
             queryContext.getQueryTagInfo().setPushdown(false);
 
+            if (e.getCause() != null && NewQueryRefuseException.causedByRefuse(e)) {
+                queryContext.getQueryTagInfo().setRefused(true);
+            }
+
             if (e.getCause() != null && KylinTimeoutException.causedByTimeout(e)) {
                 queryContext.getQueryTagInfo().setTimeout(true);
             }
@@ -712,11 +821,11 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
             if (UserStopQueryException.causedByUserStop(e)) {
                 sqlResponse.setStopByUser(true);
                 sqlResponse.setColumnMetas(Lists.newArrayList());
-                sqlResponse.setExceptionMessage(MsgPicker.getMsg().getSTOP_BY_USER_ERROR_MESSAGE());
+                sqlResponse.setExceptionMessage(MsgPicker.getMsg().getStopByUserErrorMessage());
             }
 
             sqlResponse.wrapResultOfQueryContext(queryContext);
-
+            sqlResponse.setRefused(queryContext.getQueryTagInfo().isRefused());
             sqlResponse.setTimeout(queryContext.getQueryTagInfo().isTimeout());
 
             setAppMaterURL(sqlResponse);
@@ -797,32 +906,30 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
                 checkCondition(!BackdoorToggles.getDisableCache(), "query cache disabled in BackdoorToggles");
     }
 
-    private void applyQuerySqlBlacklist(SQLRequest sqlRequest) {
+    private void applyQuerySqlBlacklist(String project, String sql) {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         if (!kylinConfig.isQueryBlacklistEnabled()) {
             return;
         }
-        SQLBlacklistItem sqlBlacklistItem = matchSqlBlacklist(sqlRequest);
+        SQLBlacklistItem sqlBlacklistItem = matchSqlBlacklist(project, sql);
         if (null == sqlBlacklistItem) {
             return;
         }
         int concurrentLimit = sqlBlacklistItem.getConcurrentLimit();
         if (concurrentLimit == 0) {
             throw new KylinException(BLACKLIST_QUERY_REJECTED, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getSQL_BLACKLIST_QUERY_REJECTED(), sqlBlacklistItem.getId()));
+                    MsgPicker.getMsg().getSqlBlacklistQueryRejected(), sqlBlacklistItem.getId()));
         }
         if (getSqlConcurrentCount(sqlBlacklistItem) >= concurrentLimit) {
             throw new KylinException(BLACKLIST_EXCEEDED_CONCURRENT_LIMIT,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getSQL_BLACKLIST_QUERY_CONCUTTENT_LIMIT_EXCEEDED(),
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getSqlBlackListQueryConcurrentLimitExceeded(),
                             sqlBlacklistItem.getId(), concurrentLimit));
         }
     }
 
-    private SQLBlacklistItem matchSqlBlacklist(SQLRequest sqlRequest) {
+    private SQLBlacklistItem matchSqlBlacklist(String project, String sql) {
         try {
             SQLBlacklistManager sqlBlacklistManager = SQLBlacklistManager.getInstance(KylinConfig.getInstanceFromEnv());
-            String project = sqlRequest.getProject();
-            String sql = sqlRequest.getSql();
             return sqlBlacklistManager.matchSqlBlacklist(project, sql);
         } catch (Exception e) {
             logger.error("Match sql blacklist failed.", e);
@@ -900,7 +1007,7 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
                     ADMINISTRATION, acl);
         } catch (UsernameNotFoundException e) {
             throw new KylinException(INVALID_USER_NAME,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_EXECUTE_AS_USER(), executeAs));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getInvalidExecuteAsUser(), executeAs));
         }
         return new QueryContext.AclInfo(executeAs, groupsOfExecuteUser, hasAdminPermission);
     }
@@ -1275,7 +1382,7 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
         if (!KylinConfig.getInstanceFromEnv().isUTEnv()) {
             try {
                 String executionID = QueryContext.current().getExecutionID();
-                if (!executionID.isEmpty()) {
+                if (executionID != null && !executionID.isEmpty()) {
                     response.setAppMasterURL(sparderUIUtil.getSQLTrackingPath(executionID));
                 }
             } catch (Throwable th) {
@@ -1374,6 +1481,7 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
         static final String BACK_DOOR_TOGGLES = "back_door_toggles";
         static final String SCAN_SEGMENT_COUNT = "scan_segment_count";
         static final String SCAN_FILE_COUNT = "scan_file_count";
+        static final String REFUSE = "refuse";
 
         static final ImmutableMap<String, String> O2N = new ImmutableMap.Builder<String, String>()
                 .put(QUERY_ID, "Query Id: ").put(SQL, "SQL: ").put(USER, "User: ").put(SUCCESS, "Success: ")
@@ -1390,7 +1498,7 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
                 .put(ERROR_MSG, "Message: ").put(USER_TAG, "User Defined Tag: ")
                 .put(PUSH_DOWN_FORCED, "Is forced to Push-Down: ").put(USER_AGENT, "User Agent: ")
                 .put(BACK_DOOR_TOGGLES, "Back door toggles: ").put(SCAN_SEGMENT_COUNT, "Scan Segment Count: ")
-                .put(SCAN_FILE_COUNT, "Scan File Count: ").build();
+                .put(SCAN_FILE_COUNT, "Scan File Count: ").put(REFUSE, "Is Refused: ").build();
 
         private Map<String, Object> logs = new HashMap<>(100);
 
@@ -1452,6 +1560,7 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
                     + O2N.get(BACK_DOOR_TOGGLES) + get(BACK_DOOR_TOGGLES) + newLine //
                     + O2N.get(SCAN_SEGMENT_COUNT) + get(SCAN_SEGMENT_COUNT) + newLine //
                     + O2N.get(SCAN_FILE_COUNT) + get(SCAN_FILE_COUNT) + newLine //
+                    + O2N.get(REFUSE) + get(REFUSE) + newLine //
                     + delimiter + newLine;
         }
 
@@ -1485,6 +1594,10 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
         }
 
         return Joiner.on(";").join(Joiner.on("_").join(aclNames), Joiner.on("_").join(aclTimes));
+    }
+
+    private void applyModelPriority(QueryContext queryContext, String sql) {
+        queryContext.setModelPriorities(QueryModelPriorities.getModelPrioritiesFromComment(sql));
     }
 
 }

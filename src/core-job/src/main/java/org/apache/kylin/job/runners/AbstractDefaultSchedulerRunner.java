@@ -31,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.common.logging.SetLogCategory;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import lombok.SneakyThrows;
@@ -77,7 +78,7 @@ public abstract class AbstractDefaultSchedulerRunner implements Runnable {
                                 + "or notify the administrator to increase the storage quota for this project.");
                     }
                     return null;
-                }, context.getEpochId(), project);
+                }, project, UnitOfWork.DEFAULT_MAX_RETRY, context.getEpochId(), jobId);
             } catch (Exception e) {
                 logger.warn("[UNEXPECTED_THINGS_HAPPENED] project {} job {} failed to pause", project, jobId, e);
             }

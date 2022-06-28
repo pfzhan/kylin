@@ -73,6 +73,7 @@ public class QueryContext implements Closeable {
     public static final String PUSHDOWN_OBJECT_STORAGE = "OBJECT STORAGE";
 
     public static final long DEFAULT_NULL_SCANNED_DATA = -1L;
+    public static final String ROUTE_USE_FORCEDTOTIEREDSTORAGE = "should route use forcedToTieredStorage";
 
     private static final TransmittableThreadLocal<QueryContext> contexts = new TransmittableThreadLocal<QueryContext>() {
         @Override
@@ -124,6 +125,9 @@ public class QueryContext implements Closeable {
     @Setter
     private boolean partialMatchIndex = false;
 
+    @Getter
+    @Setter
+    private ForceToTieredStorage forcedToTieredStorage;
     /**
      * mark table index use second storage, key is layout id
      */
@@ -210,6 +214,10 @@ public class QueryContext implements Closeable {
 
     @Getter
     @Setter
+    private List<String> columnNames;
+
+    @Getter
+    @Setter
     @NoArgsConstructor
     public static class AclInfo {
 
@@ -261,6 +269,8 @@ public class QueryContext implements Closeable {
 
         private AtomicLong sourceScanRows = new AtomicLong();
 
+        private List<Long> sourceScanRowsList = new ArrayList<>();
+
         public long getSourceScanBytes() {
             return sourceScanBytes.get();
         }
@@ -275,6 +285,14 @@ public class QueryContext implements Closeable {
 
         public void setSourceScanRows(long bytes) {
             sourceScanRows.set(bytes);
+        }
+
+        public void addSourceScanRows(long rows) {
+            sourceScanRowsList.add(rows);
+        }
+
+        public long calSumOfSourceScanRows() {
+            return sourceScanRowsList.stream().mapToLong(Long::longValue).sum();
         }
 
         // scanXxx from SparkUI
@@ -348,6 +366,7 @@ public class QueryContext implements Closeable {
         private String fileEncode;
         private String fileName;
         private String separator;
+        private boolean isRefused;
     }
 
     @Getter

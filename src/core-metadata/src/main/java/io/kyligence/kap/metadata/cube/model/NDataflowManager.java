@@ -189,6 +189,7 @@ public class NDataflowManager implements IRealizationProvider {
         return crud.listAll().stream().filter(df -> includeBroken || !df.checkBrokenWithRelatedInfo())
                 .collect(Collectors.toList());
     }
+
     // listUnderliningDataModels only get the healthy models,
     // the broken ones need to be invisible in the auto-suggestion process,
     // anyone in dataflow, indexPlan and dataModel is broken, the model is considered to be broken
@@ -371,7 +372,7 @@ public class NDataflowManager implements IRealizationProvider {
 
     public NDataSegment appendSegmentForStreaming(NDataflow df, SegmentRange segRange, String newSegId) {
         if (!StringUtils.isEmpty(newSegId) && df.getSegment(newSegId) != null) {
-                return df.getSegment(newSegId);
+            return df.getSegment(newSegId);
         }
         val removeSegs = new ArrayList<NDataSegment>();
         val segments = df.getSegments().stream().filter(item -> !item.getAdditionalInfo().containsKey("file_layer"))
@@ -682,8 +683,7 @@ public class NDataflowManager implements IRealizationProvider {
     }
 
     public NDataflow updateDataflow(final NDataflowUpdate update) {
-        updateDataflow(update.getDataflowId(), copyForWrite -> {
-            NDataflow df = copyForWrite;
+        updateDataflow(update.getDataflowId(), df -> {
             Segments<NDataSegment> newSegs = (Segments<NDataSegment>) df.getSegments().clone();
 
             Arrays.stream(Optional.ofNullable(update.getToAddSegs()).orElse(new NDataSegment[0])).forEach(seg -> {

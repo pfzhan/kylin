@@ -43,7 +43,6 @@ import java.util.TreeMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -85,6 +84,7 @@ import io.kyligence.kap.metadata.acl.DependentColumn;
 import io.kyligence.kap.metadata.acl.SensitiveDataMask;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
 import io.kyligence.kap.rest.aspect.Transaction;
 import io.kyligence.kap.rest.request.AccessRequest;
@@ -226,16 +226,16 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
     private void checkAclTCRRequestDataBaseValid(AclTCRRequest db, Set<String> requestDatabases) {
         Message msg = MsgPicker.getMsg();
         if (StringUtils.isEmpty(db.getDatabaseName())) {
-            throw new KylinException(ServerErrorCode.EMPTY_PARAMETER, msg.getEMPTY_DATABASE_NAME());
+            throw new KylinException(ServerErrorCode.EMPTY_PARAMETER, msg.getEmptyDatabaseName());
         }
         db.setDatabaseName(db.getDatabaseName().toUpperCase(Locale.ROOT));
         if (requestDatabases.contains(db.getDatabaseName())) {
             throw new KylinException(ServerErrorCode.INVALID_PARAMETER,
-                    String.format(Locale.ROOT, msg.getDATABASE_PARAMETER_DUPLICATE(), db.getDatabaseName()));
+                    String.format(Locale.ROOT, msg.getDatabaseParameterDuplicate(), db.getDatabaseName()));
         }
         requestDatabases.add(db.getDatabaseName());
         if (CollectionUtils.isEmpty(db.getTables())) {
-            throw new KylinException(ServerErrorCode.EMPTY_PARAMETER, msg.getEMPTY_TABLE_LIST());
+            throw new KylinException(ServerErrorCode.EMPTY_PARAMETER, msg.getEmptyTableList());
         }
     }
 
@@ -243,33 +243,37 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
             AclTCRRequest.Table table, Set<String> requestTables, boolean isIncludeAll) {
         Message msg = MsgPicker.getMsg();
         if (StringUtils.isEmpty(table.getTableName())) {
-            throw new KylinException(ServerErrorCode.EMPTY_PARAMETER, msg.getEMPTY_TABLE_NAME());
+            throw new KylinException(ServerErrorCode.EMPTY_PARAMETER, msg.getEmptyTableName());
         }
         table.setTableName(table.getTableName().toUpperCase(Locale.ROOT));
         String tableName = String.format(Locale.ROOT, IDENTIFIER_FORMAT, db.getDatabaseName(), table.getTableName());
         if (requestTables.contains(tableName)) {
             throw new KylinException(ServerErrorCode.INVALID_PARAMETER,
-                    String.format(Locale.ROOT, msg.getTABLE_PARAMETER_DUPLICATE(), tableName));
+                    String.format(Locale.ROOT, msg.getTableParameterDuplicate(), tableName));
         }
         requestTables.add(tableName);
         if (!isIncludeAll) {
             return;
         }
         if (table.getRows() == null) {
-            throw new KylinException(ServerErrorCode.EMPTY_PARAMETER, msg.getEMPTY_ROW_LIST());
+            throw new KylinException(ServerErrorCode.EMPTY_PARAMETER, msg.getEmptyRowList());
         }
         table.getRows().forEach(row -> {
-            if (StringUtils.isEmpty(row.getColumnName())) {
-                throw new KylinException(ServerErrorCode.EMPTY_PARAMETER, msg.getEMPTY_COLUMN_NAME());
-            }
-            if (CollectionUtils.isEmpty(row.getItems())) {
-                throw new KylinException(ServerErrorCode.EMPTY_PARAMETER, msg.getEMPTY_ITEMS());
-            }
+            checkRow(msg, row);
         });
         TableDesc tableDesc = manager.getTableDesc(tableName);
         if (CollectionUtils.isEmpty(table.getColumns()) && tableDesc.getColumns() != null
                 && tableDesc.getColumns().length > 0) {
-            throw new KylinException(ServerErrorCode.EMPTY_PARAMETER, msg.getEMPTY_COLUMN_LIST());
+            throw new KylinException(ServerErrorCode.EMPTY_PARAMETER, msg.getEmptyColumnList());
+        }
+    }
+
+    private static void checkRow(Message msg, AclTCRRequest.Row row) {
+        if (StringUtils.isEmpty(row.getColumnName())) {
+            throw new KylinException(ServerErrorCode.EMPTY_PARAMETER, msg.getEmptyColumnName());
+        }
+        if (CollectionUtils.isEmpty(row.getItems())) {
+            throw new KylinException(ServerErrorCode.EMPTY_PARAMETER, msg.getEmptyItems());
         }
     }
 
@@ -293,12 +297,12 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
                     String columnName = String.format(Locale.ROOT, IDENTIFIER_FORMAT, tableName,
                             column.getColumnName());
                     if (StringUtils.isEmpty(column.getColumnName())) {
-                        throw new KylinException(ServerErrorCode.EMPTY_PARAMETER, msg.getEMPTY_COLUMN_NAME());
+                        throw new KylinException(ServerErrorCode.EMPTY_PARAMETER, msg.getEmptyColumnName());
                     }
                     column.setColumnName(column.getColumnName().toUpperCase(Locale.ROOT));
                     if (requestColumns.contains(columnName)) {
                         throw new KylinException(ServerErrorCode.INVALID_PARAMETER,
-                                String.format(Locale.ROOT, msg.getCOLUMN_PARAMETER_DUPLICATE(), columnName));
+                                String.format(Locale.ROOT, msg.getColumnParameterDuplicate(), columnName));
                     }
                     requestColumns.add(columnName);
                 });
@@ -312,17 +316,17 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
         val notIncludeDatabase = CollectionUtils.removeAll(databases, requestDatabases);
         if (!notIncludeDatabase.isEmpty()) {
             throw new KylinException(ServerErrorCode.INVALID_PARAMETER, String.format(Locale.ROOT,
-                    msg.getDATABASE_PARAMETER_MISSING(), StringUtils.join(notIncludeDatabase, ",")));
+                    msg.getDatabaseParameterMissing(), StringUtils.join(notIncludeDatabase, ",")));
         }
         val notIncludeTables = CollectionUtils.removeAll(tables, requestTables);
         if (!notIncludeTables.isEmpty()) {
             throw new KylinException(ServerErrorCode.INVALID_PARAMETER, String.format(Locale.ROOT,
-                    msg.getTABLE_PARAMETER_MISSING(), StringUtils.join(notIncludeTables, ",")));
+                    msg.getTableParameterMissing(), StringUtils.join(notIncludeTables, ",")));
         }
         val notIncludeColumns = CollectionUtils.removeAll(columns, requestColumns);
         if (!notIncludeColumns.isEmpty()) {
             throw new KylinException(ServerErrorCode.INVALID_PARAMETER, String.format(Locale.ROOT,
-                    msg.getCOLUMN_PARAMETER_MISSING(), StringUtils.join(notIncludeColumns, ",")));
+                    msg.getColumnParameterMissing(), StringUtils.join(notIncludeColumns, ",")));
         }
     }
 
@@ -332,20 +336,20 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
         requests.forEach(db -> {
             if (!databases.contains(db.getDatabaseName())) {
                 throw new KylinException(ServerErrorCode.INVALID_PARAMETER,
-                        String.format(Locale.ROOT, msg.getDATABASE_NOT_EXIST(), db.getDatabaseName()));
+                        String.format(Locale.ROOT, msg.getDatabaseNotExist(), db.getDatabaseName()));
             }
             db.getTables().forEach(table -> {
                 String tableName = String.format(Locale.ROOT, IDENTIFIER_FORMAT, db.getDatabaseName(),
                         table.getTableName());
                 if (!tables.contains(tableName)) {
                     throw new KylinException(ServerErrorCode.INVALID_PARAMETER,
-                            String.format(Locale.ROOT, msg.getTABLE_NOT_FOUND(), tableName));
+                            String.format(Locale.ROOT, msg.getTableNotFound(), tableName));
                 }
                 Optional.ofNullable(table.getRows()).map(List::stream).orElseGet(Stream::empty).forEach(row -> {
                     String columnName = String.format(Locale.ROOT, IDENTIFIER_FORMAT, tableName, row.getColumnName());
                     if (!columns.contains(columnName)) {
                         throw new KylinException(ServerErrorCode.INVALID_PARAMETER,
-                                String.format(Locale.ROOT, msg.getCOLUMN_NOT_EXIST(), columnName));
+                                String.format(Locale.ROOT, msg.getColumnNotExist(), columnName));
                     }
                 });
                 Optional.ofNullable(table.getColumns()).map(List::stream).orElseGet(Stream::empty).forEach(column -> {
@@ -353,7 +357,7 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
                             column.getColumnName());
                     if (!columns.contains(columnName)) {
                         throw new KylinException(ServerErrorCode.INVALID_PARAMETER,
-                                String.format(Locale.ROOT, msg.getCOLUMN_NOT_EXIST(), columnName));
+                                String.format(Locale.ROOT, msg.getColumnNotExist(), columnName));
                     }
                 });
             });
@@ -380,7 +384,7 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
         });
         if (hasAdminPermissionInProject(sid, principal, project)) {
             throw new KylinException(ServerErrorCode.INVALID_PARAMETER,
-                    MsgPicker.getMsg().getADMIN_PERMISSION_UPDATE_ABANDON());
+                    MsgPicker.getMsg().getAdminPermissionUpdateAbandon());
         }
         checkAClTCRRequestParameterValid(manager, databases, tables, columns, requests, isIncludeAll);
         AclTCRManager aclTCRManager = getManager(AclTCRManager.class, project);
@@ -463,11 +467,11 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
         String type = columnTypes.get(columnName);
         if (type == null) {
             throw new KylinException(ServerErrorCode.INVALID_PARAMETER,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getCOLUMN_NOT_EXIST(), columnName));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getColumnNotExist(), columnName));
         }
         if (!type.startsWith("varchar") && !type.equals("string") && !type.startsWith("char")) {
             throw new KylinException(ServerErrorCode.ACL_INVALID_COLUMN_DATA_TYPE,
-                    MsgPicker.getMsg().getROW_ACL_NOT_STRING_TYPE());
+                    MsgPicker.getMsg().getRowAclNotStringType());
         }
     }
 
@@ -1117,7 +1121,7 @@ public class AclTCRService extends BasicService implements AclTCRServiceSupporte
                                                 Double.parseDouble(item);
                                             } catch (Exception e) {
                                                 throw new KylinException(ServerErrorCode.INVALID_PARAMETER,
-                                                        MsgPicker.getMsg().getCOLUMN_PARAMETER_INVALID(columnName));
+                                                        MsgPicker.getMsg().getColumnParameterInvalid(columnName));
                                             }
                                         });
 

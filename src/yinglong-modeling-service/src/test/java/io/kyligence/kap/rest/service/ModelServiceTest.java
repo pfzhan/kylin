@@ -169,7 +169,6 @@ import io.kyligence.kap.metadata.model.BadModelException;
 import io.kyligence.kap.metadata.model.BadModelException.CauseType;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.DataCheckDesc;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.MultiPartitionDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -181,7 +180,6 @@ import io.kyligence.kap.metadata.model.VolatileRange;
 import io.kyligence.kap.metadata.model.util.ExpandableMeasureUtil;
 import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinTableDesc;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.QueryTimesResponse;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.metadata.user.ManagedUser;
@@ -308,11 +306,6 @@ public class ModelServiceTest extends SourceTestCase {
         val result1 = new QueryTimesResponse();
         result1.setModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         result1.setQueryTimes(10);
-        val prjManager = NProjectManager.getInstance(getTestConfig());
-        val prj = prjManager.getProject("default");
-        val copy = prjManager.copyForWrite(prj);
-        copy.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-        prjManager.updateProject(copy);
         favoriteRuleManager = FavoriteRuleManager.getInstance(getTestConfig(), getProject());
 
         try {
@@ -698,6 +691,27 @@ public class ModelServiceTest extends SourceTestCase {
         Assert.assertEquals(seg2.isDictReady(), seg2Resp.isDictReady());
         Assert.assertEquals(seg2.isFlatTableReady(), seg2Resp.isFlatTableReady());
         Assert.assertEquals(seg2.isFactViewReady(), seg2Resp.isFactViewReady());
+    }
+    @Test
+    public void testGetSegmentsResponseCore() {
+        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        NDataflowManager dataflowManager = modelService.getManager(NDataflowManager.class, "default");
+        NDataflow dataflow = dataflowManager.getDataflow(modelId);
+        {
+            val responseList = modelService.getSegmentsResponseCore(modelId, "default", "0", "" + Long.MAX_VALUE,
+                    "ONLINE", null, null, Collections.emptyList(), true, dataflow);
+            Assert.assertEquals(1, responseList.size());
+        }
+        {
+            val responseList = modelService.getSegmentsResponseCore(modelId, "default", "0", "" + Long.MAX_VALUE,
+                    "ONLINE", Lists.newArrayList(10001L), null, Collections.emptyList(), false, dataflow);
+            Assert.assertEquals(1, responseList.size());
+        }
+        {
+            val responseList = modelService.getSegmentsResponseCore(modelId, "default", "0", "" + Long.MAX_VALUE,
+                    "ONLINE", null, Lists.newArrayList(10002L), Collections.emptyList(), false, dataflow);
+            Assert.assertEquals(0, responseList.size());
+        }
     }
 
     @Test
@@ -1129,7 +1143,8 @@ public class ModelServiceTest extends SourceTestCase {
     @Test
     public void testGetModelJson() throws IOException {
         String modelJson = modelService.getModelJson("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default");
-        Assert.assertEquals("89af4ee2-2cdb-4b07-b39e-4c29856309aa", JsonUtil.readValue(modelJson, NDataModel.class).getUuid());
+        Assert.assertEquals("89af4ee2-2cdb-4b07-b39e-4c29856309aa",
+                JsonUtil.readValue(modelJson, NDataModel.class).getUuid());
     }
 
     @Test
@@ -1164,11 +1179,6 @@ public class ModelServiceTest extends SourceTestCase {
         String project = "streaming_test";
 
         val config = getTestConfig();
-        val prjMgr = NProjectManager.getInstance(config);
-        prjMgr.updateProject(project, copyForWrite -> {
-            copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-        });
-
         UnitOfWork.doInTransactionWithRetry(() -> {
             modelService.dropModel(modelId, project);
             return null;
@@ -1768,26 +1778,6 @@ public class ModelServiceTest extends SourceTestCase {
     }
 
     @Test
-    public void testCreateModel_AutoMaintain_Exception() throws Exception {
-        val prjManager = NProjectManager.getInstance(getTestConfig());
-        val prj = prjManager.getProject("default");
-        val copy = prjManager.copyForWrite(prj);
-        copy.setMaintainModelType(MaintainModelType.AUTO_MAINTAIN);
-        prjManager.updateProject(copy);
-        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        NDataModel model = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        ModelRequest modelRequest = new ModelRequest(model);
-        modelRequest.setProject("default");
-        modelRequest.setUuid("new_model");
-        modelRequest.setAlias("new_model");
-        modelRequest.setLastModified(0L);
-        thrown.expect(KylinException.class);
-        thrown.expectMessage("Can’t add model manually under this project.");
-        modelService.createModel(modelRequest.getProject(), modelRequest);
-
-    }
-
-    @Test
     public void testCreateModel_PartitionIsNull() throws Exception {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         NDataModel model = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -1825,7 +1815,7 @@ public class ModelServiceTest extends SourceTestCase {
                 .filter(col -> !col.getName().equalsIgnoreCase("LO_PARTITIONCOLUMN")).collect(Collectors.toList());
         modelRequest.setAllNamedColumns(newColumns);
         thrown.expect(KylinException.class);
-        thrown.expectMessage(MsgPicker.getMsg().getTIMESTAMP_PARTITION_COLUMN_NOT_EXIST());
+        thrown.expectMessage(MsgPicker.getMsg().getTimestampPartitionColumnNotExist());
         modelService.createModel(modelRequest.getProject(), modelRequest);
     }
 
@@ -1932,7 +1922,8 @@ public class ModelServiceTest extends SourceTestCase {
 
     @Test
     public void testAddSameNameDiffExprNormal() throws IOException, NoSuchFieldException, IllegalAccessException {
-        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                .getDataModelSerializer();
 
         List<NDataModelResponse> dataModelDescs = modelService.getModels("nmodel_basic", "default", true, null, null,
                 "", false);
@@ -1979,7 +1970,8 @@ public class ModelServiceTest extends SourceTestCase {
     @Test
     public void testFailureModelUpdateDueToComputedColumnConflict2()
             throws IOException, NoSuchFieldException, IllegalAccessException {
-        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                .getDataModelSerializer();
         List<NDataModelResponse> dataModelDescs = modelService.getModels("nmodel_basic", "default", true, null, null,
                 "", false);
         Assert.assertEquals(1, dataModelDescs.size());
@@ -2012,7 +2004,8 @@ public class ModelServiceTest extends SourceTestCase {
         expectedEx.expectMessage(
                 "A computed column should be defined on root fact table if its expression is not referring its hosting alias table,"
                         + " cc: BUYER_ACCOUNT.LEFTJOIN_SELLER_COUNTRY_ABBR");
-        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                .getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -2035,7 +2028,8 @@ public class ModelServiceTest extends SourceTestCase {
         expectedEx.expectMessage(
                 "A computed column should be defined on root fact table if its expression is not referring its hosting alias table,"
                         + " cc: BUYER_ACCOUNT.DEAL_AMOUNT");
-        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                .getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -2056,7 +2050,8 @@ public class ModelServiceTest extends SourceTestCase {
     @Test
     public void testNewModelAddSameExprSameNameNormal() {
         try {
-            Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+            Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                    .getDataModelSerializer();
             String contents = StringUtils.join(Files.readAllLines(
                     new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                     Charset.defaultCharset()), "\n");
@@ -2096,7 +2091,8 @@ public class ModelServiceTest extends SourceTestCase {
             }
         });
 
-        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                .getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -2125,7 +2121,8 @@ public class ModelServiceTest extends SourceTestCase {
     @Test
     public void testNewModelAddSameExprSameNameOnDifferentAliasTableCannotProvideAdvice() throws Exception {
         //save ut_left_join_cc_model, which is a model defining cc on lookup table
-        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                .getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -2166,7 +2163,7 @@ public class ModelServiceTest extends SourceTestCase {
                         && ccException.getConflictingModel().equals("nmodel_cc_test")
                         && ccException.getBadCC().equals("TEST_ORDER.ID_PLUS_1") && ccException.getAdvise() == null
                         && ccException.getMessage().equals(
-                        "Computed column ID_PLUS_1 is already defined in model nmodel_cc_test, no suggestion could be provided to reuse it");
+                                "Computed column ID_PLUS_1 is already defined in model nmodel_cc_test, no suggestion could be provided to reuse it");
             }
         });
 
@@ -2177,7 +2174,8 @@ public class ModelServiceTest extends SourceTestCase {
     @Test
     public void testSeekAdviseOnLookTable() throws Exception {
         //save nmodel_cc_test, which is a model defining cc on lookup table
-        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                .getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -2222,10 +2220,10 @@ public class ModelServiceTest extends SourceTestCase {
                         && "UPPER(\"BUYER_ACCOUNT\".\"ACCOUNT_COUNTRY\")".equals(ccException.getAdvise())
                         && ccException.getBadCC().equals("BUYER_ACCOUNT.COUNTRY_UPPER")
                         && ccException.getMessage().equals(
-                        "The name of computed column 'BUYER_ACCOUNT.COUNTRY_UPPER' has already been used "
-                                + "in model 'nmodel_cc_test', and the expression is "
-                                + "'UPPER(\"BUYER_ACCOUNT\".\"ACCOUNT_COUNTRY\")'. "
-                                + "Please modify the expression to keep consistent, or use a different name.");
+                                "The name of computed column 'BUYER_ACCOUNT.COUNTRY_UPPER' has already been used "
+                                        + "in model 'nmodel_cc_test', and the expression is "
+                                        + "'UPPER(\"BUYER_ACCOUNT\".\"ACCOUNT_COUNTRY\")'. "
+                                        + "Please modify the expression to keep consistent, or use a different name.");
             }
         });
 
@@ -2292,7 +2290,8 @@ public class ModelServiceTest extends SourceTestCase {
             }
         });
 
-        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                .getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -2344,7 +2343,8 @@ public class ModelServiceTest extends SourceTestCase {
             }
         });
 
-        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                .getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -2386,7 +2386,8 @@ public class ModelServiceTest extends SourceTestCase {
             }
         });
 
-        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                .getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -2426,7 +2427,8 @@ public class ModelServiceTest extends SourceTestCase {
             }
         });
 
-        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                .getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -2509,7 +2511,8 @@ public class ModelServiceTest extends SourceTestCase {
             }
         });
 
-        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                .getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -2530,7 +2533,8 @@ public class ModelServiceTest extends SourceTestCase {
         expectedEx.expect(RuntimeException.class);
         expectedEx.expectMessage("No advice could be provided");
 
-        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                .getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -2551,6 +2555,9 @@ public class ModelServiceTest extends SourceTestCase {
     @Test
     public void testCCNameCheck() {
         ModelService.checkCCName("cc_1");
+        Assert.assertThrows(
+                "The computed column name \"@\" is invalid. Please starts with a letter, and use only letters, numbers, and underlines. Please rename it.",
+                KylinException.class, () -> ModelService.checkCCName("@"));
         try {
             // HIVE
             ModelService.checkCCName("LOCAL");
@@ -2596,7 +2603,8 @@ public class ModelServiceTest extends SourceTestCase {
             }
         });
 
-        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                .getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -2642,7 +2650,8 @@ public class ModelServiceTest extends SourceTestCase {
             }
         });
 
-        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                .getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -2700,7 +2709,8 @@ public class ModelServiceTest extends SourceTestCase {
             }
         });
 
-        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                .getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -2741,7 +2751,8 @@ public class ModelServiceTest extends SourceTestCase {
             }
         });
 
-        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                .getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -2783,7 +2794,8 @@ public class ModelServiceTest extends SourceTestCase {
             }
         });
 
-        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+        Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                .getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
@@ -2816,7 +2828,8 @@ public class ModelServiceTest extends SourceTestCase {
     public void testCreateBadModelWontAffectTableDesc() throws IOException {
 
         try {
-            Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+            Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                    .getDataModelSerializer();
             String contents = StringUtils.join(Files.readAllLines(
                     new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                     Charset.defaultCharset()), "\n");
@@ -2839,7 +2852,8 @@ public class ModelServiceTest extends SourceTestCase {
             //TODO modelService.updateModelToResourceStore(deserialized, "default");
         } catch (BadModelException e) {
             modelService.getManager(NTableMetadataManager.class, "default").resetProjectSpecificTableDesc();
-            TableDesc aDefault = modelService.getManager(NTableMetadataManager.class, "default").getTableDesc("DEFAULT.TEST_KYLIN_FACT");
+            TableDesc aDefault = modelService.getManager(NTableMetadataManager.class, "default")
+                    .getTableDesc("DEFAULT.TEST_KYLIN_FACT");
             Set<String> allColumnNames = Arrays.stream(aDefault.getColumns()).map(ColumnDesc::getName)
                     .collect(Collectors.toSet());
             Assert.assertFalse(allColumnNames.contains("DEAL_AMOUNT_2"));
@@ -2854,7 +2868,8 @@ public class ModelServiceTest extends SourceTestCase {
 
         try {
             //save nmodel_cc_test, which is a model defining cc on lookup table
-            Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default").getDataModelSerializer();
+            Serializer<NDataModel> serializer = modelService.getManager(NDataModelManager.class, "default")
+                    .getDataModelSerializer();
             String contents = StringUtils.join(Files.readAllLines(
                     new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                     Charset.defaultCharset()), "\n");
@@ -2887,7 +2902,8 @@ public class ModelServiceTest extends SourceTestCase {
 
         } catch (BadModelException e) {
             modelService.getManager(NTableMetadataManager.class, "default").resetProjectSpecificTableDesc();
-            TableDesc aDefault = modelService.getManager(NTableMetadataManager.class, "default").getTableDesc("DEFAULT.TEST_ACCOUNT");
+            TableDesc aDefault = modelService.getManager(NTableMetadataManager.class, "default")
+                    .getTableDesc("DEFAULT.TEST_ACCOUNT");
             Assert.assertEquals(5, aDefault.getColumns().length);
         }
     }
@@ -3398,7 +3414,7 @@ public class ModelServiceTest extends SourceTestCase {
         when(modelRequest.getDimensionNameIdMap()).thenReturn(new HashMap<>(0));
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage(MsgPicker.getMsg().getTIMESTAMP_PARTITION_COLUMN_NOT_EXIST());
+        thrown.expectMessage(MsgPicker.getMsg().getTimestampPartitionColumnNotExist());
         modelService.validateFusionModelDimension(modelRequest);
     }
 
@@ -3414,7 +3430,7 @@ public class ModelServiceTest extends SourceTestCase {
         modelRequest.setRootFactTableName(dataModel.getRootFactTableName());
         when(modelRequest.getDimensionNameIdMap()).thenReturn(new HashMap<>(0));
         thrown.expect(KylinException.class);
-        thrown.expectMessage(MsgPicker.getMsg().getTIMESTAMP_PARTITION_COLUMN_NOT_EXIST());
+        thrown.expectMessage(MsgPicker.getMsg().getTimestampPartitionColumnNotExist());
         modelService.validateFusionModelDimension(modelRequest);
     }
 
@@ -3525,8 +3541,8 @@ public class ModelServiceTest extends SourceTestCase {
             Assert.fail();
         } catch (KylinException e) {
             Assert.assertEquals("KE-010011006", e.getErrorCode().getCodeString());
-            Assert.assertEquals(String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getFILTER_CONDITION_ON_ANTI_FLATTEN_LOOKUP(), "TEST_ORDER"), e.getMessage());
+            Assert.assertEquals(String.format(Locale.ROOT, MsgPicker.getMsg().getFilterConditionOnAntiFlattenLookup(),
+                    "TEST_ORDER"), e.getMessage());
         }
 
     }
@@ -4116,28 +4132,6 @@ public class ModelServiceTest extends SourceTestCase {
     }
 
     @Test
-    public void testChangePartitionDescWithSecondStorage() throws Exception {
-        val model = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        val project = "default";
-        MockSecondStorage.mock("default", new ArrayList<>(), this);
-        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            indexPlanManager.updateIndexPlan(model, indexPlan -> {
-                indexPlan.createAndAddBaseIndex(indexPlan.getModel());
-            });
-            return null;
-        }, project);
-        SecondStorageUtil.initModelMetaData("default", model);
-        Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
-
-        val modelRequest = prepare();
-        modelRequest.setWithSecondStorage(true);
-        modelRequest.getPartitionDesc().setPartitionDateColumn("TRANS_ID");
-        modelService.updateDataModelSemantic("default", modelRequest);
-        Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
-    }
-
-    @Test
     public void testCheckModelDimensionNameAndMeasureName() {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         NDataModel model = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -4224,7 +4218,7 @@ public class ModelServiceTest extends SourceTestCase {
             model.setPartitionDesc(null);
         });
         thrown.expect(KylinException.class);
-        thrown.expectMessage(MsgPicker.getMsg().getPARTITION_COLUMN_SAVE_ERROR());
+        thrown.expectMessage(MsgPicker.getMsg().getPartitionColumnSaveError());
         modelService.updatePartitionColumn(project, modelId, null, null);
     }
 
@@ -4240,7 +4234,7 @@ public class ModelServiceTest extends SourceTestCase {
             model.setPartitionDesc(partitionDesc);
         });
         thrown.expect(KylinException.class);
-        thrown.expectMessage(MsgPicker.getMsg().getPARTITION_COLUMN_SAVE_ERROR());
+        thrown.expectMessage(MsgPicker.getMsg().getPartitionColumnSaveError());
         modelService.updatePartitionColumn(project, modelId, partitionDesc, null);
     }
 
@@ -4249,7 +4243,7 @@ public class ModelServiceTest extends SourceTestCase {
         val modelId = "511a9163-7888-4a60-aa24-ae735937cc87";
         val project = "streaming_test";
         thrown.expect(KylinException.class);
-        thrown.expectMessage(MsgPicker.getMsg().getPARTITION_COLUMN_SAVE_ERROR());
+        thrown.expectMessage(MsgPicker.getMsg().getPartitionColumnSaveError());
         modelService.updatePartitionColumn(project, modelId, null, null);
     }
 
@@ -4356,8 +4350,8 @@ public class ModelServiceTest extends SourceTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertTrue(e.getMessage().contains(
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_NULL_VALUE(), "override_props")));
+            Assert.assertTrue(e.getMessage()
+                    .contains(String.format(Locale.ROOT, MsgPicker.getMsg().getInvalidNullValue(), "override_props")));
         }
         LinkedHashMap<String, String> prop = new LinkedHashMap<>();
         request.setOverrideProps(prop);
@@ -4367,8 +4361,8 @@ public class ModelServiceTest extends SourceTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertTrue(e.getMessage().contains(String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getINVALID_INTEGER_FORMAT(), "spark.executor.cores")));
+            Assert.assertTrue(e.getMessage().contains(
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getInvalidIntegerFormat(), "spark.executor.cores")));
         }
         prop.clear();
         prop.put("kylin.engine.spark-conf.spark.executor.instances", "1.2");
@@ -4378,7 +4372,7 @@ public class ModelServiceTest extends SourceTestCase {
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
             Assert.assertTrue(e.getMessage().contains(String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getINVALID_INTEGER_FORMAT(), "spark.executor.instances")));
+                    MsgPicker.getMsg().getInvalidIntegerFormat(), "spark.executor.instances")));
         }
         prop.clear();
         prop.put("kylin.engine.spark-conf.spark.sql.shuffle.partitions", "1.2");
@@ -4388,7 +4382,7 @@ public class ModelServiceTest extends SourceTestCase {
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
             Assert.assertTrue(e.getMessage().contains(String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getINVALID_INTEGER_FORMAT(), "spark.sql.shuffle.partitions")));
+                    MsgPicker.getMsg().getInvalidIntegerFormat(), "spark.sql.shuffle.partitions")));
         }
         prop.clear();
         prop.put("kylin.engine.spark-conf.spark.executor.memory", "3");
@@ -4398,7 +4392,7 @@ public class ModelServiceTest extends SourceTestCase {
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
             Assert.assertTrue(e.getMessage().contains(
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_MEMORY_SIZE(), "spark.executor.memory")));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getInvalidMemorySize(), "spark.executor.memory")));
         }
         prop.clear();
         prop.put("kylin.cube.aggrgroup.is-base-cuboid-always-valid", "ddd");
@@ -4408,7 +4402,7 @@ public class ModelServiceTest extends SourceTestCase {
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
             Assert.assertTrue(e.getMessage().contains(String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getINVALID_BOOLEAN_FORMAT(), "is-base-cuboid-always-valid")));
+                    MsgPicker.getMsg().getInvalidBooleanFormat(), "is-base-cuboid-always-valid")));
         }
         prop.clear();
         prop.put("kylin.engine.spark-conf.spark.executor.memory", null);
@@ -4418,7 +4412,7 @@ public class ModelServiceTest extends SourceTestCase {
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
             Assert.assertTrue(e.getMessage().contains(String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getINVALID_NULL_VALUE(), "kylin.engine.spark-conf.spark.executor.memory")));
+                    MsgPicker.getMsg().getInvalidNullValue(), "kylin.engine.spark-conf.spark.executor.memory")));
         }
     }
 
@@ -4432,7 +4426,7 @@ public class ModelServiceTest extends SourceTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertTrue(e.getMessage().contains(MsgPicker.getMsg().getINVALID_AUTO_MERGE_CONFIG()));
+            Assert.assertTrue(e.getMessage().contains(MsgPicker.getMsg().getInvalidAutoMergeConfig()));
         }
         request.setAutoMergeEnabled(false);
         request.setVolatileRange(new VolatileRange(2, true, null));
@@ -4441,7 +4435,7 @@ public class ModelServiceTest extends SourceTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertTrue(e.getMessage().contains(MsgPicker.getMsg().getINVALID_VOLATILE_RANGE_CONFIG()));
+            Assert.assertTrue(e.getMessage().contains(MsgPicker.getMsg().getInvalidVolatileRangeConfig()));
         }
         request.setVolatileRange(null);
         request.setRetentionRange(new RetentionRange(-1, true, null));
@@ -4450,7 +4444,7 @@ public class ModelServiceTest extends SourceTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertTrue(e.getMessage().contains(MsgPicker.getMsg().getINVALID_RETENTION_RANGE_CONFIG()));
+            Assert.assertTrue(e.getMessage().contains(MsgPicker.getMsg().getInvalidRetentionRangeConfig()));
         }
         request.setRetentionRange(new RetentionRange(1, true, AutoMergeTimeEnum.MONTH));
         modelService.checkModelConfigParameters(request);
@@ -4867,37 +4861,157 @@ public class ModelServiceTest extends SourceTestCase {
         }
     }
 
-    public void testBuildHasPermissionSourceSyncModel() throws Exception {
-        Set<String> groups = new HashSet<>();
-        groups.add("g1");
+    @Test
+    public void testExportTDSByAdmin() throws Exception {
+        val project = "default";
+        val modelId = "cb596712-3a09-46f8-aea1-988b43fe9b6c";
+        prepareBasic(project);
+        List<String> dimensions = Lists.newArrayList();
+        dimensions.add("DEFAULT.TEST_MEASURE.FLAG");
+        dimensions.add("DEFAULT.TEST_MEASURE.PRICE1");
+        dimensions.add("DEFAULT.TEST_MEASURE.ID1");
+        List<String> measurs = Lists.newArrayList();
+        measurs.add("COUNT_STAR");
+        measurs.add("SUM_1");
+        SyncContext syncContext = modelService.getADMINSyncContext(project, modelId,
+                SyncContext.BI.TABLEAU_CONNECTOR_TDS, SyncContext.ModelElement.CUSTOM_COLS, "localhost", 8080);
+        TableauDatasourceModel datasource1 = (TableauDatasourceModel) modelService
+                .exportTDSDimensionsAndMeasuresByAdmin(syncContext, dimensions, measurs);
+        ByteArrayOutputStream outStream4 = new ByteArrayOutputStream();
+        datasource1.dump(outStream4);
+        Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector_admin.tds"),
+                outStream4.toString(Charset.defaultCharset().name()));
+    }
+
+    @Test
+    public void testExportTDSByUser() throws Exception {
+        val project = "default";
+        val modelId = "cb596712-3a09-46f8-aea1-988b43fe9b6c";
+        prepareBasic(project);
+        List<String> dimensions = Lists.newArrayList();
+        dimensions.add("TEST_MEASURE.ID1");
+        dimensions.add("TEST_MEASURE.ID2");
+        dimensions.add("TEST_MEASURE.ID3");
+        dimensions.add("TEST_MEASURE1.ID1");
+        dimensions.add("TEST_MEASURE1.NAME1");
+        dimensions.add("TEST_MEASURE1.NAME2");
+        dimensions.add("TEST_MEASURE1.NAME3");
+        List<String> measurs = Lists.newArrayList();
+        measurs.add("COUNT_STAR");
+        measurs.add("SUM_1");
+        SecurityContextHolder.getContext()
+                .setAuthentication(new TestingAuthenticationToken("u1", "ANALYST", Constant.ROLE_ANALYST));
+        SyncContext syncContext = modelService.getSyncContext(project, modelId, SyncContext.BI.TABLEAU_CONNECTOR_TDS,
+                SyncContext.ModelElement.CUSTOM_COLS, "localhost", 8080);
+        TableauDatasourceModel datasource1 = (TableauDatasourceModel) modelService
+                .exportTDSDimensionsAndMeasuresByNormalUser(syncContext, dimensions, measurs);
+        ByteArrayOutputStream outStream4 = new ByteArrayOutputStream();
+        datasource1.dump(outStream4);
+        Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector_user.tds"),
+                outStream4.toString(Charset.defaultCharset().name()));
+    }
+
+    @Test
+    public void testExportTDSByUserAndElement() throws Exception {
         val project = "default";
         val modelId = "cb596712-3a09-46f8-aea1-988b43fe9b6c";
         prepareBasic(project);
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("u1", "ANALYST", Constant.ROLE_ANALYST));
-        TableauDatasourceModel datasource_all_cols = (TableauDatasourceModel) modelService.exportCustomModel(project,
-                modelId, SyncContext.BI.TABLEAU_CONNECTOR_TDS, SyncContext.ModelElement.ALL_COLS, "localhost", 8080,
-                groups);
-        ByteArrayOutputStream outStream1 = new ByteArrayOutputStream();
-        datasource_all_cols.dump(outStream1);
-        Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector_permission.tds"),
-                outStream1.toString(Charset.defaultCharset().name()));
+        SyncContext syncContext = modelService.getSyncContext(project, modelId, SyncContext.BI.TABLEAU_CONNECTOR_TDS,
+                SyncContext.ModelElement.AGG_INDEX_COL, "localhost", 8080);
+        TableauDatasourceModel datasource1 = (TableauDatasourceModel) modelService
+                .exportTDSDimensionsAndMeasuresByNormalUser(syncContext, null, null);
+        ByteArrayOutputStream outStream4 = new ByteArrayOutputStream();
+        datasource1.dump(outStream4);
+        Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector_user_agg_index_col.tds"),
+                outStream4.toString(Charset.defaultCharset().name()));
 
-        TableauDatasourceModel datasource_agg_index_col = (TableauDatasourceModel) modelService.exportCustomModel(
-                project, modelId, SyncContext.BI.TABLEAU_CONNECTOR_TDS, SyncContext.ModelElement.AGG_INDEX_COL,
-                "localhost", 8080, groups);
-        ByteArrayOutputStream outStream2 = new ByteArrayOutputStream();
-        datasource_agg_index_col.dump(outStream2);
-        Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector_permission.tds"),
-                outStream2.toString(Charset.defaultCharset().name()));
+        TableauDatasourceModel datasource = (TableauDatasourceModel) modelService
+                .exportTDSDimensionsAndMeasuresByNormalUser(syncContext, new ArrayList<>(), new ArrayList<>());
+        ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+        datasource.dump(outStream);
+        Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector_user_agg_index_col.tds"),
+                outStream.toString(Charset.defaultCharset().name()));
+    }
 
-        TableauDatasourceModel datasource = (TableauDatasourceModel) modelService.exportCustomModel(project, modelId,
-                SyncContext.BI.TABLEAU_CONNECTOR_TDS, SyncContext.ModelElement.AGG_INDEX_AND_TABLE_INDEX_COL,
-                "localhost", 8080, groups);
-        ByteArrayOutputStream outStream3 = new ByteArrayOutputStream();
-        datasource.dump(outStream3);
-        Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector_permission.tds"),
-                outStream3.toString(Charset.defaultCharset().name()));
+    @Test
+    public void testExportTDSByBroken() {
+        val project = "test_broken_project";
+        val modelId = "4b93b131-824e-6966-c4dd-5a4268d27095";
+        List<String> dimensions = Lists.newArrayList();
+        List<String> measurs = Lists.newArrayList();
+        SyncContext syncContext = modelService.getSyncContext(project, modelId, SyncContext.BI.TABLEAU_CONNECTOR_TDS,
+                SyncContext.ModelElement.CUSTOM_COLS, "localhost", 8080);
+        Assert.assertThrows(KylinException.class,
+                () -> modelService.exportTDSDimensionsAndMeasuresByNormalUser(syncContext, dimensions, measurs));
+
+        Assert.assertThrows(KylinException.class,
+                () -> modelService.exportTDSDimensionsAndMeasuresByAdmin(syncContext, dimensions, measurs));
+    }
+
+    @Test
+    public void testExportTDSMeasurePermission() throws Exception {
+        val project = "default";
+        val modelId = "82fa7671-a935-45f5-8779-85703601f49a";
+        prepareBasicByMeasure(project);
+        List<String> dimensions = Lists.newArrayList();
+        //"ORDER_ID", "PRICE", "CAL_DT", "PRICE", "ITEM_COUNT", "LEAF_CATEG_ID"
+        dimensions.add("TEST_KYLIN_FACT.ORDER_ID");
+        dimensions.add("TEST_KYLIN_FACT.PRICE");
+        dimensions.add("TEST_KYLIN_FACT.CAL_DT");
+        dimensions.add("TEST_KYLIN_FACT.PRICE");
+        dimensions.add("TEST_KYLIN_FACT.ITEM_COUNT");
+        dimensions.add("TEST_KYLIN_FACT.LEAF_CATEG_ID");
+        //"ORDER_ID", "TEST_TIME_ENC", "TEST_DATE_ENC"
+        dimensions.add("TEST_ORDER.ORDER_ID");
+        dimensions.add("TEST_ORDER.TEST_TIME_ENC");
+        dimensions.add("TEST_ORDER.TEST_DATE_ENC");
+        //"ORDER_ID", "PRICE", "CAL_DT", "TRANS_ID"
+        dimensions.add("TEST_MEASURE.ORDER_ID");
+        dimensions.add("TEST_MEASURE.PRICE");
+        dimensions.add("TEST_MEASURE.CAL_DT");
+        dimensions.add("TEST_MEASURE.TRANS_ID");
+
+        List<String> measures = Lists.newArrayList();
+        measures.add("TRANS_CNT");
+        measures.add("GMV_SUM");
+        measures.add("GMV_MIN");
+        measures.add("GMV_MAX");
+        measures.add("ITEM_COUNT_SUM");
+        measures.add("ITEM_COUNT_MAX");
+        measures.add("ITEM_COUNT_MIN");
+        measures.add("SELLER_HLL");
+        measures.add("COUNT_DISTINCT");
+        measures.add("TOP_SELLER");
+        measures.add("TEST_COUNT_DISTINCT_BITMAP");
+        measures.add("GVM_PERCENTILE");
+        SecurityContextHolder.getContext()
+                .setAuthentication(new TestingAuthenticationToken("u1", "ANALYST", Constant.ROLE_ANALYST));
+        SyncContext syncContext = modelService.getSyncContext(project, modelId, SyncContext.BI.TABLEAU_CONNECTOR_TDS,
+                SyncContext.ModelElement.CUSTOM_COLS, "localhost", 8080);
+        Assert.assertThrows(KylinException.class,
+                () -> modelService.exportTDSDimensionsAndMeasuresByNormalUser(syncContext, dimensions, measures));
+    }
+
+    private void prepareBasicByMeasure(String project) {
+        AclTCRManager manager = AclTCRManager.getInstance(getTestConfig(), project);
+
+        AclTCR u1a1 = new AclTCR();
+        AclTCR.Table u1t1 = new AclTCR.Table();
+        AclTCR.ColumnRow u1cr1 = new AclTCR.ColumnRow();
+        AclTCR.Column u1c1 = new AclTCR.Column();
+        u1c1.addAll(Arrays.asList("ORDER_ID", "PRICE", "CAL_DT", "PRICE", "ITEM_COUNT", "LEAF_CATEG_ID"));
+        u1cr1.setColumn(u1c1);
+
+        AclTCR.ColumnRow u1cr2 = new AclTCR.ColumnRow();
+        AclTCR.Column u1c2 = new AclTCR.Column();
+        u1c2.addAll(Arrays.asList("ORDER_ID", "TEST_TIME_ENC", "TEST_DATE_ENC"));
+        u1cr2.setColumn(u1c2);
+        u1t1.put("DEFAULT.TEST_KYLIN_FACT", u1cr1);
+        u1t1.put("DEFAULT.TEST_ORDER", u1cr2);
+        u1a1.setTable(u1t1);
+        manager.updateAclTCR(u1a1, "u1", true);
     }
 
     @Test
@@ -4953,7 +5067,7 @@ public class ModelServiceTest extends SourceTestCase {
         val project = "default";
         val modelId = "cb596712-3a09-46f8-aea1-988b43fe9b6c";
         thrown.expect(KylinException.class);
-        thrown.expectMessage(MsgPicker.getMsg().getTABLE_NO_COLUMNS_PERMISSION());
+        thrown.expectMessage(MsgPicker.getMsg().getTableNoColumnsPermission());
 
         AclTCRManager manager = AclTCRManager.getInstance(getTestConfig(), project);
         Set<String> columns = new HashSet<>();
@@ -4977,6 +5091,122 @@ public class ModelServiceTest extends SourceTestCase {
         manager.updateAclTCR(u1a1, "u1", true);
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("u1", "ANALYST", Constant.ROLE_ANALYST));
-        modelService.checkTableHasColumnPermission(project, modelId, columns);
+        List<String> dimensions = Lists.newArrayList();
+        dimensions.add("TEST_MEASURE.FLAG");
+        dimensions.add("TEST_MEASURE.PRICE1");
+        dimensions.add("TEST_MEASURE.ID1");
+        List<String> measurs = Lists.newArrayList();
+        measurs.add("COUNT_STAR");
+        measurs.add("SUM_1");
+        modelService.checkTableHasColumnPermission(SyncContext.ModelElement.CUSTOM_COLS, project, modelId, columns,
+                dimensions, measurs);
+
+        dimensions.add("TEST_MEASURE.ID4");
+        Assert.assertThrows(KylinException.class,
+                () -> modelService.checkTableHasColumnPermission(SyncContext.ModelElement.CUSTOM_COLS, project, modelId,
+                        columns, dimensions, measurs));
+    }
+
+    @Test
+    public void testExportTDSCheckColumnPermission() {
+        val project = "default";
+        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        NDataModel dataModel = modelManager.getDataModelDesc(modelId);
+
+        Set<String> authColumns = Sets.newHashSet();
+        List<String> dimensions = Lists.newArrayList();
+        List<String> measurs = Lists.newArrayList();
+
+        Assert.assertEquals(true, modelService.checkColumnPermission(dataModel, authColumns, null, measurs));
+        Assert.assertEquals(true, modelService.checkColumnPermission(dataModel, authColumns, null, null));
+        Assert.assertEquals(true, modelService.checkColumnPermission(dataModel, authColumns, dimensions, null));
+        Assert.assertEquals(true, modelService.checkColumnPermission(dataModel, authColumns, dimensions, measurs));
+
+        authColumns.add("DEFAULT.TEST_KYLIN_FACT.PRICE");
+        authColumns.add("DEFAULT.TEST_KYLIN_FACT.ITEM_COUNT");
+        authColumns.add("EDW.TEST_CAL_DT.CAL_DT");
+        authColumns.add("DEFAULT.TEST_ACCOUNT.ACCOUNT_ID");
+
+        Set<String> newAuthColumns = Sets.newHashSet();
+        dataModel.getAllTables().forEach(tableRef -> {
+            List<TblColRef> collect = tableRef.getColumns().stream()
+                    .filter(column -> authColumns.contains(column.getCanonicalName())).collect(Collectors.toList());
+            collect.forEach(x -> newAuthColumns.add(x.getAliasDotName()));
+        });
+
+        dimensions.add("TEST_KYLIN_FACT.DEAL_AMOUNT");
+        dimensions.add("TEST_KYLIN_FACT.TRANS_ID");
+
+        Assert.assertEquals(false, modelService.checkColumnPermission(dataModel, newAuthColumns, dimensions, measurs));
+
+        newAuthColumns.add("TEST_KYLIN_FACT.TRANS_ID");
+
+        measurs.add("SUM_NEST4");
+        measurs.add("COUNT_CAL_DT");
+        Assert.assertEquals(true, modelService.checkColumnPermission(dataModel, newAuthColumns, dimensions, measurs));
+
+        Assert.assertEquals(true, modelService.checkColumnPermission(dataModel, newAuthColumns, dimensions, measurs));
+
+    }
+
+    @Test
+    public void testConvertCCToNormalCols() {
+        val project = "default";
+        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        NDataModel dataModel = modelManager.getDataModelDesc(modelId);
+        NDataModel.Measure measure = dataModel.getEffectiveMeasures().values().stream()
+                .filter(x -> x.getName().equals("SUM_NEST4")).findFirst().get();
+        Set<String> measureColumns = measure.getFunction().getParameters().stream()
+                .filter(parameterDesc -> parameterDesc.getColRef() != null)
+                .map(parameterDesc -> parameterDesc.getColRef().getCanonicalName()).collect(Collectors.toSet());
+        ComputedColumnDesc sumNest4 = dataModel.getComputedColumnDescs().stream()
+                .filter(x -> measureColumns.contains(x.getIdentName())).findFirst().get();
+        Set<String> strings = modelService.convertCCToNormalCols(dataModel, sumNest4);
+        Assert.assertEquals("TEST_KYLIN_FACT.PRICE, TEST_KYLIN_FACT.ITEM_COUNT", String.join(", ", strings));
+
+        sumNest4.setInnerExpression("1 + 2");
+        Set<String> set = modelService.convertCCToNormalCols(dataModel, sumNest4);
+        Assert.assertEquals(Collections.emptySet(), set);
+
+        HashSet<Object> authColumns = Sets.newHashSet();
+        authColumns.add("DEFAULT.TEST_KYLIN_FACT.PRICE");
+        Assert.assertTrue(authColumns.containsAll(set));
+    }
+
+    @Test
+    public void testBuildExceptionMessage() {
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        NDataModel dataModel = modelManager.getDataModelDesc("a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94");
+        Assert.assertThrows("model [test_encoding], Something went wrong. test", KylinException.class,
+                () -> ReflectionTestUtils.invokeMethod(ModelService.class, "buildExceptionMessage", dataModel,
+                        new RuntimeException("test")));
+
+        Assert.assertThrows(
+                "Can’t save model \"test_encoding\". Please ensure that the used column \"test\" exist in source table \"DEFAULT.TEST_ENCODING\".",
+                KylinException.class,
+                () -> ReflectionTestUtils.invokeMethod(ModelService.class, "buildExceptionMessage", dataModel,
+                        new RuntimeException("cannot resolve 'test' given input columns")));
+    }
+
+    @Test
+    public void testUpdateReusedModelsAndIndexPlans() {
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        NDataModel dataModel = modelManager.getDataModelDesc("a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94");
+        ModelRequest modelRequest = new ModelRequest(dataModel);
+        ReflectionTestUtils.setField(modelRequest, "uuid", null);
+
+        List<ModelRequest> modelRequestList = Arrays.asList(modelRequest);
+        Assert.assertThrows(KylinException.class, () -> ReflectionTestUtils.invokeMethod(modelService,
+                "updateReusedModelsAndIndexPlans", "default", modelRequestList));
+    }
+
+    @Test
+    public void testBuildDuplicateCCException() {
+        Assert.assertThrows("The computed column name \"test\" has been used in the current model. Please rename it.\n",
+                KylinException.class, () -> ReflectionTestUtils.invokeMethod(modelService, "buildDuplicateCCException",
+                        new HashSet<>(Arrays.asList("test"))));
     }
 }
