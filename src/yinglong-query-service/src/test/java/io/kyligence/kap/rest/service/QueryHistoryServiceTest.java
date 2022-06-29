@@ -24,6 +24,12 @@
 
 package io.kyligence.kap.rest.service;
 
+import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
@@ -36,8 +42,9 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.query.QueryHistorySql;
-import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDaoTest;
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletResponse;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.rest.constant.Constant;
@@ -69,21 +76,14 @@ import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryInfo;
 import io.kyligence.kap.metadata.query.QueryHistoryRequest;
+import io.kyligence.kap.metadata.query.QueryHistorySql;
 import io.kyligence.kap.metadata.query.QueryMetrics;
 import io.kyligence.kap.metadata.query.QueryStatistics;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
+import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDaoTest;
 import io.kyligence.kap.rest.response.QueryStatisticsResponse;
 import lombok.val;
 import lombok.var;
-
-import javax.servlet.ServletOutputStream;
-import javax.servlet.http.HttpServletResponse;
-
-import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
     private static final String PROJECT = "default";
@@ -100,8 +100,8 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
     @InjectMocks
     private FusionModelService fusionModelService = Mockito.spy(new FusionModelService());
 
-    @InjectMocks
-    private final JobService jobService = Mockito.spy(new JobService());
+//    @InjectMocks
+//    private final JobInfoService jobService = Mockito.spy(new JobService());
 
     @Mock
     private final AclTCRService aclTCRService = Mockito.spy(AclTCRService.class);
@@ -123,7 +123,7 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(tableService, "modelService", modelService);
         ReflectionTestUtils.setField(tableService, "fusionModelService", fusionModelService);
         ReflectionTestUtils.setField(tableService, "aclTCRService", aclTCRService);
-        ReflectionTestUtils.setField(tableService, "jobService", jobService);
+//        ReflectionTestUtils.setField(tableService, "jobService", jobService);
         ReflectionTestUtils.setField(queryHistoryService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(queryHistoryService, "modelService", modelService);
         ReflectionTestUtils.setField(queryHistoryService, "userGroupService", userGroupService);

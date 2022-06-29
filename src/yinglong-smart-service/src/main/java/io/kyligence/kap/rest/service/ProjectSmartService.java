@@ -70,6 +70,7 @@ import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
 import io.kyligence.kap.metadata.recommendation.ref.OptRecV2;
 import io.kyligence.kap.rest.aspect.Transaction;
+import io.kyligence.kap.rest.delegate.ProjectMetadataInvoker;
 import io.kyligence.kap.rest.response.ProjectStatisticsResponse;
 import io.kyligence.kap.rest.service.task.QueryHistoryTaskScheduler;
 import io.kyligence.kap.rest.service.task.RecommendationTopNUpdateScheduler;
@@ -92,6 +93,9 @@ public class ProjectSmartService extends BasicService implements ProjectSmartSer
 
     @Autowired
     private ProjectModelSupporter projectModelSupporter;
+
+    @Autowired(required = false)
+    private ProjectMetadataInvoker projectMetadataInvoker;
 
     private void updateSingleRule(String project, String ruleName, FavoriteRuleUpdateRequest request) {
         List<FavoriteRule.AbstractCondition> conds = Lists.newArrayList();
@@ -144,7 +148,7 @@ public class ProjectSmartService extends BasicService implements ProjectSmartSer
             break;
         }
         boolean updateFrequencyChange = isChangeFreqRule(project, ruleName, request);
-        getManager(FavoriteRuleManager.class, project).updateRule(conds, isEnabled, ruleName);
+        projectMetadataInvoker.updateRule(conds, isEnabled, ruleName, project);
         if (updateFrequencyChange) {
             recommendationTopNUpdateScheduler.reScheduleProject(project);
         }
@@ -223,7 +227,7 @@ public class ProjectSmartService extends BasicService implements ProjectSmartSer
                 AsyncAccelerationTask accTask = getAsyncAccTask(project);
                 accTask.setAlreadyRunning(true);
                 accTask.getUserRefreshedTagMap().put(aclEvaluate.getCurrentUserName(), false);
-                AsyncTaskManager.getInstance(KylinConfig.getInstanceFromEnv(), project).save(accTask);
+                projectMetadataInvoker.saveAsyncTask(project, accTask);
                 return null;
             }, project);
 
@@ -242,7 +246,7 @@ public class ProjectSmartService extends BasicService implements ProjectSmartSer
                 EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                     AsyncAccelerationTask accTask = getAsyncAccTask(project);
                     accTask.setAlreadyRunning(false);
-                    AsyncTaskManager.getInstance(KylinConfig.getInstanceFromEnv(), project).save(accTask);
+                    projectMetadataInvoker.saveAsyncTask(project, accTask);
                     return null;
                 }, project);
                 if (e instanceof InterruptedException) {
@@ -258,14 +262,14 @@ public class ProjectSmartService extends BasicService implements ProjectSmartSer
             AsyncAccelerationTask accTask = getAsyncAccTask(project);
             accTask.setAlreadyRunning(false);
             accTask.getUserRefreshedTagMap().put(aclEvaluate.getCurrentUserName(), !deltaRecSet.isEmpty());
-            AsyncTaskManager.getInstance(KylinConfig.getInstanceFromEnv(), project).save(accTask);
+            projectMetadataInvoker.saveAsyncTask(project, accTask);
             return null;
         }, project);
         return deltaRecSet;
     }
 
     @Override
-    public void cleanupGarbage(String project) throws Exception {
+    public void cleanupGarbage(String project) {
         accelerateImmediately(project);
         updateStatMetaImmediately(project);
     }
@@ -362,12 +366,12 @@ public class ProjectSmartService extends BasicService implements ProjectSmartSer
         return projectSmartSupporter != null ? projectSmartSupporter.onShowSize(project) : 0;
     }
 
-    private AsyncAccelerationTask getAsyncAccTask(String project) {
+    public AsyncAccelerationTask getAsyncAccTask(String project) {
         return (AsyncAccelerationTask) AsyncTaskManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                 .get(AsyncTaskManager.ASYNC_ACCELERATION_TASK);
     }
 
-    private Map<String, Set<Integer>> getDeltaRecs(Map<String, Set<Integer>> modelToRecMap, String project) {
+    public Map<String, Set<Integer>> getDeltaRecs(Map<String, Set<Integer>> modelToRecMap, String project) {
         Map<String, Set<Integer>> updatedModelToRecMap = getModelToRecMap(project);
         modelToRecMap.forEach((modelId, recSet) -> {
             if (updatedModelToRecMap.containsKey(modelId)) {

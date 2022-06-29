@@ -112,6 +112,9 @@ import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.metadata.cube.storage.ProjectStorageInfoCollector;
 import io.kyligence.kap.metadata.cube.storage.StorageInfoEnum;
 import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.metadata.favorite.AsyncAccelerationTask;
+import io.kyligence.kap.metadata.favorite.AsyncTaskManager;
+import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
@@ -121,6 +124,7 @@ import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 import io.kyligence.kap.rest.aspect.Transaction;
 import io.kyligence.kap.rest.config.initialize.ProjectDropListener;
 import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
+import io.kyligence.kap.rest.delegate.ProjectMetadataContract;
 import io.kyligence.kap.rest.request.ComputedColumnConfigRequest;
 import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
 import io.kyligence.kap.rest.request.JdbcRequest;
@@ -146,7 +150,7 @@ import io.kyligence.kap.tool.garbage.GarbageCleaner;
 import lombok.val;
 
 @Component("projectService")
-public class ProjectService extends BasicService {
+public class ProjectService extends BasicService implements ProjectMetadataContract {
     private static final Logger logger = LoggerFactory.getLogger(ProjectService.class);
 
     @Autowired
@@ -162,14 +166,14 @@ public class ProjectService extends BasicService {
     @Autowired
     private AccessService accessService;
 
-    //    @Autowired
-    //    AsyncQueryService asyncQueryService;
-
     @Autowired(required = false)
     private ProjectModelSupporter projectModelSupporter;
 
     @Autowired(required = false)
     private ProjectSmartServiceSupporter projectSmartService;
+
+    @Autowired(required = false)
+    private ProjectSmartSupporter projectSmartSupporter;
 
     @Autowired
     UserService userService;
@@ -357,8 +361,6 @@ public class ProjectService extends BasicService {
                     projectSmartService.cleanupGarbage(project.getName());
                     GarbageCleaner.cleanMetadata(project.getName());
                     EventBusFactory.getInstance().callService(new ProjectCleanOldQueryResultEvent(project.getName()));
-                    //                    asyncQueryService.cleanOldQueryResult(project.getName(),
-                    //                            KylinConfig.getInstanceFromEnv().getAsyncQueryResultRetainDays());
                 } catch (Exception e) {
                     logger.warn("clean project<" + project.getName() + "> failed", e);
                 }
@@ -421,24 +423,20 @@ public class ProjectService extends BasicService {
             throw new KylinException(PROJECT_NOT_EXIST, project);
         }
         encryptJdbcPassInOverrideKylinProps(overrideKylinProps);
-        projectManager.updateProject(project, copyForWrite -> {
-            copyForWrite.getOverrideKylinProps().putAll(KylinConfig.trimKVFromMap(overrideKylinProps));
-        });
+        projectManager.updateProject(project, copyForWrite -> copyForWrite.getOverrideKylinProps()
+                .putAll(KylinConfig.trimKVFromMap(overrideKylinProps)));
     }
 
     private void encryptJdbcPassInOverrideKylinProps(Map<String, String> overrideKylinProps) {
-        if (overrideKylinProps.containsKey(KYLIN_SOURCE_JDBC_PASS_KEY)) {
-            if (overrideKylinProps.get(KYLIN_SOURCE_JDBC_PASS_KEY) != null) {
-                overrideKylinProps.put(KYLIN_SOURCE_JDBC_PASS_KEY,
-                        EncryptUtil.encryptWithPrefix(overrideKylinProps.get(KYLIN_SOURCE_JDBC_PASS_KEY)));
-            }
+        if (overrideKylinProps.containsKey(KYLIN_SOURCE_JDBC_PASS_KEY)
+                && overrideKylinProps.get(KYLIN_SOURCE_JDBC_PASS_KEY) != null) {
+            overrideKylinProps.put(KYLIN_SOURCE_JDBC_PASS_KEY,
+                    EncryptUtil.encryptWithPrefix(overrideKylinProps.get(KYLIN_SOURCE_JDBC_PASS_KEY)));
         }
     }
 
     private void clearJdbcPassInOverrideKylinProps(Map<String, String> overrideKylinProps) {
-        if (overrideKylinProps.containsKey(KYLIN_SOURCE_JDBC_PASS_KEY)) {
-            overrideKylinProps.put(KYLIN_SOURCE_JDBC_PASS_KEY, HIDDEN_VALUE);
-        }
+        overrideKylinProps.computeIfPresent(KYLIN_SOURCE_JDBC_PASS_KEY, (k, v) -> HIDDEN_VALUE);
     }
 
     @Transaction(project = 0)
@@ -465,7 +463,7 @@ public class ProjectService extends BasicService {
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     @Transaction(project = 0)
     public void updateJdbcInfo(String project, JdbcSourceInfoRequest jdbcSourceInfoRequest) {
-        if (jdbcSourceInfoRequest.getJdbcSourceEnable()) {
+        if (jdbcSourceInfoRequest.getJdbcSourceEnable().booleanValue()) {
             validateJdbcConfig(project, jdbcSourceInfoRequest);
         }
         Map<String, String> overrideKylinProps = Maps.newHashMap();
@@ -938,9 +936,8 @@ public class ProjectService extends BasicService {
 
     private void resetProjectRecommendationConfig(String project) {
         getManager(FavoriteRuleManager.class, project).resetRule();
-        NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project).listAllModels().forEach(model -> {
-            projectModelSupporter.onModelUpdate(project, model.getUuid());
-        });
+        NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project).listAllModels()
+                .forEach(model -> projectModelSupporter.onModelUpdate(project, model.getUuid()));
     }
 
     private void resetGarbageCleanupConfig(String project) {
@@ -968,9 +965,8 @@ public class ProjectService extends BasicService {
         if (projectInstance == null) {
             throw new KylinException(PROJECT_NOT_EXIST, project);
         }
-        projectManager.updateProject(project, copyForWrite -> {
-            toBeRemovedProps.forEach(copyForWrite.getOverrideKylinProps()::remove);
-        });
+        projectManager.updateProject(project,
+                copyForWrite -> toBeRemovedProps.forEach(copyForWrite.getOverrideKylinProps()::remove));
     }
 
     private void resetProjectKerberosConfig(String project) {
@@ -996,7 +992,7 @@ public class ProjectService extends BasicService {
         return allProjects.stream().filter(filter).collect(Collectors.toList());
     }
 
-    public File backupAndDeleteKeytab(String principal) throws Exception {
+    public File backupAndDeleteKeytab(String principal) throws IOException {
         String kylinConfHome = KapConfig.getKylinConfDirAtBestEffort();
         File kTempFile = new File(kylinConfHome, principal + KerberosLoginManager.TMP_KEYTAB_SUFFIX);
         File kFile = new File(kylinConfHome, principal + KerberosLoginManager.KEYTAB_SUFFIX);
@@ -1007,7 +1003,7 @@ public class ProjectService extends BasicService {
         return kFile;
     }
 
-    public File generateTempKeytab(String principal, MultipartFile keytabFile) throws Exception {
+    public File generateTempKeytab(String principal, MultipartFile keytabFile) throws IOException {
         Message msg = MsgPicker.getMsg();
         if (null == principal || principal.isEmpty()) {
             throw new KylinException(EMPTY_PARAMETER, msg.getPrincipalEmpty());
@@ -1057,5 +1053,16 @@ public class ProjectService extends BasicService {
         // Use JDBC Source
         overrideKylinProps.put("kylin.source.default", String.valueOf(ISourceAware.ID_JDBC));
         updateProjectOverrideKylinProps(project, overrideKylinProps);
+    }
+
+    @Transaction(project = 3)
+    public void updateRule(List<FavoriteRule.AbstractCondition> conditions, boolean isEnabled, String ruleName,
+            String project) {
+        getManager(FavoriteRuleManager.class, project).updateRule(conditions, isEnabled, ruleName);
+    }
+
+    @Transaction(project = 0)
+    public void saveAsyncTask(String project, AsyncAccelerationTask task) {
+        AsyncTaskManager.getInstance(KylinConfig.getInstanceFromEnv(), project).save(task);
     }
 }

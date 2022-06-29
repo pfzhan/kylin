@@ -24,16 +24,17 @@
 
 package io.kyligence.kap.rest.delegate;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.model.JobParam;
 
-import java.util.Map;
-import java.util.Set;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @AllArgsConstructor

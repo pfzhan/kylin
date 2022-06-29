@@ -33,6 +33,7 @@ import org.apache.kylin.rest.request.SqlAccelerateRequest;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -40,6 +41,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import io.kyligence.kap.metadata.model.exception.LookupTableException;
+import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
 import io.kyligence.kap.rest.request.ModelSuggestionRequest;
 import io.kyligence.kap.rest.response.SuggestionResponse;
 import io.kyligence.kap.rest.service.ModelService;
@@ -50,6 +52,7 @@ import lombok.extern.log4j.Log4j;
 
 @Log4j
 @Controller
+@EnableDiscoveryClient
 @RequestMapping(value = "/api/models", produces = { HTTP_VND_APACHE_KYLIN_JSON })
 public class NModelSmartController extends NBasicController {
 
@@ -59,6 +62,9 @@ public class NModelSmartController extends NBasicController {
     @Autowired
     @Qualifier("modelService")
     private ModelService modelService;
+    
+    @Autowired(required = false)
+    private ModelMetadataInvoker modelMetadataInvoker;
 
     @ApiOperation(value = "suggestModel", tags = { "AI" }, notes = "")
     @PostMapping(value = "/suggest_model")
@@ -94,7 +100,7 @@ public class NModelSmartController extends NBasicController {
                 req.setWithModelOnline(request.isWithModelOnline());
                 req.setWithEmptySegment(request.isWithEmptySegment());
             });
-            modelService.batchCreateModel(request.getProject(), request.getNewModels(), request.getReusedModels());
+            modelMetadataInvoker.batchCreateModel(request);
             return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
         } catch (LookupTableException e) {
             throw new KylinException(FAILED_CREATE_MODEL, e.getMessage(), e);

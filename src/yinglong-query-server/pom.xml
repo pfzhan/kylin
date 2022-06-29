@@ -35,11 +35,6 @@
 
         <dependency>
             <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-build-service</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
             <artifactId>yinglong-job-service</artifactId>
         </dependency>
 

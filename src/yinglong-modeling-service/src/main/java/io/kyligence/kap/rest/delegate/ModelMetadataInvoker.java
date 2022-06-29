@@ -43,7 +43,12 @@ import io.kyligence.kap.rest.request.AddSegmentRequest;
 import io.kyligence.kap.rest.request.DataFlowUpdateRequest;
 import io.kyligence.kap.rest.request.MergeSegmentRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
+import io.kyligence.kap.rest.request.ModelSuggestionRequest;
+import io.kyligence.kap.rest.request.OptRecRequest;
 import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
+import io.kyligence.kap.rest.response.OpenRecApproveResponse;
+import io.kyligence.kap.rest.response.OptRecResponse;
+import io.kyligence.kap.rest.response.SuggestionResponse;
 import io.kyligence.kap.rest.service.ModelService;
 import lombok.extern.slf4j.Slf4j;
 
@@ -160,5 +165,34 @@ public class ModelMetadataInvoker extends ModelMetadataBaseInvoker {
 
     private void waitForSync(Callable<Boolean> callable) {
         Awaitility.await().atMost(5, TimeUnit.SECONDS).until(callable);
+    }
+
+    public void batchCreateModel(ModelSuggestionRequest request) {
+        getDelegate().batchCreateModel(request);
+    }
+
+    public void updateRecommendationsCount(String project, String modelId, int size) {
+        getDelegate().updateRecommendationsCount(project, modelId, size);
+    }
+
+    public OptRecResponse approve(String project, OptRecRequest request) {
+        return getDelegate().approve(project, request);
+    }
+
+    public OpenRecApproveResponse.RecToIndexResponse approveAllRecItems(String project, String modelId,
+            String modelAlias, String recActionType) {
+        return getDelegate().approveAllRecItems(project, modelId, modelAlias, recActionType);
+    }
+
+    public void saveNewModelsAndIndexes(String project, List<ModelRequest> newModels) {
+        getDelegate().saveNewModelsAndIndexes(project, newModels);
+    }
+
+    public void saveRecResult(SuggestionResponse newModels, String project) {
+        getDelegate().saveRecResult(newModels, project);
+    }
+
+    public void updateModels(List<SuggestionResponse.ModelRecResponse> reusedModels, String project) {
+        getDelegate().updateModels(reusedModels, project);
     }
 }

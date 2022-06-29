@@ -92,7 +92,7 @@ public class Broadcaster implements Closeable {
                 new DaemonThreadFactory("BroadcastEvent-handler"), new ThreadPoolExecutor.DiscardPolicy());
 
         this.eventPollExecutor = Executors.newSingleThreadExecutor(new NamedThreadFactory("BroadcastEvent-poll"));
-        eventPollExecutor.submit(() -> consumeEvent());
+        eventPollExecutor.submit(this::consumeEvent);
     }
 
     public void announce(BroadcastEventReadyNotifier event) {
@@ -157,13 +157,8 @@ public class Broadcaster implements Closeable {
     }
 
     private void remoteHandle(String node, BroadcastEventReadyNotifier notifier) throws IOException {
-        RestClient client = restClientMap.get(node);
-        if (client == null) {
-            client = new RestClient(node);
-            restClientMap.put(node, client);
-        }
-        RestClient finalClient = client;
-        finalClient.notify(notifier);
+        RestClient client = restClientMap.computeIfAbsent(node, k -> new RestClient(node));
+        client.notify(notifier);
     }
 
     private Set<String> getBroadcastNodes(BroadcastEventReadyNotifier notifier) {

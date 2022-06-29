@@ -58,6 +58,7 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.v2.OptRecV2TestBase;
+import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
 import io.kyligence.kap.rest.response.OpenRecApproveResponse;
 import io.kyligence.kap.rest.response.OptRecLayoutsResponse;
 import io.kyligence.kap.rest.service.task.QueryHistoryTaskScheduler;
@@ -81,6 +82,9 @@ public class OptRecServiceIllegalMeasureTest extends OptRecV2TestBase {
         indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
         prepareACL();
         QueryHistoryTaskScheduler.getInstance(getProject()).init();
+        ModelMetadataInvoker.setDelegate(modelService);
+        ReflectionTestUtils.setField(optRecService, "modelMetadataInvoker", new ModelMetadataInvoker());
+        ReflectionTestUtils.setField(modelService, "optRecService", optRecService);
     }
 
     @After

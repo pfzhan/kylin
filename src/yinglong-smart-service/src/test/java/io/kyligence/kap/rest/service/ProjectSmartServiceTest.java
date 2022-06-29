@@ -46,6 +46,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.rest.delegate.ProjectMetadataInvoker;
 import io.kyligence.kap.rest.response.ProjectStatisticsResponse;
 import io.kyligence.kap.rest.service.task.RecommendationTopNUpdateScheduler;
 
@@ -84,6 +85,8 @@ public class ProjectSmartServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(projectSmartService, "projectSmartSupporter", rawRecService);
         ReflectionTestUtils.setField(projectSmartService, "projectModelSupporter", modelService);
         ReflectionTestUtils.setField(projectService, "projectModelSupporter", modelService);
+        ProjectMetadataInvoker.setDelegate(projectService);
+        ReflectionTestUtils.setField(projectSmartService, "projectMetadataInvoker", new ProjectMetadataInvoker());
     }
 
     @After

@@ -34,11 +34,13 @@ import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
 import io.kyligence.kap.rest.delegate.JobMetadataRpc;
 import io.kyligence.kap.rest.delegate.JobStatisticsInvoker;
 import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
+import io.kyligence.kap.rest.delegate.ProjectMetadataInvoker;
+import io.kyligence.kap.rest.delegate.TableMetadataInvoker;
 import io.kyligence.kap.rest.delegate.TableSamplingInvoker;
 import io.kyligence.kap.rest.delegate.TableSamplingRPC;
-import io.kyligence.kap.rest.delegate.TableMetadataInvoker;
 import io.kyligence.kap.rest.service.JobStatisticsService;
 import io.kyligence.kap.rest.service.ModelService;
+import io.kyligence.kap.rest.service.ProjectService;
 import io.kyligence.kap.rest.service.TableExtService;
 
 @Component
@@ -53,6 +55,7 @@ public class CommonContractConfig implements InitializingBean, ApplicationContex
         TableMetadataInvoker.setDelegate(applicationContext.getBean(TableExtService.class));
         TableSamplingInvoker.setDelegate(applicationContext.getBean(TableSamplingRPC.class));
         JobMetadataInvoker.setDelegate(applicationContext.getBean(JobMetadataRpc.class));
+        ProjectMetadataInvoker.setDelegate(applicationContext.getBean(ProjectService.class));
     }
 
     @Override

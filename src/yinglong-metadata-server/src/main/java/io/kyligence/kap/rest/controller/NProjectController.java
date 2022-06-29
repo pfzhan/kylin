@@ -75,6 +75,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import io.kyligence.kap.common.util.FileUtils;
 import io.kyligence.kap.guava20.shaded.common.collect.Sets;
+import io.kyligence.kap.metadata.favorite.AsyncAccelerationTask;
+import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.request.ComputedColumnConfigRequest;
 import io.kyligence.kap.rest.request.DataSourceTypeRequest;
@@ -497,5 +499,19 @@ public class NProjectController extends NBasicController {
         checkRequiredArg("jdbc_source_enabled", request.getJdbcSourceEnable());
         projectService.updateJdbcInfo(project, request);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
+    }
+
+    @PostMapping(value = "/feign/save_async_task")
+    @ResponseBody
+    public void saveAsyncTask(@RequestParam("project") String project, @RequestBody AsyncAccelerationTask task) {
+        projectService.saveAsyncTask(project, task);
+    }
+
+    @PostMapping(value = "/feign/update_rule")
+    @ResponseBody
+    public void updateRule(@RequestBody List<FavoriteRule.AbstractCondition> conditions,
+            @RequestParam("isEnabled") boolean isEnabled, @RequestParam("ruleName") String ruleName,
+            @RequestParam("project") String project) {
+        projectService.updateRule(conditions, isEnabled, ruleName, project);
     }
 }

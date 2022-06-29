@@ -44,7 +44,6 @@ import org.apache.kylin.common.exception.QueryErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.job.InMemoryJobRunner;
 import org.apache.kylin.metadata.model.JoinDesc;
-import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.rest.request.OpenSqlAccelerateRequest;
 import org.apache.kylin.rest.service.BasicService;
@@ -52,7 +51,6 @@ import org.apache.kylin.rest.util.AclEvaluate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -64,11 +62,11 @@ import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.util.scd2.SCD2SqlConverter;
 import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinDesc;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.LayoutRecDetailResponse;
 import io.kyligence.kap.rest.response.OpenAccSqlResponse;
@@ -105,31 +103,9 @@ public class ModelSmartService extends BasicService implements ModelSmartSupport
 
     @Autowired
     public AclEvaluate aclEvaluate;
-
-    @VisibleForTesting
-    void saveRecResult(SuggestionResponse modelSuggestionResponse, String project) {
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            for (SuggestionResponse.ModelRecResponse response : modelSuggestionResponse.getReusedModels()) {
-
-                NDataModelManager modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-                BaseIndexUpdateHelper baseIndexUpdater = new BaseIndexUpdateHelper(
-                        modelMgr.getDataModelDesc(response.getId()), false);
-                modelMgr.updateDataModel(response.getId(), copyForWrite -> {
-                    copyForWrite.setJoinTables(response.getJoinTables());
-                    copyForWrite.setComputedColumnDescs(response.getComputedColumnDescs());
-                    copyForWrite.setAllNamedColumns(response.getAllNamedColumns());
-                    copyForWrite.setAllMeasures(response.getAllMeasures());
-                });
-                NIndexPlanManager indexMgr = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-                val targetIndexPlan = response.getIndexPlan();
-                indexMgr.updateIndexPlan(response.getId(), copyForWrite -> {
-                    copyForWrite.setIndexes(targetIndexPlan.getIndexes());
-                });
-                baseIndexUpdater.update(indexPlanService);
-            }
-            return null;
-        }, project);
-    }
+    
+    @Autowired(required = false)
+    private ModelMetadataInvoker modelMetadataInvoker;
 
     void saveProposedJoinRelations(List<ModelRecResponse> reusedModels, AbstractContext proposeContext) {
         if (!proposeContext.isCanCreateNewModel()) {
@@ -137,21 +113,7 @@ public class ModelSmartService extends BasicService implements ModelSmartSupport
         }
 
         String project = proposeContext.getProject();
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            for (ModelRecResponse response : reusedModels) {
-                NDataModelManager modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-                modelMgr.updateDataModel(response.getId(), copyForWrite -> {
-                    List<JoinTableDesc> newJoinTables = response.getJoinTables();
-                    if (newJoinTables.size() != copyForWrite.getJoinTables().size()) {
-                        copyForWrite.setJoinTables(newJoinTables);
-                        copyForWrite.setAllNamedColumns(response.getAllNamedColumns());
-                        copyForWrite.setAllMeasures(response.getAllMeasures());
-                        copyForWrite.setComputedColumnDescs(response.getComputedColumnDescs());
-                    }
-                });
-            }
-            return null;
-        }, project);
+        modelMetadataInvoker.updateModels(reusedModels, project);
     }
 
     public OpenSuggestionResponse suggestOrOptimizeModels(OpenSqlAccelerateRequest request) {
@@ -339,7 +301,7 @@ public class ModelSmartService extends BasicService implements ModelSmartSupport
         modelService.checkNewModels(request.getProject(), modelRequests);
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             if (request.isSaveNewModel()) {
-                modelService.saveNewModelsAndIndexes(request.getProject(), modelRequests);
+                modelMetadataInvoker.saveNewModelsAndIndexes(request.getProject(), modelRequests);
             }
             saveProposedJoinRelations(innerResponse.getReusedModels(), proposeContext);
             rawRecService.transferAndSaveRecommendations(proposeContext);
@@ -359,8 +321,8 @@ public class ModelSmartService extends BasicService implements ModelSmartSupport
         List<ModelRequest> modelRequests = convertToModelRequest(innerResponse.getNewModels(), request);
         modelService.checkNewModels(request.getProject(), modelRequests);
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            modelService.saveNewModelsAndIndexes(request.getProject(), modelRequests);
-            saveRecResult(innerResponse, request.getProject());
+            modelMetadataInvoker.saveNewModelsAndIndexes(request.getProject(), modelRequests);
+            modelMetadataInvoker.saveRecResult(innerResponse, request.getProject());
             return null;
         }, request.getProject());
 

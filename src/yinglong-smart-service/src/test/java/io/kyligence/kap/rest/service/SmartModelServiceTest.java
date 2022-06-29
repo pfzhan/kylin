@@ -89,6 +89,7 @@ import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
 import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
 import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
+import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.LayoutRecDetailResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
@@ -181,6 +182,7 @@ public class SmartModelServiceTest extends SourceTestCase {
         ReflectionTestUtils.setField(semanticService, "modelSmartSupporter", modelSmartService);
         ReflectionTestUtils.setField(modelService, "projectService", projectService);
         ReflectionTestUtils.setField(modelService, "modelQuerySupporter", modelQueryService);
+        ReflectionTestUtils.setField(modelService, "modelSmartService", modelSmartService);
 
         ReflectionTestUtils.setField(modelSmartService, "modelService", modelService);
         ReflectionTestUtils.setField(modelSmartService, "aclEvaluate", aclEvaluate);
@@ -192,6 +194,8 @@ public class SmartModelServiceTest extends SourceTestCase {
         ReflectionTestUtils.setField(tableService, "aclTCRService", aclTCRService);
         ReflectionTestUtils.setField(tableExtService, "tableService", tableService);
         ReflectionTestUtils.setField(indexPlanService, "aclEvaluate", aclEvaluate);
+        ModelMetadataInvoker.setDelegate(modelService);
+        ReflectionTestUtils.setField(modelSmartService, "modelMetadataInvoker", new ModelMetadataInvoker());
 
         modelService.setSemanticUpdater(semanticService);
         modelService.setIndexPlanService(indexPlanService);
@@ -354,7 +358,7 @@ public class SmartModelServiceTest extends SourceTestCase {
 
         // apply recommendations
         SuggestionResponse modelSuggestionResponse = modelSmartService.buildModelSuggestionResponse(proposeContext);
-        modelSmartService.saveRecResult(modelSuggestionResponse, project);
+        modelService.saveRecResult(modelSuggestionResponse, project);
 
         // assert result after apply recommendations
         NDataModel modelAfterSuggestModel = modelManager.getDataModelDesc(targetModel.getUuid());
@@ -388,7 +392,7 @@ public class SmartModelServiceTest extends SourceTestCase {
         sqlList.add("select floor(date'2020-11-17' TO day), ceil(date'2020-11-17' TO day) from test_kylin_fact");
         AbstractContext proposeContext = modelSmartService.suggestModel(project, sqlList, false, true);
         SuggestionResponse modelSuggestionResponse = modelSmartService.buildModelSuggestionResponse(proposeContext);
-        modelSmartService.saveRecResult(modelSuggestionResponse, project);
+        modelService.saveRecResult(modelSuggestionResponse, project);
 
         List<AbstractContext.ModelContext> modelContexts = proposeContext.getModelContexts();
         Assert.assertEquals(1, modelContexts.size());
@@ -425,7 +429,7 @@ public class SmartModelServiceTest extends SourceTestCase {
         sqlList.add("select lstg_format_name, sum(price) from test_kylin_fact group by lstg_format_name");
         AbstractContext proposeContext = modelSmartService.suggestModel(project, sqlList, true, true);
         SuggestionResponse modelSuggestionResponse = modelSmartService.buildModelSuggestionResponse(proposeContext);
-        modelSmartService.saveRecResult(modelSuggestionResponse, project);
+        modelService.saveRecResult(modelSuggestionResponse, project);
 
         NDataModel modelAfterSuggestModel = modelManager.getDataModelDesc(targetModel.getUuid());
         long dimensionCountRefreshed = modelAfterSuggestModel.getAllNamedColumns().stream()

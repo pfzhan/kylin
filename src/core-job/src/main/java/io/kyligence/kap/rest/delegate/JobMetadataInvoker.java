@@ -63,7 +63,7 @@ public class JobMetadataInvoker {
     public static JobMetadataInvoker getInstance() {
         MetadataStore metadataStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv())
                 .getMetadataStore();
-        if (null != metadataStore && metadataStore instanceof HDFSMetadataStore) {
+        if (metadataStore instanceof HDFSMetadataStore) {
             throw new KylinRuntimeException("This request cannot be route to metadata server");
         }
         if (SpringContext.getApplicationContext() == null) {

@@ -39,7 +39,6 @@ import java.util.concurrent.TimeoutException;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
 
-import io.kyligence.kap.metadata.query.QueryMetrics;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.ServiceTestBase;
 import org.junit.After;
@@ -57,17 +56,20 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.query.QueryHistoryRequest;
+import io.kyligence.kap.metadata.query.QueryMetrics;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDaoTest;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = ServiceTestBase.SpringConfig.class)
 @WebAppConfiguration(value = "src/main/resources")
+@TestPropertySource(properties = {"spring.cloud.nacos.discovery.enabled = false"})
 @ActiveProfiles({ "testing", "test" })
 public class AsyncTaskServiceTest extends NLocalFileMetadataTestCase {
 

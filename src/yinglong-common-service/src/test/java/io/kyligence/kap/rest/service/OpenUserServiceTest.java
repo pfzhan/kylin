@@ -49,6 +49,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 
@@ -60,6 +61,7 @@ import io.kyligence.kap.metadata.user.ManagedUser;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = ServiceTestBase.SpringConfig.class)
 @WebAppConfiguration(value = "src/main/resources")
+@TestPropertySource(properties = {"spring.cloud.nacos.discovery.enabled = false"})
 @ActiveProfiles({ "custom", "test" })
 public class OpenUserServiceTest extends NLocalFileMetadataTestCase {
 

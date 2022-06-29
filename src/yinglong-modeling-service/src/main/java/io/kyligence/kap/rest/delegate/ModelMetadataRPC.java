@@ -24,13 +24,9 @@
 
 package io.kyligence.kap.rest.delegate;
 
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.rest.request.AddSegmentRequest;
-import io.kyligence.kap.rest.request.DataFlowUpdateRequest;
-import io.kyligence.kap.rest.request.MergeSegmentRequest;
-import io.kyligence.kap.rest.request.ModelRequest;
-import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
+import java.util.List;
+import java.util.Set;
+
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -38,8 +34,18 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import java.util.List;
-import java.util.Set;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.rest.request.AddSegmentRequest;
+import io.kyligence.kap.rest.request.DataFlowUpdateRequest;
+import io.kyligence.kap.rest.request.MergeSegmentRequest;
+import io.kyligence.kap.rest.request.ModelRequest;
+import io.kyligence.kap.rest.request.ModelSuggestionRequest;
+import io.kyligence.kap.rest.request.OptRecRequest;
+import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
+import io.kyligence.kap.rest.response.OpenRecApproveResponse;
+import io.kyligence.kap.rest.response.OptRecResponse;
+import io.kyligence.kap.rest.response.SuggestionResponse;
 
 @FeignClient(name = "yinglong-common-booter", path = "/kylin/api/models/feign")
 public interface ModelMetadataRPC extends ModelMetadataContract {
@@ -110,4 +116,29 @@ public interface ModelMetadataRPC extends ModelMetadataContract {
     @PostMapping(value = "/remove_indexes_from_segments")
     void removeIndexesFromSegments(@RequestParam("project") String project, @RequestParam("modelId") String modelId,
                                    @RequestParam("segmentIds") List<String> segmentIds, @RequestParam("indexIds") List<Long> indexIds);
+
+    @PostMapping(value = "/batch_save_models")
+    void batchCreateModel(@RequestBody ModelSuggestionRequest request);
+
+    @PostMapping(value = "/update_recommendations_count")
+    void updateRecommendationsCount(@RequestParam("project") String project, @RequestParam("modelId") String modelId,
+            @RequestParam("size") int size);
+
+    @PostMapping(value = "/approve")
+    OptRecResponse approve(@RequestParam("project") String project, @RequestBody OptRecRequest request);
+
+    @PostMapping(value = "/approve_all_rec_items")
+    OpenRecApproveResponse.RecToIndexResponse approveAllRecItems(@RequestParam("project") String project,
+            @RequestParam("modelId") String modelId, @RequestParam("modelAlias") String modelAlias,
+            @RequestParam("recActionType") String recActionType);
+
+    @PostMapping(value = "/save_new_models_and_indexes")
+    void saveNewModelsAndIndexes(@RequestParam("project") String project, @RequestBody List<ModelRequest> newModels);
+
+    @PostMapping(value = "/save_rec_result")
+    void saveRecResult(@RequestBody SuggestionResponse newModels, @RequestParam("project") String project);
+
+    @PostMapping(value = "/update_models")
+    void updateModels(@RequestBody List<SuggestionResponse.ModelRecResponse> reusedModels,
+            @RequestParam("project") String project);
 }

@@ -33,6 +33,7 @@ import java.util.Set;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.metadata.model.ISegment;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -47,6 +48,7 @@ import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.PartitionStatusEnum;
+import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -108,9 +110,10 @@ public class SegmentUtil {
     protected static <T extends ISegment> boolean anyIndexJobRunning(T segment) {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         ExecutableManager execManager = ExecutableManager.getInstance(kylinConfig, segment.getModel().getProject());
-        val executables = execManager.listExecByJobTypeAndStatus(ExecutableState::isRunning, INDEX_BUILD,
-                SUB_PARTITION_BUILD);
-        return executables.stream().anyMatch(task -> task.getSegmentIds().contains(segment.getId()));
+        List<ExecutablePO> executablePOS = JobMetadataInvoker.getInstance().listExecPOByJobTypeAndStatus(
+                segment.getModel().getProject(), "isRunning", INDEX_BUILD, SUB_PARTITION_BUILD);
+        return executablePOS.stream().map(execManager::fromPO)
+                .anyMatch(task -> task.getSegmentIds().contains(segment.getId()));
     }
 
     protected static <T extends ISegment> boolean anyIndexJobRunning(T segment, List<AbstractExecutable> executables) {

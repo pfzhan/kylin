@@ -55,6 +55,7 @@ import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
 import io.kyligence.kap.metadata.recommendation.v2.OptRecV2TestBase;
+import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.OpenRecApproveResponse.RecToIndexResponse;
 import io.kyligence.kap.rest.response.OptRecDetailResponse;
@@ -80,6 +81,9 @@ public class OptRecServiceTest extends OptRecV2TestBase {
         indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
         prepareACL();
         QueryHistoryTaskScheduler.getInstance(getProject()).init();
+        ModelMetadataInvoker.setDelegate(modelService);
+        ReflectionTestUtils.setField(optRecService, "modelMetadataInvoker", new ModelMetadataInvoker());
+        ReflectionTestUtils.setField(modelService, "optRecService", optRecService);
     }
 
     @After

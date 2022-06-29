@@ -378,6 +378,11 @@
             <artifactId>curator-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>io.kyligence.yinglong</groupId>
+            <artifactId>yinglong-build-service</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
 </project>

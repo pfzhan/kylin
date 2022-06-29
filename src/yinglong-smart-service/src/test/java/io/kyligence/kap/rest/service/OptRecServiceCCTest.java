@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -46,18 +47,28 @@ import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.recommendation.v2.OptRecV2TestBase;
+import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
 import io.kyligence.kap.rest.request.OptRecRequest;
 import io.kyligence.kap.rest.response.OptRecResponse;
 
 public class OptRecServiceCCTest extends OptRecV2TestBase {
 
     OptRecService optRecService = Mockito.spy(new OptRecService());
+    ModelService modelService = Mockito.spy(new ModelService());
     @Mock
     private final AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
 
     public OptRecServiceCCTest() {
         super("../yinglong-smart-service/src/test/resources/ut_rec_v2/CC",
                 new String[] { "6b9a6f00-2154-479d-b68f-34e49e7f2389", "7de7c2e8-3be0-4081-ad88-3e1a34ca038e" });
+    }
+
+    @Before
+    public void setUp() throws Exception {
+        super.setUp();
+        ModelMetadataInvoker.setDelegate(modelService);
+        ReflectionTestUtils.setField(optRecService, "modelMetadataInvoker", new ModelMetadataInvoker());
+        ReflectionTestUtils.setField(modelService, "optRecService", optRecService);
     }
 
     @Test

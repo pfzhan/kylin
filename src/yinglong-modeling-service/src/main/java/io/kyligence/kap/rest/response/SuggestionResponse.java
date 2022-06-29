@@ -38,6 +38,7 @@ import lombok.Setter;
 
 @Setter
 @Getter
+@NoArgsConstructor
 public class SuggestionResponse {
     @JsonProperty("reused_models")
     List<ModelRecResponse> reusedModels;

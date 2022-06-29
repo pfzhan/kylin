@@ -56,6 +56,7 @@ import org.apache.kylin.rest.util.PagingUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.stereotype.Component;
 
 import com.google.common.base.Preconditions;
@@ -87,6 +88,7 @@ import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
 import io.kyligence.kap.metadata.recommendation.ref.OptRecV2;
 import io.kyligence.kap.metadata.recommendation.ref.RecommendationRef;
 import io.kyligence.kap.metadata.recommendation.util.RawRecUtil;
+import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
 import io.kyligence.kap.rest.request.OptRecRequest;
 import io.kyligence.kap.rest.response.OpenRecApproveResponse.RecToIndexResponse;
 import io.kyligence.kap.rest.response.OptRecDepResponse;
@@ -96,9 +98,11 @@ import io.kyligence.kap.rest.response.OptRecLayoutsResponse;
 import io.kyligence.kap.rest.response.OptRecResponse;
 import lombok.Getter;
 
+@EnableDiscoveryClient
 @Component("optRecService")
-public class OptRecService extends BasicService {
-    private static final Logger log = LoggerFactory.getLogger("smart");
+public class OptRecService extends BasicService implements OptRecSupport{
+    public static final String SMART = "smart";
+    private static final Logger log = LoggerFactory.getLogger(SMART);
     public static final int V2 = 2;
     public static final String RECOMMENDATION_SOURCE = "recommendation_source";
     public static final String OPERATION_ERROR_MSG = "The operation types of recommendation includes: add_index, removal_index and all(by default)";
@@ -112,6 +116,9 @@ public class OptRecService extends BasicService {
 
     @Autowired
     private IndexPlanService indexPlanService;
+    
+    @Autowired(required = false)
+    private ModelMetadataInvoker modelMetadataInvoker;
 
     private static final class RecApproveContext {
         private final Map<Integer, NDataModel.NamedColumn> columns = Maps.newHashMap();
@@ -189,7 +196,7 @@ public class OptRecService extends BasicService {
                 long layoutId = entry.getKey();
                 return allLayoutsMap.containsKey(layoutId)
                         && queryScopes.containsAll(allLayoutsMap.get(layoutId).getColOrder());
-            }).collect(Collectors.toMap(entry -> entry.getKey(), entry -> entry.getValue()));
+            }).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         }
 
         public List<RawRecItem> getAllRelatedRecItems(List<Integer> layoutIds, boolean isAdd) {
@@ -279,7 +286,7 @@ public class OptRecService extends BasicService {
                 }
 
                 // Protect the model from being damaged
-                try (SetLogCategory logCategory = new SetLogCategory("smart")) {
+                try (SetLogCategory logCategory = new SetLogCategory(SMART)) {
                     log.info(copyForWrite.getUuid());
                 }
                 copyForWrite.keepColumnOrder();
@@ -360,9 +367,9 @@ public class OptRecService extends BasicService {
             MeasureRef measureRef = (MeasureRef) recommendationRef;
             NDataModel.Measure measure = measureRef.getMeasure();
             if (functionToMeasureMap.containsKey(measure.getFunction().toString())) {
-                try (SetLogCategory logCategory = new SetLogCategory("smart")) {
+                try (SetLogCategory logCategory = new SetLogCategory(SMART)) {
                     log.error("Fail to rewrite RawRecItem({}) for conflicting function ({})", rawRecItem.getId(),
-                            measure.getFunction().toString());
+                            measure.getFunction());
                 }
                 return;
             }
@@ -473,7 +480,7 @@ public class OptRecService extends BasicService {
                     if (isInvalidColId(nColOrder, model) || isInvalidColId(nShardBy, model)
                             || isInvalidColId(nSortBy, model) || isInvalidColId(nPartitionBy, model)
                             || (Sets.newHashSet(nColOrder).size() != colOrder.size())) {
-                        try (SetLogCategory logCategory = new SetLogCategory("smart")) {
+                        try (SetLogCategory logCategory = new SetLogCategory(SMART)) {
                             log.error("Fail to rewrite illegal RawRecItem({})", rawRecItem.getId());
                         }
                         continue;
@@ -483,7 +490,7 @@ public class OptRecService extends BasicService {
                     layout.setShardByColumns(nShardBy);
                     layout.setPartitionByColumns(nPartitionBy);
                     updateHandler.add(layout, rawRecItem.isAgg());
-                    try (SetLogCategory logCategory = new SetLogCategory("smart")) {
+                    try (SetLogCategory logCategory = new SetLogCategory(SMART)) {
                         approvedLayouts.put(layout.getId(), rawRecItem);
                         log.info("RawRecItem({}) rewrite colOrder({}) to ({})", rawRecItem.getId(), colOrder,
                                 nColOrder);
@@ -498,8 +505,9 @@ public class OptRecService extends BasicService {
             });
             logFinishRewrite("augment IndexPlan");
 
-            return layoutIds.stream().filter(id -> approvedLayouts.containsKey(id))
-                    .collect(Collectors.toMap(Function.identity(), id -> approvedLayouts.get(id)));
+            return layoutIds.stream().filter(
+                    approvedLayouts::containsKey)
+                    .collect(Collectors.toMap(Function.identity(), approvedLayouts::get));
         }
 
         private boolean isAbnormal(RawRecItem rawRecItem) {
@@ -564,14 +572,14 @@ public class OptRecService extends BasicService {
         }
 
         private void logBeginRewrite(String rewriteInfo) {
-            try (SetLogCategory logCategory = new SetLogCategory("smart")) {
+            try (SetLogCategory logCategory = new SetLogCategory(SMART)) {
                 log.info("Start to rewrite RawRecItems to {}({}/{})", rewriteInfo, recommendation.getProject(),
                         recommendation.getUuid());
             }
         }
 
         private void logFinishRewrite(String rewrite) {
-            try (SetLogCategory logCategory = new SetLogCategory("smart")) {
+            try (SetLogCategory logCategory = new SetLogCategory(SMART)) {
                 log.info("Rewrite RawRecItems to {}({}/{}) successfully", rewrite, recommendation.getProject(),
                         recommendation.getUuid());
 
@@ -581,13 +589,13 @@ public class OptRecService extends BasicService {
         private void logWriteProperty(RawRecItem recItem, Object obj) {
             if (obj instanceof NDataModel.NamedColumn) {
                 NDataModel.NamedColumn column = (NDataModel.NamedColumn) obj;
-                try (SetLogCategory logCategory = new SetLogCategory("smart")) {
+                try (SetLogCategory logCategory = new SetLogCategory(SMART)) {
                     log.info("Write RawRecItem({}) to model as Column with id({}), name({}), isDimension({})", //
                             recItem.getId(), column.getId(), column.getName(), column.isDimension());
                 }
             } else if (obj instanceof NDataModel.Measure) {
                 NDataModel.Measure measure = (NDataModel.Measure) obj;
-                try (SetLogCategory logCategory = new SetLogCategory("smart")) {
+                try (SetLogCategory logCategory = new SetLogCategory(SMART)) {
                     log.info("Write RawRecItem({}) to model as Measure with id({}), name({}) ", //
                             recItem.getId(), measure.getId(), measure.getName());
                 }
@@ -595,7 +603,7 @@ public class OptRecService extends BasicService {
         }
     }
 
-    static class RecNameChecker {
+    private static class RecNameChecker {
 
         /**
          * check whether computed column conflict with column of fact table
@@ -719,6 +727,11 @@ public class OptRecService extends BasicService {
     }
 
     public OptRecResponse approve(String project, OptRecRequest request) {
+        return modelMetadataInvoker.approve(project, request);
+    }
+
+    // Do not call this in smart-server
+    public OptRecResponse approveImpl(String project, OptRecRequest request) {
         aclEvaluate.checkProjectWritePermission(project);
         String modelId = request.getModelId();
 
@@ -781,7 +794,13 @@ public class OptRecService extends BasicService {
         return responseList;
     }
 
-    private RecToIndexResponse approveAllRecItems(String project, String modelId, String modelAlias,
+    public RecToIndexResponse approveAllRecItems(String project, String modelId, String modelAlias,
+            String recActionType) {
+        return modelMetadataInvoker.approveAllRecItems(project, modelId, modelAlias, recActionType);
+    }
+
+    // Do not call this in smart-server
+    public RecToIndexResponse approveAllRecItemsImpl(String project, String modelId, String modelAlias,
             String recActionType) {
         RecApproveContext approveContext = new RecApproveContext(project, modelId, Maps.newHashMap());
         OptRecRequest request = new OptRecRequest();
@@ -935,7 +954,7 @@ public class OptRecService extends BasicService {
         Set<Integer> allRecItemIds = Sets.newHashSet(optRecV2.getRawIds());
         Set<Integer> brokenRefIds = optRecV2.getBrokenRefIds();
         if (!allRecItemIds.contains(recItemId) || brokenRefIds.contains(recItemId)) {
-            try (SetLogCategory logCategory = new SetLogCategory("smart")) {
+            try (SetLogCategory logCategory = new SetLogCategory(SMART)) {
                 log.info("all recommendation ids {}, broken ref ids {}", allRecItemIds, brokenRefIds);
             }
             throw new KylinException(REC_LIST_OUT_OF_DATE, MsgPicker.getMsg().getRecListOutOfDate());
@@ -1137,12 +1156,8 @@ public class OptRecService extends BasicService {
 
     public void updateRecommendationCount(String project, String modelId) {
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            NDataModelManager mgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             int size = getOptRecLayoutsResponseInner(project, modelId, OptRecService.ALL).getSize();
-            NDataModel dataModel = mgr.getDataModelDesc(modelId);
-            if (dataModel != null && !dataModel.isBroken() && dataModel.getRecommendationsCount() != size) {
-                mgr.updateDataModel(modelId, copyForWrite -> copyForWrite.setRecommendationsCount(size));
-            }
+            modelMetadataInvoker.updateRecommendationsCount(project, modelId, size);
             return null;
         }, project);
     }

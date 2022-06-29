@@ -63,6 +63,7 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
+import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
 import io.kyligence.kap.rest.service.ModelSemanticHelper;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.NUserGroupService;
@@ -121,13 +122,16 @@ public class ToManyTest extends SemiAutoTestBase {
     }
 
     private void prepareACL() {
+        ModelMetadataInvoker.setDelegate(modelService);
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
         ReflectionTestUtils.setField(optRecService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(optRecService, "modelService", modelService);
+        ReflectionTestUtils.setField(optRecService, "modelMetadataInvoker", new ModelMetadataInvoker());
         ReflectionTestUtils.setField(rawRecService, "optRecService", optRecService);
         ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(modelService, "userGroupService", userGroupService);
         ReflectionTestUtils.setField(modelService, "modelChangeSupporters", Arrays.asList(rawRecService));
+        ReflectionTestUtils.setField(modelService, "optRecService", optRecService);
         ReflectionTestUtils.setField(projectService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(projectService, "userGroupService", userGroupService);
         ReflectionTestUtils.setField(projectService, "projectModelSupporter", modelService);

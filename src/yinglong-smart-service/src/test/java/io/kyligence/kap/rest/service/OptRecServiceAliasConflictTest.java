@@ -34,6 +34,7 @@ import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -49,17 +50,27 @@ import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.recommendation.v2.OptRecV2TestBase;
+import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
 import io.kyligence.kap.rest.request.OptRecRequest;
 
 public class OptRecServiceAliasConflictTest extends OptRecV2TestBase {
 
     OptRecService optRecService = Mockito.spy(new OptRecService());
+    ModelService modelService = Mockito.spy(new ModelService());
     @Mock
     private final AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
 
     public OptRecServiceAliasConflictTest() {
         super("../yinglong-smart-service/src/test/resources/ut_rec_v2/cc_name_conflict",
                 new String[] { "caa2c0a5-2957-4110-bf2e-d92a7eb7ea97" });
+    }
+
+    @Before
+    public void setUp() throws Exception {
+        super.setUp();
+        ModelMetadataInvoker.setDelegate(modelService);
+        ReflectionTestUtils.setField(optRecService, "modelMetadataInvoker", new ModelMetadataInvoker());
+        ReflectionTestUtils.setField(modelService, "optRecService", optRecService);
     }
 
     @Test

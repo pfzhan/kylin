@@ -25,11 +25,11 @@
 
 package io.kyligence.kap.rest.service;
 
-import com.unboundid.ldap.listener.InMemoryDirectoryServer;
-import com.unboundid.ldap.listener.InMemoryDirectoryServerConfig;
-import com.unboundid.ldap.listener.InMemoryListenerConfig;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import lombok.extern.slf4j.Slf4j;
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+
+import java.io.FileInputStream;
+import java.util.Properties;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.rest.service.QueryService;
@@ -52,22 +52,26 @@ import org.springframework.ldap.test.unboundid.LdapTestUtils;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.ContextHierarchy;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
-import java.io.FileInputStream;
-import java.util.Properties;
+import com.unboundid.ldap.listener.InMemoryDirectoryServer;
+import com.unboundid.ldap.listener.InMemoryDirectoryServerConfig;
+import com.unboundid.ldap.listener.InMemoryListenerConfig;
 
-import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextHierarchy({@ContextConfiguration(locations = {"classpath:applicationContext.xml"}),
         @ContextConfiguration(locations = {"classpath:kylinSecurity.xml"})})
 @WebAppConfiguration(value = "src/main/resources")
+@TestPropertySource(properties = {"spring.cloud.nacos.discovery.enabled = false"})
 @ActiveProfiles({"ldap", "ldap-test", "test"})
 public class QueryServiceWithLdapTest extends NLocalFileMetadataTestCase {
 

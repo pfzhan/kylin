@@ -78,6 +78,8 @@ import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem.RawRecType;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
 import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
+import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
+import io.kyligence.kap.rest.delegate.ProjectMetadataInvoker;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.OptRecRequest;
 import io.kyligence.kap.rest.response.LayoutRecDetailResponse;
@@ -161,13 +163,17 @@ public class SemiV2CITest extends SemiAutoTestBase {
     }
 
     private void prepareACL() {
+        ProjectMetadataInvoker.setDelegate(projectService);
+        ModelMetadataInvoker.setDelegate(modelService);
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
         ReflectionTestUtils.setField(optRecService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(optRecService, "modelService", modelService);
         ReflectionTestUtils.setField(optRecService, "indexPlanService", indexPlanService);
+        ReflectionTestUtils.setField(optRecService, "modelMetadataInvoker", new ModelMetadataInvoker());
         ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(modelService, "userGroupService", userGroupService);
         ReflectionTestUtils.setField(modelService, "modelChangeSupporters", Arrays.asList(rawRecService));
+        ReflectionTestUtils.setField(modelService, "optRecService", optRecService);
         ReflectionTestUtils.setField(modelSmartService, "optRecService", optRecService);
         ReflectionTestUtils.setField(modelSmartService, "modelService", modelService);
         ReflectionTestUtils.setField(modelSmartService, "indexPlanService", indexPlanService);
@@ -175,11 +181,13 @@ public class SemiV2CITest extends SemiAutoTestBase {
         ReflectionTestUtils.setField(modelSmartService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(projectService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(projectService, "userGroupService", userGroupService);
+        ReflectionTestUtils.setField(projectService, "projectSmartService", projectSmartService);
         ReflectionTestUtils.setField(rawRecService, "optRecService", optRecService);
         ReflectionTestUtils.setField(rawRecService, "projectSmartService", projectSmartService);
 
         ReflectionTestUtils.setField(projectSmartService, "projectSmartSupporter", rawRecService);
         ReflectionTestUtils.setField(projectSmartService, "aclEvaluate", aclEvaluate);
+        ReflectionTestUtils.setField(projectSmartService, "projectMetadataInvoker", new ProjectMetadataInvoker());
         TestingAuthenticationToken auth = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
         SecurityContextHolder.getContext().setAuthentication(auth);
     }

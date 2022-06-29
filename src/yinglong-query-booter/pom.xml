@@ -24,6 +24,10 @@
             <groupId>io.kyligence.yinglong</groupId>
             <artifactId>yinglong-query-server</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.kyligence.yinglong</groupId>
+            <artifactId>yinglong-common-server</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>com.alibaba.cloud</groupId>

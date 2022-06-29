@@ -1,2 +1,3 @@
 **/child_process
 data
+conf/kylin.properties.override

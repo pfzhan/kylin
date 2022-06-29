@@ -24,18 +24,24 @@
 
 package io.kyligence.kap.rest.delegate;
 
+import java.util.List;
+import java.util.Set;
+
+import org.apache.kylin.metadata.model.Segments;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.rest.request.AddSegmentRequest;
 import io.kyligence.kap.rest.request.DataFlowUpdateRequest;
 import io.kyligence.kap.rest.request.MergeSegmentRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
+import io.kyligence.kap.rest.request.ModelSuggestionRequest;
+import io.kyligence.kap.rest.request.OptRecRequest;
 import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
-import org.apache.kylin.metadata.model.Segments;
-import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-
-import java.util.List;
-import java.util.Set;
+import io.kyligence.kap.rest.response.OpenRecApproveResponse;
+import io.kyligence.kap.rest.response.OptRecResponse;
+import io.kyligence.kap.rest.response.SuggestionResponse;
 
 public interface ModelMetadataContract {
 
@@ -74,4 +80,19 @@ public interface ModelMetadataContract {
     void updateIndexPlan(String project, String uuid, IndexPlan indexplan, String action);
 
     void updateDataflowStatus(String project, String uuid, RealizationStatusEnum status);
+
+    void batchCreateModel(ModelSuggestionRequest request);
+
+    void updateRecommendationsCount(String project, String modelId, int size);
+
+    OptRecResponse approve(String project, OptRecRequest request);
+
+    OpenRecApproveResponse.RecToIndexResponse approveAllRecItems(String project, String modelId, String modelAlias,
+                                                                 String recActionType);
+
+    void saveNewModelsAndIndexes(String project, List<ModelRequest> newModels);
+
+    void saveRecResult(SuggestionResponse newModels, String project);
+
+    void updateModels(List<SuggestionResponse.ModelRecResponse> reusedModels, String project);
 }

@@ -66,6 +66,7 @@ import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequ
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.ContextHierarchy;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -92,6 +93,7 @@ import lombok.extern.slf4j.Slf4j;
 @ContextHierarchy({ @ContextConfiguration(locations = {"classpath:applicationContext.xml"}),
         @ContextConfiguration(locations = {"classpath:kylinSecurity.xml"}) })
 @WebAppConfiguration(value = "src/main/resources")
+@TestPropertySource(properties = {"spring.cloud.nacos.discovery.enabled = false"})
 @ActiveProfiles({ "ldap", "ldap-test", "test" })
 public class LdapUserServiceTest extends NLocalFileMetadataTestCase {
 

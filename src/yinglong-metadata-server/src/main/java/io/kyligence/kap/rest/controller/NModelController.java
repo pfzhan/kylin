@@ -46,17 +46,12 @@ import java.util.regex.Pattern;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.rest.request.AddSegmentRequest;
-import io.kyligence.kap.rest.request.DataFlowUpdateRequest;
-import io.kyligence.kap.rest.request.MergeSegmentRequest;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.CommonErrorCode;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.KylinRuntimeException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.Segments;
@@ -84,21 +79,27 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.exception.LookupTableException;
 import io.kyligence.kap.rest.constant.ModelAttributeEnum;
 import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
+import io.kyligence.kap.rest.request.AddSegmentRequest;
 import io.kyligence.kap.rest.request.AggShardByColumnsRequest;
 import io.kyligence.kap.rest.request.ComputedColumnCheckRequest;
+import io.kyligence.kap.rest.request.DataFlowUpdateRequest;
+import io.kyligence.kap.rest.request.MergeSegmentRequest;
 import io.kyligence.kap.rest.request.ModelCheckRequest;
 import io.kyligence.kap.rest.request.ModelCloneRequest;
 import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
+import io.kyligence.kap.rest.request.ModelSuggestionRequest;
 import io.kyligence.kap.rest.request.ModelUpdateRequest;
 import io.kyligence.kap.rest.request.ModelValidationRequest;
 import io.kyligence.kap.rest.request.MultiPartitionMappingRequest;
+import io.kyligence.kap.rest.request.OptRecRequest;
 import io.kyligence.kap.rest.request.OwnerChangeRequest;
 import io.kyligence.kap.rest.request.PartitionColumnRequest;
 import io.kyligence.kap.rest.request.UnlinkModelRequest;
@@ -114,7 +115,10 @@ import io.kyligence.kap.rest.response.InvalidIndexesResponse;
 import io.kyligence.kap.rest.response.ModelConfigResponse;
 import io.kyligence.kap.rest.response.ModelSaveCheckResponse;
 import io.kyligence.kap.rest.response.MultiPartitionValueResponse;
+import io.kyligence.kap.rest.response.OpenRecApproveResponse;
+import io.kyligence.kap.rest.response.OptRecResponse;
 import io.kyligence.kap.rest.response.PurgeModelAffectedResponse;
+import io.kyligence.kap.rest.response.SuggestionResponse;
 import io.kyligence.kap.rest.service.FusionIndexService;
 import io.kyligence.kap.rest.service.FusionModelService;
 import io.kyligence.kap.rest.service.IndexPlanService;
@@ -387,7 +391,7 @@ public class NModelController extends NBasicController {
             String json = modelService.getModelJson(modelId, project);
             return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, json, "");
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("can not get model json " + e);
+            throw new KylinRuntimeException("can not get model json " + e);
         }
     }
 
@@ -403,7 +407,7 @@ public class NModelController extends NBasicController {
             String sql = modelService.getModelSql(modelId, project);
             return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, sql, "");
         } catch (Exception e) {
-            throw new RuntimeException("can not get model sql, " + e);
+            throw new KylinRuntimeException("can not get model sql, " + e);
         }
     }
 
@@ -815,6 +819,56 @@ public class NModelController extends NBasicController {
         checkProjectName(project);
         modelService.deletePartitions(project, null, modelId, Sets.newHashSet(ids));
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
+    }
+
+    // feign API for smart module
+
+    @PostMapping(value = "/feign/batch_save_models")
+    @ResponseBody
+    public void batchCreateModel(@RequestBody ModelSuggestionRequest request) {
+        modelService.batchCreateModel(request);
+    }
+
+    @PostMapping(value = "/feign/update_recommendations_count")
+    @ResponseBody
+    public void updateRecommendationsCount(@RequestParam("project") String project,
+                                           @RequestParam("modelId") String modelId, @RequestParam("size") int size) {
+        modelService.updateRecommendationsCount(project, modelId, size);
+    }
+
+    @PostMapping(value = "/feign/approve")
+    @ResponseBody
+    public OptRecResponse approve(@RequestParam("project") String project, @RequestBody OptRecRequest request) {
+        return modelService.approve(project, request);
+    }
+
+    @PostMapping(value = "/feign/approve_all_rec_items")
+    @ResponseBody
+    public OpenRecApproveResponse.RecToIndexResponse approveAllRecItems(@RequestParam("project") String project,
+                                                                        @RequestParam("modelId") String modelId, @RequestParam("modelAlias") String modelAlias,
+                                                                        @RequestParam("recActionType") String recActionType) {
+        return modelService.approveAllRecItems(project, modelId, modelAlias, recActionType);
+    }
+
+    @PostMapping(value = "/feign/save_new_models_and_indexes")
+    @ResponseBody
+    public void saveNewModelsAndIndexes(@RequestParam("project") String project,
+                                        @RequestBody List<ModelRequest> newModels) {
+        modelService.saveNewModelsAndIndexes(project, newModels);
+    }
+
+    @PostMapping(value = "/feign/save_rec_result")
+    @ResponseBody
+    public void saveRecResult(@RequestBody SuggestionResponse modelSuggestionResponse,
+                              @RequestParam("project") String project) {
+        modelService.saveRecResult(modelSuggestionResponse, project);
+    }
+
+    @PostMapping(value = "/feign/update_models")
+    @ResponseBody
+    public void updateModels(@RequestBody List<SuggestionResponse.ModelRecResponse> reusedModels,
+                             @RequestParam("project") String project) {
+        modelService.updateModels(reusedModels, project);
     }
 
     // feign API for data_loading module

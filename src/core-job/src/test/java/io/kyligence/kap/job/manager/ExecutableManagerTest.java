@@ -84,7 +84,6 @@ import io.kyligence.kap.job.execution.DefaultChainedExecutable;
 import io.kyligence.kap.job.execution.DefaultChainedExecutableOnModel;
 import io.kyligence.kap.job.execution.EmailNotificationContent;
 import io.kyligence.kap.job.execution.Executable;
-import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import lombok.val;
