@@ -23,11 +23,11 @@ package io.kyligence.kap.engine.spark.builder
 
 import java.util.Set
 
-import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory
+import io.kyligence.kap.metadata.cube.cuboid.{AdaptiveSpanningTree, NSpanningTreeFactory}
 import io.kyligence.kap.metadata.cube.model.{NDataSegment, NDataflow, NDataflowManager}
 import org.apache.commons.lang3.RandomStringUtils
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.Path
+import org.apache.hadoop.fs.{Path, PathFilter}
 import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.TaskContext
@@ -128,6 +128,45 @@ class TestGlobalDictBuild extends SparderBaseFunSuite with SharedSparkSession wi
     randomDataSet = generateOriginData(51, 21)
     val thrown = the[NoRetryException] thrownBy buildDict(seg, randomDataSet, dictColSet)
     thrown.printStackTrace()
+  }
+
+  test("shuffle partition equals min hash partitions") {
+    val dataflowMgr = NDataflowManager.getInstance(getTestConfig, DEFAULT_PROJECT)
+    val dataflow = dataflowMgr.getDataflow(CUBE_NAME)
+
+    val shufflePartitionSize = spark.conf.get("spark.sql.shuffle.partitions")
+    val shufflePartitionSizeInt = shufflePartitionSize.toInt
+    val segment = dataflow.getLastSegment
+    segment.getConfig.setProperty("kylin.dictionary.globalV2-min-hash-partitions", shufflePartitionSize)
+    segment.getConfig.setProperty("kylin.engine.global-dict-check-enabled", "TRUE")
+    val spanningTree = new AdaptiveSpanningTree(getTestConfig, //
+      new AdaptiveSpanningTree.AdaptiveTreeBuilder(segment, //
+        dataflow.getIndexPlan.getAllLayouts))
+    val dictColSet = DictionaryBuilderHelper.extractTreeRelatedGlobalDicts(segment, spanningTree.getIndices)
+    val dictCol = dictColSet.iterator().next()
+    val dictV2 = new NGlobalDictionaryV2(segment.getProject, dictCol.getTable, dictCol.getName,
+      segment.getConfig.getHdfsWorkingDirectory)
+    val dictPath = new Path(segment.getConfig.getHdfsWorkingDirectory + dictV2.getResourceDir)
+    val fileSystem = dictPath.getFileSystem(new Configuration())
+    fileSystem.delete(dictPath, true)
+
+    val sampleDS = generateOriginData(200, 10)
+
+    val dictColumn = col(dataflow.getModel.getColumnIdByColumnName(dictCol.getIdentity).toString)
+    val distinctDS = sampleDS.select(dictColumn).distinct()
+    val dictBuilder = new DFDictionaryBuilder(sampleDS, segment, spark, dictColSet)
+    dictBuilder.build(dictCol, shufflePartitionSizeInt, distinctDS)
+
+    val dictStore = NGlobalDictStoreFactory.getResourceStore(segment.getConfig.getHdfsWorkingDirectory + dictV2.getResourceDir)
+    val versionPath = dictStore.getVersionDir(dictStore.listAllVersions()(0))
+
+    val dictDirSize = fileSystem.listStatus(versionPath, new PathFilter {
+      override def accept(path: Path): Boolean = {
+        path.getName.startsWith("CURR_")
+      }
+    }).length
+
+    Assert.assertEquals(shufflePartitionSizeInt, dictDirSize)
   }
 
   def buildDict(seg: NDataSegment, randomDataSet: Dataset[Row], dictColSet: Set[TblColRef]): NGlobalDictMetaInfo = {

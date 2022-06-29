@@ -21,6 +21,9 @@
  */
 package io.kyligence.kap.engine.spark.builder
 
+import java.io.IOException
+import java.util
+
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil
 import io.kyligence.kap.engine.spark.utils.LogEx
 import io.kyligence.kap.metadata.cube.model.NDataSegment
@@ -31,15 +34,11 @@ import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.TaskContext
 import org.apache.spark.application.NoRetryException
 import org.apache.spark.dict.NGlobalDictionaryV2
-import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.functions.{col, expr}
 import org.apache.spark.sql.types.StringType
 import org.apache.spark.sql.{Column, Dataset, Row, SparkSession}
 
-import java.io.IOException
-import java.util
 import scala.collection.JavaConverters._
-import scala.collection.mutable.ListBuffer
 
 class DFDictionaryBuilder(
                            val dataset: Dataset[Row],
@@ -94,21 +93,19 @@ class DFDictionaryBuilder(
 
     ss.sparkContext.setJobDescription("Build dict " + ref.getIdentity)
     val dictCol = col(afterDistinct.schema.fields.head.name)
-    val df = afterDistinct
-      .filter(dictCol.isNotNull)
+    afterDistinct.filter(dictCol.isNotNull)
       .repartition(bucketPartitionSize, dictCol)
-      .mapPartitions {
-        iter =>
-          val partitionID = TaskContext.get().partitionId()
-          logInfo(s"Build partition dict col: ${ref.getIdentity}, partitionId: $partitionID")
-          val broadcastGlobalDict = broadcastDict.value
-          val bucketDict = broadcastGlobalDict.loadBucketDictionary(partitionID)
-          iter.foreach(dic => bucketDict.addRelativeValue(dic.getString(0)))
+      // https://issues.apache.org/jira/browse/SPARK-32051
+      .foreachPartition((iter: Iterator[Row]) => {
+        val partitionID = TaskContext.get().partitionId()
+        logInfo(s"Build partition dict col: ${ref.getIdentity}, partitionId: $partitionID")
+        val broadcastGlobalDict = broadcastDict.value
+        val bucketDict = broadcastGlobalDict.loadBucketDictionary(partitionID)
+        iter.foreach(r => bucketDict.addRelativeValue(r.getString(0)))
 
-          bucketDict.saveBucketDict(partitionID)
-          ListBuffer.empty.iterator
-      }(RowEncoder.apply(schema = afterDistinct.schema))
-    df.count()
+        bucketDict.saveBucketDict(partitionID)
+      })
+
     globalDict.writeMetaDict(bucketPartitionSize, seg.getConfig.getGlobalDictV2MaxVersions, seg.getConfig.getGlobalDictV2VersionTTL)
 
     if (seg.getConfig.isGlobalDictCheckEnabled) {
