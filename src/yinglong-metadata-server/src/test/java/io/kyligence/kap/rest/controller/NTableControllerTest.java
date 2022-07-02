@@ -34,6 +34,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
+import io.kyligence.kap.rest.request.S3TableExtInfo;
+import io.kyligence.kap.rest.request.AWSTableLoadRequest;
+import io.kyligence.kap.rest.request.UpdateAWSTableExtDescRequest;
+import io.kyligence.kap.rest.response.UpdateAWSTableExtDescResponse;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
@@ -342,6 +346,75 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
 
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
         Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(), errorMsg));
+    }
+
+    @Test
+    public void testLoadAWSTablesCompatibleCrossAccount() throws Exception {
+        List<S3TableExtInfo> s3TableExtInfoList = new ArrayList<>();
+        S3TableExtInfo s3TableExtInfo = new S3TableExtInfo();
+        s3TableExtInfo.setName("DEFAULT.TABLE0");
+        s3TableExtInfo.setLocation("s3://bucket1/test1/");
+        S3TableExtInfo s3TableExtInfo2 = new S3TableExtInfo();
+        s3TableExtInfo2.setName("DEFAULT.TABLE1");
+        s3TableExtInfo2.setLocation("s3://bucket2/test2/");
+        s3TableExtInfo2.setEndpoint("us-west-2.amazonaws.com");
+        s3TableExtInfo2.setRoleArn("test:role1");
+        s3TableExtInfoList.add(s3TableExtInfo);
+        s3TableExtInfoList.add(s3TableExtInfo2);
+
+        AWSTableLoadRequest tableLoadRequest = new AWSTableLoadRequest();
+        tableLoadRequest.setProject("default");
+        tableLoadRequest.setDataSourceType(9);
+        tableLoadRequest.setTables(s3TableExtInfoList);
+
+        Set<String> loaded = Sets.newHashSet("TABLE0");
+        Set<String> failed = Sets.newHashSet("TABLE1");
+        LoadTableResponse loadTableResponse = new LoadTableResponse();
+        loadTableResponse.setLoaded(loaded);
+        loadTableResponse.setFailed(failed);
+
+        Mockito.when(tableExtService.loadAWSTablesCompatibleCrossAccount(tableLoadRequest.getTables(),
+                        "default")).thenReturn(loadTableResponse);
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/compatibility/aws") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .content(JsonUtil.writeValueAsString(tableLoadRequest)) //
+                .accept(MediaType.parseMediaType(APPLICATION_JSON))).andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nTableController).loadAWSTablesCompatibleCrossAccount(Mockito.any(AWSTableLoadRequest.class));
+    }
+
+    @Test
+    public void testUpdateLoadedTableExtProp() throws Exception {
+        List<S3TableExtInfo> s3TableExtInfoList = new ArrayList<>();
+        S3TableExtInfo s3TableExtInfo = new S3TableExtInfo();
+        s3TableExtInfo.setName("DEFAULT.TABLE0");
+        s3TableExtInfo.setLocation("s3://bucket11/test11/");
+        S3TableExtInfo s3TableExtInfo2 = new S3TableExtInfo();
+        s3TableExtInfo2.setName("DEFAULT.TABLE1");
+        s3TableExtInfo2.setLocation("s3://bucket22/test22/");
+        s3TableExtInfo2.setEndpoint("us-west-2.amazonaws.com");
+        s3TableExtInfo2.setRoleArn("test:role2");
+        s3TableExtInfoList.add(s3TableExtInfo);
+        s3TableExtInfoList.add(s3TableExtInfo2);
+
+        UpdateAWSTableExtDescRequest request = new UpdateAWSTableExtDescRequest();
+        request.setProject("default");
+        request.setTables(s3TableExtInfoList);
+
+        Set<String> succeed = Sets.newHashSet("TABLE0");
+        Set<String> failed = Sets.newHashSet("TABLE1");
+        UpdateAWSTableExtDescResponse updateTableExeDescResponse = new UpdateAWSTableExtDescResponse();
+        updateTableExeDescResponse.setSucceed(succeed);
+        updateTableExeDescResponse.setFailed(failed);
+
+        Mockito.when(tableExtService.updateAWSLoadedTableExtProp(request))
+                .thenReturn(updateTableExeDescResponse);
+
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/tables/ext/prop/aws") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .content(JsonUtil.writeValueAsString(request)) //
+                .accept(MediaType.parseMediaType(APPLICATION_JSON))).andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nTableController).updateLoadedAWSTableExtProp(Mockito.any(UpdateAWSTableExtDescRequest.class));
     }
 
     @Test

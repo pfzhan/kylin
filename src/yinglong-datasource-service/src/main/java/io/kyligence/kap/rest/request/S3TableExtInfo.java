@@ -25,26 +25,14 @@
 package io.kyligence.kap.rest.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-
-import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.Data;
-import org.apache.kylin.job.dao.ExecutablePO;
 
 @Data
-public class OpenReloadTableRequest implements ProjectInsensitiveRequest {
-    @JsonProperty("project")
-    private String project;
-    @JsonProperty("table")
-    private String table;
-    @JsonProperty("s3_table_ext_info")
-    private S3TableExtInfo s3TableExtInfo;
-    @JsonProperty("need_sampling")
-    private Boolean needSampling;
-    @JsonProperty("sampling_rows")
-    private int samplingRows;
-    @JsonProperty("need_building")
-    private Boolean needBuilding = false;
-    private int priority = ExecutablePO.DEFAULT_PRIORITY;
-    @JsonProperty("yarn_queue")
-    private String yarnQueue;
+public class S3TableExtInfo {
+    // format:db.table->uppercase
+    private String name;
+    private String location;
+    @JsonProperty("role_arn")
+    private String roleArn;
+    private String endpoint;
 }

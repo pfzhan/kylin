@@ -28,6 +28,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.kyligence.kap.rest.request.S3TableExtInfo;
+import io.kyligence.kap.rest.request.UpdateAWSTableExtDescRequest;
+import io.kyligence.kap.rest.response.UpdateAWSTableExtDescResponse;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.RandomUtil;
@@ -101,6 +104,75 @@ public class TableExtServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testLoadAWSTablesCompatibleCrossAccount() throws Exception {
+        String[] tableNames = { "TABLE0", "TABLE1" };
+        List<S3TableExtInfo> crossAccountTableReq = new ArrayList<>();
+        S3TableExtInfo s3TableExtInfo1 = new S3TableExtInfo();
+        s3TableExtInfo1.setName("DEFAULT.TABLE0");
+        s3TableExtInfo1.setLocation("s3://bucket1/test1/");
+        S3TableExtInfo s3TableExtInfo2 = new S3TableExtInfo();
+        s3TableExtInfo2.setName("DEFAULT.TABLE1");
+        s3TableExtInfo2.setLocation("s3://bucket2/test2/");
+        s3TableExtInfo2.setEndpoint("us-west-2.amazonaws.com");
+        s3TableExtInfo2.setRoleArn("test:role");
+        crossAccountTableReq.add(s3TableExtInfo1);
+        crossAccountTableReq.add(s3TableExtInfo2);
+        List<Pair<TableDesc, TableExtDesc>> result = mockTablePair(2, "DEFAULT", "TABLE");
+        Mockito.doReturn(result).when(tableService).extractTableMeta(Mockito.any(), Mockito.any());
+        Mockito.doNothing().when(tableExtService).loadTable(result.get(0).getFirst(), result.get(0).getSecond(),
+                "default");
+        Mockito.doNothing().when(tableExtService).loadTable(result.get(1).getFirst(), result.get(1).getSecond(),
+                "default");
+        Mockito.doReturn(Lists.newArrayList(tableNames)).when(tableService).getSourceTableNames("default", "DEFAULT",
+                "");
+        Mockito.doReturn(Lists.newArrayList("DEFAULT")).when(tableService).getSourceDbNames("default");
+
+        LoadTableResponse response = tableExtService.loadAWSTablesCompatibleCrossAccount(crossAccountTableReq, "default");
+        Assert.assertEquals(2, response.getLoaded().size());
+
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.env.use-dynamic-S3-role-credential-in-table", "true");
+        LoadTableResponse response2 = tableExtService.loadAWSTablesCompatibleCrossAccount(crossAccountTableReq, "default");
+        Assert.assertEquals(2, response2.getLoaded().size());
+    }
+
+    @Test
+    public void testUpdateAWSLoadedTableExtProp(){
+        UpdateAWSTableExtDescRequest request = new UpdateAWSTableExtDescRequest();
+        List<S3TableExtInfo> tableExtInfoList = new ArrayList<>();
+        S3TableExtInfo s3TableExtInfo1 = new S3TableExtInfo();
+        s3TableExtInfo1.setName("DEFAULT.TABLE0");
+        s3TableExtInfo1.setLocation("s3://bucket1/test1/");
+        S3TableExtInfo s3TableExtInfo2 = new S3TableExtInfo();
+        s3TableExtInfo2.setName("DEFAULT.TABLE1");
+        s3TableExtInfo2.setLocation("s3://bucket2/test2/");
+        s3TableExtInfo2.setEndpoint("us-west-2.amazonaws.com");
+        s3TableExtInfo2.setRoleArn("test:role");
+        tableExtInfoList.add(s3TableExtInfo1);
+        tableExtInfoList.add(s3TableExtInfo2);
+        request.setProject("default");
+        request.setTables(tableExtInfoList);
+
+        TableExtDesc tableExtDesc = new TableExtDesc();
+        tableExtDesc.setUuid(RandomUtil.randomUUIDStr());
+        tableExtDesc.setIdentity("DEFAULT.TABLE1");
+        TableDesc tableDesc = new TableDesc();
+        tableDesc.setName("TABLE1");
+        tableDesc.setDatabase("DEFAULT");
+        tableDesc.setUuid(RandomUtil.randomUUIDStr());
+        NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                "default");
+        tableMetadataManager.saveTableExt(tableExtDesc);
+        tableMetadataManager.saveSourceTable(tableDesc);
+
+        UpdateAWSTableExtDescResponse response = tableExtService.updateAWSLoadedTableExtProp(request);
+        Assert.assertEquals(1, response.getSucceed().size());
+
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.env.use-dynamic-S3-role-credential-in-table", "true");
+        UpdateAWSTableExtDescResponse response2 = tableExtService.updateAWSLoadedTableExtProp(request);
+        Assert.assertEquals(1, response2.getSucceed().size());
+    }
+
+    @Test
     public void testLoadTablesByDatabase() throws Exception {
         String[] tableIdentities = { "EDW.TEST_CAL_DT", "EDW.TEST_SELLER_TYPE_DIM", "EDW.TEST_SITES" };
         String[] tableNames = { "TEST_CAL_DT", "TEST_SELLER_TYPE_DIM", "TEST_SITES" };
@@ -166,6 +238,18 @@ public class TableExtServiceTest extends NLocalFileMetadataTestCase {
             table1.setName(tableName + i);
             TableExtDesc tableExt1 = new TableExtDesc();
             result.add(Pair.newPair(table1, tableExt1));
+        }
+        return result;
+    }
+
+    private List<Pair<TableDesc, TableExtDesc>> mockTablePair(int size, String dbName, String tableName) {
+        List<Pair<TableDesc, TableExtDesc>> result = new ArrayList<>();
+        for (int i = 0; i < size; i++) {
+            TableDesc tableDesc = new TableDesc();
+            tableDesc.setDatabase(dbName);
+            tableDesc.setName(tableName + i);
+            TableExtDesc tableExt1 = new TableExtDesc();
+            result.add(Pair.newPair(tableDesc, tableExt1));
         }
         return result;
     }
