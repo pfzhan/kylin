@@ -613,7 +613,7 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class SnapshotPartitionInfo {
+    public static class SnapshotPartitionInfo implements Serializable {
 
         @JsonProperty("total_rows")
         private long totalRows;
