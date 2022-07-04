@@ -193,6 +193,7 @@ public class JdbcJobScheduler implements JobScheduler {
                 if (!jobContext.getParallelLimiter().tryAcquire()) {
                     return;
                 }
+
                 JdbcUtil.withTransaction(jobContext.getTransactionManager(), () -> {
                     int r = jobContext.getJobLockMapper().upsertLock(jobId, null, 0L);
                     if (r > 0) {

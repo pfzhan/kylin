@@ -110,6 +110,7 @@ import io.kyligence.kap.job.execution.DefaultChainedExecutable;
 import io.kyligence.kap.job.execution.DefaultChainedExecutableOnModel;
 import io.kyligence.kap.job.execution.handler.ExecutableHandler;
 import io.kyligence.kap.job.execution.stage.StageBase;
+import io.kyligence.kap.job.mapper.JobMapperUTUtil;
 import io.kyligence.kap.job.rest.JobMapperFilter;
 import io.kyligence.kap.job.util.JobInfoUtil;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
@@ -129,7 +130,7 @@ public class ExecutableManager {
     private final KylinConfig config;
     private String project;
 
-    private final JobInfoDao jobInfoDao;
+    private JobInfoDao jobInfoDao;
 
     private static final Set<String> REMOVE_INFO = Sets.newHashSet(ExecutableConstants.YARN_APP_ID,
             ExecutableConstants.YARN_APP_URL, ExecutableConstants.YARN_JOB_WAIT_TIME,
@@ -150,7 +151,15 @@ public class ExecutableManager {
         log.trace("Using metadata url: {}", config);
         this.config = config;
         this.project = project;
-        this.jobInfoDao = SpringContext.getBean(JobInfoDao.class);
+        getJobInfoDao(this.config);
+    }
+
+    private void getJobInfoDao(KylinConfig config) {
+        if (KylinConfig.getInstanceFromEnv().isUTEnv()) {
+            this.jobInfoDao = JobMapperUTUtil.getJobInfoDaoForTest(config);
+        } else {
+            this.jobInfoDao = SpringContext.getBean(JobInfoDao.class);
+        }
     }
 
     public static ExecutablePO toPO(AbstractExecutable executable, String project) {

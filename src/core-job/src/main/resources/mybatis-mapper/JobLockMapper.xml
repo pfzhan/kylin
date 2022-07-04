@@ -135,8 +135,8 @@
     <trim suffixOverrides=",">
       id = id,
       <if test="lockNode != null">
-        lock_node = IF (lock_expire_time IS NULL OR lock_expire_time <![CDATA[<]]> CURRENT_TIMESTAMP, VALUES(lock_node), lock_node),
-        lock_expire_time = IF (lock_node = VALUES(lock_node) OR lock_expire_time IS NULL OR lock_expire_time <![CDATA[<]]> CURRENT_TIMESTAMP, VALUES(lock_expire_time), lock_expire_time),
+        lock_node = CASE WHEN lock_expire_time IS NULL OR lock_expire_time <![CDATA[<]]> CURRENT_TIMESTAMP THEN VALUES(lock_node) ELSE lock_node END,
+        lock_expire_time = CASE WHEN lock_node = VALUES(lock_node) OR lock_expire_time IS NULL OR lock_expire_time <![CDATA[<]]> CURRENT_TIMESTAMP THEN VALUES(lock_expire_time) ELSE lock_expire_time END,
       </if>
     </trim>
   </insert>

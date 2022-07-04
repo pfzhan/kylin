@@ -25,8 +25,8 @@
 package io.kyligence.kap.job;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Resource;
 
@@ -42,7 +42,9 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.stereotype.Component;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.job.core.AbstractJobConfig;
@@ -78,7 +80,7 @@ public class JobContext implements InitializingBean, DisposableBean {
     @Autowired
     private DataSourceTransactionManager transactionManager;
 
-    private ConcurrentHashMap<String, Boolean> projectReachQuotaLimitMap;
+    private Map<String, Boolean> projectReachQuotaLimitMap;
 
     private ParallelLimiter parallelLimiter;
     private ResourceAcquirer resourceAcquirer;
@@ -108,22 +110,48 @@ public class JobContext implements InitializingBean, DisposableBean {
             parallelLimiter.destroy();
         }
 
-        if (Objects.nonNull(lockClient)) {
-            lockClient.destroy();
-        }
-
         if (Objects.nonNull(jobScheduler)) {
             jobScheduler.destroy();
         }
 
+        if (Objects.nonNull(lockClient)) {
+            lockClient.destroy();
+        }
+
+    }
+
+    // for ut only
+    @VisibleForTesting
+    public void setJobInfoMapper(JobInfoMapper jobInfoMapper) {
+        this.jobInfoMapper = jobInfoMapper;
+    }
+
+    // for ut only
+    @VisibleForTesting
+    public void setJobLockMapper(JobLockMapper jobLockMapper) {
+        this.jobLockMapper = jobLockMapper;
+    }
+
+    // for ut only
+    @VisibleForTesting
+    public void setTransactionManager(DataSourceTransactionManager transactionManager) {
+        this.transactionManager = transactionManager;
     }
 
     @Override
     public void afterPropertiesSet() throws Exception {
+        init();
+    }
 
+    // for ut only
+    @VisibleForTesting
+    public void init() {
         serverNode = AddressUtil.getLocalInstance();
 
-        jobConfig = new FileJobConfig();
+        // for UT, jobConfig can be set by UT
+        if (null == jobConfig) {
+            jobConfig = new FileJobConfig();
+        }
 
         resourceAcquirer = new ResourceAcquirer(jobConfig);
         resourceAcquirer.start();
@@ -140,6 +168,7 @@ public class JobContext implements InitializingBean, DisposableBean {
         jobScheduler = new JdbcJobScheduler(this);
         jobScheduler.start();
 
+        projectReachQuotaLimitMap = Maps.newConcurrentMap();
         QuotaStorageCheckRunner quotaStorageCheckRunner = new QuotaStorageCheckRunner(this);
         JobCheckUtil.startQuotaStorageCheckRunner(quotaStorageCheckRunner);
 
@@ -149,6 +178,12 @@ public class JobContext implements InitializingBean, DisposableBean {
 
     public String getServerNode() {
         return serverNode;
+    }
+
+    // for ut only
+    @VisibleForTesting
+    public void setJobConfig(AbstractJobConfig jobConfig) {
+        this.jobConfig = jobConfig;
     }
 
     public AbstractJobConfig getJobConfig() {
@@ -205,6 +240,9 @@ public class JobContext implements InitializingBean, DisposableBean {
     }
 
     public boolean isProjectReachQuotaLimit(String project) {
+        if (!projectReachQuotaLimitMap.containsKey(project)) {
+            return false;
+        }
         return projectReachQuotaLimitMap.get(project);
     }
 }

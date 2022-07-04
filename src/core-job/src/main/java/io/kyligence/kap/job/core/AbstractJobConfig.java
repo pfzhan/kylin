@@ -33,9 +33,14 @@ import org.apache.kylin.common.util.CliCommandExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 
 public abstract class AbstractJobConfig {
+
+    private long jobSchedulerMasterPollIntervalSec = 30L;
+
+    private long jobSchedulerSlavePollIntervalSec = 20L;
 
     private static final Logger logger = LoggerFactory.getLogger(AbstractJobConfig.class);
 
@@ -66,7 +71,13 @@ public abstract class AbstractJobConfig {
     }
 
     public long getJobSchedulerMasterPollIntervalSec() {
-        return 30L;
+        return jobSchedulerMasterPollIntervalSec;
+    }
+
+    // for ut only
+    @VisibleForTesting
+    public void setJobSchedulerMasterPollIntervalSec(long val) {
+        jobSchedulerMasterPollIntervalSec = val;
     }
 
     public double getJobSchedulerMasterRenewalRatio() {
@@ -82,7 +93,13 @@ public abstract class AbstractJobConfig {
     }
 
     public long getJobSchedulerSlavePollIntervalSec() {
-        return 20L;
+        return jobSchedulerSlavePollIntervalSec;
+    }
+
+    // for ut only
+    @VisibleForTesting
+    public void setJobSchedulerSlavePollIntervalSec(long val) {
+        jobSchedulerSlavePollIntervalSec = val;
     }
 
     public double getJobSchedulerJobRenewalRatio() {

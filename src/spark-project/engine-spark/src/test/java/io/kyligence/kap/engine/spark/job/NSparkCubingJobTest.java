@@ -87,6 +87,7 @@ import io.kyligence.kap.job.execution.NSparkMergingJob;
 import io.kyligence.kap.job.execution.merger.AfterBuildResourceMerger;
 import io.kyligence.kap.job.execution.step.NSparkCubingStep;
 import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.job.mapper.JobMapperUTUtil;
 import io.kyligence.kap.job.util.ExecutableUtils;
 import io.kyligence.kap.metadata.cube.cuboid.NCuboidLayoutChooser;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
@@ -118,27 +119,21 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     private KylinConfig config;
 
     @Before
-    public void setup() {
+    public void setup() throws Exception {
         ss.sparkContext().setLogLevel("ERROR");
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         overwriteSystemProp("kylin.engine.persist-flattable-threshold", "0");
         overwriteSystemProp("kylin.engine.persist-flatview", "true");
 
-        //TODO need to be rewritten
-        //        NDefaultScheduler.destroyInstance();
-        //        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        //        scheduler.init(new JobEngineConfig(getTestConfig()));
-        //        if (!scheduler.hasStarted()) {
-        //            throw new RuntimeException("scheduler has not been started");
-        //        }
-
         config = getTestConfig();
+
+        JobMapperUTUtil.cleanUp();
+        JobMapperUTUtil.getJobContextForTest(config);
     }
 
     @After
-    public void after() {
-        //TODO need to be rewritten
-        // NDefaultScheduler.destroyInstance();
+    public void after() throws Exception {
+        JobMapperUTUtil.cleanUp();
         cleanupTestMetadata();
     }
 
@@ -735,8 +730,8 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         execMgr.addJob(job2);
         execMgr.addJob(refreshJob);
 
-        execMgr.updateJobOutput(job1.getId(), ExecutableState.READY);
-        execMgr.updateJobOutput(job2.getId(), ExecutableState.READY);
+        //execMgr.updateJobOutput(job1.getId(), ExecutableState.READY);
+        //execMgr.updateJobOutput(job2.getId(), ExecutableState.READY);
         Assert.assertTrue(job1.safetyIfDiscard());
         Assert.assertTrue(job2.safetyIfDiscard());
 
@@ -744,7 +739,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         NSparkCubingJob job3 = NSparkCubingJob.create(Sets.newHashSet(thirdSeg), Sets.newLinkedHashSet(round1), "ADMIN",
                 JobTypeEnum.INC_BUILD, RandomUtil.randomUUIDStr(), Sets.newHashSet(), null, null);
         execMgr.addJob(job3);
-        execMgr.updateJobOutput(job1.getId(), ExecutableState.RUNNING);
+        await().untilAsserted(() -> Assert.assertEquals(ExecutableState.RUNNING, job1.getStatus()));
         Assert.assertTrue(job1.safetyIfDiscard());
         Assert.assertFalse(job2.safetyIfDiscard());
         Assert.assertTrue(job3.safetyIfDiscard());
@@ -767,7 +762,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         NSparkCubingJob job4 = NSparkCubingJob.create(Sets.newHashSet(singleSeg), Sets.newLinkedHashSet(round2),
                 "ADMIN", JobTypeEnum.INC_BUILD, RandomUtil.randomUUIDStr(), Sets.newHashSet(), null, null);
         execMgr.addJob(job4);
-        execMgr.updateJobOutput(job4.getId(), ExecutableState.RUNNING);
+        await().untilAsserted(() -> Assert.assertEquals(ExecutableState.RUNNING, job4.getStatus()));
 
         dsMgr.dropDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertTrue(job4.checkSuicide());

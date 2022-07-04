@@ -101,7 +101,7 @@ public enum ExecutableState {
     }
 
     public boolean isProgressing() {
-        return this == READY || this == RUNNING;
+        return this == READY || this == RUNNING || this == PENDING;
     }
 
     public boolean isFinalState() {

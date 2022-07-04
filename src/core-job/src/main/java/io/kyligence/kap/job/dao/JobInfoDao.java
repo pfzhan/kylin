@@ -41,6 +41,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.job.domain.JobInfo;
@@ -61,6 +62,18 @@ public class JobInfoDao {
 
     @Autowired(required = false)
     private ModelMetadataBaseInvoker modelMetadataInvoker;
+
+    // for ut only
+    @VisibleForTesting
+    public void setJobInfoMapper(JobInfoMapper jobInfoMapper) {
+        this.jobInfoMapper = jobInfoMapper;
+    }
+
+    // for ut only
+    @VisibleForTesting
+    public void setModelMetadataInvoker(ModelMetadataBaseInvoker modelMetadataInvoker) {
+        this.modelMetadataInvoker = modelMetadataInvoker;
+    }
 
     public List<JobInfo> getJobInfoListByFilter(final JobMapperFilter jobMapperFilter) {
         List<JobInfo> jobInfoList = jobInfoMapper.selectByJobFilter(jobMapperFilter);
