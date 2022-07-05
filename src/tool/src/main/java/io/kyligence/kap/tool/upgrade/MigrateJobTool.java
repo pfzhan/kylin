@@ -126,9 +126,9 @@ public class MigrateJobTool extends ExecutableApplication {
                         || JobTypeEnum.INDEX_REFRESH == executable.getJobType()
                         || JobTypeEnum.SUB_PARTITION_REFRESH == executable.getJobType()
                         || JobTypeEnum.INDEX_MERGE == executable.getJobType())
-                .filter(executable -> ExecutableState.RUNNING == executable.getStatus()
-                        || ExecutableState.ERROR == executable.getStatus()
-                        || ExecutableState.PAUSED == executable.getStatus())
+                .filter(executable -> ExecutableState.RUNNING == executable.getStatusInMem()
+                        || ExecutableState.ERROR == executable.getStatusInMem()
+                        || ExecutableState.PAUSED == executable.getStatusInMem())
                 .collect(Collectors.toList());
 
         for (AbstractExecutable executeJob : executeJobs) {

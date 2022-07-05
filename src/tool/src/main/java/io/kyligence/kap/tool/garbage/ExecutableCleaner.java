@@ -60,7 +60,7 @@ public class ExecutableCleaner extends MetadataCleaner {
             if ((System.currentTimeMillis() - job.getCreateTime()) < expirationTime) {
                 return false;
             }
-            ExecutableState state = job.getStatus();
+            ExecutableState state = job.getStatusInMem();
             if (!state.isFinalState()) {
                 return false;
             }

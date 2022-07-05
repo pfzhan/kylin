@@ -441,7 +441,7 @@ public class StorageCleaner {
                     .map(e -> project + JOB_TMP_ROOT + "/" + e.getId()).collect(Collectors.toSet());
             List<FileTreeNode> jobTemps = allFileSystems.iterator().next().getProject(project).getJobTmps();
             Set<String> discardJobs = executableManager.getAllExecutables().stream()
-                    .filter(e -> e.getStatus() == ExecutableState.DISCARDED)
+                    .filter(e -> e.getStatusInMem() == ExecutableState.DISCARDED)
                     .map(e -> project + JOB_TMP_ROOT + "/" + e.getId()).collect(Collectors.toSet());
             doExecuteCmd(collectDropTemporaryTransactionTable(jobTemps, activeJobs, discardJobs));
         }

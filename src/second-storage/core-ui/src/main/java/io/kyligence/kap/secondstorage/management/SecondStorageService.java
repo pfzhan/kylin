@@ -42,6 +42,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.job.execution.AbstractExecutable;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.SecondStorageConfig;
@@ -789,7 +790,7 @@ public class SecondStorageService extends BasicService implements SecondStorageU
         val executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val allJobs = executableManager.getJobs().stream()
                 .map(executableManager::getJob)
-                .filter(job -> SecondStorageUtil.RUNNING_STATE.contains(job.getStatus()))
+                .filter(job -> SecondStorageUtil.RUNNING_STATE.contains(job.getStatusInMem()))
                 .filter(job -> SecondStorageUtil.RELATED_JOBS.contains(job.getJobType()))
                 .collect(Collectors.toList());
         if (allJobs.isEmpty()) {
@@ -826,8 +827,8 @@ public class SecondStorageService extends BasicService implements SecondStorageU
         return executableManager.getJobs().stream()
                 .map(executableManager::getJob)
                 .filter(job -> SecondStorageUtil.RELATED_JOBS.contains(job.getJobType()))
-                .filter(job -> SecondStorageUtil.RUNNING_STATE.contains(job.getStatus()))
-                .map(job -> job.getId())
+                .filter(job -> SecondStorageUtil.RUNNING_STATE.contains(job.getStatusInMem()))
+                .map(AbstractExecutable::getId)
                 .collect(Collectors.toList());
     }
 

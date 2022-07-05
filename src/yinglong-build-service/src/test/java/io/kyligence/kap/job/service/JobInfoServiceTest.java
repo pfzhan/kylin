@@ -962,18 +962,17 @@ public class JobInfoServiceTest extends NLocalFileMetadataTestCase {
         getTestConfig().setProperty("kylin.history-server.enable", "true");
         AbstractExecutable task = new FiveSecondSucceedTestExecutable();
         task.setProject("default");
-        DefaultOutput stepOutput = new DefaultOutput();
-        stepOutput.setState(ExecutableState.RUNNING);
-        stepOutput.setExtra(new HashMap<>());
+        ExecutablePO po = ExecutableManager.toPO(task, task.getProject());
+        po.getOutput().setStatus(ExecutableState.RUNNING.name());
         Map<String, String> waiteTimeMap = new HashMap<>();
         ExecutableState jobState = ExecutableState.RUNNING;
-        ExecutableStepResponse result = jobInfoService.parseToExecutableStep(task, stepOutput, waiteTimeMap, jobState);
+        ExecutableStepResponse result = jobInfoService.parseToExecutableStep(task, po, waiteTimeMap, jobState);
         assert !result.getInfo().containsKey(ExecutableConstants.SPARK_HISTORY_APP_URL);
-        stepOutput.getExtra().put(ExecutableConstants.YARN_APP_ID, "app-id");
-        result = jobInfoService.parseToExecutableStep(task, stepOutput, waiteTimeMap, jobState);
+        po.getOutput().getInfo().put(ExecutableConstants.YARN_APP_ID, "app-id");
+        result = jobInfoService.parseToExecutableStep(task, po, waiteTimeMap, jobState);
         assert result.getInfo().containsKey(ExecutableConstants.SPARK_HISTORY_APP_URL);
         getTestConfig().setProperty("kylin.history-server.enable", "false");
-        result = jobInfoService.parseToExecutableStep(task, stepOutput, waiteTimeMap, jobState);
+        result = jobInfoService.parseToExecutableStep(task, po, waiteTimeMap, jobState);
         assert !result.getInfo().containsKey(ExecutableConstants.SPARK_HISTORY_APP_URL);
 
     }

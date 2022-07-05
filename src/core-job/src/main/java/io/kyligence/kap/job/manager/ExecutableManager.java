@@ -326,7 +326,7 @@ public class ExecutableManager {
         });
     }
 
-    static String extractJobId(String taskOrJobId) {
+    public static String extractJobId(String taskOrJobId) {
         val jobIdPair = taskOrJobId.split("_");
         return jobIdPair[0];
     }
@@ -421,7 +421,7 @@ public class ExecutableManager {
     }
 
     public void checkJobCanBeDeleted(AbstractExecutable executable) {
-        ExecutableState status = executable.getStatus();
+        ExecutableState status = executable.getStatusInMem();
         if (ExecutableState.SUCCEED != status && ExecutableState.DISCARDED != status
                 && ExecutableState.SUICIDAL != status) {
             throw new IllegalStateException(
@@ -434,7 +434,11 @@ public class ExecutableManager {
             return null;
         }
         ExecutablePO executablePO = jobInfoDao.getExecutablePOByUuid(id);
-        if (executablePO == null) {
+        return getJob(id, executablePO);
+    }
+
+    public AbstractExecutable getJob(String id, ExecutablePO executablePO) {
+        if (id == null || executablePO == null || !id.equals(executablePO.getId())) {
             return null;
         }
         try {
@@ -469,6 +473,7 @@ public class ExecutableManager {
             result.setTargetPartitions(executablePO.getTargetPartitions());
             result.setPriority(executablePO.getPriority());
             result.setTag(executablePO.getTag());
+            result.setPo(executablePO);
             List<ExecutablePO> tasks = executablePO.getTasks();
             if (tasks != null && !tasks.isEmpty()) {
                 Preconditions.checkArgument(result instanceof ChainedExecutable);
@@ -547,7 +552,7 @@ public class ExecutableManager {
     public ExecutableOutputPO getJobOutput(String taskOrJobId) {
         val jobId = extractJobId(taskOrJobId);
         val executablePO = jobInfoDao.getExecutablePOByUuid(jobId);
-        ExecutableOutputPO jobOutput = getExecutableOutputPO(taskOrJobId, jobId, executablePO);
+        ExecutableOutputPO jobOutput = getExecutableOutputPO(taskOrJobId, executablePO);
         assertOutputNotNull(jobOutput, taskOrJobId);
         return jobOutput;
     }
@@ -560,14 +565,14 @@ public class ExecutableManager {
 
     public ExecutableOutputPO getJobOutput(String taskOrJobId, ExecutablePO executablePO) {
         val jobId = extractJobId(taskOrJobId);
-        ExecutableOutputPO jobOutput = getExecutableOutputPO(taskOrJobId, jobId, executablePO);
+        ExecutableOutputPO jobOutput = getExecutableOutputPO(taskOrJobId, executablePO);
         assertOutputNotNull(jobOutput, taskOrJobId);
         return jobOutput;
     }
 
     public ExecutableOutputPO getJobOutput(String taskOrJobId, ExecutablePO executablePO, String segmentId) {
         val jobId = extractJobId(taskOrJobId);
-        ExecutableOutputPO jobOutput = getExecutableOutputPO(taskOrJobId, jobId, executablePO);
+        ExecutableOutputPO jobOutput = getExecutableOutputPO(taskOrJobId, executablePO);
         if (Objects.isNull(jobOutput)) {
             logger.trace("get job output from taskOrJobId : {} and segmentId : {}", taskOrJobId, segmentId);
             final Map<String, List<ExecutablePO>> stageMap = executablePO.getTasks().stream()
@@ -602,11 +607,11 @@ public class ExecutableManager {
         return result;
     }
 
-    public ExecutableOutputPO getExecutableOutputPO(String taskOrJobId, String jobId, ExecutablePO executablePO) {
+    public ExecutableOutputPO getExecutableOutputPO(String taskOrJobId, ExecutablePO executablePO) {
         ExecutableOutputPO jobOutput;
         if (Objects.isNull(executablePO)) {
             jobOutput = new ExecutableOutputPO();
-        } else if (Objects.equals(taskOrJobId, jobId)) {
+        } else if (Objects.equals(taskOrJobId, executablePO.getId())) {
             jobOutput = executablePO.getOutput();
         } else {
             jobOutput = executablePO.getTasks().stream().filter(po -> po.getId().equals(taskOrJobId)).findFirst()
@@ -649,14 +654,14 @@ public class ExecutableManager {
         if (Objects.isNull(job)) {
             return;
         }
-        if (!job.getStatus().isNotProgressing() && !force) {
-            throw new KylinException(JOB_UPDATE_STATUS_FAILED, "RESUME", jobId, job.getStatus());
+        if (!job.getStatusInMem().isNotProgressing() && !force) {
+            throw new KylinException(JOB_UPDATE_STATUS_FAILED, "RESUME", jobId, job.getStatusInMem());
         }
 
         if (job instanceof DefaultChainedExecutable) {
             List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
             tasks.stream()
-                    .filter(task -> task.getStatus().isNotProgressing() || task.getStatus() == ExecutableState.RUNNING)
+                    .filter(task -> task.getStatusInMem().isNotProgressing() || task.getStatusInMem() == ExecutableState.RUNNING)
                     .forEach(task -> updateJobOutput(task.getId(), ExecutableState.READY));
             tasks.forEach(task -> {
                 if (task instanceof ChainedStageExecutable) {
@@ -666,8 +671,8 @@ public class ExecutableManager {
                             // update running stage to ready
                             Optional.ofNullable(entry.getValue()).orElse(Lists.newArrayList())//
                                     .stream() //
-                                    .filter(stage -> stage.getStatus(entry.getKey()) == ExecutableState.RUNNING
-                                            || stage.getStatus(entry.getKey()).isNotProgressing())//
+                                    .filter(stage -> stage.getStatusInMem(entry.getKey()) == ExecutableState.RUNNING
+                                            || stage.getStatusInMem(entry.getKey()).isNotProgressing())//
                                     .forEach(stage -> //
                                             updateStageStatus(stage.getId(), entry.getKey(), ExecutableState.READY, null, null));
                         }
@@ -682,14 +687,14 @@ public class ExecutableManager {
     // READY -> PENDING
     @Transactional
     public void publishJob(String jobId, AbstractExecutable job) {
-        if (Objects.isNull(job) || job.getStatus() != ExecutableState.READY) {
+        if (Objects.isNull(job) || job.getStatusInMem() != ExecutableState.READY) {
             return;
         }
 
         if (job instanceof DefaultChainedExecutable) {
             List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
             tasks.stream()
-                    .filter(task -> task.getStatus() == ExecutableState.READY)
+                    .filter(task -> task.getStatusInMem() == ExecutableState.READY)
                     .forEach(task -> updateJobOutput(task.getId(), ExecutableState.PENDING));
             tasks.forEach(task -> {
                 if (task instanceof ChainedStageExecutable) {
@@ -699,7 +704,7 @@ public class ExecutableManager {
                             // update running stage to ready
                             Optional.ofNullable(entry.getValue()).orElse(Lists.newArrayList())//
                                     .stream() //
-                                    .filter(stage -> stage.getStatus(entry.getKey()) == ExecutableState.READY)//
+                                    .filter(stage -> stage.getStatusInMem(entry.getKey()) == ExecutableState.READY)//
                                     .forEach(stage -> //
                                             updateStageStatus(stage.getId(), entry.getKey(), ExecutableState.PENDING, null, null));
                         }
@@ -807,8 +812,8 @@ public class ExecutableManager {
         if (Objects.isNull(jobToRestart)) {
             return;
         }
-        if (jobToRestart.getStatus().isFinalState()) {
-            throw new KylinException(JOB_UPDATE_STATUS_FAILED, "RESTART", jobId, jobToRestart.getStatus());
+        if (jobToRestart.getStatusInMem().isFinalState()) {
+            throw new KylinException(JOB_UPDATE_STATUS_FAILED, "RESTART", jobId, jobToRestart.getStatusInMem());
         }
 
         // to redesign: merge executableDao ops
@@ -842,7 +847,7 @@ public class ExecutableManager {
         }
         if (job instanceof DefaultChainedExecutable) {
             List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
-            tasks.stream().filter(task -> task.getStatus() != ExecutableState.READY)
+            tasks.stream().filter(task -> task.getStatusInMem() != ExecutableState.READY)
                     .forEach(task -> updateJobOutput(task.getId(), ExecutableState.READY));
             tasks.forEach(task -> {
                 if (task instanceof ChainedStageExecutable) {
@@ -851,7 +856,7 @@ public class ExecutableManager {
                         for (Map.Entry<String, List<StageBase>> entry : tasksMap.entrySet()) {
                             Optional.ofNullable(entry.getValue()).orElse(Lists.newArrayList()) //
                                     .stream()//
-                                    .filter(stage -> stage.getStatus(entry.getKey()) != ExecutableState.READY)
+                                    .filter(stage -> stage.getStatusInMem(entry.getKey()) != ExecutableState.READY)
                                     .forEach(stage -> // when restart, reset stage
                                             updateStageStatus(stage.getId(), entry.getKey(), ExecutableState.READY, null, null, true));
                         }
@@ -905,8 +910,8 @@ public class ExecutableManager {
         if (job == null) {
             return;
         }
-        if (!job.getStatus().isProgressing()) {
-            throw new KylinException(JOB_UPDATE_STATUS_FAILED, "PAUSE", jobId, job.getStatus());
+        if (!job.getStatusInMem().isProgressing()) {
+            throw new KylinException(JOB_UPDATE_STATUS_FAILED, "PAUSE", jobId, job.getStatusInMem());
         }
         JdbcUtil.withTransaction(() -> {
             updateStagePaused(job);
@@ -1200,7 +1205,7 @@ public class ExecutableManager {
         return getPartialExecutables(path -> StringUtils.endsWith(path, model)).stream()
                 .filter(e -> e.getTargetSubject() != null) //
                 .filter(e -> e.getTargetSubject().equals(model)) //
-                .filter(e -> predicate.test(e.getStatus())) //
+                .filter(e -> predicate.test(e.getStatusInMem())) //
                 .filter(e -> {
                     /**
                      *  Select jobs which partition is overlap.
@@ -1296,7 +1301,7 @@ public class ExecutableManager {
                     jobOutput.setContentStream(getLogStream(jobOutput.getLogPath()));
                 }
             } else if (StringUtils.isEmpty(jobOutput.getContent()) && Objects.nonNull(getJob(jobId))
-                    && getJob(jobId).getStatus() == ExecutableState.RUNNING) {
+                    && getJob(jobId).getStatusInMem() == ExecutableState.RUNNING) {
                 jobOutput.setContent("Wait a moment ... ");
             }
         }

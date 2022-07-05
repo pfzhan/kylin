@@ -70,7 +70,7 @@ public class JobCheckRunner implements Runnable {
     }
 
     private boolean checkTimeoutIfNeeded(AbstractExecutable jobExecutable, Long startTime, Integer timeOutMinute) {
-        if (jobExecutable.getStatus().isFinalState()) {
+        if (jobExecutable.getStatusInMem().isFinalState()) {
             return false;
         }
         long duration = System.currentTimeMillis() - startTime;

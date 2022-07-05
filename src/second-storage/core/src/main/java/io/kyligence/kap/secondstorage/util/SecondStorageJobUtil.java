@@ -57,7 +57,7 @@ public class SecondStorageJobUtil {
 
     public static void validateSegment(String project, String modelId, List<String> segmentIds) {
         List<AbstractExecutable> jobs = findSecondStorageJobByProject(project).stream()
-                .filter(job -> SecondStorageUtil.RUNNING_STATE.contains(job.getStatus()))
+                .filter(job -> SecondStorageUtil.RUNNING_STATE.contains(job.getStatusInMem()))
                 .filter(job -> Objects.equals(job.getTargetModelId(), modelId))
                 .filter(job -> {
                     List<String> targetSegments = Optional.ofNullable(job.getTargetSegments()).orElse(Collections.emptyList());
@@ -72,7 +72,7 @@ public class SecondStorageJobUtil {
 
     public static void validateModel(String project, String modelId) {
         List<AbstractExecutable> jobs = findSecondStorageJobByProject(project).stream()
-                .filter(job -> SecondStorageUtil.RUNNING_STATE.contains(job.getStatus()))
+                .filter(job -> SecondStorageUtil.RUNNING_STATE.contains(job.getStatusInMem()))
                 .filter(job -> Objects.equals(job.getTargetModelId(), modelId))
                 .collect(Collectors.toList());
         if (!jobs.isEmpty()) {

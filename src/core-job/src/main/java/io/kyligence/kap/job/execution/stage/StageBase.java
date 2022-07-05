@@ -65,8 +65,8 @@ public class StageBase extends AbstractExecutable {
         return getOutput(segmentId).getState();
     }
 
-    public ExecutableState getStatus(String segmentId, ExecutablePO executablePO) {
-        return getOutput(segmentId, executablePO).getState();
+    public ExecutableState getStatusInMem(String segmentId) {
+        return getOutput(segmentId, getPo()).getState();
     }
 
     public Output getOutput(String segmentId) {

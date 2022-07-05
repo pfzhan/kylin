@@ -121,13 +121,13 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
         executableResponse.setJobName(abstractExecutable.getName());
         executableResponse.setId(abstractExecutable.getId());
         executableResponse.setExecStartTime(AbstractExecutable.getStartTime(output));
-        executableResponse.setCreateTime(output.getCreateTime());
+        executableResponse.setCreateTime(AbstractExecutable.getCreateTime(output));
         executableResponse.setDuration(abstractExecutable.getDurationFromStepOrStageDurationSum(executablePO));
         executableResponse.setLastModified(AbstractExecutable.getLastModified(output));
         executableResponse.setTargetModel(abstractExecutable.getTargetSubject());
         executableResponse.setTargetSegments(abstractExecutable.getTargetSegments());
         executableResponse.setTargetSubject(abstractExecutable.getTargetSubjectAlias());
-        executableResponse.setWaitTime(abstractExecutable.getWaitTime(output));
+        executableResponse.setWaitTime(abstractExecutable.getWaitTime(executablePO));
         executableResponse.setSubmitter(abstractExecutable.getSubmitter());
         executableResponse.setExecEndTime(AbstractExecutable.getEndTime(output));
         executableResponse.setDiscardSafety(abstractExecutable.safetyIfDiscard());
@@ -156,7 +156,7 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
             TableDesc tableDesc = NTableMetadataManager
                     .getInstance(KylinConfig.getInstanceFromEnv(), abstractExecutable.getProject())
                     .getTableDesc(executableResponse.getTargetSubject());
-            if (snapshotJob.getStatus().isFinalState()
+            if (snapshotJob.getStatusInMem().isFinalState()
                     && (tableDesc == null || tableDesc.getLastSnapshotPath() == null)) {
                 executableResponse.setTargetSubject("The snapshot is deleted");
                 executableResponse.setTargetSubjectError(true);
@@ -217,14 +217,14 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
                     continue;
                 }
             }
-            if (ExecutableState.SUCCEED == task.getStatus(executablePO) || ExecutableState.SKIP == task.getStatus(executablePO)) {
+            if (ExecutableState.SUCCEED == task.getStatusInMem() || ExecutableState.SKIP == task.getStatusInMem()) {
                 successSteps++;
             }
         }
         val stepCount = tasks.size() + stageCount;
         var stepRatio = (float) successSteps / stepCount;
         // in case all steps are succeeded, but the job is not succeeded, the stepRatio should be 99%
-        if (stepRatio == 1 && ExecutableState.SUCCEED != abstractExecutable.getStatus(executablePO)) {
+        if (stepRatio == 1 && ExecutableState.SUCCEED != abstractExecutable.getStatusInMem()) {
             stepRatio = 0.99F;
         }
         return stepRatio;
@@ -247,8 +247,8 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
             boolean calculateIndexExecRadio, ExecutablePO executablePO) {
         var successStages = 0D;
         for (StageBase stage : stageBases) {
-            if (ExecutableState.SUCCEED == stage.getStatus(segmentId, executablePO)
-                    || stage.getStatus(segmentId, executablePO) == ExecutableState.SKIP) {
+            if (ExecutableState.SUCCEED == stage.getStatusInMem(segmentId)
+                    || stage.getStatusInMem(segmentId) == ExecutableState.SKIP) {
                 successStages += 1;
                 continue;
             }

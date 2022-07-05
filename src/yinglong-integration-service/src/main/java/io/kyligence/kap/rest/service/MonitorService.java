@@ -158,15 +158,15 @@ public class MonitorService extends BasicService {
 
             for (ExecutablePO executablePO : jobMetadataInvoker.getJobExecutablesPO(project.getName())) {
                 AbstractExecutable executable = executableManager.fromPO(executablePO);
-                if (executable.getStatus(executablePO).isFinalState()) {
+                if (executable.getStatusInMem().isFinalState()) {
                     finishedJobs.add(executable);
-                } else if (ExecutableState.RUNNING == executable.getStatus(executablePO)) {
+                } else if (ExecutableState.RUNNING == executable.getStatusInMem()) {
                     runningJobs.add(executable);
-                } else if (ExecutableState.READY == executable.getStatus(executablePO)
-                        || ExecutableState.PAUSED == executable.getStatus(executablePO)
-                        || ExecutableState.PENDING == executable.getStatus(executablePO)) {
+                } else if (ExecutableState.READY == executable.getStatusInMem()
+                        || ExecutableState.PAUSED == executable.getStatusInMem()
+                        || ExecutableState.PENDING == executable.getStatusInMem()) {
                     pendingJobs.add(executable);
-                } else if (ExecutableState.ERROR == executable.getStatus(executablePO)) {
+                } else if (ExecutableState.ERROR == executable.getStatusInMem()) {
                     errorJobs.add(executable);
                 }
             }
@@ -336,7 +336,7 @@ public class MonitorService extends BasicService {
 
     private boolean pendingOnYarn(Set<String> runningOnYarnJobs, AbstractExecutable executable) {
         val parent = (DefaultChainedExecutable) executable;
-        val runningJob = parent.getTasks().stream().filter(e -> e.getStatus() == ExecutableState.RUNNING).findFirst()
+        val runningJob = parent.getTasks().stream().filter(e -> e.getStatusInMem() == ExecutableState.RUNNING).findFirst()
                 .orElse(null);
         if (runningJob == null) {
             return false;

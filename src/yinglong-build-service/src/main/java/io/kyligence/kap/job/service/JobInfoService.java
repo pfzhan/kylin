@@ -291,7 +291,7 @@ public class JobInfoService extends BasicService implements JobSupporter {
 
         // waite time in output
         Map<String, String> waiteTimeMap;
-        val output = executable.getOutput();
+        val output = executable.getOutput(executablePO);
         try {
             waiteTimeMap = JsonUtil.readValueAsMap(output.getExtra().getOrDefault(NBatchConstants.P_WAITE_TIME, "{}"));
         } catch (IOException e) {
@@ -302,10 +302,9 @@ public class JobInfoService extends BasicService implements JobSupporter {
         List<ExecutableStepResponse> executableStepList = new ArrayList<>();
         List<? extends AbstractExecutable> tasks = ((ChainedExecutable) executable).getTasks();
         for (AbstractExecutable task : tasks) {
-            final ExecutableStepResponse executableStepResponse = parseToExecutableStep(task,
-                    executableManager.getOutput(task.getId(), executablePO), waiteTimeMap,
-                    output.getState());
-            if (task.getStatus() == ExecutableState.ERROR) {
+            final ExecutableStepResponse executableStepResponse = parseToExecutableStep(task, executablePO,
+                    waiteTimeMap, output.getState());
+            if (task.getStatusInMem() == ExecutableState.ERROR) {
                 executableStepResponse.setFailedStepId(output.getFailedStepId());
                 executableStepResponse.setFailedSegmentId(output.getFailedSegmentId());
                 executableStepResponse.setFailedStack(output.getFailedStack());
@@ -360,7 +359,7 @@ public class JobInfoService extends BasicService implements JobSupporter {
             }
             executableStepList.add(executableStepResponse);
         }
-        if (executable.getStatus() == ExecutableState.DISCARDED) {
+        if (executable.getStatusInMem() == ExecutableState.DISCARDED) {
             executableStepList.forEach(executableStepResponse -> {
                 executableStepResponse.setStatus(JobStatusEnum.DISCARDED);
                 Optional.ofNullable(executableStepResponse.getSubStages()).orElse(Lists.newArrayList())
@@ -550,17 +549,17 @@ public class JobInfoService extends BasicService implements JobSupporter {
         if (job instanceof ChainedExecutable) {
             // if job's task is running spark job, will kill this application
             ((ChainedExecutable) job).getTasks().stream() //
-                    .filter(task -> task.getStatus() == ExecutableState.RUNNING) //
+                    .filter(task -> task.getStatusInMem() == ExecutableState.RUNNING) //
                     .filter(task -> task instanceof NSparkExecutable) //
                     .forEach(task -> ((NSparkExecutable) task).killOrphanApplicationIfExists(task.getId()));
         }
     }
 
     private void discardJob(String project, String jobId, AbstractExecutable job) {
-        if (ExecutableState.SUCCEED == job.getStatus()) {
-            throw new KylinException(JOB_UPDATE_STATUS_FAILED, "DISCARD", jobId, job.getStatus());
+        if (ExecutableState.SUCCEED == job.getStatusInMem()) {
+            throw new KylinException(JOB_UPDATE_STATUS_FAILED, "DISCARD", jobId, job.getStatusInMem());
         }
-        if (ExecutableState.DISCARDED == job.getStatus()) {
+        if (ExecutableState.DISCARDED == job.getStatusInMem()) {
             return;
         }
         killExistApplication(job);
@@ -576,17 +575,20 @@ public class JobInfoService extends BasicService implements JobSupporter {
     @VisibleForTesting
     public ExecutableResponse convert(AbstractExecutable executable, ExecutablePO executablePO) {
         ExecutableResponse executableResponse = ExecutableResponse.create(executable, executablePO);
-        executableResponse.setStatus(executable.getStatus(executablePO).toJobStatus());
+        executableResponse.setStatus(executable.getStatusInMem().toJobStatus());
         return executableResponse;
     }
 
     @VisibleForTesting
-    public ExecutableStepResponse parseToExecutableStep(AbstractExecutable task, Output stepOutput,
+    public ExecutableStepResponse parseToExecutableStep(AbstractExecutable task, ExecutablePO po,
             Map<String, String> waiteTimeMap, ExecutableState jobState) {
         ExecutableStepResponse result = new ExecutableStepResponse();
         result.setId(task.getId());
         result.setName(task.getName());
         result.setSequenceID(task.getStepId());
+
+        ExecutableManager executableManager = getManager(ExecutableManager.class, task.getProject());
+        Output stepOutput = executableManager.getOutput(task.getId(), po);
 
         if (stepOutput == null) {
             logger.warn("Cannot found output for task: id={}", task.getId());
@@ -612,7 +614,7 @@ public class JobInfoService extends BasicService implements JobSupporter {
         // if resume job, need sum of waite time
         long waiteTime = Long.parseLong(waiteTimeMap.getOrDefault(task.getId(), "0"));
         if (jobState != ExecutableState.PAUSED) {
-            val taskWaitTime = task.getWaitTime();
+            val taskWaitTime = task.getWaitTime(po);
             // Refactoring: When task Wait Time is equal to waite Time, waiteTimeMap saves the latest waiting time
             if (taskWaitTime != waiteTime) {
                 waiteTime = taskWaitTime + waiteTime;
@@ -773,7 +775,7 @@ public class JobInfoService extends BasicService implements JobSupporter {
 
         // when job restart, taskStartTime is zero
         if (CollectionUtils.isNotEmpty(stageResponses)) {
-            val taskStartTime = task.getStartTime();
+            val taskStartTime = task.getOutput(executablePO).getStartTime();
             var firstStageStartTime = stageResponses.get(0).getExecStartTime();
             if (taskStartTime != 0 && firstStageStartTime == 0) {
                 firstStageStartTime = System.currentTimeMillis();
@@ -795,7 +797,7 @@ public class JobInfoService extends BasicService implements JobSupporter {
         // If this task is running and this segment has pending stage, this segment is running, this segment doesn't have end time
         val stageStatuses = stageResponses.stream().map(ExecutableStepResponse::getStatus).collect(Collectors.toSet());
         if (!stageStatuses.contains(JobStatusEnum.RUNNING)
-                && !(task.getStatus() == ExecutableState.RUNNING && stageStatuses.contains(JobStatusEnum.PENDING))) {
+                && !(task.getStatusInMem() == ExecutableState.RUNNING && stageStatuses.contains(JobStatusEnum.PENDING))) {
             val execEndTime = stageResponses.stream()//
                     .map(ExecutableStepResponse::getExecEndTime)//
                     .max(Long::compare).orElse(0L);

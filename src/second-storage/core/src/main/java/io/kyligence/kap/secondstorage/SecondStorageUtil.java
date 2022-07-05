@@ -183,7 +183,7 @@ public class SecondStorageUtil {
     public static void validateDisableModel(String project, String modelId) {
         validateProjectLock(project, Arrays.asList(LockTypeEnum.LOAD.name()));
         List<AbstractExecutable> jobs = SecondStorageUtil.findSecondStorageRelatedJobByProject(project);
-        if (jobs.stream().filter(job -> RUNNING_STATE.contains(job.getStatus()))
+        if (jobs.stream().filter(job -> RUNNING_STATE.contains(job.getStatusInMem()))
                 .anyMatch(job -> job.getTargetSubject().equals(modelId))) {
             String name = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                     .getDataModelDesc(modelId).getAlias();
@@ -390,7 +390,7 @@ public class SecondStorageUtil {
 
     public static ExecutableState getJobStatus(String project, String jobId) {
         ExecutableManager manager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        return manager.getJob(jobId).getStatus();
+        return manager.getJob(jobId).getStatusInMem();
     }
 
     public static void checkJobRestart(String project, String jobId) {

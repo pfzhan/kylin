@@ -184,6 +184,10 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
     @Setter
     private int stepId = -1;
 
+    @Getter
+    @Setter
+    private ExecutablePO po;
+
     public String getTargetModelAlias() {
         val modelManager = NDataModelManager.getInstance(getConfig(), getProject());
         NDataModel dataModelDesc = NDataModelManager.getInstance(getConfig(), getProject())
@@ -492,15 +496,20 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
     }
 
     @Override
-    @Deprecated
     public final ExecutableState getStatus() {
         ExecutableManager manager = getManager();
         return manager.getOutput(this.getId()).getState();
     }
-    
-    public final ExecutableState getStatus(ExecutablePO executablePO) {
+
+    // This status is recorded when executable is inited.
+    // Use method 'getStatus' to get the last status.
+    public final ExecutableState getStatusInMem() {
+        return getStatus(getPo());
+    }
+
+    public final ExecutableState getStatus(ExecutablePO po) {
         ExecutableManager manager = getManager();
-        return manager.getOutput(this.getId(), executablePO).getState();
+        return manager.getOutput(this.getId(), po).getState();
     }
 
     public final long getLastModified() {
@@ -576,6 +585,10 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
         return getManager().getJob(getParam(PARENT_ID));
     }
 
+    public final AbstractExecutable getParent(ExecutablePO po) {
+        return getManager().getJob(getParam(PARENT_ID), po);
+    }
+
     public final String getProject() {
         if (project == null) {
             throw new IllegalStateException("project is not set for abstract executable " + getId());
@@ -627,21 +640,28 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
 
         return info;
     }
+    public final long getStartTime() {
+        return getStartTime(getOutput());
+    }
 
     public static long getStartTime(Output output) {
         return output.getStartTime();
     }
 
+    public final long getEndTime() {
+        return getEndTime(getOutput());
+    }
+
     public static long getEndTime(Output output) {
         return output.getEndTime();
+    }
+    
+    public final long getEndTime(ExecutablePO po) {
+        return getEndTime(getOutput(po));
     }
 
     public final Map<String, String> getExtraInfo() {
         return getOutput().getExtra();
-    }
-
-    public final long getStartTime() {
-        return getStartTime(getOutput());
     }
 
     public final long getCreateTime() {
@@ -650,10 +670,6 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
 
     public static long getCreateTime(Output output) {
         return output.getCreateTime();
-    }
-
-    public final long getEndTime() {
-        return getEndTime(getOutput());
     }
 
     // just using to get job duration in get job list
@@ -706,10 +722,12 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
     }
 
     public long getWaitTime() {
-        return getWaitTime(getOutput());
+        String jobId = ExecutableManager.extractJobId(getId());
+        return getWaitTime(getManager().getExecutablePO(jobId));
     }
 
-    public long getWaitTime(Output output) {
+    public long getWaitTime(ExecutablePO po) {
+        Output output = getOutput(po);
         long startTime = output.getStartTime();
 
         long lastTaskEndTime = output.getCreateTime();
@@ -718,14 +736,14 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
         int stepId = getStepId();
 
         // get end_time of last task
-        if (getParent() instanceof DefaultChainedExecutable) {
-            val parentExecutable = (DefaultChainedExecutable) getParent();
+        if (getParent(po) instanceof DefaultChainedExecutable) {
+            val parentExecutable = (DefaultChainedExecutable) getParent(po);
             val lastExecutable = parentExecutable.getSubTaskByStepId(stepId - 1);
 
-            lastTaskEndTime = lastExecutable.map(AbstractExecutable::getEndTime)
-                    .orElse(parentExecutable.getOutput().getCreateTime());
+            lastTaskEndTime = lastExecutable.map(e -> e.getEndTime(po))
+                    .orElse(parentExecutable.getOutput(po).getCreateTime());
 
-            lastTaskStatus = lastExecutable.map(AbstractExecutable::getStatus).orElse(parentExecutable.getStatus());
+            lastTaskStatus = lastExecutable.map(e -> e.getStatus(po)).orElse(parentExecutable.getStatus(po));
         }
 
         //if last task is not end, wait_time is 0
@@ -734,9 +752,9 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
         }
 
         if (startTime == 0) {
-            if (getParent() != null && getParent().getStatus() == ExecutableState.DISCARDED) {
+            if (getParent(po) != null && getParent(po).getStatus(po) == ExecutableState.DISCARDED) {
                 // job is discarded before started
-                startTime = getParent().getEndTime();
+                startTime = getParent(po).getEndTime(po);
             } else {
                 //the job/task is not started, use the current time
                 startTime = System.currentTimeMillis();
