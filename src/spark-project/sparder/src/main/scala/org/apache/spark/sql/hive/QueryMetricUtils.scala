@@ -67,7 +67,7 @@ object QueryMetricUtils extends Logging {
       case exec: ShuffleQueryStageExec =>
         collectAdaptiveSparkPlanExecMetrics(exec.plan, scanRow, scanBytes)
       case exec: DataWritingCommandExec =>
-        (exec.metrics.apply("numOutputRows").value, exec.metrics.apply("readBytes").value)
+        (scanRow + exec.metrics.apply("numOutputRows").value, scanBytes + exec.metrics.apply("numOutputBytes").value)
       case exec: Any =>
         var newScanRow = scanRow
         var newScanBytes = scanBytes

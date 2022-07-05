@@ -38,9 +38,10 @@ import org.apache.hadoop.fs.Path
 import org.apache.spark.sql._
 import org.apache.spark.sql.catalyst.catalog.BucketSpec
 import org.apache.spark.sql.catalyst.expressions.Expression
+import org.apache.spark.sql.datasource.storage.UnsafelyInsertIntoHadoopFsRelationCommand
 import org.apache.spark.sql.execution.adaptive.{AdaptiveExecutionContext, AdaptiveSparkPlanExec, ShuffleQueryStageExec}
 import org.apache.spark.sql.execution.aggregate.HashAggregateExec
-import org.apache.spark.sql.execution.command.DataWritingCommandExec
+import org.apache.spark.sql.execution.command.{DataWritingCommand, DataWritingCommandExec}
 import org.apache.spark.sql.execution.datasources.parquet.ParquetFileFormat
 import org.apache.spark.sql.execution.datasources.{HadoopFsRelation, InMemoryFileIndex, PartitionSpec}
 import org.apache.spark.sql.execution.exchange.ShuffleExchangeExec
@@ -69,10 +70,10 @@ class SparkQueryMetricUtilsSuite extends QueryTest with SharedSparkSession {
     assert(0 == collectScanMetrics0._1.get(0))
     assert(0 == collectScanMetrics0._2.get(0))
 
-    val dataWritingCommand = DataWritingCommandTest(null, null, null, null)
+    val dataWritingCommand = UnsafelyInsertIntoHadoopFsRelationCommand(null, null, null, null)
     val dataWritingCommandExec = DataWritingCommandExec(dataWritingCommand, layoutFileSourceScanExec)
     dataWritingCommandExec.metrics("numOutputRows").+=(1000)
-    dataWritingCommandExec.metrics("readBytes").+=(56698)
+    dataWritingCommandExec.metrics("numOutputBytes").+=(56698)
     val collectScanMetrics = QueryMetricUtils.collectScanMetrics(dataWritingCommandExec)
     assert(1000 == collectScanMetrics._1.get(0))
     assert(56698 == collectScanMetrics._2.get(0))
@@ -191,6 +192,33 @@ class SparkQueryMetricUtilsSuite extends QueryTest with SharedSparkSession {
       2, 3)
     assert(2 == collectScanMetrics19._1)
     assert(3 == collectScanMetrics19._2)
+
+  }
+
+  test("sparkPlan metrics for scanBytes and ScanRows2") {
+    val tempPath = Utils.createTempDir().getAbsolutePath
+    val pathSeq = Seq(new Path(tempPath))
+    val relation = HadoopFsRelation(
+      location = new InMemoryFileIndex(spark, pathSeq, Map.empty, None),
+      partitionSchema = PartitionSpec.emptySpec.partitionColumns,
+      dataSchema = StructType.fromAttributes(Nil),
+      bucketSpec = Some(BucketSpec(2, Nil, Nil)),
+      fileFormat = new ParquetFileFormat(),
+      options = Map.empty)(spark)
+    val layoutFileSourceScanExec =
+      LayoutFileSourceScanExec(relation, Nil,
+        relation.dataSchema, Nil, None, None, Nil, None)
+
+    val dataWritingCommand = UnsafelyInsertIntoHadoopFsRelationCommand(null, null, null, null)
+    val dataWritingCommandExec = DataWritingCommandExec(dataWritingCommand, layoutFileSourceScanExec)
+    dataWritingCommandExec.metrics("numOutputRows").+=(2000)
+    dataWritingCommandExec.metrics("numOutputBytes").+=(26698)
+    val collectScanMetrics = QueryMetricUtils.collectScanMetrics(dataWritingCommandExec)
+    assert(2000 == collectScanMetrics._1.get(0))
+    assert(26698 == collectScanMetrics._2.get(0))
+    val collectScanMetrics2 = QueryMetricUtils.collectAdaptiveSparkPlanExecMetrics(dataWritingCommandExec, 1, 1)
+    assert(2001 == collectScanMetrics2._1)
+    assert(26699 == collectScanMetrics2._2)
 
   }
 
