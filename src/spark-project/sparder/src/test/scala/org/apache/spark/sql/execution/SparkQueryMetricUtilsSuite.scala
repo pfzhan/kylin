@@ -106,8 +106,8 @@ class SparkQueryMetricUtilsSuite extends QueryTest with SharedSparkSession {
 
     val dataWritingCommandExec2 = DataWritingCommandExec(dataWritingCommand, kylinFileSourceScanExec)
     val collectScanMetrics5 = QueryMetricUtils.collectScanMetrics(dataWritingCommandExec2)
-    assert(300 == collectScanMetrics5._1.get(1))
-    assert(5691 == collectScanMetrics5._2.get(1))
+    assert(1000 == collectScanMetrics5._1.get(0))
+    assert(56698 == collectScanMetrics5._2.get(0))
 
     val adaptiveSparkPlanExec2 = new AdaptiveSparkPlanExec(kylinFileSourceScanExec,
       adaptiveExecutionContext, null, false, false)
@@ -121,8 +121,8 @@ class SparkQueryMetricUtilsSuite extends QueryTest with SharedSparkSession {
     kylinFileSourceScanExec.metrics("readBytes").+=(2295)
     val collectLimitExec2 = CollectLimitExec(1, 0, kylinFileSourceScanExec)
     val collectScanMetrics7 = QueryMetricUtils.collectScanMetrics(collectLimitExec2)
-    assert(1600 == collectScanMetrics7._1.get(1))
-    assert(9147 == collectScanMetrics7._2.get(1))
+    assert(1600 == collectScanMetrics7._1.get(0))
+    assert(9147 == collectScanMetrics7._2.get(0))
 
 
     val fileSourceScanExec =
@@ -136,8 +136,8 @@ class SparkQueryMetricUtilsSuite extends QueryTest with SharedSparkSession {
 
     val dataWritingCommandExec3 = DataWritingCommandExec(dataWritingCommand, fileSourceScanExec)
     val collectScanMetrics9 = QueryMetricUtils.collectScanMetrics(dataWritingCommandExec3)
-    assert(50 == collectScanMetrics9._1.get(1))
-    assert(461 == collectScanMetrics9._2.get(1))
+    assert(1000 == collectScanMetrics9._1.get(0))
+    assert(56698 == collectScanMetrics9._2.get(0))
 
     val adaptiveSparkPlanExec3 = new AdaptiveSparkPlanExec(fileSourceScanExec,
       adaptiveExecutionContext, null, false, false)
@@ -151,8 +151,8 @@ class SparkQueryMetricUtilsSuite extends QueryTest with SharedSparkSession {
     fileSourceScanExec.metrics("readBytes").+=(2210)
     val collectLimitExec3 = CollectLimitExec(1, 0, fileSourceScanExec)
     val collectScanMetrics11 = QueryMetricUtils.collectScanMetrics(collectLimitExec3)
-    assert(850 == collectScanMetrics11._1.get(1))
-    assert(3960 == collectScanMetrics11._2.get(1))
+    assert(850 == collectScanMetrics11._1.get(0))
+    assert(3960 == collectScanMetrics11._2.get(0))
 
     val collectScanMetrics12 = QueryMetricUtils.collectScanMetrics(null)
     assert(null == collectScanMetrics12._1)

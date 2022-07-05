@@ -37,14 +37,9 @@ import scala.collection.JavaConverters._
 object QueryMetricUtils extends Logging {
   def collectScanMetrics(plan: SparkPlan): (java.util.List[java.lang.Long], java.util.List[java.lang.Long]) = {
     try {
-      val metrics = plan.collect {
-        case exec: AdaptiveSparkPlanExec =>
-          collectAdaptiveSparkPlanExecMetrics(exec.executedPlan, 0L, 0L)
-        case exec: Any =>
-          collectAdaptiveSparkPlanExecMetrics(exec, 0L, 0L)
-      }
-      val scanRows = metrics.map(metric => java.lang.Long.valueOf(metric._1)).toList.asJava
-      val scanBytes = metrics.map(metric => java.lang.Long.valueOf(metric._2)).toList.asJava
+      val metrics = collectAdaptiveSparkPlanExecMetrics(plan, 0L, 0L)
+      val scanRows = Array(new java.lang.Long(metrics._1)).toList.asJava
+      val scanBytes = Array(new java.lang.Long(metrics._2)).toList.asJava
       (scanRows, scanBytes)
     } catch {
       case throwable: Throwable =>
@@ -68,6 +63,8 @@ object QueryMetricUtils extends Logging {
         collectAdaptiveSparkPlanExecMetrics(exec.plan, scanRow, scanBytes)
       case exec: DataWritingCommandExec =>
         (scanRow + exec.metrics.apply("numOutputRows").value, scanBytes + exec.metrics.apply("numOutputBytes").value)
+      case exec: AdaptiveSparkPlanExec =>
+        collectAdaptiveSparkPlanExecMetrics(exec.executedPlan, scanRow, scanBytes)
       case exec: Any =>
         var newScanRow = scanRow
         var newScanBytes = scanBytes
@@ -75,8 +72,8 @@ object QueryMetricUtils extends Logging {
           child => {
             if (child.isInstanceOf[SparkPlan]) {
               val result = collectAdaptiveSparkPlanExecMetrics(child, scanRow, scanBytes)
-              newScanRow = newScanRow + result._1
-              newScanBytes = newScanBytes + result._2
+              newScanRow = result._1
+              newScanBytes = result._2
             }
           }
         )
