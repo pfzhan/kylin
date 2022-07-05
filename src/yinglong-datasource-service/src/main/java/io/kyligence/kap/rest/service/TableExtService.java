@@ -181,25 +181,28 @@ public class TableExtService extends BasicService {
             map.put(s3TableExtInfo.getName(), s3TableExtInfo);
         }
         NTableMetadataManager tableMetadataManager = getManager(NTableMetadataManager.class, request.getProject());
-        List<TableExtDesc> needUpdateTables = new ArrayList<>();
         List<TableDesc> projectTableDescList = tableMetadataManager.listAllTables();
-        for (TableDesc desc : projectTableDescList) {
-            String dbTable = desc.getDatabase() + "." + desc.getName();
-            S3TableExtInfo targetS3TableExtInfo = map.get(dbTable);
-            if (null == targetS3TableExtInfo) {
-                continue;
-            }
-            TableExtDesc extDesc = tableMetadataManager.getTableExtIfExists(desc);
-            TableExtDesc copyExt = tableMetadataManager.copyForWrite(extDesc);
-            copyExt.addDataSourceProp(TableExtDesc.S3_ROLE_PROPERTY_KEY, targetS3TableExtInfo.getRoleArn());
-            copyExt.addDataSourceProp(TableExtDesc.S3_ENDPOINT_KEY, targetS3TableExtInfo.getEndpoint());
-            needUpdateTables.add(copyExt);
-            response.getSucceed().add(dbTable);
-        }
+        List<String> identityList = projectTableDescList.stream()
+                .map(TableDesc::getIdentity)
+                .filter(identity -> map.get(identity) != null)
+                .collect(Collectors.toList());
+
         return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            for (TableExtDesc tableExtDesc : needUpdateTables) {
-                tableMetadataManager.saveTableExt(tableExtDesc);
-                tableService.refreshSparkSessionIfNecessary(tableExtDesc);
+            NTableMetadataManager innerTableMetadataManager = getManager(NTableMetadataManager.class, request.getProject());
+            for (String identity : identityList) {
+                TableDesc tableDesc = innerTableMetadataManager.getTableDesc(identity);
+                TableExtDesc extDesc = innerTableMetadataManager.getTableExtIfExists(tableDesc);
+                if (null == extDesc) {
+                    response.getFailed().add(identity);
+                } else {
+                    TableExtDesc copyExt = innerTableMetadataManager.copyForWrite(extDesc);
+                    S3TableExtInfo s3TableExtInfo = map.get(identity);
+                    copyExt.addDataSourceProp(TableExtDesc.S3_ROLE_PROPERTY_KEY, s3TableExtInfo.getRoleArn());
+                    copyExt.addDataSourceProp(TableExtDesc.S3_ENDPOINT_KEY, s3TableExtInfo.getEndpoint());
+                    innerTableMetadataManager.saveTableExt(copyExt);
+                    tableService.refreshSparkSessionIfNecessary(copyExt);
+                    response.getSucceed().add(identity);
+                }
             }
             return response;
         }, request.getProject());
