@@ -32,89 +32,63 @@ import org.apache.kylin.common.exception.KylinRuntimeException;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.util.SpringContext;
-import org.springframework.stereotype.Component;
 
 import io.kyligence.kap.common.persistence.metadata.HDFSMetadataStore;
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
-@Component
-public class JobMetadataInvoker extends JobMetadataBaseInvoker {
+public class JobMetadataBaseInvoker {
 
-    private static JobMetadataContract delegate = null;
-
-    public static void setDelegate(JobMetadataContract delegate) {
-        if (JobMetadataInvoker.delegate != null) {
-            log.warn("Delegate is replaced as {}, origin value is {}", delegate, JobMetadataInvoker.delegate);
-        }
-        JobMetadataInvoker.delegate = delegate;
-    }
-
-    public JobMetadataContract getDelegate() {
-        if (delegate == null) {
-            return SpringContext.getBean(JobMetadataContract.class);
-        }
-        return delegate;
-    }
-
-    public static JobMetadataInvoker getInstance() {
+    public static JobMetadataBaseInvoker getInstance() {
         MetadataStore metadataStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv())
                 .getMetadataStore();
         if (metadataStore instanceof HDFSMetadataStore) {
             throw new KylinRuntimeException("This request cannot be route to metadata server");
         }
-        if (SpringContext.getApplicationContext() == null) {
+        if (SpringContext.getApplicationContext() == null || getJobMetadataContract() == null) {
             // for UT
-            return new JobMetadataInvoker();
+            return new JobMetadataBaseInvoker();
         } else {
-            return SpringContext.getBean(JobMetadataInvoker.class);
+            return SpringContext.getBean(JobMetadataBaseInvoker.class);
         }
     }
 
-    @Override
-    public String addIndexJob(JobMetadataRequest jobMetadataRequest) {
-        return getDelegate().addIndexJob(jobMetadataRequest);
+    private static JobMetadataContract getJobMetadataContract() {
+        try {
+            return SpringContext.getBean(JobMetadataContract.class);
+        } catch (Exception e) {
+            return null;
+        }
+
     }
 
-    public String addSecondStorageJob(JobMetadataRequest jobMetadataRequest) {
-        return getDelegate().addSecondStorageJob(jobMetadataRequest);
-    }
+    private JobMetadataBaseDelegate jobMetadataBaseDelegate = new JobMetadataBaseDelegate();
 
-    @Override
     public String addSegmentJob(JobMetadataRequest jobMetadataRequest) {
-        return getDelegate().addSegmentJob(jobMetadataRequest);
+        return jobMetadataBaseDelegate.addSegmentJob(jobMetadataRequest);
     }
 
-    @Override
+    public String addIndexJob(JobMetadataRequest jobMetadataRequest) {
+        return jobMetadataBaseDelegate.addIndexJob(jobMetadataRequest);
+    }
+
     public Set<Long> getLayoutsByRunningJobs(String project, String modelId) {
-        return getDelegate().getLayoutsByRunningJobs(project, modelId);
+        return jobMetadataBaseDelegate.getLayoutsByRunningJobs(project, modelId);
     }
 
-    @Override
     public long countByModelAndStatus(String project, String model, String status, JobTypeEnum... jobTypes) {
-        return getDelegate().countByModelAndStatus(project, model, status, jobTypes);
+        return jobMetadataBaseDelegate.countByModelAndStatus(project, model, status, jobTypes);
     }
 
-    @Override
     public List<ExecutablePO> getJobExecutablesPO(String project) {
-        return getDelegate().getJobExecutablesPO(project);
+        return jobMetadataBaseDelegate.getJobExecutablesPO(project);
     }
 
-    @Override
     public List<ExecutablePO> listExecPOByJobTypeAndStatus(String project, String state, JobTypeEnum... jobTypes) {
-        return getDelegate().listExecPOByJobTypeAndStatus(project, state, jobTypes);
+        return jobMetadataBaseDelegate.listExecPOByJobTypeAndStatus(project, state, jobTypes);
     }
 
-    @Override
     public void discardJob(String project, String jobId) {
-        getDelegate().discardJob(project, jobId);
+        jobMetadataBaseDelegate.discardJob(project, jobId);
     }
-
-    public void stopBatchJob(String project, TableDesc tableDesc) {
-        getDelegate().stopBatchJob(project, tableDesc);
-    }
-
 }

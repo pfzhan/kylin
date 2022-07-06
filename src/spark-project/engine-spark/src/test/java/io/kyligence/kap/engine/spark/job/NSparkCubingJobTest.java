@@ -87,7 +87,7 @@ import io.kyligence.kap.job.execution.NSparkMergingJob;
 import io.kyligence.kap.job.execution.merger.AfterBuildResourceMerger;
 import io.kyligence.kap.job.execution.step.NSparkCubingStep;
 import io.kyligence.kap.job.manager.ExecutableManager;
-import io.kyligence.kap.job.mapper.JobMapperUTUtil;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.job.util.ExecutableUtils;
 import io.kyligence.kap.metadata.cube.cuboid.NCuboidLayoutChooser;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
@@ -127,13 +127,13 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
 
         config = getTestConfig();
 
-        JobMapperUTUtil.cleanUp();
-        JobMapperUTUtil.getJobContextForTest(config);
+        JobContextUtil.cleanUp();
+        JobContextUtil.getJobContextForTest(config);
     }
 
     @After
     public void after() throws Exception {
-        JobMapperUTUtil.cleanUp();
+        JobContextUtil.cleanUp();
         cleanupTestMetadata();
     }
 

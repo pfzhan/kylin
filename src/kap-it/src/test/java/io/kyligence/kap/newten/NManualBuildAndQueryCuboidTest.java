@@ -59,6 +59,7 @@ import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 import io.kyligence.kap.engine.spark.builder.CreateFlatTable;
 import io.kyligence.kap.engine.spark.job.CuboidAggregator;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NCubeJoinedFlatTableDesc;
@@ -85,10 +86,9 @@ public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
     }
 
     @After
-    public void after() {
-        //TODO need to be rewritten
-        // NDefaultScheduler.destroyInstance();
+    public void after() throws Exception {
         super.cleanupTestMetadata();
+        JobContextUtil.cleanUp();
     }
 
     @Override

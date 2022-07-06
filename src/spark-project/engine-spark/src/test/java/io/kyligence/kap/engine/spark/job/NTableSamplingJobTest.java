@@ -30,6 +30,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
+import io.kyligence.kap.job.util.JobContextUtil;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.dao.JobStatisticsManager;
@@ -57,13 +58,13 @@ public class NTableSamplingJobTest extends NLocalWithSparkSessionTest {
 
     @After
     public void after() throws IOException {
-        //TODO need to be written
-        // NDefaultScheduler.destroyInstance();
         super.cleanupTestMetadata();
         FileUtils.deleteQuietly(new File("../kap-it/metastore_db"));
+
+        JobContextUtil.cleanUp();
     }
 
-    //TODO need to be written
+    //TODO need to be rewritten
     /*
     @Test
     public void testTableSamplingJob() {
@@ -200,7 +201,7 @@ public class NTableSamplingJobTest extends NLocalWithSparkSessionTest {
 
     }
 
-    //TODO need to be written
+    //TODO need to be rewritten
     /*
     @Test
     public void testPauseTableSamplingJob() {

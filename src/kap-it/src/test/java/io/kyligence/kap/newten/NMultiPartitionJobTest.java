@@ -39,6 +39,7 @@ import org.sparkproject.guava.collect.Sets;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -52,19 +53,15 @@ public class NMultiPartitionJobTest extends NLocalWithSparkSessionTest {
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         overwriteSystemProp("kylin.model.multi-partition-enabled", "true");
         this.createTestMetadata("src/test/resources/ut_meta/multi_partition");
-        //TODO need to be rewritten
-        //        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        //        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
-        //        if (!scheduler.hasStarted()) {
-        //            throw new RuntimeException("scheduler has not been started");
-        //        }
+
+        JobContextUtil.cleanUp();
+        JobContextUtil.getJobContextForTest(getTestConfig());
     }
 
     @After
     public void after() {
-        //TODO need to be rewritten
-        // NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
+        JobContextUtil.cleanUp();
     }
 
     @Override

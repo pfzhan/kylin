@@ -44,6 +44,7 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -61,6 +62,7 @@ import io.kyligence.kap.job.execution.ExecutableParams;
 import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.job.manager.JobManager;
 import io.kyligence.kap.job.util.ExecutableUtils;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
@@ -85,14 +87,27 @@ public class JobManagerTest extends NLocalFileMetadataTestCase {
 
     private static JobManager jobManager;
 
+    private KylinConfig config;
+
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
     @Before
     public void setup() throws Exception {
         this.createTestMetadata();
+        config = getTestConfig();
+
+        JobContextUtil.cleanUp();
+        JobContextUtil.getJobContextForTest(config);
+
         jobManager = JobManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT);
         ExecutableUtils.initJobFactory();
+    }
+
+    @After
+    public void after() throws Exception {
+        JobContextUtil.cleanUp();
+        cleanupTestMetadata();
     }
 
     private void assertExeption(Functions f, String msg) {

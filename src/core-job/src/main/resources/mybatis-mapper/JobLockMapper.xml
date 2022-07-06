@@ -22,6 +22,9 @@
     delete from job_lock
     where id = #{id,jdbcType=BIGINT}
   </delete>
+  <delete id="deleteAllJobLock">
+    delete from job_lock
+  </delete>
   <insert id="insert" parameterType="io.kyligence.kap.job.domain.JobLock">
     insert into job_lock (id, lock_id, lock_node, 
       lock_expire_time, create_time, update_time

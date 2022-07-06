@@ -29,10 +29,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.job.execution.AbstractExecutable;
-import io.kyligence.kap.job.execution.NTableSamplingJob;
-import io.kyligence.kap.job.execution.step.NResourceDetectStep;
-import io.kyligence.kap.job.manager.ExecutableManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -40,6 +36,7 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -55,6 +52,12 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.job.JobContext;
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.execution.NTableSamplingJob;
+import io.kyligence.kap.job.execution.step.NResourceDetectStep;
+import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
@@ -71,7 +74,7 @@ public class TableSamplingServiceTest extends NLocalFileMetadataTestCase {
     private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
 
     @Before
-    public void setup() {
+    public void setup() throws Exception {
         overwriteSystemProp("HADOOP_USER_NAME", "root");
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
@@ -87,6 +90,18 @@ public class TableSamplingServiceTest extends NLocalFileMetadataTestCase {
                 projectInstanceUpdate.getDescription(), projectInstanceUpdate.getOverrideKylinProps());
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", Mockito.spy(AclUtil.class));
         ReflectionTestUtils.setField(tableSamplingService, "aclEvaluate", aclEvaluate);
+
+        JobContextUtil.cleanUp();
+        JobContextUtil.getJobInfoDao(getTestConfig());
+        JobContext jobContext = JobContextUtil.getJobContext(getTestConfig());
+        // need not start job scheduler
+        jobContext.destroy();
+    }
+
+    @After
+    public void tearDown() {
+        cleanupTestMetadata();
+        JobContextUtil.cleanUp();
     }
 
     @Test
@@ -197,7 +212,7 @@ public class TableSamplingServiceTest extends NLocalFileMetadataTestCase {
         // launch another job on the same table will discard the second job and create a new job(thirdJob)
         Assert.assertTrue(tableSamplingService.hasSamplingJob(PROJECT, table));
         UnitOfWork.doInTransactionWithRetry(() -> {
-            executableManager.updateJobOutput(secondJob.getId(), ExecutableState.RUNNING);
+            //executableManager.updateJobOutput(secondJob.getId(), ExecutableState.RUNNING);
             tableSamplingService.sampling(Sets.newHashSet(table), PROJECT, SAMPLING_ROWS, ExecutablePO.DEFAULT_PRIORITY,
                     null, null);
             return null;
@@ -216,6 +231,7 @@ public class TableSamplingServiceTest extends NLocalFileMetadataTestCase {
         // launch another job on the same table will discard the second job and create a new job(fourthJob)
         Assert.assertTrue(tableSamplingService.hasSamplingJob(PROJECT, table));
         UnitOfWork.doInTransactionWithRetry(() -> {
+            executableManager.updateJobOutput(thirdJob.getId(), ExecutableState.PENDING);
             executableManager.updateJobOutput(thirdJob.getId(), ExecutableState.ERROR);
             tableSamplingService.sampling(Sets.newHashSet(table), PROJECT, SAMPLING_ROWS, ExecutablePO.DEFAULT_PRIORITY,
                     null, null);

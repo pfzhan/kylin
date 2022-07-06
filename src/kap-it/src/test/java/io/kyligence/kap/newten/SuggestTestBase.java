@@ -36,6 +36,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.job.util.JobContextUtil;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -104,8 +105,6 @@ public abstract class SuggestTestBase extends NLocalWithSparkSessionTest {
 
     @After
     public void tearDown() throws Exception {
-        //TODO need to be rewritten
-        // NDefaultScheduler.destroyInstance();
         if (jdbcTemplate != null) {
             jdbcTemplate.batchUpdate("DROP ALL OBJECTS");
         }
@@ -114,6 +113,7 @@ public abstract class SuggestTestBase extends NLocalWithSparkSessionTest {
         excludedSqlPatterns = Sets.newHashSet();
 
         FileUtils.deleteQuietly(new File("../kap-it/metastore_db"));
+        JobContextUtil.cleanUp();
     }
 
     public Set<String> loadWhiteListPatterns() throws IOException {

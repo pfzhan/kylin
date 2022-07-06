@@ -41,8 +41,6 @@ import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.job.execution.NSparkCubingJob;
-import io.kyligence.kap.job.execution.handler.ExecutableAddCuboidHandler;
 import org.apache.commons.collections.ListUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -71,6 +69,9 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.job.execution.NSparkCubingJob;
+import io.kyligence.kap.job.execution.handler.ExecutableAddCuboidHandler;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -117,6 +118,7 @@ public class IndexPlanServiceTest extends SourceTestCase {
     public void tearDown() {
         getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "false");
         cleanupTestMetadata();
+        JobContextUtil.cleanUp();
     }
 
     @Before
@@ -126,6 +128,9 @@ public class IndexPlanServiceTest extends SourceTestCase {
         indexPlanService.setSemanticUpater(semanticService);
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
         ReflectionTestUtils.setField(indexPlanService, "aclEvaluate", aclEvaluate);
+
+        JobContextUtil.cleanUp();
+        JobContextUtil.getJobInfoDao(getTestConfig());
     }
 
     private AtomicBoolean prepare(String modelId) {

@@ -63,12 +63,6 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
     public void setup() {
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         createTestMetadata();
-                //TODO need to be rewritten
-        //        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        //        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
-        //        if (!scheduler.hasStarted()) {
-        //            throw new RuntimeException("scheduler has not been started");
-        //        }
         slowQueryDetector = new SlowQueryDetector(100, TIMEOUT_MS);
         slowQueryDetector.start();
     }
@@ -80,8 +74,6 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
 
     @After
     public void after() {
-        //TODO need to be rewritten
-        // NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
         slowQueryDetector.interrupt();
     }

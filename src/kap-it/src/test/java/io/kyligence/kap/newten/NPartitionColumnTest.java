@@ -34,6 +34,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.junit.TimeZoneTestRunner;
 import io.kyligence.kap.util.ExecAndComp;
 import lombok.val;
@@ -45,19 +46,15 @@ public class NPartitionColumnTest extends NLocalWithSparkSessionTest {
     public void setup() throws Exception {
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         this.createTestMetadata("src/test/resources/ut_meta/partition_col");
-        //TODO need to be rewritten
-        //        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        //        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
-        //        if (!scheduler.hasStarted()) {
-        //            throw new RuntimeException("scheduler has not been started");
-        //        }
+
+        JobContextUtil.cleanUp();
+        JobContextUtil.getJobContextForTest(getTestConfig());
     }
 
     @After
     public void after() throws Exception {
-        //TODO need to be rewritten
-        // NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
+        JobContextUtil.cleanUp();
     }
 
     @Test

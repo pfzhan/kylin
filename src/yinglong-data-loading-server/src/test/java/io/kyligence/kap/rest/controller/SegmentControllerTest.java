@@ -49,6 +49,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
@@ -57,6 +58,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
 import io.kyligence.kap.rest.request.BuildIndexRequest;
 import io.kyligence.kap.rest.request.BuildSegmentsRequest;
 import io.kyligence.kap.rest.request.IncrementBuildSegmentsRequest;
@@ -103,6 +105,9 @@ public class SegmentControllerTest extends NLocalFileMetadataTestCase {
                 .build();
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        ModelMetadataInvoker.setDelegate(modelService);
+        ReflectionTestUtils.setField(segmentController, "modelMetadataInvoker", new ModelMetadataInvoker());
     }
 
     @Before

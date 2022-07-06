@@ -40,6 +40,7 @@ import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.job.execution.NSparkCubingJob;
 import io.kyligence.kap.job.execution.NSparkExecutable;
 import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
@@ -51,24 +52,19 @@ public class ResourceDetectBeforeCubingJobTest extends NLocalWithSparkSessionTes
     private KylinConfig config;
 
     @Before
-    public void setup() {
+    public void setup() throws Exception {
         ss.sparkContext().setLogLevel("ERROR");
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
-        //TODO need to be written
-        //        NDefaultScheduler.destroyInstance();
-        //        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        //        scheduler.init(new JobEngineConfig(getTestConfig()));
-        //        if (!scheduler.hasStarted()) {
-        //            throw new RuntimeException("scheduler has not been started");
-        //        }
 
         config = getTestConfig();
+
+        JobContextUtil.cleanUp();
+        JobContextUtil.getJobContextForTest(config);
     }
 
     @After
-    public void after() {
-        //TODO need to be written
-        // NDefaultScheduler.destroyInstance();
+    public void after() throws Exception {
+        JobContextUtil.cleanUp();
         cleanupTestMetadata();
     }
 

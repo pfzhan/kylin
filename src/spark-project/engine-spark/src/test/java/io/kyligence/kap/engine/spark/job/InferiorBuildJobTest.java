@@ -45,6 +45,7 @@ import org.sparkproject.guava.collect.Sets;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.engine.spark.storage.ParquetStorage;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
@@ -64,27 +65,21 @@ public class InferiorBuildJobTest extends NLocalWithSparkSessionTest {
     }
 
     @Before
-    public void setup() {
+    public void setup() throws Exception {
         ss.sparkContext().setLogLevel("ERROR");
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         overwriteSystemProp("kylin.engine.persist-flattable-threshold", "0");
         overwriteSystemProp("kylin.engine.persist-flatview", "true");
 
-        //TODO need to be rewritten
-        //        NDefaultScheduler.destroyInstance();
-        //        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        //        scheduler.init(new JobEngineConfig(getTestConfig()));
-        //        if (!scheduler.hasStarted()) {
-        //            throw new RuntimeException("scheduler has not been started");
-        //        }
-
         config = getTestConfig();
+
+        JobContextUtil.cleanUp();
+        JobContextUtil.getJobContextForTest(config);
     }
 
     @After
-    public void after() {
-        //TODO need to be rewritten
-        //        NDefaultScheduler.destroyInstance();
+    public void after() throws Exception {
+        JobContextUtil.cleanUp();
         cleanupTestMetadata();
     }
 

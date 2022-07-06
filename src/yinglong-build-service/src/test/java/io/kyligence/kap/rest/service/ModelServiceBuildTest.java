@@ -92,6 +92,8 @@ import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.engine.spark.utils.ComputedColumnEvalUtil;
+import io.kyligence.kap.job.dao.JobInfoDao;
+import io.kyligence.kap.job.delegate.JobMetadataDelegate;
 import io.kyligence.kap.job.execution.AbstractExecutable;
 import io.kyligence.kap.job.execution.ExecutableParams;
 import io.kyligence.kap.job.execution.NSparkCubingJob;
@@ -99,6 +101,8 @@ import io.kyligence.kap.job.execution.handler.ExecutableAddCuboidHandler;
 import io.kyligence.kap.job.execution.handler.ExecutableAddSegmentHandler;
 import io.kyligence.kap.job.execution.handler.ExecutableMergeOrRefreshHandler;
 import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.job.service.JobInfoService;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.junit.rule.TransactionExceptedException;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -123,6 +127,8 @@ import io.kyligence.kap.metadata.query.QueryTimesResponse;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
+import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
+import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.PartitionsRefreshRequest;
 import io.kyligence.kap.rest.request.SegmentTimeRequest;
@@ -151,9 +157,6 @@ public class ModelServiceBuildTest extends SourceTestCase {
 
     @InjectMocks
     private final ModelSemanticHelper semanticService = Mockito.spy(new ModelSemanticHelper());
-
-    @InjectMocks
-    private final JobService jobService = Mockito.spy(new JobService());
 
     @InjectMocks
     private final TableService tableService = Mockito.spy(new TableService());
@@ -217,14 +220,32 @@ public class ModelServiceBuildTest extends SourceTestCase {
                 }));
         ReflectionTestUtils.setField(modelService, "projectService", projectService);
         ReflectionTestUtils.setField(modelService, "modelQuerySupporter", modelQueryService);
-        ReflectionTestUtils.setField(tableService, "jobService", jobService);
+
         ReflectionTestUtils.setField(tableService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(tableService, "fusionModelService", fusionModelService);
         ReflectionTestUtils.setField(tableService, "aclTCRService", aclTCRService);
+
+        ModelMetadataInvoker modelMetadataInvoker = new ModelMetadataInvoker();
+        ModelMetadataInvoker.setDelegate(modelService);
+        JobInfoService jobInfoService = new JobInfoService();
+        JobContextUtil.cleanUp();
+        JobInfoDao jobInfoDao = JobContextUtil.getJobInfoDao(getTestConfig());
+        ReflectionTestUtils.setField(jobInfoService, "jobInfoDao", jobInfoDao);
+        ReflectionTestUtils.setField(jobInfoService, "modelMetadataInvoker", modelMetadataInvoker);
+        JobMetadataDelegate jobMetadataDelegate = new JobMetadataDelegate();
+        ReflectionTestUtils.setField(jobMetadataDelegate, "jobInfoService", jobInfoService);
+        JobMetadataInvoker jobMetadataInvoker = new JobMetadataInvoker();
+        JobMetadataInvoker.setDelegate(jobMetadataDelegate);
+
+        ReflectionTestUtils.setField(tableService, "jobInfoService", jobInfoService);
+        ReflectionTestUtils.setField(tableService, "jobMetadataInvoker", jobMetadataInvoker);
+
         ReflectionTestUtils.setField(modelService, "modelBuildService", modelBuildService);
+        ReflectionTestUtils.setField(modelService, "jobMetadataInvoker", jobMetadataInvoker);
         ReflectionTestUtils.setField(modelBuildService, "modelService", modelService);
         ReflectionTestUtils.setField(modelBuildService, "segmentHelper", segmentHelper);
         ReflectionTestUtils.setField(modelBuildService, "aclEvaluate", aclEvaluate);
+        ReflectionTestUtils.setField(modelBuildService, "modelMetadataInvoker", modelMetadataInvoker);
         ReflectionTestUtils.setField(indexPlanService, "aclEvaluate", aclEvaluate);
 
         modelService.setSemanticUpdater(semanticService);
@@ -249,6 +270,7 @@ public class ModelServiceBuildTest extends SourceTestCase {
         EventBusFactory.getInstance().unregister(modelBrokenListener);
         EventBusFactory.getInstance().restart();
         cleanupTestMetadata();
+        JobContextUtil.cleanUp();
     }
 
     @Test

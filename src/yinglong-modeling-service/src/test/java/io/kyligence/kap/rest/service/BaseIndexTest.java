@@ -34,7 +34,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.job.execution.AbstractExecutable;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.rest.service.IUserGroupService;
@@ -52,6 +51,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.job.execution.AbstractExecutable;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexEntity.Source;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;

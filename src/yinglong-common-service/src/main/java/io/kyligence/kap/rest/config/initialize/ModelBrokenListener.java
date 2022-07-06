@@ -26,8 +26,6 @@ package io.kyligence.kap.rest.config.initialize;
 
 import java.io.IOException;
 
-import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
-import io.kyligence.kap.rest.delegate.JobMetadataRequest;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
@@ -51,6 +49,8 @@ import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
+import io.kyligence.kap.rest.delegate.JobMetadataBaseInvoker;
+import io.kyligence.kap.rest.delegate.JobMetadataRequest;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -160,7 +160,7 @@ public class ModelBrokenListener {
                 jobParam.setProject(project);
                 val sourceUsageManager = SourceUsageManager.getInstance(config);
                 sourceUsageManager.licenseCheckWrap(project,
-                        () -> JobMetadataInvoker.getInstance().addIndexJob(new JobMetadataRequest(jobParam)));
+                        () -> JobMetadataBaseInvoker.getInstance().addIndexJob(new JobMetadataRequest(jobParam)));
             }
             model.setHandledAfterBroken(false);
             modelManager.updateDataBrokenModelDesc(model);

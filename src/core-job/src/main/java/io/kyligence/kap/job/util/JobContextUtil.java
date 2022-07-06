@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.job.mapper;
+package io.kyligence.kap.job.util;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -49,6 +49,7 @@ import org.apache.ibatis.transaction.TransactionFactory;
 import org.apache.ibatis.type.JdbcType;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
+import org.apache.kylin.rest.util.SpringContext;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.core.io.support.ResourcePatternResolver;
@@ -61,12 +62,14 @@ import io.kyligence.kap.job.JobContext;
 import io.kyligence.kap.job.core.AbstractJobConfig;
 import io.kyligence.kap.job.core.config.FileJobConfig;
 import io.kyligence.kap.job.dao.JobInfoDao;
+import io.kyligence.kap.job.mapper.JobInfoMapper;
+import io.kyligence.kap.job.mapper.JobLockMapper;
 import io.kyligence.kap.metadata.transaction.SpringManagedTransactionFactory;
 import io.kyligence.kap.rest.delegate.ModelMetadataBaseInvoker;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class JobMapperUTUtil {
+public class JobContextUtil {
 
     private static final Charset DEFAULT_CHARSET = Charset.defaultCharset();
 
@@ -100,8 +103,8 @@ public class JobMapperUTUtil {
         initMappers(config);
         if (null == jobContext) {
             AbstractJobConfig jobConfig = new FileJobConfig();
-            jobConfig.setJobSchedulerMasterPollIntervalSec(0L);
-            jobConfig.setJobSchedulerSlavePollIntervalSec(0L);
+            jobConfig.setJobSchedulerMasterPollIntervalSec(1L);
+            jobConfig.setJobSchedulerSlavePollIntervalSec(2L);
             jobContext = new JobContext();
             jobContext.setJobConfig(jobConfig);
             jobContext.setJobInfoMapper(jobInfoMapper);
@@ -125,7 +128,9 @@ public class JobMapperUTUtil {
             SqlSessionFactory sqlSessionFactory = getSqlSessionFactory(dataSource);
             sqlSessionManager = SqlSessionManager.newInstance(sqlSessionFactory);
             jobInfoMapper = sqlSessionManager.getMapper(JobInfoMapper.class);
+            jobInfoMapper.deleteAllJob();
             jobLockMapper = sqlSessionManager.getMapper(JobLockMapper.class);
+            jobLockMapper.deleteAllJobLock();
         } catch (Exception e) {
             throw new RuntimeException("initialize mybatis mappers failed", e);
         }
@@ -191,16 +196,39 @@ public class JobMapperUTUtil {
         }
     }
 
-    synchronized  public static void cleanUp() throws Exception {
-        if (null != jobContext) {
-            jobContext.destroy();
-
-            jobInfoMapper = null;
-            jobLockMapper = null;
-            jobInfoDao = null;
-            jobContext = null;
-            sqlSessionManager = null;
-            transactionManager = null;
+    public static JobInfoDao getJobInfoDao(KylinConfig config) {
+        if (config.isUTEnv()) {
+            return getJobInfoDaoForTest(config);
+        } else {
+            return SpringContext.getBean(JobInfoDao.class);
         }
+    }
+
+    public static JobContext getJobContext(KylinConfig config) {
+        if (config.isUTEnv()) {
+            return getJobContextForTest(config);
+        } else {
+            return SpringContext.getBean(JobContext.class);
+        }
+    }
+
+    // for test only
+    synchronized public static void cleanUp() {
+        try {
+            if (null != jobContext) {
+                jobContext.destroy();
+
+                jobInfoMapper = null;
+                jobLockMapper = null;
+                jobInfoDao = null;
+                jobContext = null;
+                sqlSessionManager = null;
+                transactionManager = null;
+            }
+        } catch (Exception e) {
+            log.error("JobContextUtil clean up failed.");
+            throw new RuntimeException("JobContextUtil clean up failed.", e);
+        }
+
     }
 }

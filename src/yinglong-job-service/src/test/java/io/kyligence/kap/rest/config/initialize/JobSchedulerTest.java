@@ -74,7 +74,7 @@ import lombok.var;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-//TODO need to be written
+//TODO need to be rewritten
 @Ignore
 public class JobSchedulerTest extends NLocalFileMetadataTestCase {
 

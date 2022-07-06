@@ -49,11 +49,17 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import io.kyligence.kap.common.scheduler.EventBusFactory;
+import io.kyligence.kap.job.dao.JobInfoDao;
+import io.kyligence.kap.job.delegate.JobMetadataDelegate;
+import io.kyligence.kap.job.service.JobInfoService;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.rest.config.initialize.ModelUpdateListener;
+import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
+import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
 import io.kyligence.kap.rest.request.IndexesToSegmentsRequest;
 import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
 import lombok.val;
@@ -108,17 +114,31 @@ public class FusionModelServiceBuildTest extends SourceTestCase {
         ReflectionTestUtils.setField(modelBuildService, "modelService", modelService);
         ReflectionTestUtils.setField(fusionModelService, "modelBuildService", modelBuildService);
         ReflectionTestUtils.setField(modelService, "userGroupService", userGroupService);
+        ModelMetadataInvoker modelMetadataInvoker = new ModelMetadataInvoker();
+        ModelMetadataInvoker.setDelegate(modelService);
+        ReflectionTestUtils.setField(modelBuildService, "modelMetadataInvoker", modelMetadataInvoker);
         ReflectionTestUtils.setField(semanticService, "userGroupService", userGroupService);
         ReflectionTestUtils.setField(indexPlanService, "aclEvaluate", aclEvaluate);
         modelService.setSemanticUpdater(semanticService);
         modelService.setIndexPlanService(indexPlanService);
         TestingAuthenticationToken auth = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
         SecurityContextHolder.getContext().setAuthentication(auth);
+        ModelMetadataInvoker.setDelegate(modelService);
+
+        JobInfoService jobInfoService = new JobInfoService();
+        JobContextUtil.cleanUp();
+        JobInfoDao jobInfoDao = JobContextUtil.getJobInfoDao(getTestConfig());
+        ReflectionTestUtils.setField(jobInfoService, "jobInfoDao", jobInfoDao);
+        ReflectionTestUtils.setField(jobInfoService, "modelMetadataInvoker", modelMetadataInvoker);
+        JobMetadataDelegate jobMetadataDelegate = new JobMetadataDelegate();
+        ReflectionTestUtils.setField(jobMetadataDelegate, "jobInfoService", jobInfoService);
+        JobMetadataInvoker.setDelegate(jobMetadataDelegate);
     }
 
     @After
     public void tearDown() {
         cleanupTestMetadata();
+        JobContextUtil.cleanUp();
     }
 
     @Test

@@ -95,6 +95,8 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.scheduler.EventBusFactory;
+import io.kyligence.kap.job.JobContext;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.metadata.acl.AclTCR;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
@@ -107,6 +109,8 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.metadata.streaming.KafkaConfig;
+import io.kyligence.kap.rest.delegate.JobMetadataContract;
+import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
 import io.kyligence.kap.rest.request.AutoMergeRequest;
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.TopTableRequest;
@@ -130,8 +134,8 @@ public class TableServiceTest extends CSVSourceTestCase {
     @InjectMocks
     private final TableService tableService = Mockito.spy(new TableService());
 
-    @InjectMocks
-    private final JobSupporter jobService = Mockito.spy(JobSupporter.class);
+    @Mock
+    private final JobMetadataInvoker jobMetadataInvoker = Mockito.spy(JobMetadataInvoker.class);
 
     @Mock
     private final ModelService modelService = Mockito.spy(ModelService.class);
@@ -160,7 +164,8 @@ public class TableServiceTest extends CSVSourceTestCase {
     public void setup() {
         super.setup();
         overwriteSystemProp("HADOOP_USER_NAME", "root");
-
+        JobMetadataContract jobMetadataContract = Mockito.spy(JobMetadataContract.class);
+        JobMetadataInvoker.setDelegate(jobMetadataContract);
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", Mockito.spy(AclUtil.class));
         ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(tableService, "aclEvaluate", aclEvaluate);
@@ -170,7 +175,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         ReflectionTestUtils.setField(tableService, "kafkaService", kafkaServiceMock);
         ReflectionTestUtils.setField(fusionModelService, "modelService", modelService);
         ReflectionTestUtils.setField(tableService, "fusionModelService", fusionModelService);
-        ReflectionTestUtils.setField(tableService, "jobService", jobService);
+        ReflectionTestUtils.setField(tableService, "jobMetadataInvoker", jobMetadataInvoker);
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         ProjectInstance projectInstance = projectManager.getProject("default");
         LinkedHashMap<String, String> overrideKylinProps = projectInstance.getOverrideKylinProps();
@@ -186,6 +191,16 @@ public class TableServiceTest extends CSVSourceTestCase {
             //
         }
         EventBusFactory.getInstance().register(eventListener, true);
+
+        JobContextUtil.cleanUp();
+        JobContext jobContext = JobContextUtil.getJobContext(getTestConfig());
+        try {
+            // need not start job scheduler
+            jobContext.destroy();
+        } catch (Exception e) {
+            log.error("Destroy jobContext failed.");
+            throw new RuntimeException("Destroy jobContext failed.", e);
+        }
     }
 
     @After
@@ -193,6 +208,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         EventBusFactory.getInstance().unregister(eventListener);
         cleanupTestMetadata();
         FileUtils.deleteQuietly(new File("../server-base/metastore_db"));
+        JobContextUtil.cleanUp();
     }
 
     @Test

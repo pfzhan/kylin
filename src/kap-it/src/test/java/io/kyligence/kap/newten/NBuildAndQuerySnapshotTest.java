@@ -29,6 +29,7 @@ import java.util.stream.Collectors;
 
 import io.kyligence.kap.job.execution.NSparkSnapshotJob;
 import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.job.util.JobContextUtil;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -38,6 +39,7 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.parquet.Strings;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.SparderEnv;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -70,6 +72,12 @@ public class NBuildAndQuerySnapshotTest extends NLocalWithSparkSessionTest {
         config = KylinConfig.getInstanceFromEnv();
         dsMgr = NDataflowManager.getInstance(config, getProject());
         indexDataConstructor = new IndexDataConstructor(getProject());
+    }
+
+    @After
+    public void cleanup() throws Exception {
+        super.cleanupTestMetadata();
+        JobContextUtil.cleanUp();
     }
 
     @Test

@@ -48,7 +48,7 @@ import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.PartitionStatusEnum;
-import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
+import io.kyligence.kap.rest.delegate.JobMetadataBaseInvoker;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -110,7 +110,7 @@ public class SegmentUtil {
     protected static <T extends ISegment> boolean anyIndexJobRunning(T segment) {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         ExecutableManager execManager = ExecutableManager.getInstance(kylinConfig, segment.getModel().getProject());
-        List<ExecutablePO> executablePOS = JobMetadataInvoker.getInstance().listExecPOByJobTypeAndStatus(
+        List<ExecutablePO> executablePOS = JobMetadataBaseInvoker.getInstance().listExecPOByJobTypeAndStatus(
                 segment.getModel().getProject(), "isRunning", INDEX_BUILD, SUB_PARTITION_BUILD);
         return executablePOS.stream().map(execManager::fromPO)
                 .anyMatch(task -> task.getSegmentIds().contains(segment.getId()));

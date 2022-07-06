@@ -51,20 +51,10 @@ public class NSpanningTreeCubingJobTest extends NLocalWithSparkSessionTest {
         ss.sparkContext().setLogLevel("ERROR");
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         overwriteSystemProp("kylin.engine.spark.cache-threshold", "2");
-
-        //TODO need to be rewritten
-        //        NDefaultScheduler.destroyInstance();
-        //        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        //        scheduler.init(new JobEngineConfig(getTestConfig()));
-        //        if (!scheduler.hasStarted()) {
-        //            throw new RuntimeException("scheduler has not been started");
-        //        }
     }
 
     @After
     public void after() {
-        //TODO need to be rewritten
-        // NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
     }
 

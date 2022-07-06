@@ -49,7 +49,7 @@ public class JobCheckUtil {
 
     synchronized private static ScheduledExecutorService getJobCheckThreadPool() {
         if (null == jobCheckThreadPool) {
-            jobCheckThreadPool = ThreadUtils.newDaemonSingleThreadScheduledExecutor("JdbcJobScheduler-Slave");
+            jobCheckThreadPool = ThreadUtils.newDaemonSingleThreadScheduledExecutor("JobCheckThreadPool");
         }
         return jobCheckThreadPool;
     }

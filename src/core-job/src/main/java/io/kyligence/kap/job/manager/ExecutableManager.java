@@ -84,7 +84,6 @@ import org.apache.kylin.job.execution.DefaultOutput;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.Output;
-import org.apache.kylin.rest.util.SpringContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.transaction.annotation.Transactional;
@@ -110,8 +109,8 @@ import io.kyligence.kap.job.execution.DefaultChainedExecutable;
 import io.kyligence.kap.job.execution.DefaultChainedExecutableOnModel;
 import io.kyligence.kap.job.execution.handler.ExecutableHandler;
 import io.kyligence.kap.job.execution.stage.StageBase;
-import io.kyligence.kap.job.mapper.JobMapperUTUtil;
 import io.kyligence.kap.job.rest.JobMapperFilter;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.job.util.JobInfoUtil;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -151,15 +150,7 @@ public class ExecutableManager {
         log.trace("Using metadata url: {}", config);
         this.config = config;
         this.project = project;
-        getJobInfoDao(this.config);
-    }
-
-    private void getJobInfoDao(KylinConfig config) {
-        if (KylinConfig.getInstanceFromEnv().isUTEnv()) {
-            this.jobInfoDao = JobMapperUTUtil.getJobInfoDaoForTest(config);
-        } else {
-            this.jobInfoDao = SpringContext.getBean(JobInfoDao.class);
-        }
+        this.jobInfoDao = JobContextUtil.getJobInfoDao(this.config);
     }
 
     public static ExecutablePO toPO(AbstractExecutable executable, String project) {

@@ -186,6 +186,8 @@ public class JobContext implements InitializingBean, DisposableBean {
         this.jobConfig = jobConfig;
     }
 
+    // for ut only
+    @VisibleForTesting
     public AbstractJobConfig getJobConfig() {
         return jobConfig;
     }
@@ -222,6 +224,10 @@ public class JobContext implements InitializingBean, DisposableBean {
         return jobScheduler;
     }
 
+    public List<JobInfo> fetchAllRunningJobs() {
+        return fetchAllRunningJobs(null, null, null);
+    }
+
     public List<JobInfo> fetchAllRunningJobs(String project, List<String> jobNames, List<String> subjects) {
         JobMapperFilter mapperFilter = JobMapperFilter.builder()
                 .jobNames(jobNames)
@@ -230,7 +236,6 @@ public class JobContext implements InitializingBean, DisposableBean {
                         JobStatusEnum.RUNNING.name()))
                 .subjects(subjects)
                 .project(project)
-                .offset(0).limit(10000)
                 .build();
         return jobInfoMapper.selectByJobFilter(mapperFilter);
     }

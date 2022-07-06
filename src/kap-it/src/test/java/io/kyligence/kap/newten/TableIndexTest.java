@@ -36,6 +36,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.util.ExecAndComp;
 import io.kyligence.kap.util.ExecAndComp.CompareLevel;
 
@@ -44,21 +45,18 @@ public class TableIndexTest extends NLocalWithSparkSessionTest {
     @Before
     public void setup() {
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
-        //TODO need to be rewritten
-        //        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        //        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
-        //        if (!scheduler.hasStarted()) {
-        //            throw new RuntimeException("scheduler has not been started");
-        //        }
+
+        JobContextUtil.cleanUp();
+        JobContextUtil.getJobContextForTest(getTestConfig());
+
         populateSSWithCSVData(getTestConfig(), getProject(), ss);
     }
 
     @After
     public void after() throws Exception {
-        //TODO need to be rewritten
-        // NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
         FileUtils.deleteQuietly(new File("../kap-it/metastore_db"));
+        JobContextUtil.cleanUp();
     }
 
     @Override

@@ -66,6 +66,10 @@ public abstract class AbstractJobConfig {
         return 0.5d;
     }
 
+    public boolean getAutoSetConcurrentJob() {
+        return KylinConfig.getInstanceFromEnv().getAutoSetConcurrentJob();
+    }
+
     public int getJobSchedulerMasterPollBatchSize() {
         return 10;
     }

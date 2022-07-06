@@ -56,6 +56,7 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.common.util.TempMetadataBuilder;
 import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.job.util.ExecutableUtils;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
@@ -118,10 +119,9 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         overwriteSystemProp("kylin.job.event.poll-interval-second", "1");
         overwriteSystemProp("kylin.engine.spark.build-class-name",
                 "io.kyligence.kap.engine.spark.job.MockedDFBuildJob");
-        //TODO need to be rewritten
-        //        NDefaultScheduler.destroyInstance();
-        //        val scheduler = NDefaultScheduler.getInstance(getProject());
-        //        scheduler.init(new JobEngineConfig(getTestConfig()));
+
+        JobContextUtil.cleanUp();
+        JobContextUtil.getJobContextForTest(getTestConfig());
 
         val dfManager = NDataflowManager.getInstance(getTestConfig(), getProject());
         var df = dfManager.getDataflow(MODEL_ID);
@@ -166,9 +166,8 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
 
     @After
     public void tearDown() throws IOException {
-        //TODO need to be rewritten
-        // NDefaultScheduler.getInstance(getProject()).shutdown();
         super.tearDown();
+        JobContextUtil.cleanUp();
     }
 
     public String getProject() {

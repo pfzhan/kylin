@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.job.util.JobContextUtil;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -68,9 +69,8 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
     }
 
     @After
-    public void after() {
-        //TODO need to be rewritten
-        // NDefaultScheduler.destroyInstance();
+    public void after() throws Exception {
+        JobContextUtil.cleanUp();
     }
 
     public void buildCubes() throws Exception {

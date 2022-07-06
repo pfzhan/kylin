@@ -121,6 +121,7 @@ import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.job.manager.JobManager;
 import io.kyligence.kap.job.service.JobInfoService;
 import io.kyligence.kap.job.util.ExecutableUtils;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
@@ -253,12 +254,10 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
         overwriteSystemProp("kylin.second-storage.query-pushdown-limit", "0");
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         overwriteSystemProp("kylin.second-storage.class", ClickHouseStorage.class.getCanonicalName());
-        //TODO need to be rewritten
-        //        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        //        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
-        //        if (!scheduler.hasStarted()) {
-        //            throw new RuntimeException("scheduler has not been started");
-        //        }
+
+        JobContextUtil.cleanUp();
+        JobContextUtil.getJobContextForTest(getTestConfig());
+
         SecurityContextHolder.getContext().setAuthentication(authentication);
         populateSSWithCSVData(getTestConfig(), getProject(), ss);
         indexDataConstructor = new IndexDataConstructor(getProject());
@@ -272,8 +271,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
         }
         QueryContext.reset();
         ClickHouseConfigLoader.clean();
-        //TODO need to be rewritten
-        // NDefaultScheduler.destroyInstance();
+        JobContextUtil.cleanUp();
         ResourceStore.clearCache();
         FileUtils.deleteDirectory(new File("../clickhouse-it/metastore_db"));
         super.tearDown();
@@ -1000,10 +998,9 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
                 }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID, jobId);
 
                 waitJobEnd(project, jobId);
-                //TODO need to be rewritten
-                //                NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
-                //                await().atMost(30, TimeUnit.SECONDS)
-                //                        .until(() -> scheduler.getContext().getRunningJobs().values().size() == 0);
+
+                await().atMost(30, TimeUnit.SECONDS)
+                        .until(() -> JobContextUtil.getJobContextForTest(getTestConfig()).fetchAllRunningJobs().isEmpty());
 
                 EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                     val executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);

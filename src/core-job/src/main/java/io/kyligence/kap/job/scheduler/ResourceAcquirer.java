@@ -44,18 +44,21 @@ public class ResourceAcquirer {
 
     private final AbstractJobConfig jobConfig;
 
-    private final Semaphore memorySemaphore;
-
     private final AtomicInteger accumulator;
 
     private final ConcurrentMap<String, NodeResource> registers;
 
+    private static volatile Semaphore memorySemaphore = new Semaphore(Integer.MAX_VALUE);;
+
     public ResourceAcquirer(AbstractJobConfig jobConfig) {
         this.jobConfig = jobConfig;
 
-        double memoryRatio = jobConfig.getMaxLocalNodeMemoryRatio();
-        memorySemaphore = new Semaphore((int) (memoryRatio * SystemInfoCollector.getAvailableMemoryInfo()));
-
+        if (jobConfig.getAutoSetConcurrentJob()) {
+            double memoryRatio = jobConfig.getMaxLocalNodeMemoryRatio();
+            if (Integer.MAX_VALUE == memorySemaphore.availablePermits()) {
+                memorySemaphore = new Semaphore((int) (memoryRatio * SystemInfoCollector.getAvailableMemoryInfo()));
+            }
+        }
         accumulator = new AtomicInteger(0);
         registers = Maps.newConcurrentMap();
     }

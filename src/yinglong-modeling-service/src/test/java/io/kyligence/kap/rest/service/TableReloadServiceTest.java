@@ -77,10 +77,12 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
+import io.kyligence.kap.job.JobContext;
 import io.kyligence.kap.job.execution.AbstractExecutable;
 import io.kyligence.kap.job.execution.NSparkCubingJob;
 import io.kyligence.kap.job.execution.NTableSamplingJob;
 import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -147,6 +149,15 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         });
         NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
 
+        JobContextUtil.cleanUp();
+        JobContext jobContext = JobContextUtil.getJobContext(getTestConfig());
+        try {
+            // need not start job scheduler
+            jobContext.destroy();
+        } catch (Exception e) {
+            log.error("Destroy jobContext failed.");
+            throw new RuntimeException("Destroy jobContext failed.", e);
+        }
     }
 
     @After
@@ -159,6 +170,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         EventBusFactory.getInstance().unregister(modelBrokenListener);
         EventBusFactory.getInstance().restart();
         super.cleanup();
+        JobContextUtil.cleanUp();
     }
 
     @Test

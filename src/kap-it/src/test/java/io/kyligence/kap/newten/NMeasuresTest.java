@@ -80,6 +80,7 @@ import io.kyligence.kap.job.execution.merger.AfterMergeOrRefreshResourceMerger;
 import io.kyligence.kap.job.execution.step.NSparkCubingStep;
 import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.job.util.ExecutableUtils;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
@@ -105,19 +106,15 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
     @Before
     public void setup() throws Exception {
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
-        //TODO need to be rewritten
-        //        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        //        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
-        //        if (!scheduler.hasStarted()) {
-        //            throw new RuntimeException("scheduler has not been started");
-        //        }
+
+        JobContextUtil.cleanUp();
+        JobContextUtil.getJobContextForTest(getTestConfig());
     }
 
     @After
     public void after() {
-        //TODO need to be rewritten
-        // NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
+        JobContextUtil.cleanUp();
     }
 
     @Test

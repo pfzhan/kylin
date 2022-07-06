@@ -69,8 +69,6 @@ public class NBadQueryAndPushDownTest extends NLocalWithSparkSessionTest {
 
     @After
     public void teardown() {
-        //TODO need to be rewritten
-        // NDefaultScheduler.destroyInstance();
         super.cleanupTestMetadata();
     }
 

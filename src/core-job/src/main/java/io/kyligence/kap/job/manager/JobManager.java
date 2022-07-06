@@ -30,7 +30,6 @@ import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_STORAGE
 
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.job.JobContext;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -39,17 +38,18 @@ import org.apache.kylin.job.common.SegmentUtil;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.model.JobParam;
 
+import io.kyligence.kap.job.JobContext;
 import io.kyligence.kap.job.handler.AbstractJobHandler;
 import io.kyligence.kap.job.handler.AddIndexHandler;
 import io.kyligence.kap.job.handler.AddSegmentHandler;
 import io.kyligence.kap.job.handler.MergeSegmentHandler;
 import io.kyligence.kap.job.handler.RefreshSegmentHandler;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kylin.rest.util.SpringContext;
 
 @Slf4j
 public class JobManager {
@@ -171,7 +171,7 @@ public class JobManager {
     }
 
     public static void checkStorageQuota(String project) {
-        JobContext jobContext = SpringContext.getBean(JobContext.class);
+        JobContext jobContext = JobContextUtil.getJobContext(KylinConfig.getInstanceFromEnv());
         if (null != jobContext && jobContext.isProjectReachQuotaLimit(project)) {
             log.error("Add job failed due to no available storage quota in project {}", project);
             throw new KylinException(JOB_STORAGE_QUOTA_LIMIT);

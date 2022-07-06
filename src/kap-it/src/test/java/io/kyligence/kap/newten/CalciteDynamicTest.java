@@ -41,6 +41,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.util.ExecAndComp;
 import scala.collection.JavaConversions;
 
@@ -52,9 +53,8 @@ public class CalciteDynamicTest extends NLocalWithSparkSessionTest {
     }
 
     @After
-    public void after() {
-        //TODO need to be rewritten
-        // NDefaultScheduler.destroyInstance();
+    public void after() throws Exception {
+        JobContextUtil.cleanUp();
     }
 
     @Test

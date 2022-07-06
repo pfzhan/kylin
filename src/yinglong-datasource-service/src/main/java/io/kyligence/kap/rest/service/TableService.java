@@ -168,6 +168,7 @@ import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
 import io.kyligence.kap.rest.aspect.Transaction;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.constant.JobInfoEnum;
+import io.kyligence.kap.rest.delegate.JobMetadataBaseInvoker;
 import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
 import io.kyligence.kap.rest.delegate.JobMetadataRequest;
 import io.kyligence.kap.rest.delegate.TableSamplingInvoker;
@@ -711,11 +712,11 @@ public class TableService extends BasicService {
         val dataflow = dataflowManager.getDataflow(indexPlan.getUuid());
         val newSegment = dataflowManager.appendSegment(dataflow,
                 new SegmentRange.TimePartitionedSegmentRange(0L, Long.MAX_VALUE));
-        
+
         final JobParam jobParam = new JobParam(newSegment, model, getUsername());
         jobParam.setProject(project);
         getManager(SourceUsageManager.class).licenseCheckWrap(project,
-                () -> jobMetadataInvoker.addSegmentJob(new JobMetadataRequest(jobParam)));
+                () -> JobMetadataBaseInvoker.getInstance().addSegmentJob(new JobMetadataRequest(jobParam)));
     }
 
     public String getPartitionColumnFormat(String project, String table, String partitionColumn) throws Exception {
@@ -803,15 +804,15 @@ public class TableService extends BasicService {
     private List<AbstractExecutable> stopAndGetSnapshotJobs(String project, String table) {
         val execManager = getManager(ExecutableManager.class, project);
 
-        val executables = jobMetadataInvoker.listExecPOByJobTypeAndStatus(project, "isRunning", SNAPSHOT_BUILD,
-                SNAPSHOT_REFRESH);
+        val executables = JobMetadataBaseInvoker.getInstance().listExecPOByJobTypeAndStatus(project, "isRunning",
+                SNAPSHOT_BUILD, SNAPSHOT_REFRESH);
 
         List<AbstractExecutable> conflictJobs = executables.stream().map(execManager::fromPO)
                 .filter(exec -> table.equalsIgnoreCase(exec.getParam(NBatchConstants.P_TABLE_NAME)))
                 .collect(Collectors.toList());
 
         conflictJobs.forEach(job -> {
-            jobMetadataInvoker.discardJob(project, job.getId());
+            JobMetadataBaseInvoker.getInstance().discardJob(project, job.getId());
         });
         return conflictJobs;
     }
@@ -912,7 +913,8 @@ public class TableService extends BasicService {
         storageSize += getSnapshotSize(project, tableIdentity, fs);
         response.setStorageSize(storageSize);
 
-        response.setHasJob(jobMetadataInvoker.countByModelAndStatus(project, tableIdentity, "RUNNING", null) > 0);
+        response.setHasJob(JobMetadataBaseInvoker.getInstance().countByModelAndStatus(project, tableIdentity, "RUNNING",
+                null) > 0);
         response.setHasSnapshot(tableDesc.getLastSnapshotPath() != null);
 
         return response;
@@ -1301,7 +1303,7 @@ public class TableService extends BasicService {
             final JobParam jobParam = new JobParam(model.getId(), getUsername());
             jobParam.setProject(projectName);
             return getManager(SourceUsageManager.class).licenseCheckWrap(projectName,
-                    () -> jobMetadataInvoker.addIndexJob(new JobMetadataRequest(jobParam)));
+                    () -> JobMetadataBaseInvoker.getInstance().addIndexJob(new JobMetadataRequest(jobParam)));
         }
         return null;
     }
@@ -1350,7 +1352,7 @@ public class TableService extends BasicService {
                 final JobParam jobParam = new JobParam(model.getId(), getUsername());
                 jobParam.setProject(projectName);
                 return getManager(SourceUsageManager.class).licenseCheckWrap(projectName,
-                        () -> jobMetadataInvoker.addIndexJob(new JobMetadataRequest(jobParam)));
+                        () -> JobMetadataBaseInvoker.getInstance().addIndexJob(new JobMetadataRequest(jobParam)));
             }
         }
         return null;
@@ -1493,7 +1495,7 @@ public class TableService extends BasicService {
     }
 
     private List<String> getEffectedJobs(TableDesc newTableDesc, JobInfoEnum jobInfoType) {
-        val notFinalStateJobs = jobMetadataInvoker.getJobExecutablesPO(newTableDesc.getProject()).stream()
+        val notFinalStateJobs = JobMetadataBaseInvoker.getInstance().getJobExecutablesPO(newTableDesc.getProject()).stream()
                 .filter(job -> !ExecutableState.valueOf(job.getOutput().getStatus()).isFinalState())
                 .map(job -> getManager(ExecutableManager.class, job.getProject()).fromPO(job))
                 .collect(Collectors.toList());

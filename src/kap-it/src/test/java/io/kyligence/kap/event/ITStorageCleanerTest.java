@@ -40,6 +40,7 @@ import org.junit.Test;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -70,10 +71,9 @@ public class ITStorageCleanerTest extends NLocalWithSparkSessionTest {
                 "top_n")) {
             projectMgr.forceDropProject(project);
         }
-        //TODO need to be rewritten
-        //        NDefaultScheduler.destroyInstance();
-        //        scheduler = NDefaultScheduler.getInstance(getProject());
-        //        scheduler.init(new JobEngineConfig(getTestConfig()));
+
+        JobContextUtil.cleanUp();
+        JobContextUtil.getJobContextForTest(getTestConfig());
 
         val tableMgr = NTableMetadataManager.getInstance(getTestConfig(), getProject());
         val table = tableMgr.getTableDesc("DEFAULT.TEST_KYLIN_FACT");
@@ -83,9 +83,8 @@ public class ITStorageCleanerTest extends NLocalWithSparkSessionTest {
 
     @After
     public void tearDown() throws Exception {
-        //TODO need to be rewritten
-        // NDefaultScheduler.destroyInstance();
         this.cleanupTestMetadata();
+        JobContextUtil.cleanUp();
     }
 
     @Test

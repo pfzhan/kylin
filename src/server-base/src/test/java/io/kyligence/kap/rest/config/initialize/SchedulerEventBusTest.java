@@ -62,7 +62,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.rest.service.JobService;
 import lombok.val;
 
-//TODO need to be written
+//TODO need to be rewritten
 public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
 
     private static final Logger logger = LoggerFactory.getLogger(SchedulerEventBusTest.class);

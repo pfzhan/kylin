@@ -43,6 +43,7 @@ import io.kyligence.kap.job.execution.AbstractExecutable;
 import io.kyligence.kap.job.execution.NSparkCubingJob;
 import io.kyligence.kap.job.execution.NSparkMergingJob;
 import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
@@ -56,21 +57,15 @@ public class NSparkCubingJobOnYarnTest extends NLocalFileMetadataTestCase {
     public void setup() throws Exception {
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         createTestMetadata();
-        //TODO need to be rewritten
-        //        NDefaultScheduler scheduler = NDefaultScheduler.getInstance("default");
-        //        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
-        //        overwriteSystemProp("kylin.hadoop.conf.dir", "../examples/test_case_data/sandbox");
-        //        overwriteSystemProp("SPARK_HOME", "../../build/spark");
-        //        if (!scheduler.hasStarted()) {
-        //            throw new RuntimeException("scheduler has not been started");
-        //        }
+
+        JobContextUtil.cleanUp();
+        JobContextUtil.getJobContextForTest(getTestConfig());
     }
 
     @After
     public void after() throws Exception {
-        //TODO need to be rewritten
-        // NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
+        JobContextUtil.cleanUp();
     }
 
     @Test

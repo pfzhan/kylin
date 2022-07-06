@@ -39,8 +39,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
-import io.kyligence.kap.rest.delegate.JobMetadataRequest;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.dialect.HiveSqlDialect;
 import org.apache.calcite.sql.util.SqlVisitor;
@@ -112,6 +110,8 @@ import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinTableDesc;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
 import io.kyligence.kap.query.util.KapQueryUtil;
+import io.kyligence.kap.rest.delegate.JobMetadataBaseInvoker;
+import io.kyligence.kap.rest.delegate.JobMetadataRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
@@ -984,7 +984,7 @@ public class ModelSemanticHelper extends BasicService {
         if (hasRulebaseLayoutChange(oldRule, newRule) || forceFireEvent) {
             final JobParam jobParam = new JobParam(model, BasicService.getUsername());
             jobParam.setProject(project);
-            String jobId = JobMetadataInvoker.getInstance().addIndexJob(new JobMetadataRequest(jobParam));
+            String jobId = JobMetadataBaseInvoker.getInstance().addIndexJob(new JobMetadataRequest(jobParam));
 
             val buildIndexResponse = new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NORM_BUILD, jobId);
 
@@ -1019,7 +1019,7 @@ public class ModelSemanticHelper extends BasicService {
         if (CollectionUtils.isNotEmpty(indexPlan.getAllLayoutIds(false))) {
             final JobParam jobParam = new JobParam(modelId, BasicService.getUsername());
             jobParam.setProject(project);
-            JobMetadataInvoker.getInstance().addIndexJob(new JobMetadataRequest(jobParam));
+            JobMetadataBaseInvoker.getInstance().addIndexJob(new JobMetadataRequest(jobParam));
         }
     }
 

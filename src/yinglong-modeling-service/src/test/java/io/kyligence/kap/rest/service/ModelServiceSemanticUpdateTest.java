@@ -72,6 +72,7 @@ import io.kyligence.kap.job.execution.NSparkCubingJob;
 import io.kyligence.kap.job.execution.handler.ExecutableAddCuboidHandler;
 import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.job.util.ExecutableUtils;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -160,11 +161,15 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         } catch (Exception e) {
             //
         }
+
+        JobContextUtil.cleanUp();
+        JobContextUtil.getJobInfoDao(getTestConfig());
     }
 
     @After
     public void tearDown() {
         cleanupTestMetadata();
+        JobContextUtil.cleanUp();
     }
 
     @Test

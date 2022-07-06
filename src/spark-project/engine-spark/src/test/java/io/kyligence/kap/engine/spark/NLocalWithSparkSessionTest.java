@@ -32,6 +32,7 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 
+import io.kyligence.kap.job.util.JobContextUtil;
 import org.apache.commons.io.FileUtils;
 import org.apache.curator.test.TestingServer;
 import org.apache.hadoop.util.Shell;
@@ -162,12 +163,8 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         overwriteSystemProp("calcite.keep-in-clause", "true");
         this.createTestMetadata();
-        //TODO need to be written
-        //        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        //        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
-        //        if (!scheduler.hasStarted()) {
-        //            throw new RuntimeException("scheduler has not been started");
-        //        }
+
+        JobContextUtil.getJobContextForTest(getTestConfig());
     }
 
     public static void populateSSWithCSVData(KylinConfig kylinConfig, String project, SparkSession sparkSession) {

@@ -44,6 +44,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
@@ -52,17 +53,18 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.job.JobContext;
 import io.kyligence.kap.job.rest.ExecutableResponse;
 import io.kyligence.kap.job.rest.ExecutableStepResponse;
 import io.kyligence.kap.job.rest.JobFilter;
 import io.kyligence.kap.job.service.JobInfoService;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.rest.request.JobErrorRequest;
 import io.kyligence.kap.rest.request.JobUpdateRequest;
 import io.kyligence.kap.rest.request.SparkJobTimeRequest;
 import io.kyligence.kap.rest.request.SparkJobUpdateRequest;
 import io.kyligence.kap.rest.request.StageRequest;
 import io.kyligence.kap.rest.service.JobService;
-import io.kyligence.kap.tool.restclient.RestClient;
 import lombok.val;
 
 public class JobControllerTest extends NLocalFileMetadataTestCase {
@@ -88,11 +90,16 @@ public class JobControllerTest extends NLocalFileMetadataTestCase {
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
         createTestMetadata();
+
+        JobContextUtil.cleanUp();
+        JobContext jobContext = JobContextUtil.getJobContext(getTestConfig());
+        ReflectionTestUtils.setField(jobController, "jobContext", jobContext);
     }
 
     @After
     public void tearDown() {
         cleanupTestMetadata();
+        JobContextUtil.cleanUp();
     }
 
     @Test
@@ -176,9 +183,7 @@ public class JobControllerTest extends NLocalFileMetadataTestCase {
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        HttpHeaders headers = new HttpHeaders();
-        headers.set(RestClient.ROUTED, "true");
-        Mockito.verify(jobController).updateJobStatus(Mockito.any(JobUpdateRequest.class), headers);
+        Mockito.verify(jobController).updateJobStatus(Mockito.any(JobUpdateRequest.class), Mockito.any(HttpHeaders.class));
     }
 
     @Test
@@ -191,9 +196,7 @@ public class JobControllerTest extends NLocalFileMetadataTestCase {
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        HttpHeaders headers = new HttpHeaders();
-        headers.set(RestClient.ROUTED, "true");
-        Mockito.verify(jobController).updateJobStatus(Mockito.any(JobUpdateRequest.class), headers);
+        Mockito.verify(jobController).updateJobStatus(Mockito.any(JobUpdateRequest.class), Mockito.any(HttpHeaders.class));
     }
 
     @Test
@@ -206,9 +209,7 @@ public class JobControllerTest extends NLocalFileMetadataTestCase {
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        HttpHeaders headers = new HttpHeaders();
-        headers.set(RestClient.ROUTED, "true");
-        Mockito.verify(jobController).updateJobStatus(Mockito.any(JobUpdateRequest.class), headers);
+        Mockito.verify(jobController).updateJobStatus(Mockito.any(JobUpdateRequest.class), Mockito.any(HttpHeaders.class));
     }
 
     @Test

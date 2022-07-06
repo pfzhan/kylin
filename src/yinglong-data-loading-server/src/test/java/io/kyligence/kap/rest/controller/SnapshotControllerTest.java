@@ -54,6 +54,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.job.service.SnapshotJobService;
 import io.kyligence.kap.rest.constant.SnapshotStatus;
 import io.kyligence.kap.rest.request.SnapshotRequest;
 import io.kyligence.kap.rest.request.SnapshotTableConfigRequest;
@@ -69,6 +70,9 @@ public class SnapshotControllerTest extends NLocalFileMetadataTestCase {
 
     @Mock
     private SnapshotService snapshotService;
+
+    @Mock
+    private SnapshotJobService snapshotJobService;
 
     @InjectMocks
     private final SnapshotController snapshotController = Mockito.spy(new SnapshotController());

@@ -50,6 +50,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -78,11 +79,11 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.job.JobContext;
 import io.kyligence.kap.job.domain.JobInfo;
 import io.kyligence.kap.job.execution.NSparkSnapshotJob;
 import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.job.manager.JobManager;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.metadata.acl.AclTCRDigest;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -120,13 +121,9 @@ public class SnapshotJobService extends BasicService implements SnapshotSupporte
     @Autowired
     private TableMetadataInvoker tableMetadataInvoker;
 
-    @Autowired
-    private JobContext jobContext;
-
-    private List<JobInfo> fetchAllRunningSnapshotTasks(String project, List<String> tables){
-        return jobContext.fetchAllRunningJobs(project,
-                Lists.newArrayList(SNAPSHOT_BUILD.name(), SNAPSHOT_REFRESH.name()),
-                tables);
+    private List<JobInfo> fetchAllRunningSnapshotTasks(String project, List<String> tables) {
+        return JobContextUtil.getJobContext(KylinConfig.getInstanceFromEnv()).fetchAllRunningJobs(project,
+                Lists.newArrayList(SNAPSHOT_BUILD.name(), SNAPSHOT_REFRESH.name()), tables);
     }
 
     private List<JobInfo> fetchAllRunningSnapshotTasks(String project, Set<TableDesc> tables){

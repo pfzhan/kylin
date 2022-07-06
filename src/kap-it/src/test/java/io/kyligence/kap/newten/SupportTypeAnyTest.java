@@ -40,18 +40,10 @@ public class SupportTypeAnyTest extends NLocalWithSparkSessionTest {
     @Before
     public void setup() {
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
-        //TODO need to be rewritten
-        //        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        //        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
-        //        if (!scheduler.hasStarted()) {
-        //            throw new RuntimeException("scheduler has not been started");
-        //        }
     }
 
     @After
     public void after() {
-        //TODO need to be rewritten
-        // NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
     }
 

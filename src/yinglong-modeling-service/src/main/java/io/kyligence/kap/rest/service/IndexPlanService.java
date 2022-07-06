@@ -99,7 +99,7 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.util.ExpandableMeasureUtil;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import io.kyligence.kap.rest.aspect.Transaction;
-import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
+import io.kyligence.kap.rest.delegate.JobMetadataBaseInvoker;
 import io.kyligence.kap.rest.delegate.JobMetadataRequest;
 import io.kyligence.kap.rest.request.AggShardByColumnsRequest;
 import io.kyligence.kap.rest.request.CreateBaseIndexRequest;
@@ -136,9 +136,6 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
 
     @Autowired(required = false)
     private final List<ModelChangeSupporter> modelChangeSupporters = Lists.newArrayList();
-
-    @Autowired
-    private JobMetadataInvoker jobMetadataInvoker;
 
     /**
      * expand expand EXPANDABLE measures in index plan request's indexes
@@ -309,7 +306,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
                 final JobParam jobParam = new JobParam(indexPlan.getUuid(), BasicService.getUsername());
                 jobParam.setProject(project);
                 getManager(SourceUsageManager.class).licenseCheckWrap(project,
-                        () -> jobMetadataInvoker.addIndexJob(new JobMetadataRequest(jobParam)));
+                        () -> JobMetadataBaseInvoker.getInstance().addIndexJob(new JobMetadataRequest(jobParam)));
                 return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NORM_BUILD);
             }
         }
@@ -564,7 +561,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
             final JobParam jobParam = new JobParam(modelId, BasicService.getUsername());
             jobParam.setProject(project);
             getManager(SourceUsageManager.class).licenseCheckWrap(project,
-                    () -> jobMetadataInvoker.addIndexJob(new JobMetadataRequest(jobParam)));
+                    () -> JobMetadataBaseInvoker.getInstance().addIndexJob(new JobMetadataRequest(jobParam)));
         }
     }
 
@@ -583,8 +580,9 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
         Segments<NDataSegment> segments = df.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING,
                 SegmentStatusEnum.NEW);
 
-        val executablesCount = jobMetadataInvoker.countByModelAndStatus(project, modelId, "isProgressing",
-                JobTypeEnum.INDEX_BUILD, JobTypeEnum.INC_BUILD, JobTypeEnum.INDEX_REFRESH, JobTypeEnum.INDEX_MERGE);
+        val executablesCount = JobMetadataBaseInvoker.getInstance().countByModelAndStatus(project, modelId,
+                "isProgressing", JobTypeEnum.INDEX_BUILD, JobTypeEnum.INC_BUILD, JobTypeEnum.INDEX_REFRESH,
+                JobTypeEnum.INDEX_MERGE);
 
         if (segments.isEmpty() && executablesCount == 0) {
             result.setShowLoadData(false);
@@ -806,7 +804,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
 
     @VisibleForTesting
     public Set<Long> getLayoutsByRunningJobs(String project, String modelId) {
-        return jobMetadataInvoker.getLayoutsByRunningJobs(project, modelId);
+        return JobMetadataBaseInvoker.getInstance().getLayoutsByRunningJobs(project, modelId);
     }
 
     private IndexResponse convertToResponse(LayoutEntity layoutEntity, NDataModel model) {

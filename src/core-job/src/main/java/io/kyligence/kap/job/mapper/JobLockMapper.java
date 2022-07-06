@@ -50,6 +50,8 @@ public interface JobLockMapper {
 
     int findCount();
 
+    int deleteAllJobLock();
+
     int upsertLock(@Param("lockId") String lockId, @Param("lockNode") String lockNode,
             @Param("renewalSec") long renewalSec);
 

@@ -81,6 +81,7 @@ import io.kyligence.kap.job.execution.NSparkCubingJob;
 import io.kyligence.kap.job.execution.merger.AfterBuildResourceMerger;
 import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.job.util.ExecutableUtils;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -149,6 +150,7 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
     @AfterClass
     public static void afterClass() {
         ss.close();
+        JobContextUtil.cleanUp();
     }
 
     @Before
@@ -169,9 +171,8 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
         projectManager.forceDropProject("broken_test");
         projectManager.forceDropProject("bad_query_test");
 
-        //TODO need to be rewritten
-        //        val scheduler = NDefaultScheduler.getInstance(getProject());
-        //        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
+        JobContextUtil.cleanUp();
+        JobContextUtil.getJobContextForTest(getTestConfig());
 
         ExecutableManager originExecutableManager = ExecutableManager.getInstance(getTestConfig(), getProject());
         ExecutableManager executableManager = Mockito.spy(originExecutableManager);
@@ -219,8 +220,7 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
     @After
     public void teardown() throws Exception {
         cleanPushdownEnv();
-        //TODO need to be rewritten
-        // NDefaultScheduler.destroyInstance();
+        JobContextUtil.cleanUp();
     }
 
     @Test

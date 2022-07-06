@@ -52,6 +52,7 @@ import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.job.execution.NSparkSnapshotJob;
 import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.job.util.ExecutableUtils;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import lombok.val;
@@ -61,26 +62,21 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
     private KylinConfig config;
 
     @Before
-    public void setup() {
+    public void setup() throws Exception {
         ss.sparkContext().setLogLevel("ERROR");
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         overwriteSystemProp("kylin.engine.persist-flattable-threshold", "0");
         overwriteSystemProp("kylin.engine.persist-flatview", "true");
 
-        //TODO need to be rewritten
-        //        NDefaultScheduler.destroyInstance();
-        //        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        //        scheduler.init(new JobEngineConfig(getTestConfig()));
-        //        if (!scheduler.hasStarted()) {
-        //            throw new RuntimeException("scheduler has not been started");
-        //        }
         config = getTestConfig();
+
+        JobContextUtil.cleanUp();
+        JobContextUtil.getJobContextForTest(config);
     }
 
     @After
-    public void after() {
-        //TODO need to be rewritten
-        // NDefaultScheduler.destroyInstance();
+    public void after() throws Exception {
+        JobContextUtil.cleanUp();
         cleanupTestMetadata();
     }
 

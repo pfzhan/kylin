@@ -34,9 +34,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.job.execution.AbstractExecutable;
-import io.kyligence.kap.job.execution.NSparkSnapshotJob;
-import io.kyligence.kap.job.manager.ExecutableManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.Pair;
@@ -48,6 +45,7 @@ import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -68,6 +66,10 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.execution.NSparkSnapshotJob;
+import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -123,6 +125,15 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(snapshotService, "userGroupService", userGroupService);
         ReflectionTestUtils.setField(snapshotService, "tableService", tableService);
         ReflectionTestUtils.setField(projectService, "aclEvaluate", aclEvaluate);
+
+        JobContextUtil.cleanUp();
+        JobContextUtil.getJobInfoDao(getTestConfig());
+    }
+
+    @After
+    public void tearDown() {
+        cleanupTestMetadata();
+        JobContextUtil.cleanUp();
     }
 
     @Test

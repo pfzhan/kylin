@@ -58,6 +58,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.job.service.TableSampleService;
 import io.kyligence.kap.rest.request.PartitionKeyRequest;
 import io.kyligence.kap.rest.request.RefreshSegmentsRequest;
 import io.kyligence.kap.rest.request.TableLoadRequest;
@@ -76,6 +77,9 @@ public class SampleControllerTest extends NLocalFileMetadataTestCase {
 
     @Mock
     private TableSamplingService tableSamplingService;
+
+    @Mock
+    private TableSampleService tableSampleService;
 
     @Mock
     private TableService tableService;

@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.rest.service.BasicService;
@@ -37,12 +38,11 @@ import org.springframework.stereotype.Service;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.job.JobContext;
 import io.kyligence.kap.job.domain.JobInfo;
 import io.kyligence.kap.job.execution.NTableSamplingJob;
-import io.kyligence.kap.job.manager.JobManager;
 import io.kyligence.kap.job.manager.ExecutableManager;
-import io.kyligence.kap.job.mapper.JobInfoMapper;
+import io.kyligence.kap.job.manager.JobManager;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.rest.delegate.JobStatisticsInvoker;
@@ -55,19 +55,13 @@ public class TableSampleService extends BasicService implements TableSamplingSup
     @Autowired
     private AclEvaluate aclEvaluate;
 
-    @Autowired
-    private JobContext jobContext;
-
-    @Autowired(required = false)
-    private JobInfoMapper jobInfoMapper;
-
     public boolean hasSamplingJob(String project, String table) {
         aclEvaluate.checkProjectWritePermission(project);
         return CollectionUtils.isNotEmpty(existingRunningSamplingJobs(project, table));
     }
 
     private List<JobInfo> existingRunningSamplingJobs(String project, String table) {
-        return jobContext.fetchAllRunningJobs(project,
+        return JobContextUtil.getJobContext(KylinConfig.getInstanceFromEnv()).fetchAllRunningJobs(project,
                 Lists.newArrayList(JobTypeEnum.TABLE_SAMPLING.name()),
                 Lists.newArrayList(table));
     }

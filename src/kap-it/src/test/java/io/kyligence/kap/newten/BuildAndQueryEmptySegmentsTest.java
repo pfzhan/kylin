@@ -46,6 +46,7 @@ import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.job.execution.NSparkMergingJob;
 import io.kyligence.kap.job.execution.merger.AfterMergeOrRefreshResourceMerger;
 import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -92,10 +93,9 @@ public class BuildAndQueryEmptySegmentsTest extends NLocalWithSparkSessionTest {
     }
 
     @After
-    public void cleanup() {
-        //TODO need to be rewritten
-        // NDefaultScheduler.destroyInstance();
+    public void cleanup() throws Exception {
         super.cleanupTestMetadata();
+        JobContextUtil.cleanUp();
     }
 
     @Test

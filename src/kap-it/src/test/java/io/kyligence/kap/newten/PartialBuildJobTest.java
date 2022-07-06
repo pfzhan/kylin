@@ -28,12 +28,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.engine.spark.IndexDataConstructor;
-import io.kyligence.kap.job.execution.NSparkCubingJob;
-import io.kyligence.kap.job.execution.merger.AfterBuildResourceMerger;
-import io.kyligence.kap.job.manager.ExecutableManager;
-import io.kyligence.kap.job.util.ExecutableUtils;
-import io.kyligence.kap.util.ExecAndComp;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
@@ -61,7 +55,12 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import io.kyligence.kap.engine.spark.smarter.IndexDependencyParser;
+import io.kyligence.kap.job.execution.NSparkCubingJob;
+import io.kyligence.kap.job.execution.merger.AfterBuildResourceMerger;
+import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.job.util.ExecutableUtils;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -77,6 +76,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.newten.semi.SemiAutoTestBase;
+import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
 import io.kyligence.kap.rest.request.IndexesToSegmentsRequest;
 import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.service.IndexPlanService;
@@ -92,6 +92,7 @@ import io.kyligence.kap.rest.service.task.QueryHistoryTaskScheduler;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.util.AccelerationContextUtil;
+import io.kyligence.kap.util.ExecAndComp;
 import lombok.val;
 
 public class PartialBuildJobTest extends SemiAutoTestBase {
@@ -136,6 +137,8 @@ public class PartialBuildJobTest extends SemiAutoTestBase {
 
         ReflectionTestUtils.setField(modelBuildService, "modelService", modelService);
         ReflectionTestUtils.setField(modelBuildService, "aclEvaluate", aclEvaluate);
+        ReflectionTestUtils.setField(modelBuildService, "modelMetadataInvoker", new ModelMetadataInvoker());
+        ModelMetadataInvoker.setDelegate(modelService);
 
         rawRecService = new RawRecService();
         projectService = new ProjectService();

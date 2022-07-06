@@ -86,7 +86,9 @@ public class JdbcLockClient {
         } catch (Exception e) {
             throw new LockException("Release lock failed", e);
         } finally {
-            renewalMap.remove(jobLock.getLockId());
+            if (null != renewalMap) {
+                renewalMap.remove(jobLock.getLockId());
+            }
         }
     }
 

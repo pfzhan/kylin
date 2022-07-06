@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory;
 import com.sun.tools.javac.util.Assert;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.util.ExecAndComp;
 
 public class NAggPushDownTest extends NLocalWithSparkSessionTest {
@@ -52,19 +53,15 @@ public class NAggPushDownTest extends NLocalWithSparkSessionTest {
         overwriteSystemProp("kylin.query.match-partial-inner-join-model", "true");
         overwriteSystemProp("kylin.query.calcite.aggregate-pushdown-enabled", "true");
         this.createTestMetadata("src/test/resources/ut_meta/agg_push_down");
-        //TODO need to be rewritten
-        //        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        //        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
-        //        if (!scheduler.hasStarted()) {
-        //            throw new RuntimeException("scheduler has not been started");
-        //        }
+
+        JobContextUtil.cleanUp();
+        JobContextUtil.getJobContextForTest(getTestConfig());
     }
 
     @After
     public void after() throws Exception {
-        //TODO need to be rewritten
-        // NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
+        JobContextUtil.cleanUp();
     }
 
     @Override

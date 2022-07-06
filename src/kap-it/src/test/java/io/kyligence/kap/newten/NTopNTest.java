@@ -49,6 +49,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.guava20.shaded.common.base.Throwables;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.metadata.cube.cuboid.NQueryLayoutChooser;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -68,21 +69,18 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
         overwriteSystemProp("kylin.engine.persist-flattable-enabled", "false");
 
         dfMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
-        //TODO need to be rewritten
-        //        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        //        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
-        //        if (!scheduler.hasStarted()) {
-        //            throw new RuntimeException("scheduler has not been started");
-        //        }
+
+        JobContextUtil.cleanUp();
+        JobContextUtil.getJobContextForTest(getTestConfig());
+
         getTestConfig().setProperty("kylin.query.heterogeneous-segment-enabled", "false");
     }
 
     @After
     public void after() throws Exception {
-        //TODO need to be rewritten
-        // NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
         FileUtils.deleteQuietly(new File("../kap-it/metastore_db"));
+        JobContextUtil.cleanUp();
     }
 
     @Override

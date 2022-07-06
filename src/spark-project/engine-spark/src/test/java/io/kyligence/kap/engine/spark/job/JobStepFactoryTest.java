@@ -73,8 +73,6 @@ public class JobStepFactoryTest extends NLocalWithSparkSessionTest {
 
     @After
     public void after() {
-        //TODO need to be rewritten
-        // NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
     }
 
