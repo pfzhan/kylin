@@ -28,7 +28,6 @@ import org.apache.spark.SparkContext
 import org.apache.spark.internal.Logging
 import org.apache.spark.metrics.AppStatus
 import org.apache.spark.sql.execution.adaptive.{AdaptiveSparkPlanExec, ShuffleQueryStageExec}
-import org.apache.spark.sql.execution.command.DataWritingCommandExec
 import org.apache.spark.sql.execution._
 import org.apache.spark.sql.hive.execution.HiveTableScanExec
 
@@ -61,8 +60,6 @@ object QueryMetricUtils extends Logging {
         (scanRow + exec.metrics.apply("numOutputRows").value, scanBytes + exec.metrics.apply("readBytes").value)
       case exec: ShuffleQueryStageExec =>
         collectAdaptiveSparkPlanExecMetrics(exec.plan, scanRow, scanBytes)
-      case exec: DataWritingCommandExec =>
-        (scanRow + exec.metrics.apply("numOutputRows").value, scanBytes + exec.metrics.apply("numOutputBytes").value)
       case exec: AdaptiveSparkPlanExec =>
         collectAdaptiveSparkPlanExecMetrics(exec.executedPlan, scanRow, scanBytes)
       case exec: Any =>
@@ -74,6 +71,8 @@ object QueryMetricUtils extends Logging {
               val result = collectAdaptiveSparkPlanExecMetrics(child, scanRow, scanBytes)
               newScanRow = result._1
               newScanBytes = result._2
+            } else {
+              logTrace("Not sparkPlan in collectAdaptiveSparkPlanExecMetrics, child: " + child.getClass.getName)
             }
           }
         )

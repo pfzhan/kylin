@@ -41,7 +41,7 @@ import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.datasource.storage.UnsafelyInsertIntoHadoopFsRelationCommand
 import org.apache.spark.sql.execution.adaptive.{AdaptiveExecutionContext, AdaptiveSparkPlanExec, ShuffleQueryStageExec}
 import org.apache.spark.sql.execution.aggregate.HashAggregateExec
-import org.apache.spark.sql.execution.command.{DataWritingCommand, DataWritingCommandExec}
+import org.apache.spark.sql.execution.command.{DataWritingCommandExec}
 import org.apache.spark.sql.execution.datasources.parquet.ParquetFileFormat
 import org.apache.spark.sql.execution.datasources.{HadoopFsRelation, InMemoryFileIndex, PartitionSpec}
 import org.apache.spark.sql.execution.exchange.ShuffleExchangeExec
@@ -75,8 +75,8 @@ class SparkQueryMetricUtilsSuite extends QueryTest with SharedSparkSession {
     dataWritingCommandExec.metrics("numOutputRows").+=(1000)
     dataWritingCommandExec.metrics("numOutputBytes").+=(56698)
     val collectScanMetrics = QueryMetricUtils.collectScanMetrics(dataWritingCommandExec)
-    assert(1000 == collectScanMetrics._1.get(0))
-    assert(56698 == collectScanMetrics._2.get(0))
+    assert(0 == collectScanMetrics._1.get(0))
+    assert(0 == collectScanMetrics._2.get(0))
 
     layoutFileSourceScanExec.metrics("numOutputRows").+=(2000)
     layoutFileSourceScanExec.metrics("readBytes").+=(16691)
@@ -106,8 +106,8 @@ class SparkQueryMetricUtilsSuite extends QueryTest with SharedSparkSession {
 
     val dataWritingCommandExec2 = DataWritingCommandExec(dataWritingCommand, kylinFileSourceScanExec)
     val collectScanMetrics5 = QueryMetricUtils.collectScanMetrics(dataWritingCommandExec2)
-    assert(1000 == collectScanMetrics5._1.get(0))
-    assert(56698 == collectScanMetrics5._2.get(0))
+    assert(300 == collectScanMetrics5._1.get(0))
+    assert(5691 == collectScanMetrics5._2.get(0))
 
     val adaptiveSparkPlanExec2 = new AdaptiveSparkPlanExec(kylinFileSourceScanExec,
       adaptiveExecutionContext, null, false, false)
@@ -136,8 +136,8 @@ class SparkQueryMetricUtilsSuite extends QueryTest with SharedSparkSession {
 
     val dataWritingCommandExec3 = DataWritingCommandExec(dataWritingCommand, fileSourceScanExec)
     val collectScanMetrics9 = QueryMetricUtils.collectScanMetrics(dataWritingCommandExec3)
-    assert(1000 == collectScanMetrics9._1.get(0))
-    assert(56698 == collectScanMetrics9._2.get(0))
+    assert(50 == collectScanMetrics9._1.get(0))
+    assert(461 == collectScanMetrics9._2.get(0))
 
     val adaptiveSparkPlanExec3 = new AdaptiveSparkPlanExec(fileSourceScanExec,
       adaptiveExecutionContext, null, false, false)
@@ -177,8 +177,8 @@ class SparkQueryMetricUtilsSuite extends QueryTest with SharedSparkSession {
     assert(3960 == collectScanMetrics16._2)
     val collectScanMetrics17 = QueryMetricUtils.collectAdaptiveSparkPlanExecMetrics(dataWritingCommandExec,
       0, 0)
-    assert(1000 == collectScanMetrics17._1)
-    assert(56698 == collectScanMetrics17._2)
+    assert(5000 == collectScanMetrics17._1)
+    assert(22982 == collectScanMetrics17._2)
     val shuffleExchangeExec =
       new ShuffleExchangeExec(layoutFileSourceScanExec.outputPartitioning, layoutFileSourceScanExec)
     val shuffleQueryStageExec = ShuffleQueryStageExec(1, shuffleExchangeExec, shuffleExchangeExec)
@@ -214,11 +214,11 @@ class SparkQueryMetricUtilsSuite extends QueryTest with SharedSparkSession {
     dataWritingCommandExec.metrics("numOutputRows").+=(2000)
     dataWritingCommandExec.metrics("numOutputBytes").+=(26698)
     val collectScanMetrics = QueryMetricUtils.collectScanMetrics(dataWritingCommandExec)
-    assert(2000 == collectScanMetrics._1.get(0))
-    assert(26698 == collectScanMetrics._2.get(0))
+    assert(0 == collectScanMetrics._1.get(0))
+    assert(0 == collectScanMetrics._2.get(0))
     val collectScanMetrics2 = QueryMetricUtils.collectAdaptiveSparkPlanExecMetrics(dataWritingCommandExec, 1, 1)
-    assert(2001 == collectScanMetrics2._1)
-    assert(26699 == collectScanMetrics2._2)
+    assert(1 == collectScanMetrics2._1)
+    assert(1 == collectScanMetrics2._2)
 
   }
 
